@@ -27,19 +27,23 @@
     "@electron-forge/plugin-fuses": "^7.8.1",
     "@electron-forge/plugin-vite": "^7.8.1",
     "@electron/fuses": "^1.8.0",
+    "@tanstack/router-plugin": "^1.128.3",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
+    "@vitejs/plugin-react": "^4.7.0",
     "electron": "37.2.3",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.32.0",
     "ts-node": "^10.9.2",
     "typescript": "~4.5.4",
-    "vite": "^5.4.19"
+    "vite": "^6.3.5"
   },
   "dependencies": {
+    "@tanstack/react-router": "^1.128.3",
+    "@tanstack/react-router-devtools": "^1.128.3",
     "electron-squirrel-startup": "^1.0.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
