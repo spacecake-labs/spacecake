@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "node:path";
+import fs from "node:fs/promises";
 import started from "electron-squirrel-startup";
 import { buildCSPString } from "./csp";
 
@@ -88,4 +89,42 @@ ipcMain.handle("show-open-dialog", async (event, options) => {
 ipcMain.handle("show-save-dialog", async (event, options) => {
   const result = await dialog.showSaveDialog(options);
   return result;
+});
+
+// IPC handlers for file system operations
+ipcMain.handle("read-directory", async (event, dirPath: string) => {
+  try {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+    const files = await Promise.all(
+      entries.map(async (entry) => {
+        const fullPath = path.join(dirPath, entry.name);
+        const stats = await fs.stat(fullPath);
+
+        return {
+          name: entry.name,
+          path: fullPath,
+          type: entry.isDirectory() ? "directory" : "file",
+          size: stats.size,
+          modified: stats.mtime.toISOString(),
+          isDirectory: entry.isDirectory(),
+        };
+      })
+    );
+
+    // Sort: directories first, then files, both alphabetically
+    const sortedFiles = files.sort((a, b) => {
+      if (a.isDirectory && !b.isDirectory) return -1;
+      if (!a.isDirectory && b.isDirectory) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    return { success: true, files: sortedFiles };
+  } catch (error) {
+    console.error("Error reading directory:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
 });
