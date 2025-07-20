@@ -1,24 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { openDirectory } from "@/lib/fs";
+import { workspaceAtom } from "@/lib/atoms";
+import { useAtom } from "jotai";
 
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
 function Index() {
-  const handleOpenFolder = async () => {
-    try {
-      const result = await window.electronAPI.showOpenDialog({
-        properties: ["openDirectory"],
-      });
+  const [workspace, setWorkspace] = useAtom(workspaceAtom);
 
-      if (!result.canceled && result.filePaths.length > 0) {
-        console.log("Selected folder:", result.filePaths[0]);
-        // Handle the selected folder here
-      }
-    } catch (error) {
-      console.error("Error opening folder:", error);
+  const handleOpenWorkspace = async () => {
+    const selectedPath = await openDirectory();
+    if (selectedPath) {
+      setWorkspace(selectedPath);
     }
   };
 
@@ -30,11 +27,16 @@ function Index() {
           size="lg"
           className="text-base"
           variant="outline"
-          onClick={handleOpenFolder}
+          onClick={handleOpenWorkspace}
         >
           <FolderOpen />
           open folder
         </Button>
+        {workspace && (
+          <p className="text-sm text-muted-foreground text-center max-w-md">
+            Selected: {workspace}
+          </p>
+        )}
         {/* <p className="text-sm text-muted-foreground text-center max-w-md">
           Select a folder to begin 🤗
         </p> */}
