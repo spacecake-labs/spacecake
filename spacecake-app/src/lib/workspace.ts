@@ -1,0 +1,127 @@
+import {
+  Folder,
+  BookOpen,
+  FolderOpen,
+  FileText,
+  Code,
+  Image,
+  FileWarning,
+} from "lucide-react";
+import type { FileEntry } from "@/types/electron";
+import type { LucideIcon } from "lucide-react";
+
+/**
+ * Sidebar navigation item interface
+ */
+export interface SidebarNavItem {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  isActive?: boolean;
+  isDirectory?: boolean;
+  items?: {
+    title: string;
+    url: string;
+  }[];
+}
+
+/**
+ * Utility functions for workspace operations
+ */
+
+/**
+ * Extracts the workspace name from a full path
+ * @param workspacePath - The full workspace path
+ * @returns The workspace name (last part of the path) or "spacecake" as fallback
+ */
+export function getWorkspaceName(workspacePath: string | null): string {
+  if (!workspacePath) return "spacecake";
+  const pathParts = workspacePath.split(/[/\\]/);
+  return pathParts[pathParts.length - 1] || "spacecake";
+}
+
+/**
+ * Gets the appropriate icon for a file based on its extension
+ * @param fileName - The name of the file
+ * @returns The appropriate Lucide icon component
+ */
+function getFileIcon(fileName: string) {
+  const extension = fileName.split(".").pop()?.toLowerCase();
+
+  switch (extension) {
+    case "md":
+    case "txt":
+    case "doc":
+    case "docx":
+      return BookOpen;
+    case "js":
+    case "ts":
+    case "jsx":
+    case "tsx":
+    case "py":
+    case "java":
+    case "cpp":
+    case "c":
+    case "cs":
+    case "php":
+    case "rb":
+    case "go":
+    case "rs":
+    case "swift":
+    case "kt":
+      return Code;
+    case "jpg":
+    case "jpeg":
+    case "png":
+    case "gif":
+    case "svg":
+    case "webp":
+    case "bmp":
+      return Image;
+    default:
+      return FileText;
+  }
+}
+
+/**
+ * Transforms file entries into sidebar navigation items
+ * @param files - Array of file entries from the workspace
+ * @returns Array of sidebar navigation items
+ */
+export function transformFilesToNavItems(files: FileEntry[]): SidebarNavItem[] {
+  const navItems: SidebarNavItem[] = [];
+
+  // Show each file/directory exactly as it is
+  files.forEach((file) => {
+    if (file.isDirectory) {
+      navItems.push({
+        title: file.name,
+        url: `#${file.path}`,
+        icon: Folder,
+        isDirectory: true,
+        items: [],
+      });
+    } else {
+      navItems.push({
+        title: file.name,
+        url: `#${file.path}`,
+        icon: getFileIcon(file.name),
+        isDirectory: false,
+        items: undefined,
+      });
+    }
+  });
+
+  // If no items found, add a default "Workspace" item
+  if (navItems.length === 0) {
+    navItems.push({
+      title: "worspace is empty",
+      url: "#workspace-is-empty",
+      icon: FileWarning,
+      isDirectory: true,
+      items: [],
+    });
+  }
+
+  return navItems;
+}
