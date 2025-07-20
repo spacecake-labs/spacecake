@@ -1,2 +1,5 @@
 start:
     pnpm run start
+
+lint:
+    pnpm run lint

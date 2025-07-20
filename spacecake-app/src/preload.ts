@@ -6,9 +6,9 @@ import { contextBridge, ipcRenderer } from "electron";
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld("electronAPI", {
-  showOpenDialog: (options: any) =>
+  showOpenDialog: (options: unknown) =>
     ipcRenderer.invoke("show-open-dialog", options),
-  showSaveDialog: (options: any) =>
+  showSaveDialog: (options: unknown) =>
     ipcRenderer.invoke("show-save-dialog", options),
   readDirectory: (dirPath: string) =>
     ipcRenderer.invoke("read-directory", dirPath),

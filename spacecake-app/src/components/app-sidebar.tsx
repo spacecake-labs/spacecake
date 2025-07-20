@@ -6,8 +6,16 @@ import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
-import { sidebarNavAtom, workspaceAtom } from "@/lib/atoms";
-import { getWorkspaceName } from "@/lib/workspace";
+import {
+  sidebarNavAtom,
+  workspaceAtom,
+  expandedFoldersAtom,
+  loadingFoldersAtom,
+} from "@/lib/atoms";
+import { getWorkspaceName, transformFilesToNavItems } from "@/lib/workspace";
+import { readDirectory } from "@/lib/fs";
+import type { SidebarNavItem } from "@/lib/workspace";
+
 import {
   Sidebar,
   SidebarContent,
@@ -55,9 +63,63 @@ const defaultUser = {
   avatar: "/avatars/shadcn.jpg",
 };
 
+function updateNavItemsWithChildren(
+  navItems: SidebarNavItem[],
+  folderUrl: string,
+  children: SidebarNavItem[]
+): SidebarNavItem[] {
+  return navItems.map((item) => {
+    if (item.url === folderUrl && item.isDirectory) {
+      return {
+        ...item,
+        items: children,
+      };
+    } else if (item.items && item.items.length > 0) {
+      return {
+        ...item,
+        items: updateNavItemsWithChildren(item.items, folderUrl, children),
+      };
+    }
+    return item;
+  });
+}
+
+// Helper to find a nav item by url (recursive)
+function findNavItemByUrl(
+  items: SidebarNavItem[],
+  url: string
+): SidebarNavItem | null {
+  for (const item of items) {
+    if (item.url === url) return item;
+    if (item.items) {
+      const found = findNavItemByUrl(item.items, url);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [sidebarNav] = useAtom(sidebarNavAtom);
+  const [sidebarNav, setSidebarNav] = useAtom(sidebarNavAtom);
   const [workspace] = useAtom(workspaceAtom);
+  const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom);
+  const [loadingFolders, setLoadingFolders] = useAtom(loadingFoldersAtom);
+
+  const handleExpandFolder = async (folderUrl: string, folderPath: string) => {
+    // Toggle expanded state
+    setExpandedFolders((prev) => ({ ...prev, [folderUrl]: !prev[folderUrl] }));
+    // Only fetch if not already loaded and not already open
+    const folderItem = findNavItemByUrl(sidebarNav, folderUrl);
+    if (!folderItem || folderItem.items) return;
+    if (loadingFolders.includes(folderUrl)) return;
+    setLoadingFolders((prev) => [...prev, folderUrl]);
+    const files = await readDirectory(folderPath);
+    const children = transformFilesToNavItems(files);
+    setSidebarNav((prev) =>
+      updateNavItemsWithChildren(prev, folderUrl, children)
+    );
+    setLoadingFolders((prev) => prev.filter((url) => url !== folderUrl));
+  };
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -83,7 +145,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={sidebarNav} />
+        <NavMain
+          items={sidebarNav}
+          onExpandFolder={handleExpandFolder}
+          loadingFolders={loadingFolders}
+          expandedFolders={expandedFolders}
+        />
         <NavProjects projects={defaultProjects} />
         <NavSecondary items={defaultNavSecondary} className="mt-auto" />
       </SidebarContent>

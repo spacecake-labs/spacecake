@@ -1,7 +1,6 @@
 import {
   Folder,
   BookOpen,
-  FolderOpen,
   FileText,
   Code,
   Image,
@@ -19,10 +18,7 @@ export interface SidebarNavItem {
   icon: LucideIcon;
   isActive?: boolean;
   isDirectory?: boolean;
-  items?: {
-    title: string;
-    url: string;
-  }[];
+  items?: SidebarNavItem[] | null;
 }
 
 /**
@@ -99,7 +95,7 @@ export function transformFilesToNavItems(files: FileEntry[]): SidebarNavItem[] {
         url: `#${file.path}`,
         icon: Folder,
         isDirectory: true,
-        items: [],
+        items: null, // not loaded yet
       });
     } else {
       navItems.push({

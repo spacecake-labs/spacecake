@@ -2,7 +2,6 @@
 
 import { ChevronRight } from "lucide-react";
 import type { SidebarNavItem } from "@/lib/workspace";
-
 import {
   Collapsible,
   CollapsibleContent,
@@ -20,13 +19,41 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 
-export function NavMain({ items }: { items: SidebarNavItem[] }) {
+interface NavMainProps {
+  items: SidebarNavItem[];
+  onExpandFolder?: (folderUrl: string, folderPath: string) => void;
+  loadingFolders?: string[];
+  expandedFolders?: Record<string, boolean>;
+}
+
+export function NavMain({
+  items,
+  onExpandFolder,
+  loadingFolders = [],
+  expandedFolders = {},
+}: NavMainProps) {
+  const handleToggle = (item: SidebarNavItem) => {
+    if (!item.isDirectory) return;
+    if (onExpandFolder && !item.items && !expandedFolders[item.url]) {
+      // Only fetch if not already loaded and not already open
+      onExpandFolder(item.url, item.url.replace(/^#/, ""));
+    } else if (onExpandFolder) {
+      // Still call to toggle expanded state
+      onExpandFolder(item.url, item.url.replace(/^#/, ""));
+    }
+  };
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
-          <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
+          <Collapsible
+            key={item.title}
+            asChild
+            open={!!expandedFolders[item.url]}
+            onOpenChange={() => handleToggle(item)}
+          >
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip={item.title}>
                 <a href={item.url}>
@@ -43,17 +70,23 @@ export function NavMain({ items }: { items: SidebarNavItem[] }) {
                     </SidebarMenuAction>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {item.items?.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton asChild>
-                            <a href={subItem.url}>
-                              <span>{subItem.title}</span>
-                            </a>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
+                    {loadingFolders.includes(item.url) ? (
+                      <div className="pl-6 py-2 text-xs text-muted-foreground">
+                        loading...
+                      </div>
+                    ) : (
+                      <SidebarMenuSub>
+                        {item.items?.map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            <SidebarMenuSubButton asChild>
+                              <a href={subItem.url}>
+                                <span>{subItem.title}</span>
+                              </a>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    )}
                   </CollapsibleContent>
                 </>
               ) : null}
