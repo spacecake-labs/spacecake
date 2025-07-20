@@ -2,14 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { FolderOpen, Loader2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { openDirectory, readDirectory } from "@/lib/fs";
-import { workspaceAtom } from "@/lib/atoms";
+import { workspaceAtom, filesAtom, sidebarNavAtom } from "@/lib/atoms";
+import { transformFilesToNavItems } from "@/lib/workspace";
 import { useAtom } from "jotai";
 import { useEffect } from "react";
 import { atom } from "jotai";
-import type { FileEntry } from "@/types/electron";
 
-const filesAtom = atom<FileEntry[]>([]);
-const loadingAtom = atom<boolean>(false);
+const fileExplorerIsOpenAtom = atom<boolean>(false);
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -18,68 +17,88 @@ export const Route = createFileRoute("/")({
 function Index() {
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
   const [files, setFiles] = useAtom(filesAtom);
-  const [loading, setLoading] = useAtom(loadingAtom);
+  const [sidebarNav, setSidebarNav] = useAtom(sidebarNavAtom);
+  const [fileExplorerIsOpen, setFileExplorerIsOpen] = useAtom(
+    fileExplorerIsOpenAtom
+  );
 
   // Read directory when workspace changes
   useEffect(() => {
     const loadDirectory = async () => {
       if (!workspace) {
         setFiles([]);
+        setSidebarNav([]);
         return;
       }
 
-      setLoading(true);
+      setFileExplorerIsOpen(true);
       try {
         const directoryFiles = await readDirectory(workspace);
         setFiles(directoryFiles);
+
+        // Transform files into sidebar navigation
+        const navItems = transformFilesToNavItems(directoryFiles);
+        setSidebarNav(navItems);
       } catch (error) {
         console.error("error loading directory:", error);
         setFiles([]);
+        setSidebarNav([]);
       } finally {
-        setLoading(false);
+        setFileExplorerIsOpen(false);
       }
     };
 
     loadDirectory();
-  }, [workspace, setFiles, setLoading]);
+  }, [workspace, setFiles, setSidebarNav, setFileExplorerIsOpen]);
 
   const handleOpenWorkspace = async () => {
-    setLoading(true);
+    setFileExplorerIsOpen(true);
     try {
       const selectedPath = await openDirectory();
       if (selectedPath) {
         setWorkspace(selectedPath);
       }
     } finally {
-      setLoading(false);
+      setFileExplorerIsOpen(false);
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-center h-full space-y-4">
       <div className="flex flex-col items-center space-y-3">
-        {/* <FolderOpen className="h-16 w-16 text-muted-foreground" /> */}
         <Button
           size="lg"
           className="text-base"
           variant="outline"
           onClick={handleOpenWorkspace}
-          disabled={loading}
+          disabled={fileExplorerIsOpen}
         >
-          {loading ? <Loader2Icon className="animate-spin" /> : <FolderOpen />}
+          {fileExplorerIsOpen ? (
+            <Loader2Icon className="animate-spin" />
+          ) : (
+            <FolderOpen />
+          )}
           open folder
         </Button>
-        {files.length > 0 && (
+        {workspace && (
           <div className="mt-4 p-4 border rounded-lg bg-muted/50 max-w-2xl max-h-96 overflow-auto">
-            <h3 className="text-sm font-medium mb-2">directory contents:</h3>
-            <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
-              {JSON.stringify(files, null, 2)}
-            </pre>
+            <h3 className="text-sm font-medium mb-2">Workspace: {workspace}</h3>
+            <p className="text-xs text-muted-foreground mb-2">
+              Found {files.length} items, {sidebarNav.length} navigation
+              sections
+            </p>
+            {sidebarNav.length > 0 && (
+              <div className="mt-2">
+                <h4 className="text-xs font-medium mb-1">
+                  Navigation Structure:
+                </h4>
+                <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
+                  {JSON.stringify(sidebarNav, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
         )}
-        {/* <p className="text-sm text-muted-foreground text-center max-w-md">
-          Select a folder to begin 🤗
-        </p> */}
       </div>
     </div>
   );
