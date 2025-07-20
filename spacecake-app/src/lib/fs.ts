@@ -8,7 +8,6 @@ const openDirectory = async (): Promise<string | null> => {
 
     if (!result.canceled && result.filePaths.length > 0) {
       const selectedPath = result.filePaths[0];
-      console.log("Selected folder:", selectedPath);
       return selectedPath;
     }
     return null;
@@ -26,11 +25,11 @@ const readDirectory = async (dirPath: string): Promise<FileEntry[]> => {
     if (result.success && result.files) {
       return result.files;
     } else {
-      console.error("Failed to read directory:", result.error);
+      console.error("failed to read directory:", result.error);
       return [];
     }
   } catch (error) {
-    console.error("Error reading directory:", error);
+    console.error("error reading directory:", error);
     return [];
   }
 };

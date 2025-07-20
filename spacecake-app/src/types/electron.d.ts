@@ -14,8 +14,8 @@ export interface ReadDirectoryResult {
 }
 
 export interface ElectronAPI {
-  showOpenDialog: (options: any) => Promise<Electron.OpenDialogReturnValue>;
-  showSaveDialog: (options: any) => Promise<Electron.SaveDialogReturnValue>;
+  showOpenDialog: (options: unknown) => Promise<Electron.OpenDialogReturnValue>;
+  showSaveDialog: (options: unknown) => Promise<Electron.SaveDialogReturnValue>;
   readDirectory: (dirPath: string) => Promise<ReadDirectoryResult>;
 }
 
