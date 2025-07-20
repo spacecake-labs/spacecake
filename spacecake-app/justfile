@@ -3,3 +3,6 @@ start:
 
 lint:
     pnpm run lint
+
+test:
+    pnpm run test
