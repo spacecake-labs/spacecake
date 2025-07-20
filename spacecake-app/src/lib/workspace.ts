@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { FileEntry } from "@/types/electron";
 import type { LucideIcon } from "lucide-react";
+import path from "path";
 
 /**
  * Sidebar navigation item interface
@@ -30,10 +31,13 @@ export interface SidebarNavItem {
  * @param workspacePath - The full workspace path
  * @returns The workspace name (last part of the path) or "spacecake" as fallback
  */
-export function getWorkspaceName(workspacePath: string | null): string {
+export function getWorkspaceName(
+  workspacePath: string | null,
+  platform: NodeJS.Platform = process.platform
+): string {
   if (!workspacePath) return "spacecake";
-  const pathParts = workspacePath.split(/[/\\]/);
-  return pathParts[pathParts.length - 1] || "spacecake";
+  const pathModule = platform === "win32" ? path.win32 : path.posix;
+  return pathModule.basename(workspacePath) || "spacecake";
 }
 
 /**
@@ -41,7 +45,7 @@ export function getWorkspaceName(workspacePath: string | null): string {
  * @param fileName - The name of the file
  * @returns The appropriate Lucide icon component
  */
-function getFileIcon(fileName: string) {
+export function getFileIcon(fileName: string) {
   const extension = fileName.split(".").pop()?.toLowerCase();
 
   switch (extension) {
