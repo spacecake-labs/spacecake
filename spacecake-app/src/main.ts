@@ -82,8 +82,14 @@ app.on("activate", () => {
 
 // IPC handlers for file dialogs
 ipcMain.handle("show-open-dialog", async (event, options) => {
-  const result = await dialog.showOpenDialog(options);
-  return result;
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) {
+    const result = await dialog.showOpenDialog(win, options);
+    return result;
+  } else {
+    const result = await dialog.showOpenDialog(options);
+    return result;
+  }
 });
 
 ipcMain.handle("show-save-dialog", async (event, options) => {
