@@ -1,6 +1,7 @@
 import { ipcMain, dialog, BrowserWindow } from "electron";
 import { readDir } from "@/main-process/fs";
 import { getWorkspaceName } from "@/main-process/workspace";
+import { promises as fs } from "fs";
 
 // IPC handlers for file dialogs
 ipcMain.handle("show-open-dialog", async (event, options) => {
@@ -52,5 +53,14 @@ ipcMain.handle("read-workspace", async (event, dirPath: string) => {
       success: false,
       error: error instanceof Error ? error.message : "unknown error",
     };
+  }
+});
+
+ipcMain.handle("read-file", async (event, filePath: string) => {
+  try {
+    const content = await fs.readFile(filePath, "utf8");
+    return { success: true, content };
+  } catch (error) {
+    return { success: false, error: `error reading file: ${error.message}` };
   }
 });

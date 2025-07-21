@@ -34,7 +34,18 @@ export interface ElectronAPI {
 }
 
 declare global {
+  interface ElectronAPI {
+    showOpenDialog: (options: unknown) => Promise<unknown>;
+    showSaveDialog: (options: unknown) => Promise<unknown>;
+    readDirectory: (dirPath: string) => Promise<unknown>;
+    readWorkspace: (dirPath: string) => Promise<unknown>;
+    readFile: (
+      filePath: string
+    ) => Promise<{ success: boolean; content?: string; error?: string }>;
+    platform: string;
+  }
   interface Window {
     electronAPI: ElectronAPI;
   }
 }
+export {};

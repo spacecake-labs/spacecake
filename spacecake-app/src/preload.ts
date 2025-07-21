@@ -14,5 +14,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("read-directory", dirPath),
   readWorkspace: (dirPath: string) =>
     ipcRenderer.invoke("read-workspace", dirPath),
+  readFile: (filePath: string) => ipcRenderer.invoke("read-file", filePath),
   platform: process.platform,
 });

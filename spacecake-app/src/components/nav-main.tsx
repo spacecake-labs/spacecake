@@ -24,6 +24,7 @@ interface NavMainProps {
   onExpandFolder?: (folderUrl: string, folderPath: string) => void;
   loadingFolders?: string[];
   expandedFolders?: Record<string, boolean>;
+  onFileClick?: (filePath: string) => void;
 }
 
 export function NavMain({
@@ -31,14 +32,17 @@ export function NavMain({
   onExpandFolder,
   loadingFolders = [],
   expandedFolders = {},
+  onFileClick,
 }: NavMainProps) {
   const handleToggle = (item: SidebarNavItem) => {
-    if (!item.isDirectory) return;
-    if (onExpandFolder && !item.items && !expandedFolders[item.url]) {
-      // Only fetch if not already loaded and not already open
-      onExpandFolder(item.url, item.url.replace(/^#/, ""));
-    } else if (onExpandFolder) {
-      // Still call to toggle expanded state
+    if (!item.isDirectory) {
+      if (onFileClick) {
+        // Remove leading '#' from url to get the file path
+        onFileClick(item.url.replace(/^#/, ""));
+      }
+      return;
+    }
+    if (onExpandFolder) {
       onExpandFolder(item.url, item.url.replace(/^#/, ""));
     }
   };
@@ -57,6 +61,7 @@ export function NavMain({
               <SidebarMenuButton
                 tooltip={item.title}
                 onClick={() => handleToggle(item)}
+                className="cursor-pointer"
               >
                 <item.icon />
                 <span>{item.title}</span>
@@ -81,8 +86,16 @@ export function NavMain({
                       <SidebarMenuSub>
                         {item.items?.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild>
+                            <SidebarMenuSubButton
+                              asChild
+                              onClick={() => {
+                                if (onFileClick) {
+                                  onFileClick(subItem.url.replace(/^#/, ""));
+                                }
+                              }}
+                            >
                               <a href={subItem.url}>
+                                <subItem.icon />
                                 <span>{subItem.title}</span>
                               </a>
                             </SidebarMenuSubButton>

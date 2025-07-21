@@ -1,5 +1,5 @@
 import { expect, test, describe } from "vitest";
-import { readDir, sortFiles } from "@/main-process/fs";
+import { readDir, sortFiles, Fs, FileNode, FileStat } from "@/main-process/fs";
 import type { FileEntry } from "@/types/electron";
 
 describe("sortFiles", () => {
@@ -173,23 +173,21 @@ describe("sortFiles", () => {
 
 describe("readDir", () => {
   test("sorts directories first, then files, both alphabetically", async () => {
-    const mockFs = {
+    const mockFs: Fs = {
       readdir: async () => [
-        { name: "file2.txt", isDirectory: () => false },
-        { name: "dir1", isDirectory: () => true },
-        { name: "file1.txt", isDirectory: () => false },
-        { name: "dir2", isDirectory: () => true },
+        { name: "file2.txt", isDirectory: () => false } as FileNode,
+        { name: "dir1", isDirectory: () => true } as FileNode,
+        { name: "file1.txt", isDirectory: () => false } as FileNode,
+        { name: "dir2", isDirectory: () => true } as FileNode,
       ],
-      stat: async (path: string) => {
-        const name = path.split("/").pop() || "";
-        return {
-          size: name.includes("dir") ? 0 : 100,
+      stat: async (path: string) =>
+        ({
+          size: path.includes("dir") ? 0 : 100,
           mtime: new Date("2023-01-01"),
-        };
-      },
+        }) as FileStat,
     };
 
-    const result = await readDir("/test/path", mockFs as any);
+    const result = await readDir("/test/path", mockFs);
 
     expect(result.map((f) => f.name)).toEqual([
       "dir1",
@@ -204,34 +202,32 @@ describe("readDir", () => {
   });
 
   test("returns empty array for empty directory", async () => {
-    const mockFs = {
+    const mockFs: Fs = {
       readdir: async () => [],
-      stat: async () => ({ size: 0, mtime: new Date() }),
+      stat: async () => ({ size: 0, mtime: new Date() }) as FileStat,
     };
 
-    const result = await readDir("/empty/path", mockFs as any);
+    const result = await readDir("/empty/path", mockFs);
 
     expect(result).toEqual([]);
   });
 
   test("handles mixed file types correctly", async () => {
-    const mockFs = {
+    const mockFs: Fs = {
       readdir: async () => [
-        { name: "README.md", isDirectory: () => false },
-        { name: "src", isDirectory: () => true },
-        { name: "package.json", isDirectory: () => false },
-        { name: "node_modules", isDirectory: () => true },
+        { name: "README.md", isDirectory: () => false } as FileNode,
+        { name: "src", isDirectory: () => true } as FileNode,
+        { name: "package.json", isDirectory: () => false } as FileNode,
+        { name: "node_modules", isDirectory: () => true } as FileNode,
       ],
-      stat: async (path: string) => {
-        const name = path.split("/").pop() || "";
-        return {
-          size: name.includes("node_modules") ? 1000000 : 100,
+      stat: async (path: string) =>
+        ({
+          size: path.includes("node_modules") ? 1000000 : 100,
           mtime: new Date("2023-01-01"),
-        };
-      },
+        }) as FileStat,
     };
 
-    const result = await readDir("/project", mockFs as any);
+    const result = await readDir("/project", mockFs);
 
     expect(result.map((f) => f.name)).toEqual([
       "node_modules",
@@ -246,15 +242,18 @@ describe("readDir", () => {
   });
 
   test("includes correct file metadata", async () => {
-    const mockFs = {
-      readdir: async () => [{ name: "test.txt", isDirectory: () => false }],
-      stat: async () => ({
-        size: 1234,
-        mtime: new Date("2023-12-25T10:30:00Z"),
-      }),
+    const mockFs: Fs = {
+      readdir: async () => [
+        { name: "test.txt", isDirectory: () => false } as FileNode,
+      ],
+      stat: async () =>
+        ({
+          size: 1234,
+          mtime: new Date("2023-12-25T10:30:00Z"),
+        }) as FileStat,
     };
 
-    const result = await readDir("/test", mockFs as any);
+    const result = await readDir("/test", mockFs);
 
     expect(result[0]).toEqual({
       name: "test.txt",
