@@ -8,7 +8,6 @@ import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
   sidebarNavAtom,
-  workspaceAtom,
   workspaceInfoAtom,
   expandedFoldersAtom,
   loadingFoldersAtom,
@@ -100,9 +99,13 @@ function findNavItemByUrl(
   return null;
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  onFileClick,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & {
+  onFileClick?: (filePath: string) => void;
+}) {
   const [sidebarNav, setSidebarNav] = useAtom(sidebarNavAtom);
-  const [workspace] = useAtom(workspaceAtom);
   const [workspaceInfo] = useAtom(workspaceInfoAtom);
   const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom);
   const [loadingFolders, setLoadingFolders] = useAtom(loadingFoldersAtom);
@@ -152,6 +155,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           onExpandFolder={handleExpandFolder}
           loadingFolders={loadingFolders}
           expandedFolders={expandedFolders}
+          onFileClick={onFileClick}
         />
         <NavProjects projects={defaultProjects} />
         <NavSecondary items={defaultNavSecondary} className="mt-auto" />

@@ -15,6 +15,22 @@ export function sortFiles(files: FileEntry[]): FileEntry[] {
   });
 }
 
+export interface FileNode {
+  name: string;
+  isDirectory(): boolean;
+}
+export interface FileStat {
+  size: number;
+  mtime: Date;
+}
+export interface Fs {
+  readdir: (
+    dirPath: string,
+    opts?: { withFileTypes?: boolean }
+  ) => Promise<FileNode[]>;
+  stat: (path: string) => Promise<FileStat>;
+}
+
 /**
  * Reads directory contents and returns sorted file entries
  * @param dirPath - The directory path to read
@@ -23,12 +39,12 @@ export function sortFiles(files: FileEntry[]): FileEntry[] {
  */
 export async function readDir(
   dirPath: string,
-  fsModule: typeof fs = fs
+  fsModule: Fs = fs
 ): Promise<FileEntry[]> {
   const entries = await fsModule.readdir(dirPath, { withFileTypes: true });
 
   const files = await Promise.all(
-    entries.map(async (entry) => {
+    entries.map(async (entry: FileNode) => {
       const fullPath = path.join(dirPath, entry.name);
       const stats = await fsModule.stat(fullPath);
 
