@@ -1,3 +1,5 @@
+import type { ElectronAPI } from "@/types/electron";
+
 export interface FileEntry {
   name: string;
   path: string;
@@ -25,25 +27,7 @@ export interface ReadWorkspaceResult {
   error?: string;
 }
 
-export interface ElectronAPI {
-  showOpenDialog: (options: unknown) => Promise<Electron.OpenDialogReturnValue>;
-  showSaveDialog: (options: unknown) => Promise<Electron.SaveDialogReturnValue>;
-  readDirectory: (dirPath: string) => Promise<ReadDirectoryResult>;
-  readWorkspace: (dirPath: string) => Promise<ReadWorkspaceResult>;
-  platform: string;
-}
-
 declare global {
-  interface ElectronAPI {
-    showOpenDialog: (options: unknown) => Promise<unknown>;
-    showSaveDialog: (options: unknown) => Promise<unknown>;
-    readDirectory: (dirPath: string) => Promise<unknown>;
-    readWorkspace: (dirPath: string) => Promise<unknown>;
-    readFile: (
-      filePath: string
-    ) => Promise<{ success: boolean; content?: string; error?: string }>;
-    platform: string;
-  }
   interface Window {
     electronAPI: ElectronAPI;
   }
