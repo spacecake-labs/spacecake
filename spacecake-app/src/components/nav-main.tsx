@@ -45,26 +45,29 @@ export function NavMain({
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      <SidebarGroupLabel>workspace</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <Collapsible
             key={item.title}
             asChild
             open={!!expandedFolders[item.url]}
-            onOpenChange={() => handleToggle(item)}
           >
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip={item.title}>
-                <a href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </a>
+              <SidebarMenuButton
+                tooltip={item.title}
+                onClick={() => handleToggle(item)}
+              >
+                <item.icon />
+                <span>{item.title}</span>
               </SidebarMenuButton>
               {item.isDirectory ? (
                 <>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuAction className="data-[state=open]:rotate-90">
+                    <SidebarMenuAction
+                      className="data-[state=open]:rotate-90"
+                      onClick={() => handleToggle(item)}
+                    >
                       <ChevronRight />
                       <span className="sr-only">Toggle</span>
                     </SidebarMenuAction>
