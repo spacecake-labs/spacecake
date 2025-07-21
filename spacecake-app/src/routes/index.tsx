@@ -1,8 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FolderOpen, Loader2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { openDirectory, readDirectory } from "@/lib/fs";
-import { workspaceAtom, filesAtom, sidebarNavAtom } from "@/lib/atoms";
+import { openDirectory, readWorkspace } from "@/lib/fs";
+import {
+  workspaceAtom,
+  workspaceInfoAtom,
+  filesAtom,
+  sidebarNavAtom,
+} from "@/lib/atoms";
 import { transformFilesToNavItems } from "@/lib/workspace";
 import { useAtom } from "jotai";
 import { useEffect } from "react";
@@ -16,6 +21,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
+  const [workspaceInfo, setWorkspaceInfo] = useAtom(workspaceInfoAtom);
   const [files, setFiles] = useAtom(filesAtom);
   const [sidebarNav, setSidebarNav] = useAtom(sidebarNavAtom);
   const [fileExplorerIsOpen, setFileExplorerIsOpen] = useAtom(
@@ -33,15 +39,23 @@ function Index() {
 
       setFileExplorerIsOpen(true);
       try {
-        const directoryFiles = await readDirectory(workspace);
-        setFiles(directoryFiles);
+        const result = await readWorkspace(workspace);
+        if (result) {
+          setFiles(result.files);
+          setWorkspaceInfo(result.workspace);
 
-        // Transform files into sidebar navigation
-        const navItems = transformFilesToNavItems(directoryFiles);
-        setSidebarNav(navItems);
+          // Transform files into sidebar navigation
+          const navItems = transformFilesToNavItems(result.files);
+          setSidebarNav(navItems);
+        } else {
+          setFiles([]);
+          setWorkspaceInfo(null);
+          setSidebarNav([]);
+        }
       } catch (error) {
-        console.error("error loading directory:", error);
+        console.error("error loading workspace:", error);
         setFiles([]);
+        setWorkspaceInfo(null);
         setSidebarNav([]);
       } finally {
         setFileExplorerIsOpen(false);

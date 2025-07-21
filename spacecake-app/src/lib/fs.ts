@@ -1,4 +1,9 @@
-import type { FileEntry, ReadDirectoryResult } from "@/types/electron";
+import type {
+  FileEntry,
+  ReadDirectoryResult,
+  ReadWorkspaceResult,
+  WorkspaceInfo,
+} from "@/types/electron";
 
 const openDirectory = async (): Promise<string | null> => {
   try {
@@ -34,4 +39,26 @@ const readDirectory = async (dirPath: string): Promise<FileEntry[]> => {
   }
 };
 
-export { openDirectory, readDirectory };
+const readWorkspace = async (
+  dirPath: string
+): Promise<{ files: FileEntry[]; workspace: WorkspaceInfo } | null> => {
+  try {
+    const result: ReadWorkspaceResult =
+      await window.electronAPI.readWorkspace(dirPath);
+
+    if (result.success && result.files && result.workspace) {
+      return {
+        files: result.files,
+        workspace: result.workspace,
+      };
+    } else {
+      console.error("failed to read workspace:", result.error);
+      return null;
+    }
+  } catch (error) {
+    console.error("error reading workspace:", error);
+    return null;
+  }
+};
+
+export { openDirectory, readDirectory, readWorkspace };

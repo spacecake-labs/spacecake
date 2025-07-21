@@ -9,10 +9,11 @@ import { NavUser } from "@/components/nav-user";
 import {
   sidebarNavAtom,
   workspaceAtom,
+  workspaceInfoAtom,
   expandedFoldersAtom,
   loadingFoldersAtom,
 } from "@/lib/atoms";
-import { getWorkspaceName, transformFilesToNavItems } from "@/lib/workspace";
+import { transformFilesToNavItems } from "@/lib/workspace";
 import { readDirectory } from "@/lib/fs";
 import type { SidebarNavItem } from "@/lib/workspace";
 
@@ -102,6 +103,7 @@ function findNavItemByUrl(
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [sidebarNav, setSidebarNav] = useAtom(sidebarNavAtom);
   const [workspace] = useAtom(workspaceAtom);
+  const [workspaceInfo] = useAtom(workspaceInfoAtom);
   const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom);
   const [loadingFolders, setLoadingFolders] = useAtom(loadingFoldersAtom);
 
@@ -133,9 +135,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">spacecake</span>
-                  {workspace && (
+                  {workspaceInfo?.name && (
                     <span className="truncate text-xs">
-                      {getWorkspaceName(workspace)}
+                      {workspaceInfo.name}
                     </span>
                   )}
                 </div>

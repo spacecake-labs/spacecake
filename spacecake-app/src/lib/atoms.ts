@@ -1,8 +1,9 @@
 import { atom } from "jotai";
-import type { FileEntry } from "@/types/electron";
+import type { FileEntry, WorkspaceInfo } from "@/types/electron";
 import type { SidebarNavItem } from "./workspace";
 
 export const workspaceAtom = atom<string | null>(null);
+export const workspaceInfoAtom = atom<WorkspaceInfo | null>(null);
 export const filesAtom = atom<FileEntry[]>([]);
 export const loadingAtom = atom<boolean>(false);
 
