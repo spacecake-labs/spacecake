@@ -1,9 +1,5 @@
 import { expect, test, describe } from "vitest";
-import {
-  getWorkspaceName,
-  getFileIcon,
-  transformFilesToNavItems,
-} from "@/lib/workspace";
+import { getFileIcon, transformFilesToNavItems } from "@/lib/workspace";
 import {
   BookOpen,
   Code,
@@ -13,73 +9,6 @@ import {
   FileWarning,
 } from "lucide-react";
 import type { FileEntry } from "@/types/electron";
-
-// getWorkspaceName tests
-
-describe("getWorkspaceName", () => {
-  test.each([
-    [null, "spacecake"],
-    ["", "spacecake"],
-  ])('returns "spacecake" for falsy values: %s', (workspacePath, expected) => {
-    expect(getWorkspaceName(workspacePath)).toBe(expected);
-  });
-
-  test.each([
-    ["/Users/test/project", "darwin", "project"],
-    ["/Users/test/project", "linux", "project"],
-    ["/home/user/my-app", "darwin", "my-app"],
-    ["/home/user/my-app", "linux", "my-app"],
-    ["/var/www/site", "darwin", "site"],
-    ["/var/www/site", "linux", "site"],
-  ])(
-    "returns last part of posix path: %s on %s",
-    (workspacePath, platform, expected) => {
-      expect(getWorkspaceName(workspacePath, platform as NodeJS.Platform)).toBe(
-        expected
-      );
-    }
-  );
-
-  test.each([
-    ["/Users/test/project/", "darwin", "project"],
-    ["/Users/test/project/", "linux", "project"],
-    ["/home/user/my-app/", "darwin", "my-app"],
-    ["/home/user/my-app/", "linux", "my-app"],
-  ])(
-    "returns last part even with trailing slash (posix): %s on %s",
-    (workspacePath, platform, expected) => {
-      expect(getWorkspaceName(workspacePath, platform as NodeJS.Platform)).toBe(
-        expected
-      );
-    }
-  );
-
-  test.each([
-    ["C:\\Users\\test\\project", "win32", "project"],
-    ["D:\\Development\\my-app", "win32", "my-app"],
-    ["C:\\Program Files\\Application", "win32", "Application"],
-  ])(
-    "returns last part of windows path: %s",
-    (workspacePath, platform, expected) => {
-      expect(getWorkspaceName(workspacePath, platform as NodeJS.Platform)).toBe(
-        expected
-      );
-    }
-  );
-
-  test.each([
-    ["C:\\Users\\test\\project\\", "win32", "project"],
-    ["D:\\Development\\my-app\\", "win32", "my-app"],
-    ["C:\\Program Files\\Application\\", "win32", "Application"],
-  ])(
-    "returns last part even with trailing slash (win32): %s",
-    (workspacePath, platform, expected) => {
-      expect(getWorkspaceName(workspacePath, platform as NodeJS.Platform)).toBe(
-        expected
-      );
-    }
-  );
-});
 
 // getFileIcon tests
 

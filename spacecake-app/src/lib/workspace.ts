@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import type { FileEntry } from "@/types/electron";
 import type { LucideIcon } from "lucide-react";
-import path from "path";
 
 /**
  * Sidebar navigation item interface
@@ -25,20 +24,6 @@ export interface SidebarNavItem {
 /**
  * Utility functions for workspace operations
  */
-
-/**
- * Extracts the workspace name from a full path
- * @param workspacePath - The full workspace path
- * @returns The workspace name (last part of the path) or "spacecake" as fallback
- */
-export function getWorkspaceName(
-  workspacePath: string | null,
-  platform: NodeJS.Platform = process.platform
-): string {
-  if (!workspacePath) return "spacecake";
-  const pathModule = platform === "win32" ? path.win32 : path.posix;
-  return pathModule.basename(workspacePath) || "spacecake";
-}
 
 /**
  * Gets the appropriate icon for a file based on its extension
