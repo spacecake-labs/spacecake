@@ -5,7 +5,7 @@ import {
   $createTextNode,
   LexicalEditor,
 } from "lexical";
-import type { FileType } from "./editor";
+import type { FileType } from "@/components/editor/editor";
 
 /**
  * Returns a function suitable for Lexical's editorState prop, which loads initial content

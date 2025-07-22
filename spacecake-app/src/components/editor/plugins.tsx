@@ -17,6 +17,8 @@ import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPl
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
 import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
+import { CodeHighlightPlugin } from "@/components/editor/code-highlighter";
+
 import { ContentEditable } from "@/components/editor/content-editable";
 import { atom, useAtom } from "jotai";
 
@@ -32,7 +34,7 @@ export function Plugins() {
     }
   };
 
-  const placeholder = "type here...";
+  const placeholder = "...";
 
   return (
     <div className="relative">
@@ -59,6 +61,7 @@ export function Plugins() {
         <TabIndentationPlugin />
         <HashtagPlugin />
         <HistoryPlugin />
+        <CodeHighlightPlugin />
 
         <MarkdownShortcutPlugin
           transformers={[
