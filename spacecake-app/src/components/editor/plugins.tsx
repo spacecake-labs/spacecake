@@ -17,7 +17,8 @@ import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPl
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
 import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
-import { CodeHighlightPlugin } from "@/components/editor/code-highlighter";
+import { CodeHighlightPlugin } from "@/components/editor/plugins/code-highlighter";
+import { CodeBlockPlugin } from "@/components/editor/plugins/code-block";
 
 import { ContentEditable } from "@/components/editor/content-editable";
 import { atom, useAtom } from "jotai";
@@ -62,6 +63,7 @@ export function Plugins() {
         <HashtagPlugin />
         <HistoryPlugin />
         <CodeHighlightPlugin />
+        <CodeBlockPlugin />
 
         <MarkdownShortcutPlugin
           transformers={[
