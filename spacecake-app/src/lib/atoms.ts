@@ -1,6 +1,7 @@
 import { atom } from "jotai";
 import type { FileEntry, WorkspaceInfo } from "@/types/electron";
 import type { SidebarNavItem } from "./workspace";
+import { SerializedEditorState, LexicalEditor } from "lexical";
 
 export const workspaceAtom = atom<string | null>(null);
 export const workspaceInfoAtom = atom<WorkspaceInfo | null>(null);
@@ -14,3 +15,10 @@ export const sidebarNavAtom = atom<SidebarNavItem[]>([]);
 export const expandedFoldersAtom = atom<Record<string, boolean>>({});
 // Atom for loading folders (array of folder urls currently loading)
 export const loadingFoldersAtom = atom<string[]>([]);
+
+// Editor state can be a loader function (wrapped in {loader}), a serialized state, or null
+export type EditorStateLoader =
+  | { loader: (editor: LexicalEditor) => void }
+  | SerializedEditorState
+  | null;
+export const editorStateAtom = atom<EditorStateLoader>(null);

@@ -16,11 +16,11 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
-  const [files, setFiles] = useAtom(filesAtom);
-  const [sidebarNav, setSidebarNav] = useAtom(sidebarNavAtom);
   const [fileExplorerIsOpen, setFileExplorerIsOpen] = useAtom(
     fileExplorerIsOpenAtom
   );
+  const [, setFiles] = useAtom(filesAtom);
+  const [, setSidebarNav] = useAtom(sidebarNavAtom);
 
   // Read directory when workspace changes
   useEffect(() => {
@@ -36,7 +36,6 @@ function Index() {
         const result = await readWorkspace(workspace);
         if (result) {
           setFiles(result.files);
-
           // Transform files into sidebar navigation
           const navItems = transformFilesToNavItems(result.files);
           setSidebarNav(navItems);
@@ -71,38 +70,21 @@ function Index() {
   return (
     <div className="flex flex-col items-center justify-center h-full space-y-4">
       <div className="flex flex-col items-center space-y-3">
-        <Button
-          size="lg"
-          className="text-base"
-          variant="outline"
-          onClick={handleOpenWorkspace}
-          disabled={fileExplorerIsOpen}
-        >
-          {fileExplorerIsOpen ? (
-            <Loader2Icon className="animate-spin" />
-          ) : (
-            <FolderOpen />
-          )}
-          open folder
-        </Button>
-        {workspace && (
-          <div className="mt-4 p-4 border rounded-lg bg-muted/50 max-w-2xl max-h-96 overflow-auto">
-            <h3 className="text-sm font-medium mb-2">Workspace: {workspace}</h3>
-            <p className="text-xs text-muted-foreground mb-2">
-              Found {files.length} items, {sidebarNav.length} navigation
-              sections
-            </p>
-            {sidebarNav.length > 0 && (
-              <div className="mt-2">
-                <h4 className="text-xs font-medium mb-1">
-                  Navigation Structure:
-                </h4>
-                <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
-                  {JSON.stringify(sidebarNav, null, 2)}
-                </pre>
-              </div>
+        {!workspace && (
+          <Button
+            size="lg"
+            className="text-base"
+            variant="outline"
+            onClick={handleOpenWorkspace}
+            disabled={fileExplorerIsOpen}
+          >
+            {fileExplorerIsOpen ? (
+              <Loader2Icon className="animate-spin" />
+            ) : (
+              <FolderOpen />
             )}
-          </div>
+            open folder
+          </Button>
         )}
       </div>
     </div>
