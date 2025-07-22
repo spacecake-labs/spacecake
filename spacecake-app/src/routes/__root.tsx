@@ -7,25 +7,41 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { useState } from "react";
+import { useAtom, atom } from "jotai";
+import { editorStateAtom } from "@/lib/atoms";
+import { Editor, editorConfig, FileType } from "@/components/editor/editor";
+import { getInitialEditorStateFromContent } from "@/components/editor/read-file";
+import { SerializedEditorState } from "lexical";
+import { toast } from "sonner";
+
+// Atoms for selected file content and path
+const selectedFilePathAtom = atom<string | null>(null);
 
 export const Route = createRootRoute({
   component: () => {
-    const [selectedFileContent, setSelectedFileContent] = useState<
-      string | null
-    >(null);
-    const [selectedFilePath, setSelectedFilePath] = useState<string | null>(
-      null
-    );
+    // Use jotai atoms for selected file content and path
+    // removed selectedFileContent, no longer needed
+    const [selectedFilePath, setSelectedFilePath] =
+      useAtom(selectedFilePathAtom);
+    const [editorState, setEditorState] = useAtom(editorStateAtom);
 
     const handleFileClick = async (filePath: string) => {
-      setSelectedFilePath(filePath);
-      setSelectedFileContent("loading...");
       const result = await window.electronAPI.readFile(filePath);
       if (result.success) {
-        setSelectedFileContent(result.content ?? "");
+        // Determine file type
+        let fileType: FileType = FileType.Plaintext;
+        if (filePath.endsWith(".md") || filePath.endsWith(".markdown")) {
+          fileType = FileType.Markdown;
+        }
+        setEditorState({
+          loader: getInitialEditorStateFromContent(
+            result.content ?? "",
+            fileType
+          ),
+        });
+        setSelectedFilePath(filePath);
       } else {
-        setSelectedFileContent(result.error ?? "unknown error");
+        toast("error reading file");
       }
     };
 
@@ -33,8 +49,11 @@ export const Route = createRootRoute({
       <>
         <div className="flex h-screen">
           <SidebarProvider>
-            <AppSidebar onFileClick={handleFileClick} />
-            <SidebarInset>
+            <AppSidebar
+              onFileClick={handleFileClick}
+              selectedFilePath={selectedFilePath}
+            />
+            <SidebarInset className="overflow-auto">
               <header className="flex h-16 shrink-0 items-center gap-2">
                 <div className="flex items-center gap-2 px-4">
                   <SidebarTrigger className="-ml-1" />
@@ -42,6 +61,7 @@ export const Route = createRootRoute({
                     orientation="vertical"
                     className="mr-2 data-[orientation=vertical]:h-4"
                   />
+                  {selectedFilePath}
                   {/* <Breadcrumb>
                     <BreadcrumbList>
                       <BreadcrumbItem className="hidden md:block">
@@ -57,17 +77,31 @@ export const Route = createRootRoute({
                   </Breadcrumb> */}
                 </div>
               </header>
-              <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                {selectedFilePath && (
-                  <div className="border rounded p-4 bg-muted/50 w-full max-w-4xl mx-auto overflow-auto">
-                    <div className="mb-2 text-xs text-muted-foreground">
-                      {selectedFilePath}
-                    </div>
-                    <pre className="text-xs whitespace-pre-wrap w-full">
-                      {selectedFileContent}
-                    </pre>
-                  </div>
-                )}
+              <div className="h-full flex flex-1 flex-col gap-4 p-4 pt-0">
+                {/* <div className="container-wrapper section-soft flex-1 pb-6">
+                  <div className="container overflow-hidden"> */}
+                {typeof selectedFilePath === "string" &&
+                  selectedFilePath !== "" && (
+                    <Editor
+                      key={selectedFilePath || undefined}
+                      editorConfig={{
+                        ...editorConfig,
+                        ...(editorState &&
+                        typeof editorState === "object" &&
+                        "loader" in editorState
+                          ? { editorState: editorState.loader }
+                          : editorState
+                            ? { editorState: JSON.stringify(editorState) }
+                            : {}),
+                      }}
+                      onSerializedChange={(value: SerializedEditorState) =>
+                        setEditorState(value)
+                      }
+                    />
+                  )}
+                {/* </div>
+                </div> */}
+
                 <Outlet />
               </div>
             </SidebarInset>

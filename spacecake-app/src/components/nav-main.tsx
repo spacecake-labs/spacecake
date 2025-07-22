@@ -25,6 +25,7 @@ interface NavMainProps {
   loadingFolders?: string[];
   expandedFolders?: Record<string, boolean>;
   onFileClick?: (filePath: string) => void;
+  selectedFilePath?: string | null;
 }
 
 export function NavMain({
@@ -33,6 +34,7 @@ export function NavMain({
   loadingFolders = [],
   expandedFolders = {},
   onFileClick,
+  selectedFilePath,
 }: NavMainProps) {
   const handleToggle = (item: SidebarNavItem) => {
     if (!item.isDirectory) {
@@ -62,6 +64,11 @@ export function NavMain({
                 tooltip={item.title}
                 onClick={() => handleToggle(item)}
                 className="cursor-pointer"
+                isActive={Boolean(
+                  selectedFilePath &&
+                    !item.isDirectory &&
+                    item.url.replace(/^#/, "") === selectedFilePath
+                )}
               >
                 <item.icon />
                 <span>{item.title}</span>
@@ -93,6 +100,11 @@ export function NavMain({
                                   onFileClick(subItem.url.replace(/^#/, ""));
                                 }
                               }}
+                              isActive={Boolean(
+                                selectedFilePath &&
+                                  subItem.url.replace(/^#/, "") ===
+                                    selectedFilePath
+                              )}
                             >
                               <a href={subItem.url}>
                                 <subItem.icon />

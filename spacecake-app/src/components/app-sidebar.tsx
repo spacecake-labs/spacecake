@@ -101,9 +101,11 @@ function findNavItemByUrl(
 
 export function AppSidebar({
   onFileClick,
+  selectedFilePath,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   onFileClick?: (filePath: string) => void;
+  selectedFilePath?: string | null;
 }) {
   const [sidebarNav, setSidebarNav] = useAtom(sidebarNavAtom);
   const [workspaceInfo] = useAtom(workspaceInfoAtom);
@@ -156,6 +158,7 @@ export function AppSidebar({
           loadingFolders={loadingFolders}
           expandedFolders={expandedFolders}
           onFileClick={onFileClick}
+          selectedFilePath={selectedFilePath}
         />
         <NavProjects projects={defaultProjects} />
         <NavSecondary items={defaultNavSecondary} className="mt-auto" />
