@@ -22,3 +22,6 @@ export type EditorStateLoader =
   | SerializedEditorState
   | null;
 export const editorStateAtom = atom<EditorStateLoader>(null);
+
+// Atom for the currently selected file path
+export const selectedFilePathAtom = atom<string | null>(null);

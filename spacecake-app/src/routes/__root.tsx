@@ -7,15 +7,12 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { useAtom, atom } from "jotai";
-import { editorStateAtom } from "@/lib/atoms";
+import { useAtom } from "jotai";
+import { editorStateAtom, selectedFilePathAtom } from "@/lib/atoms";
 import { Editor, editorConfig, FileType } from "@/components/editor/editor";
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file";
 import { SerializedEditorState } from "lexical";
 import { toast } from "sonner";
-
-// Atoms for selected file content and path
-const selectedFilePathAtom = atom<string | null>(null);
 
 export const Route = createRootRoute({
   component: () => {

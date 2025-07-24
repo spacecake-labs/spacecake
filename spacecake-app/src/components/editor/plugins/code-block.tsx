@@ -12,6 +12,7 @@ import {
   LexicalCommand,
 } from "lexical";
 import { useEffect } from "react";
+import { CodeNode } from "@lexical/code";
 import { $isCodeNode } from "@lexical/code";
 
 /**
@@ -31,7 +32,7 @@ export function CodeBlockPlugin(): null {
   const [editor] = useLexicalComposerContext();
 
   const insertParagraphBefore = (
-    codeNode: any,
+    codeNode: CodeNode,
     event: KeyboardEvent | null
   ) => {
     event?.preventDefault();
@@ -45,7 +46,10 @@ export function CodeBlockPlugin(): null {
     return true;
   };
 
-  const insertParagraphAfter = (codeNode: any, event: KeyboardEvent | null) => {
+  const insertParagraphAfter = (
+    codeNode: CodeNode,
+    event: KeyboardEvent | null
+  ) => {
     event?.preventDefault();
 
     editor.update(() => {
@@ -76,7 +80,7 @@ export function CodeBlockPlugin(): null {
           return false;
         }
 
-        const codeText = codeNode.getTextContent();
+        // const codeText = codeNode.getTextContent();
         const offset = anchor.offset;
         const anchorTextLength = anchorNode.getTextContent().length;
 

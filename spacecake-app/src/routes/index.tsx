@@ -73,7 +73,7 @@ function Index() {
         {!workspace && (
           <Button
             size="lg"
-            className="text-base"
+            className="text-base cursor-pointer"
             variant="outline"
             onClick={handleOpenWorkspace}
             disabled={fileExplorerIsOpen}
