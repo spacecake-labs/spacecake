@@ -1,5 +1,5 @@
 import { ipcMain, dialog, BrowserWindow } from "electron";
-import { readDir } from "@/main-process/fs";
+import { readDir, ensureSpacecakeFolder } from "@/main-process/fs";
 import { getWorkspaceName } from "@/main-process/workspace";
 import { promises as fs } from "fs";
 
@@ -36,6 +36,9 @@ ipcMain.handle("read-directory", async (event, dirPath: string) => {
 
 ipcMain.handle("read-workspace", async (event, dirPath: string) => {
   try {
+    // Ensure the .spacecake folder exists
+    await ensureSpacecakeFolder(dirPath);
+
     const files = await readDir(dirPath);
     const workspaceName = getWorkspaceName(dirPath, process.platform);
 

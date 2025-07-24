@@ -97,11 +97,11 @@ export function transformFilesToNavItems(files: FileEntry[]): SidebarNavItem[] {
     }
   });
 
-  // If no items found, add a default "Workspace" item
+  // If no items found, add a default item
   if (navItems.length === 0) {
     navItems.push({
-      title: "worspace is empty",
-      url: "#workspace-is-empty",
+      title: "folder is empty",
+      url: "#folder-is-empty",
       icon: FileWarning,
       isDirectory: true,
       items: [],

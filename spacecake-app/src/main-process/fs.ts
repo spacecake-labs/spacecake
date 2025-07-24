@@ -29,6 +29,11 @@ export interface Fs {
     opts?: { withFileTypes?: boolean }
   ) => Promise<FileNode[]>;
   stat: (path: string) => Promise<FileStat>;
+  access: (path: string) => Promise<void>;
+  mkdir: (
+    path: string,
+    options?: { recursive?: boolean }
+  ) => Promise<string | undefined>;
 }
 
 /**
@@ -60,4 +65,25 @@ export async function readDir(
   );
 
   return sortFiles(files);
+}
+
+/**
+ * Ensures the .spacecake folder exists in the given workspace directory
+ * @param workspacePath - The workspace directory path
+ * @param fsModule - The fs module to use (defaults to fs/promises)
+ * @returns Promise that resolves when the folder is created or already exists
+ */
+export async function ensureSpacecakeFolder(
+  workspacePath: string,
+  fsModule: Fs = fs
+): Promise<void> {
+  const spacecakePath = path.join(workspacePath, ".spacecake");
+  console.log("spacecakePath", spacecakePath);
+  try {
+    // Check if the folder already exists
+    await fsModule.access(spacecakePath);
+  } catch {
+    // Folder doesn't exist, create it
+    await fsModule.mkdir(spacecakePath, { recursive: true });
+  }
 }
