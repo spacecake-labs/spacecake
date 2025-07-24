@@ -1,5 +1,12 @@
 import { expect, test, describe } from "vitest";
-import { readDir, sortFiles, Fs, FileNode, FileStat } from "@/main-process/fs";
+import {
+  readDir,
+  sortFiles,
+  Fs,
+  FileNode,
+  FileStat,
+  ensureSpacecakeFolder,
+} from "@/main-process/fs";
 import type { FileEntry } from "@/types/electron";
 
 describe("sortFiles", () => {
@@ -185,6 +192,8 @@ describe("readDir", () => {
           size: path.includes("dir") ? 0 : 100,
           mtime: new Date("2023-01-01"),
         }) as FileStat,
+      access: async () => {},
+      mkdir: async () => undefined,
     };
 
     const result = await readDir("/test/path", mockFs);
@@ -205,6 +214,8 @@ describe("readDir", () => {
     const mockFs: Fs = {
       readdir: async () => [],
       stat: async () => ({ size: 0, mtime: new Date() }) as FileStat,
+      access: async () => {},
+      mkdir: async () => undefined,
     };
 
     const result = await readDir("/empty/path", mockFs);
@@ -225,6 +236,8 @@ describe("readDir", () => {
           size: path.includes("node_modules") ? 1000000 : 100,
           mtime: new Date("2023-01-01"),
         }) as FileStat,
+      access: async () => {},
+      mkdir: async () => undefined,
     };
 
     const result = await readDir("/project", mockFs);
@@ -251,6 +264,8 @@ describe("readDir", () => {
           size: 1234,
           mtime: new Date("2023-12-25T10:30:00Z"),
         }) as FileStat,
+      access: async () => {},
+      mkdir: async () => undefined,
     };
 
     const result = await readDir("/test", mockFs);
@@ -263,5 +278,104 @@ describe("readDir", () => {
       modified: "2023-12-25T10:30:00.000Z",
       isDirectory: false,
     });
+  });
+});
+
+describe("ensureSpacecakeFolder", () => {
+  test("creates .spacecake folder when it doesn't exist", async () => {
+    const mockFs: Fs = {
+      readdir: async () => [],
+      stat: async () => ({ size: 0, mtime: new Date() }) as FileStat,
+      access: async (path: string) => {
+        if (path.endsWith(".spacecake")) {
+          throw new Error("ENOENT: no such file or directory");
+        }
+      },
+      mkdir: async (path: string) => {
+        // Mock successful directory creation
+        if (!path.endsWith(".spacecake")) {
+          throw new Error("should only create .spacecake folder");
+        }
+        return undefined;
+      },
+    };
+
+    const workspacePath = "/test/workspace";
+
+    // Should not throw
+    await expect(
+      ensureSpacecakeFolder(workspacePath, mockFs)
+    ).resolves.toBeUndefined();
+  });
+
+  test("doesn't create .spacecake folder when it already exists", async () => {
+    const mockFs: Fs = {
+      readdir: async () => [],
+      stat: async () => ({ size: 0, mtime: new Date() }) as FileStat,
+      access: async (path: string) => {
+        // Mock that .spacecake folder already exists
+        if (path.endsWith(".spacecake")) {
+          return; // No error, folder exists
+        }
+        throw new Error("ENOENT: no such file or directory");
+      },
+      mkdir: async () => {
+        // This should not be called if folder already exists
+        throw new Error("mkdir should not be called when folder exists");
+      },
+    };
+
+    const workspacePath = "/test/workspace";
+
+    // Should not throw and should not call mkdir
+    await expect(
+      ensureSpacecakeFolder(workspacePath, mockFs)
+    ).resolves.toBeUndefined();
+  });
+
+  test("creates .spacecake folder with correct path", async () => {
+    let createdPath: string | null = null;
+
+    const mockFs: Fs = {
+      readdir: async () => [],
+      stat: async () => ({ size: 0, mtime: new Date() }) as FileStat,
+      access: async (path: string) => {
+        if (path.endsWith(".spacecake")) {
+          throw new Error("ENOENT: no such file or directory");
+        }
+      },
+      mkdir: async (path: string) => {
+        createdPath = path;
+        return undefined;
+      },
+    };
+
+    const workspacePath = "/test/workspace";
+    await ensureSpacecakeFolder(workspacePath, mockFs);
+
+    expect(createdPath).toBe("/test/workspace/.spacecake");
+  });
+
+  test("handles nested workspace paths correctly", async () => {
+    let createdPath: string | null = null;
+
+    const mockFs: Fs = {
+      readdir: async () => [],
+      stat: async () => ({ size: 0, mtime: new Date() }) as FileStat,
+      access: async (path: string) => {
+        if (path.endsWith(".spacecake")) {
+          throw new Error("ENOENT: no such file or directory");
+        }
+      },
+      mkdir: async (path: string) => {
+        createdPath = path;
+        return undefined;
+      },
+    };
+
+    const workspacePath = "/Users/username/Projects/my-project";
+    await ensureSpacecakeFolder(workspacePath, mockFs);
+
+    expect(createdPath).toBe("/Users/username/Projects/my-project/.spacecake");
   });
 });

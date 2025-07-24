@@ -81,8 +81,8 @@ describe("transformFilesToNavItems", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
-      title: "worspace is empty",
-      url: "#workspace-is-empty",
+      title: "folder is empty",
+      url: "#folder-is-empty",
       icon: FileWarning,
       isDirectory: true,
       items: [],
