@@ -17,8 +17,10 @@ import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPl
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
 import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
-import { CodeHighlightPlugin } from "@/components/editor/plugins/code-highlighter";
-import { CodeBlockPlugin } from "@/components/editor/plugins/code-block";
+// import { CodeHighlightPlugin } from "@/components/editor/plugins/code-highlighter";
+// import { CodeBlockPlugin } from "@/components/editor/plugins/code-block";
+import { createCodeTransformer } from "@/components/editor/transformers/markdown";
+// import { CodeToolbarPlugin } from "@/components/editor/plugins/code-toolbar";
 
 import { ContentEditable } from "@/components/editor/content-editable";
 import { atom, useAtom } from "jotai";
@@ -26,8 +28,7 @@ import { atom, useAtom } from "jotai";
 const floatingAnchorAtom = atom<HTMLDivElement | null>(null);
 
 export function Plugins() {
-  const [floatingAnchorElem, setFloatingAnchorElem] =
-    useAtom(floatingAnchorAtom);
+  const [, setFloatingAnchorElem] = useAtom(floatingAnchorAtom);
 
   const onRef = (_floatingAnchorElem: HTMLDivElement) => {
     if (_floatingAnchorElem !== null) {
@@ -36,6 +37,25 @@ export function Plugins() {
   };
 
   const placeholder = "...";
+
+  const filteredMultilineTransformers = MULTILINE_ELEMENT_TRANSFORMERS.filter(
+    (transformer) => {
+      return !(
+        "replace" in transformer &&
+        typeof transformer.replace === "function" &&
+        transformer.replace.toString().includes("$createCodeNode")
+      );
+    }
+  );
+
+  const customTransformers = [
+    CHECK_LIST,
+    ...ELEMENT_TRANSFORMERS,
+    createCodeTransformer(),
+    ...filteredMultilineTransformers,
+    ...TEXT_FORMAT_TRANSFORMERS,
+    ...TEXT_MATCH_TRANSFORMERS,
+  ];
 
   return (
     <div className="relative">
@@ -62,18 +82,10 @@ export function Plugins() {
         <TabIndentationPlugin />
         <HashtagPlugin />
         <HistoryPlugin />
-        <CodeHighlightPlugin />
-        <CodeBlockPlugin />
-
-        <MarkdownShortcutPlugin
-          transformers={[
-            CHECK_LIST,
-            ...ELEMENT_TRANSFORMERS,
-            ...MULTILINE_ELEMENT_TRANSFORMERS,
-            ...TEXT_FORMAT_TRANSFORMERS,
-            ...TEXT_MATCH_TRANSFORMERS,
-          ]}
-        />
+        {/* <CodeHighlightPlugin /> */}
+        {/* <CodeBlockPlugin /> */}
+        {/* <CodeToolbarPlugin /> */}
+        <MarkdownShortcutPlugin transformers={customTransformers} />
       </div>
 
       <ClearEditorPlugin />
