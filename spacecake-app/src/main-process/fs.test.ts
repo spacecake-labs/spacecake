@@ -195,6 +195,7 @@ describe("readDir", () => {
       access: async () => {},
       mkdir: async () => undefined,
       writeFile: async () => {},
+      readFile: async () => "",
     };
 
     const result = await readDir("/test/path", mockFs);
@@ -218,6 +219,7 @@ describe("readDir", () => {
       access: async () => {},
       mkdir: async () => undefined,
       writeFile: async () => {},
+      readFile: async () => "",
     };
 
     const result = await readDir("/empty/path", mockFs);
@@ -241,6 +243,7 @@ describe("readDir", () => {
       access: async () => {},
       mkdir: async () => undefined,
       writeFile: async () => {},
+      readFile: async () => "",
     };
 
     const result = await readDir("/project", mockFs);
@@ -270,6 +273,7 @@ describe("readDir", () => {
       access: async () => {},
       mkdir: async () => undefined,
       writeFile: async () => {},
+      readFile: async () => "",
     };
 
     const result = await readDir("/test", mockFs);
@@ -303,6 +307,7 @@ describe("ensureSpacecakeFolder", () => {
         return undefined;
       },
       writeFile: async () => {},
+      readFile: async () => "",
     };
 
     const workspacePath = "/test/workspace";
@@ -329,6 +334,7 @@ describe("ensureSpacecakeFolder", () => {
         throw new Error("mkdir should not be called when folder exists");
       },
       writeFile: async () => {},
+      readFile: async () => "",
     };
 
     const workspacePath = "/test/workspace";
@@ -355,6 +361,7 @@ describe("ensureSpacecakeFolder", () => {
         return undefined;
       },
       writeFile: async () => {},
+      readFile: async () => "",
     };
 
     const workspacePath = "/test/workspace";
@@ -379,6 +386,7 @@ describe("ensureSpacecakeFolder", () => {
         return undefined;
       },
       writeFile: async () => {},
+      readFile: async () => "",
     };
 
     const workspacePath = "/Users/username/Projects/my-project";
@@ -397,6 +405,7 @@ describe("createFile", () => {
       stat: async () => ({ size: 0, mtime: new Date() }),
       access: async () => {},
       mkdir: async () => undefined,
+      readFile: async () => "",
     };
 
     const filePath = "/test/file.txt";
@@ -417,6 +426,7 @@ describe("createFile", () => {
       stat: async () => ({ size: 0, mtime: new Date() }),
       access: async () => {},
       mkdir: async () => undefined,
+      readFile: async () => "",
     };
 
     const { createFile } = await import("@/main-process/fs");

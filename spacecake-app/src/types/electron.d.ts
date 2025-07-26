@@ -1,4 +1,5 @@
 import type { ElectronAPI } from "@/types/electron";
+import { FileType } from "@/components/editor/editor";
 
 export interface FileEntry {
   name: string;
@@ -25,6 +26,11 @@ export interface ReadWorkspaceResult {
   files?: FileEntry[];
   workspace?: WorkspaceInfo;
   error?: string;
+}
+
+export interface File extends FileEntry {
+  content: string;
+  fileType: FileType;
 }
 
 declare global {

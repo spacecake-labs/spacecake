@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { FileEntry } from "@/types/electron";
 import type { LucideIcon } from "lucide-react";
+import { FileType } from "@/components/editor/editor";
 
 /**
  * Sidebar navigation item interface
@@ -65,6 +66,23 @@ export function getFileIcon(fileName: string) {
       return Image;
     default:
       return FileText;
+  }
+}
+
+/**
+ * Gets the file type based on the file extension
+ * @param fileName - The name of the file
+ * @returns The FileType enum value
+ */
+export function getFileType(fileName: string): FileType {
+  const extension = fileName.split(".").pop()?.toLowerCase();
+
+  switch (extension) {
+    case "md":
+    case "markdown":
+      return FileType.Markdown;
+    default:
+      return FileType.Plaintext;
   }
 }
 

@@ -29,6 +29,7 @@
     "@electron-forge/plugin-vite": "^7.8.1",
     "@electron/fuses": "^1.8.0",
     "@eslint/js": "^9.31.0",
+    "@playwright/test": "^1.54.1",
     "@tanstack/router-plugin": "^1.128.3",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/node": "^24.0.15",

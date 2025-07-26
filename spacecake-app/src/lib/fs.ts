@@ -3,6 +3,7 @@ import type {
   ReadDirectoryResult,
   ReadWorkspaceResult,
   WorkspaceInfo,
+  File,
 } from "@/types/electron";
 
 const openDirectory = async (): Promise<string | null> => {
@@ -80,4 +81,20 @@ const createFile = async (
   }
 };
 
-export { openDirectory, readDirectory, readWorkspace, createFile };
+const readFile = async (filePath: string): Promise<File | null> => {
+  try {
+    const result = await window.electronAPI.readFile(filePath);
+
+    if (result.success && result.file) {
+      return result.file;
+    } else {
+      console.error("failed to read file:", result.error);
+      return null;
+    }
+  } catch (error) {
+    console.error("error reading file:", error);
+    return null;
+  }
+};
+
+export { openDirectory, readDirectory, readWorkspace, createFile, readFile };
