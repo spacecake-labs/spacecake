@@ -61,4 +61,23 @@ const readWorkspace = async (
   }
 };
 
-export { openDirectory, readDirectory, readWorkspace };
+const createFile = async (
+  filePath: string,
+  content: string = ""
+): Promise<boolean> => {
+  try {
+    const result = await window.electronAPI.createFile(filePath, content);
+
+    if (result.success) {
+      return true;
+    } else {
+      console.error("failed to create file:", result.error);
+      return false;
+    }
+  } catch (error) {
+    console.error("error creating file:", error);
+    return false;
+  }
+};
+
+export { openDirectory, readDirectory, readWorkspace, createFile };

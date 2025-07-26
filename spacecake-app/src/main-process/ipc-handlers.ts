@@ -1,5 +1,5 @@
 import { ipcMain, dialog, BrowserWindow } from "electron";
-import { readDir, ensureSpacecakeFolder } from "@/main-process/fs";
+import { readDir, ensureSpacecakeFolder, createFile } from "@/main-process/fs";
 import { getWorkspaceName } from "@/main-process/workspace";
 import { promises as fs } from "fs";
 
@@ -67,3 +67,19 @@ ipcMain.handle("read-file", async (event, filePath: string) => {
     return { success: false, error: `error reading file: ${error.message}` };
   }
 });
+
+ipcMain.handle(
+  "create-file",
+  async (event, filePath: string, content: string = "") => {
+    try {
+      await createFile(filePath, content);
+      return { success: true };
+    } catch (error) {
+      console.error("error creating file:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "unknown error",
+      };
+    }
+  }
+);

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Frame, LifeBuoy, Map, PieChart, Send, CakeSlice } from "lucide-react";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 
 import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
@@ -8,7 +8,7 @@ import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
   sidebarNavAtom,
-  workspaceInfoAtom,
+  workspaceAtom,
   expandedFoldersAtom,
   loadingFoldersAtom,
 } from "@/lib/atoms";
@@ -107,8 +107,9 @@ export function AppSidebar({
   onFileClick?: (filePath: string) => void;
   selectedFilePath?: string | null;
 }) {
-  const [sidebarNav, setSidebarNav] = useAtom(sidebarNavAtom);
-  const [workspaceInfo] = useAtom(workspaceInfoAtom);
+  const sidebarNav = useAtomValue(sidebarNavAtom);
+  const setSidebarNav = useSetAtom(sidebarNavAtom);
+  const workspace = useAtomValue(workspaceAtom);
   const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom);
   const [loadingFolders, setLoadingFolders] = useAtom(loadingFoldersAtom);
 
@@ -140,10 +141,8 @@ export function AppSidebar({
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">spacecake</span>
-                  {workspaceInfo?.name && (
-                    <span className="truncate text-xs">
-                      {workspaceInfo.name}
-                    </span>
+                  {workspace?.name && (
+                    <span className="truncate text-xs">{workspace.name}</span>
                   )}
                 </div>
               </a>
