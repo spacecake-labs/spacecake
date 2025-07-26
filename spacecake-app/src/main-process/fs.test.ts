@@ -1,4 +1,4 @@
-import { expect, test, describe } from "vitest";
+import { expect, test, describe, vi } from "vitest";
 import {
   readDir,
   sortFiles,
@@ -194,6 +194,7 @@ describe("readDir", () => {
         }) as FileStat,
       access: async () => {},
       mkdir: async () => undefined,
+      writeFile: async () => {},
     };
 
     const result = await readDir("/test/path", mockFs);
@@ -216,6 +217,7 @@ describe("readDir", () => {
       stat: async () => ({ size: 0, mtime: new Date() }) as FileStat,
       access: async () => {},
       mkdir: async () => undefined,
+      writeFile: async () => {},
     };
 
     const result = await readDir("/empty/path", mockFs);
@@ -238,6 +240,7 @@ describe("readDir", () => {
         }) as FileStat,
       access: async () => {},
       mkdir: async () => undefined,
+      writeFile: async () => {},
     };
 
     const result = await readDir("/project", mockFs);
@@ -266,6 +269,7 @@ describe("readDir", () => {
         }) as FileStat,
       access: async () => {},
       mkdir: async () => undefined,
+      writeFile: async () => {},
     };
 
     const result = await readDir("/test", mockFs);
@@ -298,6 +302,7 @@ describe("ensureSpacecakeFolder", () => {
         }
         return undefined;
       },
+      writeFile: async () => {},
     };
 
     const workspacePath = "/test/workspace";
@@ -323,6 +328,7 @@ describe("ensureSpacecakeFolder", () => {
         // This should not be called if folder already exists
         throw new Error("mkdir should not be called when folder exists");
       },
+      writeFile: async () => {},
     };
 
     const workspacePath = "/test/workspace";
@@ -348,6 +354,7 @@ describe("ensureSpacecakeFolder", () => {
         createdPath = path;
         return undefined;
       },
+      writeFile: async () => {},
     };
 
     const workspacePath = "/test/workspace";
@@ -371,11 +378,50 @@ describe("ensureSpacecakeFolder", () => {
         createdPath = path;
         return undefined;
       },
+      writeFile: async () => {},
     };
 
     const workspacePath = "/Users/username/Projects/my-project";
     await ensureSpacecakeFolder(workspacePath, mockFs);
 
     expect(createdPath).toBe("/Users/username/Projects/my-project/.spacecake");
+  });
+});
+
+describe("createFile", () => {
+  test("calls writeFile with correct arguments", async () => {
+    const mockWriteFile = vi.fn().mockResolvedValue(undefined);
+    const mockFs: Fs = {
+      writeFile: mockWriteFile,
+      readdir: async () => [],
+      stat: async () => ({ size: 0, mtime: new Date() }),
+      access: async () => {},
+      mkdir: async () => undefined,
+    };
+
+    const filePath = "/test/file.txt";
+    const content = "hello world";
+
+    const { createFile } = await import("@/main-process/fs");
+    await createFile(filePath, content, mockFs);
+
+    expect(mockWriteFile).toHaveBeenCalledWith(filePath, content, {
+      encoding: "utf8",
+    });
+  });
+
+  test("throws if writeFile fails", async () => {
+    const mockFs: Fs = {
+      writeFile: vi.fn().mockRejectedValue(new Error("fail")),
+      readdir: async () => [],
+      stat: async () => ({ size: 0, mtime: new Date() }),
+      access: async () => {},
+      mkdir: async () => undefined,
+    };
+
+    const { createFile } = await import("@/main-process/fs");
+    await expect(createFile("/fail/file.txt", "data", mockFs)).rejects.toThrow(
+      "fail"
+    );
   });
 });

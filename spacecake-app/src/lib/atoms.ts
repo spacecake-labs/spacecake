@@ -3,8 +3,7 @@ import type { FileEntry, WorkspaceInfo } from "@/types/electron";
 import type { SidebarNavItem } from "./workspace";
 import { SerializedEditorState, LexicalEditor } from "lexical";
 
-export const workspaceAtom = atom<string | null>(null);
-export const workspaceInfoAtom = atom<WorkspaceInfo | null>(null);
+export const workspaceAtom = atom<WorkspaceInfo | null>(null);
 export const filesAtom = atom<FileEntry[]>([]);
 export const loadingAtom = atom<boolean>(false);
 
@@ -25,3 +24,7 @@ export const editorStateAtom = atom<EditorStateLoader>(null);
 
 // Atom for the currently selected file path
 export const selectedFilePathAtom = atom<string | null>(null);
+
+// Atom for create file state
+export const isCreatingFileAtom = atom<boolean>(false);
+export const fileNameAtom = atom<string>("");

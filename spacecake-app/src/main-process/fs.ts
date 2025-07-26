@@ -34,6 +34,11 @@ export interface Fs {
     path: string,
     options?: { recursive?: boolean }
   ) => Promise<string | undefined>;
+  writeFile: (
+    path: string,
+    data: string,
+    options?: BufferEncoding | { encoding?: BufferEncoding }
+  ) => Promise<void>;
 }
 
 /**
@@ -78,7 +83,6 @@ export async function ensureSpacecakeFolder(
   fsModule: Fs = fs
 ): Promise<void> {
   const spacecakePath = path.join(workspacePath, ".spacecake");
-  console.log("spacecakePath", spacecakePath);
   try {
     // Check if the folder already exists
     await fsModule.access(spacecakePath);
@@ -86,4 +90,19 @@ export async function ensureSpacecakeFolder(
     // Folder doesn't exist, create it
     await fsModule.mkdir(spacecakePath, { recursive: true });
   }
+}
+
+/**
+ * Creates a new file in the specified directory
+ * @param filePath - The full path where the file should be created
+ * @param content - The initial content of the file (optional)
+ * @param fsModule - The fs module to use (defaults to fs/promises)
+ * @returns Promise that resolves when the file is created
+ */
+export async function createFile(
+  filePath: string,
+  content: string = "",
+  fsModule: Fs = fs
+): Promise<void> {
+  await fsModule.writeFile(filePath, content, { encoding: "utf8" });
 }

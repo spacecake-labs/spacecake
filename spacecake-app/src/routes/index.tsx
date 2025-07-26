@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { openDirectory, readWorkspace } from "@/lib/fs";
 import { workspaceAtom, filesAtom, sidebarNavAtom } from "@/lib/atoms";
 import { transformFilesToNavItems } from "@/lib/workspace";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { atom } from "jotai";
 
@@ -19,8 +19,8 @@ function Index() {
   const [fileExplorerIsOpen, setFileExplorerIsOpen] = useAtom(
     fileExplorerIsOpenAtom
   );
-  const [, setFiles] = useAtom(filesAtom);
-  const [, setSidebarNav] = useAtom(sidebarNavAtom);
+  const setFiles = useSetAtom(filesAtom);
+  const setSidebarNav = useSetAtom(sidebarNavAtom);
 
   // Read directory when workspace changes
   useEffect(() => {
@@ -33,7 +33,7 @@ function Index() {
 
       setFileExplorerIsOpen(true);
       try {
-        const result = await readWorkspace(workspace);
+        const result = await readWorkspace(workspace.path);
         if (result) {
           setFiles(result.files);
           // Transform files into sidebar navigation
@@ -60,7 +60,14 @@ function Index() {
     try {
       const selectedPath = await openDirectory();
       if (selectedPath) {
-        setWorkspace(selectedPath);
+        // Load the full workspace info immediately
+        const result = await readWorkspace(selectedPath);
+        if (result) {
+          setWorkspace(result.workspace);
+        } else {
+          // Fallback to basic info if readWorkspace fails
+          setWorkspace({ path: selectedPath, name: "" });
+        }
       }
     } finally {
       setFileExplorerIsOpen(false);
@@ -70,7 +77,7 @@ function Index() {
   return (
     <div className="flex flex-col items-center justify-center h-full space-y-4">
       <div className="flex flex-col items-center space-y-3">
-        {!workspace && (
+        {!workspace?.path && (
           <Button
             size="lg"
             className="text-base cursor-pointer"
