@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
-import type { FileEntry } from "@/types/electron";
+import type { FileEntry, File } from "@/types/electron";
+import { getFileType } from "@/lib/workspace";
 
 /**
  * Sorts file entries: directories first, then files, both alphabetically
@@ -39,6 +40,10 @@ export interface Fs {
     data: string,
     options?: BufferEncoding | { encoding?: BufferEncoding }
   ) => Promise<void>;
+  readFile: (
+    path: string,
+    options?: BufferEncoding | { encoding?: BufferEncoding }
+  ) => Promise<string>;
 }
 
 /**
@@ -105,4 +110,34 @@ export async function createFile(
   fsModule: Fs = fs
 ): Promise<void> {
   await fsModule.writeFile(filePath, content, { encoding: "utf8" });
+}
+
+/**
+ * Reads a file and returns both content and metadata
+ * @param filePath - The path of the file to read
+ * @param fsModule - The fs module to use (defaults to fs/promises)
+ * @returns Promise that resolves to file entry with content
+ */
+export async function readFile(
+  filePath: string,
+  fsModule: Fs = fs
+): Promise<File> {
+  const [content, stats] = await Promise.all([
+    fsModule.readFile(filePath, { encoding: "utf8" }),
+    fsModule.stat(filePath),
+  ]);
+
+  const pathParts = filePath.split(path.sep);
+  const name = pathParts[pathParts.length - 1];
+
+  return {
+    name,
+    path: filePath,
+    type: "file" as const,
+    size: stats.size,
+    modified: stats.mtime.toISOString(),
+    isDirectory: false,
+    content,
+    fileType: getFileType(name),
+  };
 }

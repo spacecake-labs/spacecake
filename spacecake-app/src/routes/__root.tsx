@@ -9,10 +9,11 @@ import {
 } from "@/components/ui/sidebar";
 import { useAtom } from "jotai";
 import { editorStateAtom, selectedFilePathAtom } from "@/lib/atoms";
-import { Editor, editorConfig, FileType } from "@/components/editor/editor";
+import { Editor, editorConfig } from "@/components/editor/editor";
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file";
 import { SerializedEditorState } from "lexical";
 import { toast } from "sonner";
+import { readFile } from "@/lib/fs";
 
 export const Route = createRootRoute({
   component: () => {
@@ -23,18 +24,10 @@ export const Route = createRootRoute({
     const [editorState, setEditorState] = useAtom(editorStateAtom);
 
     const handleFileClick = async (filePath: string) => {
-      const result = await window.electronAPI.readFile(filePath);
-      if (result.success) {
-        // Determine file type
-        let fileType: FileType = FileType.Plaintext;
-        if (filePath.endsWith(".md") || filePath.endsWith(".markdown")) {
-          fileType = FileType.Markdown;
-        }
+      const file = await readFile(filePath);
+      if (file !== null) {
         setEditorState({
-          loader: getInitialEditorStateFromContent(
-            result.content ?? "",
-            fileType
-          ),
+          loader: getInitialEditorStateFromContent(file.content, file.fileType),
         });
         setSelectedFilePath(filePath);
       } else {
