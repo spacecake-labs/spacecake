@@ -6,9 +6,9 @@ import {
   Image,
   FileWarning,
 } from "lucide-react";
-import type { FileEntry } from "@/types/electron";
+import type { FileEntry } from "@/types/workspace";
 import type { LucideIcon } from "lucide-react";
-import { FileType } from "@/components/editor/editor";
+import { FileType } from "@/types/workspace";
 
 /**
  * Sidebar navigation item interface

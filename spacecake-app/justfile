@@ -4,5 +4,14 @@ start:
 lint:
     pnpm run lint
 
+unit:
+    pnpm run unit-test
+
+e2e:
+    pnpm run package && pnpm run e2e-test
+
 test:
-    pnpm run test
+    just unit && just e2e
+
+codegen:
+    node e2e/playwright-codegen.js

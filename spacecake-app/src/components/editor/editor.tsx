@@ -9,11 +9,10 @@ import { nodes } from "@/components/editor/nodes";
 import { Plugins } from "@/components/editor/plugins";
 
 import { editorTheme } from "@/components/editor/theme";
+import { FileType } from "@/types/workspace";
 
-export enum FileType {
-  Markdown = "markdown",
-  Plaintext = "plaintext",
-}
+// Re-export for backward compatibility
+export { FileType };
 
 interface EditorProps {
   editorConfig: InitialConfigType;

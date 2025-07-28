@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
-import type { FileEntry, File } from "@/types/electron";
-import { getFileType } from "@/lib/workspace";
+import type { FileEntry, File } from "@/types/workspace";
+import { FileType } from "@/types/workspace";
 
 /**
  * Sorts file entries: directories first, then files, both alphabetically
@@ -75,6 +75,23 @@ export async function readDir(
   );
 
   return sortFiles(files);
+}
+
+/**
+ * Gets the file type based on the file extension
+ * @param fileName - The name of the file
+ * @returns The FileType enum value
+ */
+export function getFileType(fileName: string): FileType {
+  const extension = fileName.split(".").pop()?.toLowerCase();
+
+  switch (extension) {
+    case "md":
+    case "markdown":
+      return FileType.Markdown;
+    default:
+      return FileType.Plaintext;
+  }
 }
 
 /**

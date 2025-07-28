@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
-import { buildCSPString } from "./csp";
+import { buildCSPString } from "@/csp";
 import "@/main-process/ipc-handlers";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -20,6 +20,7 @@ const createWindow = () => {
       contextIsolation: true,
       webSecurity: true,
       allowRunningInsecureContent: false,
+      devTools: false,
     },
   });
 
