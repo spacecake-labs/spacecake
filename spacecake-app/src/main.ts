@@ -20,7 +20,9 @@ const createWindow = () => {
       contextIsolation: true,
       webSecurity: true,
       allowRunningInsecureContent: false,
-      devTools: false,
+      devTools:
+        process.env.NODE_ENV === "development" ||
+        process.env.NODE_ENV === "test",
     },
   });
 

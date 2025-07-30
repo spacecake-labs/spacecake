@@ -14,4 +14,4 @@ test:
     just unit && just e2e
 
 codegen:
-    node e2e/playwright-codegen.js
+    npx tsx e2e/playwright-codegen.ts

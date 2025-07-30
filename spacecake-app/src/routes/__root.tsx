@@ -8,32 +8,45 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useAtom } from "jotai";
-import { editorStateAtom, selectedFilePathAtom } from "@/lib/atoms";
-import { Editor, editorConfig } from "@/components/editor/editor";
-import { getInitialEditorStateFromContent } from "@/components/editor/read-file";
+import {
+  editorStateAtom,
+  selectedFilePathAtom,
+  fileContentAtom,
+} from "@/lib/atoms";
+import { Editor } from "@/components/editor/editor";
 import { SerializedEditorState } from "lexical";
 import { toast } from "sonner";
 import { readFile } from "@/lib/fs";
+import { getEditorConfig } from "@/lib/editor";
 
 export const Route = createRootRoute({
   component: () => {
-    // Use jotai atoms for selected file content and path
-    // removed selectedFileContent, no longer needed
     const [selectedFilePath, setSelectedFilePath] =
       useAtom(selectedFilePathAtom);
     const [editorState, setEditorState] = useAtom(editorStateAtom);
+    const [fileContent, setFileContent] = useAtom(fileContentAtom);
 
     const handleFileClick = async (filePath: string) => {
       const file = await readFile(filePath);
       if (file !== null) {
-        setEditorState({
-          loader: getInitialEditorStateFromContent(file.content, file.fileType),
-        });
+        // Clear any previous editor state when loading new file
+        setEditorState(null);
         setSelectedFilePath(filePath);
+        setFileContent({
+          content: file.content,
+          fileType: file.fileType,
+        });
       } else {
         toast("error reading file");
       }
     };
+
+    // Pure function call - no local logic
+    const editorConfig = getEditorConfig(
+      editorState,
+      fileContent,
+      selectedFilePath
+    );
 
     return (
       <>
@@ -52,45 +65,20 @@ export const Route = createRootRoute({
                     className="mr-2 data-[orientation=vertical]:h-4"
                   />
                   {selectedFilePath}
-                  {/* <Breadcrumb>
-                    <BreadcrumbList>
-                      <BreadcrumbItem className="hidden md:block">
-                        <BreadcrumbLink href="#">
-                          Building Your Application
-                        </BreadcrumbLink>
-                      </BreadcrumbItem>
-                      <BreadcrumbSeparator className="hidden md:block" />
-                      <BreadcrumbItem>
-                        <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-                      </BreadcrumbItem>
-                    </BreadcrumbList>
-                  </Breadcrumb> */}
                 </div>
               </header>
               <div className="h-full flex flex-1 flex-col gap-4 p-4 pt-0">
-                {/* <div className="container-wrapper section-soft flex-1 pb-6">
-                  <div className="container overflow-hidden"> */}
-                {typeof selectedFilePath === "string" &&
-                  selectedFilePath !== "" && (
-                    <Editor
-                      key={selectedFilePath || undefined}
-                      editorConfig={{
-                        ...editorConfig,
-                        ...(editorState &&
-                        typeof editorState === "object" &&
-                        "loader" in editorState
-                          ? { editorState: editorState.loader }
-                          : editorState
-                            ? { editorState: JSON.stringify(editorState) }
-                            : {}),
-                      }}
-                      onSerializedChange={(value: SerializedEditorState) =>
-                        setEditorState(value)
-                      }
-                    />
-                  )}
-                {/* </div>
-                </div> */}
+                {editorConfig && (
+                  <Editor
+                    key={selectedFilePath ?? undefined}
+                    editorConfig={editorConfig}
+                    onSerializedChange={(value: SerializedEditorState) => {
+                      setEditorState(value);
+                      // Clear temporary file content once editor is initialized
+                      setFileContent(null);
+                    }}
+                  />
+                )}
 
                 <Outlet />
               </div>
