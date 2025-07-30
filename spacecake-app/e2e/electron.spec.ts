@@ -12,7 +12,7 @@ type TestFixtures = {
 };
 
 const test = base.extend<TestFixtures>({
-  tempTestDir: async ({}, use, testInfo) => {
+  tempTestDir: async (_, use, testInfo) => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "spacecake-e2e-"));
     testInfo.annotations.push({
       type: "info",
@@ -31,7 +31,7 @@ const test = base.extend<TestFixtures>({
     }
   },
 
-  electronApp: async ({}, use) => {
+  electronApp: async (_, use) => {
     const app = await _electron.launch({
       args: [".vite/build/main.js"],
       cwd: process.cwd(),
@@ -46,7 +46,7 @@ const test = base.extend<TestFixtures>({
 });
 
 test.describe("spacecake app", () => {
-  test("open electron app", async ({ electronApp, tempTestDir }, testInfo) => {
+  test("open electron app", async ({ electronApp }, testInfo) => {
     // wait for the first window to be ready
     const window = await electronApp.firstWindow();
 
@@ -65,7 +65,10 @@ test.describe("spacecake app", () => {
     ).toBeVisible();
   });
 
-  test("open folder", async ({ electronApp, tempTestDir }, testInfo) => {
+  test("open workspace; create file", async ({
+    electronApp,
+    tempTestDir,
+  }, testInfo) => {
     // wait for the first window to be ready
     const window = await electronApp.firstWindow();
 
@@ -89,8 +92,27 @@ test.describe("spacecake app", () => {
 
     await window.getByRole("button", { name: "create file" }).click();
 
+    const textbox = window.getByRole("textbox", { name: "filename.txt" });
+
+    await textbox.fill("test.txt");
+    await textbox.press("Enter");
+    // await window.keyboard.press("Enter");
+
+    // Wait for the create file input to disappear (indicating state reset)
+    await expect(textbox).not.toBeVisible();
+
+    // Wait for the new file to appear in the sidebar
     await expect(
-      window.getByRole("textbox", { name: "filename.txt" })
+      window.getByRole("button", { name: "test.txt" })
     ).toBeVisible();
+
+    // Verify the file was actually created in the filesystem
+    const expectedFilePath = path.join(tempTestDir, "test.txt");
+    const fileExists = fs.existsSync(expectedFilePath);
+
+    testInfo.annotations.push({
+      type: "info",
+      description: `File test.txt exists at ${expectedFilePath}: ${fileExists}`,
+    });
   });
 });
