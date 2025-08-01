@@ -23,6 +23,7 @@ export interface FileNode {
 export interface FileStat {
   size: number;
   mtime: Date;
+  isDirectory(): boolean;
 }
 export interface Fs {
   readdir: (
@@ -44,6 +45,9 @@ export interface Fs {
     path: string,
     options?: BufferEncoding | { encoding?: BufferEncoding }
   ) => Promise<string>;
+  rename: (oldPath: string, newPath: string) => Promise<void>;
+  rmdir: (path: string, options?: { recursive?: boolean }) => Promise<void>;
+  unlink: (path: string) => Promise<void>;
 }
 
 /**
@@ -157,4 +161,37 @@ export async function readFile(
     content,
     fileType: getFileType(name),
   };
+}
+
+/**
+ * Renames a file or directory
+ * @param oldPath - The current path of the file/directory
+ * @param newPath - The new path for the file/directory
+ * @param fsModule - The fs module to use (defaults to fs/promises)
+ * @returns Promise that resolves when the file/directory is renamed
+ */
+export async function renameFile(
+  oldPath: string,
+  newPath: string,
+  fsModule: Fs = fs
+): Promise<void> {
+  await fsModule.rename(oldPath, newPath);
+}
+
+/**
+ * Deletes a file or directory
+ * @param filePath - The path of the file/directory to delete
+ * @param fsModule - The fs module to use (defaults to fs/promises)
+ * @returns Promise that resolves when the file/directory is deleted
+ */
+export async function deleteFile(
+  filePath: string,
+  fsModule: Fs = fs
+): Promise<void> {
+  const stats = await fsModule.stat(filePath);
+  if (stats.isDirectory()) {
+    await fsModule.rmdir(filePath, { recursive: true });
+  } else {
+    await fsModule.unlink(filePath);
+  }
 }

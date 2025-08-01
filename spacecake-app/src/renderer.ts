@@ -26,5 +26,5 @@
  * ```
  */
 
-import "./index.css";
-import "./app.tsx";
+import "@/styles/globals.css";
+import "@/app.tsx";

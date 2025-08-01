@@ -7,7 +7,7 @@ import {
   FileStat,
   ensureSpacecakeFolder,
 } from "@/main-process/fs";
-import type { FileEntry } from "@/types/electron";
+import type { FileEntry } from "@/types/workspace";
 
 describe("sortFiles", () => {
   test("sorts directories first, then files, both alphabetically", () => {
@@ -191,11 +191,15 @@ describe("readDir", () => {
         ({
           size: path.includes("dir") ? 0 : 100,
           mtime: new Date("2023-01-01"),
+          isDirectory: () => path.includes("dir"),
         }) as FileStat,
       access: async () => {},
       mkdir: async () => undefined,
       writeFile: async () => {},
       readFile: async () => "",
+      rename: async () => {},
+      rmdir: async () => {},
+      unlink: async () => {},
     };
 
     const result = await readDir("/test/path", mockFs);
@@ -215,11 +219,15 @@ describe("readDir", () => {
   test("returns empty array for empty directory", async () => {
     const mockFs: Fs = {
       readdir: async () => [],
-      stat: async () => ({ size: 0, mtime: new Date() }) as FileStat,
+      stat: async () =>
+        ({ size: 0, mtime: new Date(), isDirectory: () => false }) as FileStat,
       access: async () => {},
       mkdir: async () => undefined,
       writeFile: async () => {},
       readFile: async () => "",
+      rename: async () => {},
+      rmdir: async () => {},
+      unlink: async () => {},
     };
 
     const result = await readDir("/empty/path", mockFs);
@@ -239,11 +247,16 @@ describe("readDir", () => {
         ({
           size: path.includes("node_modules") ? 1000000 : 100,
           mtime: new Date("2023-01-01"),
+          isDirectory: () =>
+            path.includes("node_modules") || path.includes("src"),
         }) as FileStat,
       access: async () => {},
       mkdir: async () => undefined,
       writeFile: async () => {},
       readFile: async () => "",
+      rename: async () => {},
+      rmdir: async () => {},
+      unlink: async () => {},
     };
 
     const result = await readDir("/project", mockFs);
@@ -269,11 +282,15 @@ describe("readDir", () => {
         ({
           size: 1234,
           mtime: new Date("2023-12-25T10:30:00Z"),
+          isDirectory: () => false,
         }) as FileStat,
       access: async () => {},
       mkdir: async () => undefined,
       writeFile: async () => {},
       readFile: async () => "",
+      rename: async () => {},
+      rmdir: async () => {},
+      unlink: async () => {},
     };
 
     const result = await readDir("/test", mockFs);
@@ -293,7 +310,8 @@ describe("ensureSpacecakeFolder", () => {
   test("creates .spacecake folder when it doesn't exist", async () => {
     const mockFs: Fs = {
       readdir: async () => [],
-      stat: async () => ({ size: 0, mtime: new Date() }) as FileStat,
+      stat: async () =>
+        ({ size: 0, mtime: new Date(), isDirectory: () => false }) as FileStat,
       access: async (path: string) => {
         if (path.endsWith(".spacecake")) {
           throw new Error("ENOENT: no such file or directory");
@@ -308,6 +326,9 @@ describe("ensureSpacecakeFolder", () => {
       },
       writeFile: async () => {},
       readFile: async () => "",
+      rename: async () => {},
+      rmdir: async () => {},
+      unlink: async () => {},
     };
 
     const workspacePath = "/test/workspace";
@@ -321,7 +342,8 @@ describe("ensureSpacecakeFolder", () => {
   test("doesn't create .spacecake folder when it already exists", async () => {
     const mockFs: Fs = {
       readdir: async () => [],
-      stat: async () => ({ size: 0, mtime: new Date() }) as FileStat,
+      stat: async () =>
+        ({ size: 0, mtime: new Date(), isDirectory: () => false }) as FileStat,
       access: async (path: string) => {
         // Mock that .spacecake folder already exists
         if (path.endsWith(".spacecake")) {
@@ -335,6 +357,9 @@ describe("ensureSpacecakeFolder", () => {
       },
       writeFile: async () => {},
       readFile: async () => "",
+      rename: async () => {},
+      rmdir: async () => {},
+      unlink: async () => {},
     };
 
     const workspacePath = "/test/workspace";
@@ -350,7 +375,8 @@ describe("ensureSpacecakeFolder", () => {
 
     const mockFs: Fs = {
       readdir: async () => [],
-      stat: async () => ({ size: 0, mtime: new Date() }) as FileStat,
+      stat: async () =>
+        ({ size: 0, mtime: new Date(), isDirectory: () => false }) as FileStat,
       access: async (path: string) => {
         if (path.endsWith(".spacecake")) {
           throw new Error("ENOENT: no such file or directory");
@@ -362,6 +388,9 @@ describe("ensureSpacecakeFolder", () => {
       },
       writeFile: async () => {},
       readFile: async () => "",
+      rename: async () => {},
+      rmdir: async () => {},
+      unlink: async () => {},
     };
 
     const workspacePath = "/test/workspace";
@@ -375,7 +404,8 @@ describe("ensureSpacecakeFolder", () => {
 
     const mockFs: Fs = {
       readdir: async () => [],
-      stat: async () => ({ size: 0, mtime: new Date() }) as FileStat,
+      stat: async () =>
+        ({ size: 0, mtime: new Date(), isDirectory: () => false }) as FileStat,
       access: async (path: string) => {
         if (path.endsWith(".spacecake")) {
           throw new Error("ENOENT: no such file or directory");
@@ -387,6 +417,9 @@ describe("ensureSpacecakeFolder", () => {
       },
       writeFile: async () => {},
       readFile: async () => "",
+      rename: async () => {},
+      rmdir: async () => {},
+      unlink: async () => {},
     };
 
     const workspacePath = "/Users/username/Projects/my-project";
@@ -402,10 +435,17 @@ describe("createFile", () => {
     const mockFs: Fs = {
       writeFile: mockWriteFile,
       readdir: async () => [],
-      stat: async () => ({ size: 0, mtime: new Date() }),
+      stat: async () => ({
+        size: 0,
+        mtime: new Date(),
+        isDirectory: () => false,
+      }),
       access: async () => {},
       mkdir: async () => undefined,
       readFile: async () => "",
+      rename: async () => {},
+      rmdir: async () => {},
+      unlink: async () => {},
     };
 
     const filePath = "/test/file.txt";
@@ -423,10 +463,17 @@ describe("createFile", () => {
     const mockFs: Fs = {
       writeFile: vi.fn().mockRejectedValue(new Error("fail")),
       readdir: async () => [],
-      stat: async () => ({ size: 0, mtime: new Date() }),
+      stat: async () => ({
+        size: 0,
+        mtime: new Date(),
+        isDirectory: () => false,
+      }),
       access: async () => {},
       mkdir: async () => undefined,
       readFile: async () => "",
+      rename: async () => {},
+      rmdir: async () => {},
+      unlink: async () => {},
     };
 
     const { createFile } = await import("@/main-process/fs");

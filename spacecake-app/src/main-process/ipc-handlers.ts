@@ -4,6 +4,8 @@ import {
   ensureSpacecakeFolder,
   createFile,
   readFile,
+  renameFile,
+  deleteFile,
 } from "@/main-process/fs";
 import { getWorkspaceName } from "@/main-process/workspace";
 import { promises as fs } from "fs";
@@ -88,3 +90,32 @@ ipcMain.handle(
     }
   }
 );
+
+ipcMain.handle(
+  "rename-file",
+  async (event, oldPath: string, newPath: string) => {
+    try {
+      await renameFile(oldPath, newPath);
+      return { success: true };
+    } catch (error) {
+      console.error("error renaming file:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "unknown error",
+      };
+    }
+  }
+);
+
+ipcMain.handle("delete-file", async (event, filePath: string) => {
+  try {
+    await deleteFile(filePath);
+    return { success: true };
+  } catch (error) {
+    console.error("error deleting file:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "unknown error",
+    };
+  }
+});

@@ -1,5 +1,5 @@
 import { atom } from "jotai";
-import type { FileEntry, WorkspaceInfo } from "@/types/electron";
+import type { FileEntry, WorkspaceInfo } from "@/types/workspace";
 import type { SidebarNavItem } from "./workspace";
 import { SerializedEditorState } from "lexical";
 
@@ -7,26 +7,41 @@ export const workspaceAtom = atom<WorkspaceInfo | null>(null);
 export const filesAtom = atom<FileEntry[]>([]);
 export const loadingAtom = atom<boolean>(false);
 
-// Atom for sidebar navigation data
-export const sidebarNavAtom = atom<SidebarNavItem[]>([]);
+// Core workspace navigation state
+export const workspaceItemsAtom = atom<SidebarNavItem[]>([]);
 
-// Atom for expanded folders in the sidebar (keyed by folder url)
+// Expanded folders state (keyed by folder url)
 export const expandedFoldersAtom = atom<Record<string, boolean>>({});
-// Atom for loading folders (array of folder urls currently loading)
+
+// Loading folders state (array of folder urls currently loading)
 export const loadingFoldersAtom = atom<string[]>([]);
 
-// Simplified editor state - just the serialized state
+// Editor state
 export const editorStateAtom = atom<SerializedEditorState | null>(null);
 
-// Temporary file content for newly loaded files
+// File content state
 export const fileContentAtom = atom<{
   content: string;
   fileType: string;
 } | null>(null);
 
-// Atom for the currently selected file path
+// Selected file path
 export const selectedFilePathAtom = atom<string | null>(null);
 
-// Atom for create file state
+// Tree structure with folder contents
+export const fileTreeAtom = atom<Record<string, SidebarNavItem[]>>({});
+
+// Unified editing state for both create and rename operations
+export const editingItemAtom = atom<{
+  type: "create" | "rename";
+  path: string;
+  value: string;
+  originalValue?: string; // for rename operations
+} | null>(null);
+
+// File creation and editing atoms
 export const isCreatingFileAtom = atom<boolean>(false);
 export const fileNameAtom = atom<string>("");
+export const isRenamingFileAtom = atom<boolean>(false);
+export const renameFileNameAtom = atom<string>("");
+export const renamingItemAtom = atom<SidebarNavItem | null>(null);
