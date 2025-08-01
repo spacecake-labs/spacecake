@@ -105,7 +105,7 @@ test.describe("spacecake app", () => {
 
     // Wait for the new file to appear in the sidebar
     await expect(
-      window.getByRole("button", { name: "test.txt" })
+      window.getByRole("button", { name: "test.txt" }).first()
     ).toBeVisible();
 
     // Verify the file was actually created in the filesystem
@@ -167,60 +167,158 @@ test.describe("spacecake app", () => {
 
     // Wait for the workspace to load and verify root level items are visible
     await expect(
-      window.getByRole("button", { name: "nested-folder" })
+      window.getByRole("button", { name: "nested-folder" }).first()
     ).toBeVisible();
     await expect(
-      window.getByRole("button", { name: "root-file-1.txt" })
+      window.getByRole("button", { name: "root-file-1.txt" }).first()
     ).toBeVisible();
     await expect(
-      window.getByRole("button", { name: "root-file-2.txt" })
+      window.getByRole("button", { name: "root-file-2.txt" }).first()
     ).toBeVisible();
 
     // Click on the nested folder to expand it
-    await window.getByRole("button", { name: "nested-folder" }).click();
+    await window.getByRole("button", { name: "nested-folder" }).first().click();
 
     // Wait for the nested files to appear
     await expect(
-      window.getByRole("button", { name: "nested-file-1.txt" })
+      window.getByRole("button", { name: "nested-file-1.txt" }).first()
     ).toBeVisible();
     await expect(
-      window.getByRole("button", { name: "nested-file-2.txt" })
+      window.getByRole("button", { name: "nested-file-2.txt" }).first()
     ).toBeVisible();
 
     // Verify all items are still visible after expansion
     await expect(
-      window.getByRole("button", { name: "nested-folder" })
+      window.getByRole("button", { name: "nested-folder" }).first()
     ).toBeVisible();
     await expect(
-      window.getByRole("button", { name: "root-file-1.txt" })
+      window.getByRole("button", { name: "root-file-1.txt" }).first()
     ).toBeVisible();
     await expect(
-      window.getByRole("button", { name: "root-file-2.txt" })
+      window.getByRole("button", { name: "root-file-2.txt" }).first()
     ).toBeVisible();
 
     // Test file content loading by clicking on files
     // Click on root-file-1.txt and verify content loads
-    await window.getByRole("button", { name: "root-file-1.txt" }).click();
+    await window
+      .getByRole("button", { name: "root-file-1.txt" })
+      .first()
+      .click();
 
     // Wait for the editor to load and verify content
     await expect(window.getByText("root-file-1-content")).toBeVisible();
 
     // Click on root-file-2.txt and verify content loads
-    await window.getByRole("button", { name: "root-file-2.txt" }).click();
+    await window
+      .getByRole("button", { name: "root-file-2.txt" })
+      .first()
+      .click();
     await expect(window.getByText("root-file-2-content")).toBeVisible();
 
     // Click on nested-file-1.txt and verify content loads
-    await window.getByRole("button", { name: "nested-file-1.txt" }).click();
+    await window
+      .getByRole("button", { name: "nested-file-1.txt" })
+      .first()
+      .click();
     await expect(window.getByText("nested-file-1-content")).toBeVisible();
 
     // Click on nested-file-2.txt and verify content loads
-    await window.getByRole("button", { name: "nested-file-2.txt" }).click();
+    await window
+      .getByRole("button", { name: "nested-file-2.txt" })
+      .first()
+      .click();
     await expect(window.getByText("nested-file-2-content")).toBeVisible();
 
     testInfo.annotations.push({
       type: "info",
       description:
         "Successfully verified nested folder expansion with all items present and file content loading",
+    });
+
+    // Test rename functionality with improved selectors
+    testInfo.annotations.push({
+      type: "info",
+      description:
+        "Starting rename functionality tests with improved selectors",
+    });
+
+    // Test 1: Rename a root file using improved selectors
+    await window
+      .getByRole("button", { name: "root-file-1.txt" })
+      .first()
+      .hover();
+    await window.getByTestId("more-options-root-file-1.txt").click();
+    await window.getByRole("menuitem", { name: "rename" }).click();
+
+    // Verify rename input appears and has the correct initial value
+    const renameInput = window.locator("input[data-slot='input']").first();
+    await expect(renameInput).toBeVisible();
+    await expect(renameInput).toHaveValue("root-file-1.txt");
+
+    // Rename the file
+    await window
+      .locator("input[data-slot='input']")
+      .first()
+      .fill("renamed-root-file.txt");
+    await window.locator("input[data-slot='input']").first().press("Enter");
+
+    // Verify the file was renamed in the UI
+    await expect(
+      window.getByRole("button", { name: "renamed-root-file.txt" }).first()
+    ).toBeVisible();
+    await expect(
+      window.getByRole("button", { name: "root-file-1.txt" })
+    ).not.toBeVisible();
+
+    // Verify the file was actually renamed in the filesystem
+    const renamedFilePath = path.join(tempTestDir, "renamed-root-file.txt");
+    const originalFilePath = path.join(tempTestDir, "root-file-1.txt");
+    expect(fs.existsSync(renamedFilePath)).toBe(true);
+    expect(fs.existsSync(originalFilePath)).toBe(false);
+
+    // Test 2: Validation - try to rename to an existing file name
+    await window
+      .getByRole("button", { name: "renamed-root-file.txt" })
+      .first()
+      .hover();
+    await window.getByTestId("more-options-renamed-root-file.txt").click();
+    await window.getByRole("menuitem", { name: "rename" }).click();
+
+    // Try to rename to an existing file name
+    await window
+      .locator("input[data-slot='input']")
+      .first()
+      .fill("root-file-2.txt");
+    await window.locator("input[data-slot='input']").first().press("Enter");
+
+    // Verify validation error appears
+    await expect(
+      window.getByText("'root-file-2.txt' already exists")
+    ).toBeVisible();
+
+    // Verify the rename input is still visible (rename wasn't completed)
+    await expect(
+      window.locator("input[data-slot='input']").first()
+    ).toBeVisible();
+    await expect(
+      window.locator("input[data-slot='input']").first()
+    ).toHaveValue("root-file-2.txt");
+
+    // Cancel the rename by pressing Escape
+    await window.locator("input[data-slot='input']").first().press("Escape");
+    await expect(
+      window.locator("input[data-slot='input']").first()
+    ).not.toBeVisible();
+
+    // Verify the original file name is still there
+    await expect(
+      window.getByRole("button", { name: "renamed-root-file.txt" }).first()
+    ).toBeVisible();
+
+    testInfo.annotations.push({
+      type: "info",
+      description:
+        "Successfully completed rename functionality tests with improved selectors",
     });
   });
 });

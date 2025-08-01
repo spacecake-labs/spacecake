@@ -169,12 +169,25 @@ export async function readFile(
  * @param newPath - The new path for the file/directory
  * @param fsModule - The fs module to use (defaults to fs/promises)
  * @returns Promise that resolves when the file/directory is renamed
+ * @throws Error if the new path already exists
  */
 export async function renameFile(
   oldPath: string,
   newPath: string,
   fsModule: Fs = fs
 ): Promise<void> {
+  // Check if the new path already exists
+  try {
+    await fsModule.access(newPath);
+    throw new Error(`file or directory already exists: ${newPath}`);
+  } catch (error) {
+    // If access throws an error, it means the file doesn't exist, which is what we want
+    if (error instanceof Error && error.message.includes("already exists")) {
+      throw error;
+    }
+    // Otherwise, the file doesn't exist, so we can proceed with the rename
+  }
+
   await fsModule.rename(oldPath, newPath);
 }
 

@@ -482,3 +482,82 @@ describe("createFile", () => {
     );
   });
 });
+
+describe("renameFile", () => {
+  test("successfully renames a file when new path doesn't exist", async () => {
+    const mockRename = vi.fn().mockResolvedValue(undefined);
+    const mockAccess = vi.fn().mockRejectedValue(new Error("ENOENT"));
+
+    const mockFs: Fs = {
+      rename: mockRename,
+      access: mockAccess,
+      readdir: async () => [],
+      stat: async () => ({
+        size: 0,
+        mtime: new Date(),
+        isDirectory: () => false,
+      }),
+      mkdir: async () => undefined,
+      writeFile: async () => {},
+      readFile: async () => "",
+      rmdir: async () => {},
+      unlink: async () => {},
+    };
+
+    const { renameFile } = await import("@/main-process/fs");
+    await renameFile("/old/file.txt", "/new/file.txt", mockFs);
+
+    expect(mockAccess).toHaveBeenCalledWith("/new/file.txt");
+    expect(mockRename).toHaveBeenCalledWith("/old/file.txt", "/new/file.txt");
+  });
+
+  test("throws error when new path already exists", async () => {
+    const mockAccess = vi.fn().mockResolvedValue(undefined); // File exists
+
+    const mockFs: Fs = {
+      access: mockAccess,
+      readdir: async () => [],
+      stat: async () => ({
+        size: 0,
+        mtime: new Date(),
+        isDirectory: () => false,
+      }),
+      mkdir: async () => undefined,
+      writeFile: async () => {},
+      readFile: async () => "",
+      rename: async () => {},
+      rmdir: async () => {},
+      unlink: async () => {},
+    };
+
+    const { renameFile } = await import("@/main-process/fs");
+    await expect(
+      renameFile("/old/file.txt", "/existing/file.txt", mockFs)
+    ).rejects.toThrow("file or directory already exists: /existing/file.txt");
+  });
+
+  test("throws error when new path already exists (directory)", async () => {
+    const mockAccess = vi.fn().mockResolvedValue(undefined); // Directory exists
+
+    const mockFs: Fs = {
+      access: mockAccess,
+      readdir: async () => [],
+      stat: async () => ({
+        size: 0,
+        mtime: new Date(),
+        isDirectory: () => false,
+      }),
+      mkdir: async () => undefined,
+      writeFile: async () => {},
+      readFile: async () => "",
+      rename: async () => {},
+      rmdir: async () => {},
+      unlink: async () => {},
+    };
+
+    const { renameFile } = await import("@/main-process/fs");
+    await expect(
+      renameFile("/old/dir", "/existing/dir", mockFs)
+    ).rejects.toThrow("file or directory already exists: /existing/dir");
+  });
+});
