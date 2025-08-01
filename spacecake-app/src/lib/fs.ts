@@ -4,7 +4,7 @@ import type {
   ReadWorkspaceResult,
   WorkspaceInfo,
   File,
-} from "@/types/electron";
+} from "@/types/workspace";
 
 const openDirectory = async (): Promise<string | null> => {
   try {
@@ -97,4 +97,47 @@ const readFile = async (filePath: string): Promise<File | null> => {
   }
 };
 
-export { openDirectory, readDirectory, readWorkspace, createFile, readFile };
+const renameFile = async (
+  oldPath: string,
+  newPath: string
+): Promise<boolean> => {
+  try {
+    const result = await window.electronAPI.renameFile(oldPath, newPath);
+
+    if (result.success) {
+      return true;
+    } else {
+      console.error("failed to rename file:", result.error);
+      return false;
+    }
+  } catch (error) {
+    console.error("error renaming file:", error);
+    return false;
+  }
+};
+
+const deleteFile = async (filePath: string): Promise<boolean> => {
+  try {
+    const result = await window.electronAPI.deleteFile(filePath);
+
+    if (result.success) {
+      return true;
+    } else {
+      console.error("failed to delete file:", result.error);
+      return false;
+    }
+  } catch (error) {
+    console.error("error deleting file:", error);
+    return false;
+  }
+};
+
+export {
+  openDirectory,
+  readDirectory,
+  readWorkspace,
+  createFile,
+  readFile,
+  renameFile,
+  deleteFile,
+};

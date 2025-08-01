@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { FolderOpen, Loader2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { openDirectory, readWorkspace } from "@/lib/fs";
-import { workspaceAtom, filesAtom, sidebarNavAtom } from "@/lib/atoms";
+import { workspaceAtom, filesAtom, workspaceItemsAtom } from "@/lib/atoms";
 import { transformFilesToNavItems } from "@/lib/workspace";
 import { useAtom, useSetAtom } from "jotai";
 import { useEffect } from "react";
@@ -20,7 +20,7 @@ function Index() {
     fileExplorerIsOpenAtom
   );
   const setFiles = useSetAtom(filesAtom);
-  const setSidebarNav = useSetAtom(sidebarNavAtom);
+  const setSidebarNav = useSetAtom(workspaceItemsAtom);
 
   // Read directory when workspace changes
   useEffect(() => {

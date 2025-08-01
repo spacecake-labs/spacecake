@@ -1,14 +1,12 @@
 import { expect, test, describe } from "vitest";
-import { getFileIcon, transformFilesToNavItems } from "@/lib/workspace";
 import {
-  BookOpen,
-  Code,
-  Image,
-  FileText,
-  Folder,
-  FileWarning,
-} from "lucide-react";
-import type { FileEntry } from "@/types/electron";
+  getFileIcon,
+  transformFilesToNavItems,
+  isFile,
+  isFolder,
+} from "@/lib/workspace";
+import { BookOpen, Code, Image, FileText, Folder } from "lucide-react";
+import type { FileEntry } from "@/types/workspace";
 
 // getFileIcon tests
 
@@ -81,11 +79,8 @@ describe("transformFilesToNavItems", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
-      title: "folder is empty",
-      url: "#folder-is-empty",
-      icon: FileWarning,
-      isDirectory: true,
-      items: [],
+      kind: "empty",
+      message: "empty",
     });
   });
 
@@ -104,10 +99,10 @@ describe("transformFilesToNavItems", () => {
       ],
       [
         {
+          kind: "folder",
           title: "src",
           url: "#/project/src",
           icon: Folder,
-          isDirectory: true,
           items: null,
         },
       ],
@@ -126,11 +121,10 @@ describe("transformFilesToNavItems", () => {
       ],
       [
         {
+          kind: "file",
           title: "readme.md",
           url: "#/project/readme.md",
           icon: BookOpen,
-          isDirectory: false,
-          items: undefined,
         },
       ],
     ],
@@ -164,25 +158,23 @@ describe("transformFilesToNavItems", () => {
       ],
       [
         {
+          kind: "folder",
           title: "src",
           url: "#/project/src",
           icon: Folder,
-          isDirectory: true,
           items: null,
         },
         {
+          kind: "file",
           title: "readme.md",
           url: "#/project/readme.md",
           icon: BookOpen,
-          isDirectory: false,
-          items: undefined,
         },
         {
+          kind: "file",
           title: "app.tsx",
           url: "#/project/app.tsx",
           icon: Code,
-          isDirectory: false,
-          items: undefined,
         },
       ],
     ],
@@ -209,9 +201,10 @@ describe("transformFilesToNavItems", () => {
     const result = transformFilesToNavItems([fileEntry]);
 
     expect(result).toHaveLength(1);
-    expect(result[0].icon).toBe(expectedIcon);
-    expect(result[0].isDirectory).toBe(false);
-    expect(result[0].items).toBeUndefined();
+    expect(isFile(result[0])).toBe(true);
+    if (isFile(result[0])) {
+      expect(result[0].icon).toBe(expectedIcon);
+    }
   });
 
   test("assigns Folder icon and correct properties for directories", () => {
@@ -227,9 +220,11 @@ describe("transformFilesToNavItems", () => {
     const result = transformFilesToNavItems([dirEntry]);
 
     expect(result).toHaveLength(1);
-    expect(result[0].icon).toBe(Folder);
-    expect(result[0].isDirectory).toBe(true);
-    expect(result[0].items).toBeNull();
+    expect(isFolder(result[0])).toBe(true);
+    if (isFolder(result[0])) {
+      expect(result[0].icon).toBe(Folder);
+      expect(result[0].items).toBeNull();
+    }
   });
 
   test("preserves order of input files", () => {
@@ -263,9 +258,9 @@ describe("transformFilesToNavItems", () => {
     const result = transformFilesToNavItems(files);
 
     expect(result).toHaveLength(3);
-    expect(result[0].title).toBe("z-file.txt");
-    expect(result[1].title).toBe("a-file.md");
-    expect(result[2].title).toBe("middle.js");
+    expect(isFile(result[0]) && result[0].title).toBe("z-file.txt");
+    expect(isFile(result[1]) && result[1].title).toBe("a-file.md");
+    expect(isFile(result[2]) && result[2].title).toBe("middle.js");
   });
 
   test("creates correct URLs with hash prefix", () => {
@@ -290,7 +285,7 @@ describe("transformFilesToNavItems", () => {
 
     const result = transformFilesToNavItems(files);
 
-    expect(result[0].url).toBe("#/absolute/path/file.txt");
-    expect(result[1].url).toBe("#relative/path/folder");
+    expect(isFile(result[0]) && result[0].url).toBe("#/absolute/path/file.txt");
+    expect(isFolder(result[1]) && result[1].url).toBe("#relative/path/folder");
   });
 });

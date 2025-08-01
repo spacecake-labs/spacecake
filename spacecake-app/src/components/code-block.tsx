@@ -47,7 +47,7 @@ export function CodeBlock({
   return (
     <div
       className={cn(
-        "group relative rounded-lg border-muted bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
+        "group relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
         "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
         className
       )}

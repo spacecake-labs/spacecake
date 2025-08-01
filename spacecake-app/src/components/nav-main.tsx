@@ -1,7 +1,15 @@
-"use client";
-
-import { ChevronRight, Plus, X } from "lucide-react";
+import { ChevronRight, Plus, X, FileWarning } from "lucide-react";
+import { useEffect } from "react";
+import * as React from "react";
 import type { SidebarNavItem } from "@/lib/workspace";
+import {
+  isFile,
+  isFolder,
+  transformFilesToTree,
+  getNavItemPath,
+  getNavItemIcon,
+  buildFileTree,
+} from "@/lib/workspace";
 import {
   Collapsible,
   CollapsibleContent,
@@ -15,56 +23,41 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createFile } from "@/lib/fs";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { createFile, readDirectory } from "@/lib/fs";
+import { useAtom, useAtomValue } from "jotai";
 import {
   workspaceAtom,
-  sidebarNavAtom,
+  filesAtom,
+  expandedFoldersAtom,
   isCreatingFileAtom,
   fileNameAtom,
+  fileTreeAtom,
 } from "@/lib/atoms";
-import { transformFilesToNavItems } from "@/lib/workspace";
-import { readDirectory } from "@/lib/fs";
 
 interface NavMainProps {
-  items: SidebarNavItem[];
   onExpandFolder?: (folderUrl: string, folderPath: string) => void;
-  loadingFolders?: string[];
   expandedFolders?: Record<string, boolean>;
   onFileClick?: (filePath: string) => void;
   selectedFilePath?: string | null;
 }
 
 export function NavMain({
-  items,
   onExpandFolder,
-  loadingFolders = [],
-  expandedFolders = {},
   onFileClick,
   selectedFilePath,
 }: NavMainProps) {
   const [isCreatingFile, setIsCreatingFile] = useAtom(isCreatingFileAtom);
   const [fileName, setFileName] = useAtom(fileNameAtom);
   const workspace = useAtomValue(workspaceAtom);
-  const setSidebarNav = useSetAtom(sidebarNavAtom);
+  const [files, setFiles] = useAtom(filesAtom);
+  const [expandedFoldersState] = useAtom(expandedFoldersAtom);
+  const [fileTree, setFileTree] = useAtom(fileTreeAtom);
 
-  const handleToggle = (item: SidebarNavItem) => {
-    if (!item.isDirectory) {
-      if (onFileClick) {
-        // Remove leading '#' from url to get the file path
-        onFileClick(item.url.replace(/^#/, ""));
-      }
-      return;
-    }
-    if (onExpandFolder) {
-      onExpandFolder(item.url, item.url.replace(/^#/, ""));
-    }
-  };
+  // Transform files to tree structure
+  const treeData = transformFilesToTree(files);
 
   const handleFileCreated = (filePath: string) => {
     if (onFileClick) {
@@ -82,8 +75,7 @@ export function NavMain({
       if (success) {
         // Refresh the workspace to show the new file
         const files = await readDirectory(workspace.path);
-        const navItems = transformFilesToNavItems(files);
-        setSidebarNav(navItems);
+        setFiles(files);
 
         setIsCreatingFile(false);
         setFileName("");
@@ -113,6 +105,27 @@ export function NavMain({
     setIsCreatingFile(false);
     setFileName("");
   };
+
+  const handleFileClick = (filePath: string) => {
+    if (onFileClick) {
+      onFileClick(filePath);
+    }
+  };
+
+  const handleFolderToggle = async (folderPath: string) => {
+    if (onExpandFolder) {
+      // Use the folder URL format that matches the SidebarNavItem
+      const folderUrl = `#${folderPath}`;
+      onExpandFolder(folderUrl, folderPath);
+    }
+  };
+
+  useEffect(() => {
+    if (files && files.length > 0) {
+      const newFileTree = buildFileTree(files);
+      setFileTree(newFileTree);
+    }
+  }, [files, setFileTree]);
 
   return (
     <SidebarGroup>
@@ -153,75 +166,112 @@ export function NavMain({
             </SidebarMenuAction>
           </SidebarMenuItem>
         )}
-        {items.map((item) => (
-          <Collapsible
-            key={item.title}
-            asChild
-            open={!!expandedFolders[item.url]}
-          >
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                tooltip={item.title}
-                onClick={() => handleToggle(item)}
-                isActive={Boolean(
-                  selectedFilePath &&
-                    !item.isDirectory &&
-                    item.url.replace(/^#/, "") === selectedFilePath
-                )}
-                className="cursor-pointer"
-              >
-                <item.icon />
-                <span>{item.title}</span>
-              </SidebarMenuButton>
-              {item.isDirectory ? (
-                <>
-                  <CollapsibleTrigger asChild className="cursor-pointer">
-                    <SidebarMenuAction
-                      className="data-[state=open]:rotate-90"
-                      onClick={() => handleToggle(item)}
-                    >
-                      <ChevronRight />
-                      <span className="sr-only">toggle</span>
-                    </SidebarMenuAction>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    {loadingFolders.includes(item.url) ? (
-                      <div className="pl-6 py-2 text-xs text-muted-foreground">
-                        loading...
-                      </div>
-                    ) : (
-                      <SidebarMenuSub>
-                        {item.items?.map((subItem) => (
-                          <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton
-                              asChild
-                              onClick={() => {
-                                if (onFileClick) {
-                                  onFileClick(subItem.url.replace(/^#/, ""));
-                                }
-                              }}
-                              isActive={Boolean(
-                                selectedFilePath &&
-                                  subItem.url.replace(/^#/, "") ===
-                                    selectedFilePath
-                              )}
-                            >
-                              <a href={subItem.url}>
-                                <subItem.icon />
-                                <span>{subItem.title}</span>
-                              </a>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    )}
-                  </CollapsibleContent>
-                </>
-              ) : null}
-            </SidebarMenuItem>
-          </Collapsible>
+        {treeData.map((item, index) => (
+          <Tree
+            key={index}
+            item={item}
+            onFileClick={handleFileClick}
+            onFolderToggle={handleFolderToggle}
+            selectedFilePath={selectedFilePath}
+            expandedFolders={expandedFoldersState}
+            fileTree={fileTree}
+          />
         ))}
       </SidebarMenu>
     </SidebarGroup>
+  );
+}
+
+interface TreeProps {
+  item: SidebarNavItem;
+  onFileClick: (filePath: string) => void;
+  onFolderToggle: (folderPath: string) => void;
+  selectedFilePath?: string | null;
+  expandedFolders: Record<string, boolean>;
+  fileTree: Record<string, SidebarNavItem[]>;
+}
+
+function Tree({
+  item,
+  onFileClick,
+  onFolderToggle,
+  selectedFilePath,
+  expandedFolders,
+  fileTree,
+}: TreeProps) {
+  const filePath = getNavItemPath(item);
+  const folderUrl = `#${filePath}`; // Use the same format as expandedFolders
+  const isExpanded = Boolean(expandedFolders[folderUrl]);
+  const isSelected = selectedFilePath === filePath;
+
+  if (isFile(item)) {
+    // This is a file
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={isSelected}
+          onClick={() => onFileClick(filePath)}
+          className="cursor-pointer"
+        >
+          {React.createElement(getNavItemIcon(item))}
+          <span className="truncate">{item.title}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
+
+  if (isFolder(item)) {
+    // This is a folder
+    return (
+      <SidebarMenuItem>
+        <Collapsible
+          className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90"
+          open={isExpanded}
+        >
+          <CollapsibleTrigger asChild>
+            <SidebarMenuButton
+              onClick={() => onFolderToggle(filePath)}
+              className="cursor-pointer"
+            >
+              <ChevronRight className="transition-transform" />
+              {React.createElement(getNavItemIcon(item))}
+              <span className="truncate">{item.title}</span>
+            </SidebarMenuButton>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <SidebarMenuSub>
+              {fileTree[filePath] && fileTree[filePath].length > 0 ? (
+                fileTree[filePath].map((subItem, index) => (
+                  <Tree
+                    key={index}
+                    item={subItem}
+                    onFileClick={onFileClick}
+                    onFolderToggle={onFolderToggle}
+                    selectedFilePath={selectedFilePath}
+                    expandedFolders={expandedFolders}
+                    fileTree={fileTree}
+                  />
+                ))
+              ) : (
+                <div className="pl-6 py-2 text-xs text-muted-foreground flex items-center gap-2">
+                  <FileWarning className="h-3 w-3" />
+                  <span>empty</span>
+                </div>
+              )}
+            </SidebarMenuSub>
+          </CollapsibleContent>
+        </Collapsible>
+      </SidebarMenuItem>
+    );
+  }
+
+  // This is an empty item
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton className="cursor-default">
+        <FileWarning className="text-muted-foreground" />
+        <span className="truncate">{item.message}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   );
 }

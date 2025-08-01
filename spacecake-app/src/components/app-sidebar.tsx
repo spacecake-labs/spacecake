@@ -1,136 +1,57 @@
-import * as React from "react";
-import { Frame, LifeBuoy, Map, PieChart, Send, CakeSlice } from "lucide-react";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
-
+import { useAtom, useAtomValue } from "jotai";
+import { workspaceAtom, expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms";
+import { readDirectory } from "@/lib/fs";
+import { updateFolderContents } from "@/lib/workspace";
 import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
-  sidebarNavAtom,
-  workspaceAtom,
-  expandedFoldersAtom,
-  loadingFoldersAtom,
-} from "@/lib/atoms";
-import { transformFilesToNavItems } from "@/lib/workspace";
-import { readDirectory } from "@/lib/fs";
-import type { SidebarNavItem } from "@/lib/workspace";
-
-import {
   Sidebar,
-  SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { CakeSlice } from "lucide-react";
 
-const defaultNavSecondary = [
-  {
-    title: "Support",
-    url: "#",
-    icon: LifeBuoy,
-  },
-  {
-    title: "Feedback",
-    url: "#",
-    icon: Send,
-  },
-];
-
-const defaultProjects = [
-  {
-    name: "Design Engineering",
-    url: "#",
-    icon: Frame,
-  },
-  {
-    name: "Sales & Marketing",
-    url: "#",
-    icon: PieChart,
-  },
-  {
-    name: "Travel",
-    url: "#",
-    icon: Map,
-  },
-];
-
-const defaultUser = {
-  name: "shadcn",
-  email: "m@example.com",
-  avatar: "/avatars/shadcn.jpg",
-};
-
-function updateNavItemsWithChildren(
-  navItems: SidebarNavItem[],
-  folderUrl: string,
-  children: SidebarNavItem[]
-): SidebarNavItem[] {
-  return navItems.map((item) => {
-    if (item.url === folderUrl && item.isDirectory) {
-      return {
-        ...item,
-        items: children,
-      };
-    } else if (item.items && item.items.length > 0) {
-      return {
-        ...item,
-        items: updateNavItemsWithChildren(item.items, folderUrl, children),
-      };
-    }
-    return item;
-  });
-}
-
-// Helper to find a nav item by url (recursive)
-function findNavItemByUrl(
-  items: SidebarNavItem[],
-  url: string
-): SidebarNavItem | null {
-  for (const item of items) {
-    if (item.url === url) return item;
-    if (item.items) {
-      const found = findNavItemByUrl(item.items, url);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-export function AppSidebar({
-  onFileClick,
-  selectedFilePath,
-  ...props
-}: React.ComponentProps<typeof Sidebar> & {
+interface AppSidebarProps {
   onFileClick?: (filePath: string) => void;
   selectedFilePath?: string | null;
-}) {
-  const sidebarNav = useAtomValue(sidebarNavAtom);
-  const setSidebarNav = useSetAtom(sidebarNavAtom);
+}
+
+export function AppSidebar({ onFileClick, selectedFilePath }: AppSidebarProps) {
   const workspace = useAtomValue(workspaceAtom);
   const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom);
-  const [loadingFolders, setLoadingFolders] = useAtom(loadingFoldersAtom);
+  const [, setFileTree] = useAtom(fileTreeAtom);
 
   const handleExpandFolder = async (folderUrl: string, folderPath: string) => {
+    // Check if folder is currently expanded
+    const isCurrentlyExpanded = expandedFolders[folderUrl];
+
     // Toggle expanded state
-    setExpandedFolders((prev) => ({ ...prev, [folderUrl]: !prev[folderUrl] }));
-    // Only fetch if not already loaded and not already open
-    const folderItem = findNavItemByUrl(sidebarNav, folderUrl);
-    if (!folderItem || folderItem.items) return;
-    if (loadingFolders.includes(folderUrl)) return;
-    setLoadingFolders((prev) => [...prev, folderUrl]);
-    const files = await readDirectory(folderPath);
-    const children = transformFilesToNavItems(files);
-    setSidebarNav((prev) =>
-      updateNavItemsWithChildren(prev, folderUrl, children)
-    );
-    setLoadingFolders((prev) => prev.filter((url) => url !== folderUrl));
+    setExpandedFolders((prev: Record<string, boolean>) => ({
+      ...prev,
+      [folderUrl]: !isCurrentlyExpanded,
+    }));
+
+    // Load folder contents if we're expanding (not collapsing)
+    if (!isCurrentlyExpanded) {
+      try {
+        const folderFiles = await readDirectory(folderPath);
+        // Update the tree structure with folder contents
+        // Use folderPath (without #) as the key for fileTree
+        setFileTree((prev) =>
+          updateFolderContents(prev, folderPath, folderFiles)
+        );
+      } catch (error) {
+        console.error("error loading folder:", error);
+      }
+    }
   };
 
   return (
-    <Sidebar variant="inset" {...props}>
+    <Sidebar variant="inset">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -150,21 +71,15 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
-        <NavMain
-          items={sidebarNav}
-          onExpandFolder={handleExpandFolder}
-          loadingFolders={loadingFolders}
-          expandedFolders={expandedFolders}
-          onFileClick={onFileClick}
-          selectedFilePath={selectedFilePath}
-        />
-        <NavProjects projects={defaultProjects} />
-        <NavSecondary items={defaultNavSecondary} className="mt-auto" />
-      </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={defaultUser} />
-      </SidebarFooter>
+      <NavMain
+        onExpandFolder={handleExpandFolder}
+        expandedFolders={expandedFolders}
+        onFileClick={onFileClick}
+        selectedFilePath={selectedFilePath}
+      />
+      <NavProjects projects={[]} />
+      <NavSecondary items={[]} />
+      <NavUser user={{ name: "User", email: "user@example.com", avatar: "" }} />
     </Sidebar>
   );
 }
