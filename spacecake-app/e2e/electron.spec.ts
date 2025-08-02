@@ -65,6 +65,9 @@ test.describe("spacecake app", () => {
     await expect(
       window.getByRole("button", { name: "open folder" })
     ).toBeVisible();
+
+    // verify that "empty" text doesn't appear when no workspace is selected
+    await expect(window.getByText("empty")).not.toBeVisible();
   });
 
   test("open workspace; create file", async ({
@@ -91,6 +94,14 @@ test.describe("spacecake app", () => {
     });
 
     await window.getByRole("button", { name: "open folder" }).click();
+
+    // wait for the workspace to load (indicated by the create file button appearing)
+    await expect(
+      window.getByRole("button", { name: "create file" })
+    ).toBeVisible();
+
+    // verify that "empty" text appears when workspace is selected but empty
+    await expect(window.getByText("empty")).toBeVisible();
 
     await window.getByRole("button", { name: "create file" }).click();
 

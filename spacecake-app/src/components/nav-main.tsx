@@ -288,25 +288,26 @@ export function NavMain({
             </SidebarMenuAction>
           </SidebarMenuItem>
         )}
-        {treeData.map((item) => (
-          <WorkspaceTree
-            key={getNavItemPath(item)}
-            item={item}
-            onFileClick={handleFileClick}
-            onFolderToggle={handleFolderToggle}
-            onStartRename={handleStartRename}
-            selectedFilePath={selectedFilePath}
-            expandedFolders={expandedFoldersState}
-            fileTree={fileTree}
-            editingItem={editingItem}
-            setEditingItem={setEditingItem}
-            onRename={handleRename}
-            onRenameKeyDown={handleRenameKeyDown}
-            onCancelRename={cancelRename}
-            onRenameInputChange={handleRenameInputChange}
-            validationError={validationError}
-          />
-        ))}
+        {workspace?.path &&
+          treeData.map((item) => (
+            <WorkspaceTree
+              key={getNavItemPath(item)}
+              item={item}
+              onFileClick={handleFileClick}
+              onFolderToggle={handleFolderToggle}
+              onStartRename={handleStartRename}
+              selectedFilePath={selectedFilePath}
+              expandedFolders={expandedFoldersState}
+              fileTree={fileTree}
+              editingItem={editingItem}
+              setEditingItem={setEditingItem}
+              onRename={handleRename}
+              onRenameKeyDown={handleRenameKeyDown}
+              onCancelRename={cancelRename}
+              onRenameInputChange={handleRenameInputChange}
+              validationError={validationError}
+            />
+          ))}
       </SidebarMenu>
     </SidebarGroup>
   );
