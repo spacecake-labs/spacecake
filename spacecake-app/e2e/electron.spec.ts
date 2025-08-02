@@ -270,41 +270,59 @@ test.describe("spacecake app", () => {
     await window
       .locator("input[data-slot='input']")
       .first()
-      .fill("renamed-root-file.txt");
+      .fill("root-file-1-renamed.txt");
     await window.locator("input[data-slot='input']").first().press("Enter");
+
+    // Test actual typing behavior (simulate character-by-character input)
+    await window
+      .getByRole("button", { name: "root-file-2.txt" })
+      .first()
+      .hover();
+    await window.getByTestId("more-options-root-file-2.txt").click();
+    await window.getByRole("menuitem", { name: "rename" }).click();
+
+    const typingInput = window.locator("input[data-slot='input']").first();
+    await expect(typingInput).toBeVisible();
+    await expect(typingInput).toHaveValue("root-file-2.txt");
+
+    // Clear the input and type character by character using pressSequentially
+    await typingInput.clear();
+    await typingInput.pressSequentially("root-file-2-renamed.txt");
+    await expect(typingInput).toHaveValue("root-file-2-renamed.txt");
+    await typingInput.press("Enter");
 
     // Verify the file was renamed in the UI
     await expect(
-      window.getByRole("button", { name: "renamed-root-file.txt" }).first()
+      window.getByRole("button", { name: "root-file-1-renamed.txt" }).first()
     ).toBeVisible();
     await expect(
       window.getByRole("button", { name: "root-file-1.txt" })
     ).not.toBeVisible();
 
     // Verify the file was actually renamed in the filesystem
-    const renamedFilePath = path.join(tempTestDir, "renamed-root-file.txt");
+    const renamedFilePath = path.join(tempTestDir, "root-file-1-renamed.txt");
     const originalFilePath = path.join(tempTestDir, "root-file-1.txt");
     expect(fs.existsSync(renamedFilePath)).toBe(true);
     expect(fs.existsSync(originalFilePath)).toBe(false);
 
     // Test 2: Validation - try to rename to an existing file name
     await window
-      .getByRole("button", { name: "renamed-root-file.txt" })
+      .getByRole("button", { name: "root-file-2-renamed.txt" })
       .first()
       .hover();
-    await window.getByTestId("more-options-renamed-root-file.txt").click();
+    await window.getByTestId("more-options-root-file-2-renamed.txt").click();
     await window.getByRole("menuitem", { name: "rename" }).click();
 
     // Try to rename to an existing file name
     await window
       .locator("input[data-slot='input']")
       .first()
-      .fill("root-file-2.txt");
+      .fill("root-file-1-renamed.txt");
     await window.locator("input[data-slot='input']").first().press("Enter");
 
     // Verify validation error appears
     await expect(
-      window.getByText("'root-file-2.txt' already exists")
+      window.getByText("'root-file-1-renamed.txt' already exists")
     ).toBeVisible();
 
     // Verify the rename input is still visible (rename wasn't completed)
@@ -313,7 +331,7 @@ test.describe("spacecake app", () => {
     ).toBeVisible();
     await expect(
       window.locator("input[data-slot='input']").first()
-    ).toHaveValue("root-file-2.txt");
+    ).toHaveValue("root-file-1-renamed.txt");
 
     // Cancel the rename by pressing Escape
     await window.locator("input[data-slot='input']").first().press("Escape");
@@ -323,7 +341,7 @@ test.describe("spacecake app", () => {
 
     // Verify the original file name is still there
     await expect(
-      window.getByRole("button", { name: "renamed-root-file.txt" }).first()
+      window.getByRole("button", { name: "root-file-2-renamed.txt" }).first()
     ).toBeVisible();
 
     testInfo.annotations.push({
