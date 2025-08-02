@@ -19,7 +19,15 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createFile, readDirectory, renameFile } from "@/lib/fs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { createFile, readDirectory, renameFile, deleteFile } from "@/lib/fs";
 import { useAtom, useAtomValue } from "jotai";
 import {
   workspaceAtom,
@@ -56,6 +64,12 @@ export function NavMain({
   const [validationError, setValidationError] = React.useState<string | null>(
     null
   );
+
+  // Delete confirmation state
+  const [deleteItem, setDeleteItem] = React.useState<SidebarNavItem | null>(
+    null
+  );
+  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
 
   // Transform files to tree structure
   const treeData = transformFilesToTree(files);
@@ -242,6 +256,43 @@ export function NavMain({
     }
   };
 
+  const handleStartDelete = (item: SidebarNavItem) => {
+    setDeleteItem(item);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteItem || !workspace?.path) return;
+
+    try {
+      const filePath = getNavItemPath(deleteItem);
+      const success = await deleteFile(filePath);
+
+      if (success) {
+        // Refresh the workspace to show the updated file list
+        const files = await readDirectory(workspace.path);
+        setFiles(files);
+
+        // Clear selected file if it was the deleted file
+        if (selectedFilePath === filePath) {
+          handleFileClick("");
+        }
+
+        setShowDeleteDialog(false);
+        setDeleteItem(null);
+      } else {
+        console.error("failed to delete file");
+      }
+    } catch (error) {
+      console.error("error deleting file:", error);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteDialog(false);
+    setDeleteItem(null);
+  };
+
   useEffect(() => {
     if (files && files.length > 0) {
       const newFileTree = buildFileTree(files);
@@ -250,65 +301,96 @@ export function NavMain({
   }, [files, setFileTree]);
 
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel className="flex items-center justify-between">
-        <span>workspace</span>
-        {!isCreatingFile && workspace?.path && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-4 w-4 p-0 hover:bg-accent cursor-pointer"
-            onClick={startCreatingFile}
-          >
-            <Plus className="h-3 w-3" />
-            <span className="sr-only">create file</span>
-          </Button>
-        )}
-      </SidebarGroupLabel>
-
-      <SidebarMenu>
-        {isCreatingFile && (
-          <SidebarMenuItem>
-            <SidebarMenuButton className="cursor-default">
-              <Input
-                placeholder="filename.txt"
-                value={fileName}
-                onChange={(e) => setFileName(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                autoFocus
-              />
-            </SidebarMenuButton>
-            <SidebarMenuAction
-              className="cursor-pointer"
-              onClick={cancelCreatingFile}
+    <>
+      <SidebarGroup>
+        <SidebarGroupLabel className="flex items-center justify-between">
+          <span>workspace</span>
+          {!isCreatingFile && workspace?.path && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-4 w-4 p-0 hover:bg-accent cursor-pointer"
+              onClick={startCreatingFile}
             >
-              <X className="h-3 w-3" />
-              <span className="sr-only">cancel</span>
-            </SidebarMenuAction>
-          </SidebarMenuItem>
-        )}
-        {workspace?.path &&
-          treeData.map((item) => (
-            <WorkspaceTree
-              key={getNavItemPath(item)}
-              item={item}
-              onFileClick={handleFileClick}
-              onFolderToggle={handleFolderToggle}
-              onStartRename={handleStartRename}
-              selectedFilePath={selectedFilePath}
-              expandedFolders={expandedFoldersState}
-              fileTree={fileTree}
-              editingItem={editingItem}
-              setEditingItem={setEditingItem}
-              onRename={handleRename}
-              onRenameKeyDown={handleRenameKeyDown}
-              onCancelRename={cancelRename}
-              onRenameInputChange={handleRenameInputChange}
-              validationError={validationError}
-            />
-          ))}
-      </SidebarMenu>
-    </SidebarGroup>
+              <Plus className="h-3 w-3" />
+              <span className="sr-only">create file</span>
+            </Button>
+          )}
+        </SidebarGroupLabel>
+
+        <SidebarMenu>
+          {isCreatingFile && (
+            <SidebarMenuItem>
+              <SidebarMenuButton className="cursor-default">
+                <Input
+                  placeholder="filename.txt"
+                  value={fileName}
+                  onChange={(e) => setFileName(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                  autoFocus
+                />
+              </SidebarMenuButton>
+              <SidebarMenuAction
+                className="cursor-pointer"
+                onClick={cancelCreatingFile}
+              >
+                <X className="h-3 w-3" />
+                <span className="sr-only">cancel</span>
+              </SidebarMenuAction>
+            </SidebarMenuItem>
+          )}
+          {workspace?.path &&
+            treeData.map((item) => (
+              <WorkspaceTree
+                key={getNavItemPath(item)}
+                item={item}
+                onFileClick={handleFileClick}
+                onFolderToggle={handleFolderToggle}
+                onStartRename={handleStartRename}
+                onStartDelete={handleStartDelete}
+                selectedFilePath={selectedFilePath}
+                expandedFolders={expandedFoldersState}
+                fileTree={fileTree}
+                editingItem={editingItem}
+                setEditingItem={setEditingItem}
+                onRename={handleRename}
+                onRenameKeyDown={handleRenameKeyDown}
+                onCancelRename={cancelRename}
+                onRenameInputChange={handleRenameInputChange}
+                validationError={validationError}
+              />
+            ))}
+        </SidebarMenu>
+      </SidebarGroup>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {deleteItem && isFolder(deleteItem)
+                ? "delete folder"
+                : "delete file"}
+            </DialogTitle>
+            <DialogDescription>
+              are you sure you want to delete '
+              {deleteItem && (isFile(deleteItem) || isFolder(deleteItem))
+                ? deleteItem.title
+                : deleteItem?.message}
+              '{deleteItem && isFolder(deleteItem) ? " and its contents" : ""}?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelDelete}>
+              cancel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

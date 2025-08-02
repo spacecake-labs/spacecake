@@ -350,4 +350,171 @@ test.describe("spacecake app", () => {
         "Successfully completed rename functionality tests with improved selectors",
     });
   });
+
+  test("delete file functionality", async ({
+    electronApp,
+    tempTestDir,
+  }, testInfo) => {
+    // wait for the first window to be ready
+    const window = await electronApp.firstWindow();
+
+    // verify the window is visible by checking if it has content
+    await expect(window.locator("body")).toBeVisible();
+
+    // Create test files and folders to delete
+    const testFilePath = path.join(tempTestDir, "file-to-delete.txt");
+    fs.writeFileSync(testFilePath, "test content");
+
+    const emptyFolderPath = path.join(tempTestDir, "empty-folder");
+    fs.mkdirSync(emptyFolderPath);
+
+    const folderWithFilesPath = path.join(tempTestDir, "folder-with-files");
+    fs.mkdirSync(folderWithFilesPath);
+
+    // Create some files inside the folder
+    const file1Path = path.join(folderWithFilesPath, "file1.txt");
+    const file2Path = path.join(folderWithFilesPath, "file2.txt");
+    const subfolderPath = path.join(folderWithFilesPath, "subfolder");
+    const subfilePath = path.join(subfolderPath, "subfile.txt");
+
+    fs.writeFileSync(file1Path, "content 1");
+    fs.writeFileSync(file2Path, "content 2");
+    fs.mkdirSync(subfolderPath);
+    fs.writeFileSync(subfilePath, "sub content");
+
+    // stub the showOpenDialog to return our temp test directory
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    });
+
+    await window.getByRole("button", { name: "open folder" }).click();
+
+    // wait for the workspace to load (indicated by the create file button appearing)
+    await expect(
+      window.getByRole("button", { name: "create file" })
+    ).toBeVisible();
+
+    // Wait for all items to appear
+    await expect(
+      window.getByRole("button", { name: "file-to-delete.txt" }).first()
+    ).toBeVisible();
+    await expect(
+      window.getByRole("button", { name: "empty-folder" }).first()
+    ).toBeVisible();
+    await expect(
+      window.getByRole("button", { name: "folder-with-files" }).first()
+    ).toBeVisible();
+
+    // Test delete functionality
+    await window
+      .getByRole("button", { name: "file-to-delete.txt" })
+      .first()
+      .hover();
+    await window.getByTestId("more-options-file-to-delete.txt").click();
+    await window.getByRole("menuitem", { name: "delete" }).click();
+
+    // Verify delete confirmation dialog appears
+    await expect(
+      window.getByRole("dialog", { name: "delete file" })
+    ).toBeVisible();
+    await expect(
+      window.getByText("are you sure you want to delete 'file-to-delete.txt'?")
+    ).toBeVisible();
+
+    // Cancel the delete
+    await window.getByRole("button", { name: "cancel" }).click();
+    await expect(
+      window.getByRole("dialog", { name: "delete file" })
+    ).not.toBeVisible();
+
+    // Verify the file is still there
+    await expect(
+      window.getByRole("button", { name: "file-to-delete.txt" }).first()
+    ).toBeVisible();
+
+    // Now actually delete the file
+    await window
+      .getByRole("button", { name: "file-to-delete.txt" })
+      .first()
+      .hover();
+    await window.getByTestId("more-options-file-to-delete.txt").click();
+    await window.getByRole("menuitem", { name: "delete" }).click();
+
+    // Confirm the delete
+    await window.getByRole("button", { name: "delete" }).click();
+
+    // Verify the file is removed from the UI
+    await expect(
+      window.getByRole("button", { name: "file-to-delete.txt" })
+    ).not.toBeVisible();
+
+    // Verify the file was actually deleted from the filesystem
+    expect(fs.existsSync(testFilePath)).toBe(false);
+
+    // Test deleting an empty folder
+    await window.getByRole("button", { name: "empty-folder" }).first().hover();
+    await window.getByTestId("more-options-empty-folder").click();
+    await window.getByRole("menuitem", { name: "delete" }).click();
+
+    // Verify delete confirmation dialog appears with folder message
+    await expect(
+      window.getByRole("dialog", { name: "delete folder" })
+    ).toBeVisible();
+    await expect(
+      window.getByText(
+        "are you sure you want to delete 'empty-folder' and its contents?"
+      )
+    ).toBeVisible();
+
+    // Confirm the delete
+    await window.getByRole("button", { name: "delete" }).click();
+
+    // Verify the folder is removed from the UI
+    await expect(
+      window.getByRole("button", { name: "empty-folder" })
+    ).not.toBeVisible();
+
+    // Verify the folder was actually deleted from the filesystem
+    expect(fs.existsSync(emptyFolderPath)).toBe(false);
+
+    // Test deleting a folder with files (recursive delete)
+    await window
+      .getByRole("button", { name: "folder-with-files" })
+      .first()
+      .hover();
+    await window.getByTestId("more-options-folder-with-files").click();
+    await window.getByRole("menuitem", { name: "delete" }).click();
+
+    // Verify delete confirmation dialog appears with folder message
+    await expect(
+      window.getByRole("dialog", { name: "delete folder" })
+    ).toBeVisible();
+    await expect(
+      window.getByText(
+        "are you sure you want to delete 'folder-with-files' and its contents?"
+      )
+    ).toBeVisible();
+
+    // Confirm the delete
+    await window.getByRole("button", { name: "delete" }).click();
+
+    // Verify the folder is removed from the UI
+    await expect(
+      window.getByRole("button", { name: "folder-with-files" })
+    ).not.toBeVisible();
+
+    // Verify the folder and all its contents were actually deleted from the filesystem
+    expect(fs.existsSync(folderWithFilesPath)).toBe(false);
+    expect(fs.existsSync(file1Path)).toBe(false);
+    expect(fs.existsSync(file2Path)).toBe(false);
+    expect(fs.existsSync(subfolderPath)).toBe(false);
+    expect(fs.existsSync(subfilePath)).toBe(false);
+
+    testInfo.annotations.push({
+      type: "info",
+      description:
+        "Successfully completed delete functionality tests including folder deletion",
+    });
+  });
 });

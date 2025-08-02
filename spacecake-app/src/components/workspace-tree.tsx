@@ -32,6 +32,7 @@ interface WorkspaceTreeProps {
   onFileClick: (filePath: string) => void;
   onFolderToggle: (folderPath: string) => void;
   onStartRename: (item: SidebarNavItem) => void;
+  onStartDelete: (item: SidebarNavItem) => void;
   selectedFilePath?: string | null;
   expandedFolders: Record<string, boolean>;
   fileTree: Record<string, SidebarNavItem[]>;
@@ -109,10 +110,12 @@ function RenameInput({
 function ItemDropdownMenu({
   item,
   onStartRename,
+  onStartDelete,
   isRenaming,
 }: {
   item: SidebarNavItem;
   onStartRename: (item: SidebarNavItem) => void;
+  onStartDelete: (item: SidebarNavItem) => void;
   isRenaming: boolean;
 }) {
   if (isRenaming) return null;
@@ -135,6 +138,9 @@ function ItemDropdownMenu({
       <DropdownMenuContent className="w-48">
         <DropdownMenuItem onClick={() => onStartRename(item)}>
           <span>rename</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onStartDelete(item)}>
+          <span>delete</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -183,6 +189,7 @@ export function WorkspaceTree({
   onFileClick,
   onFolderToggle,
   onStartRename,
+  onStartDelete,
   selectedFilePath,
   expandedFolders,
   fileTree,
@@ -220,6 +227,7 @@ export function WorkspaceTree({
         <ItemDropdownMenu
           item={item}
           onStartRename={onStartRename}
+          onStartDelete={onStartDelete}
           isRenaming={isRenaming}
         />
         {isRenaming && <CancelRenameButton onCancel={onCancelRename} />}
@@ -260,6 +268,7 @@ export function WorkspaceTree({
                     onFileClick={onFileClick}
                     onFolderToggle={onFolderToggle}
                     onStartRename={onStartRename}
+                    onStartDelete={onStartDelete}
                     selectedFilePath={selectedFilePath}
                     expandedFolders={expandedFolders}
                     fileTree={fileTree}
@@ -284,6 +293,7 @@ export function WorkspaceTree({
         <ItemDropdownMenu
           item={item}
           onStartRename={onStartRename}
+          onStartDelete={onStartDelete}
           isRenaming={isRenaming}
         />
         {isRenaming && <CancelRenameButton onCancel={onCancelRename} />}
