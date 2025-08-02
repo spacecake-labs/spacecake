@@ -1,26 +1,14 @@
-import {
-  ChevronRight,
-  Plus,
-  X,
-  FileWarning,
-  MoreHorizontal,
-} from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Plus, X } from "lucide-react";
+import { useEffect } from "react";
 import * as React from "react";
 import type { SidebarNavItem } from "@/lib/workspace";
 import {
+  transformFilesToTree,
+  buildFileTree,
   isFile,
   isFolder,
-  transformFilesToTree,
   getNavItemPath,
-  getNavItemIcon,
-  buildFileTree,
 } from "@/lib/workspace";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -28,21 +16,9 @@ import {
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
 } from "@/components/ui/sidebar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { createFile, readDirectory, renameFile } from "@/lib/fs";
 import { useAtom, useAtomValue } from "jotai";
 import {
@@ -54,6 +30,7 @@ import {
   fileTreeAtom,
   editingItemAtom,
 } from "@/lib/atoms";
+import { WorkspaceTree } from "@/components/workspace-tree";
 
 interface NavMainProps {
   onExpandFolder?: (folderUrl: string, folderPath: string) => void;
@@ -312,7 +289,7 @@ export function NavMain({
           </SidebarMenuItem>
         )}
         {treeData.map((item) => (
-          <Tree
+          <WorkspaceTree
             key={getNavItemPath(item)}
             item={item}
             onFileClick={handleFileClick}
@@ -332,264 +309,5 @@ export function NavMain({
         ))}
       </SidebarMenu>
     </SidebarGroup>
-  );
-}
-
-interface TreeProps {
-  item: SidebarNavItem;
-  onFileClick: (filePath: string) => void;
-  onFolderToggle: (folderPath: string) => void;
-  onStartRename: (item: SidebarNavItem) => void;
-  selectedFilePath?: string | null;
-  expandedFolders: Record<string, boolean>;
-  fileTree: Record<string, SidebarNavItem[]>;
-  editingItem: {
-    type: "create" | "rename";
-    path: string;
-    value: string;
-    originalValue?: string;
-  } | null;
-  setEditingItem: (
-    item: {
-      type: "create" | "rename";
-      path: string;
-      value: string;
-      originalValue?: string;
-    } | null
-  ) => void;
-  onRename: () => void;
-  onRenameKeyDown: (e: React.KeyboardEvent) => void;
-  onCancelRename: () => void;
-  onRenameInputChange: (value: string) => void;
-  validationError?: string | null;
-}
-
-function Tree({
-  item,
-  onFileClick,
-  onFolderToggle,
-  onStartRename,
-  selectedFilePath,
-  expandedFolders,
-  fileTree,
-  editingItem,
-  setEditingItem,
-  onRename,
-  onRenameKeyDown,
-  onCancelRename,
-  onRenameInputChange,
-  validationError,
-}: TreeProps) {
-  const filePath = getNavItemPath(item);
-  const folderUrl = `#${filePath}`; // Use the same format as expandedFolders
-  const isExpanded = Boolean(expandedFolders[folderUrl]);
-  const isSelected = selectedFilePath === filePath;
-  const isRenaming = editingItem?.path === filePath;
-
-  if (isFile(item)) {
-    // This is a file
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-      if (isRenaming && inputRef.current) {
-        // Select filename without extension (like VSCode)
-        const lastDotIndex = editingItem.value.lastIndexOf(".");
-        const selectEnd =
-          lastDotIndex > 0 ? lastDotIndex : editingItem.value.length;
-        inputRef.current.setSelectionRange(0, selectEnd);
-      }
-    }, [isRenaming]); // Only run when isRenaming changes
-
-    return (
-      <SidebarMenuItem>
-        {isRenaming ? (
-          <div className="flex flex-col">
-            <SidebarMenuButton className="cursor-default">
-              <Input
-                value={editingItem.value}
-                onChange={(e) => onRenameInputChange(e.target.value)}
-                onKeyDown={onRenameKeyDown}
-                className={`h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 ${
-                  validationError ? "border-destructive" : ""
-                }`}
-                autoFocus
-                ref={inputRef}
-                aria-invalid={!!validationError}
-              />
-            </SidebarMenuButton>
-            {validationError && (
-              <div className="px-3 py-1 text-xs text-destructive">
-                {validationError}
-              </div>
-            )}
-          </div>
-        ) : (
-          <SidebarMenuButton
-            isActive={isSelected}
-            onClick={() => onFileClick(filePath)}
-            className="cursor-pointer"
-          >
-            {React.createElement(getNavItemIcon(item))}
-            <span className="truncate">{item.title}</span>
-          </SidebarMenuButton>
-        )}
-        {!isRenaming && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuAction
-                showOnHover
-                className="cursor-pointer"
-                aria-label={`more options for ${item.title}`}
-                data-testid={`more-options-${item.title}`}
-              >
-                <MoreHorizontal />
-                <span className="sr-only">more options for {item.title}</span>
-              </SidebarMenuAction>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-48">
-              <DropdownMenuItem onClick={() => onStartRename(item)}>
-                <span>rename</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-        {isRenaming && (
-          <SidebarMenuAction
-            className="cursor-pointer"
-            onClick={onCancelRename}
-          >
-            <X className="h-3 w-3" />
-            <span className="sr-only">cancel</span>
-          </SidebarMenuAction>
-        )}
-      </SidebarMenuItem>
-    );
-  }
-
-  if (isFolder(item)) {
-    // This is a folder
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-      if (isRenaming && inputRef.current) {
-        // Select filename without extension (like VSCode)
-        const lastDotIndex = editingItem.value.lastIndexOf(".");
-        const selectEnd =
-          lastDotIndex > 0 ? lastDotIndex : editingItem.value.length;
-        inputRef.current.setSelectionRange(0, selectEnd);
-      }
-    }, [isRenaming]); // Only run when isRenaming changes
-
-    return (
-      <SidebarMenuItem>
-        <Collapsible
-          className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90"
-          open={isExpanded}
-        >
-          <CollapsibleTrigger asChild>
-            {isRenaming ? (
-              <div className="flex flex-col">
-                <SidebarMenuButton className="cursor-default">
-                  <Input
-                    value={editingItem.value}
-                    onChange={(e) => onRenameInputChange(e.target.value)}
-                    onKeyDown={onRenameKeyDown}
-                    className={`h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 ${
-                      validationError ? "border-destructive" : ""
-                    }`}
-                    autoFocus
-                    ref={inputRef}
-                    aria-invalid={!!validationError}
-                  />
-                </SidebarMenuButton>
-                {validationError && (
-                  <div className="px-3 py-1 text-xs text-destructive">
-                    {validationError}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <SidebarMenuButton
-                onClick={() => onFolderToggle(filePath)}
-                className="cursor-pointer"
-              >
-                <ChevronRight className="transition-transform" />
-                {React.createElement(getNavItemIcon(item))}
-                <span className="truncate">{item.title}</span>
-              </SidebarMenuButton>
-            )}
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <SidebarMenuSub>
-              {fileTree[filePath] && fileTree[filePath].length > 0 ? (
-                fileTree[filePath].map((subItem) => (
-                  <Tree
-                    key={getNavItemPath(subItem)}
-                    item={subItem}
-                    onFileClick={onFileClick}
-                    onFolderToggle={onFolderToggle}
-                    onStartRename={onStartRename}
-                    selectedFilePath={selectedFilePath}
-                    expandedFolders={expandedFolders}
-                    fileTree={fileTree}
-                    editingItem={editingItem}
-                    setEditingItem={setEditingItem}
-                    onRename={onRename}
-                    onRenameKeyDown={onRenameKeyDown}
-                    onCancelRename={onCancelRename}
-                    onRenameInputChange={onRenameInputChange}
-                    validationError={validationError}
-                  />
-                ))
-              ) : (
-                <div className="pl-6 py-2 text-xs text-muted-foreground flex items-center gap-2">
-                  <FileWarning className="h-3 w-3" />
-                  <span>empty</span>
-                </div>
-              )}
-            </SidebarMenuSub>
-          </CollapsibleContent>
-        </Collapsible>
-        {!isRenaming && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuAction
-                showOnHover
-                className="cursor-pointer"
-                aria-label={`more options for ${item.title}`}
-                data-testid={`more-options-${item.title}`}
-              >
-                <MoreHorizontal />
-                <span className="sr-only">more options for {item.title}</span>
-              </SidebarMenuAction>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-48">
-              <DropdownMenuItem onClick={() => onStartRename(item)}>
-                <span>rename</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-        {isRenaming && (
-          <SidebarMenuAction
-            className="cursor-pointer"
-            onClick={onCancelRename}
-          >
-            <X className="h-3 w-3" />
-            <span className="sr-only">cancel</span>
-          </SidebarMenuAction>
-        )}
-      </SidebarMenuItem>
-    );
-  }
-
-  // This is an empty item
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton className="cursor-default">
-        <FileWarning className="text-muted-foreground" />
-        <span className="truncate">{item.message}</span>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
   );
 }
