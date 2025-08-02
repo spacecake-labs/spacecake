@@ -74,12 +74,12 @@ function RenameInput({
 
   useEffect(() => {
     if (autoFocus && inputRef.current) {
-      // Select filename without extension (like VSCode)
+      // Select filename without extension (like VSCode) - only on initial focus
       const lastDotIndex = value.lastIndexOf(".");
       const selectEnd = lastDotIndex > 0 ? lastDotIndex : value.length;
       inputRef.current.setSelectionRange(0, selectEnd);
     }
-  }, [value, autoFocus]);
+  }, [autoFocus]);
 
   return (
     <div className="flex flex-col">
