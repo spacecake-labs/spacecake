@@ -62,8 +62,13 @@ export async function readDir(
 ): Promise<FileEntry[]> {
   const entries = await fsModule.readdir(dirPath, { withFileTypes: true });
 
+  // Filter out .spacecake folder and other hidden files
+  const filteredEntries = entries.filter(
+    (entry) => !entry.name.startsWith(".")
+  );
+
   const files = await Promise.all(
-    entries.map(async (entry: FileNode) => {
+    filteredEntries.map(async (entry: FileNode) => {
       const fullPath = path.join(dirPath, entry.name);
       const stats = await fsModule.stat(fullPath);
 
