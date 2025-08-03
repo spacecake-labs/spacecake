@@ -25,18 +25,26 @@ export function AppSidebar({ onFileClick, selectedFilePath }: AppSidebarProps) {
   const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom);
   const [, setFileTree] = useAtom(fileTreeAtom);
 
-  const handleExpandFolder = async (folderUrl: string, folderPath: string) => {
+  const handleExpandFolder = async (
+    folderUrl: string,
+    folderPath: string,
+    forceExpand?: boolean
+  ) => {
     // Check if folder is currently expanded
     const isCurrentlyExpanded = expandedFolders[folderUrl];
 
-    // Toggle expanded state
+    // Determine if we should expand the folder
+    const shouldExpand =
+      forceExpand !== undefined ? forceExpand : !isCurrentlyExpanded;
+
+    // Set expanded state
     setExpandedFolders((prev: Record<string, boolean>) => ({
       ...prev,
-      [folderUrl]: !isCurrentlyExpanded,
+      [folderUrl]: shouldExpand,
     }));
 
     // Load folder contents if we're expanding (not collapsing)
-    if (!isCurrentlyExpanded) {
+    if (shouldExpand && !isCurrentlyExpanded) {
       try {
         const folderFiles = await readDirectory(folderPath);
         // Update the tree structure with folder contents

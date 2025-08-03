@@ -81,6 +81,22 @@ const createFile = async (
   }
 };
 
+const createFolder = async (folderPath: string): Promise<boolean> => {
+  try {
+    const result = await window.electronAPI.createFolder(folderPath);
+
+    if (result.success) {
+      return true;
+    } else {
+      console.error("failed to create folder:", result.error);
+      return false;
+    }
+  } catch (error) {
+    console.error("error creating folder:", error);
+    return false;
+  }
+};
+
 const readFile = async (filePath: string): Promise<File | null> => {
   try {
     const result = await window.electronAPI.readFile(filePath);
@@ -137,6 +153,7 @@ export {
   readDirectory,
   readWorkspace,
   createFile,
+  createFolder,
   readFile,
   renameFile,
   deleteFile,

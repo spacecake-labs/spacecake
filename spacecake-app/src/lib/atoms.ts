@@ -45,3 +45,10 @@ export const fileNameAtom = atom<string>("");
 export const isRenamingFileAtom = atom<boolean>(false);
 export const renameFileNameAtom = atom<string>("");
 export const renamingItemAtom = atom<SidebarNavItem | null>(null);
+
+// Context-aware creation atoms (for dropdown menu)
+export const isCreatingInContextAtom = atom<{
+  type: "file" | "folder";
+  parentPath: string;
+} | null>(null);
+export const contextItemNameAtom = atom<string>("");
