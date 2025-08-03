@@ -3,6 +3,7 @@ import {
   readDir,
   ensureSpacecakeFolder,
   createFile,
+  createFolder,
   readFile,
   renameFile,
   deleteFile,
@@ -90,6 +91,19 @@ ipcMain.handle(
     }
   }
 );
+
+ipcMain.handle("create-folder", async (event, folderPath: string) => {
+  try {
+    await createFolder(folderPath);
+    return { success: true };
+  } catch (error) {
+    console.error("error creating folder:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "unknown error",
+    };
+  }
+});
 
 ipcMain.handle(
   "rename-file",

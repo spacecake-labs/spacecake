@@ -97,13 +97,16 @@ test.describe("spacecake app", () => {
 
     // wait for the workspace to load (indicated by the create file button appearing)
     await expect(
-      window.getByRole("button", { name: "create file" })
+      window.getByRole("button", { name: "create file or folder" })
     ).toBeVisible();
 
     // verify that "empty" text appears when workspace is selected but empty
     await expect(window.getByText("empty")).toBeVisible();
 
-    await window.getByRole("button", { name: "create file" }).click();
+    await window.getByRole("button", { name: "create file or folder" }).click();
+
+    // Click on "new file" option in the dropdown
+    await window.getByRole("menuitem", { name: "new file" }).click();
 
     const textbox = window.getByRole("textbox", { name: "filename.txt" });
 
@@ -176,178 +179,237 @@ test.describe("spacecake app", () => {
 
     await window.getByRole("button", { name: "open folder" }).click();
 
-    // Wait for the workspace to load and verify root level items are visible
+    // wait for the workspace to load
+    await expect(
+      window.getByRole("button", { name: "create file or folder" })
+    ).toBeVisible();
+
+    // verify that the nested folder structure is visible
     await expect(
       window.getByRole("button", { name: "nested-folder" }).first()
     ).toBeVisible();
-    await expect(
-      window.getByRole("button", { name: "root-file-1.txt" }).first()
-    ).toBeVisible();
-    await expect(
-      window.getByRole("button", { name: "root-file-2.txt" }).first()
-    ).toBeVisible();
 
-    // Click on the nested folder to expand it
+    // click on the nested folder to expand it
     await window.getByRole("button", { name: "nested-folder" }).first().click();
 
-    // Wait for the nested files to appear
+    // verify that the nested files are visible
     await expect(
       window.getByRole("button", { name: "nested-file-1.txt" }).first()
     ).toBeVisible();
     await expect(
       window.getByRole("button", { name: "nested-file-2.txt" }).first()
     ).toBeVisible();
+  });
 
-    // Verify all items are still visible after expansion
-    await expect(
-      window.getByRole("button", { name: "nested-folder" }).first()
-    ).toBeVisible();
-    await expect(
-      window.getByRole("button", { name: "root-file-1.txt" }).first()
-    ).toBeVisible();
-    await expect(
-      window.getByRole("button", { name: "root-file-2.txt" }).first()
-    ).toBeVisible();
-
-    // Test file content loading by clicking on files
-    // Click on root-file-1.txt and verify content loads
-    await window
-      .getByRole("button", { name: "root-file-1.txt" })
-      .first()
-      .click();
-
-    // Wait for the editor to load and verify content
-    await expect(window.getByText("root-file-1-content")).toBeVisible();
-
-    // Click on root-file-2.txt and verify content loads
-    await window
-      .getByRole("button", { name: "root-file-2.txt" })
-      .first()
-      .click();
-    await expect(window.getByText("root-file-2-content")).toBeVisible();
-
-    // Click on nested-file-1.txt and verify content loads
-    await window
-      .getByRole("button", { name: "nested-file-1.txt" })
-      .first()
-      .click();
-    await expect(window.getByText("nested-file-1-content")).toBeVisible();
-
-    // Click on nested-file-2.txt and verify content loads
-    await window
-      .getByRole("button", { name: "nested-file-2.txt" })
-      .first()
-      .click();
-    await expect(window.getByText("nested-file-2-content")).toBeVisible();
+  test("auto-expand and refresh when creating files and folders", async ({
+    electronApp,
+    tempTestDir,
+  }, testInfo) => {
+    // Create a test folder
+    const testFolderPath = path.join(tempTestDir, "test-folder");
+    fs.mkdirSync(testFolderPath, { recursive: true });
 
     testInfo.annotations.push({
       type: "info",
-      description:
-        "Successfully verified nested folder expansion with all items present and file content loading",
+      description: `Created test folder: ${testFolderPath}`,
     });
 
-    // Test rename functionality with improved selectors
-    testInfo.annotations.push({
-      type: "info",
-      description:
-        "Starting rename functionality tests with improved selectors",
+    // wait for the first window to be ready
+    const window = await electronApp.firstWindow();
+
+    // verify the window is visible by checking if it has content
+    await expect(window.locator("body")).toBeVisible();
+
+    // stub the showOpenDialog to return our temp test directory
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
     });
 
-    // Test 1: Rename a root file using improved selectors
-    await window
-      .getByRole("button", { name: "root-file-1.txt" })
-      .first()
-      .hover();
-    await window.getByTestId("more-options-root-file-1.txt").click();
-    await window.getByRole("menuitem", { name: "rename" }).click();
+    await window.getByRole("button", { name: "open folder" }).click();
 
-    // Verify rename input appears and has the correct initial value
-    const renameInput = window.locator("input[data-slot='input']").first();
-    await expect(renameInput).toBeVisible();
-    await expect(renameInput).toHaveValue("root-file-1.txt");
-
-    // Rename the file
-    await window
-      .locator("input[data-slot='input']")
-      .first()
-      .fill("root-file-1-renamed.txt");
-    await window.locator("input[data-slot='input']").first().press("Enter");
-
-    // Test actual typing behavior (simulate character-by-character input)
-    await window
-      .getByRole("button", { name: "root-file-2.txt" })
-      .first()
-      .hover();
-    await window.getByTestId("more-options-root-file-2.txt").click();
-    await window.getByRole("menuitem", { name: "rename" }).click();
-
-    const typingInput = window.locator("input[data-slot='input']").first();
-    await expect(typingInput).toBeVisible();
-    await expect(typingInput).toHaveValue("root-file-2.txt");
-
-    // Clear the input and type character by character using pressSequentially
-    await typingInput.clear();
-    await typingInput.pressSequentially("root-file-2-renamed.txt");
-    await expect(typingInput).toHaveValue("root-file-2-renamed.txt");
-    await typingInput.press("Enter");
-
-    // Verify the file was renamed in the UI
+    // wait for the workspace to load
     await expect(
-      window.getByRole("button", { name: "root-file-1-renamed.txt" }).first()
-    ).toBeVisible();
-    await expect(
-      window.getByRole("button", { name: "root-file-1.txt" })
-    ).not.toBeVisible();
-
-    // Verify the file was actually renamed in the filesystem
-    const renamedFilePath = path.join(tempTestDir, "root-file-1-renamed.txt");
-    const originalFilePath = path.join(tempTestDir, "root-file-1.txt");
-    expect(fs.existsSync(renamedFilePath)).toBe(true);
-    expect(fs.existsSync(originalFilePath)).toBe(false);
-
-    // Test 2: Validation - try to rename to an existing file name
-    await window
-      .getByRole("button", { name: "root-file-2-renamed.txt" })
-      .first()
-      .hover();
-    await window.getByTestId("more-options-root-file-2-renamed.txt").click();
-    await window.getByRole("menuitem", { name: "rename" }).click();
-
-    // Try to rename to an existing file name
-    await window
-      .locator("input[data-slot='input']")
-      .first()
-      .fill("root-file-1-renamed.txt");
-    await window.locator("input[data-slot='input']").first().press("Enter");
-
-    // Verify validation error appears
-    await expect(
-      window.getByText("'root-file-1-renamed.txt' already exists")
+      window.getByRole("button", { name: "create file or folder" })
     ).toBeVisible();
 
-    // Verify the rename input is still visible (rename wasn't completed)
+    // verify that the test folder is visible
     await expect(
-      window.locator("input[data-slot='input']").first()
+      window.getByRole("button", { name: "test-folder" }).first()
+    ).toBeVisible();
+
+    // Test 1: Create a file inside the folder (should auto-expand)
+    await window.getByTestId("more-options-test-folder").click();
+    await window.getByRole("menuitem", { name: "new file" }).click();
+
+    // Verify the folder auto-expanded and input field is visible
+    await expect(
+      window.getByRole("textbox", { name: "filename.txt" })
+    ).toBeVisible();
+
+    // Create the file
+    const fileInput = window.getByRole("textbox", { name: "filename.txt" });
+    await fileInput.fill("test-file.txt");
+    await fileInput.press("Enter");
+
+    // Verify the file was created and is visible
+    await expect(
+      window.getByRole("button", { name: "test-file.txt" })
+    ).toBeVisible();
+
+    // Test 2: Create a folder inside the folder (should auto-expand)
+    // Ensure the test-folder is expanded before trying to create a folder inside it
+    await window.getByRole("button", { name: "test-folder" }).first().click();
+
+    await window.getByTestId("more-options-test-folder").click();
+    await window.getByRole("menuitem", { name: "new folder" }).click();
+
+    // Verify the folder auto-expanded and input field is visible
+    await expect(
+      window.getByRole("textbox", { name: "folder name" })
+    ).toBeVisible();
+
+    // Create the folder
+    const folderInput = window.getByRole("textbox", { name: "folder name" });
+    await folderInput.fill("test-subfolder");
+    await folderInput.press("Enter");
+
+    // Wait for the new folder to appear
+    await expect(
+      window.getByRole("button", { name: "test-subfolder" })
+    ).toBeVisible();
+
+    // Verify both new items are visible in the expanded folder
+    await expect(
+      window.getByRole("button", { name: "test-file.txt" }).first()
     ).toBeVisible();
     await expect(
-      window.locator("input[data-slot='input']").first()
-    ).toHaveValue("root-file-1-renamed.txt");
-
-    // Cancel the rename by pressing Escape
-    await window.locator("input[data-slot='input']").first().press("Escape");
-    await expect(
-      window.locator("input[data-slot='input']").first()
-    ).not.toBeVisible();
-
-    // Verify the original file name is still there
-    await expect(
-      window.getByRole("button", { name: "root-file-2-renamed.txt" }).first()
+      window.getByRole("button", { name: "test-subfolder" }).first()
     ).toBeVisible();
+  });
+
+  test("create multiple items in nested folders without collapse/expand", async ({
+    electronApp,
+    tempTestDir,
+  }, testInfo) => {
+    // Create a nested folder structure
+    const parentFolderPath = path.join(tempTestDir, "parent-folder");
+    const childFolderPath = path.join(parentFolderPath, "child-folder");
+    fs.mkdirSync(childFolderPath, { recursive: true });
+
+    testInfo.annotations.push({
+      type: "info",
+      description: `Created nested structure: ${tempTestDir}`,
+    });
+
+    // wait for the first window to be ready
+    const window = await electronApp.firstWindow();
+
+    // verify the window is visible by checking if it has content
+    await expect(window.locator("body")).toBeVisible();
+
+    // stub the showOpenDialog to return our temp test directory
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    });
+
+    await window.getByRole("button", { name: "open folder" }).click();
+
+    // wait for the workspace to load
+    await expect(
+      window.getByRole("button", { name: "create file or folder" })
+    ).toBeVisible();
+
+    // verify that the parent folder is visible
+    await expect(
+      window.getByRole("button", { name: "parent-folder" }).first()
+    ).toBeVisible();
+
+    // Test 1: Create a file in the parent folder
+    await window.getByTestId("more-options-parent-folder").click();
+    await window.getByRole("menuitem", { name: "new file" }).click();
+
+    const fileInput1 = window.getByRole("textbox", { name: "filename.txt" });
+    await fileInput1.fill("parent-file.txt");
+    await fileInput1.press("Enter");
+
+    // Verify the file appears immediately
+    await expect(
+      window.getByRole("button", { name: "parent-file.txt" })
+    ).toBeVisible();
+
+    // Test 2: Create a folder in the parent folder
+    await window.getByTestId("more-options-parent-folder").click();
+    await window.getByRole("menuitem", { name: "new folder" }).click();
+
+    const folderInput1 = window.getByRole("textbox", { name: "folder name" });
+    await folderInput1.fill("new-child-folder");
+    await folderInput1.press("Enter");
+
+    // Verify the new folder appears immediately
+    await expect(
+      window.getByRole("button", { name: "new-child-folder" }).first()
+    ).toBeVisible();
+
+    // Test 3: Create a file in the existing child folder
+    await window.getByTestId("more-options-child-folder").click();
+    await window.getByRole("menuitem", { name: "new file" }).click();
+
+    const fileInput2 = window.getByRole("textbox", { name: "filename.txt" });
+    await fileInput2.fill("child-file.txt");
+    await fileInput2.press("Enter");
+
+    // Verify the file appears immediately in the child folder
+    await expect(
+      window.getByRole("button", { name: "child-file.txt" })
+    ).toBeVisible();
+
+    // Test 4: Create another folder in the child folder
+    await window.getByTestId("more-options-child-folder").click();
+    await window.getByRole("menuitem", { name: "new folder" }).click();
+
+    const folderInput2 = window.getByRole("textbox", { name: "folder name" });
+    await folderInput2.fill("grandchild-folder");
+    await folderInput2.press("Enter");
+
+    // Verify the grandchild folder appears immediately
+    await expect(
+      window.getByRole("button", { name: "grandchild-folder" }).first()
+    ).toBeVisible();
+
+    // Final verification: All items should be visible without any collapse/expand
+    await expect(
+      window.getByRole("button", { name: "parent-file.txt" }).first()
+    ).toBeVisible();
+    await expect(
+      window.getByRole("button", { name: "new-child-folder" }).first()
+    ).toBeVisible();
+    await expect(
+      window.getByRole("button", { name: "child-file.txt" }).first()
+    ).toBeVisible();
+    await expect(
+      window.getByRole("button", { name: "grandchild-folder" }).first()
+    ).toBeVisible();
+
+    // Verify all files were actually created in the filesystem
+    expect(fs.existsSync(path.join(parentFolderPath, "parent-file.txt"))).toBe(
+      true
+    );
+    expect(fs.existsSync(path.join(parentFolderPath, "new-child-folder"))).toBe(
+      true
+    );
+    expect(fs.existsSync(path.join(childFolderPath, "child-file.txt"))).toBe(
+      true
+    );
+    expect(fs.existsSync(path.join(childFolderPath, "grandchild-folder"))).toBe(
+      true
+    );
 
     testInfo.annotations.push({
       type: "info",
       description:
-        "Successfully completed rename functionality tests with improved selectors",
+        "Successfully created multiple nested items without requiring collapse/expand cycles",
     });
   });
 

@@ -139,6 +139,19 @@ export async function createFile(
 }
 
 /**
+ * Creates a new folder in the specified directory
+ * @param folderPath - The full path where the folder should be created
+ * @param fsModule - The fs module to use (defaults to fs/promises)
+ * @returns Promise that resolves when the folder is created
+ */
+export async function createFolder(
+  folderPath: string,
+  fsModule: Fs = fs
+): Promise<void> {
+  await fsModule.mkdir(folderPath, { recursive: true });
+}
+
+/**
  * Reads a file and returns both content and metadata
  * @param filePath - The path of the file to read
  * @param fsModule - The fs module to use (defaults to fs/promises)

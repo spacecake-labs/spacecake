@@ -1,4 +1,3 @@
-import { Plus, X } from "lucide-react";
 import { useEffect } from "react";
 import * as React from "react";
 import type { SidebarNavItem } from "@/lib/workspace";
@@ -13,7 +12,6 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
@@ -27,21 +25,34 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { createFile, readDirectory, renameFile, deleteFile } from "@/lib/fs";
+import {
+  createFile,
+  readDirectory,
+  renameFile,
+  deleteFile,
+  createFolder,
+} from "@/lib/fs";
 import { useAtom, useAtomValue } from "jotai";
 import {
   workspaceAtom,
   filesAtom,
   expandedFoldersAtom,
-  isCreatingFileAtom,
-  fileNameAtom,
   fileTreeAtom,
   editingItemAtom,
+  isCreatingInContextAtom,
+  contextItemNameAtom,
 } from "@/lib/atoms";
-import { WorkspaceTree } from "@/components/workspace-tree";
+import {
+  WorkspaceTree,
+  WorkspaceDropdownMenu,
+} from "@/components/workspace-tree";
 
 interface NavMainProps {
-  onExpandFolder?: (folderUrl: string, folderPath: string) => void;
+  onExpandFolder?: (
+    folderUrl: string,
+    folderPath: string,
+    forceExpand?: boolean
+  ) => void;
   expandedFolders?: Record<string, boolean>;
   onFileClick?: (filePath: string) => void;
   selectedFilePath?: string | null;
@@ -52,13 +63,15 @@ export function NavMain({
   onFileClick,
   selectedFilePath,
 }: NavMainProps) {
-  const [isCreatingFile, setIsCreatingFile] = useAtom(isCreatingFileAtom);
-  const [fileName, setFileName] = useAtom(fileNameAtom);
   const [editingItem, setEditingItem] = useAtom(editingItemAtom);
   const workspace = useAtomValue(workspaceAtom);
   const [files, setFiles] = useAtom(filesAtom);
   const [expandedFoldersState] = useAtom(expandedFoldersAtom);
   const [fileTree, setFileTree] = useAtom(fileTreeAtom);
+  const [isCreatingInContext, setIsCreatingInContext] = useAtom(
+    isCreatingInContextAtom
+  );
+  const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom);
 
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(
@@ -73,6 +86,61 @@ export function NavMain({
 
   // Transform files to tree structure
   const treeData = transformFilesToTree(files);
+
+  const isCreatingInWorkspace =
+    isCreatingInContext?.parentPath === workspace?.path;
+
+  const handleWorkspaceCreateFile = async () => {
+    if (!contextItemName.trim() || !workspace?.path) return;
+
+    try {
+      const filePath = `${workspace.path}/${contextItemName.trim()}`;
+      const success = await createFile(filePath, "");
+
+      if (success) {
+        // Refresh the workspace to show the new file
+        const files = await readDirectory(workspace.path);
+        setFiles(files);
+        setIsCreatingInContext(null);
+        setContextItemName("");
+        handleFileCreated(filePath);
+      }
+    } catch (error) {
+      console.error("error creating file:", error);
+    }
+  };
+
+  const handleWorkspaceCreateFolder = async () => {
+    if (!contextItemName.trim() || !workspace?.path) return;
+
+    try {
+      const folderPath = `${workspace.path}/${contextItemName.trim()}`;
+      const success = await createFolder(folderPath);
+
+      if (success) {
+        // Refresh the workspace to show the new folder
+        const files = await readDirectory(workspace.path);
+        setFiles(files);
+        setIsCreatingInContext(null);
+        setContextItemName("");
+      }
+    } catch (error) {
+      console.error("error creating folder:", error);
+    }
+  };
+
+  const handleWorkspaceKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (isCreatingInContext?.type === "file") {
+        handleWorkspaceCreateFile();
+      } else if (isCreatingInContext?.type === "folder") {
+        handleWorkspaceCreateFolder();
+      }
+    } else if (e.key === "Escape") {
+      setIsCreatingInContext(null);
+      setContextItemName("");
+    }
+  };
 
   // Validate rename target
   const validateRenameTarget = (
@@ -103,45 +171,9 @@ export function NavMain({
     }
   };
 
-  const handleCreateFile = async () => {
-    if (!fileName.trim() || !workspace?.path) return;
-
-    try {
-      const filePath = `${workspace.path}/${fileName.trim()}`;
-      const success = await createFile(filePath, "");
-
-      if (success) {
-        // Refresh the workspace to show the new file
-        const files = await readDirectory(workspace.path);
-        setFiles(files);
-
-        setIsCreatingFile(false);
-        setFileName("");
-
-        handleFileCreated(filePath);
-      }
-    } catch (error) {
-      console.error("error creating file:", error);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleCreateFile();
-    } else if (e.key === "Escape") {
-      setIsCreatingFile(false);
-      setFileName("");
-    }
-  };
-
-  const startCreatingFile = () => {
-    setIsCreatingFile(true);
-    setFileName("");
-  };
-
-  const cancelCreatingFile = () => {
-    setIsCreatingFile(false);
-    setFileName("");
+  const handleFilesUpdated = () => {
+    // This will be called when files are updated through context-aware creation
+    // The file tree will be automatically updated through the atoms
   };
 
   const handleFileClick = (filePath: string) => {
@@ -305,39 +337,26 @@ export function NavMain({
       <SidebarGroup>
         <SidebarGroupLabel className="flex items-center justify-between">
           <span>workspace</span>
-          {!isCreatingFile && workspace?.path && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-4 w-4 p-0 hover:bg-accent cursor-pointer"
-              onClick={startCreatingFile}
-            >
-              <Plus className="h-3 w-3" />
-              <span className="sr-only">create file</span>
-            </Button>
-          )}
+          {workspace?.path && <WorkspaceDropdownMenu />}
         </SidebarGroupLabel>
 
         <SidebarMenu>
-          {isCreatingFile && (
+          {isCreatingInWorkspace && workspace?.path && (
             <SidebarMenuItem>
               <SidebarMenuButton className="cursor-default">
                 <Input
-                  placeholder="filename.txt"
-                  value={fileName}
-                  onChange={(e) => setFileName(e.target.value)}
-                  onKeyDown={handleKeyDown}
+                  placeholder={
+                    isCreatingInContext?.type === "file"
+                      ? "filename.txt"
+                      : "folder name"
+                  }
+                  value={contextItemName}
+                  onChange={(e) => setContextItemName(e.target.value)}
+                  onKeyDown={handleWorkspaceKeyDown}
                   className="h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                   autoFocus
                 />
               </SidebarMenuButton>
-              <SidebarMenuAction
-                className="cursor-pointer"
-                onClick={cancelCreatingFile}
-              >
-                <X className="h-3 w-3" />
-                <span className="sr-only">cancel</span>
-              </SidebarMenuAction>
             </SidebarMenuItem>
           )}
           {workspace?.path &&
@@ -351,7 +370,6 @@ export function NavMain({
                 onStartDelete={handleStartDelete}
                 selectedFilePath={selectedFilePath}
                 expandedFolders={expandedFoldersState}
-                fileTree={fileTree}
                 editingItem={editingItem}
                 setEditingItem={setEditingItem}
                 onRename={handleRename}
@@ -359,6 +377,8 @@ export function NavMain({
                 onCancelRename={cancelRename}
                 onRenameInputChange={handleRenameInputChange}
                 validationError={validationError}
+                onFilesUpdated={handleFilesUpdated}
+                onExpandFolder={onExpandFolder}
               />
             ))}
         </SidebarMenu>

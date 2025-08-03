@@ -27,6 +27,10 @@ export interface ElectronAPI {
     success: boolean;
     error?: string;
   }>;
+  createFolder: (folderPath: string) => Promise<{
+    success: boolean;
+    error?: string;
+  }>;
   renameFile: (
     oldPath: string,
     newPath: string
