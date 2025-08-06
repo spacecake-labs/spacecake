@@ -3,3 +3,7 @@ onlyBuiltDependencies:
   - electron
   - electron-winstaller
   - esbuild
+  - tree-sitter
+  - tree-sitter-javascript
+  - tree-sitter-python
+  - tree-sitter-typescript

@@ -202,11 +202,11 @@ function ItemDropdownMenu({
             <SidebarMenuAction
               showOnHover
               className="cursor-pointer"
-              aria-label={`more options for ${itemTitle}`}
+              aria-label="more options"
               data-testid={`more-options-${itemTitle}`}
             >
               <MoreHorizontal />
-              <span className="sr-only">more options for {itemTitle}</span>
+              <span className="sr-only">more options</span>
             </SidebarMenuAction>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-48">
