@@ -67,7 +67,7 @@ export function NavMain({
   const workspace = useAtomValue(workspaceAtom);
   const [files, setFiles] = useAtom(filesAtom);
   const [expandedFoldersState] = useAtom(expandedFoldersAtom);
-  const [fileTree, setFileTree] = useAtom(fileTreeAtom);
+  const [, setFileTree] = useAtom(fileTreeAtom);
   const [isCreatingInContext, setIsCreatingInContext] = useAtom(
     isCreatingInContextAtom
   );

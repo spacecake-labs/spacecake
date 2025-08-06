@@ -1,6 +1,7 @@
 import { atom } from "jotai";
 import type { FileEntry, WorkspaceInfo } from "@/types/workspace";
 import type { SidebarNavItem } from "./workspace";
+import type { ParsedFile, UnifiedBlock } from "@/types/parser";
 import { SerializedEditorState } from "lexical";
 
 export const workspaceAtom = atom<WorkspaceInfo | null>(null);
@@ -52,3 +53,15 @@ export const isCreatingInContextAtom = atom<{
   parentPath: string;
 } | null>(null);
 export const contextItemNameAtom = atom<string>("");
+
+// Tree-sitter parsing atoms
+export const parsedFileAtom = atom<ParsedFile | null>(null);
+export const parsedAnnotationsAtom = atom<ParsedFile | null>(null);
+export const unifiedBlocksAtom = atom<UnifiedBlock[]>([]);
+export const parsingStatusAtom = atom<{
+  isParsing: boolean;
+  error: string | null;
+}>({
+  isParsing: false,
+  error: null,
+});
