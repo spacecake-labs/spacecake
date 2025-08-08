@@ -4,9 +4,9 @@ import type {
   PyBlock,
   PyBlockKind,
   PyBlockHigherKind,
-  Anonymous,
+  BlockName,
 } from "@/types/parser";
-import { ANONYMOUS } from "@/types/parser";
+import { anonymousName, namedBlock } from "@/types/parser";
 
 function blockKind(node: SyntaxNode): PyBlockKind | PyBlockHigherKind | null {
   switch (node.name) {
@@ -33,34 +33,34 @@ function blockKind(node: SyntaxNode): PyBlockKind | PyBlockHigherKind | null {
   }
 }
 
-function blockName(node: SyntaxNode, code: string): string | Anonymous {
+function blockName(node: SyntaxNode, code: string): BlockName {
   switch (node.name) {
     case "ClassDefinition": {
       // Find the class name (should be the first identifier after 'class')
       let child = node.firstChild;
       while (child) {
         if (child.name === "VariableName") {
-          return code.slice(child.from, child.to);
+          return namedBlock(code.slice(child.from, child.to));
         }
         child = child.nextSibling;
       }
-      return "UnnamedClass";
+      return namedBlock("UnnamedClass");
     }
     case "FunctionDefinition": {
       // Find the function name (should be the first identifier after 'def')
       let child = node.firstChild;
       while (child) {
         if (child.name === "VariableName") {
-          return code.slice(child.from, child.to);
+          return namedBlock(code.slice(child.from, child.to));
         }
         child = child.nextSibling;
       }
-      return "UnnamedFunction";
+      return namedBlock("UnnamedFunction");
     }
     case "ImportStatement":
     case "ImportFromStatement": {
       // For import blocks, return anonymous
-      return ANONYMOUS;
+      return anonymousName();
     }
     case "DecoratedStatement": {
       // For decorated statements, get the name from the underlying definition
@@ -68,10 +68,10 @@ function blockName(node: SyntaxNode, code: string): string | Anonymous {
       if (definition) {
         return blockName(definition, code);
       }
-      return "decorated";
+      return namedBlock("decorated");
     }
     default:
-      return ANONYMOUS;
+      return anonymousName();
   }
 }
 
@@ -167,7 +167,7 @@ export async function* parsePythonContentStreaming(
     if (blockCount === 0) {
       const fallbackBlock: PyBlock = {
         kind: "file",
-        name: "file",
+        name: namedBlock("file"),
         startByte: 0,
         endByte: content.length,
         text: content,
@@ -180,7 +180,7 @@ export async function* parsePythonContentStreaming(
     // Fallback: create a single block with the entire content
     const fallbackBlock: PyBlock = {
       kind: "file",
-      name: "file",
+      name: namedBlock("file"),
       startByte: 0,
       endByte: content.length,
       text: content,

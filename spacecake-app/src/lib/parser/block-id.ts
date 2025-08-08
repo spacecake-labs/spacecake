@@ -20,6 +20,6 @@ import type { Block } from "@/types/parser";
  */
 export function blockId<TKind = string>(block: Block<TKind>): string {
   const kind = String(block.kind).replace(/\s+/g, "-");
-  const name = typeof block.name === "string" ? block.name : "anonymous";
+  const name = block.name.kind === "named" ? block.name.value : "anonymous";
   return `${name.toLowerCase()}-${kind}`;
 }

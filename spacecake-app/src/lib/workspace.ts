@@ -1,4 +1,4 @@
-import { Folder, BookOpen, FileText, Code, Image } from "lucide-react";
+import { Folder, BookOpen, FileText, Code } from "lucide-react";
 import type { FileEntry } from "@/types/workspace";
 import type { LucideIcon } from "lucide-react";
 import { FileType } from "@/types/workspace";
@@ -53,45 +53,99 @@ export function isEmpty(
  */
 
 /**
- * Gets the appropriate icon for a file based on its extension
- * @param fileName - The name of the file
+ * Gets the file type based on the file extension
+ * @param extension - The file extension (with or without leading dot)
+ * @returns The FileType enum value
+ */
+export function fileTypeFromExtension(extension: string): FileType {
+  const cleanExtension = extension.replace(/^\./, "").toLowerCase();
+
+  switch (cleanExtension) {
+    case "md":
+    case "markdown":
+      return FileType.Markdown;
+    case "py":
+      return FileType.Python;
+    case "js":
+      return FileType.JavaScript;
+    case "ts":
+      return FileType.TypeScript;
+    case "jsx":
+      return FileType.JSX;
+    case "tsx":
+      return FileType.TSX;
+    default:
+      return FileType.Plaintext;
+  }
+}
+
+/**
+ * Gets the file type based on the language name (e.g., from CodeMirror)
+ * @param language - The language name
+ * @returns The FileType enum value
+ */
+export function fileTypeFromLanguage(language: string): FileType {
+  const cleanLanguage = language.toLowerCase();
+
+  switch (cleanLanguage) {
+    case "markdown":
+      return FileType.Markdown;
+    case "python":
+      return FileType.Python;
+    case "javascript":
+      return FileType.JavaScript;
+    case "typescript":
+      return FileType.TypeScript;
+    case "jsx":
+      return FileType.JSX;
+    case "tsx":
+      return FileType.TSX;
+    default:
+      return FileType.Plaintext;
+  }
+}
+
+/**
+ * Gets the appropriate icon for a file type
+ * @param fileType - The FileType enum value
  * @returns The appropriate Lucide icon component
  */
-export function getFileIcon(fileName: string) {
-  const extension = fileName.split(".").pop()?.toLowerCase();
-
-  switch (extension) {
-    case "md":
-    case "txt":
-    case "doc":
-    case "docx":
+export function fileTypeIcon(fileType: FileType): LucideIcon {
+  switch (fileType) {
+    case FileType.Markdown:
       return BookOpen;
-    case "js":
-    case "ts":
-    case "jsx":
-    case "tsx":
-    case "py":
-    case "java":
-    case "cpp":
-    case "c":
-    case "cs":
-    case "php":
-    case "rb":
-    case "go":
-    case "rs":
-    case "swift":
-    case "kt":
+    case FileType.Python:
+    case FileType.JavaScript:
+    case FileType.TypeScript:
+    case FileType.JSX:
+    case FileType.TSX:
       return Code;
-    case "jpg":
-    case "jpeg":
-    case "png":
-    case "gif":
-    case "svg":
-    case "webp":
-    case "bmp":
-      return Image;
+    case FileType.Plaintext:
     default:
       return FileText;
+  }
+}
+
+/**
+ * Gets the appropriate emoji for a file type
+ * @param fileType - The FileType enum value
+ * @returns The appropriate emoji string
+ */
+export function fileTypeEmoji(fileType: FileType): string {
+  switch (fileType) {
+    case FileType.Markdown:
+      return "📝";
+    case FileType.Python:
+      return "🐍";
+    case FileType.JavaScript:
+    case FileType.JSX:
+      return "🟡";
+    case FileType.TypeScript:
+    case FileType.TSX:
+      return "🔵";
+    case FileType.Plaintext:
+    default:
+      return "📄";
   }
 }
 
@@ -99,19 +153,11 @@ export function getFileIcon(fileName: string) {
  * Gets the file type based on the file extension
  * @param fileName - The name of the file
  * @returns The FileType enum value
+ * @deprecated Use fileTypeFromExtension instead
  */
 export function getFileType(fileName: string): FileType {
-  const extension = fileName.split(".").pop()?.toLowerCase();
-
-  switch (extension) {
-    case "md":
-    case "markdown":
-      return FileType.Markdown;
-    case "py":
-      return FileType.Python;
-    default:
-      return FileType.Plaintext;
-  }
+  const extension = fileName.split(".").pop()?.toLowerCase() || "";
+  return fileTypeFromExtension(extension);
 }
 
 /**
@@ -137,7 +183,9 @@ export function transformFilesToNavItems(files: FileEntry[]): SidebarNavItem[] {
         kind: "file",
         title: file.name,
         url: `#${file.path}`,
-        icon: getFileIcon(file.name),
+        icon: fileTypeIcon(
+          fileTypeFromExtension(file.name.split(".").pop() || "")
+        ),
       });
     }
   });
@@ -177,7 +225,9 @@ export function transformFolderContents(files: FileEntry[]): SidebarNavItem[] {
         kind: "file",
         title: file.name,
         url: `#${file.path}`,
-        icon: getFileIcon(file.name),
+        icon: fileTypeIcon(
+          fileTypeFromExtension(file.name.split(".").pop() || "")
+        ),
       });
     }
   });

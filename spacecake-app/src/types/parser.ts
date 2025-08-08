@@ -1,14 +1,32 @@
 import type { File } from "@/types/workspace";
 
-// Anonymous type for blocks without a specific name
-export type Anonymous = { readonly __anonymous: true };
+// Discriminated union for block names
+export type BlockName =
+  | { kind: "anonymous"; value: "anonymous" }
+  | { kind: "named"; value: string };
 
-// Helper to create Anonymous value
-export const ANONYMOUS: Anonymous = { __anonymous: true } as const;
+// Helper constructors
+export const anonymousName = (): BlockName => ({
+  kind: "anonymous",
+  value: "anonymous",
+});
+export const namedBlock = (value: string): BlockName => ({
+  kind: "named",
+  value,
+});
+
+// Type guards
+export const isAnonymousName = (
+  name: BlockName
+): name is { kind: "anonymous"; value: "anonymous" } =>
+  name.kind === "anonymous";
+export const isNamedBlock = (
+  name: BlockName
+): name is { kind: "named"; value: string } => name.kind === "named";
 
 export interface Block<TKind = string> {
   kind: TKind;
-  name: string | Anonymous;
+  name: BlockName;
   startByte: number;
   endByte: number;
   text: string;

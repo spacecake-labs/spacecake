@@ -9,16 +9,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace";
 
 interface CodeBlockProps {
   code: string;
   language?: string;
+  blockName?: string;
   title?: string;
   showLineNumbers?: boolean;
   editable?: boolean;
   theme?: "light" | "dark" | "auto";
   className?: string;
-  isAnonymous?: boolean;
   onCodeChange?: (code: string) => void;
   onRun?: () => void;
   children?: React.ReactNode;
@@ -27,9 +28,9 @@ interface CodeBlockProps {
 export function CodeBlock({
   code,
   language = "javascript",
+  blockName,
   title,
   editable = false,
-  isAnonymous = false,
   className,
   onRun,
   children,
@@ -57,13 +58,18 @@ export function CodeBlock({
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2 rounded-t-lg">
         <div className="flex items-center gap-2">
-          {isAnonymous ? (
+          {language && (
+            <span className="text-sm">
+              {fileTypeEmoji(fileTypeFromLanguage(language))}
+            </span>
+          )}
+          {blockName === "anonymous" ? (
             <Badge variant="secondary" className="text-xs font-mono">
               <Code className="h-3 w-3" />
             </Badge>
-          ) : language ? (
+          ) : blockName ? (
             <Badge variant="secondary" className="text-xs font-mono">
-              {language}
+              {blockName}
             </Badge>
           ) : null}
           {title && (

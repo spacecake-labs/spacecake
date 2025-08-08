@@ -7,6 +7,10 @@ export enum FileType {
   Markdown = "markdown",
   Plaintext = "plaintext",
   Python = "python",
+  JavaScript = "javascript",
+  TypeScript = "typescript",
+  JSX = "jsx",
+  TSX = "tsx",
 }
 
 export interface FileEntry {

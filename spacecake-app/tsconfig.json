@@ -17,5 +17,6 @@
     "jsx": "react-jsx",
     "types": ["electron"]
   },
-  "include": ["src/**/*", "src/types/**/*", "forge.env.d.ts"]
+  "include": ["src/**/*", "src/types/**/*", "forge.env.d.ts"],
+  "exclude": ["tests/fixtures/**"]
 }

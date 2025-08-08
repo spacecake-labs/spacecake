@@ -161,8 +161,16 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     return this.__src;
   }
 
-  getBlock(): Block | undefined {
-    return this.__block;
+  getBlock(): Block {
+    return (
+      this.__block || {
+        kind: "code",
+        name: { kind: "anonymous", value: "anonymous" },
+        startByte: 0,
+        endByte: this.__code.length,
+        text: this.__code,
+      }
+    );
   }
 
   setCode = (code: string) => {
@@ -308,7 +316,7 @@ interface CodeBlockEditorProps {
   language: string;
   meta: string;
   src?: string;
-  block?: Block;
+  block: Block;
   nodeKey: string;
   focusEmitter: {
     publish: () => void;
@@ -333,7 +341,6 @@ const CodeBlockEditorContainer: React.FC<
       <CodeMirrorEditor
         code={props.code}
         language={props.language}
-        meta={props.meta}
         block={props.block}
         nodeKey={props.nodeKey}
         focusEmitter={props.focusEmitter}
