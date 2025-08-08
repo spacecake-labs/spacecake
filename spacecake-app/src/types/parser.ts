@@ -1,14 +1,21 @@
 import type { File } from "@/types/workspace";
 
+// Anonymous type for blocks without a specific name
+export type Anonymous = { readonly __anonymous: true };
+
+// Helper to create Anonymous value
+export const ANONYMOUS: Anonymous = { __anonymous: true } as const;
+
 export interface Block<TKind = string> {
   kind: TKind;
+  name: string | Anonymous;
   startByte: number;
   endByte: number;
   text: string;
 }
 
 // Python-specific block types
-export type PyBlockKind = "class" | "function" | "import" | "file";
+export type PyBlockKind = "class" | "function" | "imports" | "file";
 export type PyBlockHigherKindPrefix = "async" | "decorated";
 export type PyBlockHigherKind = `${PyBlockHigherKindPrefix} ${PyBlockKind}`;
 

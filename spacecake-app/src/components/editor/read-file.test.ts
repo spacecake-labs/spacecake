@@ -3,18 +3,21 @@ import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 import { FileType } from "@/types/workspace";
 import type { File } from "@/types/workspace";
 import type { LexicalEditor } from "lexical";
+import { ANONYMOUS } from "@/types/parser";
 
 // Mock the Python parser
-vi.mock("@/lib/parser/python/parser", () => ({
+vi.mock("@/lib/parser/python/py-blocks", () => ({
   parsePythonContentStreaming: vi.fn().mockImplementation(async function* () {
     yield {
-      kind: "import",
+      kind: "imports",
+      name: ANONYMOUS,
       startByte: 0,
       endByte: 11,
       text: "import math",
     };
     yield {
       kind: "function",
+      name: "fibonacci",
       startByte: 13,
       endByte: 85,
       text: "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)",
@@ -92,7 +95,7 @@ def fibonacci(n):
 
       // The Python parser mock should have been called
       const { parsePythonContentStreaming } = await import(
-        "@/lib/parser/python/parser"
+        "@/lib/parser/python/py-blocks"
       );
       expect(parsePythonContentStreaming).toHaveBeenCalledWith(
         mockPythonFile.content
@@ -183,13 +186,14 @@ def fibonacci(n):
     it("should fallback to plaintext when Python parsing fails", async () => {
       // Mock the Python parser to throw an error
       const { parsePythonContentStreaming } = await import(
-        "@/lib/parser/python/parser"
+        "@/lib/parser/python/py-blocks"
       );
       vi.mocked(parsePythonContentStreaming).mockImplementation(
         async function* () {
           // Yield a dummy PyBlock before throwing error
           yield {
-            kind: "import",
+            kind: "imports",
+            name: ANONYMOUS,
             startByte: 0,
             endByte: 5,
             text: "dummy",
