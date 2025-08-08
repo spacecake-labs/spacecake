@@ -1,7 +1,7 @@
 import React from "react";
 import { useCodeBlockEditorContext } from "@/components/editor/nodes/code-node";
 import { atom } from "jotai";
-import type { Block, Anonymous } from "@/types/parser";
+import type { Block } from "@/types/parser";
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, lineNumbers, keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
@@ -40,8 +40,7 @@ interface CodeMirrorEditorProps {
   language: string;
   nodeKey: string;
   code: string;
-  meta: string;
-  block?: Block;
+  block: Block;
   focusEmitter?: {
     publish: () => void;
     subscribe: (cb: () => void) => void;
@@ -100,24 +99,14 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   language,
   nodeKey,
   code,
-  meta,
   block,
   focusEmitter,
 }) => {
   const { setCode } = useCodeBlockEditorContext();
 
-  // Helper to check if name is Anonymous
-  const isAnonymousName = (
-    name: string | Anonymous | undefined
-  ): name is Anonymous => {
-    return Boolean(name && typeof name === "object" && "__anonymous" in name);
-  };
-
-  // Use block info if available, otherwise fallback to meta/language
-  const blockName =
-    block?.name && !isAnonymousName(block.name) ? block.name : language;
-  const blockKind = block?.kind ? String(block.kind) : meta;
-  const isAnonymous = Boolean(block?.name && isAnonymousName(block.name));
+  // Use block info
+  const blockKind = String(block.kind);
+  const blockName = block.name.value;
 
   // Use hardcoded values instead of atoms to avoid re-renders
   const readOnly = false;
@@ -193,12 +182,12 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   return (
     <CodeBlock
       code={code}
-      language={isAnonymous ? undefined : blockName}
+      language={language}
+      blockName={blockName}
       title={blockKind}
       editable={!readOnly}
       showLineNumbers={true}
       theme="dark"
-      isAnonymous={isAnonymous}
       onCodeChange={(newCode) => {
         setCodeRef.current(newCode);
       }}

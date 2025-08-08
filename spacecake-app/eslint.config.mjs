@@ -6,7 +6,7 @@ import importPlugin from "eslint-plugin-import";
 export default defineConfig([
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  globalIgnores([".tanstack", ".vite"]),
+  globalIgnores([".tanstack", ".vite", "tests/fixtures/**"]),
   {
     languageOptions: {
       parser: tseslint.parser,

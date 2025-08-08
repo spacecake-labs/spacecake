@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseCodeBlocks } from "@/lib/parser/python/py-blocks";
+import { parseCodeBlocks } from "@/lib/parser/python/blocks";
 import { readFileSync } from "fs";
 import { join } from "path";
 import type { PyBlock } from "@/types/parser";
@@ -7,7 +7,10 @@ import type { PyBlock } from "@/types/parser";
 describe("Python parser", () => {
   describe("parseCodeBlocks", () => {
     it("should parse definition blocks", async () => {
-      const code = readFileSync(join(__dirname, "py-code.txt"), "utf-8");
+      const code = readFileSync(
+        join(__dirname, "../../../../tests/fixtures/a.py"),
+        "utf-8"
+      );
 
       const blocks: PyBlock[] = [];
       for await (const block of parseCodeBlocks(code)) {

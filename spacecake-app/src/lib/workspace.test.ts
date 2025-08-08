@@ -1,12 +1,13 @@
 import { expect, test, describe } from "vitest";
 import {
-  getFileIcon,
   getFileType,
+  fileTypeEmoji,
+  fileTypeFromLanguage,
   transformFilesToNavItems,
   isFile,
   isFolder,
 } from "@/lib/workspace";
-import { BookOpen, Code, Image, FileText, Folder } from "lucide-react";
+import { BookOpen, Code, FileText, Folder } from "lucide-react";
 import { FileType } from "@/types/workspace";
 import type { FileEntry } from "@/types/workspace";
 
@@ -31,11 +32,47 @@ describe("getFileType", () => {
   });
 
   test.each([
+    ["script.js", FileType.JavaScript],
+    ["app.js", FileType.JavaScript],
+    ["SCRIPT.JS", FileType.JavaScript],
+  ])(
+    "returns JavaScript for JavaScript files: %s",
+    (fileName, expectedType) => {
+      expect(getFileType(fileName)).toBe(expectedType);
+    }
+  );
+
+  test.each([
+    ["component.ts", FileType.TypeScript],
+    ["main.ts", FileType.TypeScript],
+    ["COMPONENT.TS", FileType.TypeScript],
+  ])(
+    "returns TypeScript for TypeScript files: %s",
+    (fileName, expectedType) => {
+      expect(getFileType(fileName)).toBe(expectedType);
+    }
+  );
+
+  test.each([
+    ["component.jsx", FileType.JSX],
+    ["app.jsx", FileType.JSX],
+    ["COMPONENT.JSX", FileType.JSX],
+  ])("returns JSX for JSX files: %s", (fileName, expectedType) => {
+    expect(getFileType(fileName)).toBe(expectedType);
+  });
+
+  test.each([
+    ["component.tsx", FileType.TSX],
+    ["app.tsx", FileType.TSX],
+    ["COMPONENT.TSX", FileType.TSX],
+  ])("returns TSX for TSX files: %s", (fileName, expectedType) => {
+    expect(getFileType(fileName)).toBe(expectedType);
+  });
+
+  test.each([
     ["document.txt", FileType.Plaintext],
     ["data.csv", FileType.Plaintext],
     ["config.json", FileType.Plaintext],
-    ["script.js", FileType.Plaintext],
-    ["component.tsx", FileType.Plaintext],
     ["unknown.xyz", FileType.Plaintext],
     ["no-extension", FileType.Plaintext], // no extension
     ["multiple.dots.file", FileType.Plaintext], // multiple dots
@@ -45,66 +82,46 @@ describe("getFileType", () => {
   });
 });
 
-// getFileIcon tests
+// fileTypeEmoji tests
 
-describe("getFileIcon", () => {
+describe("fileTypeEmoji", () => {
   test.each([
-    ["document.md", BookOpen],
-    ["readme.txt", BookOpen],
-    ["report.doc", BookOpen],
-    ["document.docx", BookOpen],
-    ["DOCUMENT.MD", BookOpen], // case insensitive
-    ["README.TXT", BookOpen],
-  ])("returns BookOpen for document files: %s", (fileName, expectedIcon) => {
-    expect(getFileIcon(fileName)).toBe(expectedIcon);
+    [FileType.Markdown, "📝"],
+    [FileType.Python, "🐍"],
+    [FileType.JavaScript, "🟡"],
+    [FileType.TypeScript, "🔵"],
+    [FileType.JSX, "🟡"],
+    [FileType.TSX, "🔵"],
+    [FileType.Plaintext, "📄"],
+  ])("returns correct emoji for %s", (fileType, expectedEmoji) => {
+    expect(fileTypeEmoji(fileType)).toBe(expectedEmoji);
+  });
+});
+
+// fileTypeFromLanguage tests
+
+describe("fileTypeFromLanguage", () => {
+  test.each([
+    ["python", FileType.Python],
+    ["Python", FileType.Python],
+    ["PYTHON", FileType.Python],
+    ["javascript", FileType.JavaScript],
+    ["JavaScript", FileType.JavaScript],
+    ["typescript", FileType.TypeScript],
+    ["TypeScript", FileType.TypeScript],
+    ["markdown", FileType.Markdown],
+    ["Markdown", FileType.Markdown],
+  ])("returns correct FileType for language: %s", (language, expectedType) => {
+    expect(fileTypeFromLanguage(language)).toBe(expectedType);
   });
 
   test.each([
-    ["script.js", Code],
-    ["component.tsx", Code],
-    ["app.py", Code],
-    ["main.java", Code],
-    ["program.cpp", Code],
-    ["file.c", Code],
-    ["app.cs", Code],
-    ["index.php", Code],
-    ["script.rb", Code],
-    ["main.go", Code],
-    ["lib.rs", Code],
-    ["app.swift", Code],
-    ["Main.kt", Code],
-    ["SCRIPT.JS", Code], // case insensitive
-    ["COMPONENT.TSX", Code],
-  ])("returns Code for programming files: %s", (fileName, expectedIcon) => {
-    expect(getFileIcon(fileName)).toBe(expectedIcon);
-  });
-
-  test.each([
-    ["photo.jpg", Image],
-    ["image.jpeg", Image],
-    ["logo.png", Image],
-    ["icon.gif", Image],
-    ["vector.svg", Image],
-    ["picture.webp", Image],
-    ["banner.bmp", Image],
-    ["PHOTO.JPG", Image], // case insensitive
-    ["IMAGE.PNG", Image],
-  ])("returns Image for image files: %s", (fileName, expectedIcon) => {
-    expect(getFileIcon(fileName)).toBe(expectedIcon);
-  });
-
-  test.each([
-    ["data.csv", FileText],
-    ["config.json", FileText],
-    ["package.xml", FileText],
-    ["file.pdf", FileText],
-    ["archive.zip", FileText],
-    ["unknown.xyz", FileText],
-    ["no-extension", FileText], // no extension
-    ["multiple.dots.file", FileText], // multiple dots
-    ["", FileText], // empty string
-  ])("returns FileText for other files: %s", (fileName, expectedIcon) => {
-    expect(getFileIcon(fileName)).toBe(expectedIcon);
+    ["java", FileType.Plaintext],
+    ["c++", FileType.Plaintext],
+    ["unknown", FileType.Plaintext],
+    ["", FileType.Plaintext],
+  ])("returns Plaintext for unsupported languages: %s", (language, expectedType) => {
+    expect(fileTypeFromLanguage(language)).toBe(expectedType);
   });
 });
 
@@ -223,7 +240,7 @@ describe("transformFilesToNavItems", () => {
   test.each([
     ["document.md", BookOpen],
     ["script.js", Code],
-    ["image.png", Image],
+    ["image.png", FileText],
     ["config.json", FileText],
   ])("assigns correct icon for file: %s", (fileName, expectedIcon) => {
     const fileEntry: FileEntry = {
