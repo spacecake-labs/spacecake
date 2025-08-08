@@ -6,7 +6,7 @@ import { EditorView, lineNumbers, keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { basicSetup } from "codemirror";
 import { languages } from "@codemirror/language-data";
-import { oneDark } from "@codemirror/theme-one-dark";
+import { githubLight } from "@uiw/codemirror-theme-github";
 import { useCodeMirrorRef } from "@/components/editor/plugins/use-codemirror-ref";
 import { CodeBlock } from "@/components/code-block";
 import { selectedFilePathAtom } from "@/lib/atoms";
@@ -75,6 +75,25 @@ const getLanguageSupport = async (
   return null;
 };
 
+const focusedActiveLineTheme = EditorView.theme({
+  // make active line transparent by default (when not focused)
+  ".cm-activeLine": {
+    backgroundColor: "transparent !important",
+  },
+  // only show active line highlighting when the editor is focused
+  "&.cm-focused .cm-activeLine": {
+    backgroundColor: "var(--muted) !important",
+  },
+  // make gutter transparent by default (when not focused)
+  ".cm-activeLineGutter": {
+    backgroundColor: "transparent !important",
+  },
+  // highlight gutter when focused
+  "&.cm-focused .cm-activeLineGutter": {
+    backgroundColor: "var(--muted) !important",
+  },
+});
+
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   language,
   nodeKey,
@@ -123,7 +142,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         lineNumbers(),
         keymap.of([indentWithTab]),
         EditorView.lineWrapping,
-        oneDark,
+        githubLight,
+        focusedActiveLineTheme,
         EditorView.updateListener.of(({ state }) => {
           const newCode = state.doc.toString();
           setCodeRef.current(newCode);
