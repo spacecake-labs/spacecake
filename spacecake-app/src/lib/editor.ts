@@ -3,6 +3,7 @@ import { SerializedEditorState } from "lexical";
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file";
 import { FileType } from "@/types/workspace";
 import { editorConfig } from "@/components/editor/editor";
+import type { File } from "@/types/workspace";
 
 // Pure function to create editor config from serialized state
 export const createEditorConfigFromState = (
@@ -17,18 +18,19 @@ export const createEditorConfigFromState = (
 // Pure function to create editor config from file content
 export const createEditorConfigFromContent = (
   content: string,
-  fileType: FileType
+  fileType: FileType,
+  file?: File
 ): InitialConfigType => {
   return {
     ...editorConfig,
-    editorState: getInitialEditorStateFromContent(content, fileType),
+    editorState: getInitialEditorStateFromContent(content, fileType, file),
   };
 };
 
 // Pure function to determine editor config based on current state
 export const getEditorConfig = (
   editorState: SerializedEditorState | null,
-  fileContent: { content: string; fileType: string } | null,
+  fileContent: File | null,
   selectedFilePath: string | null
 ): InitialConfigType | null => {
   if (editorState) {
@@ -38,7 +40,8 @@ export const getEditorConfig = (
   if (fileContent && selectedFilePath) {
     return createEditorConfigFromContent(
       fileContent.content,
-      fileContent.fileType as FileType
+      fileContent.fileType,
+      fileContent // Pass the full file object
     );
   }
 

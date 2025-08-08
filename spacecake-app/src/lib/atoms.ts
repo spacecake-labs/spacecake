@@ -1,7 +1,7 @@
 import { atom } from "jotai";
-import type { FileEntry, WorkspaceInfo } from "@/types/workspace";
-import type { SidebarNavItem } from "./workspace";
-import type { ParsedFile, UnifiedBlock } from "@/types/parser";
+import type { FileEntry, WorkspaceInfo, File } from "@/types/workspace";
+import type { SidebarNavItem } from "@/lib/workspace";
+import type { PyParsedFile } from "@/types/parser";
 import { SerializedEditorState } from "lexical";
 
 export const workspaceAtom = atom<WorkspaceInfo | null>(null);
@@ -21,10 +21,7 @@ export const loadingFoldersAtom = atom<string[]>([]);
 export const editorStateAtom = atom<SerializedEditorState | null>(null);
 
 // File content state
-export const fileContentAtom = atom<{
-  content: string;
-  fileType: string;
-} | null>(null);
+export const fileContentAtom = atom<File | null>(null);
 
 // Selected file path
 export const selectedFilePathAtom = atom<string | null>(null);
@@ -55,9 +52,9 @@ export const isCreatingInContextAtom = atom<{
 export const contextItemNameAtom = atom<string>("");
 
 // Tree-sitter parsing atoms
-export const parsedFileAtom = atom<ParsedFile | null>(null);
-export const parsedAnnotationsAtom = atom<ParsedFile | null>(null);
-export const unifiedBlocksAtom = atom<UnifiedBlock[]>([]);
+export const parsedFileAtom = atom<PyParsedFile | null>(null);
+export const parsedAnnotationsAtom = atom<PyParsedFile | null>(null);
+// export const unifiedBlocksAtom = atom<UnifiedBlock[]>([]);
 export const parsingStatusAtom = atom<{
   isParsing: boolean;
   error: string | null;

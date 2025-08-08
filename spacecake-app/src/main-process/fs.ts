@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import type { Dirent } from "fs";
 import type { FileEntry, File } from "@/types/workspace";
 import { FileType } from "@/types/workspace";
 
@@ -50,6 +51,60 @@ export interface Fs {
   unlink: (path: string) => Promise<void>;
 }
 
+// Create an fs adapter that implements our Fs interface
+const createFsAdapter = (): Fs => ({
+  async readdir(
+    dirPath: string,
+    opts?: { withFileTypes?: boolean }
+  ): Promise<FileNode[]> {
+    if (opts?.withFileTypes) {
+      const dirents = await fs.readdir(dirPath, { withFileTypes: true });
+      return dirents.map((dirent: Dirent) => ({
+        name: dirent.name,
+        path: path.join(dirPath, dirent.name),
+        mtime: new Date(), // We'll need to stat for real mtime if needed
+        isDirectory: () => dirent.isDirectory(),
+      }));
+    } else {
+      const names = await fs.readdir(dirPath);
+      return Promise.all(
+        names.map(async (name: string) => {
+          const fullPath = path.join(dirPath, name);
+          const stats = await fs.stat(fullPath);
+          return {
+            name,
+            path: fullPath,
+            mtime: stats.mtime,
+            isDirectory: () => stats.isDirectory(),
+          };
+        })
+      );
+    }
+  },
+  stat: fs.stat,
+  access: fs.access,
+  mkdir: fs.mkdir,
+  writeFile: fs.writeFile,
+  async readFile(
+    path: string,
+    options?: BufferEncoding | { encoding?: BufferEncoding }
+  ): Promise<string> {
+    if (typeof options === "string") {
+      return fs.readFile(path, { encoding: options });
+    } else if (options?.encoding) {
+      return fs.readFile(path, { encoding: options.encoding });
+    } else {
+      return fs.readFile(path, { encoding: "utf8" });
+    }
+  },
+  rename: fs.rename,
+  rmdir: fs.rmdir,
+  unlink: fs.unlink,
+});
+
+// Create the default fs adapter instance
+const fsAdapter = createFsAdapter();
+
 /**
  * Reads directory contents and returns sorted file entries
  * @param dirPath - The directory path to read
@@ -58,7 +113,7 @@ export interface Fs {
  */
 export async function readDir(
   dirPath: string,
-  fsModule: Fs = fs
+  fsModule: Fs = fsAdapter
 ): Promise<FileEntry[]> {
   const entries = await fsModule.readdir(dirPath, { withFileTypes: true });
 
@@ -98,6 +153,8 @@ export function getFileType(fileName: string): FileType {
     case "md":
     case "markdown":
       return FileType.Markdown;
+    case "py":
+      return FileType.Python;
     default:
       return FileType.Plaintext;
   }
@@ -111,7 +168,7 @@ export function getFileType(fileName: string): FileType {
  */
 export async function ensureSpacecakeFolder(
   workspacePath: string,
-  fsModule: Fs = fs
+  fsModule: Fs = fsAdapter
 ): Promise<void> {
   const spacecakePath = path.join(workspacePath, ".spacecake");
   try {
@@ -133,7 +190,7 @@ export async function ensureSpacecakeFolder(
 export async function createFile(
   filePath: string,
   content: string = "",
-  fsModule: Fs = fs
+  fsModule: Fs = fsAdapter
 ): Promise<void> {
   await fsModule.writeFile(filePath, content, { encoding: "utf8" });
 }
@@ -146,7 +203,7 @@ export async function createFile(
  */
 export async function createFolder(
   folderPath: string,
-  fsModule: Fs = fs
+  fsModule: Fs = fsAdapter
 ): Promise<void> {
   await fsModule.mkdir(folderPath, { recursive: true });
 }
@@ -159,7 +216,7 @@ export async function createFolder(
  */
 export async function readFile(
   filePath: string,
-  fsModule: Fs = fs
+  fsModule: Fs = fsAdapter
 ): Promise<File> {
   const [content, stats] = await Promise.all([
     fsModule.readFile(filePath, { encoding: "utf8" }),
@@ -192,7 +249,7 @@ export async function readFile(
 export async function renameFile(
   oldPath: string,
   newPath: string,
-  fsModule: Fs = fs
+  fsModule: Fs = fsAdapter
 ): Promise<void> {
   // Check if the new path already exists
   try {
@@ -217,7 +274,7 @@ export async function renameFile(
  */
 export async function deleteFile(
   filePath: string,
-  fsModule: Fs = fs
+  fsModule: Fs = fsAdapter
 ): Promise<void> {
   const stats = await fsModule.stat(filePath);
   if (stats.isDirectory()) {

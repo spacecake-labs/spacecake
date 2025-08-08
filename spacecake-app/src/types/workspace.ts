@@ -6,6 +6,7 @@
 export enum FileType {
   Markdown = "markdown",
   Plaintext = "plaintext",
+  Python = "python",
 }
 
 export interface FileEntry {

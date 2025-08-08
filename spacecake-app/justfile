@@ -4,6 +4,9 @@ start:
 lint:
     pnpm run lint
 
+tc:
+    pnpm run typecheck
+
 unit:
     pnpm run unit-test
 

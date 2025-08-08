@@ -1,12 +1,49 @@
 import { expect, test, describe } from "vitest";
 import {
   getFileIcon,
+  getFileType,
   transformFilesToNavItems,
   isFile,
   isFolder,
 } from "@/lib/workspace";
 import { BookOpen, Code, Image, FileText, Folder } from "lucide-react";
+import { FileType } from "@/types/workspace";
 import type { FileEntry } from "@/types/workspace";
+
+// getFileType tests
+
+describe("getFileType", () => {
+  test.each([
+    ["document.md", FileType.Markdown],
+    ["readme.markdown", FileType.Markdown],
+    ["DOCUMENT.MD", FileType.Markdown], // case insensitive
+    ["README.MARKDOWN", FileType.Markdown],
+  ])("returns Markdown for markdown files: %s", (fileName, expectedType) => {
+    expect(getFileType(fileName)).toBe(expectedType);
+  });
+
+  test.each([
+    ["script.py", FileType.Python],
+    ["main.py", FileType.Python],
+    ["SCRIPT.PY", FileType.Python], // case insensitive
+  ])("returns Python for Python files: %s", (fileName, expectedType) => {
+    expect(getFileType(fileName)).toBe(expectedType);
+  });
+
+  test.each([
+    ["document.txt", FileType.Plaintext],
+    ["data.csv", FileType.Plaintext],
+    ["config.json", FileType.Plaintext],
+    ["script.js", FileType.Plaintext],
+    ["component.tsx", FileType.Plaintext],
+    ["unknown.xyz", FileType.Plaintext],
+    ["no-extension", FileType.Plaintext], // no extension
+    ["multiple.dots.file", FileType.Plaintext], // multiple dots
+    ["", FileType.Plaintext], // empty string
+  ])("returns Plaintext for other files: %s", (fileName, expectedType) => {
+    expect(getFileType(fileName)).toBe(expectedType);
+  });
+});
 
 // getFileIcon tests
 

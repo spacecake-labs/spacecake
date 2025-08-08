@@ -32,10 +32,7 @@ export const Route = createRootRoute({
         // Clear any previous editor state when loading new file
         setEditorState(null);
         setSelectedFilePath(filePath);
-        setFileContent({
-          content: file.content,
-          fileType: file.fileType,
-        });
+        setFileContent(file); // Store the full File object
       } else {
         toast("error reading file");
       }
