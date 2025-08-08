@@ -4,6 +4,7 @@ onlyBuiltDependencies:
   - electron-winstaller
   - esbuild
   - tree-sitter
+  - tree-sitter-compat
   - tree-sitter-javascript
   - tree-sitter-python
   - tree-sitter-typescript

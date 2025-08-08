@@ -107,6 +107,8 @@ export function getFileType(fileName: string): FileType {
     case "md":
     case "markdown":
       return FileType.Markdown;
+    case "py":
+      return FileType.Python;
     default:
       return FileType.Plaintext;
   }

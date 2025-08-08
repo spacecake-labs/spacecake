@@ -10,7 +10,14 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ["electron"], // Don't bundle electron
+      external: [
+        "electron",
+        "tree-sitter",
+        "tree-sitter-compat",
+        "tree-sitter-javascript",
+        "tree-sitter-python",
+        "tree-sitter-typescript",
+      ], // Don't bundle electron or tree-sitter modules
     },
   },
 });

@@ -9,7 +9,6 @@ import {
   deleteFile,
 } from "@/main-process/fs";
 import { getWorkspaceName } from "@/main-process/workspace";
-import { promises as fs } from "fs";
 
 // IPC handlers for file dialogs
 ipcMain.handle("show-open-dialog", async (event, options) => {
@@ -69,10 +68,13 @@ ipcMain.handle("read-workspace", async (event, dirPath: string) => {
 
 ipcMain.handle("read-file", async (event, filePath: string) => {
   try {
-    const file = await readFile(filePath, fs);
+    const file = await readFile(filePath);
     return { success: true, file };
   } catch (error) {
-    return { success: false, error: `error reading file: ${error.message}` };
+    return {
+      success: false,
+      error: `error reading file: ${error instanceof Error ? error.message : String(error)}`,
+    };
   }
 });
 
