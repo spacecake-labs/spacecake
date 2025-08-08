@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, Play, MoreHorizontal } from "lucide-react";
+import { Copy, Check, Play, MoreHorizontal, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,6 +18,7 @@ interface CodeBlockProps {
   editable?: boolean;
   theme?: "light" | "dark" | "auto";
   className?: string;
+  isAnonymous?: boolean;
   onCodeChange?: (code: string) => void;
   onRun?: () => void;
   children?: React.ReactNode;
@@ -28,6 +29,7 @@ export function CodeBlock({
   language = "javascript",
   title,
   editable = false,
+  isAnonymous = false,
   className,
   onRun,
   children,
@@ -55,11 +57,15 @@ export function CodeBlock({
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2 rounded-t-lg">
         <div className="flex items-center gap-2">
-          {language && (
+          {isAnonymous ? (
+            <Badge variant="secondary" className="text-xs font-mono">
+              <Code className="h-3 w-3" />
+            </Badge>
+          ) : language ? (
             <Badge variant="secondary" className="text-xs font-mono">
               {language}
             </Badge>
-          )}
+          ) : null}
           {title && (
             <span className="text-sm font-medium text-muted-foreground">
               {title}

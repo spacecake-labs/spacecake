@@ -7,7 +7,7 @@ import {
 } from "lexical";
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node";
 import type { FileType } from "@/components/editor/editor";
-import { parsePythonContentStreaming } from "@/lib/parser/python/parser";
+import { parsePythonContentStreaming } from "@/lib/parser/python/py-blocks";
 import type { File } from "@/types/workspace";
 import { toast } from "sonner";
 
@@ -35,9 +35,10 @@ async function convertPythonBlocksToLexical(
       editor.update(() => {
         const codeBlock = $createCodeBlockNode({
           code: block.text,
-          language: "python",
-          meta: block.kind, // Store block type as metadata
+          language: "python", // Keep python for syntax highlighting
+          meta: String(block.kind), // Store block kind for fallback
           src: file.path, // Store source file path
+          block: block, // Pass the full block object
         });
 
         const root = $getRoot();

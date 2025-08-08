@@ -17,7 +17,7 @@ describe("Python parser", () => {
       expect(blocks.length).toBe(4); // 1 import block + 3 other blocks
 
       // Import block
-      expect(blocks[0].kind).toBe("import");
+      expect(blocks[0].kind).toBe("imports");
       expect(blocks[0].text).toBe(
         "import math\nimport pandas as pd\n\nfrom dataclasses import dataclass\nfrom datetime import datetime"
       );

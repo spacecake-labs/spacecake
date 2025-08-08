@@ -1,6 +1,12 @@
 import { parser } from "@lezer/python";
 import { SyntaxNode } from "@lezer/common";
-import type { PyBlock, PyBlockKind, PyBlockHigherKind } from "@/types/parser";
+import type {
+  PyBlock,
+  PyBlockKind,
+  PyBlockHigherKind,
+  Anonymous,
+} from "@/types/parser";
+import { ANONYMOUS } from "@/types/parser";
 
 function blockKind(node: SyntaxNode): PyBlockKind | PyBlockHigherKind | null {
   switch (node.name) {
@@ -9,9 +15,9 @@ function blockKind(node: SyntaxNode): PyBlockKind | PyBlockHigherKind | null {
     case "FunctionDefinition":
       return "function";
     case "ImportStatement":
-      return "import";
+      return "imports";
     case "ImportFromStatement":
-      return "import";
+      return "imports";
     case "DecoratedStatement": {
       // DecoratedStatement should have two children:
       // 1. Decorator
@@ -24,6 +30,48 @@ function blockKind(node: SyntaxNode): PyBlockKind | PyBlockHigherKind | null {
     }
     default:
       return null;
+  }
+}
+
+function blockName(node: SyntaxNode, code: string): string | Anonymous {
+  switch (node.name) {
+    case "ClassDefinition": {
+      // Find the class name (should be the first identifier after 'class')
+      let child = node.firstChild;
+      while (child) {
+        if (child.name === "VariableName") {
+          return code.slice(child.from, child.to);
+        }
+        child = child.nextSibling;
+      }
+      return "UnnamedClass";
+    }
+    case "FunctionDefinition": {
+      // Find the function name (should be the first identifier after 'def')
+      let child = node.firstChild;
+      while (child) {
+        if (child.name === "VariableName") {
+          return code.slice(child.from, child.to);
+        }
+        child = child.nextSibling;
+      }
+      return "UnnamedFunction";
+    }
+    case "ImportStatement":
+    case "ImportFromStatement": {
+      // For import blocks, return anonymous
+      return ANONYMOUS;
+    }
+    case "DecoratedStatement": {
+      // For decorated statements, get the name from the underlying definition
+      const definition = node.firstChild?.nextSibling;
+      if (definition) {
+        return blockName(definition, code);
+      }
+      return "decorated";
+    }
+    default:
+      return ANONYMOUS;
   }
 }
 
@@ -40,13 +88,14 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
       continue;
     }
 
-    if (kind === "import") {
+    if (kind === "imports") {
       importNodes.push(node);
     } else {
       if (importNodes.length) {
         const lastImport = importNodes[importNodes.length - 1];
         yield {
-          kind: "import",
+          kind: "imports",
+          name: blockName(importNodes[0], code),
           startByte: importNodes[0].from,
           endByte: lastImport.to,
           text: code.slice(importNodes[0].from, lastImport.to),
@@ -56,6 +105,7 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
 
       yield {
         kind,
+        name: blockName(node, code),
         startByte: node.from,
         endByte: node.to,
         text: code.slice(node.from, node.to),
@@ -117,6 +167,7 @@ export async function* parsePythonContentStreaming(
     if (blockCount === 0) {
       const fallbackBlock: PyBlock = {
         kind: "file",
+        name: "file",
         startByte: 0,
         endByte: content.length,
         text: content,
@@ -129,6 +180,7 @@ export async function* parsePythonContentStreaming(
     // Fallback: create a single block with the entire content
     const fallbackBlock: PyBlock = {
       kind: "file",
+      name: "file",
       startByte: 0,
       endByte: content.length,
       text: content,

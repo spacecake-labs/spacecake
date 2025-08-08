@@ -10,6 +10,7 @@ import {
 } from "lexical";
 import React, { JSX } from "react";
 import { CodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor";
+import type { Block } from "@/types/parser";
 
 // Simple void emitter for focus events - only allows one subscription
 const voidEmitter = () => {
@@ -44,6 +45,10 @@ export interface CreateCodeBlockNodeOptions {
    * The source file path/name for the code block.
    */
   src?: string;
+  /**
+   * The parsed block object containing kind, name, and other metadata.
+   */
+  block?: Block;
 }
 
 /**
@@ -62,6 +67,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
   __meta: string;
   __language: string;
   __src?: string;
+  __block?: Block;
   __focusEmitter = voidEmitter();
 
   static getType(): string {
@@ -74,6 +80,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
       node.__language,
       node.__meta,
       node.__src,
+      node.__block,
       node.__key
     );
   }
@@ -104,6 +111,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     language: string,
     meta: string,
     src?: string,
+    block?: Block,
     key?: NodeKey
   ) {
     super(key);
@@ -111,6 +119,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     this.__meta = meta;
     this.__language = language;
     this.__src = src;
+    this.__block = block;
   }
 
   exportJSON(): SerializedCodeBlockNode {
@@ -152,6 +161,10 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     return this.__src;
   }
 
+  getBlock(): Block | undefined {
+    return this.__block;
+  }
+
   setCode = (code: string) => {
     if (code !== this.__code) {
       this.getWritable().__code = code;
@@ -188,6 +201,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
         meta={this.getMeta()}
         language={this.getLanguage()}
         src={this.getSrc()}
+        block={this.getBlock()}
         codeBlockNode={this}
         nodeKey={this.getKey()}
         focusEmitter={this.__focusEmitter}
@@ -294,6 +308,7 @@ interface CodeBlockEditorProps {
   language: string;
   meta: string;
   src?: string;
+  block?: Block;
   nodeKey: string;
   focusEmitter: {
     publish: () => void;
@@ -318,6 +333,8 @@ const CodeBlockEditorContainer: React.FC<
       <CodeMirrorEditor
         code={props.code}
         language={props.language}
+        meta={props.meta}
+        block={props.block}
         nodeKey={props.nodeKey}
         focusEmitter={props.focusEmitter}
       />
@@ -331,8 +348,8 @@ const CodeBlockEditorContainer: React.FC<
 export function $createCodeBlockNode(
   options: Partial<CreateCodeBlockNodeOptions>
 ): CodeBlockNode {
-  const { code = "", language = "", meta = "", src } = options;
-  return new CodeBlockNode(code, language, meta, src);
+  const { code = "", language = "", meta = "", src, block } = options;
+  return new CodeBlockNode(code, language, meta, src, block);
 }
 
 /**
