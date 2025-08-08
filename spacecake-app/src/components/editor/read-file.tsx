@@ -9,6 +9,7 @@ import { $createCodeBlockNode } from "@/components/editor/nodes/code-node";
 import type { FileType } from "@/components/editor/editor";
 import { parsePythonContentStreaming } from "@/lib/parser/python/parser";
 import type { File } from "@/types/workspace";
+import { toast } from "sonner";
 
 /**
  * Converts Python blocks into Lexical nodes with progressive rendering
@@ -54,11 +55,8 @@ async function convertPythonBlocksToLexical(
         root.append(paragraph);
       });
     }
-  } catch (error) {
-    console.warn(
-      "failed to parse python file, falling back to plaintext:",
-      error
-    );
+  } catch {
+    toast("failed to parse python file");
     // Fallback to plaintext
     editor.update(() => {
       const root = $getRoot();
