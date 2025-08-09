@@ -167,7 +167,7 @@ export async function* parsePythonContentStreaming(
     if (blockCount === 0) {
       const fallbackBlock: PyBlock = {
         kind: "file",
-        name: namedBlock("file"),
+        name: anonymousName(),
         startByte: 0,
         endByte: content.length,
         text: content,
@@ -180,7 +180,7 @@ export async function* parsePythonContentStreaming(
     // Fallback: create a single block with the entire content
     const fallbackBlock: PyBlock = {
       kind: "file",
-      name: namedBlock("file"),
+      name: anonymousName(),
       startByte: 0,
       endByte: content.length,
       text: content,

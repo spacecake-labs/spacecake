@@ -1,51 +1,9 @@
-/* eslint-disable no-empty-pattern */
+/* */
 
-import { test as base, expect } from "@playwright/test";
-import { _electron, ElectronApplication } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { stubDialog } from "electron-playwright-helpers";
 import path from "path";
 import fs from "fs";
-import os from "os";
-
-// Define custom fixtures
-type TestFixtures = {
-  electronApp: ElectronApplication;
-  tempTestDir: string;
-};
-
-const test = base.extend<TestFixtures>({
-  tempTestDir: async ({}, use, testInfo) => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "spacecake-e2e-"));
-    testInfo.annotations.push({
-      type: "info",
-      description: `created temp test directory: ${tempDir}`,
-    });
-
-    await use(tempDir);
-
-    // Cleanup
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-      testInfo.annotations.push({
-        type: "info",
-        description: `cleaned up temp test directory: ${tempDir}`,
-      });
-    }
-  },
-
-  electronApp: async ({}, use) => {
-    const app = await _electron.launch({
-      args: [".vite/build/main.js"],
-      cwd: process.cwd(),
-      timeout: 60000,
-    });
-
-    await use(app);
-
-    // Cleanup
-    await app.close();
-  },
-});
 
 test.describe("spacecake app", () => {
   test("open electron app", async ({ electronApp }, testInfo) => {

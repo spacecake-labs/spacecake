@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { parseCodeBlocks } from "@/lib/parser/python/blocks";
+import {
+  parseCodeBlocks,
+  parsePythonContentStreaming,
+} from "@/lib/parser/python/blocks";
 import { readFileSync } from "fs";
 import { join } from "path";
 import type { PyBlock } from "@/types/parser";
@@ -8,7 +11,7 @@ describe("Python parser", () => {
   describe("parseCodeBlocks", () => {
     it("should parse definition blocks", async () => {
       const code = readFileSync(
-        join(__dirname, "../../../../tests/fixtures/a.py"),
+        join(__dirname, "../../../../tests/fixtures/core.py"),
         "utf-8"
       );
 
@@ -39,6 +42,21 @@ describe("Python parser", () => {
       expect(blocks[3].text).toBe(
         "class Calculator:\n    def add(self, a, b):\n        return a + b"
       );
+    });
+  });
+
+  describe("fallback block naming", () => {
+    it("uses anonymous name when no blocks are parsed", async () => {
+      const content = "# just comments or empty file\n";
+      const blocks: PyBlock[] = [];
+      for await (const block of parsePythonContentStreaming(content)) {
+        blocks.push(block);
+      }
+
+      expect(blocks.length).toBe(1);
+      expect(blocks[0].kind).toBe("file");
+      expect(blocks[0].name.kind).toBe("anonymous");
+      expect(blocks[0].text).toBe(content);
     });
   });
 });
