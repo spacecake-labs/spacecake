@@ -40,6 +40,7 @@ export const test = base.extend<TestFixtures>({
       args: [".vite/build/main.js"],
       cwd: process.cwd(),
       timeout: 60000,
+      env: { ...process.env, IS_PLAYWRIGHT: "1" },
     });
 
     await use(app);
