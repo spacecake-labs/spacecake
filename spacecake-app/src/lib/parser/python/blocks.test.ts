@@ -28,7 +28,7 @@ describe("Python parser", () => {
         "import math\nimport pandas as pd\n\nfrom dataclasses import dataclass\nfrom datetime import datetime"
       );
 
-      expect(blocks[1].kind).toBe("decorated class");
+      expect(blocks[1].kind).toBe("dataclass");
       expect(blocks[1].text).toBe(
         "@dataclass\nclass Person:\n    name: str\n    age: int\n"
       );

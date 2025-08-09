@@ -8,7 +8,50 @@ import type {
 } from "@/types/parser";
 import { anonymousName, namedBlock } from "@/types/parser";
 
-function blockKind(node: SyntaxNode): PyBlockKind | PyBlockHigherKind | null {
+function isDataclass(node: SyntaxNode, code: string): boolean {
+  if (node.name !== "DecoratedStatement") return false;
+
+  const hasDataclassName = (decorator: SyntaxNode): boolean => {
+    // Check immediate children and one level deeper for a name token "dataclass".
+    let nameChild: SyntaxNode | null = decorator.firstChild;
+    while (nameChild) {
+      if (
+        (nameChild.name === "VariableName" ||
+          nameChild.name === "PropertyName") &&
+        code.slice(nameChild.from, nameChild.to) === "dataclass"
+      ) {
+        return true;
+      }
+      // one level deeper (to cover dotted paths like module.dataclass or call wrappers)
+      let inner: SyntaxNode | null = nameChild.firstChild;
+      while (inner) {
+        if (
+          (inner.name === "VariableName" || inner.name === "PropertyName") &&
+          code.slice(inner.from, inner.to) === "dataclass"
+        ) {
+          return true;
+        }
+        inner = inner.nextSibling;
+      }
+      nameChild = nameChild.nextSibling;
+    }
+    return false;
+  };
+
+  let child: SyntaxNode | null = node.firstChild;
+  while (child) {
+    if (child.name === "Decorator" && hasDataclassName(child)) {
+      return true;
+    }
+    child = child.nextSibling;
+  }
+  return false;
+}
+
+function blockKind(
+  node: SyntaxNode,
+  code: string
+): PyBlockKind | PyBlockHigherKind | null {
   switch (node.name) {
     case "ClassDefinition":
       return "class";
@@ -25,8 +68,12 @@ function blockKind(node: SyntaxNode): PyBlockKind | PyBlockHigherKind | null {
       const definition = node.firstChild?.nextSibling;
       if (!definition) return null;
 
-      const childKind = blockKind(definition);
-      return childKind ? (`decorated ${childKind}` as PyBlockHigherKind) : null;
+      const childKind = blockKind(definition, code);
+      if (!childKind) return null;
+      if (childKind === "class" && isDataclass(node, code)) {
+        return "dataclass";
+      }
+      return `decorated ${childKind}` as PyBlockHigherKind;
     }
     default:
       return null;
@@ -44,7 +91,7 @@ function blockName(node: SyntaxNode, code: string): BlockName {
         }
         child = child.nextSibling;
       }
-      return namedBlock("UnnamedClass");
+      return anonymousName();
     }
     case "FunctionDefinition": {
       // Find the function name (should be the first identifier after 'def')
@@ -55,7 +102,7 @@ function blockName(node: SyntaxNode, code: string): BlockName {
         }
         child = child.nextSibling;
       }
-      return namedBlock("UnnamedFunction");
+      return anonymousName();
     }
     case "ImportStatement":
     case "ImportFromStatement": {
@@ -83,7 +130,7 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
   const topLevelNodes = getTopLevelNodes(tree.topNode);
 
   for (const node of topLevelNodes) {
-    const kind = blockKind(node);
+    const kind = blockKind(node, code);
     if (!kind) {
       continue;
     }

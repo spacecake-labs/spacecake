@@ -78,7 +78,7 @@ test.describe("python e2e", () => {
     await window.getByText("🐍").first().click();
     await expect(window.getByText("imports").first()).toBeVisible();
     await expect(window.getByText("Person").first()).toBeVisible();
-    await expect(window.getByText("decorated class").first()).toBeVisible();
+    await expect(window.getByText("dataclass").first()).toBeVisible();
     await expect(window.getByText("fibonacci").first()).toBeVisible();
     await expect(window.getByText("function").first()).toBeVisible();
     await expect(window.getByText("Calculator").first()).toBeVisible();

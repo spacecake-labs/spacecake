@@ -57,26 +57,27 @@ export function CodeBlock({
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2 rounded-t-lg">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {language && (
-            <span className="text-sm">
+            <span className="text-sm mr-2">
               {fileTypeEmoji(fileTypeFromLanguage(language))}
             </span>
           )}
-          {blockName === "anonymous" ? (
-            <Badge variant="secondary" className="text-xs font-mono">
-              <Code className="h-3 w-3" />
-            </Badge>
-          ) : blockName ? (
+          {title &&
+            (title === "anonymous" ? (
+              <h3 className="font-semibold text-foreground text-sm leading-tight">
+                <Code className="inline-block h-[1em] w-[1em] align-middle text-foreground" />
+              </h3>
+            ) : (
+              <h3 className="font-semibold text-foreground text-sm leading-tight">
+                {title}
+              </h3>
+            ))}
+          {blockName ? (
             <Badge variant="secondary" className="text-xs font-mono">
               {blockName}
             </Badge>
           ) : null}
-          {title && (
-            <span className="text-sm font-medium text-muted-foreground">
-              {title}
-            </span>
-          )}
         </div>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
