@@ -85,6 +85,7 @@ test.describe("python e2e", () => {
     await expect(
       window.getByText("class", { exact: true }).first()
     ).toBeVisible();
+    await expect(window.getByText("misc").first()).toBeVisible();
 
     // verify key lines render
     await expect(window.getByText("class Calculator:").first()).toBeVisible();

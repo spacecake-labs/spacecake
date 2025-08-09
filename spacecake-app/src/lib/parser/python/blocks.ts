@@ -138,76 +138,82 @@ function blockName(node: SyntaxNode, code: string): BlockName {
 export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
   const tree = parser.parse(code);
   let importNodes: SyntaxNode[] = [];
+  let miscNodes: SyntaxNode[] = [];
+  // comments accumulate into the next recognised block
+  let commentNodes: SyntaxNode[] = [];
 
-  // Traverse the tree to find top-level nodes
-  const topLevelNodes = getTopLevelNodes(tree.topNode);
+  const emitImportBlock = (): PyBlock => {
+    const firstImport = importNodes[0];
+    const lastImport = importNodes[importNodes.length - 1];
+    const block: PyBlock = {
+      kind: "import",
+      name: blockName(firstImport, code),
+      startByte: firstImport.from,
+      endByte: lastImport.to,
+      text: code.slice(firstImport.from, lastImport.to),
+    };
+    importNodes = [];
+    return block;
+  };
 
-  for (const node of topLevelNodes) {
+  const emitMiscBlock = (): PyBlock => {
+    const first = miscNodes[0];
+    const last = miscNodes[miscNodes.length - 1];
+    const block: PyBlock = {
+      kind: "misc",
+      name: anonymousName(),
+      startByte: first.from,
+      endByte: last.to,
+      text: code.slice(first.from, last.to),
+    };
+    miscNodes = [];
+    return block;
+  };
+
+  for (
+    let node: SyntaxNode | null = tree.topNode.firstChild;
+    node;
+    node = node.nextSibling
+  ) {
     const kind = blockKind(node, code);
+
     if (!kind) {
+      // skip error nodes
+      if (node.name === "⚠") continue;
+      // comments accumulate into the next recognised block
+      if (node.name === "Comment") {
+        commentNodes.push(node);
+        continue;
+      }
+      // anything else accumulates into a `misc` block
+      // consume any accumulated comments
+      miscNodes.push(...commentNodes, node);
+      commentNodes = [];
+      continue;
+    }
+    // else if it's a recognised block kind
+
+    if (kind === "import") {
+      // consume any accumulated comments
+      importNodes.push(...commentNodes, node);
+      commentNodes = [];
       continue;
     }
 
-    if (kind === "import") {
-      importNodes.push(node);
-    } else {
-      if (importNodes.length) {
-        const lastImport = importNodes[importNodes.length - 1];
-        yield {
-          kind: "import",
-          name: blockName(importNodes[0], code),
-          startByte: importNodes[0].from,
-          endByte: lastImport.to,
-          text: code.slice(importNodes[0].from, lastImport.to),
-        };
-      }
-      importNodes = [];
+    if (importNodes.length) yield emitImportBlock();
 
-      yield {
-        kind,
-        name: blockName(node, code),
-        startByte: node.from,
-        endByte: node.to,
-        text: code.slice(node.from, node.to),
-      };
-    }
+    if (miscNodes.length) yield emitMiscBlock();
+
+    yield {
+      kind,
+      name: blockName(node, code),
+      startByte: node.from,
+      endByte: node.to,
+      text: code.slice(node.from, node.to),
+    };
   }
-}
-
-// Helper function to get top-level nodes from Lezer tree
-function getTopLevelNodes(rootNode: SyntaxNode): SyntaxNode[] {
-  const nodes: SyntaxNode[] = [];
-
-  function traverse(node: SyntaxNode) {
-    // Check if this is a top-level definition
-    if (isTopLevelDefinition(node)) {
-      nodes.push(node);
-    } else {
-      // Recursively traverse direct children
-      let child = node.firstChild;
-      while (child) {
-        traverse(child);
-        child = child.nextSibling;
-      }
-    }
-  }
-
-  traverse(rootNode);
-  return nodes;
-}
-
-// Helper function to identify top-level definitions
-function isTopLevelDefinition(node: SyntaxNode): boolean {
-  const topLevelTypes = [
-    "ClassDefinition",
-    "FunctionDefinition",
-    "ImportStatement",
-    "ImportFromStatement",
-    "DecoratedStatement",
-    "IfStatement",
-  ];
-
-  return topLevelTypes.includes(node.name);
+  if (importNodes.length) yield emitImportBlock();
+  if (miscNodes.length) yield emitMiscBlock();
 }
 
 /**
