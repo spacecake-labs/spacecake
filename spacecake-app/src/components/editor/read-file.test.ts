@@ -9,7 +9,7 @@ import { anonymousName } from "@/types/parser";
 vi.mock("@/lib/parser/python/blocks", () => ({
   parsePythonContentStreaming: vi.fn().mockImplementation(async function* () {
     yield {
-      kind: "imports",
+      kind: "import",
       name: anonymousName(),
       startByte: 0,
       endByte: 11,
@@ -192,7 +192,7 @@ def fibonacci(n):
         async function* () {
           // Yield a dummy PyBlock before throwing error
           yield {
-            kind: "imports",
+            kind: "import",
             name: anonymousName(),
             startByte: 0,
             endByte: 5,

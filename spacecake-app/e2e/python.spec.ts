@@ -76,7 +76,7 @@ test.describe("python e2e", () => {
 
     // verify blocks are present via toolbar and labels
     await window.getByText("🐍").first().click();
-    await expect(window.getByText("imports").first()).toBeVisible();
+    await expect(window.getByText("import").first()).toBeVisible();
     await expect(window.getByText("Person").first()).toBeVisible();
     await expect(window.getByText("dataclass").first()).toBeVisible();
     await expect(window.getByText("fibonacci").first()).toBeVisible();

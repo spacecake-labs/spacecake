@@ -17,3 +17,8 @@ def fibonacci(n):
 class Calculator:
     def add(self, a, b):
         return a + b
+    
+    
+if __name__ == "__main__":
+    text = input("echo: ")
+    print(text)
