@@ -79,13 +79,13 @@ describe("blockId", () => {
   it("should handle file blocks", () => {
     const block: PyBlock = {
       kind: "file",
-      name: namedBlock("file"),
+      name: anonymousName(),
       startByte: 0,
       endByte: 200,
       text: "# entire file content",
     };
 
-    expect(blockId(block)).toBe("file-file");
+    expect(blockId(block)).toBe("anonymous-file");
   });
 
   it("should replace spaces in kind with dashes", () => {
