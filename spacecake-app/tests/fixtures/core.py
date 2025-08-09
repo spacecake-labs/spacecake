@@ -1,3 +1,5 @@
+# a file to test block parsing
+
 import math
 import pandas as pd
 
@@ -18,6 +20,8 @@ class Calculator:
     def add(self, a, b):
         return a + b
     
+misc_var = True
+print(f"here's a misc var: {misc_var}")
     
 if __name__ == "__main__":
     text = input("echo: ")

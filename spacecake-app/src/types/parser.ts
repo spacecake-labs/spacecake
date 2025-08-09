@@ -39,7 +39,8 @@ export type PyBlockKind =
   | "import"
   | "file"
   | "dataclass"
-  | "main";
+  | "main"
+  | "misc";
 export type PyBlockHigherKindPrefix = "async" | "decorated";
 export type PyBlockHigherKind = `${PyBlockHigherKindPrefix} ${PyBlockKind}`;
 
