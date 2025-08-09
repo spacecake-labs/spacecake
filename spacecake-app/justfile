@@ -17,4 +17,7 @@ test:
     just unit && just e2e
 
 codegen:
-    npx tsx e2e/playwright-codegen.ts
+    npx tsx scripts/playwright-codegen.ts
+
+print-py-nodes file:
+    npx tsx scripts/print-py-nodes.ts {{file}}

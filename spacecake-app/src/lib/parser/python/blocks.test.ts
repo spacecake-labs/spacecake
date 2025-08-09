@@ -20,10 +20,10 @@ describe("Python parser", () => {
         blocks.push(block);
       }
 
-      expect(blocks.length).toBe(4); // 1 import block + 3 other blocks
+      expect(blocks.length).toBe(5); // 1 import, dataclass, function, class, main
 
       // Import block
-      expect(blocks[0].kind).toBe("imports");
+      expect(blocks[0].kind).toBe("import");
       expect(blocks[0].text).toBe(
         "import math\nimport pandas as pd\n\nfrom dataclasses import dataclass\nfrom datetime import datetime"
       );
@@ -40,7 +40,12 @@ describe("Python parser", () => {
 
       expect(blocks[3].kind).toBe("class");
       expect(blocks[3].text).toBe(
-        "class Calculator:\n    def add(self, a, b):\n        return a + b"
+        "class Calculator:\n    def add(self, a, b):\n        return a + b\n"
+      );
+
+      expect(blocks[4].kind).toBe("main");
+      expect(blocks[4].text).toBe(
+        `if __name__ == "__main__":\n    text = input("echo: ")\n    print(text)`
       );
     });
   });

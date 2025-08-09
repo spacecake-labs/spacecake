@@ -30,14 +30,14 @@ describe("blockId", () => {
 
   it("should generate correct ID for import blocks", () => {
     const block: PyBlock = {
-      kind: "imports",
+      kind: "import",
       name: anonymousName(),
       startByte: 0,
       endByte: 20,
       text: "import math\nimport os",
     };
 
-    expect(blockId(block)).toBe("anonymous-imports");
+    expect(blockId(block)).toBe("anonymous-import");
   });
 
   it("should generate correct ID for decorated function blocks", () => {

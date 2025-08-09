@@ -36,9 +36,10 @@ export interface Block<TKind = string> {
 export type PyBlockKind =
   | "class"
   | "function"
-  | "imports"
+  | "import"
   | "file"
-  | "dataclass";
+  | "dataclass"
+  | "main";
 export type PyBlockHigherKindPrefix = "async" | "decorated";
 export type PyBlockHigherKind = `${PyBlockHigherKindPrefix} ${PyBlockKind}`;
 

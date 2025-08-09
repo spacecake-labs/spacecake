@@ -53,14 +53,25 @@ function blockKind(
   code: string
 ): PyBlockKind | PyBlockHigherKind | null {
   switch (node.name) {
+    case "IfStatement": {
+      // Detect top-level if __name__ == '__main__' or "__main__"
+      // Check that the if condition matches the __name__ main guard
+      const conditionNode = node.getChild("BinaryExpression");
+      if (!conditionNode) return null;
+      const conditionText = code.slice(conditionNode.from, conditionNode.to);
+      if (/^__name__\s*==\s*(['"])__main__\1$/.test(conditionText)) {
+        return "main";
+      }
+      return null;
+    }
     case "ClassDefinition":
       return "class";
     case "FunctionDefinition":
       return "function";
     case "ImportStatement":
-      return "imports";
+      return "import";
     case "ImportFromStatement":
-      return "imports";
+      return "import";
     case "DecoratedStatement": {
       // DecoratedStatement should have two children:
       // 1. Decorator
@@ -82,6 +93,8 @@ function blockKind(
 
 function blockName(node: SyntaxNode, code: string): BlockName {
   switch (node.name) {
+    case "IfStatement":
+      return anonymousName();
     case "ClassDefinition": {
       // Find the class name (should be the first identifier after 'class')
       let child = node.firstChild;
@@ -135,13 +148,13 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
       continue;
     }
 
-    if (kind === "imports") {
+    if (kind === "import") {
       importNodes.push(node);
     } else {
       if (importNodes.length) {
         const lastImport = importNodes[importNodes.length - 1];
         yield {
-          kind: "imports",
+          kind: "import",
           name: blockName(importNodes[0], code),
           startByte: importNodes[0].from,
           endByte: lastImport.to,
@@ -191,6 +204,7 @@ function isTopLevelDefinition(node: SyntaxNode): boolean {
     "ImportStatement",
     "ImportFromStatement",
     "DecoratedStatement",
+    "IfStatement",
   ];
 
   return topLevelTypes.includes(node.name);
