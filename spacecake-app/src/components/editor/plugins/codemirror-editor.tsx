@@ -183,8 +183,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     <CodeBlock
       code={code}
       language={language}
-      blockName={blockName}
-      title={blockKind}
+      blockName={blockKind}
+      title={blockName}
       editable={!readOnly}
       showLineNumbers={true}
       theme="dark"

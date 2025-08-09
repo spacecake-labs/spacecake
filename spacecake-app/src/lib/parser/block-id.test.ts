@@ -88,16 +88,25 @@ describe("blockId", () => {
     expect(blockId(block)).toBe("anonymous-file");
   });
 
-  it("should replace spaces in kind with dashes", () => {
-    const block: PyBlock = {
+  it("should replace spaces in kind with dashes and support dataclass", () => {
+    const decoratedBlock: PyBlock = {
       kind: "decorated class",
       name: namedBlock("MyClass"),
       startByte: 0,
       endByte: 50,
-      text: "@dataclass\nclass MyClass:\n    pass",
+      text: "@some_decorator\nclass MyClass:\n    pass",
     };
 
-    expect(blockId(block)).toBe("myclass-decorated-class");
+    const dataclassBlock: PyBlock = {
+      kind: "dataclass",
+      name: namedBlock("MyData"),
+      startByte: 0,
+      endByte: 60,
+      text: "@dataclass\nclass MyData:\n    x: int",
+    };
+
+    expect(blockId(decoratedBlock)).toBe("myclass-decorated-class");
+    expect(blockId(dataclassBlock)).toBe("mydata-dataclass");
   });
 
   it("should handle Anonymous name type", () => {
