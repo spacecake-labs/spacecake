@@ -87,9 +87,11 @@ test.describe("python e2e", () => {
     ).toBeVisible();
 
     // verify key lines render
-    await window.getByText("class Calculator:").click();
-    await window.getByText("def add(self, a, b):").click();
-    await window.getByText("return a + b").first().click();
+    await expect(window.getByText("class Calculator:").first()).toBeVisible();
+    await expect(
+      window.getByText("def add(self, a, b):").first()
+    ).toBeVisible();
+    await expect(window.getByText("return a + b").first()).toBeVisible();
 
     // additionally, loop through all non-empty lines and ensure they're present
     await expectAllNonEmptyLinesVisible(window, fixturePath);

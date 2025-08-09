@@ -11,9 +11,12 @@ if (started) {
 
 const createWindow = () => {
   // Create the browser window.
+  const isTest = process.env.IS_PLAYWRIGHT === "1";
+
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
+    show: !isTest,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
@@ -27,7 +30,9 @@ const createWindow = () => {
   });
 
   // Maximize the window to fill the screen
-  mainWindow.maximize();
+  if (!isTest) {
+    mainWindow.maximize();
+  }
 
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -57,8 +62,10 @@ const createWindow = () => {
     }
   );
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // Open DevTools
+  if (isDev && !isTest) {
+    mainWindow.webContents.openDevTools();
+  }
 };
 
 // This method will be called when Electron has finished
