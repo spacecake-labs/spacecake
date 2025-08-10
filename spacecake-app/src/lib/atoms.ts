@@ -1,4 +1,5 @@
 import { atom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 import type { FileEntry, WorkspaceInfo, File } from "@/types/workspace";
 import type { SidebarNavItem } from "@/lib/workspace";
 import type { PyParsedFile } from "@/types/parser";
@@ -54,7 +55,6 @@ export const contextItemNameAtom = atom<string>("");
 // Tree-sitter parsing atoms
 export const parsedFileAtom = atom<PyParsedFile | null>(null);
 export const parsedAnnotationsAtom = atom<PyParsedFile | null>(null);
-// export const unifiedBlocksAtom = atom<UnifiedBlock[]>([]);
 export const parsingStatusAtom = atom<{
   isParsing: boolean;
   error: string | null;
@@ -62,3 +62,8 @@ export const parsingStatusAtom = atom<{
   isParsing: false,
   error: null,
 });
+
+export type Theme = "light" | "dark" | "system";
+
+// theme state (persisted)
+export const themeAtom = atomWithStorage<Theme>("spacecake-theme", "system");
