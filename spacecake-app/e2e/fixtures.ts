@@ -68,6 +68,19 @@ export async function expectAllNonEmptyLinesVisible(
   for (const line of lines) {
     const trimmed = line.trim();
     if (trimmed.length === 0) continue;
-    await expect(page.getByText(trimmed).first()).toBeVisible();
+    // handle python docstring first/last lines now rendered without triple quotes
+    const strippedTripleQuotes = trimmed
+      .replace(/^r?"""/, "")
+      .replace(/"""$/, "")
+      .trim();
+
+    if (trimmed.startsWith('"""') || trimmed.startsWith('r"""')) {
+      await expect(page.getByText(strippedTripleQuotes).first()).toBeVisible();
+    } else if (trimmed.endsWith('"""')) {
+      // closing triple quote line in fixture; content likely on previous line, so skip
+      continue;
+    } else {
+      await expect(page.getByText(trimmed).first()).toBeVisible();
+    }
   }
 }

@@ -1,6 +1,5 @@
 import { expect, test, describe } from "vitest";
 import {
-  getFileType,
   fileTypeEmoji,
   fileTypeFromLanguage,
   transformFilesToNavItems,
@@ -11,82 +10,11 @@ import { BookOpen, Code, FileText, Folder } from "lucide-react";
 import { FileType } from "@/types/workspace";
 import type { FileEntry } from "@/types/workspace";
 
-// getFileType tests
-
-describe("getFileType", () => {
-  test.each([
-    ["document.md", FileType.Markdown],
-    ["readme.markdown", FileType.Markdown],
-    ["DOCUMENT.MD", FileType.Markdown], // case insensitive
-    ["README.MARKDOWN", FileType.Markdown],
-  ])("returns Markdown for markdown files: %s", (fileName, expectedType) => {
-    expect(getFileType(fileName)).toBe(expectedType);
-  });
-
-  test.each([
-    ["script.py", FileType.Python],
-    ["main.py", FileType.Python],
-    ["SCRIPT.PY", FileType.Python], // case insensitive
-  ])("returns Python for Python files: %s", (fileName, expectedType) => {
-    expect(getFileType(fileName)).toBe(expectedType);
-  });
-
-  test.each([
-    ["script.js", FileType.JavaScript],
-    ["app.js", FileType.JavaScript],
-    ["SCRIPT.JS", FileType.JavaScript],
-  ])(
-    "returns JavaScript for JavaScript files: %s",
-    (fileName, expectedType) => {
-      expect(getFileType(fileName)).toBe(expectedType);
-    }
-  );
-
-  test.each([
-    ["component.ts", FileType.TypeScript],
-    ["main.ts", FileType.TypeScript],
-    ["COMPONENT.TS", FileType.TypeScript],
-  ])(
-    "returns TypeScript for TypeScript files: %s",
-    (fileName, expectedType) => {
-      expect(getFileType(fileName)).toBe(expectedType);
-    }
-  );
-
-  test.each([
-    ["component.jsx", FileType.JSX],
-    ["app.jsx", FileType.JSX],
-    ["COMPONENT.JSX", FileType.JSX],
-  ])("returns JSX for JSX files: %s", (fileName, expectedType) => {
-    expect(getFileType(fileName)).toBe(expectedType);
-  });
-
-  test.each([
-    ["component.tsx", FileType.TSX],
-    ["app.tsx", FileType.TSX],
-    ["COMPONENT.TSX", FileType.TSX],
-  ])("returns TSX for TSX files: %s", (fileName, expectedType) => {
-    expect(getFileType(fileName)).toBe(expectedType);
-  });
-
-  test.each([
-    ["document.txt", FileType.Plaintext],
-    ["data.csv", FileType.Plaintext],
-    ["config.json", FileType.Plaintext],
-    ["unknown.xyz", FileType.Plaintext],
-    ["no-extension", FileType.Plaintext], // no extension
-    ["multiple.dots.file", FileType.Plaintext], // multiple dots
-    ["", FileType.Plaintext], // empty string
-  ])("returns Plaintext for other files: %s", (fileName, expectedType) => {
-    expect(getFileType(fileName)).toBe(expectedType);
-  });
-});
-
 // fileTypeEmoji tests
 
 describe("fileTypeEmoji", () => {
   test.each([
-    [FileType.Markdown, "📝"],
+    [FileType.Markdown, "📖"],
     [FileType.Python, "🐍"],
     [FileType.JavaScript, "🟡"],
     [FileType.TypeScript, "🔵"],
@@ -120,9 +48,12 @@ describe("fileTypeFromLanguage", () => {
     ["c++", FileType.Plaintext],
     ["unknown", FileType.Plaintext],
     ["", FileType.Plaintext],
-  ])("returns Plaintext for unsupported languages: %s", (language, expectedType) => {
-    expect(fileTypeFromLanguage(language)).toBe(expectedType);
-  });
+  ])(
+    "returns Plaintext for unsupported languages: %s",
+    (language, expectedType) => {
+      expect(fileTypeFromLanguage(language)).toBe(expectedType);
+    }
+  );
 });
 
 // transformFilesToNavItems tests

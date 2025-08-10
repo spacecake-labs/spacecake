@@ -134,7 +134,7 @@ export function fileTypeIcon(fileType: FileType): LucideIcon {
 export function fileTypeEmoji(fileType: FileType): string {
   switch (fileType) {
     case FileType.Markdown:
-      return "📝";
+      return "📖";
     case FileType.Python:
       return "🐍";
     case FileType.JavaScript:
@@ -147,17 +147,6 @@ export function fileTypeEmoji(fileType: FileType): string {
     default:
       return "📄";
   }
-}
-
-/**
- * Gets the file type based on the file extension
- * @param fileName - The name of the file
- * @returns The FileType enum value
- * @deprecated Use fileTypeFromExtension instead
- */
-export function getFileType(fileName: string): FileType {
-  const extension = fileName.split(".").pop()?.toLowerCase() || "";
-  return fileTypeFromExtension(extension);
 }
 
 /**

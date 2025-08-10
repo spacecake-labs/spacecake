@@ -11,6 +11,15 @@ import { parsePythonContentStreaming } from "@/lib/parser/python/blocks";
 import type { File } from "@/types/workspace";
 import { toast } from "sonner";
 
+function docstringText(text: string): string {
+  const docstringRegex = /r?"""([\s\S]*?)"""/;
+  const match = text.match(docstringRegex);
+  if (match) {
+    return match[1];
+  }
+  return text; // no docstring found
+}
+
 /**
  * Converts Python blocks into Lexical nodes with progressive rendering
  */
@@ -33,16 +42,24 @@ async function convertPythonBlocksToLexical(
 
       // Add each block as it's parsed
       editor.update(() => {
-        const codeBlock = $createCodeBlockNode({
-          code: block.text,
-          language: "python", // Keep python for syntax highlighting
-          meta: String(block.kind), // Store block kind for fallback
-          src: file.path, // Store source file path
-          block: block, // Pass the full block object
-        });
-
         const root = $getRoot();
-        root.append(codeBlock);
+        if (block.kind === "doc") {
+          // Render doc blocks as markdown content using Lexical markdown
+          const markdown =
+            blockCount === 1
+              ? `## ${docstringText(block.text)}`
+              : docstringText(block.text);
+          $convertFromMarkdownString(markdown, TRANSFORMERS);
+        } else {
+          const codeBlock = $createCodeBlockNode({
+            code: block.text,
+            language: "python",
+            meta: String(block.kind),
+            src: file.path,
+            block: block,
+          });
+          root.append(codeBlock);
+        }
       });
     }
 
