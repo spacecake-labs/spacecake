@@ -34,6 +34,7 @@ export interface Block<TKind = string> {
 
 // Python-specific block types
 export type PyBlockKind =
+  | "doc"
   | "class"
   | "function"
   | "import"

@@ -1,4 +1,4 @@
-# a file to test block parsing
+"""A file to test block parsing."""
 
 import math
 import pandas as pd
@@ -11,6 +11,7 @@ class Person:
     name: str
     age: int
 
+# fibonacci function
 def fibonacci(n):
     if n <= 1:
         return n

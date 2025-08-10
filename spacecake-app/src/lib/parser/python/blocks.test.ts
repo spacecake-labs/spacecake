@@ -20,38 +20,41 @@ describe("Python parser", () => {
         blocks.push(block);
       }
 
-      expect(blocks.length).toBe(6); // import, dataclass, function, class, misc, main
+      expect(blocks.length).toBe(7); // doc, import, dataclass, function, class, misc, main
+
+      expect(blocks[0].kind).toBe("doc");
+      expect(blocks[0].text).toBe('"""A file to test block parsing."""');
 
       // import block
-      expect(blocks[0].kind).toBe("import");
-      expect(blocks[0].text).toBe(
-        "# a file to test block parsing\n\nimport math\nimport pandas as pd\n\nfrom dataclasses import dataclass\nfrom datetime import datetime"
+      expect(blocks[1].kind).toBe("import");
+      expect(blocks[1].text).toBe(
+        "import math\nimport pandas as pd\n\nfrom dataclasses import dataclass\nfrom datetime import datetime"
       );
 
-      expect(blocks[1].kind).toBe("dataclass");
-      expect(blocks[1].text).toBe(
+      expect(blocks[2].kind).toBe("dataclass");
+      expect(blocks[2].text).toBe(
         "@dataclass\nclass Person:\n    name: str\n    age: int\n"
       );
 
-      expect(blocks[2].kind).toBe("function");
-      expect(blocks[2].text).toBe(
-        "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)\n"
+      expect(blocks[3].kind).toBe("function");
+      expect(blocks[3].text).toBe(
+        "# fibonacci function\ndef fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)\n"
       );
 
-      expect(blocks[3].kind).toBe("class");
-      expect(blocks[3].text).toBe(
+      expect(blocks[4].kind).toBe("class");
+      expect(blocks[4].text).toBe(
         "class Calculator:\n    def add(self, a, b):\n        return a + b\n"
       );
 
       // Misc block between class and main
-      expect(blocks[4].kind).toBe("misc");
-      expect(blocks[4].name.kind).toBe("anonymous");
-      expect(blocks[4].text).toBe(
+      expect(blocks[5].kind).toBe("misc");
+      expect(blocks[5].name.kind).toBe("anonymous");
+      expect(blocks[5].text).toBe(
         `misc_var = True\nprint(f"here's a misc var: {misc_var}")`
       );
 
-      expect(blocks[5].kind).toBe("main");
-      expect(blocks[5].text).toBe(
+      expect(blocks[6].kind).toBe("main");
+      expect(blocks[6].text).toBe(
         `if __name__ == "__main__":\n    text = input("echo: ")\n    print(text)`
       );
     });
@@ -112,6 +115,71 @@ describe("Python parser", () => {
       expect(blocks[1].kind).toBe("misc");
       expect(blocks[1].text).toBe("x = 2");
     });
+
+    it("yields docblock at EOF", async () => {
+      const code = '"""A docstring"""';
+
+      const blocks: PyBlock[] = [];
+      for await (const block of parseCodeBlocks(code)) {
+        blocks.push(block);
+      }
+
+      expect(blocks.length).toBe(1);
+      expect(blocks[0].kind).toBe("doc");
+      expect(blocks[0].text).toBe('"""A docstring"""');
+    });
+
+    it("accumulates comments in import block", async () => {
+      const code = "# a comment\nimport os";
+
+      const blocks: PyBlock[] = [];
+      for await (const block of parseCodeBlocks(code)) {
+        blocks.push(block);
+      }
+
+      expect(blocks.length).toBe(1);
+      expect(blocks[0].kind).toBe("import");
+      expect(blocks[0].text).toBe("# a comment\nimport os");
+    });
+
+    it("accumulates comments in docblock", async () => {
+      const code = `# a comment\n"""A docstring"""`;
+
+      const blocks: PyBlock[] = [];
+      for await (const block of parseCodeBlocks(code)) {
+        blocks.push(block);
+      }
+
+      expect(blocks.length).toBe(1);
+      expect(blocks[0].kind).toBe("doc");
+      expect(blocks[0].text).toBe(`# a comment\n"""A docstring"""`);
+    });
+  });
+
+  it("accumulates comments in misc block", async () => {
+    const code = `# a comment\nprint("hello")`;
+
+    const blocks: PyBlock[] = [];
+    for await (const block of parseCodeBlocks(code)) {
+      blocks.push(block);
+    }
+
+    expect(blocks.length).toBe(1);
+    expect(blocks[0].kind).toBe("misc");
+    expect(blocks[0].text).toBe(`# a comment\nprint("hello")`);
+  });
+
+  it("accumulates comments in function block", async () => {
+    const code = `# a comment\ndef f():\n    pass`;
+
+    const blocks: PyBlock[] = [];
+    for await (const block of parseCodeBlocks(code)) {
+      blocks.push(block);
+    }
+
+    expect(blocks.length).toBe(1);
+    expect(blocks[0].kind).toBe("function");
+    expect(blocks[0].text).toBe(`# a comment\ndef f():\n    pass`);
   });
 
   describe("fallback block naming", () => {
