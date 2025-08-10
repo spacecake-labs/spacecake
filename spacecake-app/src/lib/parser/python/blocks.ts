@@ -48,20 +48,25 @@ function isDataclass(node: SyntaxNode, code: string): boolean {
   return false;
 }
 
+function isDocstring(node: SyntaxNode, code: string): boolean {
+  if (node.name !== "ExpressionStatement") return false;
+  const child = node.firstChild;
+  if (child?.name !== "String") return false;
+
+  const text = code.slice(node.from, node.to);
+
+  if (!text.startsWith('"""') && !text.startsWith('r"""')) return false;
+
+  return text.endsWith('"""');
+}
+
 function blockKind(
   node: SyntaxNode,
   code: string
 ): PyBlockKind | PyBlockHigherKind | null {
   switch (node.name) {
-    case "IfStatement": {
-      // Detect top-level if __name__ == '__main__' or "__main__"
-      // Check that the if condition matches the __name__ main guard
-      const conditionNode = node.getChild("BinaryExpression");
-      if (!conditionNode) return null;
-      const conditionText = code.slice(conditionNode.from, conditionNode.to);
-      if (/^__name__\s*==\s*(['"])__main__\1$/.test(conditionText)) {
-        return "main";
-      }
+    case "ExpressionStatement": {
+      if (isDocstring(node, code)) return "doc";
       return null;
     }
     case "ClassDefinition":
@@ -85,6 +90,17 @@ function blockKind(
         return "dataclass";
       }
       return `decorated ${childKind}` as PyBlockHigherKind;
+    }
+    case "IfStatement": {
+      // Detect top-level if __name__ == '__main__' or "__main__"
+      // Check that the if condition matches the __name__ main guard
+      const conditionNode = node.getChild("BinaryExpression");
+      if (!conditionNode) return null;
+      const conditionText = code.slice(conditionNode.from, conditionNode.to);
+      if (/^__name__\s*==\s*(['"])__main__\1$/.test(conditionText)) {
+        return "main";
+      }
+      return null;
     }
     default:
       return null;
@@ -204,12 +220,16 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
 
     if (miscNodes.length) yield emitMiscBlock();
 
+    // consume any accumulated comments
+    const startByte = commentNodes.length ? commentNodes[0].from : node.from;
+    const text = code.slice(startByte, node.to);
+    commentNodes = [];
     yield {
       kind,
       name: blockName(node, code),
-      startByte: node.from,
+      startByte,
       endByte: node.to,
-      text: code.slice(node.from, node.to),
+      text,
     };
   }
   if (importNodes.length) yield emitImportBlock();
