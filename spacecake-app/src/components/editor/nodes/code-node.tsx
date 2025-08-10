@@ -137,7 +137,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
   createDOM(): HTMLDivElement {
     const div = document.createElement("div");
     // Padding between code blocks
-    div.className = "mb-6";
+    div.className = "mt-6";
     return div;
   }
 
