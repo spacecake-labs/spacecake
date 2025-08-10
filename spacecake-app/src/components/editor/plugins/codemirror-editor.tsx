@@ -7,7 +7,8 @@ import { EditorView, lineNumbers, keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { basicSetup } from "codemirror";
 import { languages } from "@codemirror/language-data";
-import { githubLight } from "@uiw/codemirror-theme-github";
+import { githubLight, githubDark } from "@uiw/codemirror-theme-github";
+import { useTheme } from "@/components/theme-provider";
 import { useCodeMirrorRef } from "@/components/editor/plugins/use-codemirror-ref";
 import { CodeBlock } from "@/components/code-block";
 
@@ -131,6 +132,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     getCodemirror: () => editorViewRef.current!,
   };
 
+  const { theme } = useTheme();
+
   React.useEffect(() => {
     const el = elRef.current!;
     void (async () => {
@@ -146,7 +149,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         lineNumbers(),
         keymap.of([indentWithTab]),
         EditorView.lineWrapping,
-        githubLight,
+        theme === "dark" ? githubDark : githubLight,
         focusedActiveLineTheme,
         EditorView.updateListener.of(({ state }) => {
           const newCode = state.doc.toString();
@@ -177,7 +180,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       editorViewRef.current = null;
       el.removeEventListener("keydown", stopPropagationHandler);
     };
-  }, [language]);
+  }, [language, theme]);
 
   return (
     <CodeBlock
