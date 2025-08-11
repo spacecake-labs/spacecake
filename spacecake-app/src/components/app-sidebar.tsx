@@ -14,6 +14,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { CakeSlice } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { encodeBase64Url } from "@/lib/utils";
 
 interface AppSidebarProps {
   onFileClick?: (filePath: string) => void;
@@ -64,7 +66,15 @@ export function AppSidebar({ onFileClick, selectedFilePath }: AppSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <Link
+                to={workspace?.path ? "/w/$workspaceId" : "/"}
+                params={
+                  workspace?.path
+                    ? { workspaceId: encodeBase64Url(workspace.path) }
+                    : undefined
+                }
+                preload="intent"
+              >
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <CakeSlice className="size-4" />
                 </div>
@@ -74,7 +84,7 @@ export function AppSidebar({ onFileClick, selectedFilePath }: AppSidebarProps) {
                     <span className="truncate text-xs">{workspace.name}</span>
                   )}
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

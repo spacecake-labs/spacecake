@@ -44,6 +44,8 @@ import { useEffect, useRef } from "react";
 import * as React from "react";
 import { getNavItemIcon } from "@/lib/workspace";
 import { Button } from "@/components/ui/button";
+import { Link } from "@tanstack/react-router";
+import { encodeBase64Url } from "@/lib/utils";
 
 interface WorkspaceTreeProps {
   item: SidebarNavItem;
@@ -456,6 +458,11 @@ export function WorkspaceTree({
   };
 
   if (isFile(item)) {
+    const workspace = useAtomValue(workspaceAtom);
+    const filePathEncoded = encodeBase64Url(filePath);
+    const workspaceIdEncoded = workspace?.path
+      ? encodeBase64Url(workspace.path)
+      : "";
     return (
       <SidebarMenuItem>
         {isRenaming ? (
@@ -466,11 +473,21 @@ export function WorkspaceTree({
             validationError={validationError}
           />
         ) : (
-          <ItemButton
-            item={item}
-            isSelected={isSelected}
-            onClick={() => onFileClick(filePath)}
-          />
+          <Link
+            to="/w/$workspaceId/f/$"
+            params={{
+              workspaceId: workspaceIdEncoded,
+              _splat: filePathEncoded,
+            }}
+            preload="intent"
+            className="w-full"
+          >
+            <ItemButton
+              item={item}
+              isSelected={isSelected}
+              onClick={() => {}}
+            />
+          </Link>
         )}
         <ItemDropdownMenu
           item={item}
