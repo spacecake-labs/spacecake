@@ -97,4 +97,48 @@ test.describe("python e2e", () => {
     // additionally, loop through all non-empty lines and ensure they're present
     await expectAllNonEmptyLinesVisible(window, fixturePath);
   });
+
+  test("switching between core.py and empty.py updates editor", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    const window = await electronApp.firstWindow();
+
+    // copy both fixtures into the temp workspace
+    const coreFixture = path.join(process.cwd(), "tests/fixtures/core.py");
+    const emptyFixture = path.join(process.cwd(), "tests/fixtures/empty.py");
+    const coreDest = path.join(tempTestDir, "core.py");
+    const emptyDest = path.join(tempTestDir, "empty.py");
+    fs.copyFileSync(coreFixture, coreDest);
+    fs.copyFileSync(emptyFixture, emptyDest);
+
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    });
+
+    await window.getByRole("button", { name: "open folder" }).click();
+
+    await expect(
+      window.getByRole("button", { name: "create file or folder" })
+    ).toBeVisible();
+
+    // open core.py and verify python blocks are visible
+    await window.getByRole("button", { name: "core.py" }).first().click();
+    await window.getByText("🐍").first().click();
+    await expect(window.getByText("import").first()).toBeVisible();
+
+    // switch to empty.py and verify default toolbar state
+    await window.getByRole("button", { name: "empty.py" }).first().click();
+    // wait until header reflects the newly selected file path (contains 'empty.py')
+    await expect
+      .poll(async () =>
+        window.evaluate(
+          () => document.querySelector("header")?.textContent || ""
+        )
+      )
+      .toContain("empty.py");
+    // verify the editor shows content from empty.py
+    await expect(window.getByText("An empty file.").first()).toBeVisible();
+  });
 });
