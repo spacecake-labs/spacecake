@@ -141,4 +141,53 @@ test.describe("python e2e", () => {
     // verify the editor shows content from empty.py
     await expect(window.getByText("An empty file.").first()).toBeVisible();
   });
+
+  test("switching between files in different folders updates editor", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    const window = await electronApp.firstWindow();
+
+    // create nested folder and copy fixtures
+    const nestedFolder = path.join(tempTestDir, "nested");
+    fs.mkdirSync(nestedFolder, { recursive: true });
+    const coreFixture = path.join(process.cwd(), "tests/fixtures/core.py");
+    const emptyFixture = path.join(process.cwd(), "tests/fixtures/empty.py");
+    const coreDest = path.join(tempTestDir, "core.py");
+    const emptyDest = path.join(nestedFolder, "empty.py");
+    fs.copyFileSync(coreFixture, coreDest);
+    fs.copyFileSync(emptyFixture, emptyDest);
+
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    });
+
+    await window.getByRole("button", { name: "open folder" }).click();
+
+    await expect(
+      window.getByRole("button", { name: "create file or folder" })
+    ).toBeVisible();
+
+    // open core.py and verify python content
+    await window.getByRole("button", { name: "core.py" }).first().click();
+    await window.getByText("🐍").first().click();
+    await expect(window.getByText("import").first()).toBeVisible();
+
+    // expand nested folder and open empty.py
+    await window.getByRole("button", { name: "nested" }).first().click();
+    await window.getByRole("button", { name: "empty.py" }).first().click();
+
+    // wait for selection to reflect switch
+    await expect
+      .poll(async () =>
+        window.evaluate(
+          () => document.querySelector("header")?.textContent || ""
+        )
+      )
+      .toContain("empty.py");
+
+    // verify editor shows content from empty.py
+    await expect(window.getByText("An empty file.").first()).toBeVisible();
+  });
 });
