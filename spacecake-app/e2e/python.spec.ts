@@ -94,6 +94,25 @@ test.describe("python e2e", () => {
     ).toBeVisible();
     await expect(window.getByText("return a + b").first()).toBeVisible();
 
+    // check the first block's first gutter line number equals 3
+    // scope to import block via data-block-id from blockId()
+    const importBlock = window
+      .locator('[data-block-id="anonymous-import"]')
+      .first();
+    await expect(importBlock).toBeVisible();
+    const firstEditor = importBlock.locator(".cm-editor").first();
+    await expect(firstEditor).toBeVisible();
+    // focus editor and move caret to the first line to ensure gutter aligns to start
+    const content = firstEditor.locator(".cm-content");
+    await content.focus();
+    await content.press("Meta+ArrowUp");
+    const activeGutter = firstEditor
+      .locator(
+        ".cm-gutter.cm-lineNumbers .cm-gutterElement.cm-activeLineGutter"
+      )
+      .first();
+    await expect(activeGutter).toHaveText("3");
+
     // additionally, loop through all non-empty lines and ensure they're present
     await expectAllNonEmptyLinesVisible(window, fixturePath);
   });

@@ -11,6 +11,7 @@ import { githubLight, githubDark } from "@uiw/codemirror-theme-github";
 import { useTheme } from "@/components/theme-provider";
 import { useCodeMirrorRef } from "@/components/editor/plugins/use-codemirror-ref";
 import { CodeBlock } from "@/components/code-block";
+import { blockId } from "@/lib/parser/block-id";
 
 // jotai atoms for state management
 export const codeBlockLanguagesAtom = atom<Record<string, string>>({
@@ -143,10 +144,14 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         languageSupport = await getLanguageSupport(language);
       }
 
+      const startLine = Math.max(1, Number(block.startLine) || 1);
+
       const extensions = [
         ...codeMirrorExtensions,
         basicSetup,
-        lineNumbers(),
+        lineNumbers({
+          formatNumber: (lineNo) => String(lineNo + startLine - 1),
+        }),
         keymap.of([indentWithTab]),
         EditorView.lineWrapping,
         theme === "dark" ? githubDark : githubLight,
@@ -191,6 +196,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       editable={!readOnly}
       showLineNumbers={true}
       theme="dark"
+      dataBlockId={blockId(block)}
       onCodeChange={(newCode) => {
         setCodeRef.current(newCode);
       }}

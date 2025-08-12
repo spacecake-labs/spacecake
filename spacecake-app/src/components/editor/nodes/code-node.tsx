@@ -169,6 +169,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
         startByte: 0,
         endByte: this.__code.length,
         text: this.__code,
+        startLine: 1,
       }
     );
   }

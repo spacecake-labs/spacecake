@@ -14,6 +14,7 @@ vi.mock("@/lib/parser/python/blocks", () => ({
       startByte: 0,
       endByte: 11,
       text: "import math",
+      startLine: 1,
     };
     yield {
       kind: "function",
@@ -21,6 +22,7 @@ vi.mock("@/lib/parser/python/blocks", () => ({
       startByte: 13,
       endByte: 85,
       text: "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)",
+      startLine: 2,
     };
   }),
 }));
@@ -197,6 +199,7 @@ def fibonacci(n):
             startByte: 0,
             endByte: 5,
             text: "dummy",
+            startLine: 1,
           };
           throw new Error("Parsing failed");
         }

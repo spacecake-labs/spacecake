@@ -158,6 +158,17 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
   // comments accumulate into the next recognised block
   let commentNodes: SyntaxNode[] = [];
 
+  // calculate 1-based line number from a byte offset
+  const getStartLineFromOffset = (offset: number): number => {
+    // count number of newlines before the offset and add 1
+    // this is O(n) in offset; acceptable for file sizes we handle here
+    let line = 1;
+    for (let i = 0; i < offset; i++) {
+      if (code.charCodeAt(i) === 10 /* \n */) line++;
+    }
+    return line;
+  };
+
   const emitImportBlock = (): PyBlock => {
     const firstImport = importNodes[0];
     const lastImport = importNodes[importNodes.length - 1];
@@ -167,6 +178,7 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
       startByte: firstImport.from,
       endByte: lastImport.to,
       text: code.slice(firstImport.from, lastImport.to),
+      startLine: getStartLineFromOffset(firstImport.from),
     };
     importNodes = [];
     return block;
@@ -181,6 +193,7 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
       startByte: first.from,
       endByte: last.to,
       text: code.slice(first.from, last.to),
+      startLine: getStartLineFromOffset(first.from),
     };
     miscNodes = [];
     return block;
@@ -230,6 +243,7 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
       startByte,
       endByte: node.to,
       text,
+      startLine: getStartLineFromOffset(startByte),
     };
   }
   if (importNodes.length) yield emitImportBlock();
@@ -258,6 +272,7 @@ export async function* parsePythonContentStreaming(
         startByte: 0,
         endByte: content.length,
         text: content,
+        startLine: 1,
       };
       yield fallbackBlock;
     }
@@ -271,6 +286,7 @@ export async function* parsePythonContentStreaming(
       startByte: 0,
       endByte: content.length,
       text: content,
+      startLine: 1,
     };
 
     yield fallbackBlock;

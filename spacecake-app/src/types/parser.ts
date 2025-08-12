@@ -30,6 +30,8 @@ export interface Block<TKind = string> {
   startByte: number;
   endByte: number;
   text: string;
+  // 1-based starting line number in the original source file
+  startLine: number;
 }
 
 // Python-specific block types
