@@ -11,6 +11,7 @@ describe("blockId", () => {
       startByte: 0,
       endByte: 50,
       text: "def fibonacci(n):\n    return n",
+      startLine: 1,
     };
 
     expect(blockId(block)).toBe("fibonacci-function");
@@ -23,6 +24,7 @@ describe("blockId", () => {
       startByte: 0,
       endByte: 100,
       text: "class Calculator:\n    pass",
+      startLine: 1,
     };
 
     expect(blockId(block)).toBe("calculator-class");
@@ -35,6 +37,7 @@ describe("blockId", () => {
       startByte: 0,
       endByte: 20,
       text: "import math\nimport os",
+      startLine: 1,
     };
 
     expect(blockId(block)).toBe("anonymous-import");
@@ -47,6 +50,7 @@ describe("blockId", () => {
       startByte: 0,
       endByte: 80,
       text: "@property\ndef myMethod(self):\n    return self._value",
+      startLine: 1,
     };
 
     expect(blockId(block)).toBe("mymethod-decorated-function");
@@ -59,6 +63,7 @@ describe("blockId", () => {
       startByte: 0,
       endByte: 30,
       text: "class MyBigClassName:\n    pass",
+      startLine: 1,
     };
 
     expect(blockId(block)).toBe("mybigclassname-class");
@@ -71,6 +76,7 @@ describe("blockId", () => {
       startByte: 0,
       endByte: 10,
       text: "test",
+      startLine: 1,
     };
 
     expect(blockId(block)).toBe("testblock-custom");
@@ -83,6 +89,7 @@ describe("blockId", () => {
       startByte: 0,
       endByte: 200,
       text: "# entire file content",
+      startLine: 1,
     };
 
     expect(blockId(block)).toBe("anonymous-file");
@@ -95,6 +102,7 @@ describe("blockId", () => {
       startByte: 0,
       endByte: 50,
       text: "@some_decorator\nclass MyClass:\n    pass",
+      startLine: 1,
     };
 
     const dataclassBlock: PyBlock = {
@@ -103,6 +111,7 @@ describe("blockId", () => {
       startByte: 0,
       endByte: 60,
       text: "@dataclass\nclass MyData:\n    x: int",
+      startLine: 1,
     };
 
     expect(blockId(decoratedBlock)).toBe("myclass-decorated-class");
@@ -116,6 +125,7 @@ describe("blockId", () => {
       startByte: 0,
       endByte: 100,
       text: "# Some file content",
+      startLine: 1,
     };
 
     expect(blockId(block)).toBe("anonymous-file");

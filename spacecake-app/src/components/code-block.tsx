@@ -23,6 +23,7 @@ interface CodeBlockProps {
   onCodeChange?: (code: string) => void;
   onRun?: () => void;
   children?: React.ReactNode;
+  dataBlockId?: string;
 }
 
 export function CodeBlock({
@@ -34,6 +35,7 @@ export function CodeBlock({
   className,
   onRun,
   children,
+  dataBlockId,
 }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
 
@@ -54,6 +56,7 @@ export function CodeBlock({
         "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
         className
       )}
+      data-block-id={dataBlockId}
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2 rounded-t-lg">
