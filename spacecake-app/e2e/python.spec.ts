@@ -115,6 +115,22 @@ test.describe("python e2e", () => {
 
     // additionally, loop through all non-empty lines and ensure they're present
     await expectAllNonEmptyLinesVisible(window, fixturePath);
+
+    // verify double-click highlights the selected word and other occurrences
+    // scope to the import block editor content
+    const contentTextLocators = firstEditor
+      .locator(".cm-content")
+      .getByText("datetime");
+    await expect(contentTextLocators).toHaveCount(2);
+    // double-click the second occurrence to select the word
+    await contentTextLocators.last().dblclick();
+    // allow the view to update selection decorations
+    const selectionBackgrounds = firstEditor.locator(
+      ".cm-selectionLayer .cm-selectionBackground"
+    );
+    const selectionMatches = firstEditor.locator(".cm-selectionMatch");
+    await expect(selectionBackgrounds).toHaveCount(1);
+    await expect(selectionMatches).toHaveCount(1);
   });
 
   test("switching between core.py and empty.py updates editor", async ({

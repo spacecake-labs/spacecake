@@ -79,21 +79,13 @@ const getLanguageSupport = async (
 };
 
 const focusedActiveLineTheme = EditorView.theme({
-  // make active line transparent by default (when not focused)
-  ".cm-activeLine": {
-    backgroundColor: "transparent !important",
+  // make gutter transparent by when not focused
+  "&:not(.cm-focused) .cm-activeLineGutter": {
+    backgroundColor: "transparent",
   },
-  // only show active line highlighting when the editor is focused
-  "&.cm-focused .cm-activeLine": {
-    backgroundColor: "var(--muted) !important",
-  },
-  // make gutter transparent by default (when not focused)
-  ".cm-activeLineGutter": {
-    backgroundColor: "transparent !important",
-  },
-  // highlight gutter when focused
-  "&.cm-focused .cm-activeLineGutter": {
-    backgroundColor: "var(--muted) !important",
+  // make active line transparent by when not focused
+  "&:not(.cm-focused) .cm-activeLine": {
+    backgroundColor: "transparent",
   },
 });
 
