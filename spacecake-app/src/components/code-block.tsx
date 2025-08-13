@@ -39,6 +39,9 @@ export function CodeBlock({
 }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
 
+  // dev-only render counter for the wrapper container
+  // removed dev render logging
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(code);

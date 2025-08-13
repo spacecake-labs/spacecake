@@ -12,6 +12,7 @@ import { useTheme } from "@/components/theme-provider";
 import { useCodeMirrorRef } from "@/components/editor/plugins/use-codemirror-ref";
 import { CodeBlock } from "@/components/code-block";
 import { blockId } from "@/lib/parser/block-id";
+import { debounce } from "@/lib/utils";
 
 // jotai atoms for state management
 export const codeBlockLanguagesAtom = atom<Record<string, string>>({
@@ -127,6 +128,21 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   const { theme } = useTheme();
 
+  // debounce settings and helpers
+  const debounceMs = 250;
+  const debouncedCommitRef = React.useRef(
+    debounce(() => {
+      const view = editorViewRef.current;
+      if (view) {
+        const latest = view.state.doc.toString();
+        setCodeRef.current(latest);
+      }
+    }, debounceMs)
+  );
+  const flushPending = React.useCallback(() => {
+    debouncedCommitRef.current.flush();
+  }, []);
+
   React.useEffect(() => {
     const el = elRef.current!;
     void (async () => {
@@ -148,9 +164,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         EditorView.lineWrapping,
         theme === "dark" ? githubDark : githubLight,
         focusedActiveLineTheme,
-        EditorView.updateListener.of(({ state }) => {
-          const newCode = state.doc.toString();
-          setCodeRef.current(newCode);
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged) {
+            debouncedCommitRef.current.schedule();
+          }
         }),
       ];
 
@@ -169,15 +186,36 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         state: EditorState.create({ doc: code, extensions }),
       });
 
-      el.addEventListener("keydown", stopPropagationHandler);
+      const view = editorViewRef.current;
+
+      const onKeyDown = (ev: KeyboardEvent) => {
+        // prevent lexical from handling keystrokes while in codemirror
+        ev.stopPropagation();
+        // flush on save shortcuts
+        const isSaveKey =
+          (ev.key === "s" || ev.key === "S") && (ev.metaKey || ev.ctrlKey);
+        if (isSaveKey) {
+          ev.preventDefault();
+          flushPending();
+        }
+      };
+
+      const onBlur = () => {
+        flushPending();
+      };
+
+      view.contentDOM.addEventListener("keydown", onKeyDown);
+      view.contentDOM.addEventListener("blur", onBlur, true);
     })();
 
     return () => {
+      // ensure any pending changes are committed before teardown
+      flushPending();
       editorViewRef.current?.destroy();
       editorViewRef.current = null;
-      el.removeEventListener("keydown", stopPropagationHandler);
+      // listeners are attached to contentDOM; they are removed by destroy()
     };
-  }, [language, theme]);
+  }, [language, theme, debounceMs, flushPending]);
 
   return (
     <CodeBlock
@@ -198,6 +236,4 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   );
 };
 
-function stopPropagationHandler(this: HTMLDivElement, ev: KeyboardEvent) {
-  ev.stopPropagation();
-}
+// no-op legacy handler removed in favor of onKeyDown above
