@@ -2,6 +2,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import {
   $createParagraphNode,
   $getNodeByKey,
+  $isElementNode,
   LexicalEditor,
   LexicalNode,
 } from "lexical";
@@ -36,10 +37,7 @@ export function useCodeMirrorRef(
   const codeMirrorRef = React.useRef<CodeMirrorRef | null>(null);
   const { lexicalNode } = useCodeBlockEditorContext();
 
-  // these flags escape the editor with arrows.
-  // they are set to true when the cursor is at the top or bottom of the editor, and then the user presses the arrow.
-  const atBottom = React.useRef(false);
-  const atTop = React.useRef(false);
+  // no escape flags needed; we handle single keypress actions at edges
 
   const onFocusHandler = React.useCallback(() => {
     setEditorInFocus({
@@ -50,55 +48,67 @@ export function useCodeMirrorRef(
 
   const onKeyDownHandler = React.useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "ArrowDown") {
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
         const state = codeMirrorRef.current?.getCodemirror()?.state;
         if (state) {
-          const docLength = state.doc.length;
           const selectionEnd = state.selection.ranges[0].to;
+          const line = state.doc.lineAt(selectionEnd);
+          const isAtLastLine = line.number === state.doc.lines;
+          const isAtLineEnd = selectionEnd === line.to;
 
-          if (docLength === selectionEnd) {
-            // escaping once
-            if (!atBottom.current) {
-              atBottom.current = true;
-            } else {
-              // escaping twice
-              editor.update(() => {
-                const node = $getNodeByKey(nodeKey)!;
-                const nextSibling = node.getNextSibling();
-                if (nextSibling) {
-                  codeMirrorRef.current?.getCodemirror()?.contentDOM.blur();
-                  node.selectNext();
+          if (isAtLastLine && isAtLineEnd) {
+            e.preventDefault();
+            e.stopPropagation();
+            editor.update(() => {
+              const node = $getNodeByKey(nodeKey)!;
+              const cm = codeMirrorRef.current?.getCodemirror();
+              cm?.contentDOM.blur();
+              const next = node.getNextSibling();
+              if (next) {
+                if ($isElementNode(next)) {
+                  next.selectStart();
                 } else {
-                  node.insertAfter($createParagraphNode());
+                  node.selectNext();
                 }
-              });
-              atBottom.current = false;
-            }
+              } else {
+                const paragraph = $createParagraphNode();
+                node.insertAfter(paragraph);
+                paragraph.select();
+              }
+            });
+            // ensure focus transitions to lexical so the caret is visible
+            setTimeout(() => editor.focus(), 0);
           }
         }
-      } else if (e.key === "ArrowUp") {
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
         const state = codeMirrorRef.current?.getCodemirror()?.state;
         if (state) {
           const selectionStart = state.selection.ranges[0].from;
+          const line = state.doc.lineAt(selectionStart);
+          const isAtFirstLine = line.number === 1;
+          const isAtLineStart = selectionStart === line.from;
 
-          if (selectionStart === 0) {
-            // escaping once
-            if (!atTop.current) {
-              atTop.current = true;
-            } else {
-              // escaping twice
-              editor.update(() => {
-                const node = $getNodeByKey(nodeKey)!;
-                const previousSibling = node.getPreviousSibling();
-                if (previousSibling) {
-                  codeMirrorRef.current?.getCodemirror()?.contentDOM.blur();
-                  node.selectPrevious();
+          if (isAtFirstLine && isAtLineStart) {
+            e.preventDefault();
+            e.stopPropagation();
+            editor.update(() => {
+              const node = $getNodeByKey(nodeKey)!;
+              const cm = codeMirrorRef.current?.getCodemirror();
+              cm?.contentDOM.blur();
+              const prev = node.getPreviousSibling();
+              if (prev) {
+                if ($isElementNode(prev)) {
+                  prev.selectEnd();
                 } else {
-                  // TODO: insert a paragraph before the code block node
+                  node.selectPrevious();
                 }
-              });
-              atTop.current = false;
-            }
+              } else {
+                const paragraph = $createParagraphNode();
+                node.insertBefore(paragraph);
+                paragraph.select();
+              }
+            });
+            setTimeout(() => editor.focus(), 0);
           }
         }
       } else if (e.key === "Enter") {

@@ -6,7 +6,7 @@ import {
   LexicalEditor,
 } from "lexical";
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node";
-import type { FileType } from "@/components/editor/editor";
+import type { FileType } from "@/types/workspace";
 import { parsePythonContentStreaming } from "@/lib/parser/python/blocks";
 import type { File } from "@/types/workspace";
 import { toast } from "sonner";

@@ -131,6 +131,82 @@ test.describe("python e2e", () => {
     const selectionMatches = firstEditor.locator(".cm-selectionMatch");
     await expect(selectionBackgrounds).toHaveCount(1);
     await expect(selectionMatches).toHaveCount(1);
+
+    // navigation tests: arrows between codeblock and spacer paragraphs
+    const editors = window.locator(".cm-editor");
+    const firstEditorRoot = editors.nth(0);
+    const secondEditorRoot = editors.nth(1);
+    const firstContent = firstEditorRoot.locator(".cm-content");
+
+    // Move caret to end of first code block and ArrowDown into spacer
+    await firstContent.focus();
+    await firstContent.press("Meta+ArrowDown");
+    await firstContent.press("ArrowDown");
+    // wait until lexical contenteditable gains focus (spacer paragraph)
+    await expect
+      .poll(async () =>
+        window.evaluate(
+          () =>
+            (document.activeElement as HTMLElement | null)?.classList?.contains(
+              "ContentEditable__root"
+            ) || false
+        )
+      )
+      .toBe(true);
+    // type into spacer and verify it appears
+    const spacerText1 = "PARA-TEXT-ONE";
+    await window.keyboard.type(spacerText1);
+    await expect(window.getByText(spacerText1).first()).toBeVisible();
+
+    // From spacer, ArrowDown should jump into next code block
+    await window.keyboard.press("ArrowDown");
+
+    // Move caret to start of second code block and ArrowUp twice to reach previous code block
+    const secondContent = secondEditorRoot.locator(".cm-content");
+    await secondContent.focus();
+    await secondContent.press("Meta+ArrowUp");
+    await secondContent.press("ArrowUp"); // to spacer above
+    await window.keyboard.press("ArrowUp"); // to previous code block
+    await expect(firstEditorRoot).toHaveClass(/cm-focused/);
+
+    // Also verify right/left behave like down/up at edges
+    await firstContent.focus();
+    await firstContent.press("Meta+ArrowDown");
+    await firstContent.press("ArrowRight");
+    await expect
+      .poll(async () =>
+        window.evaluate(
+          () =>
+            (document.activeElement as HTMLElement | null)?.classList?.contains(
+              "ContentEditable__root"
+            ) || false
+        )
+      )
+      .toBe(true);
+    const spacerText2 = "PARA-TEXT-TWO";
+    await window.keyboard.type(spacerText2);
+    await expect(window.getByText(spacerText2).first()).toBeVisible();
+    await window.keyboard.press("ArrowRight");
+
+    // Verify ArrowLeft behaves like ArrowUp at the start edge
+    await secondContent.focus();
+    await secondContent.press("Meta+ArrowUp");
+    await secondContent.press("ArrowLeft"); // to spacer above
+    await expect
+      .poll(async () =>
+        window.evaluate(
+          () =>
+            (document.activeElement as HTMLElement | null)?.classList?.contains(
+              "ContentEditable__root"
+            ) || false
+        )
+      )
+      .toBe(true);
+    // type into spacer above and verify it appears
+    const spacerText3 = "PARA-TEXT-THREE";
+    await window.keyboard.type(spacerText3);
+    await expect(window.getByText(spacerText3).first()).toBeVisible();
+    await window.keyboard.press("ArrowLeft"); // to previous code block
   });
 
   test("switching between core.py and empty.py updates editor", async ({
