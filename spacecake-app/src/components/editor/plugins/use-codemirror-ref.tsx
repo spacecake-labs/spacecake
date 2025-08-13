@@ -2,9 +2,10 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import {
   $createParagraphNode,
   $getNodeByKey,
-  $isElementNode,
+  $isParagraphNode,
   LexicalEditor,
   LexicalNode,
+  ParagraphNode,
 } from "lexical";
 import React from "react";
 import { useCodeBlockEditorContext } from "@/components/editor/nodes/code-node";
@@ -37,7 +38,30 @@ export function useCodeMirrorRef(
   const codeMirrorRef = React.useRef<CodeMirrorRef | null>(null);
   const { lexicalNode } = useCodeBlockEditorContext();
 
-  // no escape flags needed; we handle single keypress actions at edges
+  // helpers
+  const isOnFirstDocLine = (view: EditorView) => {
+    const head = view.state.selection.main.head;
+    return view.state.doc.lineAt(head).number === 1;
+  };
+  const isOnLastDocLine = (view: EditorView) => {
+    const head = view.state.selection.main.head;
+    const line = view.state.doc.lineAt(head);
+    return line.number === view.state.doc.lines;
+  };
+  const isAtLineStart = (view: EditorView) => {
+    const head = view.state.selection.main.head;
+    const line = view.state.doc.lineAt(head);
+    return head === line.from;
+  };
+  const isAtLineEnd = (view: EditorView) => {
+    const head = view.state.selection.main.head;
+    const line = view.state.doc.lineAt(head);
+    return head === line.to;
+  };
+
+  const isEmptyParagraph = (node: LexicalNode): node is ParagraphNode => {
+    return $isParagraphNode(node) && node.getTextContent().length === 0;
+  };
 
   const onFocusHandler = React.useCallback(() => {
     setEditorInFocus({
@@ -49,27 +73,24 @@ export function useCodeMirrorRef(
   const onKeyDownHandler = React.useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "ArrowDown" || e.key === "ArrowRight") {
-        const state = codeMirrorRef.current?.getCodemirror()?.state;
-        if (state) {
-          const selectionEnd = state.selection.ranges[0].to;
-          const line = state.doc.lineAt(selectionEnd);
-          const isAtLastLine = line.number === state.doc.lines;
-          const isAtLineEnd = selectionEnd === line.to;
+        const view = codeMirrorRef.current?.getCodemirror();
+        if (view) {
+          const shouldExit =
+            (e.key === "ArrowDown" && isOnLastDocLine(view)) ||
+            (e.key === "ArrowRight" &&
+              isOnLastDocLine(view) &&
+              isAtLineEnd(view));
 
-          if (isAtLastLine && isAtLineEnd) {
+          if (shouldExit) {
             e.preventDefault();
             e.stopPropagation();
             editor.update(() => {
               const node = $getNodeByKey(nodeKey)!;
-              const cm = codeMirrorRef.current?.getCodemirror();
-              cm?.contentDOM.blur();
+              view.contentDOM.blur();
               const next = node.getNextSibling();
-              if (next) {
-                if ($isElementNode(next)) {
-                  next.selectStart();
-                } else {
-                  node.selectNext();
-                }
+              // always land in a paragraph after the code block; reuse empty if present
+              if (next && isEmptyParagraph(next)) {
+                next.selectStart();
               } else {
                 const paragraph = $createParagraphNode();
                 node.insertAfter(paragraph);
@@ -77,38 +98,56 @@ export function useCodeMirrorRef(
               }
             });
             // ensure focus transitions to lexical so the caret is visible
-            setTimeout(() => editor.focus(), 0);
+            setTimeout(() => {
+              editor.focus();
+              const rootEl = editor.getRootElement();
+              if (rootEl) {
+                rootEl.focus();
+              } else {
+                const el = document.querySelector(
+                  ".ContentEditable__root"
+                ) as HTMLElement | null;
+                el?.focus();
+              }
+            }, 50);
           }
         }
       } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
-        const state = codeMirrorRef.current?.getCodemirror()?.state;
-        if (state) {
-          const selectionStart = state.selection.ranges[0].from;
-          const line = state.doc.lineAt(selectionStart);
-          const isAtFirstLine = line.number === 1;
-          const isAtLineStart = selectionStart === line.from;
+        const view = codeMirrorRef.current?.getCodemirror();
+        if (view) {
+          const shouldExit =
+            (e.key === "ArrowUp" && isOnFirstDocLine(view)) ||
+            (e.key === "ArrowLeft" &&
+              isOnFirstDocLine(view) &&
+              isAtLineStart(view));
 
-          if (isAtFirstLine && isAtLineStart) {
+          if (shouldExit) {
             e.preventDefault();
             e.stopPropagation();
             editor.update(() => {
               const node = $getNodeByKey(nodeKey)!;
-              const cm = codeMirrorRef.current?.getCodemirror();
-              cm?.contentDOM.blur();
+              view.contentDOM.blur();
               const prev = node.getPreviousSibling();
-              if (prev) {
-                if ($isElementNode(prev)) {
-                  prev.selectEnd();
-                } else {
-                  node.selectPrevious();
-                }
+              if (prev && isEmptyParagraph(prev)) {
+                prev.selectEnd();
               } else {
                 const paragraph = $createParagraphNode();
                 node.insertBefore(paragraph);
                 paragraph.select();
               }
             });
-            setTimeout(() => editor.focus(), 0);
+            setTimeout(() => {
+              editor.focus();
+              const rootEl = editor.getRootElement();
+              if (rootEl) {
+                rootEl.focus();
+              } else {
+                const el = document.querySelector(
+                  ".ContentEditable__root"
+                ) as HTMLElement | null;
+                el?.focus();
+              }
+            }, 50);
           }
         }
       } else if (e.key === "Enter") {
@@ -135,7 +174,7 @@ export function useCodeMirrorRef(
         ?.contentDOM.addEventListener("focus", onFocusHandler);
       codeMirror
         ?.getCodemirror()
-        ?.contentDOM.addEventListener("keydown", onKeyDownHandler);
+        ?.contentDOM.addEventListener("keydown", onKeyDownHandler, true);
     }, 300);
 
     return () => {
@@ -144,7 +183,7 @@ export function useCodeMirrorRef(
         ?.contentDOM.removeEventListener("focus", onFocusHandler);
       codeMirror
         ?.getCodemirror()
-        ?.contentDOM.removeEventListener("keydown", onKeyDownHandler);
+        ?.contentDOM.removeEventListener("keydown", onKeyDownHandler, true);
     };
   }, [codeMirrorRef, onFocusHandler, onKeyDownHandler, language]);
 

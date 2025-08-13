@@ -24,8 +24,7 @@ import { createCodeTransformer } from "@/components/editor/transformers/markdown
 // import { CodeToolbarPlugin } from "@/components/editor/plugins/code-toolbar";
 
 import { ContentEditable } from "@/components/editor/content-editable";
-import { NodeSpacerPlugin } from "@/components/editor/plugins/node-spacer";
-import { SpacerNavigationPlugin } from "@/components/editor/plugins/spacer-navigation";
+import { NodeNavigationPlugin } from "@/components/editor/plugins/node-navigation";
 import { atom, useAtom } from "jotai";
 
 const floatingAnchorAtom = atom<HTMLDivElement | null>(null);
@@ -87,8 +86,7 @@ export const Plugins = React.memo(function Plugins() {
         <HistoryPlugin />
         {/* <CodeHighlightPlugin /> */}
         {/* <CodeBlockPlugin /> */}
-        <NodeSpacerPlugin />
-        <SpacerNavigationPlugin />
+        <NodeNavigationPlugin />
         {/* <CodeToolbarPlugin /> */}
         <MarkdownShortcutPlugin transformers={customTransformers} />
       </div>

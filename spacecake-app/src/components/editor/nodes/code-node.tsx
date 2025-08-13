@@ -199,7 +199,10 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
   };
 
   select = () => {
-    this.__focusEmitter.publish();
+    // small delay so DOM selection updates settle before focusing codemirror
+    setTimeout(() => {
+      this.__focusEmitter.publish();
+    }, 50);
   };
 
   decorate(editor: LexicalEditor): JSX.Element {
