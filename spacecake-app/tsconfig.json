@@ -15,7 +15,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "jsx": "react-jsx",
-    "types": ["electron"]
+    "types": ["electron", "vite/client"]
   },
   "include": ["src/**/*", "src/types/**/*", "forge.env.d.ts"],
   "exclude": ["tests/fixtures/**"]
