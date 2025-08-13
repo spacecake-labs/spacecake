@@ -6,6 +6,7 @@ import {
   LexicalEditor,
 } from "lexical";
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node";
+import { INITIAL_LOAD_TAG } from "@/types/editor";
 import type { FileType } from "@/types/workspace";
 import { parsePythonContentStreaming } from "@/lib/parser/python/blocks";
 import type { File } from "@/types/workspace";
@@ -34,33 +35,32 @@ async function convertPythonBlocksToLexical(
       const root = $getRoot();
       root.clear();
     });
-
-    // Parse blocks progressively
+    // Parse blocks progressively, updating per block
     let blockCount = 0;
     for await (const block of parsePythonContentStreaming(content)) {
       blockCount++;
-
-      // Add each block as it's parsed
-      editor.update(() => {
-        const root = $getRoot();
-        if (block.kind === "doc") {
-          // Render doc blocks as markdown content using Lexical markdown
-          const markdown =
-            blockCount === 1
-              ? `## ${docstringText(block.text)}`
-              : docstringText(block.text);
-          $convertFromMarkdownString(markdown, TRANSFORMERS);
-        } else {
-          const codeBlock = $createCodeBlockNode({
-            code: block.text,
-            language: "python",
-            meta: String(block.kind),
-            src: file.path,
-            block: block,
-          });
-          root.append(codeBlock);
-        }
-      });
+      editor.update(
+        () => {
+          const root = $getRoot();
+          if (block.kind === "doc") {
+            const markdown =
+              blockCount === 1
+                ? `## ${docstringText(block.text)}`
+                : docstringText(block.text);
+            $convertFromMarkdownString(markdown, TRANSFORMERS);
+          } else {
+            const codeBlock = $createCodeBlockNode({
+              code: block.text,
+              language: "python",
+              meta: String(block.kind),
+              src: file.path,
+              block: block,
+            });
+            root.append(codeBlock);
+          }
+        },
+        { tag: INITIAL_LOAD_TAG }
+      );
     }
 
     // If no blocks were parsed, fall back to plaintext
