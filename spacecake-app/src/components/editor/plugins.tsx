@@ -1,3 +1,4 @@
+import * as React from "react";
 import {
   CHECK_LIST,
   ELEMENT_TRANSFORMERS,
@@ -23,13 +24,13 @@ import { createCodeTransformer } from "@/components/editor/transformers/markdown
 // import { CodeToolbarPlugin } from "@/components/editor/plugins/code-toolbar";
 
 import { ContentEditable } from "@/components/editor/content-editable";
-import { SpacerBetweenCodeblocksPlugin } from "@/components/editor/plugins/spacer-between-codeblocks";
+import { NodeSpacerPlugin } from "@/components/editor/plugins/node-spacer";
 import { SpacerNavigationPlugin } from "@/components/editor/plugins/spacer-navigation";
 import { atom, useAtom } from "jotai";
 
 const floatingAnchorAtom = atom<HTMLDivElement | null>(null);
 
-export function Plugins() {
+export const Plugins = React.memo(function Plugins() {
   const [, setFloatingAnchorElem] = useAtom(floatingAnchorAtom);
 
   const onRef = (_floatingAnchorElem: HTMLDivElement) => {
@@ -86,7 +87,7 @@ export function Plugins() {
         <HistoryPlugin />
         {/* <CodeHighlightPlugin /> */}
         {/* <CodeBlockPlugin /> */}
-        <SpacerBetweenCodeblocksPlugin />
+        <NodeSpacerPlugin />
         <SpacerNavigationPlugin />
         {/* <CodeToolbarPlugin /> */}
         <MarkdownShortcutPlugin transformers={customTransformers} />
@@ -95,4 +96,4 @@ export function Plugins() {
       <ClearEditorPlugin />
     </div>
   );
-}
+});

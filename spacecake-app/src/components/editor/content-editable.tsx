@@ -1,4 +1,5 @@
-import { JSX } from "react";
+import * as React from "react";
+import type { JSX } from "react";
 import { ContentEditable as LexicalContentEditable } from "@lexical/react/LexicalContentEditable";
 
 type Props = {
@@ -7,7 +8,7 @@ type Props = {
   placeholderClassName?: string;
 };
 
-export function ContentEditable({
+export const ContentEditable = React.memo(function ContentEditable({
   placeholder,
   className,
   placeholderClassName,
@@ -31,4 +32,4 @@ export function ContentEditable({
       }
     />
   );
-}
+});
