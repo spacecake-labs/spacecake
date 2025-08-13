@@ -2,6 +2,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { useEffect } from "react";
 import {
   $getSelection,
+  $getNodeByKey,
   $isElementNode,
   $isParagraphNode,
   $isRangeSelection,
@@ -11,17 +12,17 @@ import {
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   LexicalCommand,
+  LexicalNode,
 } from "lexical";
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node";
 
-export function SpacerNavigationPlugin(): null {
+export function NodeNavigationPlugin(): null {
   const [editor] = useLexicalComposerContext();
 
   const handle = (command: LexicalCommand<KeyboardEvent>) => {
     return editor.registerCommand(
       command,
       (event) => {
-        // let system/editor shortcuts work
         if (event && (event.metaKey || event.ctrlKey || event.altKey))
           return false;
         const selection = $getSelection();
@@ -35,7 +36,6 @@ export function SpacerNavigationPlugin(): null {
 
         if (!$isParagraphNode(paragraph)) return false;
 
-        // compute start/end robustly, including empty paragraph
         const firstDescendant = paragraph.getFirstDescendant();
         const lastDescendant = paragraph.getLastDescendant();
         const isEmpty = paragraph.getTextContent().length === 0;
@@ -50,59 +50,48 @@ export function SpacerNavigationPlugin(): null {
             anchorNode === lastDescendant &&
             anchor.offset === lastDescendant.getTextContent().length);
 
-        // down/right: at end → jump over empty paragraphs to next non-paragraph
-        if (
-          (command === KEY_ARROW_DOWN_COMMAND ||
-            command === KEY_ARROW_RIGHT_COMMAND) &&
-          isAtEnd
-        ) {
-          let next = paragraph.getNextSibling();
-          while (
-            next &&
-            $isParagraphNode(next) &&
-            next.getTextContent().length === 0
-          ) {
-            next = next.getNextSibling();
-          }
-          if (next) {
-            event?.preventDefault();
-            if ($isCodeBlockNode(next)) {
-              next.select();
-            } else if ($isElementNode(next)) {
-              next.selectStart();
-            } else {
-              // fallback: select the paragraph itself to move caret forward
-              paragraph.selectEnd();
+        const isForward =
+          command === KEY_ARROW_DOWN_COMMAND ||
+          command === KEY_ARROW_RIGHT_COMMAND;
+        const shouldMove = (isForward && isAtEnd) || (!isForward && isAtStart);
+        if (shouldMove) {
+          const findSibling = (node: LexicalNode | null) => {
+            let sib = isForward
+              ? node?.getNextSibling()
+              : node?.getPreviousSibling();
+            while (
+              sib &&
+              $isParagraphNode(sib) &&
+              sib.getTextContent().length === 0
+            ) {
+              sib = isForward ? sib.getNextSibling() : sib.getPreviousSibling();
             }
-            return true;
-          }
-        }
+            return sib ?? null;
+          };
 
-        // up/left: at start → jump over empty paragraphs to previous non-paragraph
-        if (
-          (command === KEY_ARROW_UP_COMMAND ||
-            command === KEY_ARROW_LEFT_COMMAND) &&
-          isAtStart
-        ) {
-          let prev = paragraph.getPreviousSibling();
-          while (
-            prev &&
-            $isParagraphNode(prev) &&
-            prev.getTextContent().length === 0
-          ) {
-            prev = prev.getPreviousSibling();
+          const sibling = findSibling(paragraph);
+          if (!sibling) return false;
+
+          event?.preventDefault();
+          const targetKey = sibling.getKey();
+          const shouldRemoveCurrent =
+            isEmpty && paragraph.getParent()?.getChildren().length !== 1;
+          if (shouldRemoveCurrent) {
+            paragraph.remove();
           }
-          if (prev) {
-            event?.preventDefault();
-            if ($isCodeBlockNode(prev)) {
-              prev.select();
-            } else if ($isElementNode(prev)) {
-              prev.selectEnd();
+          const target = $getNodeByKey(targetKey);
+          if (target) {
+            if ($isCodeBlockNode(target)) {
+              target.select();
+            } else if ($isElementNode(target)) {
+              if (isForward) target.selectStart();
+              else target.selectEnd();
             } else {
-              paragraph.selectStart();
+              if (isForward) paragraph.selectEnd();
+              else paragraph.selectStart();
             }
-            return true;
           }
+          return true;
         }
 
         return false;
