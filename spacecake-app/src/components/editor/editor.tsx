@@ -9,10 +9,7 @@ import { nodes } from "@/components/editor/nodes";
 import { Plugins } from "@/components/editor/plugins";
 
 import { editorTheme } from "@/components/editor/theme";
-import { FileType } from "@/types/workspace";
-
-// Re-export for backward compatibility
-export { FileType };
+// removed FileType re-export; import no longer needed
 
 interface EditorProps {
   editorConfig: InitialConfigType;

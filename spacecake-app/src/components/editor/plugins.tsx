@@ -23,6 +23,8 @@ import { createCodeTransformer } from "@/components/editor/transformers/markdown
 // import { CodeToolbarPlugin } from "@/components/editor/plugins/code-toolbar";
 
 import { ContentEditable } from "@/components/editor/content-editable";
+import { SpacerBetweenCodeblocksPlugin } from "@/components/editor/plugins/spacer-between-codeblocks";
+import { SpacerNavigationPlugin } from "@/components/editor/plugins/spacer-navigation";
 import { atom, useAtom } from "jotai";
 
 const floatingAnchorAtom = atom<HTMLDivElement | null>(null);
@@ -84,6 +86,8 @@ export function Plugins() {
         <HistoryPlugin />
         {/* <CodeHighlightPlugin /> */}
         {/* <CodeBlockPlugin /> */}
+        <SpacerBetweenCodeblocksPlugin />
+        <SpacerNavigationPlugin />
         {/* <CodeToolbarPlugin /> */}
         <MarkdownShortcutPlugin transformers={customTransformers} />
       </div>
