@@ -7,6 +7,7 @@ import {
   readFile,
   renameFile,
   deleteFile,
+  saveFileAtomic,
 } from "@/main-process/fs";
 import { getWorkspaceName } from "@/main-process/workspace";
 
@@ -135,3 +136,19 @@ ipcMain.handle("delete-file", async (event, filePath: string) => {
     };
   }
 });
+
+ipcMain.handle(
+  "save-file",
+  async (event, filePath: string, content: string) => {
+    try {
+      await saveFileAtomic(filePath, content);
+      return { success: true };
+    } catch (error) {
+      console.error("error saving file:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "unknown error",
+      };
+    }
+  }
+);

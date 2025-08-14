@@ -197,10 +197,19 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         if (isSaveKey) {
           ev.preventDefault();
           flushPending();
+          // let window keydown handler trigger save if not inside cm-editor
+          window.dispatchEvent(
+            new KeyboardEvent("keydown", {
+              key: "s",
+              metaKey: ev.metaKey,
+              ctrlKey: ev.ctrlKey,
+            })
+          );
         }
       };
 
       const onBlur = () => {
+        // only flush pending changes; do not trigger save on blur
         flushPending();
       };
 

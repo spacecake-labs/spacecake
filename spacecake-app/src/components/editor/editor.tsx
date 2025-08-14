@@ -12,6 +12,9 @@ import { debounce } from "@/lib/utils";
 
 import { editorTheme } from "@/components/editor/theme";
 // removed FileType re-export; import no longer needed
+import { useAtomValue, useSetAtom } from "jotai";
+import { isSavingAtom, lexicalEditorAtom } from "@/lib/atoms";
+// no direct composer context usage; editor instance captured via OnChangePlugin
 
 interface EditorProps {
   editorConfig: InitialConfigType;
@@ -37,6 +40,8 @@ export function Editor({
   onChange,
   onSerializedChange,
 }: EditorProps) {
+  const setLexicalEditor = useSetAtom(lexicalEditorAtom);
+  const isSaving = useAtomValue(isSavingAtom);
   const lastEditorStateRef = React.useRef<EditorState | null>(null);
   const onChangeRef = React.useRef<EditorProps["onChange"]>(onChange);
   const onSerializedChangeRef =
@@ -64,6 +69,9 @@ export function Editor({
     };
   }, []);
 
+  // cancel any pending notifications when a save starts
+  // removed save-time cancellation of debounced notifications
+
   return (
     // <div className="bg-background overflow-hidden rounded-lg border">
     <div>
@@ -80,10 +88,13 @@ export function Editor({
 
         <OnChangePlugin
           ignoreSelectionChange={true}
-          onChange={(editorState, _editor, tags) => {
+          onChange={(editorState, editor, tags) => {
             if (hasInitialLoadTag(tags)) {
               return;
             }
+            // always capture latest editor instance for save
+            setLexicalEditor(editor);
+            if (isSaving) return;
             lastEditorStateRef.current = editorState;
             debouncedNotifyRef.current.schedule();
           }}
@@ -92,3 +103,5 @@ export function Editor({
     </div>
   );
 }
+
+// removed capture component in favor of OnChangePlugin one-liner above
