@@ -6,6 +6,7 @@ import { editorConfig } from "@/components/editor/editor";
 import type { File } from "@/types/workspace";
 import { $getRoot, LexicalEditor } from "lexical";
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node";
+// removed reconcile helper exports until external change handling is wired up
 
 // Pure function to create editor config from serialized state
 export const createEditorConfigFromState = (
@@ -107,3 +108,5 @@ export function serializeEditorToPython(
  * This preserves non-code regions like the module docstring and comments exactly as-is.
  */
 // baseline handling now lives in serializeEditorToPython
+
+// reconcilePythonBlocks removed for now

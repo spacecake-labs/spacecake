@@ -32,6 +32,9 @@ export interface Block<TKind = string> {
   text: string;
   // 1-based starting line number in the original source file
   startLine: number;
+  // optional content id for change detection (hash over normalized content)
+  cid?: string;
+  cidAlgo?: string;
 }
 
 // Python-specific block types
