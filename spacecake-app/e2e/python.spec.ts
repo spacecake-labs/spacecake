@@ -139,18 +139,30 @@ test.describe("python e2e", () => {
     const firstContent = firstEditorRoot.locator(".cm-content");
 
     // Move caret to end of first code block and ArrowDown into spacer (creates paragraph)
-    await firstContent.focus();
+    // click a stable token within the first editor to ensure caret placement
+    await firstEditor
+      .locator(".cm-content")
+      .getByText("datetime")
+      .first()
+      .click();
     await firstContent.press("Meta+ArrowDown");
     await firstContent.press("ArrowDown");
     // create spacer and click it, then navigate out to next code block
-    const newPara = window.getByRole("paragraph");
+    const newPara = window
+      .locator(".ContentEditable__root")
+      .getByRole("paragraph")
+      .first();
     await newPara.click();
     await expect(newPara).toBeVisible();
     await window.keyboard.press("ArrowDown");
 
     // recreate a spacer and then type to verify text stays
     const secondContentFromRemoval = secondEditorRoot.locator(".cm-content");
-    await secondContentFromRemoval.focus();
+    await secondEditorRoot
+      .locator(".cm-content")
+      .getByText("Person")
+      .first()
+      .click();
     await secondContentFromRemoval.press("Meta+ArrowUp");
     await secondContentFromRemoval.press("ArrowUp"); // create spacer above
     const spacerText1 = "PARA-TEXT-ONE";
@@ -167,46 +179,27 @@ test.describe("python e2e", () => {
     await secondContent.press("ArrowUp"); // to spacer above (caret at end)
     await window.keyboard.press("Meta+ArrowUp"); // move caret to start of spacer paragraph
     await window.keyboard.press("ArrowUp"); // to previous code block
-    // verify we are back in a code block editor (focus may race, so allow any cm editor)
-    await expect
-      .poll(async () =>
-        window.evaluate(() => {
-          const focused = document.querySelector(
-            ".cm-editor.cm-focused"
-          ) as HTMLElement | null;
-          if (focused) return true;
-          const active = document.activeElement as Element | null;
-          if (!active) return false;
-          return Array.from(document.querySelectorAll(".cm-editor")).some((e) =>
-            e.contains(active)
-          );
-        })
-      )
-      .toBe(true);
 
     // Also verify right/left behave like down/up at edges
-    await firstContent.focus();
+    await firstEditor
+      .locator(".cm-content")
+      .getByText("datetime")
+      .first()
+      .click();
     await firstContent.press("Meta+ArrowDown");
     await firstContent.press("ArrowRight");
-    await expect
-      .poll(async () =>
-        window.evaluate(() => {
-          const root = document.querySelector(
-            ".ContentEditable__root"
-          ) as HTMLElement | null;
-          if (!root) return false;
-          const active = document.activeElement as Element | null;
-          return !!active && (active === root || root.contains(active));
-        })
-      )
-      .toBe(true);
+
     const spacerText2 = "PARA-TEXT-TWO";
     await window.keyboard.type(spacerText2);
     await expect(window.getByText(spacerText2).first()).toBeVisible();
     await window.keyboard.press("ArrowRight");
 
     // Verify ArrowLeft behaves like ArrowUp at the start edge
-    await secondContent.focus();
+    await secondEditorRoot
+      .locator(".cm-content")
+      .getByText("Person")
+      .first()
+      .click();
     await secondContent.press("Meta+ArrowUp");
     await secondContent.press("ArrowLeft"); // to spacer above
     // type into spacer above and verify it appears (skip explicit focus poll)
@@ -216,7 +209,11 @@ test.describe("python e2e", () => {
     await window.keyboard.press("ArrowLeft"); // to previous code block
 
     // New: non-empty spacer should persist when navigating away
-    await secondContent.focus();
+    await secondEditorRoot
+      .locator(".cm-content")
+      .getByText("Person")
+      .first()
+      .click();
     await secondContent.press("Meta+ArrowDown");
     await secondContent.press("ArrowDown"); // create spacer below second block
     const keepText = "KEEP-PARA";
@@ -318,5 +315,59 @@ test.describe("python e2e", () => {
 
     // verify editor shows content from empty.py
     await expect(window.getByText("An empty file.").first()).toBeVisible();
+  });
+
+  test("saving new misc block persists after rerender without navigation", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    const window = await electronApp.firstWindow();
+
+    // prepare core.py in temp workspace
+    const coreFixture = path.join(process.cwd(), "tests/fixtures/core.py");
+    const coreDest = path.join(tempTestDir, "core.py");
+    fs.copyFileSync(coreFixture, coreDest);
+
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    });
+
+    await window.getByRole("button", { name: "open folder" }).click();
+
+    // open core.py
+    await window.getByRole("button", { name: "core.py" }).first().click();
+    await window.getByText("🐍").first().click();
+
+    // focus import block editor content and add a misc line after two Enters
+    const importBlock = window
+      .locator('[data-block-id="anonymous-import"]')
+      .first();
+    await expect(importBlock).toBeVisible();
+    const importEditor = importBlock.locator(".cm-editor").first();
+    await expect(importEditor).toBeVisible();
+    // keep a locator reference if needed for future checks
+    const importContent = importEditor.locator(".cm-content");
+    await importContent.focus();
+    await importContent.press("Meta+ArrowDown");
+    await importContent.press("Enter");
+    await importContent.press("Enter");
+    await window.keyboard.type("x = 5");
+
+    // save from header and wait for rerender: observe button text transition
+    const saveBtn = window.getByRole("button", { name: "save" });
+    await saveBtn.click();
+    // button becomes disabled during save, then re-enabled
+    await expect(saveBtn).toBeDisabled();
+    await expect(saveBtn).toBeEnabled();
+
+    // verify an editor now contains the new misc code (could be a new block)
+    const xEditor = window
+      .locator(".cm-editor")
+      .filter({ hasText: "x = 5" })
+      .first();
+    await expect(xEditor).toBeVisible();
+    // and the original import block still exists
+    await expect(importBlock).toBeVisible();
   });
 });

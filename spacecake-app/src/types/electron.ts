@@ -42,6 +42,13 @@ export interface ElectronAPI {
     success: boolean;
     error?: string;
   }>;
+  saveFile: (
+    filePath: string,
+    content: string
+  ) => Promise<{
+    success: boolean;
+    error?: string;
+  }>;
   platform: string;
 }
 

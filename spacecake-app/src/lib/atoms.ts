@@ -4,6 +4,7 @@ import type { FileEntry, WorkspaceInfo, File } from "@/types/workspace";
 import type { SidebarNavItem } from "@/lib/workspace";
 import type { PyParsedFile } from "@/types/parser";
 import { SerializedEditorState } from "lexical";
+import type { LexicalEditor } from "lexical";
 
 export const workspaceAtom = atom<WorkspaceInfo | null>(null);
 export const filesAtom = atom<FileEntry[]>([]);
@@ -26,6 +27,21 @@ export const fileContentAtom = atom<File | null>(null);
 
 // Selected file path
 export const selectedFilePathAtom = atom<string | null>(null);
+
+// baseline content for the currently opened file
+export const baselineFileAtom = atom<{
+  path: string;
+  content: string;
+} | null>(null);
+
+// store the current lexical editor instance
+export const lexicalEditorAtom = atom<LexicalEditor | null>(null);
+
+// saving state
+export const isSavingAtom = atom<boolean>(false);
+
+// recently saved indicator
+export const recentlySavedAtom = atom<boolean>(false);
 
 // Tree structure with folder contents
 export const fileTreeAtom = atom<Record<string, SidebarNavItem[]>>({});

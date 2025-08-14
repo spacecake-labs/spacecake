@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
-import { ModeToggle } from "@/components/mode-toggle";
+// mode toggle rendered inside EditorToolbar
 import {
   editorStateAtom,
   fileContentAtom,
@@ -15,6 +15,9 @@ import {
   workspaceAtom,
   filesAtom,
   workspaceItemsAtom,
+  lexicalEditorAtom,
+  baselineFileAtom,
+  isSavingAtom,
 } from "@/lib/atoms";
 import { readWorkspace } from "@/lib/fs";
 import { transformFilesToNavItems } from "@/lib/workspace";
@@ -23,9 +26,14 @@ import { getEditorConfig } from "@/lib/editor";
 import type { SerializedEditorState } from "lexical";
 import { Editor } from "@/components/editor/editor";
 import { toast } from "sonner";
-import { readFile } from "@/lib/fs";
+import { readFile, saveFile } from "@/lib/fs";
 import { decodeBase64Url } from "@/lib/utils";
 import { useEffect } from "react";
+// toolbar renders the save button
+import { FileType } from "@/types/workspace";
+import { fileTypeFromExtension } from "@/lib/workspace";
+import { serializeEditorToPython } from "@/lib/editor";
+import { EditorToolbar } from "@/components/editor/toolbar";
 
 export const Route = createFileRoute("/w/$workspaceId")({
   loader: async ({ params }) => {
@@ -58,6 +66,9 @@ function WorkspaceLayout() {
   const [selectedFilePath, setSelectedFilePath] = useAtom(selectedFilePathAtom);
   const [editorState, setEditorState] = useAtom(editorStateAtom);
   const [fileContent, setFileContent] = useAtom(fileContentAtom);
+  const [lexicalEditor] = useAtom(lexicalEditorAtom);
+  const [baseline, setBaseline] = useAtom(baselineFileAtom);
+  const [isSaving, setIsSaving] = useAtom(isSavingAtom);
 
   const handleFileClick = async (filePath: string) => {
     const file = await readFile(filePath);
@@ -65,6 +76,7 @@ function WorkspaceLayout() {
       setEditorState(null);
       setSelectedFilePath(filePath);
       setFileContent(file);
+      setBaseline({ path: file.path, content: file.content });
     } else {
       toast("error reading file");
     }
@@ -76,6 +88,68 @@ function WorkspaceLayout() {
     selectedFilePath
   );
 
+  const doSave = async () => {
+    if (!selectedFilePath || !lexicalEditor) return;
+    if (isSaving) return; // re-entrancy guard to avoid double-saves
+    setIsSaving(true);
+    try {
+      let contentToWrite = "";
+      const inferredType = (() => {
+        if (fileContent?.fileType) return fileContent.fileType;
+        if (selectedFilePath) {
+          const ext = selectedFilePath.split(".").pop() || "";
+          return fileTypeFromExtension(ext);
+        }
+        return FileType.Plaintext;
+      })();
+      if (inferredType === FileType.Python) {
+        contentToWrite = serializeEditorToPython(lexicalEditor, {
+          baseline: baseline?.content,
+        });
+      } else if (baseline && baseline.path === selectedFilePath) {
+        // fallback: write baseline until other serializers exist
+        contentToWrite = baseline.content;
+      } else {
+        contentToWrite = "";
+      }
+      // debug logging removed
+      const ok = await saveFile(selectedFilePath, contentToWrite);
+      if (!ok) {
+        toast("failed to save file");
+        return;
+      }
+      toast(`saved ${selectedFilePath}`);
+      const file = await readFile(selectedFilePath);
+      if (file) {
+        setEditorState(null);
+        setFileContent(file);
+        setBaseline({ path: file.path, content: file.content });
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const isSave =
+        (e.metaKey || e.ctrlKey) && (e.key === "s" || e.key === "S");
+      if (isSave) {
+        e.preventDefault();
+        // if focused within CodeMirror, let its own handler dispatch the save event
+        const target = e.target as EventTarget | null;
+        const isInCodeMirror =
+          target instanceof Element && !!target.closest(".cm-editor");
+        if (isInCodeMirror) return;
+        void doSave();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+    };
+  }, [doSave]);
+
   return (
     <div className="flex h-screen">
       <SidebarProvider>
@@ -84,27 +158,25 @@ function WorkspaceLayout() {
           selectedFilePath={selectedFilePath}
         />
         <SidebarInset className="overflow-auto">
-          <header className="flex h-16 shrink-0 items-center gap-2 justify-between">
+          <header className="flex h-16 shrink-0 items-center gap-2 justify-between px-0">
             <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1" />
+              <SidebarTrigger className="-ml-1 cursor-pointer" />
               <Separator
                 orientation="vertical"
                 className="mr-2 data-[orientation=vertical]:h-4"
               />
-              {selectedFilePath}
             </div>
-            <div className="px-4">
-              <ModeToggle />
-            </div>
+            <EditorToolbar onSave={doSave} />
           </header>
+
           <div className="h-full flex flex-1 flex-col gap-4 p-4 pt-0">
+            {/* integrated toolbar in header */}
             {editorConfig && (
               <Editor
-                key={selectedFilePath ?? undefined}
+                key={`${selectedFilePath ?? ""}:${fileContent?.modified ?? ""}`}
                 editorConfig={editorConfig}
                 onSerializedChange={(value: SerializedEditorState) => {
                   setEditorState(value);
-                  setFileContent(null);
                 }}
               />
             )}

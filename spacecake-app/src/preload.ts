@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   renameFile: (oldPath: string, newPath: string) =>
     ipcRenderer.invoke("rename-file", oldPath, newPath),
   deleteFile: (filePath: string) => ipcRenderer.invoke("delete-file", filePath),
-
-    platform: process.platform,
+  saveFile: (filePath: string, content: string) =>
+    ipcRenderer.invoke("save-file", filePath, content),
+  platform: process.platform,
 });

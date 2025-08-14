@@ -92,7 +92,7 @@ export function CodeBlock({
               variant="ghost"
               size="sm"
               onClick={onRun}
-              className="h-7 w-7 p-0"
+              className="h-7 w-7 p-0 cursor-pointer"
             >
               <Play className="h-3 w-3" />
               <span className="sr-only">Run code</span>
@@ -103,7 +103,7 @@ export function CodeBlock({
             variant="ghost"
             size="sm"
             onClick={copyToClipboard}
-            className="h-7 w-7 p-0"
+            className="h-7 w-7 p-0 cursor-pointer"
           >
             {copied ? (
               <Check className="h-3 w-3 text-green-500" />
@@ -115,7 +115,11 @@ export function CodeBlock({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 cursor-pointer"
+              >
                 <MoreHorizontal className="h-3 w-3" />
                 <span className="sr-only">More options</span>
               </Button>

@@ -3,6 +3,7 @@ import path from "path";
 import type { Dirent } from "fs";
 import type { FileEntry, File } from "@/types/workspace";
 import { FileType } from "@/types/workspace";
+import writeFileAtomic from "write-file-atomic";
 
 /**
  * Sorts file entries: directories first, then files, both alphabetically
@@ -282,4 +283,16 @@ export async function deleteFile(
   } else {
     await fsModule.unlink(filePath);
   }
+}
+
+/**
+ * Writes a file atomically to avoid partial writes and corruption
+ * @param filePath - The path of the file to write
+ * @param content - The file contents to write
+ */
+export async function saveFileAtomic(
+  filePath: string,
+  content: string
+): Promise<void> {
+  await writeFileAtomic(filePath, content, { encoding: "utf8" });
 }

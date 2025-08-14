@@ -148,6 +148,24 @@ const deleteFile = async (filePath: string): Promise<boolean> => {
   }
 };
 
+const saveFile = async (
+  filePath: string,
+  content: string
+): Promise<boolean> => {
+  try {
+    const result = await window.electronAPI.saveFile(filePath, content);
+    if (result.success) {
+      return true;
+    } else {
+      console.error("failed to save file:", result.error);
+      return false;
+    }
+  } catch (error) {
+    console.error("error saving file:", error);
+    return false;
+  }
+};
+
 export {
   openDirectory,
   readDirectory,
@@ -157,4 +175,5 @@ export {
   readFile,
   renameFile,
   deleteFile,
+  saveFile,
 };

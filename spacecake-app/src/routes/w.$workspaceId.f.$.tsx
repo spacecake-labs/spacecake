@@ -7,6 +7,7 @@ import {
   fileContentAtom,
   selectedFilePathAtom,
   editorStateAtom,
+  baselineFileAtom,
 } from "@/lib/atoms";
 
 export const Route = createFileRoute("/w/$workspaceId/f/$")({
@@ -34,6 +35,7 @@ function FileRouteComponent() {
   const setSelected = useSetAtom(selectedFilePathAtom);
   const setFile = useSetAtom(fileContentAtom);
   const setEditorState = useSetAtom(editorStateAtom);
+  const setBaseline = useSetAtom(baselineFileAtom);
 
   // push into atoms so the editor at layout renders
   useEffect(() => {
@@ -41,6 +43,7 @@ function FileRouteComponent() {
     setEditorState(null);
     setSelected(data.filePath);
     setFile(data.file);
+    setBaseline({ path: data.file.path, content: data.file.content });
   }, [data, setSelected, setFile, setEditorState]);
   return null;
 }
