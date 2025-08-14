@@ -119,12 +119,9 @@ function WorkspaceLayout() {
         return;
       }
       toast(`saved ${selectedFilePath}`);
-      const file = await readFile(selectedFilePath);
-      if (file) {
-        setEditorState(null);
-        setFileContent(file);
-        setBaseline({ path: file.path, content: file.content });
-      }
+      // do not re-read the file after our own save to avoid remounting the editor
+      // update baseline to the exact content we just wrote so subsequent saves splice correctly
+      setBaseline({ path: selectedFilePath, content: contentToWrite });
     } finally {
       setIsSaving(false);
     }
@@ -173,7 +170,7 @@ function WorkspaceLayout() {
             {/* integrated toolbar in header */}
             {editorConfig && (
               <Editor
-                key={`${selectedFilePath ?? ""}:${fileContent?.modified ?? ""}`}
+                key={`${selectedFilePath ?? ""}`}
                 editorConfig={editorConfig}
                 onSerializedChange={(value: SerializedEditorState) => {
                   setEditorState(value);
