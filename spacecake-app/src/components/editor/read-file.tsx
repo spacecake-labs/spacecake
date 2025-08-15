@@ -10,7 +10,7 @@ import { INITIAL_LOAD_TAG } from "@/types/editor";
 import type { FileType } from "@/types/workspace";
 import {
   parsePythonContentStreaming,
-  moduleDocToHeader,
+  docToBlock,
 } from "@/lib/parser/python/blocks";
 import type { File } from "@/types/workspace";
 import { toast } from "sonner";
@@ -37,7 +37,7 @@ async function convertPythonBlocksToLexical(
         () => {
           const root = $getRoot();
           if (block.kind === "doc") {
-            const markdown = moduleDocToHeader(block, blockCount - 1);
+            const markdown = docToBlock(block, blockCount - 1);
             $convertFromMarkdownString(markdown, TRANSFORMERS);
           } else {
             const codeBlock = $createCodeBlockNode({

@@ -77,13 +77,6 @@ function WorkspaceLayout() {
       try {
         const f = await readFile(currentPath);
         if (f) {
-          console.log("external file change detected:", {
-            path: evt.path,
-            type: evt.type,
-            contentLength: f.content.length,
-            currentEditor: !!currentEditor,
-          });
-
           const { parsePythonContentStreaming } = await import(
             "@/lib/parser/python/blocks"
           );
@@ -94,7 +87,6 @@ function WorkspaceLayout() {
             blocks.push(b);
           }
 
-          console.log("parsed blocks:", blocks.length, "blocks");
           reconcilePythonBlocks(currentEditor, blocks);
         }
       } catch (error) {
@@ -156,9 +148,7 @@ function WorkspaceLayout() {
         return FileType.Plaintext;
       })();
       if (inferredType === FileType.Python) {
-        contentToWrite = serializeEditorToPython(lexicalEditor, {
-          baseline: baseline?.content,
-        });
+        contentToWrite = serializeEditorToPython(lexicalEditor);
       } else if (baseline && baseline.path === selectedFilePath) {
         // fallback: write baseline until other serializers exist
         contentToWrite = baseline.content;

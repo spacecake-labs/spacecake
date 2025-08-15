@@ -13,7 +13,7 @@ import { fnv1a64Hex } from "@/lib/hash";
  * Convert a docstring block to markdown header text.
  * First docstring becomes a level 2 header, subsequent ones become plain text.
  */
-export function moduleDocToHeader(block: PyBlock, blockIndex: number): string {
+export function docToBlock(block: PyBlock, blockIndex: number): string {
   const docstringText = block.text.replace(/^r?"""|"""$/g, "").trim();
   return blockIndex === 0 ? `## ${docstringText}` : docstringText;
 }
@@ -183,7 +183,6 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
     const firstImport = importNodes[0];
     const lastImport = importNodes[importNodes.length - 1];
     const raw = code.slice(firstImport.from, lastImport.to);
-    const normalized = normalizeText(raw);
     const block: PyBlock = {
       kind: "import",
       name: blockName(firstImport, code),
@@ -191,7 +190,7 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
       endByte: lastImport.to,
       text: raw,
       startLine: getStartLineFromOffset(firstImport.from),
-      cid: computeCid("import", blockName(firstImport, code).value, normalized),
+      cid: computeCid("import", blockName(firstImport, code).value, raw),
       cidAlgo: "fnv1a64-norm1",
     };
     importNodes = [];
@@ -202,7 +201,6 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
     const first = miscNodes[0];
     const last = miscNodes[miscNodes.length - 1];
     const raw = code.slice(first.from, last.to);
-    const normalized = normalizeText(raw);
     const block: PyBlock = {
       kind: "misc",
       name: anonymousName(),
@@ -210,7 +208,7 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
       endByte: last.to,
       text: raw,
       startLine: getStartLineFromOffset(first.from),
-      cid: computeCid("misc", "anonymous", normalized),
+      cid: computeCid("misc", "anonymous", raw),
       cidAlgo: "fnv1a64-norm1",
     };
     miscNodes = [];
@@ -254,7 +252,6 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
     // consume any accumulated comments
     const startByte = commentNodes.length ? commentNodes[0].from : node.from;
     const raw = code.slice(startByte, node.to);
-    const normalized = normalizeText(raw);
     const name = blockName(node, code);
     commentNodes = [];
     yield {
@@ -264,7 +261,7 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
       endByte: node.to,
       text: raw,
       startLine: getStartLineFromOffset(startByte),
-      cid: computeCid(String(kind), name.value, normalized),
+      cid: computeCid(String(kind), name.value, raw),
       cidAlgo: "fnv1a64-norm1",
     };
   }
@@ -295,7 +292,7 @@ export async function* parsePythonContentStreaming(
         endByte: content.length,
         text: content,
         startLine: 1,
-        cid: computeCid("file", "anonymous", normalizeText(content)),
+        cid: computeCid("file", "anonymous", content),
         cidAlgo: "fnv1a64-norm1",
       };
       yield fallbackBlock;
@@ -311,22 +308,12 @@ export async function* parsePythonContentStreaming(
       endByte: content.length,
       text: content,
       startLine: 1,
-      cid: computeCid("file", "anonymous", normalizeText(content)),
+      cid: computeCid("file", "anonymous", content),
       cidAlgo: "fnv1a64-norm1",
     };
 
     yield fallbackBlock;
   }
-}
-
-// normalize text for hashing: LF line endings, trim trailing spaces per line
-function normalizeText(s: string): string {
-  const lf = s.replace(/\r\n?/g, "\n");
-  // trim only trailing spaces; preserve indentation
-  return lf
-    .split("\n")
-    .map((line) => line.replace(/[ \t]+$/g, ""))
-    .join("\n");
 }
 
 function computeCid(
