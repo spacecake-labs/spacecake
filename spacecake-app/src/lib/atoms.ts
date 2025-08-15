@@ -43,6 +43,11 @@ export const isSavingAtom = atom<boolean>(false);
 // recently saved indicator
 export const recentlySavedAtom = atom<boolean>(false);
 
+// per-path last saved etag (mtimeMs + size) to suppress self-watch events
+export const lastSavedEtagAtom = atom<
+  Record<string, { mtimeMs: number; size: number }>
+>({});
+
 // Tree structure with folder contents
 export const fileTreeAtom = atom<Record<string, SidebarNavItem[]>>({});
 

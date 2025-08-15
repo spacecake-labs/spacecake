@@ -21,3 +21,11 @@ codegen:
 
 print-py-nodes file:
     npx tsx scripts/print-py-nodes.ts {{file}}
+
+gif input:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    input="{{input}}"
+    output="${input%.mov}.gif"
+    echo "Converting $input to $output"
+    ffmpeg -i "$input" -vf "fps=15,scale=320:-1:flags=lanczos" -y "$output"

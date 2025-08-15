@@ -98,6 +98,9 @@ importers:
       LexicalTableCellResizer:
         specifier: link:@lexical/react/LexicalTableCellResizer
         version: link:@lexical/react/LexicalTableCellResizer
+      chokidar:
+        specifier: ^3.6.0
+        version: 3.6.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1

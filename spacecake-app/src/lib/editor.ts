@@ -6,6 +6,10 @@ import { editorConfig } from "@/components/editor/editor";
 import type { File } from "@/types/workspace";
 import { $getRoot, LexicalEditor } from "lexical";
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node";
+import type { PyBlock } from "@/types/parser";
+import { CodeBlockNode } from "@/components/editor/nodes/code-node";
+import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
+import { moduleDocToHeader } from "@/lib/parser/python/blocks";
 // removed reconcile helper exports until external change handling is wired up
 
 // Pure function to create editor config from serialized state
@@ -108,5 +112,50 @@ export function serializeEditorToPython(
  * This preserves non-code regions like the module docstring and comments exactly as-is.
  */
 // baseline handling now lives in serializeEditorToPython
+/**
+ * Reconcile the current editor tree against a new set of parsed Python blocks.
+ */
+export function reconcilePythonBlocks(
+  editor: LexicalEditor,
+  newBlocks: PyBlock[]
+): void {
+  console.log("reconciling python blocks:", {
+    newBlocksCount: newBlocks.length,
+    newBlocks: newBlocks.map((b) => ({
+      kind: b.kind,
+      name: b.name,
+      cid: b.cid,
+    })),
+  });
+
+  // clear the editor completely and rebuild from scratch
+  // this is simpler and more reliable than trying to reconcile complex changes
+  editor.update(() => {
+    const root = $getRoot();
+    root.clear();
+
+    // process all blocks in order
+    for (let i = 0; i < newBlocks.length; i++) {
+      const block = newBlocks[i];
+
+      if (String(block.kind) === "doc") {
+        // convert docstring to markdown header
+        const markdown = moduleDocToHeader(block, i);
+        console.log("processing doc block:", { blockIndex: i, markdown });
+        $convertFromMarkdownString(markdown, TRANSFORMERS);
+      } else {
+        // create code block for non-doc blocks
+        const codeBlock = new CodeBlockNode(
+          block.text,
+          "python",
+          String(block.kind),
+          undefined,
+          block
+        );
+        root.append(codeBlock);
+      }
+    }
+  });
+}
 
 // reconcilePythonBlocks removed for now
