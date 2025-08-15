@@ -226,6 +226,35 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     };
   }, [language, theme, debounceMs, flushPending]);
 
+  // keep codemirror doc in sync if external updates change the node code
+  React.useEffect(() => {
+    const view = editorViewRef.current;
+    if (!view) return;
+    const current = view.state.doc.toString();
+    if (current !== code) {
+      // preserve selection anchor/head where possible
+      const sel = view.state.selection;
+      view.dispatch({
+        changes: { from: 0, to: current.length, insert: code },
+        selection: sel,
+      });
+    }
+  }, [code]);
+
+  // flush debounced changes when the app dispatches a before-save signal
+  React.useEffect(() => {
+    const onBeforeSave = () => {
+      flushPending();
+    };
+    window.addEventListener("sc-before-save", onBeforeSave as EventListener);
+    return () => {
+      window.removeEventListener(
+        "sc-before-save",
+        onBeforeSave as EventListener
+      );
+    };
+  }, [flushPending]);
+
   return (
     <CodeBlock
       code={code}

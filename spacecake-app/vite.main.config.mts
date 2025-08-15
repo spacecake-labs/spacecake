@@ -11,13 +11,10 @@ export default defineConfig({
   build: {
     rollupOptions: {
       external: [
+        // Don't bundle electron
         "electron",
-        "tree-sitter",
-        "tree-sitter-compat",
-        "tree-sitter-javascript",
-        "tree-sitter-python",
-        "tree-sitter-typescript",
-      ], // Don't bundle electron or tree-sitter modules
+        "chokidar",
+      ],
     },
   },
 });

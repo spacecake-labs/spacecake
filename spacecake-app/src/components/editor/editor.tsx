@@ -4,7 +4,12 @@ import {
   InitialConfigType,
 } from "@lexical/react/LexicalComposer";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import type { EditorState, SerializedEditorState } from "lexical";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import type {
+  EditorState,
+  SerializedEditorState,
+  LexicalEditor,
+} from "lexical";
 import { nodes } from "@/components/editor/nodes";
 import { Plugins } from "@/components/editor/plugins";
 import { hasInitialLoadTag } from "@/types/editor";
@@ -84,6 +89,7 @@ export function Editor({
             : {}),
         }}
       >
+        <CaptureLexicalPlugin onCapture={setLexicalEditor} />
         <Plugins />
 
         <OnChangePlugin
@@ -105,3 +111,13 @@ export function Editor({
 }
 
 // removed capture component in favor of OnChangePlugin one-liner above
+
+const CaptureLexicalPlugin: React.FC<{
+  onCapture: (ed: LexicalEditor) => void;
+}> = ({ onCapture }) => {
+  const [editor] = useLexicalComposerContext();
+  React.useEffect(() => {
+    onCapture(editor);
+  }, [editor, onCapture]);
+  return null;
+};

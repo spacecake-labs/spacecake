@@ -9,6 +9,15 @@ import type {
 import { anonymousName, namedBlock } from "@/types/parser";
 import { fnv1a64Hex } from "@/lib/hash";
 
+/**
+ * Convert a docstring block to markdown header text.
+ * First docstring becomes a level 2 header, subsequent ones become plain text.
+ */
+export function moduleDocToHeader(block: PyBlock, blockIndex: number): string {
+  const docstringText = block.text.replace(/^r?"""|"""$/g, "").trim();
+  return blockIndex === 0 ? `## ${docstringText}` : docstringText;
+}
+
 function isDataclass(node: SyntaxNode, code: string): boolean {
   if (node.name !== "DecoratedStatement") return false;
 

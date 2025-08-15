@@ -1,4 +1,6 @@
 import { ipcMain, dialog, BrowserWindow } from "electron";
+import fs from "fs";
+import chokidar from "chokidar";
 import {
   readDir,
   ensureSpacecakeFolder,
@@ -95,6 +97,63 @@ ipcMain.handle(
   }
 );
 
+// file system watcher for external changes
+const watchers = new Map<string, chokidar.FSWatcher>();
+// remember last write etag per path to suppress self-save watcher echoes
+const lastWriteEtag = new Map<string, { mtimeMs: number; size: number }>();
+
+ipcMain.handle("watch-workspace", async (event, workspacePath: string) => {
+  try {
+    // reuse existing watcher for this path
+    if (watchers.has(workspacePath)) {
+      return { success: true };
+    }
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const watcher = chokidar.watch(workspacePath, {
+      ignoreInitial: true,
+      ignored: ["**/node_modules/**", "**/.git/**", "**/.DS_Store"],
+      persistent: true,
+      depth: Infinity,
+      awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 50 },
+      atomic: true,
+      alwaysStat: true,
+    });
+
+    const emit = (
+      type: "add" | "change" | "unlink",
+      path: string,
+      stats?: import("fs").Stats
+    ) => {
+      const etag = stats ? { mtimeMs: stats.mtimeMs, size: stats.size } : null;
+      const tsMs = Date.now();
+      const last = lastWriteEtag.get(path);
+      if (
+        etag &&
+        last &&
+        etag.mtimeMs === last.mtimeMs &&
+        etag.size === last.size
+      ) {
+        return;
+      }
+      win?.webContents.send("file-event", { type, path, etag, tsMs });
+    };
+
+    watcher
+      .on("add", (path, stats) => emit("add", path, stats))
+      .on("change", (path, stats) => emit("change", path, stats))
+      .on("unlink", (path) => emit("unlink", path));
+
+    watchers.set(workspacePath, watcher);
+    return { success: true };
+  } catch (error) {
+    console.error("error starting watcher:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "unknown error",
+    };
+  }
+});
+
 ipcMain.handle("create-folder", async (event, folderPath: string) => {
   try {
     await createFolder(folderPath);
@@ -124,6 +183,8 @@ ipcMain.handle(
   }
 );
 
+// removed unused stat-file handler; etag suppression occurs in-process after save
+
 ipcMain.handle("delete-file", async (event, filePath: string) => {
   try {
     await deleteFile(filePath);
@@ -142,6 +203,12 @@ ipcMain.handle(
   async (event, filePath: string, content: string) => {
     try {
       await saveFileAtomic(filePath, content);
+      try {
+        const st = await fs.promises.stat(filePath);
+        lastWriteEtag.set(filePath, { mtimeMs: st.mtimeMs, size: st.size });
+      } catch {
+        // ignore inability to stat saved file for etag recording
+      }
       return { success: true };
     } catch (error) {
       console.error("error saving file:", error);

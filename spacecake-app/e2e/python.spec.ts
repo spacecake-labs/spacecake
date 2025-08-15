@@ -370,4 +370,56 @@ test.describe("python e2e", () => {
     // and the original import block still exists
     await expect(importBlock).toBeVisible();
   });
+
+  test("external file change updates only the changed block (watcher)", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    const window = await electronApp.firstWindow();
+
+    // copy core.py fixture into the temp workspace
+    const fixturePath = path.join(process.cwd(), "tests/fixtures/core.py");
+    const destPath = path.join(tempTestDir, "core.py");
+    fs.copyFileSync(fixturePath, destPath);
+
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    });
+
+    await window.getByRole("button", { name: "open folder" }).click();
+
+    await expect(
+      window.getByRole("button", { name: "create file or folder" })
+    ).toBeVisible();
+
+    // open the file
+    await window.getByRole("button", { name: "core.py" }).first().click();
+    await window.getByText("🐍").first().click();
+
+    // ensure second block (class Person / dataclass label present) is visible
+    await expect(window.getByText("Person").first()).toBeVisible();
+
+    // overwrite core.py on disk: add a comment at the start of the dataclass block
+    const original = fs.readFileSync(destPath, "utf8");
+    const insertion = "# updated: hello from watcher\n";
+    const updated = original.replace(
+      /(@dataclass\nclass Person:[\s\S]*?\n)/,
+      (m) => insertion + m
+    );
+    fs.writeFileSync(destPath, updated, "utf8");
+
+    // wait for watcher to reconcile and the new comment to appear in the dataclass block
+    const dataclassBlock = window
+      .locator('[data-block-id="person-dataclass"]')
+      .first();
+    await expect(dataclassBlock).toBeVisible();
+    // assert the updated text appears somewhere in editors
+    await expect(
+      window
+        .locator(".cm-content")
+        .filter({ hasText: "updated: hello from watcher" })
+        .first()
+    ).toBeVisible();
+  });
 });

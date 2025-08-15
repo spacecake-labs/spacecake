@@ -8,18 +8,12 @@ import {
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node";
 import { INITIAL_LOAD_TAG } from "@/types/editor";
 import type { FileType } from "@/types/workspace";
-import { parsePythonContentStreaming } from "@/lib/parser/python/blocks";
+import {
+  parsePythonContentStreaming,
+  moduleDocToHeader,
+} from "@/lib/parser/python/blocks";
 import type { File } from "@/types/workspace";
 import { toast } from "sonner";
-
-function docstringText(text: string): string {
-  const docstringRegex = /r?"""([\s\S]*?)"""/;
-  const match = text.match(docstringRegex);
-  if (match) {
-    return match[1];
-  }
-  return text; // no docstring found
-}
 
 /**
  * Converts Python blocks into Lexical nodes with progressive rendering
@@ -43,10 +37,7 @@ async function convertPythonBlocksToLexical(
         () => {
           const root = $getRoot();
           if (block.kind === "doc") {
-            const markdown =
-              blockCount === 1
-                ? `## ${docstringText(block.text)}`
-                : docstringText(block.text);
+            const markdown = moduleDocToHeader(block, blockCount - 1);
             $convertFromMarkdownString(markdown, TRANSFORMERS);
           } else {
             const codeBlock = $createCodeBlockNode({

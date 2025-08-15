@@ -28,7 +28,7 @@ import { Editor } from "@/components/editor/editor";
 import { toast } from "sonner";
 import { readFile, saveFile } from "@/lib/fs";
 import { decodeBase64Url } from "@/lib/utils";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 // toolbar renders the save button
 import { FileType } from "@/types/workspace";
 import { fileTypeFromExtension } from "@/lib/workspace";
@@ -58,17 +58,70 @@ function WorkspaceLayout() {
   const setSidebarNav = useSetAtom(workspaceItemsAtom);
 
   useEffect(() => {
+    // always refresh workspace lists
     setWorkspace(workspaceData.workspace);
     setFiles(workspaceData.files);
     setSidebarNav(transformFilesToNavItems(workspaceData.files));
+
+    if (workspaceData?.workspace?.path) {
+      void window.electronAPI.watchWorkspace(workspaceData.workspace.path);
+    }
+
+    const off = window.electronAPI.onFileEvent(async (evt) => {
+      if (evt.type !== "change" && evt.type !== "add") return;
+      const currentPath = selectedPathRef.current;
+      const currentEditor = lexicalEditorRef.current;
+      if (!currentPath || !currentEditor) return;
+      if (evt.path !== currentPath) return;
+
+      try {
+        const f = await readFile(currentPath);
+        if (f) {
+          console.log("external file change detected:", {
+            path: evt.path,
+            type: evt.type,
+            contentLength: f.content.length,
+            currentEditor: !!currentEditor,
+          });
+
+          const { parsePythonContentStreaming } = await import(
+            "@/lib/parser/python/blocks"
+          );
+          const { reconcilePythonBlocks } = await import("@/lib/editor");
+
+          const blocks: import("@/types/parser").PyBlock[] = [];
+          for await (const b of parsePythonContentStreaming(f.content)) {
+            blocks.push(b);
+          }
+
+          console.log("parsed blocks:", blocks.length, "blocks");
+          reconcilePythonBlocks(currentEditor, blocks);
+        }
+      } catch (error) {
+        console.error("error handling external file change:", error);
+      }
+    });
+    return () => {
+      off?.();
+    };
   }, [workspaceData, setWorkspace, setFiles, setSidebarNav]);
 
   const [selectedFilePath, setSelectedFilePath] = useAtom(selectedFilePathAtom);
   const [editorState, setEditorState] = useAtom(editorStateAtom);
   const [fileContent, setFileContent] = useAtom(fileContentAtom);
   const [lexicalEditor] = useAtom(lexicalEditorAtom);
+  // keep latest values in refs for async handlers
+  const selectedPathRef = useRef<string | null>(selectedFilePath);
+  const lexicalEditorRef = useRef(lexicalEditor);
+  useEffect(() => {
+    selectedPathRef.current = selectedFilePath;
+  }, [selectedFilePath]);
+  useEffect(() => {
+    lexicalEditorRef.current = lexicalEditor;
+  }, [lexicalEditor]);
   const [baseline, setBaseline] = useAtom(baselineFileAtom);
   const [isSaving, setIsSaving] = useAtom(isSavingAtom);
+  // etag suppression is handled in main; no local map needed
 
   const handleFileClick = async (filePath: string) => {
     const file = await readFile(filePath);
@@ -113,6 +166,8 @@ function WorkspaceLayout() {
         contentToWrite = "";
       }
       // debug logging removed
+      // ensure codemirror commits any pending buffered changes across blocks
+      window.dispatchEvent(new Event("sc-before-save"));
       const ok = await saveFile(selectedFilePath, contentToWrite);
       if (!ok) {
         toast("failed to save file");
@@ -170,7 +225,7 @@ function WorkspaceLayout() {
             {/* integrated toolbar in header */}
             {editorConfig && (
               <Editor
-                key={`${selectedFilePath ?? ""}`}
+                key={`${selectedFilePath ?? ""}:${fileContent?.modified ?? ""}`}
                 editorConfig={editorConfig}
                 onSerializedChange={(value: SerializedEditorState) => {
                   setEditorState(value);

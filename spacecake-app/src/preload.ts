@@ -25,4 +25,24 @@ contextBridge.exposeInMainWorld("electronAPI", {
   saveFile: (filePath: string, content: string) =>
     ipcRenderer.invoke("save-file", filePath, content),
   platform: process.platform,
+  watchWorkspace: (workspacePath: string) =>
+    ipcRenderer.invoke("watch-workspace", workspacePath),
+  onFileEvent: (
+    handler: (evt: {
+      type: string;
+      path: string;
+      etag?: { mtimeMs: number; size: number } | null;
+    }) => void
+  ) => {
+    const listener = (
+      _e: Electron.IpcRendererEvent,
+      payload: {
+        type: string;
+        path: string;
+        etag?: { mtimeMs: number; size: number } | null;
+      }
+    ) => handler(payload);
+    ipcRenderer.on("file-event", listener);
+    return () => ipcRenderer.removeListener("file-event", listener);
+  },
 });
