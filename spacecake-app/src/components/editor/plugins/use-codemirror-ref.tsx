@@ -150,8 +150,6 @@ export function useCodeMirrorRef(
             }, 50);
           }
         }
-      } else if (e.key === "Enter") {
-        e.stopPropagation();
       } else if (e.key === "Backspace" || e.key === "Delete") {
         const state = codeMirrorRef.current?.getCodemirror()?.state;
         const docLength = state?.doc.length;
