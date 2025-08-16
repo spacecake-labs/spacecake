@@ -71,15 +71,12 @@ export function serializeEditorToPython(editor: LexicalEditor): string {
     for (const child of children) {
       if ($isCodeBlockNode(child)) {
         result += child.getCode();
-        if (!result.endsWith("\n")) result += "\n";
       } else if ($isDelimitedNode(child)) {
         // Use the preserved delimiter information for perfect round-trip
         result += child.getSourceText();
-        if (!result.endsWith("\n")) result += "\n";
       } else {
         const text = child.getTextContent();
         result += text;
-        if (!result.endsWith("\n")) result += "\n";
       }
     }
   });

@@ -8,6 +8,7 @@ import type {
   DelimitedString,
 } from "@/types/parser";
 import { anonymousName, namedBlock } from "@/types/parser";
+import { parseDelimitedString } from "@/lib/parser/delimited-string";
 import { fnv1a64Hex } from "@/lib/hash";
 
 /**
@@ -15,27 +16,23 @@ import { fnv1a64Hex } from "@/lib/hash";
  * First docstring becomes a level 2 header, subsequent ones become plain text.
  */
 export function docToBlock(block: PyBlock): DelimitedString {
-  // const docstringText = block.text.replace(/^r?"""|"""$/g, "").trim();
-  // return blockIndex === 0 ? `## ${docstringText}` : docstringText;
+  // Use the new parseDelimitedString function for cleaner parsing
   if (block.text.startsWith('r"""') && block.text.endsWith('"""')) {
-    return {
-      prefix: 'r"""',
-      between: block.text.slice(4, -3),
-      suffix: '"""',
-    };
+    return parseDelimitedString(block.text, {
+      prefixPattern: /^r"""/,
+      suffixPattern: /"""$/,
+    });
   }
+
   if (block.text.startsWith('"""') && block.text.endsWith('"""')) {
-    return {
-      prefix: '"""',
-      between: block.text.slice(3, -3),
-      suffix: '"""',
-    };
+    return parseDelimitedString(block.text, {
+      prefixPattern: /^"""/,
+      suffixPattern: /"""$/,
+    });
   }
-  return {
-    prefix: "",
-    between: block.text,
-    suffix: "",
-  };
+
+  // Fallback for unexpected formats
+  return { prefix: "", between: block.text, suffix: "" };
 }
 
 function isDataclass(node: SyntaxNode, code: string): boolean {
