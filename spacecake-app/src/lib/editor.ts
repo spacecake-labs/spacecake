@@ -3,12 +3,13 @@ import { SerializedEditorState } from "lexical";
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file";
 import { FileType } from "@/types/workspace";
 import { editorConfig } from "@/components/editor/editor";
-import type { File } from "@/types/workspace";
+import type { FileContent } from "@/types/workspace";
 import { $getRoot, LexicalEditor } from "lexical";
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node";
+import { $isDelimitedNode } from "@/components/editor/nodes/delimited";
 import type { PyBlock } from "@/types/parser";
 import { CodeBlockNode } from "@/components/editor/nodes/code-node";
-import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
+import { $createDelimitedNode } from "@/components/editor/nodes/delimited";
 import { docToBlock } from "@/lib/parser/python/blocks";
 // removed reconcile helper exports until external change handling is wired up
 
@@ -26,7 +27,7 @@ export const createEditorConfigFromState = (
 export const createEditorConfigFromContent = (
   content: string,
   fileType: FileType,
-  file?: File
+  file?: FileContent
 ): InitialConfigType => {
   return {
     ...editorConfig,
@@ -37,7 +38,7 @@ export const createEditorConfigFromContent = (
 // Pure function to determine editor config based on current state
 export const getEditorConfig = (
   editorState: SerializedEditorState | null,
-  fileContent: File | null,
+  fileContent: FileContent | null,
   selectedFilePath: string | null
 ): InitialConfigType | null => {
   if (editorState) {
@@ -62,16 +63,18 @@ export const getEditorConfig = (
  * - non-code: uses text content via getTextContent()
  */
 export function serializeEditorToPython(editor: LexicalEditor): string {
-  // always use simple concatenation - baseline handling causes text corruption
-  // due to stale byte offsets that don't match the current editor content
-
   let result = "";
   editor.getEditorState().read(() => {
     const root = $getRoot();
     const children = root.getChildren();
+
     for (const child of children) {
       if ($isCodeBlockNode(child)) {
         result += child.getCode();
+        if (!result.endsWith("\n")) result += "\n";
+      } else if ($isDelimitedNode(child)) {
+        // Use the preserved delimiter information for perfect round-trip
+        result += child.getSourceText();
         if (!result.endsWith("\n")) result += "\n";
       } else {
         const text = child.getTextContent();
@@ -95,8 +98,6 @@ export function reconcilePythonBlocks(
   editor: LexicalEditor,
   newBlocks: PyBlock[]
 ): void {
-  // clear the editor completely and rebuild from scratch
-  // this is simpler and more reliable than trying to reconcile complex changes
   editor.update(() => {
     const root = $getRoot();
     root.clear();
@@ -106,9 +107,16 @@ export function reconcilePythonBlocks(
       const block = newBlocks[i];
 
       if (String(block.kind) === "doc") {
-        // convert docstring to markdown header
-        const markdown = docToBlock(block, i);
-        $convertFromMarkdownString(markdown, TRANSFORMERS);
+        const delimitedString = docToBlock(block);
+        const isModuleDocstring = i === 0;
+
+        // Create DelimitedNode instead of converting to markdown
+        const delimitedNode = $createDelimitedNode({
+          delimitedString,
+          level: isModuleDocstring ? 2 : 1,
+        });
+
+        root.append(delimitedNode);
       } else {
         // create code block for non-doc blocks
         const codeBlock = new CodeBlockNode(
@@ -123,5 +131,3 @@ export function reconcilePythonBlocks(
     }
   });
 }
-
-// reconcilePythonBlocks removed for now

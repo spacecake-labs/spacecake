@@ -18,7 +18,7 @@ import { debounce } from "@/lib/utils";
 import { editorTheme } from "@/components/editor/theme";
 // removed FileType re-export; import no longer needed
 import { useAtomValue, useSetAtom } from "jotai";
-import { isSavingAtom, lexicalEditorAtom } from "@/lib/atoms";
+import { isSavingAtom, lexicalEditorAtom } from "@/lib/atoms/atoms";
 // no direct composer context usage; editor instance captured via OnChangePlugin
 
 interface EditorProps {

@@ -1,20 +1,22 @@
 import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
-import type { FileEntry, WorkspaceInfo, File } from "@/types/workspace";
-import type { SidebarNavItem } from "@/lib/workspace";
+import type {
+  WorkspaceInfo,
+  FileContent,
+  FileTree,
+  ExpandedFolders,
+} from "@/types/workspace";
 import type { PyParsedFile } from "@/types/parser";
 import { SerializedEditorState } from "lexical";
 import type { LexicalEditor } from "lexical";
 
 export const workspaceAtom = atom<WorkspaceInfo | null>(null);
-export const filesAtom = atom<FileEntry[]>([]);
 export const loadingAtom = atom<boolean>(false);
 
-// Core workspace navigation state
-export const workspaceItemsAtom = atom<SidebarNavItem[]>([]);
+export const tFileTreeAtom = atom<FileTree>([]);
 
-// Expanded folders state (keyed by folder url)
-export const expandedFoldersAtom = atom<Record<string, boolean>>({});
+// Expanded folders state (keyed by folder path)
+export const expandedFoldersAtom = atom<ExpandedFolders>({});
 
 // Loading folders state (array of folder urls currently loading)
 export const loadingFoldersAtom = atom<string[]>([]);
@@ -23,7 +25,7 @@ export const loadingFoldersAtom = atom<string[]>([]);
 export const editorStateAtom = atom<SerializedEditorState | null>(null);
 
 // File content state
-export const fileContentAtom = atom<File | null>(null);
+export const fileContentAtom = atom<FileContent | null>(null);
 
 // Selected file path
 export const selectedFilePathAtom = atom<string | null>(null);
@@ -48,9 +50,6 @@ export const lastSavedEtagAtom = atom<
   Record<string, { mtimeMs: number; size: number }>
 >({});
 
-// Tree structure with folder contents
-export const fileTreeAtom = atom<Record<string, SidebarNavItem[]>>({});
-
 // Unified editing state for both create and rename operations
 export const editingItemAtom = atom<{
   type: "create" | "rename";
@@ -64,11 +63,10 @@ export const isCreatingFileAtom = atom<boolean>(false);
 export const fileNameAtom = atom<string>("");
 export const isRenamingFileAtom = atom<boolean>(false);
 export const renameFileNameAtom = atom<string>("");
-export const renamingItemAtom = atom<SidebarNavItem | null>(null);
 
 // Context-aware creation atoms (for dropdown menu)
 export const isCreatingInContextAtom = atom<{
-  type: "file" | "folder";
+  kind: "file" | "folder";
   parentPath: string;
 } | null>(null);
 export const contextItemNameAtom = atom<string>("");

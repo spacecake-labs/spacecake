@@ -1,13 +1,4 @@
-import { useEffect } from "react";
 import * as React from "react";
-import type { SidebarNavItem } from "@/lib/workspace";
-import {
-  transformFilesToTree,
-  buildFileTree,
-  isFile,
-  isFolder,
-  getNavItemPath,
-} from "@/lib/workspace";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -27,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   createFile,
-  readDirectory,
+  // readDirectory,
   renameFile,
   deleteFile,
   createFolder,
@@ -35,25 +26,22 @@ import {
 import { useAtom, useAtomValue } from "jotai";
 import {
   workspaceAtom,
-  filesAtom,
   expandedFoldersAtom,
-  fileTreeAtom,
   editingItemAtom,
   isCreatingInContextAtom,
   contextItemNameAtom,
-} from "@/lib/atoms";
+} from "@/lib/atoms/atoms";
+import { sortedFileTreeAtom } from "@/lib/atoms/file-tree";
 import {
   WorkspaceTree,
   WorkspaceDropdownMenu,
 } from "@/components/workspace-tree";
+import { FileWarning } from "lucide-react";
+import { File, Folder, ExpandedFolders } from "@/types/workspace";
 
 interface NavMainProps {
-  onExpandFolder?: (
-    folderUrl: string,
-    folderPath: string,
-    forceExpand?: boolean
-  ) => void;
-  expandedFolders?: Record<string, boolean>;
+  onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void;
+  expandedFolders?: ExpandedFolders;
   onFileClick?: (filePath: string) => void;
   selectedFilePath?: string | null;
 }
@@ -65,9 +53,7 @@ export function NavMain({
 }: NavMainProps) {
   const [editingItem, setEditingItem] = useAtom(editingItemAtom);
   const workspace = useAtomValue(workspaceAtom);
-  const [files, setFiles] = useAtom(filesAtom);
   const [expandedFoldersState] = useAtom(expandedFoldersAtom);
-  const [, setFileTree] = useAtom(fileTreeAtom);
   const [isCreatingInContext, setIsCreatingInContext] = useAtom(
     isCreatingInContextAtom
   );
@@ -79,28 +65,25 @@ export function NavMain({
   );
 
   // Delete confirmation state
-  const [deleteItem, setDeleteItem] = React.useState<SidebarNavItem | null>(
+  const [deleteItem, setDeleteItem] = React.useState<File | Folder | null>(
     null
   );
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
 
-  // Transform files to tree structure
-  const treeData = transformFilesToTree(files);
+  const [sortedFileTree] = useAtom(sortedFileTreeAtom);
 
   const isCreatingInWorkspace =
     isCreatingInContext?.parentPath === workspace?.path;
 
-  const handleWorkspaceCreateFile = async () => {
-    if (!contextItemName.trim() || !workspace?.path) return;
+  const handleCreateFile = async (parentPath: string) => {
+    console.log("handleCreateFile", `${parentPath}/${contextItemName.trim()}`);
 
     try {
-      const filePath = `${workspace.path}/${contextItemName.trim()}`;
+      const filePath = `${parentPath}/${contextItemName.trim()}`;
       const success = await createFile(filePath, "");
 
       if (success) {
-        // Refresh the workspace to show the new file
-        const files = await readDirectory(workspace.path);
-        setFiles(files);
+        // Clear the creation state to hide the input field
         setIsCreatingInContext(null);
         setContextItemName("");
         handleFileCreated(filePath);
@@ -110,17 +93,15 @@ export function NavMain({
     }
   };
 
-  const handleWorkspaceCreateFolder = async () => {
-    if (!contextItemName.trim() || !workspace?.path) return;
+  const handleCreateFolder = async (parentPath: string) => {
+    // if (!contextItemName.trim() || !workspace?.path) return;
 
     try {
-      const folderPath = `${workspace.path}/${contextItemName.trim()}`;
+      const folderPath = `${parentPath}/${contextItemName.trim()}`;
       const success = await createFolder(folderPath);
 
       if (success) {
-        // Refresh the workspace to show the new folder
-        const files = await readDirectory(workspace.path);
-        setFiles(files);
+        // Clear the creation state to hide the input field
         setIsCreatingInContext(null);
         setContextItemName("");
       }
@@ -131,10 +112,12 @@ export function NavMain({
 
   const handleWorkspaceKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      if (isCreatingInContext?.type === "file") {
-        handleWorkspaceCreateFile();
-      } else if (isCreatingInContext?.type === "folder") {
-        handleWorkspaceCreateFolder();
+      console.log("handleWorkspaceKeyDown", isCreatingInContext);
+
+      if (isCreatingInContext?.kind === "file") {
+        handleCreateFile(isCreatingInContext.parentPath);
+      } else if (isCreatingInContext?.kind === "folder") {
+        handleCreateFolder(isCreatingInContext.parentPath);
       }
     } else if (e.key === "Escape") {
       setIsCreatingInContext(null);
@@ -157,7 +140,9 @@ export function NavMain({
     const newPath = `${currentDir}/${newName.trim()}`;
 
     // Check if target already exists
-    const existingFile = files.find((f) => f.path === newPath);
+    const existingFile = sortedFileTree.find(
+      (f: File | Folder) => f.path === newPath
+    );
     if (existingFile) {
       return `'${newName.trim()}' already exists`;
     }
@@ -182,21 +167,19 @@ export function NavMain({
     }
   };
 
-  const handleFolderToggle = async (folderPath: string) => {
+  const handleFolderToggle = async (folderPath: Folder["path"]) => {
     if (onExpandFolder) {
-      // Use the folder URL format that matches the SidebarNavItem
-      const folderUrl = `#${folderPath}`;
-      onExpandFolder(folderUrl, folderPath);
+      onExpandFolder(folderPath);
     }
   };
 
-  const handleStartRename = (item: SidebarNavItem) => {
-    if (isFile(item) || isFolder(item)) {
+  const handleStartRename = (item: File | Folder) => {
+    if (item.kind === "file" || item.kind === "folder") {
       setEditingItem({
         type: "rename",
-        path: getNavItemPath(item),
-        value: item.title,
-        originalValue: item.title,
+        path: item.path,
+        value: item.name,
+        originalValue: item.name,
       });
       setValidationError(null); // Clear any previous validation errors
     }
@@ -241,10 +224,6 @@ export function NavMain({
       const success = await renameFile(oldPath, newPath);
 
       if (success) {
-        // Refresh the workspace to show the renamed file
-        const files = await readDirectory(workspace.path);
-        setFiles(files);
-
         // Update selected file path if it was the renamed file
         if (selectedFilePath === oldPath) {
           handleFileClick(newPath);
@@ -288,7 +267,7 @@ export function NavMain({
     }
   };
 
-  const handleStartDelete = (item: SidebarNavItem) => {
+  const handleStartDelete = (item: File | Folder) => {
     setDeleteItem(item);
     setShowDeleteDialog(true);
   };
@@ -297,19 +276,11 @@ export function NavMain({
     if (!deleteItem || !workspace?.path) return;
 
     try {
-      const filePath = getNavItemPath(deleteItem);
+      const filePath = deleteItem.path;
+      console.log("deleting file:", filePath);
       const success = await deleteFile(filePath);
 
       if (success) {
-        // Refresh the workspace to show the updated file list
-        const files = await readDirectory(workspace.path);
-        setFiles(files);
-
-        // Clear selected file if it was the deleted file
-        if (selectedFilePath === filePath) {
-          handleFileClick("");
-        }
-
         setShowDeleteDialog(false);
         setDeleteItem(null);
       } else {
@@ -325,13 +296,6 @@ export function NavMain({
     setDeleteItem(null);
   };
 
-  useEffect(() => {
-    if (files && files.length > 0) {
-      const newFileTree = buildFileTree(files);
-      setFileTree(newFileTree);
-    }
-  }, [files, setFileTree]);
-
   return (
     <>
       <SidebarGroup>
@@ -346,7 +310,7 @@ export function NavMain({
               <SidebarMenuButton className="cursor-default">
                 <Input
                   placeholder={
-                    isCreatingInContext?.type === "file"
+                    isCreatingInContext?.kind === "file"
                       ? "filename.txt"
                       : "folder name"
                   }
@@ -360,14 +324,17 @@ export function NavMain({
             </SidebarMenuItem>
           )}
           {workspace?.path &&
-            treeData.map((item) => (
+            sortedFileTree.map((item) => (
               <WorkspaceTree
-                key={getNavItemPath(item)}
+                key={item.path}
+                children={item.kind === "folder" ? item.children : undefined}
                 item={item}
                 onFileClick={handleFileClick}
                 onFolderToggle={handleFolderToggle}
                 onStartRename={handleStartRename}
                 onStartDelete={handleStartDelete}
+                onCreateFile={handleCreateFile}
+                onCreateFolder={handleCreateFolder}
                 selectedFilePath={selectedFilePath}
                 expandedFolders={expandedFoldersState}
                 editingItem={editingItem}
@@ -381,6 +348,17 @@ export function NavMain({
                 onExpandFolder={onExpandFolder}
               />
             ))}
+          {/* Add empty state when workspace has no files/folders */}
+          {workspace?.path && sortedFileTree.length === 0 && (
+            <SidebarMenuItem>
+              <SidebarMenuButton className="cursor-default">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <FileWarning className="h-3 w-3" />
+                  <span>empty</span>
+                </div>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarGroup>
 
@@ -389,16 +367,21 @@ export function NavMain({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {deleteItem && isFolder(deleteItem)
+              {deleteItem && deleteItem.kind === "folder"
                 ? "delete folder"
                 : "delete file"}
             </DialogTitle>
             <DialogDescription>
               are you sure you want to delete '
-              {deleteItem && (isFile(deleteItem) || isFolder(deleteItem))
-                ? deleteItem.title
-                : deleteItem?.message}
-              '{deleteItem && isFolder(deleteItem) ? " and its contents" : ""}?
+              {deleteItem &&
+              (deleteItem.kind === "file" || deleteItem.kind === "folder")
+                ? deleteItem.name
+                : ""}
+              '
+              {deleteItem && deleteItem.kind === "folder"
+                ? " and its contents"
+                : ""}
+              ?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

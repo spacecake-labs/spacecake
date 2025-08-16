@@ -1,22 +1,10 @@
 import fs from "fs/promises";
 import path from "path";
 import type { Dirent } from "fs";
-import type { FileEntry, File } from "@/types/workspace";
+import type { FileContent } from "@/types/workspace";
 import { FileType } from "@/types/workspace";
 import writeFileAtomic from "write-file-atomic";
-
-/**
- * Sorts file entries: directories first, then files, both alphabetically
- * @param files - Array of file entries to sort
- * @returns Sorted array of file entries
- */
-export function sortFiles(files: FileEntry[]): FileEntry[] {
-  return files.sort((a, b) => {
-    if (a.isDirectory && !b.isDirectory) return -1;
-    if (!a.isDirectory && b.isDirectory) return 1;
-    return a.name.localeCompare(b.name);
-  });
-}
+import { fnv1a64Hex } from "@/lib/hash";
 
 export interface FileNode {
   name: string;
@@ -107,61 +95,6 @@ const createFsAdapter = (): Fs => ({
 const fsAdapter = createFsAdapter();
 
 /**
- * Reads directory contents and returns sorted file entries
- * @param dirPath - The directory path to read
- * @param fsModule - The fs module to use (defaults to fs/promises)
- * @returns Array of sorted file entries
- */
-export async function readDir(
-  dirPath: string,
-  fsModule: Fs = fsAdapter
-): Promise<FileEntry[]> {
-  const entries = await fsModule.readdir(dirPath, { withFileTypes: true });
-
-  // Filter out .spacecake folder and other hidden files
-  const filteredEntries = entries.filter(
-    (entry) => !entry.name.startsWith(".")
-  );
-
-  const files = await Promise.all(
-    filteredEntries.map(async (entry: FileNode) => {
-      const fullPath = path.join(dirPath, entry.name);
-      const stats = await fsModule.stat(fullPath);
-
-      return {
-        name: entry.name,
-        path: fullPath,
-        type: entry.isDirectory() ? ("directory" as const) : ("file" as const),
-        size: stats.size,
-        modified: stats.mtime.toISOString(),
-        isDirectory: entry.isDirectory(),
-      };
-    })
-  );
-
-  return sortFiles(files);
-}
-
-/**
- * Gets the file type based on the file extension
- * @param fileName - The name of the file
- * @returns The FileType enum value
- */
-export function getFileType(fileName: string): FileType {
-  const extension = fileName.split(".").pop()?.toLowerCase();
-
-  switch (extension) {
-    case "md":
-    case "markdown":
-      return FileType.Markdown;
-    case "py":
-      return FileType.Python;
-    default:
-      return FileType.Plaintext;
-  }
-}
-
-/**
  * Ensures the .spacecake folder exists in the given workspace directory
  * @param workspacePath - The workspace directory path
  * @param fsModule - The fs module to use (defaults to fs/promises)
@@ -210,6 +143,25 @@ export async function createFolder(
 }
 
 /**
+ * Gets the file type based on the file extension
+ * @param fileName - The name of the file
+ * @returns The FileType enum value
+ */
+export function getFileType(fileName: string): FileType {
+  const extension = fileName.split(".").pop()?.toLowerCase();
+
+  switch (extension) {
+    case "md":
+    case "markdown":
+      return FileType.Markdown;
+    case "py":
+      return FileType.Python;
+    default:
+      return FileType.Plaintext;
+  }
+}
+
+/**
  * Reads a file and returns both content and metadata
  * @param filePath - The path of the file to read
  * @param fsModule - The fs module to use (defaults to fs/promises)
@@ -218,7 +170,7 @@ export async function createFolder(
 export async function readFile(
   filePath: string,
   fsModule: Fs = fsAdapter
-): Promise<File> {
+): Promise<FileContent> {
   const [content, stats] = await Promise.all([
     fsModule.readFile(filePath, { encoding: "utf8" }),
     fsModule.stat(filePath),
@@ -230,12 +182,14 @@ export async function readFile(
   return {
     name,
     path: filePath,
-    type: "file" as const,
-    size: stats.size,
-    modified: stats.mtime.toISOString(),
-    isDirectory: false,
+    kind: "file" as const,
+    etag: {
+      mtimeMs: stats.mtime.getTime(),
+      size: stats.size,
+    },
     content,
     fileType: getFileType(name),
+    cid: fnv1a64Hex(content),
   };
 }
 

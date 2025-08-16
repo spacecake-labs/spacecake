@@ -2,8 +2,6 @@ import { ipcMain, dialog, BrowserWindow } from "electron";
 import fs from "fs";
 import chokidar from "chokidar";
 import {
-  readDir,
-  ensureSpacecakeFolder,
   createFile,
   createFolder,
   readFile,
@@ -11,7 +9,8 @@ import {
   deleteFile,
   saveFileAtomic,
 } from "@/main-process/fs";
-import { getWorkspaceName } from "@/main-process/workspace";
+import type { FileTreeEvent, ETag } from "@/types/workspace";
+import path from "path";
 
 // IPC handlers for file dialogs
 ipcMain.handle("show-open-dialog", async (event, options) => {
@@ -30,45 +29,6 @@ ipcMain.handle("show-save-dialog", async (event, options) => {
   return result;
 });
 
-// IPC handlers for file system operations
-ipcMain.handle("read-directory", async (event, dirPath: string) => {
-  try {
-    const files = await readDir(dirPath);
-    return { success: true, files };
-  } catch (error) {
-    console.error("error reading directory:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "unknown error",
-    };
-  }
-});
-
-ipcMain.handle("read-workspace", async (event, dirPath: string) => {
-  try {
-    // Ensure the .spacecake folder exists
-    await ensureSpacecakeFolder(dirPath);
-
-    const files = await readDir(dirPath);
-    const workspaceName = getWorkspaceName(dirPath, process.platform);
-
-    return {
-      success: true,
-      files,
-      workspace: {
-        path: dirPath,
-        name: workspaceName,
-      },
-    };
-  } catch (error) {
-    console.error("error reading workspace:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "unknown error",
-    };
-  }
-});
-
 ipcMain.handle("read-file", async (event, filePath: string) => {
   try {
     const file = await readFile(filePath);
@@ -85,8 +45,24 @@ ipcMain.handle(
   "create-file",
   async (event, filePath: string, content: string = "") => {
     try {
+      console.log("ipc create-file", filePath, content);
+      // Create the file
       await createFile(filePath, content);
-      return { success: true };
+
+      // Wait for the chokidar event to confirm the file exists
+      const watcherData = getWatcherEntry(event, filePath);
+      if (!watcherData)
+        return { success: false, error: "no watcher or window" };
+      const { entry } = watcherData;
+
+      // Wait for the add event (with timeout)
+      return waitForChokidarEvent(
+        entry,
+        "add",
+        filePath,
+        2000,
+        "timeout waiting for file event"
+      );
     } catch (error) {
       console.error("error creating file:", error);
       return {
@@ -96,76 +72,6 @@ ipcMain.handle(
     }
   }
 );
-
-// file system watcher for external changes
-const watchers = new Map<string, chokidar.FSWatcher>();
-// remember last write etag per path to suppress self-save watcher echoes
-const lastWriteEtag = new Map<string, { mtimeMs: number; size: number }>();
-
-ipcMain.handle("watch-workspace", async (event, workspacePath: string) => {
-  try {
-    // reuse existing watcher for this path
-    if (watchers.has(workspacePath)) {
-      return { success: true };
-    }
-    const win = BrowserWindow.fromWebContents(event.sender);
-    const watcher = chokidar.watch(workspacePath, {
-      ignoreInitial: true,
-      ignored: ["**/node_modules/**", "**/.git/**", "**/.DS_Store"],
-      persistent: true,
-      depth: Infinity,
-      awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 50 },
-      atomic: true,
-      alwaysStat: true,
-    });
-
-    const emit = (
-      type: "add" | "change" | "unlink",
-      path: string,
-      stats?: import("fs").Stats
-    ) => {
-      const etag = stats ? { mtimeMs: stats.mtimeMs, size: stats.size } : null;
-      const tsMs = Date.now();
-      const last = lastWriteEtag.get(path);
-      if (
-        etag &&
-        last &&
-        etag.mtimeMs === last.mtimeMs &&
-        etag.size === last.size
-      ) {
-        return;
-      }
-      win?.webContents.send("file-event", { type, path, etag, tsMs });
-    };
-
-    watcher
-      .on("add", (path, stats) => emit("add", path, stats))
-      .on("change", (path, stats) => emit("change", path, stats))
-      .on("unlink", (path) => emit("unlink", path));
-
-    watchers.set(workspacePath, watcher);
-    return { success: true };
-  } catch (error) {
-    console.error("error starting watcher:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "unknown error",
-    };
-  }
-});
-
-ipcMain.handle("create-folder", async (event, folderPath: string) => {
-  try {
-    await createFolder(folderPath);
-    return { success: true };
-  } catch (error) {
-    console.error("error creating folder:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "unknown error",
-    };
-  }
-});
 
 ipcMain.handle(
   "rename-file",
@@ -187,8 +93,26 @@ ipcMain.handle(
 
 ipcMain.handle("delete-file", async (event, filePath: string) => {
   try {
+    // Check if it's a directory BEFORE deleting
+    const isDirectory = fs.statSync(filePath).isDirectory();
+    const eventType = isDirectory ? "unlinkDir" : "unlink";
+
+    // Delete the file/folder
     await deleteFile(filePath);
-    return { success: true };
+
+    // Wait for the chokidar event to confirm deletion
+    const watcherData = getWatcherEntry(event, filePath);
+    if (!watcherData) return { success: false, error: "no watcher or window" };
+    const { entry } = watcherData;
+
+    // Wait for the appropriate event (with timeout)
+    return waitForChokidarEvent(
+      entry,
+      eventType,
+      filePath,
+      2000,
+      `timeout waiting for ${isDirectory ? "folder" : "file"} deletion event`
+    );
   } catch (error) {
     console.error("error deleting file:", error);
     return {
@@ -219,3 +143,220 @@ ipcMain.handle(
     }
   }
 );
+
+type WatchEntry = { watcher: chokidar.FSWatcher; targetIds: Set<number> };
+const watchers = new Map<string, WatchEntry>();
+const lastWriteEtag = new Map<string, { mtimeMs: number; size: number }>();
+const ZERO_ETAG: ETag = { mtimeMs: 0, size: 0 };
+
+/**
+ * Helper function to get the watcher entry for a given file path
+ * @param event - The IPC event
+ * @param filePath - The file path to get the watcher for
+ * @returns The watcher entry and workspace path, or null if not found
+ */
+function getWatcherEntry(
+  event: Electron.IpcMainInvokeEvent,
+  filePath: string
+): {
+  entry: WatchEntry;
+  workspacePath: string;
+  win: BrowserWindow;
+} | null {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return null;
+
+  // Find the watcher by checking if the filePath is within any watched workspace
+  for (const [workspacePath, entry] of watchers.entries()) {
+    console.log(
+      `[getWatcherEntry] checking workspace: ${workspacePath} against file: ${filePath}`
+    );
+    if (filePath.startsWith(workspacePath)) {
+      console.log(
+        `[getWatcherEntry] found watcher for workspace: ${workspacePath}`
+      );
+      return { entry, workspacePath, win };
+    }
+  }
+
+  console.log(`[getWatcherEntry] no watcher found for file: ${filePath}`);
+  console.log(
+    `[getWatcherEntry] available watchers:`,
+    Array.from(watchers.keys())
+  );
+
+  return null;
+}
+
+/**
+ * Helper function to wait for a specific chokidar event
+ * @param entry - The watcher entry
+ * @param eventType - The chokidar event type to wait for
+ * @param expectedPath - The expected file path
+ * @param timeoutMs - Timeout in milliseconds
+ * @param errorMessage - Error message for timeout
+ * @returns Promise that resolves to success/failure
+ */
+function waitForChokidarEvent(
+  entry: WatchEntry,
+  eventType: "add" | "unlink" | "unlinkDir",
+  expectedPath: string,
+  timeoutMs: number = 2000,
+  errorMessage: string
+): Promise<{ success: boolean; error?: string }> {
+  return new Promise((resolve) => {
+    // Check if the event already happened (for add events, check if file exists)
+    if (eventType === "add") {
+      if (fs.existsSync(expectedPath)) {
+        resolve({ success: true });
+        return;
+      }
+    }
+
+    const timeout = setTimeout(() => {
+      resolve({ success: false, error: errorMessage });
+    }, timeoutMs);
+
+    const onEvent = (p: string) => {
+      if (p === expectedPath) {
+        clearTimeout(timeout);
+        entry.watcher.off(eventType, onEvent);
+        resolve({ success: true });
+      }
+    };
+
+    entry.watcher.on(eventType, onEvent);
+  });
+}
+
+const emitInitialSnapshotFromWatcher = (
+  watcher: chokidar.FSWatcher,
+  rootPath: string,
+  send: (evt: FileTreeEvent) => void
+) => {
+  const watched = watcher.getWatched(); // { [dir]: string[] }
+  // emit folders first (excluding the root itself)
+  for (const dir of Object.keys(watched)) {
+    if (dir === rootPath) continue;
+    send({ kind: "addFolder", path: dir });
+  }
+  // emit files using directory listings; a path is a folder if it is a key in getWatched()
+  for (const [dir, names] of Object.entries(watched)) {
+    for (const name of names) {
+      const full = path.join(dir, name);
+      if (watched[full]) {
+        // it’s a folder; already emitted above
+        continue;
+      }
+      send({ kind: "addFile", path: full, etag: ZERO_ETAG });
+    }
+  }
+};
+
+ipcMain.handle("watch-workspace", async (event, workspacePath: string) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    let entry = watchers.get(workspacePath);
+    if (entry) {
+      if (win) {
+        entry.targetIds.add(win.id);
+        console.log(
+          "[watch-workspace] reusing watcher for",
+          workspacePath,
+          "attach window",
+          win.id
+        );
+        // synthesize initial state from the existing watcher (no fs.readdir)
+        emitInitialSnapshotFromWatcher(entry.watcher, workspacePath, (evt) => {
+          if (!win.isDestroyed()) win.webContents.send("file-event", evt);
+        });
+      }
+      return { success: true };
+    }
+
+    console.log("[watch-workspace] creating watcher for", workspacePath);
+    const watcher = chokidar.watch(workspacePath, {
+      persistent: true,
+      ignoreInitial: false, // will emit initial add/addDir for the first-attached renderer
+      ignored: ["**/node_modules/**", "**/.git/**", "**/.DS_Store"],
+      depth: Infinity,
+      awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 50 },
+      atomic: true,
+      alwaysStat: true,
+    });
+
+    entry = { watcher, targetIds: new Set<number>() };
+    if (win) entry.targetIds.add(win.id);
+
+    const emit = (evt: FileTreeEvent) => {
+      for (const id of entry!.targetIds) {
+        const w = BrowserWindow.fromId(id);
+        if (w && !w.isDestroyed()) w.webContents.send("file-event", evt);
+      }
+    };
+
+    watcher
+      .on("add", (p, stats) => {
+        const etag: ETag = {
+          mtimeMs: stats?.mtimeMs ?? Date.now(),
+          size: stats?.size ?? 0,
+        };
+        emit({ kind: "addFile", path: p, etag });
+      })
+      .on("change", async (p, stats) => {
+        const etag: ETag = {
+          mtimeMs: stats?.mtimeMs ?? Date.now(),
+          size: stats?.size ?? 0,
+        };
+
+        try {
+          const { readFile } = await import("@/main-process/fs");
+          const file = await readFile(p);
+          if (file) {
+            // Calculate content hash using existing fnv1a64Hex function
+            const { fnv1a64Hex } = await import("@/lib/hash");
+            const newContentHash = fnv1a64Hex(file.content);
+
+            // Check if content hash has changed by comparing with previous hash
+            // For now, we'll always emit since we don't have previous hash storage
+            // In the future, we could store previous hashes in a Map for comparison
+            emit({
+              kind: "contentChange",
+              path: p,
+              etag,
+              content: file.content,
+              fileType: file.fileType,
+              cid: newContentHash,
+            });
+          }
+        } catch (error) {
+          console.error("error reading file for content change:", error);
+        }
+      })
+      .on("unlink", (p) => emit({ kind: "unlinkFile", path: p }))
+      .on("addDir", (p) => emit({ kind: "addFolder", path: p }))
+      .on("unlinkDir", (p) => emit({ kind: "unlinkFolder", path: p }));
+
+    watchers.set(workspacePath, entry);
+    return { success: true };
+  } catch (error) {
+    console.error("error starting watcher:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "unknown error",
+    };
+  }
+});
+
+ipcMain.handle("create-folder", async (event, folderPath: string) => {
+  try {
+    await createFolder(folderPath);
+    return { success: true };
+  } catch (error) {
+    console.error("error creating folder:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "unknown error",
+    };
+  }
+});

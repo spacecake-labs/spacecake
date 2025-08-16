@@ -7,7 +7,7 @@ import { setTimeout } from "node:timers/promises";
     cwd: process.cwd(),
     timeout: 60000, // increase timeout to 60 seconds
   });
-  const context = await browser.context();
+  const context = browser.context();
   await context.route("**/*", (route) => route.continue());
 
   await setTimeout(3000); // wait for the window to load

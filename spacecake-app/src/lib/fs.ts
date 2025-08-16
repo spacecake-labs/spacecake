@@ -1,10 +1,5 @@
-import type {
-  FileEntry,
-  ReadDirectoryResult,
-  ReadWorkspaceResult,
-  WorkspaceInfo,
-  File,
-} from "@/types/workspace";
+import type { FileContent } from "@/types/workspace";
+import { fnv1a64Hex } from "@/lib/hash";
 
 const openDirectory = async (): Promise<string | null> => {
   try {
@@ -19,45 +14,6 @@ const openDirectory = async (): Promise<string | null> => {
     return null;
   } catch (error) {
     console.error("Error opening folder:", error);
-    return null;
-  }
-};
-
-const readDirectory = async (dirPath: string): Promise<FileEntry[]> => {
-  try {
-    const result: ReadDirectoryResult =
-      await window.electronAPI.readDirectory(dirPath);
-
-    if (result.success && result.files) {
-      return result.files;
-    } else {
-      console.error("failed to read directory:", result.error);
-      return [];
-    }
-  } catch (error) {
-    console.error("error reading directory:", error);
-    return [];
-  }
-};
-
-const readWorkspace = async (
-  dirPath: string
-): Promise<{ files: FileEntry[]; workspace: WorkspaceInfo } | null> => {
-  try {
-    const result: ReadWorkspaceResult =
-      await window.electronAPI.readWorkspace(dirPath);
-
-    if (result.success && result.files && result.workspace) {
-      return {
-        files: result.files,
-        workspace: result.workspace,
-      };
-    } else {
-      console.error("failed to read workspace:", result.error);
-      return null;
-    }
-  } catch (error) {
-    console.error("error reading workspace:", error);
     return null;
   }
 };
@@ -97,12 +53,17 @@ const createFolder = async (folderPath: string): Promise<boolean> => {
   }
 };
 
-const readFile = async (filePath: string): Promise<File | null> => {
+const readFile = async (filePath: string): Promise<FileContent | null> => {
   try {
     const result = await window.electronAPI.readFile(filePath);
 
     if (result.success && result.file) {
-      return result.file;
+      // compute cid from file content
+      const cid = fnv1a64Hex(result.file.content);
+      return {
+        ...result.file,
+        cid,
+      };
     } else {
       console.error("failed to read file:", result.error);
       return null;
@@ -168,8 +129,6 @@ const saveFile = async (
 
 export {
   openDirectory,
-  readDirectory,
-  readWorkspace,
   createFile,
   createFolder,
   readFile,

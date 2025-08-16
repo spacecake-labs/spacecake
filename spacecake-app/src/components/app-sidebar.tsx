@@ -1,7 +1,5 @@
 import { useAtom, useAtomValue } from "jotai";
-import { workspaceAtom, expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms";
-import { readDirectory } from "@/lib/fs";
-import { updateFolderContents } from "@/lib/workspace";
+import { workspaceAtom, expandedFoldersAtom } from "@/lib/atoms/atoms";
 import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
 import { NavSecondary } from "@/components/nav-secondary";
@@ -16,6 +14,8 @@ import {
 import { CakeSlice } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { encodeBase64Url } from "@/lib/utils";
+import { ExpandedFolders } from "@/types/workspace";
+import { Folder } from "@/types/workspace";
 
 interface AppSidebarProps {
   onFileClick?: (filePath: string) => void;
@@ -25,39 +25,23 @@ interface AppSidebarProps {
 export function AppSidebar({ onFileClick, selectedFilePath }: AppSidebarProps) {
   const workspace = useAtomValue(workspaceAtom);
   const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom);
-  const [, setFileTree] = useAtom(fileTreeAtom);
 
   const handleExpandFolder = async (
-    folderUrl: string,
-    folderPath: string,
+    folderPath: Folder["path"], // This is now the actual path, not a URL
     forceExpand?: boolean
   ) => {
-    // Check if folder is currently expanded
-    const isCurrentlyExpanded = expandedFolders[folderUrl];
+    // Check if folder is currently expanded using the actual path
+    const isCurrentlyExpanded = expandedFolders[folderPath] ?? false;
 
     // Determine if we should expand the folder
     const shouldExpand =
       forceExpand !== undefined ? forceExpand : !isCurrentlyExpanded;
 
-    // Set expanded state
-    setExpandedFolders((prev: Record<string, boolean>) => ({
+    // Set expanded state using the actual path
+    setExpandedFolders((prev: ExpandedFolders) => ({
       ...prev,
-      [folderUrl]: shouldExpand,
+      [folderPath]: shouldExpand,
     }));
-
-    // Load folder contents if we're expanding (not collapsing)
-    if (shouldExpand && !isCurrentlyExpanded) {
-      try {
-        const folderFiles = await readDirectory(folderPath);
-        // Update the tree structure with folder contents
-        // Use folderPath (without #) as the key for fileTree
-        setFileTree((prev) =>
-          updateFolderContents(prev, folderPath, folderFiles)
-        );
-      } catch (error) {
-        console.error("error loading folder:", error);
-      }
-    }
   };
 
   return (

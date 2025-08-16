@@ -70,15 +70,14 @@ test.describe("spacecake app", () => {
 
     await textbox.fill("test.txt");
     await textbox.press("Enter");
-    // await window.keyboard.press("Enter");
-
-    // Wait for the create file input to disappear (indicating state reset)
-    await expect(textbox).not.toBeVisible();
 
     // Wait for the new file to appear in the sidebar
     await expect(
       window.getByRole("button", { name: "test.txt" }).first()
     ).toBeVisible();
+
+    // Wait for the create file input to disappear (indicating state reset)
+    await expect(textbox).not.toBeVisible();
 
     // Verify the file was actually created in the filesystem
     const expectedFilePath = path.join(tempTestDir, "test.txt");
@@ -371,10 +370,7 @@ test.describe("spacecake app", () => {
     });
   });
 
-  test("delete file functionality", async ({
-    electronApp,
-    tempTestDir,
-  }, testInfo) => {
+  test("delete file", async ({ electronApp, tempTestDir }, testInfo) => {
     // wait for the first window to be ready
     const window = await electronApp.firstWindow();
 

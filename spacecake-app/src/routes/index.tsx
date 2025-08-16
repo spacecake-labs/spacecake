@@ -1,11 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { FolderOpen, Loader2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { openDirectory, readWorkspace } from "@/lib/fs";
-import { workspaceAtom, filesAtom, workspaceItemsAtom } from "@/lib/atoms";
-import { transformFilesToNavItems } from "@/lib/workspace";
+import { openDirectory } from "@/lib/fs";
+import { workspaceAtom } from "@/lib/atoms/atoms";
 import { useAtom, useSetAtom } from "jotai";
-import { useEffect } from "react";
 import { atom } from "jotai";
 import { encodeBase64Url } from "@/lib/utils";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -24,65 +22,22 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const [workspace, setWorkspace] = useAtom(workspaceAtom);
+  const setWorkspace = useSetAtom(workspaceAtom);
   const [fileExplorerIsOpen, setFileExplorerIsOpen] = useAtom(
     fileExplorerIsOpenAtom
   );
-  const setFiles = useSetAtom(filesAtom);
-  const setSidebarNav = useSetAtom(workspaceItemsAtom);
+
   const navigate = useNavigate();
-
-  // Read directory when workspace changes
-  useEffect(() => {
-    const loadDirectory = async () => {
-      if (!workspace) {
-        setFiles([]);
-        setSidebarNav([]);
-        return;
-      }
-
-      setFileExplorerIsOpen(true);
-      try {
-        const result = await readWorkspace(workspace.path);
-        if (result) {
-          setFiles(result.files);
-          // Transform files into sidebar navigation
-          const navItems = transformFilesToNavItems(result.files);
-          setSidebarNav(navItems);
-        } else {
-          setFiles([]);
-          setSidebarNav([]);
-        }
-      } catch (error) {
-        console.error("error loading workspace:", error);
-        setFiles([]);
-        setSidebarNav([]);
-      } finally {
-        setFileExplorerIsOpen(false);
-      }
-    };
-
-    loadDirectory();
-  }, [workspace, setFiles, setSidebarNav, setFileExplorerIsOpen]);
 
   const handleOpenWorkspace = async () => {
     setFileExplorerIsOpen(true);
     try {
       const selectedPath = await openDirectory();
       if (selectedPath) {
-        // Load the full workspace info immediately
-        const result = await readWorkspace(selectedPath);
-        if (result) {
-          setWorkspace(result.workspace);
-          // route into workspace layout
-          const id = encodeBase64Url(result.workspace.path);
-          navigate({ to: "/w/$workspaceId", params: { workspaceId: id } });
-        } else {
-          // Fallback to basic info if readWorkspace fails
-          setWorkspace({ path: selectedPath, name: "" });
-          const id = encodeBase64Url(selectedPath);
-          navigate({ to: "/w/$workspaceId", params: { workspaceId: id } });
-        }
+        // Just set basic workspace info and navigate
+        setWorkspace({ path: selectedPath, name: "" });
+        const id = encodeBase64Url(selectedPath);
+        navigate({ to: "/w/$workspaceId", params: { workspaceId: id } });
       }
     } finally {
       setFileExplorerIsOpen(false);

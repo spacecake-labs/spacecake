@@ -6,13 +6,14 @@ import {
   LexicalEditor,
 } from "lexical";
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node";
+import { $createDelimitedNode } from "@/components/editor/nodes/delimited";
 import { INITIAL_LOAD_TAG } from "@/types/editor";
 import type { FileType } from "@/types/workspace";
 import {
   parsePythonContentStreaming,
   docToBlock,
 } from "@/lib/parser/python/blocks";
-import type { File } from "@/types/workspace";
+import type { FileContent } from "@/types/workspace";
 import { toast } from "sonner";
 
 /**
@@ -20,7 +21,7 @@ import { toast } from "sonner";
  */
 async function convertPythonBlocksToLexical(
   content: string,
-  file: File,
+  file: FileContent,
   editor: LexicalEditor
 ) {
   try {
@@ -31,14 +32,23 @@ async function convertPythonBlocksToLexical(
     });
     // Parse blocks progressively, updating per block
     let blockCount = 0;
+    let docstringCount = 0;
     for await (const block of parsePythonContentStreaming(content)) {
       blockCount++;
       editor.update(
         () => {
           const root = $getRoot();
           if (block.kind === "doc") {
-            const markdown = docToBlock(block, blockCount - 1);
-            $convertFromMarkdownString(markdown, TRANSFORMERS);
+            docstringCount++;
+            const delimitedString = docToBlock(block);
+
+            // Create DelimitedNode instead of converting to markdown
+            const delimitedNode = $createDelimitedNode({
+              delimitedString,
+              level: docstringCount === 1 ? 2 : 1, // First docstring = h2, others = h1
+            });
+
+            root.append(delimitedNode);
           } else {
             const codeBlock = $createCodeBlockNode({
               code: block.text,
@@ -84,7 +94,7 @@ async function convertPythonBlocksToLexical(
 export function getInitialEditorStateFromContent(
   content: string,
   fileType: FileType,
-  file?: File
+  file?: FileContent
 ) {
   return (editor: LexicalEditor) => {
     if (fileType === "python" && file) {

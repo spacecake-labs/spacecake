@@ -7,17 +7,20 @@ lint:
 tc:
     pnpm run typecheck
 
+check:
+    just lint && just tc
+
 unit:
     pnpm run unit-test
 
-e2e:
-    pnpm run package && pnpm run e2e-test
+e2e filter="":
+    pnpm run package && pnpm run e2e-test --grep="{{filter}}"
 
 test:
     just unit && just e2e
 
 codegen:
-    npx tsx scripts/playwright-codegen.ts
+    pnpm run package && npx tsx scripts/playwright-codegen.ts
 
 print-py-nodes file:
     npx tsx scripts/print-py-nodes.ts {{file}}

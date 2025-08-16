@@ -1,17 +1,18 @@
 import { describe, it, expect } from "vitest";
 import { getEditorConfig } from "@/lib/editor";
-import { FileType } from "@/types/workspace";
-import type { File } from "@/types/workspace";
+import { FileType, ZERO_HASH } from "@/types/workspace";
+import type { FileContent } from "@/types/workspace";
 import type { SerializedEditorState } from "lexical";
 
 describe("Editor Integration", () => {
-  const mockPythonFile: File = {
+  const mockPythonFile: FileContent = {
     name: "test.py",
     path: "/test/test.py",
-    type: "file",
-    size: 100,
-    modified: "2024-01-01",
-    isDirectory: false,
+    kind: "file",
+    etag: {
+      mtimeMs: 1714732800000,
+      size: 100,
+    },
     content: `import math
 
 def fibonacci(n):
@@ -23,17 +24,20 @@ class Calculator:
     def add(self, a, b):
         return a + b`,
     fileType: FileType.Python,
+    cid: ZERO_HASH,
   };
 
-  const mockMarkdownFile: File = {
+  const mockMarkdownFile: FileContent = {
     name: "test.md",
     path: "/test/test.md",
-    type: "file",
-    size: 50,
-    modified: "2024-01-01",
-    isDirectory: false,
+    kind: "file",
+    etag: {
+      mtimeMs: 1714732800000,
+      size: 50,
+    },
     content: "# Hello\n\nThis is markdown",
     fileType: FileType.Markdown,
+    cid: ZERO_HASH,
   };
 
   describe("getEditorConfig", () => {

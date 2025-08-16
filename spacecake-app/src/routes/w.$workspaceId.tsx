@@ -1,5 +1,5 @@
 import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom } from "jotai";
 import {
   SidebarInset,
   SidebarProvider,
@@ -12,15 +12,10 @@ import {
   editorStateAtom,
   fileContentAtom,
   selectedFilePathAtom,
-  workspaceAtom,
-  filesAtom,
-  workspaceItemsAtom,
   lexicalEditorAtom,
   baselineFileAtom,
   isSavingAtom,
-} from "@/lib/atoms";
-import { readWorkspace } from "@/lib/fs";
-import { transformFilesToNavItems } from "@/lib/workspace";
+} from "@/lib/atoms/atoms";
 import { Outlet } from "@tanstack/react-router";
 import { getEditorConfig } from "@/lib/editor";
 import type { SerializedEditorState } from "lexical";
@@ -30,19 +25,21 @@ import { readFile, saveFile } from "@/lib/fs";
 import { decodeBase64Url } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 // toolbar renders the save button
-import { FileType } from "@/types/workspace";
+import { FileType, FileTreeEvent } from "@/types/workspace";
 import { fileTypeFromExtension } from "@/lib/workspace";
 import { serializeEditorToPython } from "@/lib/editor";
 import { EditorToolbar } from "@/components/editor/toolbar";
+import { fileTreeEventAtom } from "@/lib/atoms/file-tree";
 
 export const Route = createFileRoute("/w/$workspaceId")({
   loader: async ({ params }) => {
     const workspacePath = decodeBase64Url(params.workspaceId);
-    const result = await readWorkspace(workspacePath);
-    if (!result) {
-      throw new Error("failed to read workspace");
-    }
-    return result;
+    return {
+      workspace: {
+        path: workspacePath,
+        name: workspacePath.split("/").pop() || "spacecake",
+      },
+    };
   },
   pendingComponent: () => (
     <div className="p-4 text-sm text-muted-foreground">loading workspace…</div>
@@ -53,50 +50,75 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
 function WorkspaceLayout() {
   const workspaceData = Route.useLoaderData();
-  const setWorkspace = useSetAtom(workspaceAtom);
-  const setFiles = useSetAtom(filesAtom);
-  const setSidebarNav = useSetAtom(workspaceItemsAtom);
+
+  const [, handleFileTreeEvent] = useAtom(fileTreeEventAtom);
 
   useEffect(() => {
-    // always refresh workspace lists
-    setWorkspace(workspaceData.workspace);
-    setFiles(workspaceData.files);
-    setSidebarNav(transformFilesToNavItems(workspaceData.files));
-
-    if (workspaceData?.workspace?.path) {
+    // Only start watching if we have a valid workspace path
+    if (workspaceData?.workspace?.path !== "/") {
       void window.electronAPI.watchWorkspace(workspaceData.workspace.path);
     }
 
-    const off = window.electronAPI.onFileEvent(async (evt) => {
-      if (evt.type !== "change" && evt.type !== "add") return;
-      const currentPath = selectedPathRef.current;
-      const currentEditor = lexicalEditorRef.current;
-      if (!currentPath || !currentEditor) return;
-      if (evt.path !== currentPath) return;
+    const off = window.electronAPI.onFileEvent(async (event: FileTreeEvent) => {
+      // Handle content change events for editor updates
+      if (event.kind === "contentChange") {
+        const currentPath = selectedPathRef.current;
+        const currentEditor = lexicalEditorRef.current;
 
-      try {
-        const f = await readFile(currentPath);
-        if (f) {
-          const { parsePythonContentStreaming } = await import(
-            "@/lib/parser/python/blocks"
-          );
-          const { reconcilePythonBlocks } = await import("@/lib/editor");
+        // First, update file tree metadata (size, modified date, etag, content hash)
+        handleFileTreeEvent({
+          kind: "contentChange",
+          path: event.path,
+          etag: event.etag,
+          content: event.content,
+          fileType: event.fileType,
+          cid: event.cid,
+        });
 
-          const blocks: import("@/types/parser").PyBlock[] = [];
-          for await (const b of parsePythonContentStreaming(f.content)) {
-            blocks.push(b);
+        // Then, update editor content if this is the currently open file
+        if (currentPath && currentEditor && event.path === currentPath) {
+          try {
+            // For Python files, use the surgical block reconciliation
+            if (event.fileType === FileType.Python) {
+              const { parsePythonContentStreaming } = await import(
+                "@/lib/parser/python/blocks"
+              );
+              const { reconcilePythonBlocks } = await import("@/lib/editor");
+
+              // Parse the new content into blocks
+              const blocks: import("@/types/parser").PyBlock[] = [];
+              for await (const block of parsePythonContentStreaming(
+                event.content
+              )) {
+                blocks.push(block);
+              }
+
+              // Reconcile the blocks (this will update all CodeMirror instances)
+              reconcilePythonBlocks(currentEditor, blocks);
+            } else {
+              // For non-Python files, update the editor content directly
+              const { $getRoot, $createParagraphNode, $createTextNode } =
+                await import("lexical");
+              const root = $getRoot();
+              root.clear();
+
+              const paragraph = $createParagraphNode();
+              paragraph.append($createTextNode(event.content));
+              root.append(paragraph);
+            }
+          } catch (error) {
+            console.error("error updating editor content:", error);
           }
-
-          reconcilePythonBlocks(currentEditor, blocks);
         }
-      } catch (error) {
-        console.error("error handling external file change:", error);
       }
+
+      // Handle other file tree events
+      handleFileTreeEvent(event);
     });
     return () => {
       off?.();
     };
-  }, [workspaceData, setWorkspace, setFiles, setSidebarNav]);
+  }, [handleFileTreeEvent]);
 
   const [selectedFilePath, setSelectedFilePath] = useAtom(selectedFilePathAtom);
   const [editorState, setEditorState] = useAtom(editorStateAtom);
@@ -113,7 +135,6 @@ function WorkspaceLayout() {
   }, [lexicalEditor]);
   const [baseline, setBaseline] = useAtom(baselineFileAtom);
   const [isSaving, setIsSaving] = useAtom(isSavingAtom);
-  // etag suppression is handled in main; no local map needed
 
   const handleFileClick = async (filePath: string) => {
     const file = await readFile(filePath);
@@ -215,7 +236,8 @@ function WorkspaceLayout() {
             {/* integrated toolbar in header */}
             {editorConfig && (
               <Editor
-                key={`${selectedFilePath ?? ""}:${fileContent?.modified ?? ""}`}
+                // key={`${selectedFilePath ?? ""}:${fileContent?.modified ?? ""}`}
+                key={`${selectedFilePath ?? ""}:${fileContent ?? ""}`}
                 editorConfig={editorConfig}
                 onSerializedChange={(value: SerializedEditorState) => {
                   setEditorState(value);

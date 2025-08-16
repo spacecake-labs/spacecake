@@ -1,4 +1,4 @@
-import type { File } from "@/types/workspace";
+import type { FileContent } from "@/types/workspace";
 
 // Discriminated union for block names
 export type BlockName =
@@ -54,7 +54,7 @@ export type PyBlockHigherKind = `${PyBlockHigherKindPrefix} ${PyBlockKind}`;
 export type PyBlock = Block<PyBlockKind | PyBlockHigherKind>;
 
 // Parsed file type that extends File with parsed blocks
-export interface ParsedFile<TBlock = Block> extends File {
+export interface ParsedFile<TBlock = Block> extends FileContent {
   // Parsed blocks
   blocks: TBlock[];
 }
@@ -62,7 +62,8 @@ export interface ParsedFile<TBlock = Block> extends File {
 // Python-specific parsed file
 export type PyParsedFile = ParsedFile<PyBlock>;
 
-// For future language support, we can add:
-// export type JsBlockKind = "class" | "function" | "import" | "export";
-// export type JsBlock = Block<JsBlockKind>;
-// export type JsParsedFile = ParsedFile<JsBlock>;
+export type DelimitedString = {
+  readonly prefix: string;
+  readonly between: string;
+  readonly suffix: string;
+};

@@ -1,8 +1,4 @@
-import type {
-  File,
-  ReadDirectoryResult,
-  ReadWorkspaceResult,
-} from "@/types/workspace";
+import type { FileContent, FileTreeEvent } from "@/types/workspace";
 
 export interface ElectronAPI {
   showOpenDialog: (options: unknown) => Promise<{
@@ -13,11 +9,9 @@ export interface ElectronAPI {
     canceled: boolean;
     filePath?: string;
   }>;
-  readDirectory: (dirPath: string) => Promise<ReadDirectoryResult>;
-  readWorkspace: (dirPath: string) => Promise<ReadWorkspaceResult>;
   readFile: (filePath: string) => Promise<{
     success: boolean;
-    file?: File;
+    file?: FileContent;
     error?: string;
   }>;
   createFile: (
@@ -53,13 +47,7 @@ export interface ElectronAPI {
     success: boolean;
     error?: string;
   }>;
-  onFileEvent: (
-    handler: (evt: {
-      type: string;
-      path: string;
-      etag?: { mtimeMs: number; size: number } | null;
-    }) => void
-  ) => () => void;
+  onFileEvent: (handler: (event: FileTreeEvent) => void) => () => void;
   platform: string;
 }
 
