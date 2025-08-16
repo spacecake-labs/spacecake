@@ -10,8 +10,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("show-open-dialog", options),
   showSaveDialog: (options: unknown) =>
     ipcRenderer.invoke("show-save-dialog", options),
-  readDirectory: (dirPath: string) =>
-    ipcRenderer.invoke("read-directory", dirPath),
+  // readDirectory: (dirPath: string) =>
+  //   ipcRenderer.invoke("read-directory", dirPath),
   readWorkspace: (dirPath: string) =>
     ipcRenderer.invoke("read-workspace", dirPath),
   readFile: (filePath: string) => ipcRenderer.invoke("read-file", filePath),

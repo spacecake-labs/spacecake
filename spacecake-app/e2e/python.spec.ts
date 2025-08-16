@@ -4,6 +4,11 @@ import path from "path";
 import fs from "fs";
 
 test.describe("python e2e", () => {
+  // eslint-disable-next-line no-empty-pattern
+  test.beforeEach(async ({}, testInfo) => {
+    // Extend timeout for all tests running this hook by 30 seconds.
+    testInfo.setTimeout(testInfo.timeout + 30_000);
+  });
   test("open workspace and create an empty python file", async ({
     electronApp,
     tempTestDir,
@@ -32,6 +37,9 @@ test.describe("python e2e", () => {
     await expect(
       window.getByRole("button", { name: "empty.py" }).first()
     ).toBeVisible();
+
+    // Wait for the create file input to disappear (indicating state reset)
+    await expect(textbox).not.toBeVisible();
 
     // open the newly created file
     await window.getByRole("button", { name: "empty.py" }).first().click();
@@ -73,6 +81,11 @@ test.describe("python e2e", () => {
 
     // open the file
     await window.getByRole("button", { name: "core.py" }).first().click();
+
+    // verify module dosctring is parsed as markdown header
+    await expect(
+      window.getByRole("heading", { name: "A file to test block parsing." })
+    ).toBeVisible();
 
     // verify blocks are present via toolbar and labels
     await window.getByText("🐍").first().click();

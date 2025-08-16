@@ -1,5 +1,5 @@
 import { useAtom } from "jotai";
-import { themeAtom, type Theme } from "@/lib/atoms";
+import { themeAtom, type Theme } from "@/lib/atoms/atoms";
 
 // no provider or effects needed; consumers use `useTheme()` and
 // set classes where appropriate (e.g., a top-level wrapper)

@@ -5,6 +5,7 @@ import type {
   PyBlockKind,
   PyBlockHigherKind,
   BlockName,
+  DelimitedString,
 } from "@/types/parser";
 import { anonymousName, namedBlock } from "@/types/parser";
 import { fnv1a64Hex } from "@/lib/hash";
@@ -13,9 +14,28 @@ import { fnv1a64Hex } from "@/lib/hash";
  * Convert a docstring block to markdown header text.
  * First docstring becomes a level 2 header, subsequent ones become plain text.
  */
-export function docToBlock(block: PyBlock, blockIndex: number): string {
-  const docstringText = block.text.replace(/^r?"""|"""$/g, "").trim();
-  return blockIndex === 0 ? `## ${docstringText}` : docstringText;
+export function docToBlock(block: PyBlock): DelimitedString {
+  // const docstringText = block.text.replace(/^r?"""|"""$/g, "").trim();
+  // return blockIndex === 0 ? `## ${docstringText}` : docstringText;
+  if (block.text.startsWith('r"""') && block.text.endsWith('"""')) {
+    return {
+      prefix: 'r"""',
+      between: block.text.slice(4, -3),
+      suffix: '"""',
+    };
+  }
+  if (block.text.startsWith('"""') && block.text.endsWith('"""')) {
+    return {
+      prefix: '"""',
+      between: block.text.slice(3, -3),
+      suffix: '"""',
+    };
+  }
+  return {
+    prefix: "",
+    between: block.text,
+    suffix: "",
+  };
 }
 
 function isDataclass(node: SyntaxNode, code: string): boolean {

@@ -8,7 +8,7 @@ import {
   selectedFilePathAtom,
   editorStateAtom,
   baselineFileAtom,
-} from "@/lib/atoms";
+} from "@/lib/atoms/atoms";
 
 export const Route = createFileRoute("/w/$workspaceId/f/$")({
   loader: async ({ params }) => {

@@ -1,6 +1,6 @@
 import { Save, FileText } from "lucide-react";
 import { useAtom, useAtomValue } from "jotai";
-import { isSavingAtom, selectedFilePathAtom } from "@/lib/atoms";
+import { isSavingAtom, selectedFilePathAtom } from "@/lib/atoms/atoms";
 import { ModeToggle } from "@/components/mode-toggle";
 
 export function EditorToolbar({ onSave }: { onSave: () => void }) {

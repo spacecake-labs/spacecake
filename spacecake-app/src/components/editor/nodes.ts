@@ -15,6 +15,7 @@ import {
 } from "lexical";
 import { CodeNode } from "@lexical/code";
 import { CodeBlockNode } from "@/components/editor/nodes/code-node";
+import { DelimitedNode } from "@/components/editor/nodes/delimited";
 
 export const nodes: ReadonlyArray<Klass<LexicalNode> | LexicalNodeReplacement> =
   [
@@ -32,6 +33,7 @@ export const nodes: ReadonlyArray<Klass<LexicalNode> | LexicalNodeReplacement> =
     TableRowNode,
     CodeNode,
     CodeBlockNode,
+    DelimitedNode,
     CodeHighlightNode,
     HorizontalRuleNode,
     AutoLinkNode,

@@ -1,20 +1,12 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   workspaceAtom,
-  filesAtom,
   isCreatingInContextAtom,
   contextItemNameAtom,
-  fileTreeAtom,
-  expandedFoldersAtom,
-} from "@/lib/atoms";
-import { createFile, createFolder, readDirectory } from "@/lib/fs";
-import { updateFolderContents } from "@/lib/workspace";
-import {
-  SidebarNavItem,
-  isFile,
-  isFolder,
-  getNavItemPath,
-} from "@/lib/workspace";
+} from "@/lib/atoms/atoms";
+
+import { getNavItemIcon } from "@/lib/workspace";
+
 import {
   Collapsible,
   CollapsibleContent,
@@ -42,19 +34,22 @@ import {
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import * as React from "react";
-import { getNavItemIcon } from "@/lib/workspace";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import { encodeBase64Url } from "@/lib/utils";
+import { FileTree, File, Folder, ExpandedFolders } from "@/types/workspace";
 
 interface WorkspaceTreeProps {
-  item: SidebarNavItem;
+  children?: FileTree;
+  item: File | Folder;
   onFileClick: (filePath: string) => void;
-  onFolderToggle: (folderPath: string) => void;
-  onStartRename: (item: SidebarNavItem) => void;
-  onStartDelete: (item: SidebarNavItem) => void;
+  onFolderToggle: (folderPath: Folder["path"]) => void;
+  onStartRename: (item: File | Folder) => void;
+  onStartDelete: (item: File | Folder) => void;
+  onCreateFile: (filePath: string) => void;
+  onCreateFolder: (folderPath: string) => void;
   selectedFilePath?: string | null;
-  expandedFolders: Record<string, boolean>;
+  expandedFolders: ExpandedFolders;
   editingItem: {
     type: "create" | "rename";
     path: string;
@@ -75,11 +70,7 @@ interface WorkspaceTreeProps {
   onRenameInputChange: (value: string) => void;
   validationError?: string | null;
   onFilesUpdated?: () => void;
-  onExpandFolder?: (
-    folderUrl: string,
-    folderPath: string,
-    forceExpand?: boolean
-  ) => void;
+  onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void;
 }
 
 // Component for the rename input field
@@ -139,15 +130,11 @@ function ItemDropdownMenu({
   isRenaming,
   onExpandFolder,
 }: {
-  item: SidebarNavItem;
-  onStartRename: (item: SidebarNavItem) => void;
-  onStartDelete: (item: SidebarNavItem) => void;
+  item: File | Folder;
+  onStartRename: (item: File | Folder) => void;
+  onStartDelete: (item: File | Folder) => void;
   isRenaming: boolean;
-  onExpandFolder?: (
-    folderUrl: string,
-    folderPath: string,
-    forceExpand?: boolean
-  ) => void;
+  onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void;
 }) {
   if (isRenaming) return null;
 
@@ -156,31 +143,29 @@ function ItemDropdownMenu({
   );
   const setContextItemName = useSetAtom(contextItemNameAtom);
 
-  const itemTitle = isFile(item) || isFolder(item) ? item.title : item.message;
-  const itemPath = getNavItemPath(item);
-  const isItemFolder = isFolder(item);
+  const itemTitle = item.name;
+  const itemPath = item.path;
+  const isItemFolder = item.kind === "folder";
 
   const startCreatingFile = () => {
-    setIsCreatingInContext({ type: "file", parentPath: itemPath });
+    setIsCreatingInContext({ kind: "file", parentPath: itemPath });
     setContextItemName("");
 
     // Auto-expand the parent folder so the input field is visible
     if (isItemFolder && onExpandFolder) {
-      const folderUrl = `#${itemPath}`;
-      // Immediately expand the folder for creation context
-      onExpandFolder(folderUrl, itemPath, true);
+      // Remove the # prefix - use the actual path directly
+      onExpandFolder(itemPath, true);
     }
   };
 
   const startCreatingFolder = () => {
-    setIsCreatingInContext({ type: "folder", parentPath: itemPath });
+    setIsCreatingInContext({ kind: "folder", parentPath: itemPath });
     setContextItemName("");
 
     // Auto-expand the parent folder so the input field is visible
     if (isItemFolder && onExpandFolder) {
-      const folderUrl = `#${itemPath}`;
-      // Immediately expand the folder for creation context
-      onExpandFolder(folderUrl, itemPath, true);
+      // Remove the # prefix - use the actual path directly
+      onExpandFolder(itemPath, true);
     }
   };
 
@@ -245,13 +230,13 @@ export function WorkspaceDropdownMenu() {
 
   const startCreatingFile = () => {
     if (!workspace?.path) return;
-    setIsCreatingInContext({ type: "file", parentPath: workspace.path });
+    setIsCreatingInContext({ kind: "file", parentPath: workspace.path });
     setContextItemName("");
   };
 
   const startCreatingFolder = () => {
     if (!workspace?.path) return;
-    setIsCreatingInContext({ type: "folder", parentPath: workspace.path });
+    setIsCreatingInContext({ kind: "folder", parentPath: workspace.path });
     setContextItemName("");
   };
 
@@ -306,20 +291,17 @@ function CancelRenameButton({ onCancel }: { onCancel: () => void }) {
   );
 }
 
-// Component for the item button (non-renaming state)
 function ItemButton({
   item,
   isSelected,
   onClick,
   showChevron = false,
 }: {
-  item: SidebarNavItem;
+  item: File | Folder;
   isSelected?: boolean;
   onClick: () => void;
   showChevron?: boolean;
 }) {
-  const itemTitle = isFile(item) || isFolder(item) ? item.title : item.message;
-
   return (
     <SidebarMenuButton
       isActive={isSelected}
@@ -328,17 +310,20 @@ function ItemButton({
     >
       {showChevron && <ChevronRight className="transition-transform" />}
       {React.createElement(getNavItemIcon(item))}
-      <span className="truncate">{itemTitle}</span>
+      <span className="truncate">{item.name}</span>
     </SidebarMenuButton>
   );
 }
 
 export function WorkspaceTree({
   item,
+  children,
   onFileClick,
   onFolderToggle,
   onStartRename,
   onStartDelete,
+  onCreateFile,
+  onCreateFolder,
   selectedFilePath,
   expandedFolders,
   editingItem,
@@ -351,9 +336,8 @@ export function WorkspaceTree({
   onFilesUpdated,
   onExpandFolder,
 }: WorkspaceTreeProps) {
-  const filePath = getNavItemPath(item);
-  const folderUrl = `#${filePath}`; // Use the same format as expandedFolders
-  const isExpanded = Boolean(expandedFolders[folderUrl]);
+  const filePath = item.path;
+  const isExpanded = expandedFolders[filePath] ?? false;
   const isSelected = selectedFilePath === filePath;
   const isRenaming = editingItem?.path === filePath;
 
@@ -361,95 +345,15 @@ export function WorkspaceTree({
     isCreatingInContextAtom
   );
   const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom);
-  const [, setFiles] = useAtom(filesAtom);
-  const [fileTree, setFileTree] = useAtom(fileTreeAtom);
-  const setExpandedFolders = useSetAtom(expandedFoldersAtom);
-  const workspace = useAtomValue(workspaceAtom);
 
   const isCreatingInThisContext = isCreatingInContext?.parentPath === filePath;
 
-  const handleCreateFile = async () => {
-    if (!contextItemName.trim() || !workspace?.path) return;
-
-    try {
-      const filePath = isFolder(item)
-        ? `${getNavItemPath(item)}/${contextItemName.trim()}`
-        : `${workspace.path}/${contextItemName.trim()}`;
-
-      const success = await createFile(filePath, "");
-
-      if (success) {
-        // If we created the file inside a folder, update the fileTree for that folder
-        if (isFolder(item)) {
-          const parentFolderPath = getNavItemPath(item);
-          const parentFolderFiles = await readDirectory(parentFolderPath);
-          setFileTree((prev) =>
-            updateFolderContents(prev, parentFolderPath, parentFolderFiles)
-          );
-          // Ensure the folder stays expanded
-          setExpandedFolders((prev) => ({
-            ...prev,
-            [`#${parentFolderPath}`]: true,
-          }));
-        } else {
-          // If we created the file at the workspace root, refresh the workspace
-          const files = await readDirectory(workspace.path);
-          setFiles(files);
-        }
-
-        setIsCreatingInContext(null);
-        setContextItemName("");
-        onFilesUpdated?.();
-      }
-    } catch (error) {
-      console.error("error creating file:", error);
-    }
-  };
-
-  const handleCreateFolder = async () => {
-    if (!contextItemName.trim() || !workspace?.path) return;
-
-    try {
-      const folderPath = isFolder(item)
-        ? `${getNavItemPath(item)}/${contextItemName.trim()}`
-        : `${workspace.path}/${contextItemName.trim()}`;
-
-      const success = await createFolder(folderPath);
-
-      if (success) {
-        // If we created the folder inside another folder, update the fileTree for that folder
-        if (isFolder(item)) {
-          const parentFolderPath = getNavItemPath(item);
-          const parentFolderFiles = await readDirectory(parentFolderPath);
-          setFileTree((prev) =>
-            updateFolderContents(prev, parentFolderPath, parentFolderFiles)
-          );
-          // Ensure the folder stays expanded
-          setExpandedFolders((prev) => ({
-            ...prev,
-            [`#${parentFolderPath}`]: true,
-          }));
-        } else {
-          // If we created the folder at the workspace root, refresh the workspace
-          const files = await readDirectory(workspace.path);
-          setFiles(files);
-        }
-
-        setIsCreatingInContext(null);
-        setContextItemName("");
-        onFilesUpdated?.();
-      }
-    } catch (error) {
-      console.error("error creating folder:", error);
-    }
-  };
-
   const handleContextKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      if (isCreatingInContext?.type === "file") {
-        handleCreateFile();
-      } else if (isCreatingInContext?.type === "folder") {
-        handleCreateFolder();
+      if (isCreatingInContext?.kind === "file") {
+        onCreateFile(isCreatingInContext.parentPath);
+      } else if (isCreatingInContext?.kind === "folder") {
+        onCreateFolder(isCreatingInContext.parentPath);
       }
     } else if (e.key === "Escape") {
       setIsCreatingInContext(null);
@@ -457,7 +361,7 @@ export function WorkspaceTree({
     }
   };
 
-  if (isFile(item)) {
+  if (item.kind === "file") {
     const workspace = useAtomValue(workspaceAtom);
     const filePathEncoded = encodeBase64Url(filePath);
     const workspaceIdEncoded = workspace?.path
@@ -501,7 +405,7 @@ export function WorkspaceTree({
     );
   }
 
-  if (isFolder(item)) {
+  if (item.kind === "folder") {
     return (
       <SidebarMenuItem>
         <Collapsible
@@ -531,7 +435,7 @@ export function WorkspaceTree({
                   <SidebarMenuButton className="cursor-default">
                     <Input
                       placeholder={
-                        isCreatingInContext.type === "file"
+                        isCreatingInContext.kind === "file"
                           ? "filename.txt"
                           : "folder name"
                       }
@@ -544,28 +448,35 @@ export function WorkspaceTree({
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              {fileTree[filePath] && fileTree[filePath].length > 0 ? (
-                fileTree[filePath].map((subItem) => (
-                  <WorkspaceTree
-                    key={getNavItemPath(subItem)}
-                    item={subItem}
-                    onFileClick={onFileClick}
-                    onFolderToggle={onFolderToggle}
-                    onStartRename={onStartRename}
-                    onStartDelete={onStartDelete}
-                    selectedFilePath={selectedFilePath}
-                    expandedFolders={expandedFolders}
-                    editingItem={editingItem}
-                    setEditingItem={setEditingItem}
-                    onRename={onRename}
-                    onRenameKeyDown={onRenameKeyDown}
-                    onCancelRename={onCancelRename}
-                    onRenameInputChange={onRenameInputChange}
-                    validationError={validationError}
-                    onFilesUpdated={onFilesUpdated}
-                    onExpandFolder={onExpandFolder}
-                  />
-                ))
+              {children?.length ? (
+                children.map((subItem) => {
+                  return (
+                    <WorkspaceTree
+                      key={subItem.path}
+                      children={
+                        subItem.kind === "folder" ? subItem.children : undefined
+                      }
+                      item={subItem}
+                      onFileClick={onFileClick}
+                      onFolderToggle={onFolderToggle}
+                      onStartRename={onStartRename}
+                      onStartDelete={onStartDelete}
+                      onCreateFile={onCreateFile}
+                      onCreateFolder={onCreateFolder}
+                      selectedFilePath={selectedFilePath}
+                      expandedFolders={expandedFolders}
+                      editingItem={editingItem}
+                      setEditingItem={setEditingItem}
+                      onRename={onRename}
+                      onRenameKeyDown={onRenameKeyDown}
+                      onCancelRename={onCancelRename}
+                      onRenameInputChange={onRenameInputChange}
+                      validationError={validationError}
+                      onFilesUpdated={onFilesUpdated}
+                      onExpandFolder={onExpandFolder}
+                    />
+                  );
+                })
               ) : (
                 <div className="pl-6 py-2 text-xs text-muted-foreground flex items-center gap-2">
                   <FileWarning className="h-3 w-3" />
@@ -588,12 +499,12 @@ export function WorkspaceTree({
   }
 
   // This is an empty item
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton className="cursor-default">
-        <FileWarning className="text-muted-foreground" />
-        <span className="truncate">{item.message}</span>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
+  // return (
+  //   <SidebarMenuItem>
+  //     <SidebarMenuButton className="cursor-default">
+  //       <FileWarning className="text-muted-foreground" />
+  //       <span className="truncate">{item.name}</span>
+  //     </SidebarMenuButton>
+  //   </SidebarMenuItem>
+  // );
 }
