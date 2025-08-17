@@ -27,6 +27,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   platform: process.platform,
   watchWorkspace: (workspacePath: string) =>
     ipcRenderer.invoke("watch-workspace", workspacePath),
+  stopWatching: (workspacePath: string) =>
+    ipcRenderer.invoke("stop-watching", workspacePath),
   onFileEvent: (
     handler: (evt: {
       type: string;

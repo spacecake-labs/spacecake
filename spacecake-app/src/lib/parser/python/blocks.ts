@@ -27,8 +27,7 @@ export function codeToBlock(block: PyBlock): DelimitedString {
     prefixPattern: /^[\s\n]*/, // consume any leading whitespace and newlines
     suffixPattern: /[\s\n]*$/, // consume any trailing whitespace and newlines
   });
-  console.log("codeToBlock - input:", block.text);
-  console.log("codeToBlock - result:", result);
+
   return result;
 }
 
@@ -261,18 +260,12 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
 
     if (importNodes.length) {
       const importBlock = emitImportBlock();
-      console.log(
-        `DEBUG: import block - endByte: ${importBlock.endByte}, prevBlockEndByte updated to: ${importBlock.endByte}`
-      );
       prevBlockEndByte = importBlock.endByte;
       yield importBlock;
     }
 
     if (miscNodes.length) {
       const miscBlock = emitMiscBlock();
-      console.log(
-        `DEBUG: misc block - endByte: ${miscBlock.endByte}, prevBlockEndByte updated to: ${miscBlock.endByte}`
-      );
       prevBlockEndByte = miscBlock.endByte;
       yield miscBlock;
     }
