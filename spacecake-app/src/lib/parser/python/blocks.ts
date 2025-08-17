@@ -13,26 +13,23 @@ import { fnv1a64Hex } from "@/lib/hash";
 
 /**
  * Convert a docstring block to markdown header text.
- * First docstring becomes a level 2 header, subsequent ones become plain text.
  */
 export function docToBlock(block: PyBlock): DelimitedString {
-  // Use the new parseDelimitedString function for cleaner parsing
-  if (block.text.startsWith('r"""') && block.text.endsWith('"""')) {
-    return parseDelimitedString(block.text, {
-      prefixPattern: /^r"""/,
-      suffixPattern: /"""$/,
-    });
-  }
+  // parseDelimitedString handles all the pattern matching automatically
+  return parseDelimitedString(block.text, {
+    prefixPattern: /^(r?""")/, // consume r""" or """ at start
+    suffixPattern: /"""$/, // consume """ at end
+  });
+}
 
-  if (block.text.startsWith('"""') && block.text.endsWith('"""')) {
-    return parseDelimitedString(block.text, {
-      prefixPattern: /^"""/,
-      suffixPattern: /"""$/,
-    });
-  }
-
-  // Fallback for unexpected formats
-  return { prefix: "", between: block.text, suffix: "" };
+export function codeToBlock(block: PyBlock): DelimitedString {
+  const result = parseDelimitedString(block.text, {
+    prefixPattern: /^[\s\n]*/, // consume any leading whitespace and newlines
+    suffixPattern: /[\s\n]*$/, // consume any trailing whitespace and newlines
+  });
+  console.log("codeToBlock - input:", block.text);
+  console.log("codeToBlock - result:", result);
+  return result;
 }
 
 function isDataclass(node: SyntaxNode, code: string): boolean {
@@ -184,29 +181,28 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
   let miscNodes: SyntaxNode[] = [];
   // comments accumulate into the next recognised block
   let commentNodes: SyntaxNode[] = [];
+  let prevBlockEndByte = 0;
 
-  // calculate 1-based line number from a byte offset
-  const getStartLineFromOffset = (offset: number): number => {
-    // count number of newlines before the offset and add 1
-    // this is O(n) in offset; acceptable for file sizes we handle here
-    let line = 1;
-    for (let i = 0; i < offset; i++) {
-      if (code.charCodeAt(i) === 10 /* \n */) line++;
-    }
-    return line;
+  // calculate line number for a block, accounting for prefix whitespace
+  const countLinesBefore = (byte: number): number => {
+    const before = code.substring(0, byte);
+    const lines = (before.match(/\n/g) || []).length;
+    return lines + 1;
   };
 
   const emitImportBlock = (): PyBlock => {
     const firstImport = importNodes[0];
     const lastImport = importNodes[importNodes.length - 1];
-    const raw = code.slice(firstImport.from, lastImport.to);
+
+    const startByte = prevBlockEndByte;
+    const raw = code.slice(startByte, lastImport.to);
     const block: PyBlock = {
       kind: "import",
       name: blockName(firstImport, code),
-      startByte: firstImport.from,
+      startByte,
       endByte: lastImport.to,
       text: raw,
-      startLine: getStartLineFromOffset(firstImport.from),
+      startLine: countLinesBefore(firstImport.from),
       cid: computeCid("import", blockName(firstImport, code).value, raw),
       cidAlgo: "fnv1a64-norm1",
     };
@@ -217,14 +213,15 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
   const emitMiscBlock = (): PyBlock => {
     const first = miscNodes[0];
     const last = miscNodes[miscNodes.length - 1];
-    const raw = code.slice(first.from, last.to);
+    const startByte = prevBlockEndByte;
+    const raw = code.slice(startByte, last.to);
     const block: PyBlock = {
       kind: "misc",
       name: anonymousName(),
-      startByte: first.from,
+      startByte,
       endByte: last.to,
       text: raw,
-      startLine: getStartLineFromOffset(first.from),
+      startLine: countLinesBefore(first.from),
       cid: computeCid("misc", "anonymous", raw),
       cidAlgo: "fnv1a64-norm1",
     };
@@ -262,28 +259,53 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
       continue;
     }
 
-    if (importNodes.length) yield emitImportBlock();
+    if (importNodes.length) {
+      const importBlock = emitImportBlock();
+      console.log(
+        `DEBUG: import block - endByte: ${importBlock.endByte}, prevBlockEndByte updated to: ${importBlock.endByte}`
+      );
+      prevBlockEndByte = importBlock.endByte;
+      yield importBlock;
+    }
 
-    if (miscNodes.length) yield emitMiscBlock();
+    if (miscNodes.length) {
+      const miscBlock = emitMiscBlock();
+      console.log(
+        `DEBUG: misc block - endByte: ${miscBlock.endByte}, prevBlockEndByte updated to: ${miscBlock.endByte}`
+      );
+      prevBlockEndByte = miscBlock.endByte;
+      yield miscBlock;
+    }
 
-    // consume any accumulated comments
-    const startByte = commentNodes.length ? commentNodes[0].from : node.from;
+    const startByte = prevBlockEndByte;
     const raw = code.slice(startByte, node.to);
     const name = blockName(node, code);
+
+    const nodeFrom = commentNodes.length ? commentNodes[0].from : node.from;
+
     commentNodes = [];
+    prevBlockEndByte = node.to;
+
     yield {
       kind,
       name,
       startByte,
       endByte: node.to,
       text: raw,
-      startLine: getStartLineFromOffset(startByte),
-      cid: computeCid(String(kind), name.value, raw),
+      startLine: countLinesBefore(nodeFrom),
+      cid: computeCid(kind, name.value, raw),
       cidAlgo: "fnv1a64-norm1",
     };
   }
-  if (importNodes.length) yield emitImportBlock();
-  if (miscNodes.length) yield emitMiscBlock();
+
+  if (importNodes.length) {
+    const importBlock = emitImportBlock();
+    yield importBlock;
+  }
+  if (miscNodes.length) {
+    const miscBlock = emitMiscBlock();
+    yield miscBlock;
+  }
 }
 
 /**

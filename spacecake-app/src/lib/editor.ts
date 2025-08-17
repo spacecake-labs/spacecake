@@ -1,17 +1,21 @@
 import { InitialConfigType } from "@lexical/react/LexicalComposer";
-import { SerializedEditorState } from "lexical";
+import { $createTextNode, SerializedEditorState } from "lexical";
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file";
 import { FileType } from "@/types/workspace";
 import { editorConfig } from "@/components/editor/editor";
-import type { FileContent } from "@/types/workspace";
+import type { FileContent, FileTreeItem } from "@/types/workspace";
 import { $getRoot, LexicalEditor } from "lexical";
-import { $isCodeBlockNode } from "@/components/editor/nodes/code-node";
-import { $isDelimitedNode } from "@/components/editor/nodes/delimited";
+import {
+  $createCodeBlockNode,
+  $isCodeBlockNode,
+} from "@/components/editor/nodes/code-node";
 import type { PyBlock } from "@/types/parser";
-import { CodeBlockNode } from "@/components/editor/nodes/code-node";
-import { $createDelimitedNode } from "@/components/editor/nodes/delimited";
-import { docToBlock } from "@/lib/parser/python/blocks";
-// removed reconcile helper exports until external change handling is wired up
+import { codeToBlock, docToBlock } from "@/lib/parser/python/blocks";
+import {
+  delimitedNode,
+  $getDelimitedString,
+} from "@/components/editor/nodes/delimited";
+import { $createHeadingNode, $isHeadingNode } from "@lexical/rich-text";
 
 // Pure function to create editor config from serialized state
 export const createEditorConfigFromState = (
@@ -63,24 +67,28 @@ export const getEditorConfig = (
  * - non-code: uses text content via getTextContent()
  */
 export function serializeEditorToPython(editor: LexicalEditor): string {
-  let result = "";
-  editor.getEditorState().read(() => {
+  return editor.getEditorState().read(() => {
     const root = $getRoot();
     const children = root.getChildren();
 
-    for (const child of children) {
+    return children.reduce((result, child) => {
       if ($isCodeBlockNode(child)) {
-        result += child.getCode();
-      } else if ($isDelimitedNode(child)) {
-        // Use the preserved delimiter information for perfect round-trip
-        result += child.getSourceText();
-      } else {
-        const text = child.getTextContent();
-        result += text;
+        const delimitedString = $getDelimitedString(child);
+        console.log("Code block delimited string:", delimitedString);
+        console.log("Code block raw content:", child.getCode());
+        return result + delimitedString;
       }
-    }
+
+      if ($isHeadingNode(child)) {
+        const delimitedString = $getDelimitedString(child);
+        console.log("Heading delimited string:", delimitedString);
+        return result + delimitedString;
+      }
+
+      const textContent = child.getTextContent();
+      return result + (textContent.length > 0 ? textContent + "\n" : "");
+    }, "");
   });
-  return result;
 }
 
 /**
@@ -93,6 +101,7 @@ export function serializeEditorToPython(editor: LexicalEditor): string {
  */
 export function reconcilePythonBlocks(
   editor: LexicalEditor,
+  filePath: FileTreeItem["path"],
   newBlocks: PyBlock[]
 ): void {
   editor.update(() => {
@@ -100,30 +109,37 @@ export function reconcilePythonBlocks(
     root.clear();
 
     // process all blocks in order
-    for (let i = 0; i < newBlocks.length; i++) {
-      const block = newBlocks[i];
+    for (
+      let reconciledBlockCount = 0;
+      reconciledBlockCount < newBlocks.length;
+      reconciledBlockCount++
+    ) {
+      const block = newBlocks[reconciledBlockCount];
 
-      if (String(block.kind) === "doc") {
+      // If module docstring
+      if (reconciledBlockCount === 0 && block.kind === "doc") {
         const delimitedString = docToBlock(block);
-        const isModuleDocstring = i === 0;
-
         // Create DelimitedNode instead of converting to markdown
-        const delimitedNode = $createDelimitedNode({
-          delimitedString,
-          level: isModuleDocstring ? 2 : 1,
-        });
-
-        root.append(delimitedNode);
-      } else {
-        // create code block for non-doc blocks
-        const codeBlock = new CodeBlockNode(
-          block.text,
-          "python",
-          String(block.kind),
-          undefined,
-          block
+        const moduleDocNode = delimitedNode(
+          (text: string) =>
+            $createHeadingNode("h2").append($createTextNode(text)),
+          delimitedString
         );
-        root.append(codeBlock);
+        root.append(moduleDocNode);
+      } else {
+        const delimitedString = codeToBlock(block);
+        const codeNode = delimitedNode(
+          (text: string) =>
+            $createCodeBlockNode({
+              code: text,
+              language: "python",
+              meta: String(block.kind),
+              src: filePath,
+              block: block,
+            }),
+          delimitedString
+        );
+        root.append(codeNode);
       }
     }
   });

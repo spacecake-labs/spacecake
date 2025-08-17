@@ -67,3 +67,5 @@ export type DelimitedString = {
   readonly between: string;
   readonly suffix: string;
 };
+
+export type Delimiters = Omit<DelimitedString, "between">;
