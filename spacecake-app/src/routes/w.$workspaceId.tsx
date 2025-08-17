@@ -94,7 +94,7 @@ function WorkspaceLayout() {
               }
 
               // Reconcile the blocks (this will update all CodeMirror instances)
-              reconcilePythonBlocks(currentEditor, blocks);
+              reconcilePythonBlocks(currentEditor, event.path, blocks);
             } else {
               // For non-Python files, update the editor content directly
               const { $getRoot, $createParagraphNode, $createTextNode } =

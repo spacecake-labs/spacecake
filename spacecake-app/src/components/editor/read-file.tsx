@@ -6,15 +6,17 @@ import {
   LexicalEditor,
 } from "lexical";
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node";
-import { $createDelimitedNode } from "@/components/editor/nodes/delimited";
 import { INITIAL_LOAD_TAG } from "@/types/editor";
 import type { FileType } from "@/types/workspace";
 import {
   parsePythonContentStreaming,
   docToBlock,
+  codeToBlock,
 } from "@/lib/parser/python/blocks";
 import type { FileContent } from "@/types/workspace";
 import { toast } from "sonner";
+import { delimitedNode } from "@/components/editor/nodes/delimited";
+import { $createHeadingNode } from "@lexical/rich-text";
 
 /**
  * Converts Python blocks into Lexical nodes with progressive rendering
@@ -31,41 +33,42 @@ async function convertPythonBlocksToLexical(
       root.clear();
     });
     // Parse blocks progressively, updating per block
-    let blockCount = 0;
-    let docstringCount = 0;
+    let parsedBlockCount = 0;
     for await (const block of parsePythonContentStreaming(content)) {
-      blockCount++;
       editor.update(
         () => {
           const root = $getRoot();
           if (block.kind === "doc") {
-            docstringCount++;
             const delimitedString = docToBlock(block);
-
-            // Create DelimitedNode instead of converting to markdown
-            const delimitedNode = $createDelimitedNode({
-              delimitedString,
-              level: docstringCount === 1 ? 2 : 1, // First docstring = h2, others = h1
-            });
-
-            root.append(delimitedNode);
+            const moduleDocNode = delimitedNode(
+              (text: string) =>
+                $createHeadingNode("h2").append($createTextNode(text)),
+              delimitedString
+            );
+            root.append(moduleDocNode);
           } else {
-            const codeBlock = $createCodeBlockNode({
-              code: block.text,
-              language: "python",
-              meta: String(block.kind),
-              src: file.path,
-              block: block,
-            });
-            root.append(codeBlock);
+            const delimitedString = codeToBlock(block);
+            const codeNode = delimitedNode(
+              (text: string) =>
+                $createCodeBlockNode({
+                  code: text,
+                  language: "python",
+                  meta: String(block.kind),
+                  src: file.path,
+                  block: block,
+                }),
+              delimitedString
+            );
+            root.append(codeNode);
           }
         },
         { tag: INITIAL_LOAD_TAG }
       );
+      parsedBlockCount++;
     }
 
     // If no blocks were parsed, fall back to plaintext
-    if (blockCount === 0) {
+    if (parsedBlockCount === 0) {
       editor.update(() => {
         const root = $getRoot();
         root.clear();

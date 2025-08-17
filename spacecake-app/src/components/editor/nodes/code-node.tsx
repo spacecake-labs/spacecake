@@ -149,6 +149,10 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     return this.__code;
   }
 
+  getTextContent(): string {
+    return this.getCode();
+  }
+
   getMeta(): string {
     return this.__meta;
   }

@@ -1,95 +1,50 @@
-import { LexicalNode, NodeKey, Spread, EditorConfig } from "lexical";
-import { HeadingNode, SerializedHeadingNode } from "@lexical/rich-text";
-import type { DelimitedString } from "@/types/parser";
-import { HeadingTagType } from "@lexical/rich-text";
+import { DelimitedString, Delimiters } from "@/types/parser";
+import { createState, LexicalNode, $getState, $setState } from "lexical";
 
-export interface CreateDelimitedNodeOptions {
-  delimitedString: DelimitedString;
-  level: number; // Heading level (1-6)
-}
-
-export type SerializedDelimitedNode = Spread<
-  CreateDelimitedNodeOptions & { type: "delimited"; version: 1 },
-  SerializedHeadingNode // Extend SerializedHeadingNode instead of SerializedLexicalNode
->;
-
-export class DelimitedNode extends HeadingNode {
-  __delimitedString: DelimitedString;
-
-  static getType(): string {
-    return "delimited";
-  }
-
-  static clone(node: DelimitedNode): DelimitedNode {
-    return new DelimitedNode(node.__delimitedString, node.__tag, node.__key);
-  }
-
-  static importJSON(serializedNode: SerializedDelimitedNode): DelimitedNode {
-    return new DelimitedNode(
-      serializedNode.delimitedString,
-      `h${serializedNode.level}` as HeadingTagType
-    );
-  }
-
-  constructor(
-    delimitedString: DelimitedString,
-    tag: HeadingTagType = "h2",
-    key?: NodeKey
-  ) {
-    super(tag, key);
-    this.__delimitedString = delimitedString;
-  }
-
-  createDOM(config: EditorConfig): HTMLElement {
-    const element = super.createDOM(config);
-    element.textContent = this.__delimitedString.between;
-    return element;
-  }
-
-  updateDOM(
-    prevNode: DelimitedNode,
-    dom: HTMLElement,
-    config: EditorConfig
-  ): boolean {
-    const isUpdated = super.updateDOM(prevNode as this, dom, config);
-    if (prevNode.__delimitedString.between !== this.__delimitedString.between) {
-      dom.textContent = this.__delimitedString.between;
-      return true;
+// TODO: use zod/something to parse properly
+const delimitedState = createState("delimited", {
+  parse: (v) => {
+    if (v && typeof v === "object" && "prefix" in v && "suffix" in v) {
+      return {
+        prefix: String(v.prefix),
+        suffix: String(v.suffix),
+      };
     }
-    return isUpdated;
-  }
+    return { prefix: "", suffix: "" };
+  },
+});
 
-  // Perfect round-trip serialization
-  getSourceText(): string {
-    const { prefix, between, suffix } = this.__delimitedString;
-    return `${prefix}${between}${suffix}`;
-  }
+export const delimitedNode = <T extends LexicalNode>(
+  nodeCreator: (content: string) => T,
+  delimitedString: DelimitedString
+): T => {
+  const delimiters: Delimiters = {
+    prefix: delimitedString.prefix,
+    suffix: delimitedString.suffix,
+  };
 
-  // Getter for accessing the delimiter data
-  getDelimitedString(): DelimitedString {
-    return this.__delimitedString;
-  }
+  console.log("delimitedNode - setting delimiters:", delimiters);
+  console.log("delimitedNode - delimitedString:", delimitedString);
 
-  exportJSON(): SerializedDelimitedNode {
-    return {
-      ...super.exportJSON(),
-      type: "delimited",
-      delimitedString: this.__delimitedString,
-      level: parseInt(this.getTag().slice(1)), // Extract level from "h2", "h3", etc.
-      version: 1,
-    };
-  }
-}
+  const node = nodeCreator(delimitedString.between);
 
-export function $createDelimitedNode(
-  options: CreateDelimitedNodeOptions
-): DelimitedNode {
-  const tag = `h${options.level}` as HeadingTagType;
-  return new DelimitedNode(options.delimitedString, tag);
-}
+  $setState(node, delimitedState, delimiters);
 
-export function $isDelimitedNode(
-  node: LexicalNode | null | undefined
-): node is DelimitedNode {
-  return node instanceof DelimitedNode;
-}
+  // Verify the state was set
+  const retrievedState = $getState(node, delimitedState);
+  console.log("delimitedNode - retrieved state:", retrievedState);
+
+  return node;
+};
+
+export const $getDelimiters = (node: LexicalNode): Delimiters => {
+  return $getState(node, delimitedState);
+};
+
+export const $getDelimitedString = (node: LexicalNode): string => {
+  const delimiters = $getDelimiters(node);
+  const content = node.getTextContent();
+  console.log("delimitedNode - delimiters:", delimiters);
+  console.log("delimitedNode - content:", content);
+  return `${delimiters.prefix}${content}${delimiters.suffix}`;
+};
