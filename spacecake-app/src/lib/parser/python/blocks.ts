@@ -355,6 +355,14 @@ export async function* parsePythonContentStreaming(
   }
 }
 
+/**
+ * Serialize Python blocks back to source code.
+ * This is used to test that parse/serialize is isomorphic.
+ */
+export function serializeBlocksToPython(blocks: PyBlock[]): string {
+  return blocks.map((block) => block.text).join("");
+}
+
 function computeCid(
   kind: string,
   name: string,
