@@ -11,6 +11,7 @@ import {
 } from "@/main-process/fs";
 import type { FileTreeEvent, ETag } from "@/types/workspace";
 import path from "path";
+import { setupExitHandlers, type WatchEntry } from "@/main-process/cleanup";
 
 // IPC handlers for file dialogs
 ipcMain.handle("show-open-dialog", async (event, options) => {
@@ -45,7 +46,6 @@ ipcMain.handle(
   "create-file",
   async (event, filePath: string, content: string = "") => {
     try {
-      console.log("ipc create-file", filePath, content);
       // Create the file
       await createFile(filePath, content);
 
@@ -144,10 +144,12 @@ ipcMain.handle(
   }
 );
 
-type WatchEntry = { watcher: chokidar.FSWatcher; targetIds: Set<number> };
 const watchers = new Map<string, WatchEntry>();
 const lastWriteEtag = new Map<string, { mtimeMs: number; size: number }>();
 const ZERO_ETAG: ETag = { mtimeMs: 0, size: 0 };
+
+// Setup exit handlers for cleanup
+setupExitHandlers(watchers);
 
 /**
  * Helper function to get the watcher entry for a given file path
@@ -168,22 +170,10 @@ function getWatcherEntry(
 
   // Find the watcher by checking if the filePath is within any watched workspace
   for (const [workspacePath, entry] of watchers.entries()) {
-    console.log(
-      `[getWatcherEntry] checking workspace: ${workspacePath} against file: ${filePath}`
-    );
     if (filePath.startsWith(workspacePath)) {
-      console.log(
-        `[getWatcherEntry] found watcher for workspace: ${workspacePath}`
-      );
       return { entry, workspacePath, win };
     }
   }
-
-  console.log(`[getWatcherEntry] no watcher found for file: ${filePath}`);
-  console.log(
-    `[getWatcherEntry] available watchers:`,
-    Array.from(watchers.keys())
-  );
 
   return null;
 }
@@ -260,12 +250,7 @@ ipcMain.handle("watch-workspace", async (event, workspacePath: string) => {
     if (entry) {
       if (win) {
         entry.targetIds.add(win.id);
-        console.log(
-          "[watch-workspace] reusing watcher for",
-          workspacePath,
-          "attach window",
-          win.id
-        );
+
         // synthesize initial state from the existing watcher (no fs.readdir)
         emitInitialSnapshotFromWatcher(entry.watcher, workspacePath, (evt) => {
           if (!win.isDestroyed()) win.webContents.send("file-event", evt);
@@ -274,7 +259,6 @@ ipcMain.handle("watch-workspace", async (event, workspacePath: string) => {
       return { success: true };
     }
 
-    console.log("[watch-workspace] creating watcher for", workspacePath);
     const watcher = chokidar.watch(workspacePath, {
       persistent: true,
       ignoreInitial: false, // will emit initial add/addDir for the first-attached renderer
@@ -341,6 +325,25 @@ ipcMain.handle("watch-workspace", async (event, workspacePath: string) => {
     return { success: true };
   } catch (error) {
     console.error("error starting watcher:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "unknown error",
+    };
+  }
+});
+
+ipcMain.handle("stop-watching", async (event, workspacePath: string) => {
+  try {
+    const entry = watchers.get(workspacePath);
+    if (entry) {
+      entry.watcher.close();
+      watchers.delete(workspacePath);
+      console.log(`stopped watching: ${workspacePath}`);
+      return { success: true };
+    }
+    return { success: false, error: "no watcher found" };
+  } catch (error) {
+    console.error("error stopping watcher:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "unknown error",

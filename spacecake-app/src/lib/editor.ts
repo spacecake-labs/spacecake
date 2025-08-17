@@ -74,14 +74,13 @@ export function serializeEditorToPython(editor: LexicalEditor): string {
     return children.reduce((result, child) => {
       if ($isCodeBlockNode(child)) {
         const delimitedString = $getDelimitedString(child);
-        console.log("Code block delimited string:", delimitedString);
-        console.log("Code block raw content:", child.getCode());
+
         return result + delimitedString;
       }
 
       if ($isHeadingNode(child)) {
         const delimitedString = $getDelimitedString(child);
-        console.log("Heading delimited string:", delimitedString);
+
         return result + delimitedString;
       }
 

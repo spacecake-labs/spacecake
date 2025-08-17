@@ -5,6 +5,8 @@ import type {
   FileContent,
   FileTree,
   ExpandedFolders,
+  File,
+  Folder,
 } from "@/types/workspace";
 import type { PyParsedFile } from "@/types/parser";
 import { SerializedEditorState } from "lexical";
@@ -70,6 +72,17 @@ export const isCreatingInContextAtom = atom<{
   parentPath: string;
 } | null>(null);
 export const contextItemNameAtom = atom<string>("");
+
+// Deletion state atoms
+export const deletionStateAtom = atom<{
+  item: File | Folder | null;
+  isOpen: boolean;
+  isDeleting: boolean;
+}>({
+  item: null,
+  isOpen: false,
+  isDeleting: false,
+});
 
 // Tree-sitter parsing atoms
 export const parsedFileAtom = atom<PyParsedFile | null>(null);

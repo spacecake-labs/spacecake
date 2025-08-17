@@ -30,13 +30,14 @@ import {
   editingItemAtom,
   isCreatingInContextAtom,
   contextItemNameAtom,
+  deletionStateAtom,
 } from "@/lib/atoms/atoms";
 import { sortedFileTreeAtom } from "@/lib/atoms/file-tree";
 import {
   WorkspaceTree,
   WorkspaceDropdownMenu,
 } from "@/components/workspace-tree";
-import { FileWarning } from "lucide-react";
+import { FileWarning, Loader2Icon } from "lucide-react";
 import { File, Folder, ExpandedFolders } from "@/types/workspace";
 
 interface NavMainProps {
@@ -58,17 +59,12 @@ export function NavMain({
     isCreatingInContextAtom
   );
   const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom);
+  const [deletionState, setDeletionState] = useAtom(deletionStateAtom);
 
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(
     null
   );
-
-  // Delete confirmation state
-  const [deleteItem, setDeleteItem] = React.useState<File | Folder | null>(
-    null
-  );
-  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
 
   const [sortedFileTree] = useAtom(sortedFileTreeAtom);
 
@@ -76,8 +72,6 @@ export function NavMain({
     isCreatingInContext?.parentPath === workspace?.path;
 
   const handleCreateFile = async (parentPath: string) => {
-    console.log("handleCreateFile", `${parentPath}/${contextItemName.trim()}`);
-
     try {
       const filePath = `${parentPath}/${contextItemName.trim()}`;
       const success = await createFile(filePath, "");
@@ -112,8 +106,6 @@ export function NavMain({
 
   const handleWorkspaceKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      console.log("handleWorkspaceKeyDown", isCreatingInContext);
-
       if (isCreatingInContext?.kind === "file") {
         handleCreateFile(isCreatingInContext.parentPath);
       } else if (isCreatingInContext?.kind === "folder") {
@@ -268,32 +260,34 @@ export function NavMain({
   };
 
   const handleStartDelete = (item: File | Folder) => {
-    setDeleteItem(item);
-    setShowDeleteDialog(true);
+    setDeletionState({ item, isOpen: true, isDeleting: false });
   };
 
   const handleConfirmDelete = async () => {
-    if (!deleteItem || !workspace?.path) return;
+    if (!deletionState.item || !workspace?.path) return;
 
+    setDeletionState((prev) => ({ ...prev, isDeleting: true }));
     try {
-      const filePath = deleteItem.path;
-      console.log("deleting file:", filePath);
+      const filePath = deletionState.item.path;
       const success = await deleteFile(filePath);
 
       if (success) {
-        setShowDeleteDialog(false);
-        setDeleteItem(null);
+        // Close dialog only after successful deletion
+        setDeletionState({ item: null, isOpen: false, isDeleting: false });
       } else {
         console.error("failed to delete file");
+        // Reset deleting state on failure but keep dialog open
+        setDeletionState((prev) => ({ ...prev, isDeleting: false }));
       }
     } catch (error) {
       console.error("error deleting file:", error);
+      // Reset deleting state on error but keep dialog open
+      setDeletionState((prev) => ({ ...prev, isDeleting: false }));
     }
   };
 
   const handleCancelDelete = () => {
-    setShowDeleteDialog(false);
-    setDeleteItem(null);
+    setDeletionState({ item: null, isOpen: false, isDeleting: false });
   };
 
   return (
@@ -363,33 +357,56 @@ export function NavMain({
       </SidebarGroup>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <Dialog
+        open={deletionState.isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletionState({ item: null, isOpen: false, isDeleting: false });
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {deleteItem && deleteItem.kind === "folder"
+              {deletionState.item && deletionState.item.kind === "folder"
                 ? "delete folder"
                 : "delete file"}
             </DialogTitle>
             <DialogDescription>
               are you sure you want to delete '
-              {deleteItem &&
-              (deleteItem.kind === "file" || deleteItem.kind === "folder")
-                ? deleteItem.name
+              {deletionState.item &&
+              (deletionState.item.kind === "file" ||
+                deletionState.item.kind === "folder")
+                ? deletionState.item.name
                 : ""}
               '
-              {deleteItem && deleteItem.kind === "folder"
+              {deletionState.item && deletionState.item.kind === "folder"
                 ? " and its contents"
                 : ""}
               ?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={handleCancelDelete}>
+            <Button
+              variant="outline"
+              onClick={handleCancelDelete}
+              disabled={deletionState.isDeleting}
+            >
               cancel
             </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete}>
-              delete
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deletionState.isDeleting}
+            >
+              {deletionState.isDeleting ? (
+                <>
+                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                  deleting...
+                </>
+              ) : (
+                "delete"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

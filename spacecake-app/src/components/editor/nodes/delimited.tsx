@@ -23,16 +23,9 @@ export const delimitedNode = <T extends LexicalNode>(
     suffix: delimitedString.suffix,
   };
 
-  console.log("delimitedNode - setting delimiters:", delimiters);
-  console.log("delimitedNode - delimitedString:", delimitedString);
-
   const node = nodeCreator(delimitedString.between);
 
   $setState(node, delimitedState, delimiters);
-
-  // Verify the state was set
-  const retrievedState = $getState(node, delimitedState);
-  console.log("delimitedNode - retrieved state:", retrievedState);
 
   return node;
 };
@@ -44,7 +37,6 @@ export const $getDelimiters = (node: LexicalNode): Delimiters => {
 export const $getDelimitedString = (node: LexicalNode): string => {
   const delimiters = $getDelimiters(node);
   const content = node.getTextContent();
-  console.log("delimitedNode - delimiters:", delimiters);
-  console.log("delimitedNode - content:", content);
+
   return `${delimiters.prefix}${content}${delimiters.suffix}`;
 };

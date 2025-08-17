@@ -115,8 +115,13 @@ function WorkspaceLayout() {
       // Handle other file tree events
       handleFileTreeEvent(event);
     });
+
     return () => {
       off?.();
+      // Stop watching the workspace when component unmounts
+      if (workspaceData?.workspace?.path !== "/") {
+        window.electronAPI.stopWatching(workspaceData.workspace.path);
+      }
     };
   }, [handleFileTreeEvent]);
 

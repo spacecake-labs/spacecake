@@ -47,6 +47,10 @@ export interface ElectronAPI {
     success: boolean;
     error?: string;
   }>;
+  stopWatching: (workspacePath: string) => Promise<{
+    success: boolean;
+    error?: string;
+  }>;
   onFileEvent: (handler: (event: FileTreeEvent) => void) => () => void;
   platform: string;
 }
