@@ -9,9 +9,10 @@ if (started) {
   app.quit();
 }
 
+const isTest = process.env.IS_PLAYWRIGHT === "1";
+
 const createWindow = () => {
   // Create the browser window.
-  const isTest = process.env.IS_PLAYWRIGHT === "1";
 
   const mainWindow = new BrowserWindow({
     width: 800,
@@ -77,7 +78,7 @@ app.on("ready", createWindow);
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
+  if (isTest || process.platform !== "darwin") {
     app.quit();
   }
 });

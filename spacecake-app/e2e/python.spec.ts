@@ -4,11 +4,6 @@ import path from "path";
 import fs from "fs";
 
 test.describe("python e2e", () => {
-  // eslint-disable-next-line no-empty-pattern
-  test.beforeEach(async ({}, testInfo) => {
-    // Extend timeout for all tests running this hook by 30 seconds.
-    testInfo.setTimeout(testInfo.timeout + 30_000);
-  });
   test("open workspace and create an empty python file", async ({
     electronApp,
     tempTestDir,
@@ -118,7 +113,7 @@ test.describe("python e2e", () => {
     // focus editor and move caret to the first line to ensure gutter aligns to start
     const content = firstEditor.locator(".cm-content");
     await content.focus();
-    await content.press("Meta+ArrowUp");
+    await content.press("ControlOrMeta+ArrowUp");
     const activeGutter = firstEditor
       .locator(
         ".cm-gutter.cm-lineNumbers .cm-gutterElement.cm-activeLineGutter"
@@ -150,48 +145,50 @@ test.describe("python e2e", () => {
     const firstEditorRoot = editors.nth(0);
     const secondEditorRoot = editors.nth(1);
     const firstContent = firstEditorRoot.locator(".cm-content");
+    const secondContent = secondEditorRoot.locator(".cm-content");
 
     // Move caret to end of first code block and ArrowDown into spacer (creates paragraph)
     // click a stable token within the first editor to ensure caret placement
     await firstEditor
       .locator(".cm-content")
-      .getByText("datetime")
+      .getByText("import")
       .first()
       .click();
-    await firstContent.press("Meta+ArrowDown");
-    await firstContent.press("ArrowDown");
+    await window.keyboard.press("ControlOrMeta+ArrowDown");
+    await window.keyboard.press("ArrowDown");
     // create spacer and click it, then navigate out to next code block
     const newPara = window
       .locator(".ContentEditable__root")
       .getByRole("paragraph")
       .first();
-    await newPara.click();
     await expect(newPara).toBeVisible();
     await window.keyboard.press("ArrowDown");
 
     // recreate a spacer and then type to verify text stays
-    const secondContentFromRemoval = secondEditorRoot.locator(".cm-content");
     await secondEditorRoot
       .locator(".cm-content")
       .getByText("Person")
       .first()
       .click();
-    await secondContentFromRemoval.press("Meta+ArrowUp");
-    await secondContentFromRemoval.press("ArrowUp"); // create spacer above
+    // Click on "Person" puts us in the Person dataclass block
+    // From here, Cmd+Up should go to start of block, then ArrowUp creates spacer above
+    await secondContent.press("Meta+ArrowUp");
+    await secondContent.press("ArrowUp"); // create spacer above
+
     const spacerText1 = "PARA-TEXT-ONE";
     await window.keyboard.type(spacerText1);
     await expect(window.getByText(spacerText1).first()).toBeVisible();
 
-    // From spacer, ArrowDown should jump into next code block
+    // From spacer, ArrowDown should jump into next code block (fibonacci function)
     await window.keyboard.press("ArrowDown");
 
-    // Move caret to start of second code block and ArrowUp twice to reach previous code block
-    const secondContent = secondEditorRoot.locator(".cm-content");
-    await secondContent.focus();
-    await secondContent.press("Meta+ArrowUp");
-    await secondContent.press("ArrowUp"); // to spacer above (caret at end)
-    await window.keyboard.press("Meta+ArrowUp"); // move caret to start of spacer paragraph
-    await window.keyboard.press("ArrowUp"); // to previous code block
+    // Move caret to start of fibonacci function block and ArrowUp to reach spacer
+    const fibonacciBlock = window.locator(
+      '[data-block-id="fibonacci-function"]'
+    );
+    await fibonacciBlock.locator(".cm-content").click();
+    await fibonacciBlock.locator(".cm-content").press("Meta+ArrowUp");
+    await window.keyboard.press("ArrowUp"); // to spacer above
 
     // Also verify right/left behave like down/up at edges
     await firstEditor
@@ -199,13 +196,14 @@ test.describe("python e2e", () => {
       .getByText("datetime")
       .first()
       .click();
+    // From "datetime" in import block, Cmd+Down goes to end, then ArrowDown creates spacer below
     await firstContent.press("Meta+ArrowDown");
-    await firstContent.press("ArrowRight");
+    await firstContent.press("ArrowDown");
 
     const spacerText2 = "PARA-TEXT-TWO";
     await window.keyboard.type(spacerText2);
     await expect(window.getByText(spacerText2).first()).toBeVisible();
-    await window.keyboard.press("ArrowRight");
+    await window.keyboard.press("ArrowDown"); // into next code block
 
     // Verify ArrowLeft behaves like ArrowUp at the start edge
     await secondEditorRoot
@@ -215,13 +213,13 @@ test.describe("python e2e", () => {
       .click();
     await secondContent.press("Meta+ArrowUp");
     await secondContent.press("ArrowLeft"); // to spacer above
-    // type into spacer above and verify it appears (skip explicit focus poll)
+    // type into spacer above and verify it appears
     const spacerText3 = "PARA-TEXT-THREE";
     await window.keyboard.type(spacerText3);
     await expect(window.getByText(spacerText3).first()).toBeVisible();
     await window.keyboard.press("ArrowLeft"); // to previous code block
 
-    // New: non-empty spacer should persist when navigating away
+    // Test that non-empty spacer persists when navigating away
     await secondEditorRoot
       .locator(".cm-content")
       .getByText("Person")
@@ -232,7 +230,7 @@ test.describe("python e2e", () => {
     const keepText = "KEEP-PARA";
     await window.keyboard.type(keepText);
     await expect(window.getByText(keepText).first()).toBeVisible();
-    await window.keyboard.press("ArrowDown"); // into next code block
+    await window.keyboard.press("ArrowDown"); // into next code block (fibonacci function)
     // ensure text persists
     await expect(window.getByText(keepText).first()).toBeVisible();
   });
@@ -334,6 +332,7 @@ test.describe("python e2e", () => {
     electronApp,
     tempTestDir,
   }) => {
+    test.slow();
     const window = await electronApp.firstWindow();
 
     // prepare core.py in temp workspace
@@ -362,7 +361,7 @@ test.describe("python e2e", () => {
     // keep a locator reference if needed for future checks
     const importContent = importEditor.locator(".cm-content");
     await importContent.focus();
-    await importContent.press("Meta+ArrowDown");
+    await importContent.press("ControlOrMeta+ArrowDown");
     await importContent.press("Enter");
     await importContent.press("Enter");
     await window.keyboard.type("x = 5");

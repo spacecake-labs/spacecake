@@ -7,7 +7,7 @@ import {
 } from "lexical";
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node";
 import { INITIAL_LOAD_TAG } from "@/types/editor";
-import type { FileType } from "@/types/workspace";
+import { FileType } from "@/types/workspace";
 import {
   parsePythonContentStreaming,
   docToBlock,
@@ -17,11 +17,12 @@ import type { FileContent } from "@/types/workspace";
 import { toast } from "sonner";
 import { delimitedNode } from "@/components/editor/nodes/delimited";
 import { $createHeadingNode } from "@lexical/rich-text";
+import { convertToSourceView } from "@/lib/editor";
 
 /**
  * Converts Python blocks into Lexical nodes with progressive rendering
  */
-async function convertPythonBlocksToLexical(
+export async function convertPythonBlocksToLexical(
   content: string,
   file: FileContent,
   editor: LexicalEditor
@@ -92,31 +93,40 @@ async function convertPythonBlocksToLexical(
 
 /**
  * Returns a function suitable for Lexical's editorState prop, which loads initial content
- * into the editor based on the file type (markdown, python, or plaintext).
+ * into the editor based on the file type and view preference.
  */
 export function getInitialEditorStateFromContent(
-  content: string,
-  fileType: FileType,
-  file?: FileContent
+  file: FileContent,
+  viewKind?: "block" | "source"
 ) {
   return (editor: LexicalEditor) => {
-    if (fileType === "python" && file) {
-      // Handle Python files asynchronously with progressive rendering
-      convertPythonBlocksToLexical(content, file, editor);
-    } else if (fileType === "markdown") {
-      // Handle markdown files
+    // If viewKind is explicitly provided, use it
+    if (viewKind === "source") {
+      convertToSourceView(file.content, file, editor);
+      return;
+    }
+
+    // Default behavior based on file type
+    if (file.fileType === FileType.Python) {
+      // Python defaults to block view if no view specified
+      convertPythonBlocksToLexical(file.content, file, editor);
+    } else if (file.fileType === FileType.Markdown) {
+      // Markdown defaults to block view (rendered markdown) when viewKind is "block" or undefined
       editor.update(() => {
-        $convertFromMarkdownString(content, TRANSFORMERS);
+        $convertFromMarkdownString(file.content, TRANSFORMERS);
       });
-    } else {
-      // Plaintext fallback
+    } else if (file.fileType === FileType.Plaintext) {
+      // Plaintext files go to plaintext view
       editor.update(() => {
         const root = $getRoot();
         root.clear();
         const paragraph = $createParagraphNode();
-        paragraph.append($createTextNode(content));
+        paragraph.append($createTextNode(file.content));
         root.append(paragraph);
       });
+    } else {
+      // All other programming languages (JS, TS, JSX, TSX) go to source view
+      convertToSourceView(file.content, file, editor);
     }
   };
 }
