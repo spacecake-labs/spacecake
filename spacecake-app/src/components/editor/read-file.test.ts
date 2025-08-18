@@ -32,6 +32,11 @@ vi.mock("lexical", () => ({
   $getRoot: vi.fn(() => ({ clear: vi.fn(), append: vi.fn() })),
   $createParagraphNode: vi.fn(() => ({ append: vi.fn() })),
   $createTextNode: vi.fn(() => ({})),
+  ParagraphNode: vi.fn(),
+  TextNode: vi.fn(),
+  LexicalNode: vi.fn(),
+  Klass: vi.fn(),
+  LexicalNodeReplacement: vi.fn(),
 }));
 
 vi.mock("@lexical/markdown", () => ({
@@ -41,6 +46,7 @@ vi.mock("@lexical/markdown", () => ({
 
 vi.mock("@/components/editor/nodes/code-node", () => ({
   $createCodeBlockNode: vi.fn(() => ({})),
+  CodeBlockNode: vi.fn(),
 }));
 
 vi.mock("@/components/editor/nodes/delimited", () => ({
@@ -91,11 +97,7 @@ def fibonacci(n):
 
   describe("Python files", () => {
     it("should handle Python files with progressive rendering", async () => {
-      const editorStateFn = getInitialEditorStateFromContent(
-        mockPythonFile.content,
-        FileType.Python,
-        mockPythonFile
-      );
+      const editorStateFn = getInitialEditorStateFromContent(mockPythonFile);
 
       editorStateFn(mockEditor);
 
@@ -112,36 +114,13 @@ def fibonacci(n):
         mockPythonFile.content
       );
     });
-
-    it("should handle Python files without file object (fallback to plaintext)", async () => {
-      const { $getRoot, $createParagraphNode, $createTextNode } = await import(
-        "lexical"
-      );
-
-      const editorStateFn = getInitialEditorStateFromContent(
-        mockPythonFile.content,
-        FileType.Python
-        // No file object provided
-      );
-
-      editorStateFn(mockEditor);
-
-      expect(mockEditor.update).toHaveBeenCalled();
-      expect($getRoot).toHaveBeenCalled();
-      expect($createParagraphNode).toHaveBeenCalled();
-      expect($createTextNode).toHaveBeenCalledWith(mockPythonFile.content);
-    });
   });
 
   describe("Markdown files", () => {
     it("should handle Markdown files", async () => {
       const { $convertFromMarkdownString } = await import("@lexical/markdown");
 
-      const editorStateFn = getInitialEditorStateFromContent(
-        mockMarkdownFile.content,
-        FileType.Markdown,
-        mockMarkdownFile
-      );
+      const editorStateFn = getInitialEditorStateFromContent(mockMarkdownFile);
 
       editorStateFn(mockEditor);
 
@@ -160,10 +139,20 @@ def fibonacci(n):
       );
 
       const plainTextContent = "This is plain text";
-      const editorStateFn = getInitialEditorStateFromContent(
-        plainTextContent,
-        FileType.Plaintext
-      );
+      const mockPlaintextFile: FileContent = {
+        name: "test.txt",
+        path: "/test/test.txt",
+        kind: "file",
+        etag: {
+          mtimeMs: 1714732800000,
+          size: 50,
+        },
+        content: plainTextContent,
+        fileType: FileType.Plaintext,
+        cid: ZERO_HASH,
+      };
+
+      const editorStateFn = getInitialEditorStateFromContent(mockPlaintextFile);
 
       editorStateFn(mockEditor);
 
@@ -173,62 +162,95 @@ def fibonacci(n):
       expect($createTextNode).toHaveBeenCalledWith(plainTextContent);
     });
 
-    it("should handle unknown file types as plaintext", async () => {
-      const { $getRoot, $createParagraphNode, $createTextNode } = await import(
-        "lexical"
+    it("should handle JavaScript files as source view by default", async () => {
+      const { $createCodeBlockNode } = await import(
+        "@/components/editor/nodes/code-node"
       );
 
-      const content = "Some content";
+      const content = "console.log('hello world');";
+      const mockJavaScriptFile: FileContent = {
+        name: "test.js",
+        path: "/test/test.js",
+        kind: "file",
+        etag: {
+          mtimeMs: 1714732800000,
+          size: 50,
+        },
+        content: content,
+        fileType: FileType.JavaScript,
+        cid: ZERO_HASH,
+      };
+
+      const editorStateFn =
+        getInitialEditorStateFromContent(mockJavaScriptFile);
+
+      editorStateFn(mockEditor);
+
+      expect(mockEditor.update).toHaveBeenCalled();
+      expect($createCodeBlockNode).toHaveBeenCalledWith({
+        code: content,
+        language: "javascript",
+        meta: "source",
+        src: mockJavaScriptFile.path,
+        block: undefined,
+      });
+    });
+  });
+
+  describe("Source view functionality", () => {
+    it("should use source view when explicitly requested", async () => {
+      const { $createCodeBlockNode } = await import(
+        "@/components/editor/nodes/code-node"
+      );
+
       const editorStateFn = getInitialEditorStateFromContent(
-        content,
-        "unknown" as FileType
+        mockPythonFile,
+        "source"
       );
 
       editorStateFn(mockEditor);
 
       expect(mockEditor.update).toHaveBeenCalled();
-      expect($getRoot).toHaveBeenCalled();
-      expect($createParagraphNode).toHaveBeenCalled();
-      expect($createTextNode).toHaveBeenCalledWith(content);
+      expect($createCodeBlockNode).toHaveBeenCalledWith({
+        code: mockPythonFile.content,
+        language: "python",
+        meta: "source",
+        src: mockPythonFile.path,
+        block: undefined,
+      });
     });
-  });
 
-  describe("Error handling", () => {
-    it("should fallback to plaintext when Python parsing fails", async () => {
-      // Mock the Python parser to throw an error
-      const { parsePythonContentStreaming } = await import(
-        "@/lib/parser/python/blocks"
-      );
-      vi.mocked(parsePythonContentStreaming).mockImplementation(
-        async function* () {
-          // Yield a dummy PyBlock before throwing error
-          yield {
-            kind: "import",
-            name: anonymousName(),
-            startByte: 0,
-            endByte: 5,
-            text: "dummy",
-            startLine: 1,
-          };
-          throw new Error("Parsing failed");
-        }
+    it("should use source view for JavaScript files by default", async () => {
+      const { $createCodeBlockNode } = await import(
+        "@/components/editor/nodes/code-node"
       );
 
-      const { $createTextNode } = await import("lexical");
+      const mockJavaScriptFile: FileContent = {
+        name: "test.js",
+        path: "/test/test.js",
+        kind: "file",
+        etag: {
+          mtimeMs: 1714732800000,
+          size: 50,
+        },
+        content: "console.log('hello');",
+        fileType: FileType.JavaScript,
+        cid: ZERO_HASH,
+      };
 
-      const editorStateFn = getInitialEditorStateFromContent(
-        mockPythonFile.content,
-        FileType.Python,
-        mockPythonFile
-      );
+      const editorStateFn =
+        getInitialEditorStateFromContent(mockJavaScriptFile);
 
       editorStateFn(mockEditor);
 
-      // Give time for async parsing to fail and fallback
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      // Should eventually fall back to plaintext
-      expect($createTextNode).toHaveBeenCalledWith(mockPythonFile.content);
+      expect(mockEditor.update).toHaveBeenCalled();
+      expect($createCodeBlockNode).toHaveBeenCalledWith({
+        code: "console.log('hello');",
+        language: "javascript",
+        meta: "source",
+        src: mockJavaScriptFile.path,
+        block: undefined,
+      });
     });
   });
 });

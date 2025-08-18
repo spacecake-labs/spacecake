@@ -1,21 +1,24 @@
 import { InitialConfigType } from "@lexical/react/LexicalComposer";
-import { $createTextNode, SerializedEditorState } from "lexical";
-import { getInitialEditorStateFromContent } from "@/components/editor/read-file";
-import { FileType } from "@/types/workspace";
+import { SerializedEditorState } from "lexical";
 import { editorConfig } from "@/components/editor/editor";
-import type { FileContent, FileTreeItem } from "@/types/workspace";
-import { $getRoot, LexicalEditor } from "lexical";
+import { getInitialEditorStateFromContent } from "@/components/editor/read-file";
+import { FileContent, FileTreeItem } from "@/types/workspace";
+import { $getRoot } from "lexical";
 import {
-  $createCodeBlockNode,
   $isCodeBlockNode,
+  $createCodeBlockNode,
 } from "@/components/editor/nodes/code-node";
+import { $getDelimitedString } from "@/components/editor/nodes/delimited";
+import { $isHeadingNode } from "@lexical/rich-text";
 import type { PyBlock } from "@/types/parser";
 import { codeToBlock, docToBlock } from "@/lib/parser/python/blocks";
-import {
-  delimitedNode,
-  $getDelimitedString,
-} from "@/components/editor/nodes/delimited";
-import { $createHeadingNode, $isHeadingNode } from "@lexical/rich-text";
+import { LexicalEditor } from "lexical";
+import { delimitedNode } from "@/components/editor/nodes/delimited";
+import { $createTextNode } from "lexical";
+import { $createHeadingNode } from "@lexical/rich-text";
+import { viewKindAtom } from "@/lib/atoms/atoms";
+import { getDefaultStore } from "jotai";
+import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support";
 
 // Pure function to create editor config from serialized state
 export const createEditorConfigFromState = (
@@ -29,13 +32,12 @@ export const createEditorConfigFromState = (
 
 // Pure function to create editor config from file content
 export const createEditorConfigFromContent = (
-  content: string,
-  fileType: FileType,
-  file?: FileContent
+  file: FileContent,
+  viewKind?: "block" | "source"
 ): InitialConfigType => {
   return {
     ...editorConfig,
-    editorState: getInitialEditorStateFromContent(content, fileType, file),
+    editorState: getInitialEditorStateFromContent(file, viewKind),
   };
 };
 
@@ -50,11 +52,11 @@ export const getEditorConfig = (
   }
 
   if (fileContent && selectedFilePath) {
-    return createEditorConfigFromContent(
-      fileContent.content,
-      fileContent.fileType,
-      fileContent // Pass the full file object
-    );
+    // Get the current view preference for this file type
+    const store = getDefaultStore();
+    const viewKind = store.get(viewKindAtom)(fileContent.fileType);
+
+    return createEditorConfigFromContent(fileContent, viewKind);
   }
 
   return null;
@@ -141,5 +143,32 @@ export function reconcilePythonBlocks(
         root.append(codeNode);
       }
     }
+  });
+}
+
+/**
+ * Converts file content to a single source view (CodeMirror block)
+ * This function can be used for both initial loading and live view switching
+ */
+export function convertToSourceView(
+  content: string,
+  file: FileContent,
+  editor: LexicalEditor
+) {
+  const language = fileTypeToCodeMirrorLanguage(file.fileType);
+
+  editor.update(() => {
+    const root = $getRoot();
+    root.clear();
+
+    const codeNode = $createCodeBlockNode({
+      code: content,
+      language: language || undefined, // Convert null to undefined for CodeMirror
+      meta: "source",
+      src: file.path, // Always use file path
+      block: undefined, // No block info for source view
+    });
+
+    root.append(codeNode);
   });
 }

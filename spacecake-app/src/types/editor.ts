@@ -6,3 +6,6 @@ export type InitialLoadTag = typeof INITIAL_LOAD_TAG;
 export function hasInitialLoadTag(tags: ReadonlySet<string>): boolean {
   return tags.has(INITIAL_LOAD_TAG);
 }
+
+// view kinds for editor modes
+export type ViewKind = "block" | "source";
