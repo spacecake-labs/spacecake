@@ -7,39 +7,42 @@ export const editorTheme: EditorThemeClasses = {
   rtl: "text-right",
   heading: {
     h1: "scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl",
-    h2: "scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0",
-    h3: "scroll-m-20 text-2xl font-semibold tracking-tight",
+    h2: "mt-10 scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight transition-colors first:mt-0",
+    h3: "mt-8 scroll-m-20 text-2xl font-semibold tracking-tight",
     h4: "scroll-m-20 text-xl font-semibold tracking-tight",
     h5: "scroll-m-20 text-lg font-semibold tracking-tight",
     h6: "scroll-m-20 text-base font-semibold tracking-tight",
   },
-  paragraph: "leading-7 [&:not(:first-child)]:mt-2",
+  paragraph: "leading-7 [&:not(:first-child)]:mt-6",
   quote: "mt-6 border-l-2 pl-6 italic",
   link: "text-blue-600 hover:underline hover:cursor-pointer",
   list: {
-    checklist: "relative",
-    listitem: "mx-8",
-    listitemChecked:
-      'relative mx-2 px-6 list-none outline-none line-through before:content-[""] before:w-4 before:h-4 before:top-0.5 before:left-0 before:cursor-pointer before:block before:bg-cover before:absolute before:border before:border-primary before:rounded before:bg-primary before:bg-no-repeat after:content-[""] after:cursor-pointer after:border-white after:border-solid after:absolute after:block after:top-[6px] after:w-[3px] after:left-[7px] after:right-[7px] after:h-[6px] after:rotate-45 after:border-r-2 after:border-b-2 after:border-l-0 after:border-t-0',
-    listitemUnchecked:
-      'relative mx-2 px-6 list-none outline-none before:content-[""] before:w-4 before:h-4 before:top-0.5 before:left-0 before:cursor-pointer before:block before:bg-cover before:absolute before:border before:border-primary before:rounded',
-    nested: {
-      listitem: "list-none before:hidden after:hidden",
-    },
-    ol: "my-6 ml-6 list-decimal [&>li]:mt-2",
-    olDepth: [
-      "list-outside !list-decimal",
-      "list-outside !list-[upper-roman]",
-      "list-outside !list-[lower-roman]",
-      "list-outside !list-[upper-alpha]",
-      "list-outside !list-[lower-alpha]",
-    ],
-    ul: "m-0 p-0 list-outside",
+    ul: "my-6 ml-6 list-disc [&>li]:mt-2",
   },
+  // list: {
+  //   checklist: "relative",
+  //   listitem: "mx-8",
+  //   listitemChecked:
+  //     'relative mx-2 px-6 list-none outline-none line-through before:content-[""] before:w-4 before:h-4 before:top-0.5 before:left-0 before:cursor-pointer before:block before:bg-cover before:absolute before:border before:border-primary before:rounded before:bg-primary before:bg-no-repeat after:content-[""] after:cursor-pointer after:border-white after:border-solid after:absolute after:block after:top-[6px] after:w-[3px] after:left-[7px] after:right-[7px] after:h-[6px] after:rotate-45 after:border-r-2 after:border-b-2 after:border-l-0 after:border-t-0',
+  //   listitemUnchecked:
+  //     'relative mx-2 px-6 list-none outline-none before:content-[""] before:w-4 before:h-4 before:top-0.5 before:left-0 before:cursor-pointer before:block before:bg-cover before:absolute before:border before:border-primary before:rounded',
+  //   nested: {
+  //     listitem: "list-none before:hidden after:hidden",
+  //   },
+  //   ol: "my-6 ml-6 list-decimal [&>li]:mt-2",
+  //   olDepth: [
+  //     "list-outside !list-decimal",
+  //     "list-outside !list-[upper-roman]",
+  //     "list-outside !list-[lower-roman]",
+  //     "list-outside !list-[upper-alpha]",
+  //     "list-outside !list-[lower-alpha]",
+  //   ],
+  //   ul: "m-0 p-0 list-outside",
+  // },
   hashtag: "text-blue-600 bg-blue-100 rounded-md px-1",
   text: {
     bold: "font-bold",
-    code: "bg-gray-100 p-1 rounded-md",
+    code: "bg-muted relative rounded px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold",
     italic: "italic",
     strikethrough: "line-through",
     subscript: "sub",

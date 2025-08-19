@@ -27,7 +27,7 @@ test.describe("python e2e", () => {
 
     const textbox = window.getByRole("textbox", { name: "filename.txt" });
     await textbox.fill("empty.py");
-    await textbox.press("Enter");
+    await textbox.press("Enter", { delay: 100 });
 
     await expect(
       window.getByRole("button", { name: "empty.py" }).first()
@@ -113,7 +113,7 @@ test.describe("python e2e", () => {
     // focus editor and move caret to the first line to ensure gutter aligns to start
     const content = firstEditor.locator(".cm-content");
     await content.focus();
-    await content.press("ControlOrMeta+ArrowUp");
+    await content.press("ControlOrMeta+ArrowUp", { delay: 100 });
     const activeGutter = firstEditor
       .locator(
         ".cm-gutter.cm-lineNumbers .cm-gutterElement.cm-activeLineGutter"
@@ -154,15 +154,15 @@ test.describe("python e2e", () => {
       .getByText("import")
       .first()
       .click();
-    await window.keyboard.press("ControlOrMeta+ArrowDown");
-    await window.keyboard.press("ArrowDown");
+    await window.keyboard.press("ControlOrMeta+ArrowDown", { delay: 100 });
+    await window.keyboard.press("ArrowDown", { delay: 100 });
     // create spacer and click it, then navigate out to next code block
     const newPara = window
       .locator(".ContentEditable__root")
       .getByRole("paragraph")
       .first();
     await expect(newPara).toBeVisible();
-    await window.keyboard.press("ArrowDown");
+    await window.keyboard.press("ArrowDown", { delay: 100 });
 
     // recreate a spacer and then type to verify text stays
     await secondEditorRoot
@@ -172,23 +172,25 @@ test.describe("python e2e", () => {
       .click();
     // Click on "Person" puts us in the Person dataclass block
     // From here, Cmd+Up should go to start of block, then ArrowUp creates spacer above
-    await secondContent.press("Meta+ArrowUp");
-    await secondContent.press("ArrowUp"); // create spacer above
+    await secondContent.press("Meta+ArrowUp", { delay: 100 });
+    await secondContent.press("ArrowUp", { delay: 100 }); // create spacer above
 
     const spacerText1 = "PARA-TEXT-ONE";
     await window.keyboard.type(spacerText1);
     await expect(window.getByText(spacerText1).first()).toBeVisible();
 
     // From spacer, ArrowDown should jump into next code block (fibonacci function)
-    await window.keyboard.press("ArrowDown");
+    await window.keyboard.press("ArrowDown", { delay: 100 });
 
     // Move caret to start of fibonacci function block and ArrowUp to reach spacer
     const fibonacciBlock = window.locator(
       '[data-block-id="fibonacci-function"]'
     );
     await fibonacciBlock.locator(".cm-content").click();
-    await fibonacciBlock.locator(".cm-content").press("Meta+ArrowUp");
-    await window.keyboard.press("ArrowUp"); // to spacer above
+    await fibonacciBlock
+      .locator(".cm-content")
+      .press("Meta+ArrowUp", { delay: 100 });
+    await window.keyboard.press("ArrowUp", { delay: 100 }); // to spacer above
 
     // Also verify right/left behave like down/up at edges
     await firstEditor
@@ -197,13 +199,13 @@ test.describe("python e2e", () => {
       .first()
       .click();
     // From "datetime" in import block, Cmd+Down goes to end, then ArrowDown creates spacer below
-    await firstContent.press("Meta+ArrowDown");
-    await firstContent.press("ArrowDown");
+    await firstContent.press("Meta+ArrowDown", { delay: 100 });
+    await firstContent.press("ArrowDown", { delay: 100 });
 
     const spacerText2 = "PARA-TEXT-TWO";
     await window.keyboard.type(spacerText2);
     await expect(window.getByText(spacerText2).first()).toBeVisible();
-    await window.keyboard.press("ArrowDown"); // into next code block
+    await window.keyboard.press("ArrowDown", { delay: 100 }); // into next code block
 
     // Verify ArrowLeft behaves like ArrowUp at the start edge
     await secondEditorRoot
@@ -211,13 +213,13 @@ test.describe("python e2e", () => {
       .getByText("Person")
       .first()
       .click();
-    await secondContent.press("Meta+ArrowUp");
-    await secondContent.press("ArrowLeft"); // to spacer above
+    await secondContent.press("Meta+ArrowUp", { delay: 100 });
+    await secondContent.press("ArrowLeft", { delay: 100 }); // to spacer above
     // type into spacer above and verify it appears
     const spacerText3 = "PARA-TEXT-THREE";
     await window.keyboard.type(spacerText3);
     await expect(window.getByText(spacerText3).first()).toBeVisible();
-    await window.keyboard.press("ArrowLeft"); // to previous code block
+    await window.keyboard.press("ArrowLeft", { delay: 100 }); // to previous code block
 
     // Test that non-empty spacer persists when navigating away
     await secondEditorRoot
@@ -225,12 +227,12 @@ test.describe("python e2e", () => {
       .getByText("Person")
       .first()
       .click();
-    await secondContent.press("Meta+ArrowDown");
-    await secondContent.press("ArrowDown"); // create spacer below second block
+    await secondContent.press("Meta+ArrowDown", { delay: 100 });
+    await secondContent.press("ArrowDown", { delay: 100 }); // create spacer below second block
     const keepText = "KEEP-PARA";
     await window.keyboard.type(keepText);
     await expect(window.getByText(keepText).first()).toBeVisible();
-    await window.keyboard.press("ArrowDown"); // into next code block (fibonacci function)
+    await window.keyboard.press("ArrowDown", { delay: 100 }); // into next code block (fibonacci function)
     // ensure text persists
     await expect(window.getByText(keepText).first()).toBeVisible();
   });
@@ -361,9 +363,9 @@ test.describe("python e2e", () => {
     // keep a locator reference if needed for future checks
     const importContent = importEditor.locator(".cm-content");
     await importContent.focus();
-    await importContent.press("ControlOrMeta+ArrowDown");
-    await importContent.press("Enter");
-    await importContent.press("Enter");
+    await importContent.press("ControlOrMeta+ArrowDown", { delay: 100 });
+    await importContent.press("Enter", { delay: 100 });
+    await importContent.press("Enter", { delay: 100 });
     await window.keyboard.type("x = 5");
 
     // save from header and wait for rerender: observe button text transition

@@ -95,16 +95,28 @@ function WorkspaceLayout() {
 
               // Reconcile the blocks (this will update all CodeMirror instances)
               reconcilePythonBlocks(currentEditor, event.path, blocks);
+            } else if (event.fileType === FileType.Markdown) {
+              // For Markdown files, use Lexical's built-in markdown conversion
+              const { $convertFromMarkdownString, TRANSFORMERS } = await import(
+                "@lexical/markdown"
+              );
+
+              currentEditor.update(() => {
+                $convertFromMarkdownString(event.content, TRANSFORMERS);
+              });
             } else {
-              // For non-Python files, update the editor content directly
+              // For other text files, update the editor content directly
               const { $getRoot, $createParagraphNode, $createTextNode } =
                 await import("lexical");
-              const root = $getRoot();
-              root.clear();
 
-              const paragraph = $createParagraphNode();
-              paragraph.append($createTextNode(event.content));
-              root.append(paragraph);
+              currentEditor.update(() => {
+                const root = $getRoot();
+                root.clear();
+
+                const paragraph = $createParagraphNode();
+                paragraph.append($createTextNode(event.content));
+                root.append(paragraph);
+              });
             }
           } catch (error) {
             console.error("error updating editor content:", error);
@@ -175,6 +187,10 @@ function WorkspaceLayout() {
       })();
       if (inferredType === FileType.Python) {
         contentToWrite = serializeEditorToPython(lexicalEditor);
+      } else if (inferredType === FileType.Markdown) {
+        // For markdown files, convert Lexical state to markdown
+        const { $convertToMarkdownString } = await import("@lexical/markdown");
+        contentToWrite = lexicalEditor.read(() => $convertToMarkdownString());
       } else if (baseline && baseline.path === selectedFilePath) {
         // fallback: write baseline until other serializers exist
         contentToWrite = baseline.content;
