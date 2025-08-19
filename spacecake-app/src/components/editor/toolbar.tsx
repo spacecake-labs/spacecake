@@ -38,8 +38,8 @@ export function EditorToolbar({ onSave }: { onSave: () => void }) {
     if (!currentFile) return "";
     const currentView = viewKind(currentFile.fileType);
     return currentView === "block"
-      ? "Switch to source view"
-      : "Switch to block view";
+      ? "switch to source view"
+      : "switch to block view";
   };
 
   const getCurrentView = () => {
