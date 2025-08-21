@@ -4,8 +4,8 @@ import {
   lexicalEditorAtom,
   selectedFilePathAtom,
   userViewPreferencesAtom,
-} from "./atoms";
-import { fileTreeEventAtom } from "./file-tree";
+} from "@/lib/atoms/atoms";
+import { fileTreeEventAtom } from "@/lib/atoms/file-tree";
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file";
 
 export const workspacePathAtom = atom<string | null>(null);
