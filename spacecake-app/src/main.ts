@@ -3,13 +3,19 @@ import path from "node:path";
 import started from "electron-squirrel-startup";
 import { buildCSPString } from "@/csp";
 import "@/main-process/ipc-handlers";
+import {
+  installExtension,
+  REACT_DEVELOPER_TOOLS,
+} from "electron-devtools-installer";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
 }
 
+const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 const isTest = process.env.IS_PLAYWRIGHT === "1";
+const isProd = process.env.NODE_ENV === "production";
 
 const createWindow = () => {
   // Create the browser window.
@@ -45,7 +51,7 @@ const createWindow = () => {
   }
 
   // Set additional security headers
-  const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
+
   const cspString = buildCSPString(isDev ? "development" : "production");
 
   // Note: The security warning about 'unsafe-inline' is expected in development
@@ -93,3 +99,11 @@ app.on("activate", () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+
+app.whenReady().then(() => {
+  if (!isProd) {
+    installExtension(REACT_DEVELOPER_TOOLS)
+      .then((ext) => console.log(`Added Extension:  ${ext.name}`))
+      .catch((err) => console.log("An error occurred: ", err));
+  }
+});

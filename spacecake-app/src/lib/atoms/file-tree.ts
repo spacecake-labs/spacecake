@@ -1,7 +1,7 @@
 import { atom } from "jotai";
 import type { FileTree, FileTreeEvent, File, Folder } from "@/types/workspace";
 import { ZERO_HASH } from "@/types/workspace";
-import { tFileTreeAtom, workspaceAtom } from "@/lib/atoms/atoms";
+import { fileTreeAtom, workspaceAtom } from "@/lib/atoms/atoms";
 import { fileTypeFromExtension } from "@/lib/workspace";
 
 // helper function to find and update items in the tree
@@ -65,7 +65,7 @@ export const fileTreeEventAtom = atom(
     const workspace = get(workspaceAtom);
     if (!workspace?.path) return;
 
-    const currentTree = get(tFileTreeAtom);
+    const currentTree = get(fileTreeAtom);
     const absolutePath = event.path;
 
     if (!absolutePath.startsWith(workspace.path)) {
@@ -108,10 +108,10 @@ export const fileTreeEventAtom = atom(
         if (parentPath === null || parentPath === workspace.path) {
           // Add to workspace root level
           if (currentTree.find((i) => i.path === absolutePath)) return;
-          set(tFileTreeAtom, [...currentTree, newItem]);
+          set(fileTreeAtom, [...currentTree, newItem]);
         } else {
           // Add to parent folder
-          set(tFileTreeAtom, addItemToTree(currentTree, parentPath, newItem));
+          set(fileTreeAtom, addItemToTree(currentTree, parentPath, newItem));
         }
         break;
       }
@@ -127,14 +127,14 @@ export const fileTreeEventAtom = atom(
               }
             : item
         );
-        set(tFileTreeAtom, newTree);
+        set(fileTreeAtom, newTree);
         break;
       }
 
       case "unlinkFile":
       case "unlinkFolder": {
         const newTree = removeItemFromTree(currentTree, absolutePath);
-        set(tFileTreeAtom, newTree);
+        set(fileTreeAtom, newTree);
         break;
       }
     }
@@ -142,7 +142,7 @@ export const fileTreeEventAtom = atom(
 );
 
 export const sortedFileTreeAtom = atom((get) => {
-  const fileTree = get(tFileTreeAtom);
+  const fileTree = get(fileTreeAtom);
 
   const sortItems = (items: FileTree): FileTree => {
     return [...items].sort((a, b) => {

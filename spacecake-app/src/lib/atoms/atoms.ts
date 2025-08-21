@@ -1,5 +1,6 @@
 import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
+import { atomEffect } from "jotai-effect";
 import type {
   WorkspaceInfo,
   FileContent,
@@ -20,12 +21,16 @@ import {
 import type { ViewKind } from "@/types/editor";
 import { supportsBlockView, supportedViews } from "@/lib/language-support";
 import { serializeEditorToPython, convertToSourceView } from "@/lib/editor";
+import type { InitialConfigType } from "@lexical/react/LexicalComposer";
 import { convertPythonBlocksToLexical } from "@/components/editor/read-file";
+import { toast } from "sonner";
+import { readFile, saveFile } from "@/lib/fs";
+import { fileTypeFromExtension } from "@/lib/workspace";
 
 export const workspaceAtom = atom<WorkspaceInfo | null>(null);
 export const loadingAtom = atom<boolean>(false);
 
-export const tFileTreeAtom = atom<FileTree>([]);
+export const fileTreeAtom = atom<FileTree>([]);
 
 // Expanded folders state (keyed by folder path)
 export const expandedFoldersAtom = atom<ExpandedFolders>({});
@@ -110,10 +115,10 @@ export type Theme = "light" | "dark" | "system";
 // theme state (persisted)
 export const themeAtom = atomWithStorage<Theme>("spacecake-theme", "system");
 
-// View management atoms
-export const userViewPreferencesAtom = atom<
+// View management atoms (persisted)
+export const userViewPreferencesAtom = atomWithStorage<
   Partial<Record<FileType, ViewKind>>
->({});
+>("spacecake-view-preferences", {});
 
 // Derived atom that computes the current view kind for a file type
 export const viewKindAtom = atom((get) => (fileType: FileType): ViewKind => {
@@ -135,15 +140,55 @@ export const canToggleViewsAtom = atom((get) => {
   return views.size > 1;
 });
 
+// Atom to store the computed editor config
+export const editorConfigAtom = atom<InitialConfigType | null>(null);
+
+// Factory function to create editor config effect with injected dependencies
+export const createEditorConfigEffect = (
+  createEditorConfigFromState: (
+    state: SerializedEditorState
+  ) => InitialConfigType,
+  createEditorConfigFromContent: (
+    content: FileContent,
+    viewKind: ViewKind
+  ) => InitialConfigType
+) =>
+  atomEffect((get, set) => {
+    const editorState = get(editorStateAtom);
+    const fileContent = get(fileContentAtom);
+    const selectedFilePath = get(selectedFilePathAtom);
+    const userPrefs = get(userViewPreferencesAtom); // Add as dependency
+
+    // If we have an editor state, always use that (preserves current view)
+    if (editorState) {
+      const config = createEditorConfigFromState(editorState);
+      set(editorConfigAtom, config);
+    }
+    // Create from content when we have fileContent and selectedFilePath
+    else if (fileContent && selectedFilePath) {
+      // Get the current view preference for this file type
+      const userPref = userPrefs[fileContent.fileType];
+      const viewKind =
+        userPref ||
+        (supportsBlockView(fileContent.fileType) ? "block" : "source");
+
+      const config = createEditorConfigFromContent(fileContent, viewKind);
+      set(editorConfigAtom, config);
+    } else if (!fileContent || !selectedFilePath) {
+      set(editorConfigAtom, null);
+    }
+  });
+
 // Derived atom that handles toggling between block and source views
 export const toggleViewAtom = atom(null, (get, set) => {
   const currentFile = get(fileContentAtom);
   if (!currentFile) return;
 
-  const viewKind = get(viewKindAtom);
-  const currentView = viewKind(currentFile.fileType);
-
-  if (!currentView) return;
+  // Get current view preference directly instead of calling the derived atom function
+  const userPrefs = get(userViewPreferencesAtom);
+  const currentView =
+    userPrefs[currentFile.fileType] ||
+    (supportsBlockView(currentFile.fileType) ? "block" : "source");
 
   // Simple toggle: block ↔ source
   const nextView: ViewKind = currentView === "block" ? "source" : "block";
@@ -185,5 +230,73 @@ export const toggleViewAtom = atom(null, (get, set) => {
         $convertFromMarkdownString(markdownContent, TRANSFORMERS);
       });
     }
+  }
+});
+
+// An action atom to handle selecting a new file
+export const selectFileAtom = atom(
+  null, // This atom has no value to read
+  async (get, set, filePath: string) => {
+    // All the logic from handleFileClick moves here
+    const file = await readFile(filePath);
+    if (file) {
+      // This sequence is now an atomic "transaction" from Jotai's perspective
+      set(editorStateAtom, null);
+      set(fileContentAtom, file);
+      set(baselineFileAtom, { path: file.path, content: file.content });
+      set(selectedFilePathAtom, filePath); // Set this last to trigger downstream effects
+    } else {
+      toast(`error reading file: ${filePath}`);
+    }
+  }
+);
+
+// An action atom to handle saving the current file
+export const saveFileAtom = atom(null, async (get, set) => {
+  const selectedFilePath = get(selectedFilePathAtom);
+  const lexicalEditor = get(lexicalEditorAtom);
+  const isSaving = get(isSavingAtom);
+  const fileContent = get(fileContentAtom);
+  const baseline = get(baselineFileAtom);
+
+  if (!selectedFilePath || !lexicalEditor || isSaving) return;
+
+  set(isSavingAtom, true);
+  try {
+    // All the logic from doSave moves here
+    let contentToWrite = "";
+    const inferredType = (() => {
+      if (fileContent?.fileType) return fileContent.fileType;
+      if (selectedFilePath) {
+        const ext = selectedFilePath.split(".").pop() || "";
+        return fileTypeFromExtension(ext);
+      }
+      return FileType.Plaintext;
+    })();
+
+    if (inferredType === FileType.Python) {
+      contentToWrite = serializeEditorToPython(lexicalEditor);
+    } else if (inferredType === FileType.Markdown) {
+      // For markdown files, convert Lexical state to markdown
+      contentToWrite = lexicalEditor.read(() => $convertToMarkdownString(TRANSFORMERS));
+    } else if (baseline && baseline.path === selectedFilePath) {
+      // fallback: write baseline until other serializers exist
+      contentToWrite = baseline.content;
+    } else {
+      contentToWrite = "";
+    }
+
+    window.dispatchEvent(new Event("sc-before-save"));
+    const ok = await saveFile(selectedFilePath, contentToWrite);
+
+    if (ok) {
+      toast(`saved ${selectedFilePath}`);
+      // Update the baseline to the content we just wrote
+      set(baselineFileAtom, { path: selectedFilePath, content: contentToWrite });
+    } else {
+      toast("failed to save file");
+    }
+  } finally {
+    set(isSavingAtom, false);
   }
 });
