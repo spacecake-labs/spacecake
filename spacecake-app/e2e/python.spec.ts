@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 
 test.describe("python e2e", () => {
-  test("open workspace and create an empty python file", async ({
+  test("open workspace and create an empty python file", async ({ 
     electronApp,
     tempTestDir,
   }, testInfo) => {
@@ -39,6 +39,9 @@ test.describe("python e2e", () => {
     // open the newly created file
     await window.getByRole("button", { name: "empty.py" }).first().click();
 
+    // Explicitly wait for the Lexical editor to be visible for the empty file
+    await expect(window.getByTestId("lexical-editor")).toBeVisible();
+
     // focus the code block toolbar and verify default code block type appears
     await window.getByText("🐍").first().click();
     await expect(window.getByText("file").first()).toBeVisible();
@@ -52,7 +55,7 @@ test.describe("python e2e", () => {
     });
   });
 
-  test("open workspace and render core.py blocks", async ({
+  test("open workspace and render core.py blocks", async ({ 
     electronApp,
     tempTestDir,
   }) => {
@@ -176,7 +179,7 @@ test.describe("python e2e", () => {
     await secondContent.press("ArrowUp", { delay: 100 }); // create spacer above
 
     const spacerText1 = "PARA-TEXT-ONE";
-    await window.keyboard.type(spacerText1);
+    await window.getByTestId("lexical-editor").type(spacerText1, { delay: 100 });
     await expect(window.getByText(spacerText1).first()).toBeVisible();
 
     // From spacer, ArrowDown should jump into next code block (fibonacci function)
@@ -207,7 +210,7 @@ test.describe("python e2e", () => {
     await firstContent.press("ArrowDown", { delay: 100 });
 
     const spacerText2 = "PARA-TEXT-TWO";
-    await window.keyboard.type(spacerText2);
+    await window.getByTestId("lexical-editor").type(spacerText2, { delay: 100 });
     await expect(window.getByText(spacerText2).first()).toBeVisible();
     await window.keyboard.press("ArrowDown", { delay: 100 }); // into next code block
 
@@ -222,7 +225,7 @@ test.describe("python e2e", () => {
     await secondContent.press("ArrowLeft", { delay: 100 }); // to spacer above
     // type into spacer above and verify it appears
     const spacerText3 = "PARA-TEXT-THREE";
-    await window.keyboard.type(spacerText3);
+    await window.getByTestId("lexical-editor").type(spacerText3, { delay: 100 });
     await expect(window.getByText(spacerText3).first()).toBeVisible();
     await window.keyboard.press("ArrowLeft", { delay: 100 }); // to previous code block
 
@@ -236,14 +239,14 @@ test.describe("python e2e", () => {
     await secondContent.press("Meta+ArrowDown", { delay: 100 });
     await secondContent.press("ArrowDown", { delay: 100 }); // create spacer below second block
     const keepText = "KEEP-PARA";
-    await window.keyboard.type(keepText);
+    await window.getByTestId("lexical-editor").type(keepText, { delay: 100 });
     await expect(window.getByText(keepText).first()).toBeVisible();
     await window.keyboard.press("ArrowDown", { delay: 100 }); // into next code block (fibonacci function)
     // ensure text persists
     await expect(window.getByText(keepText).first()).toBeVisible();
   });
 
-  test("switching between core.py and empty.py updates editor", async ({
+  test("switching between core.py and empty.py updates editor", async ({ 
     electronApp,
     tempTestDir,
   }) => {
@@ -287,7 +290,7 @@ test.describe("python e2e", () => {
     await expect(window.getByText("An empty file.").first()).toBeVisible();
   });
 
-  test("switching between files in different folders updates editor", async ({
+  test("switching between files in different folders updates editor", async ({ 
     electronApp,
     tempTestDir,
   }) => {
@@ -336,7 +339,7 @@ test.describe("python e2e", () => {
     await expect(window.getByText("An empty file.").first()).toBeVisible();
   });
 
-  test("saving new misc block persists after rerender without navigation", async ({
+  test("saving new misc block persists after rerender without navigation", async ({ 
     electronApp,
     tempTestDir,
   }) => {
@@ -372,7 +375,7 @@ test.describe("python e2e", () => {
     await importContent.press("ControlOrMeta+ArrowDown", { delay: 100 });
     await importContent.press("Enter", { delay: 100 });
     await importContent.press("Enter", { delay: 100 });
-    await window.keyboard.type("x = 5");
+    await importContent.type("x = 5", { delay: 100 });
 
     // save from header and wait for rerender: observe button text transition
     const saveBtn = window.getByRole("button", { name: "save" });
@@ -392,7 +395,7 @@ test.describe("python e2e", () => {
     await expect(importBlock).toBeVisible();
   });
 
-  test("external file change updates only the changed block (watcher)", async ({
+  test("external file change updates only the changed block (watcher)", async ({ 
     electronApp,
     tempTestDir,
   }) => {

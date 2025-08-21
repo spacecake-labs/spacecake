@@ -1,5 +1,3 @@
-/* */
-
 import { test, expect } from "./fixtures";
 import { stubDialog } from "electron-playwright-helpers";
 import path from "path";
@@ -69,7 +67,7 @@ test.describe("spacecake app", () => {
     const textbox = window.getByRole("textbox", { name: "filename.txt" });
 
     await textbox.fill("test.txt");
-    await textbox.press("Enter");
+    await textbox.press("Enter", { delay: 100 }); // Added delay
 
     // Wait for the new file to appear in the sidebar
     await expect(
@@ -207,7 +205,7 @@ test.describe("spacecake app", () => {
     // Create the file
     const fileInput = window.getByRole("textbox", { name: "filename.txt" });
     await fileInput.fill("test-file.txt");
-    await fileInput.press("Enter");
+    await fileInput.press("Enter", { delay: 100 }); // Added delay
 
     // Verify the file was created and is visible
     await expect(
@@ -229,7 +227,7 @@ test.describe("spacecake app", () => {
     // Create the folder
     const folderInput = window.getByRole("textbox", { name: "folder name" });
     await folderInput.fill("test-subfolder");
-    await folderInput.press("Enter");
+    await folderInput.press("Enter", { delay: 100 }); // Added delay
 
     // Wait for the new folder to appear
     await expect(
@@ -289,7 +287,7 @@ test.describe("spacecake app", () => {
 
     const fileInput1 = window.getByRole("textbox", { name: "filename.txt" });
     await fileInput1.fill("parent-file.txt");
-    await fileInput1.press("Enter");
+    await fileInput1.press("Enter", { delay: 100 }); // Added delay
 
     // Verify the file appears immediately
     await expect(
@@ -302,7 +300,7 @@ test.describe("spacecake app", () => {
 
     const folderInput1 = window.getByRole("textbox", { name: "folder name" });
     await folderInput1.fill("new-child-folder");
-    await folderInput1.press("Enter");
+    await folderInput1.press("Enter", { delay: 100 }); // Added delay
 
     // Verify the new folder appears immediately
     await expect(
@@ -315,7 +313,7 @@ test.describe("spacecake app", () => {
 
     const fileInput2 = window.getByRole("textbox", { name: "filename.txt" });
     await fileInput2.fill("child-file.txt");
-    await fileInput2.press("Enter");
+    await fileInput2.press("Enter", { delay: 100 }); // Added delay
 
     // Verify the file appears immediately in the child folder
     await expect(
@@ -328,7 +326,7 @@ test.describe("spacecake app", () => {
 
     const folderInput2 = window.getByRole("textbox", { name: "folder name" });
     await folderInput2.fill("grandchild-folder");
-    await folderInput2.press("Enter");
+    await folderInput2.press("Enter", { delay: 100 }); // Added delay
 
     // Verify the grandchild folder appears immediately
     await expect(

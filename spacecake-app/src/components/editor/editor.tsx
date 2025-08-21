@@ -79,7 +79,7 @@ export function Editor({
 
   return (
     // <div className="bg-background overflow-hidden rounded-lg border">
-    <div>
+    <div data-testid="lexical-editor">
       <LexicalComposer
         initialConfig={{
           ...editorConfig,
