@@ -11,7 +11,6 @@ import { Separator } from "@/components/ui/separator";
 import {
   editorStateAtom,
   selectedFilePathAtom,
-  lexicalEditorAtom,
   editorConfigAtom,
   createEditorConfigEffect,
   selectFileAtom,
@@ -25,11 +24,11 @@ import {
 import type { SerializedEditorState } from "lexical";
 import { Editor } from "@/components/editor/editor";
 import { decodeBase64Url } from "@/lib/utils";
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 // toolbar renders the save button
-import { FileTreeEvent } from "@/types/workspace";
 import { EditorToolbar } from "@/components/editor/toolbar";
-import { fileTreeEventAtom } from "@/lib/atoms/file-tree";
+import { workspacePathAtom } from "@/lib/atoms/workspace";
+import { WorkspaceWatcher } from "@/lib/workspace-watcher";
 
 export const Route = createFileRoute("/w/$workspaceId")({
   loader: async ({ params }) => {
@@ -50,98 +49,20 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
 function WorkspaceLayout() {
   const workspaceData = Route.useLoaderData();
+  const setWorkspacePath = useSetAtom(workspacePathAtom);
 
-  const handleFileTreeEvent = useSetAtom(fileTreeEventAtom);
+  useEffect(() => {
+    setWorkspacePath(workspaceData.workspace.path);
+    return () => {
+      setWorkspacePath(null);
+    };
+  }, [workspaceData.workspace.path, setWorkspacePath]);
+
   const selectFile = useSetAtom(selectFileAtom);
   const saveFile = useSetAtom(saveFileAtom);
 
   const selectedFilePath = useAtomValue(selectedFilePathAtom);
   const setEditorState = useSetAtom(editorStateAtom);
-  const lexicalEditor = useAtomValue(lexicalEditorAtom);
-  // keep latest values in refs for async handlers
-  const selectedPathRef = useRef<string | null>(selectedFilePath);
-  const lexicalEditorRef = useRef(lexicalEditor);
-  useEffect(() => {
-    selectedPathRef.current = selectedFilePath;
-  }, [selectedFilePath]);
-  useEffect(() => {
-    lexicalEditorRef.current = lexicalEditor;
-  }, [lexicalEditor]);
-
-  useEffect(() => {
-    // Only start watching if we have a valid workspace path
-    if (workspaceData?.workspace?.path !== "/") {
-      void window.electronAPI.watchWorkspace(workspaceData.workspace.path);
-    }
-
-    const off = window.electronAPI.onFileEvent(async (event: FileTreeEvent) => {
-      // Handle content change events for editor updates
-      if (event.kind === "contentChange") {
-        const currentPath = selectedPathRef.current;
-        const currentEditor = lexicalEditorRef.current;
-
-        // First, update file tree metadata (size, modified date, etag, content hash)
-        handleFileTreeEvent({
-          kind: "contentChange",
-          path: event.path,
-          etag: event.etag,
-          content: event.content,
-          fileType: event.fileType,
-          cid: event.cid,
-        });
-
-        // Then, update editor content if this is the currently open file
-        if (currentPath && currentEditor && event.path === currentPath) {
-          try {
-            // Get the current view preference for this file type
-            const userPrefs = await import("@/lib/atoms/atoms");
-            const store = await import("jotai");
-            const currentView = store
-              .getDefaultStore()
-              .get(userPrefs.userViewPreferencesAtom)[event.fileType];
-
-            // Create a mock FileContent object for the event
-            const mockFileContent = {
-              path: event.path,
-              name: event.path.split("/").pop() || "",
-              content: event.content,
-              fileType: event.fileType,
-              size: event.content.length,
-              modified: new Date().toISOString(),
-              etag: event.etag || "",
-              cid: event.cid || "",
-              kind: "file" as const,
-            };
-
-            // Use the existing function to ensure consistency
-            const { getInitialEditorStateFromContent } = await import(
-              "@/components/editor/read-file"
-            );
-            const updateFunction = getInitialEditorStateFromContent(
-              mockFileContent,
-              currentView
-            );
-
-            // Apply the update using the existing logic
-            updateFunction(currentEditor);
-          } catch (error) {
-            console.error("error updating editor content:", error);
-          }
-        }
-      }
-
-      // Handle other file tree events
-      handleFileTreeEvent(event);
-    });
-
-    return () => {
-      off?.();
-      // Stop watching the workspace when component unmounts
-      if (workspaceData?.workspace?.path !== "/") {
-        window.electronAPI.stopWatching(workspaceData.workspace.path);
-      }
-    };
-  }, [handleFileTreeEvent]);
 
   // Create the effect atom with injected dependencies (no circular imports!)
   // Use useMemo to ensure the atom is only created once, not on every render
@@ -182,6 +103,7 @@ function WorkspaceLayout() {
 
   return (
     <div className="flex h-screen">
+      <WorkspaceWatcher />
       <SidebarProvider>
         <AppSidebar
           onFileClick={selectFile}
