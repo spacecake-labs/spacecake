@@ -1,5 +1,9 @@
+/*
+EditorToolbar handles the toolbar UI and view toggling.
+*/
+
 import { Save, FileText, Grid3X3, Code } from "lucide-react";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import {
   isSavingAtom,
   selectedFilePathAtom,
@@ -13,11 +17,11 @@ import { Button } from "@/components/ui/button";
 
 export function EditorToolbar({ onSave }: { onSave: () => void }) {
   const selectedFilePath = useAtomValue(selectedFilePathAtom);
-  const [isSaving] = useAtom(isSavingAtom);
+  const isSaving = useAtomValue(isSavingAtom);
   const canToggleViews = useAtomValue(canToggleViewsAtom);
   const viewKind = useAtomValue(viewKindAtom);
   const currentFile = useAtomValue(fileContentAtom);
-  const [, toggleView] = useAtom(toggleViewAtom);
+  const toggleView = useSetAtom(toggleViewAtom);
 
   // hide toolbar when no file is selected
   if (!selectedFilePath) {

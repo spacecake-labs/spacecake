@@ -1,3 +1,6 @@
+/*
+AppSidebar handles sidebar UI and folder expansion state.
+*/
 import { useAtom, useAtomValue } from "jotai";
 import { workspaceAtom, expandedFoldersAtom } from "@/lib/atoms/atoms";
 import { NavMain } from "@/components/nav-main";

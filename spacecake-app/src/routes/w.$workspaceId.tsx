@@ -1,5 +1,5 @@
 import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   SidebarInset,
   SidebarProvider,
@@ -10,24 +10,24 @@ import { Separator } from "@/components/ui/separator";
 // mode toggle rendered inside EditorToolbar
 import {
   editorStateAtom,
-  fileContentAtom,
   selectedFilePathAtom,
   lexicalEditorAtom,
-  baselineFileAtom,
-  isSavingAtom,
+  editorConfigAtom,
+  createEditorConfigEffect,
+  selectFileAtom,
+  saveFileAtom,
 } from "@/lib/atoms/atoms";
 import { Outlet } from "@tanstack/react-router";
-import { getEditorConfig } from "@/lib/editor";
+import {
+  createEditorConfigFromState,
+  createEditorConfigFromContent,
+} from "@/lib/editor";
 import type { SerializedEditorState } from "lexical";
 import { Editor } from "@/components/editor/editor";
-import { toast } from "sonner";
-import { readFile, saveFile } from "@/lib/fs";
 import { decodeBase64Url } from "@/lib/utils";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 // toolbar renders the save button
-import { FileType, FileTreeEvent } from "@/types/workspace";
-import { fileTypeFromExtension } from "@/lib/workspace";
-import { serializeEditorToPython } from "@/lib/editor";
+import { FileTreeEvent } from "@/types/workspace";
 import { EditorToolbar } from "@/components/editor/toolbar";
 import { fileTreeEventAtom } from "@/lib/atoms/file-tree";
 
@@ -51,7 +51,22 @@ export const Route = createFileRoute("/w/$workspaceId")({
 function WorkspaceLayout() {
   const workspaceData = Route.useLoaderData();
 
-  const [, handleFileTreeEvent] = useAtom(fileTreeEventAtom);
+  const handleFileTreeEvent = useSetAtom(fileTreeEventAtom);
+  const selectFile = useSetAtom(selectFileAtom);
+  const saveFile = useSetAtom(saveFileAtom);
+
+  const selectedFilePath = useAtomValue(selectedFilePathAtom);
+  const setEditorState = useSetAtom(editorStateAtom);
+  const lexicalEditor = useAtomValue(lexicalEditorAtom);
+  // keep latest values in refs for async handlers
+  const selectedPathRef = useRef<string | null>(selectedFilePath);
+  const lexicalEditorRef = useRef(lexicalEditor);
+  useEffect(() => {
+    selectedPathRef.current = selectedFilePath;
+  }, [selectedFilePath]);
+  useEffect(() => {
+    lexicalEditorRef.current = lexicalEditor;
+  }, [lexicalEditor]);
 
   useEffect(() => {
     // Only start watching if we have a valid workspace path
@@ -78,46 +93,37 @@ function WorkspaceLayout() {
         // Then, update editor content if this is the currently open file
         if (currentPath && currentEditor && event.path === currentPath) {
           try {
-            // For Python files, use the surgical block reconciliation
-            if (event.fileType === FileType.Python) {
-              const { parsePythonContentStreaming } = await import(
-                "@/lib/parser/python/blocks"
-              );
-              const { reconcilePythonBlocks } = await import("@/lib/editor");
+            // Get the current view preference for this file type
+            const userPrefs = await import("@/lib/atoms/atoms");
+            const store = await import("jotai");
+            const currentView = store
+              .getDefaultStore()
+              .get(userPrefs.userViewPreferencesAtom)[event.fileType];
 
-              // Parse the new content into blocks
-              const blocks: import("@/types/parser").PyBlock[] = [];
-              for await (const block of parsePythonContentStreaming(
-                event.content
-              )) {
-                blocks.push(block);
-              }
+            // Create a mock FileContent object for the event
+            const mockFileContent = {
+              path: event.path,
+              name: event.path.split("/").pop() || "",
+              content: event.content,
+              fileType: event.fileType,
+              size: event.content.length,
+              modified: new Date().toISOString(),
+              etag: event.etag || "",
+              cid: event.cid || "",
+              kind: "file" as const,
+            };
 
-              // Reconcile the blocks (this will update all CodeMirror instances)
-              reconcilePythonBlocks(currentEditor, event.path, blocks);
-            } else if (event.fileType === FileType.Markdown) {
-              // For Markdown files, use Lexical's built-in markdown conversion
-              const { $convertFromMarkdownString, TRANSFORMERS } = await import(
-                "@lexical/markdown"
-              );
+            // Use the existing function to ensure consistency
+            const { getInitialEditorStateFromContent } = await import(
+              "@/components/editor/read-file"
+            );
+            const updateFunction = getInitialEditorStateFromContent(
+              mockFileContent,
+              currentView
+            );
 
-              currentEditor.update(() => {
-                $convertFromMarkdownString(event.content, TRANSFORMERS);
-              });
-            } else {
-              // For other text files, update the editor content directly
-              const { $getRoot, $createParagraphNode, $createTextNode } =
-                await import("lexical");
-
-              currentEditor.update(() => {
-                const root = $getRoot();
-                root.clear();
-
-                const paragraph = $createParagraphNode();
-                paragraph.append($createTextNode(event.content));
-                root.append(paragraph);
-              });
-            }
+            // Apply the update using the existing logic
+            updateFunction(currentEditor);
           } catch (error) {
             console.error("error updating editor content:", error);
           }
@@ -137,82 +143,22 @@ function WorkspaceLayout() {
     };
   }, [handleFileTreeEvent]);
 
-  const [selectedFilePath, setSelectedFilePath] = useAtom(selectedFilePathAtom);
-  const [editorState, setEditorState] = useAtom(editorStateAtom);
-  const [fileContent, setFileContent] = useAtom(fileContentAtom);
-  const [lexicalEditor] = useAtom(lexicalEditorAtom);
-  // keep latest values in refs for async handlers
-  const selectedPathRef = useRef<string | null>(selectedFilePath);
-  const lexicalEditorRef = useRef(lexicalEditor);
-  useEffect(() => {
-    selectedPathRef.current = selectedFilePath;
-  }, [selectedFilePath]);
-  useEffect(() => {
-    lexicalEditorRef.current = lexicalEditor;
-  }, [lexicalEditor]);
-  const [baseline, setBaseline] = useAtom(baselineFileAtom);
-  const [isSaving, setIsSaving] = useAtom(isSavingAtom);
-
-  const handleFileClick = async (filePath: string) => {
-    const file = await readFile(filePath);
-    if (file !== null) {
-      setEditorState(null);
-      setSelectedFilePath(filePath);
-      setFileContent(file);
-      setBaseline({ path: file.path, content: file.content });
-    } else {
-      toast("error reading file");
-    }
-  };
-
-  const editorConfig = getEditorConfig(
-    editorState,
-    fileContent,
-    selectedFilePath
+  // Create the effect atom with injected dependencies (no circular imports!)
+  // Use useMemo to ensure the atom is only created once, not on every render
+  const editorConfigEffectAtom = useMemo(
+    () =>
+      createEditorConfigEffect(
+        createEditorConfigFromState,
+        createEditorConfigFromContent
+      ),
+    [] // Empty deps - these functions are stable
   );
 
-  const doSave = async () => {
-    if (!selectedFilePath || !lexicalEditor) return;
-    if (isSaving) return; // re-entrancy guard to avoid double-saves
-    setIsSaving(true);
-    try {
-      let contentToWrite = "";
-      const inferredType = (() => {
-        if (fileContent?.fileType) return fileContent.fileType;
-        if (selectedFilePath) {
-          const ext = selectedFilePath.split(".").pop() || "";
-          return fileTypeFromExtension(ext);
-        }
-        return FileType.Plaintext;
-      })();
-      if (inferredType === FileType.Python) {
-        contentToWrite = serializeEditorToPython(lexicalEditor);
-      } else if (inferredType === FileType.Markdown) {
-        // For markdown files, convert Lexical state to markdown
-        const { $convertToMarkdownString } = await import("@lexical/markdown");
-        contentToWrite = lexicalEditor.read(() => $convertToMarkdownString());
-      } else if (baseline && baseline.path === selectedFilePath) {
-        // fallback: write baseline until other serializers exist
-        contentToWrite = baseline.content;
-      } else {
-        contentToWrite = "";
-      }
-      // debug logging removed
-      // ensure codemirror commits any pending buffered changes across blocks
-      window.dispatchEvent(new Event("sc-before-save"));
-      const ok = await saveFile(selectedFilePath, contentToWrite);
-      if (!ok) {
-        toast("failed to save file");
-        return;
-      }
-      toast(`saved ${selectedFilePath}`);
-      // do not re-read the file after our own save to avoid remounting the editor
-      // update baseline to the exact content we just wrote so subsequent saves splice correctly
-      setBaseline({ path: selectedFilePath, content: contentToWrite });
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  // Use the editor config atom directly - jotai handles the computation
+  const editorConfig = useAtomValue(editorConfigAtom);
+
+  // Activate the effect atom to ensure config is computed
+  useAtom(editorConfigEffectAtom);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -225,20 +171,20 @@ function WorkspaceLayout() {
         const isInCodeMirror =
           target instanceof Element && !!target.closest(".cm-editor");
         if (isInCodeMirror) return;
-        void doSave();
+        void saveFile();
       }
     };
     window.addEventListener("keydown", onKey, true);
     return () => {
       window.removeEventListener("keydown", onKey, true);
     };
-  }, [doSave]);
+  }, [saveFile]);
 
   return (
     <div className="flex h-screen">
       <SidebarProvider>
         <AppSidebar
-          onFileClick={handleFileClick}
+          onFileClick={selectFile}
           selectedFilePath={selectedFilePath}
         />
         <SidebarInset className="overflow-auto">
@@ -250,7 +196,7 @@ function WorkspaceLayout() {
                 className="mr-2 data-[orientation=vertical]:h-4"
               />
             </div>
-            <EditorToolbar onSave={doSave} />
+            <EditorToolbar onSave={saveFile} />
           </header>
 
           <div className="h-full flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -258,7 +204,7 @@ function WorkspaceLayout() {
             {editorConfig && (
               <Editor
                 // key={`${selectedFilePath ?? ""}:${fileContent?.modified ?? ""}`}
-                key={`${selectedFilePath ?? ""}:${fileContent ?? ""}`}
+                key={selectedFilePath ?? ""}
                 editorConfig={editorConfig}
                 onSerializedChange={(value: SerializedEditorState) => {
                   setEditorState(value);

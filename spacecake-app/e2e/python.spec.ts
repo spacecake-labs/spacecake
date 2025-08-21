@@ -187,6 +187,9 @@ test.describe("python e2e", () => {
       '[data-block-id="fibonacci-function"]'
     );
     await fibonacciBlock.locator(".cm-content").click();
+    await expect(fibonacciBlock.locator(".cm-editor").first()).toHaveClass(
+      /focused/
+    );
     await fibonacciBlock
       .locator(".cm-content")
       .press("Meta+ArrowUp", { delay: 100 });
@@ -198,6 +201,7 @@ test.describe("python e2e", () => {
       .getByText("datetime")
       .first()
       .click();
+
     // From "datetime" in import block, Cmd+Down goes to end, then ArrowDown creates spacer below
     await firstContent.press("Meta+ArrowDown", { delay: 100 });
     await firstContent.press("ArrowDown", { delay: 100 });
@@ -213,6 +217,7 @@ test.describe("python e2e", () => {
       .getByText("Person")
       .first()
       .click();
+
     await secondContent.press("Meta+ArrowUp", { delay: 100 });
     await secondContent.press("ArrowLeft", { delay: 100 }); // to spacer above
     // type into spacer above and verify it appears
@@ -227,6 +232,7 @@ test.describe("python e2e", () => {
       .getByText("Person")
       .first()
       .click();
+
     await secondContent.press("Meta+ArrowDown", { delay: 100 });
     await secondContent.press("ArrowDown", { delay: 100 }); // create spacer below second block
     const keepText = "KEEP-PARA";
@@ -371,6 +377,7 @@ test.describe("python e2e", () => {
     // save from header and wait for rerender: observe button text transition
     const saveBtn = window.getByRole("button", { name: "save" });
     await saveBtn.click();
+    await window.locator(".cm-editor").first().waitFor({ state: "visible" });
     // button becomes disabled during save, then re-enabled
     await expect(saveBtn).toBeDisabled();
     await expect(saveBtn).toBeEnabled();
