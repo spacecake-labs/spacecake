@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-router";
 
 // Import the generated route tree
-import { routeTree } from "./routeTree.gen";
+import { routeTree } from "@/routeTree.gen";
 import { useTheme } from "@/components/theme-provider";
 
 // Create a new router instance with hash routing
