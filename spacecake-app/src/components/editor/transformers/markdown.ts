@@ -10,6 +10,7 @@ import {
 } from "@lexical/markdown";
 import {
   $createCodeBlockNode,
+  $isCodeBlockNode,
   CodeBlockNode,
 } from "@/components/editor/nodes/code-node";
 import {
@@ -17,22 +18,66 @@ import {
   $isImageNode,
   ImageNode,
 } from "@/components/editor/nodes/image-node";
-import { $setSelection, $createNodeSelection } from "lexical";
+import { $setSelection, $createNodeSelection, LexicalNode } from "lexical";
 import { $createLinkNode, $isLinkNode, LinkNode } from "@lexical/link";
 
 export function createCodeTransformer(): MultilineElementTransformer {
   return {
     ...CODE,
     dependencies: [CodeBlockNode],
-    replace: (parentNode, _children, match) => {
+    export: (node: LexicalNode) => {
+      if (!$isCodeBlockNode(node)) {
+        return null;
+      }
+      const language = node.getLanguage();
+      const textContent = node.getTextContent();
+
+      if (language === "markdown") {
+        return textContent;
+      }
+
+      return (
+        "```" +
+        (language || "") +
+        (textContent ? "\n" + textContent : "") +
+        "\n" +
+        "```"
+      );
+    },
+    replace: (rootNode, _children, startMatch, _endMatch, linesInBetween) => {
+      if (linesInBetween) {
+        if (linesInBetween?.[0]?.trim().length === 0) {
+          // Filter out all start and end lines that are length 0 until we find the first line with content
+          while (linesInBetween.length > 0 && !linesInBetween[0].length) {
+            linesInBetween.shift();
+          }
+        } else {
+          // The first line already has content => Remove the first space of the line if it exists
+          linesInBetween[0] = linesInBetween[0].startsWith(" ")
+            ? linesInBetween[0].slice(1)
+            : linesInBetween[0];
+        }
+
+        // Filter out all end lines that are length 0 until we find the last line with content
+        while (
+          linesInBetween.length > 0 &&
+          !linesInBetween[linesInBetween.length - 1].length
+        ) {
+          linesInBetween.pop();
+        }
+      }
+
+      const language = startMatch[1] ?? "";
+      const code = linesInBetween?.join("\n");
+
       const codeBlockNode = $createCodeBlockNode({
-        code: "",
-        language: match[1] ?? "",
+        code: code,
+        language: language,
         meta: "",
       });
 
       // Replace the parent node and immediately select the new node
-      parentNode.replace(codeBlockNode);
+      rootNode.append(codeBlockNode);
       const nodeSelection = $createNodeSelection();
       nodeSelection.add(codeBlockNode.getKey());
       $setSelection(nodeSelection);
@@ -67,8 +112,7 @@ export const IMAGE: TextMatchTransformer = {
 export const LINKED_IMAGE: TextMatchTransformer = {
   dependencies: [LinkNode, ImageNode],
 
-  export: (node, exportChildren, exportFormat) => {
-    console.log("LINKED_IMAGE.export", node, exportChildren, exportFormat);
+  export: (node, exportChildren) => {
     if (!$isLinkNode(node) || !$isImageNode(node.getFirstChild())) {
       return null;
     }
@@ -111,6 +155,6 @@ export const MARKDOWN_TRANSFORMERS = [
   ...MULTILINE_ELEMENT_TRANSFORMERS_FILTERED,
   ...TEXT_FORMAT_TRANSFORMERS,
   LINKED_IMAGE,
-  ...TEXT_MATCH_TRANSFORMERS,
   IMAGE,
+  ...TEXT_MATCH_TRANSFORMERS,
 ];

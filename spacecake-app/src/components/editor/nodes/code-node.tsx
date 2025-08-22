@@ -7,6 +7,7 @@ import {
   NodeKey,
   SerializedLexicalNode,
   Spread,
+  $applyNodeReplacement,
 } from "lexical";
 import React, { JSX } from "react";
 import { CodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor";
@@ -363,8 +364,15 @@ const CodeBlockEditorContainer: React.FC<
 export function $createCodeBlockNode(
   options: Partial<CreateCodeBlockNodeOptions>
 ): CodeBlockNode {
-  const { code = "", language = "", meta = "", src, block } = options;
-  return new CodeBlockNode(code, language, meta, src, block);
+  return $applyNodeReplacement(
+    new CodeBlockNode(
+      options.code ?? "",
+      options.language ?? "",
+      options.meta ?? "",
+      options.src,
+      options.block
+    )
+  );
 }
 
 /**
