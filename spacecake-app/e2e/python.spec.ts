@@ -436,6 +436,8 @@ test.describe("python e2e", () => {
     );
     fs.writeFileSync(destPath, updated, "utf8");
 
+    await expect(window.getByTestId("lexical-editor")).toBeVisible();
+
     // wait for watcher to reconcile and the new comment to appear in the dataclass block
     const dataclassBlock = window
       .locator('[data-block-id="person-dataclass"]')

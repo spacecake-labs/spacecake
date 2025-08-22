@@ -48,6 +48,7 @@ if __name__ == "__main__":
 
     // open the file
     await window.getByRole("button", { name: "core.py" }).first().click();
+    await expect(window.getByTestId("lexical-editor")).toBeVisible();
 
     // verify the file loads with all blocks
     await window.getByText("🐍").first().click();

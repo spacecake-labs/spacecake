@@ -51,8 +51,12 @@ class MathUtils:
 
     // Should start in block view for Python
     await expect(page.getByRole("button", { name: "blocks" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "fibonacci" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "MathUtils" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "fibonacci" })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "MathUtils" })
+    ).toBeVisible();
 
     // Toggle to source view
     await page.getByRole("button", { name: "blocks" }).click();
@@ -63,7 +67,9 @@ class MathUtils:
     // Toggle back to block view
     await page.getByRole("button", { name: "source" }).click();
     await expect(page.getByRole("button", { name: "blocks" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "fibonacci" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "fibonacci" })
+    ).toBeVisible();
   });
 
   test("markdown file can toggle between block and source views", async ({
@@ -91,7 +97,9 @@ This is a **markdown** file.
     await expect(
       page.getByRole("heading", { name: "Test Document" })
     ).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Section 1" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Section 1" })
+    ).toBeVisible();
 
     // Toggle to source view (CodeMirror)
     await page.getByRole("button", { name: "blocks" }).click();
@@ -105,7 +113,9 @@ This is a **markdown** file.
     await expect(
       page.getByRole("heading", { name: "Test Document" })
     ).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Section 1" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Section 1" })
+    ).toBeVisible();
   });
 
   test("plaintext file shows no toggle option", async ({
@@ -127,8 +137,12 @@ This is a **markdown** file.
     await expect(page.getByText(textContent)).toBeVisible();
 
     // Verify that no view toggle button is present
-    await expect(page.getByRole("button", { name: "blocks" })).not.toBeVisible();
-    await expect(page.getByRole("button", { name: "source" })).not.toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "blocks" })
+    ).not.toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "source" })
+    ).not.toBeVisible();
   });
 
   test("view preference persists when switching between files", async ({
@@ -194,7 +208,9 @@ This is a **markdown** file.
     // Should start in block view (Lexical editor).
     // Wait for the content to be visible first, as it's the most reliable indicator.
     await expect(
-      page.getByRole("heading", { name: "An Example README File to Test Parsing" })
+      page.getByRole("heading", {
+        name: "An Example README File to Test Parsing",
+      })
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "blocks" })).toBeVisible();
     await expect(page.getByTestId("lexical-editor")).toBeVisible();
@@ -223,6 +239,8 @@ This is a **markdown** file.
 
     // Verify toggle still says 'source' and new content is there
     await expect(page.getByRole("button", { name: "source" })).toBeVisible();
+
+    await expect(page.getByTestId("lexical-editor")).toBeVisible();
 
     // Verify we're still in source view (raw markdown, not rendered)
     const newContent = "## New Section Added";
