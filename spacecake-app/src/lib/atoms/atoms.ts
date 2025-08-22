@@ -16,8 +16,8 @@ import type { LexicalEditor } from "lexical";
 import {
   $convertFromMarkdownString,
   $convertToMarkdownString,
-  TRANSFORMERS,
 } from "@lexical/markdown";
+import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown";
 import type { ViewKind } from "@/types/editor";
 import { supportsBlockView, supportedViews } from "@/lib/language-support";
 import { serializeEditorToPython, convertToSourceView } from "@/lib/editor";
@@ -218,16 +218,16 @@ export const toggleViewAtom = atom(null, (get, set) => {
     if (nextView === "source") {
       // Convert current WYSIWYG state to markdown string
       const markdownContent = currentEditor.getEditorState().read(() => {
-        return $convertToMarkdownString(TRANSFORMERS);
+        return $convertToMarkdownString(MARKDOWN_TRANSFORMERS);
       });
       convertToSourceView(markdownContent, currentFile, currentEditor);
     } else {
       // Convert markdown string back to WYSIWYG state
       const markdownContent = currentEditor.getEditorState().read(() => {
-        return $convertToMarkdownString(TRANSFORMERS);
+        return $convertToMarkdownString(MARKDOWN_TRANSFORMERS);
       });
       currentEditor.update(() => {
-        $convertFromMarkdownString(markdownContent, TRANSFORMERS);
+        $convertFromMarkdownString(markdownContent, MARKDOWN_TRANSFORMERS);
       });
     }
   }
@@ -278,7 +278,9 @@ export const saveFileAtom = atom(null, async (get, set) => {
       contentToWrite = serializeEditorToPython(lexicalEditor);
     } else if (inferredType === FileType.Markdown) {
       // For markdown files, convert Lexical state to markdown
-      contentToWrite = lexicalEditor.read(() => $convertToMarkdownString(TRANSFORMERS));
+      contentToWrite = lexicalEditor.read(() =>
+        $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
+      );
     } else if (baseline && baseline.path === selectedFilePath) {
       // fallback: write baseline until other serializers exist
       contentToWrite = baseline.content;
@@ -292,7 +294,10 @@ export const saveFileAtom = atom(null, async (get, set) => {
     if (ok) {
       toast(`saved ${selectedFilePath}`);
       // Update the baseline to the content we just wrote
-      set(baselineFileAtom, { path: selectedFilePath, content: contentToWrite });
+      set(baselineFileAtom, {
+        path: selectedFilePath,
+        content: contentToWrite,
+      });
     } else {
       toast("failed to save file");
     }

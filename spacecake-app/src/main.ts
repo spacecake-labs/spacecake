@@ -15,7 +15,6 @@ if (started) {
 
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 const isTest = process.env.IS_PLAYWRIGHT === "1";
-const isProd = process.env.NODE_ENV === "production";
 
 const createWindow = () => {
   // Create the browser window.
@@ -101,7 +100,7 @@ app.on("activate", () => {
 // code. You can also put them in separate files and import them here.
 
 app.whenReady().then(() => {
-  if (!isProd) {
+  if (isDev) {
     installExtension(REACT_DEVELOPER_TOOLS)
       .then((ext) => console.log(`Added Extension:  ${ext.name}`))
       .catch((err) => console.log("An error occurred: ", err));

@@ -25,6 +25,9 @@ codegen:
 print-py-nodes file:
     npx tsx scripts/print-py-nodes.ts {{file}}
 
+print-py-nodes-tree file:
+    npx tsx scripts/print-py-nodes-tree.ts {{file}}
+
 gif input:
     #!/usr/bin/env bash
     set -euo pipefail

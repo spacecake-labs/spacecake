@@ -1,11 +1,5 @@
 import * as React from "react";
-import {
-  CHECK_LIST,
-  ELEMENT_TRANSFORMERS,
-  MULTILINE_ELEMENT_TRANSFORMERS,
-  TEXT_FORMAT_TRANSFORMERS,
-  TEXT_MATCH_TRANSFORMERS,
-} from "@lexical/markdown";
+import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown";
 import { CheckListPlugin } from "@lexical/react/LexicalCheckListPlugin";
 import { ClearEditorPlugin } from "@lexical/react/LexicalClearEditorPlugin";
 import { ClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin";
@@ -20,7 +14,7 @@ import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin
 import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
 // import { CodeHighlightPlugin } from "@/components/editor/plugins/code-highlighter";
 // import { CodeBlockPlugin } from "@/components/editor/plugins/code-block";
-import { createCodeTransformer } from "@/components/editor/transformers/markdown";
+
 // import { CodeToolbarPlugin } from "@/components/editor/plugins/code-toolbar";
 
 import { ContentEditable } from "@/components/editor/content-editable";
@@ -39,25 +33,6 @@ export const Plugins = React.memo(function Plugins() {
   };
 
   const placeholder = "...";
-
-  const filteredMultilineTransformers = MULTILINE_ELEMENT_TRANSFORMERS.filter(
-    (transformer) => {
-      return !(
-        "replace" in transformer &&
-        typeof transformer.replace === "function" &&
-        transformer.replace.toString().includes("$createCodeNode")
-      );
-    }
-  );
-
-  const customTransformers = [
-    CHECK_LIST,
-    ...ELEMENT_TRANSFORMERS,
-    createCodeTransformer(),
-    ...filteredMultilineTransformers,
-    ...TEXT_FORMAT_TRANSFORMERS,
-    ...TEXT_MATCH_TRANSFORMERS,
-  ];
 
   return (
     <div className="relative">
@@ -88,7 +63,7 @@ export const Plugins = React.memo(function Plugins() {
         {/* <CodeBlockPlugin /> */}
         <NodeNavigationPlugin />
         {/* <CodeToolbarPlugin /> */}
-        <MarkdownShortcutPlugin transformers={customTransformers} />
+        <MarkdownShortcutPlugin transformers={MARKDOWN_TRANSFORMERS} />
       </div>
 
       <ClearEditorPlugin />

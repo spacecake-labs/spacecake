@@ -16,25 +16,6 @@ export type TestFixtures = {
 
 export const test = base.extend<TestFixtures>({
   // eslint-disable-next-line no-empty-pattern
-  tempTestDir: async ({}, use, testInfo) => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "spacecake-e2e-"));
-    testInfo.annotations.push({
-      type: "info",
-      description: `created temp test directory: ${tempDir}`,
-    });
-
-    await use(tempDir);
-
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-      testInfo.annotations.push({
-        type: "info",
-        description: `cleaned up temp test directory: ${tempDir}`,
-      });
-    }
-  },
-
-  // eslint-disable-next-line no-empty-pattern
   electronApp: async ({}, use) => {
     const app = await _electron.launch({
       args: [".vite/build/main.js"],
@@ -46,6 +27,26 @@ export const test = base.extend<TestFixtures>({
     await use(app);
 
     await app.close();
+  },
+
+  tempTestDir: async ({ electronApp }, use, testInfo) => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "spacecake-e2e-"));
+    testInfo.annotations.push({
+      type: "info",
+      description: `created temp test directory: ${tempDir}`,
+    });
+
+    await use(tempDir);
+
+    await electronApp.close();
+
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true, maxRetries: 5 });
+      testInfo.annotations.push({
+        type: "info",
+        description: `cleaned up temp test directory: ${tempDir}`,
+      });
+    }
   },
 });
 
