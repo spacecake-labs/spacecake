@@ -32,16 +32,47 @@ vi.mock("lexical", () => ({
   $getRoot: vi.fn(() => ({ clear: vi.fn(), append: vi.fn() })),
   $createParagraphNode: vi.fn(() => ({ append: vi.fn() })),
   $createTextNode: vi.fn(() => ({})),
+  $applyNodeReplacement: vi.fn((node) => node),
+  $setSelection: vi.fn(),
+  $createNodeSelection: vi.fn(() => ({ add: vi.fn() })),
+  createEditor: vi.fn(() => ({
+    toJSON: vi.fn(() => ({ editorState: {} })),
+    parseEditorState: vi.fn(() => ({ isEmpty: vi.fn(() => true) })),
+    setEditorState: vi.fn(),
+  })),
   ParagraphNode: vi.fn(),
   TextNode: vi.fn(),
   LexicalNode: vi.fn(),
+  DecoratorNode: vi.fn(),
+  RootNode: vi.fn(),
+  LineBreakNode: vi.fn(),
   Klass: vi.fn(),
   LexicalNodeReplacement: vi.fn(),
 }));
 
 vi.mock("@lexical/markdown", () => ({
   $convertFromMarkdownString: vi.fn(),
-  TRANSFORMERS: [],
+  MARKDOWN_TRANSFORMERS: [],
+  CODE: {
+    dependencies: [],
+    replace: vi.fn(),
+  },
+  CHECK_LIST: {},
+  ELEMENT_TRANSFORMERS: [],
+  MULTILINE_ELEMENT_TRANSFORMERS: [],
+  TEXT_FORMAT_TRANSFORMERS: [],
+  TEXT_MATCH_TRANSFORMERS: [],
+}));
+
+vi.mock("@lexical/hashtag", () => ({
+  HashtagNode: vi.fn(),
+}));
+
+vi.mock("@lexical/link", () => ({
+  LinkNode: vi.fn(),
+  AutoLinkNode: vi.fn(),
+  $createLinkNode: vi.fn(() => ({ append: vi.fn() })),
+  $isLinkNode: vi.fn(() => false),
 }));
 
 vi.mock("@/components/editor/nodes/code-node", () => ({
@@ -52,6 +83,57 @@ vi.mock("@/components/editor/nodes/code-node", () => ({
 vi.mock("@/components/editor/nodes/delimited", () => ({
   $createDelimitedNode: vi.fn(() => ({})),
   DelimitedNode: vi.fn(),
+}));
+
+vi.mock("@/components/editor/nodes/emoji-node", () => ({
+  EmojiNode: vi.fn(),
+}));
+
+vi.mock("@/components/editor/nodes/keyword-node", () => ({
+  KeywordNode: vi.fn(),
+}));
+
+vi.mock("@/components/editor/nodes/image-node", () => ({
+  ImageNode: vi.fn(),
+  $createImageNode: vi.fn(() => ({})),
+  $isImageNode: vi.fn(() => false),
+}));
+
+vi.mock("@/components/editor/image-component", () => ({
+  default: vi.fn(() => null),
+}));
+
+vi.mock("@lexical/code", () => ({
+  CodeHighlightNode: vi.fn(),
+  CodeNode: vi.fn(),
+}));
+
+vi.mock("@lexical/list", () => ({
+  ListItemNode: vi.fn(),
+  ListNode: vi.fn(),
+}));
+
+vi.mock("@lexical/overflow", () => ({
+  OverflowNode: vi.fn(),
+}));
+
+vi.mock("@lexical/react/LexicalHorizontalRuleNode", () => ({
+  HorizontalRuleNode: vi.fn(),
+}));
+
+vi.mock("@lexical/rich-text", () => ({
+  HeadingNode: vi.fn(),
+  QuoteNode: vi.fn(),
+}));
+
+vi.mock("@lexical/table", () => ({
+  TableCellNode: vi.fn(),
+  TableNode: vi.fn(),
+  TableRowNode: vi.fn(),
+}));
+
+vi.mock("@/components/editor/nodes/inline-image-node", () => ({
+  InlineImageNode: vi.fn(),
 }));
 
 describe("getInitialEditorStateFromContent", () => {
@@ -119,6 +201,9 @@ def fibonacci(n):
   describe("Markdown files", () => {
     it("should handle Markdown files", async () => {
       const { $convertFromMarkdownString } = await import("@lexical/markdown");
+      const { MARKDOWN_TRANSFORMERS } = await import(
+        "@/components/editor/transformers/markdown"
+      );
 
       const editorStateFn = getInitialEditorStateFromContent(mockMarkdownFile);
 
@@ -127,7 +212,7 @@ def fibonacci(n):
       expect(mockEditor.update).toHaveBeenCalled();
       expect($convertFromMarkdownString).toHaveBeenCalledWith(
         mockMarkdownFile.content,
-        []
+        MARKDOWN_TRANSFORMERS
       );
     });
   });

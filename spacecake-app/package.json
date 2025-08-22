@@ -78,7 +78,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tailwindcss/vite": "^4.1.11",
-    "@tanstack/react-router": "^1.128.3",
+    "@tanstack/react-router": "^1.131.27",
     "@tanstack/react-router-devtools": "^1.128.3",
     "@uiw/codemirror-theme-github": "^4.24.2",
     "LexicalTableCellResizer": "link:@lexical/react/LexicalTableCellResizer",

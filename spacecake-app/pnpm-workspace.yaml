@@ -1,10 +1,5 @@
 onlyBuiltDependencies:
-  - '@tailwindcss/oxide'
+  - "@tailwindcss/oxide"
   - electron
   - electron-winstaller
   - esbuild
-  - tree-sitter
-  - tree-sitter-compat
-  - tree-sitter-javascript
-  - tree-sitter-python
-  - tree-sitter-typescript

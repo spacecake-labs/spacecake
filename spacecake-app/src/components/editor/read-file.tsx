@@ -1,4 +1,5 @@
-import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
+import { $convertFromMarkdownString } from "@lexical/markdown";
+import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown";
 import {
   $getRoot,
   $createParagraphNode,
@@ -113,7 +114,7 @@ export function getInitialEditorStateFromContent(
     } else if (file.fileType === FileType.Markdown) {
       // Markdown defaults to block view (rendered markdown) when viewKind is "block" or undefined
       editor.update(() => {
-        $convertFromMarkdownString(file.content, TRANSFORMERS);
+        $convertFromMarkdownString(file.content, MARKDOWN_TRANSFORMERS);
       });
     } else if (file.fileType === FileType.Plaintext) {
       // Plaintext files go to plaintext view
