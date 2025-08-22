@@ -5,6 +5,8 @@ import {
   createRouter,
   RouterProvider,
 } from "@tanstack/react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 // Import the generated route tree
 import { routeTree } from "@/routeTree.gen";
@@ -16,6 +18,8 @@ const memoryHistory = createMemoryHistory({
 });
 
 const router = createRouter({ routeTree, history: memoryHistory });
+
+const queryClient = new QueryClient();
 
 // Register the router instance for type safety
 declare module "@tanstack/react-router" {
@@ -38,6 +42,9 @@ function RootWithTheme() {
 
 root.render(
   <StrictMode>
-    <RootWithTheme />
+    <QueryClientProvider client={queryClient}>
+      <RootWithTheme />
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   </StrictMode>
 );

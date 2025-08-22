@@ -74,11 +74,7 @@ export function Editor({
     };
   }, []);
 
-  // cancel any pending notifications when a save starts
-  // removed save-time cancellation of debounced notifications
-
   return (
-    // <div className="bg-background overflow-hidden rounded-lg border">
     <div data-testid="lexical-editor">
       <LexicalComposer
         initialConfig={{

@@ -2,6 +2,8 @@
 
 A brief description of what this project does and who it's for
 
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 
 ## Features
@@ -10,6 +12,12 @@ A brief description of what this project does and who it's for
 - Live previews
 - Fullscreen mode
 - Cross platform
+
+## Code Blocks
+
+```python
+print("Hello, world!")
+```
 
 ## Contributing
 
