@@ -150,8 +150,18 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     return this.__code;
   }
 
+  // This is called by Lexica's `$convertToMarkdownString` function
   getTextContent(): string {
-    return this.getCode();
+    if (this.__language === "markdown") {
+      return this.__code;
+    }
+    return (
+      "```" +
+      (this.__language || "") +
+      (this.__code ? "\n" + this.__code : "") +
+      "\n" +
+      "```"
+    );
   }
 
   getMeta(): string {
