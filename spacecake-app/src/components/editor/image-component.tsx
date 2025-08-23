@@ -17,6 +17,7 @@ import "@/components/editor/nodes/image-node.css";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useLexicalEditable } from "@lexical/react/useLexicalEditable";
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { mergeRegister } from "@lexical/utils";
 import {
   $getNodeByKey,
@@ -29,38 +30,38 @@ import {
   DRAGSTART_COMMAND,
   SELECTION_CHANGE_COMMAND,
 } from "lexical";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import brokenImage from "@/images/image-broken.svg";
 import ImageResizer from "@/components/editor/image-resizer";
 import { $isImageNode } from "@/components/editor/nodes/image-node";
 
-const imageCache = new Map<string, Promise<boolean> | boolean>();
-
 export const RIGHT_CLICK_IMAGE_COMMAND: LexicalCommand<MouseEvent> =
   createCommand("RIGHT_CLICK_IMAGE_COMMAND");
 
-function useSuspenseImage(src: string) {
-  let cached = imageCache.get(src);
-  if (typeof cached === "boolean") {
-    return cached;
-  } else if (!cached) {
-    cached = new Promise<boolean>((resolve) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => resolve(false);
-      img.onerror = () => resolve(true);
-    }).then((hasError) => {
-      imageCache.set(src, hasError);
-      return hasError;
-    });
-    imageCache.set(src, cached);
-    throw cached;
-  }
-  throw cached;
-}
+const fetchImageDimensions = (
+  src: string
+): Promise<{ width: number; height: number }> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = src;
+    img.onload = () =>
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => reject(new Error("image failed to load"));
+  });
 
-function isSVG(src: string): boolean {
-  return src.toLowerCase().endsWith(".svg");
+function useSuspenseImage(src: string) {
+  const { data } = useSuspenseQuery({
+    queryKey: ["image", src],
+    queryFn: () => fetchImageDimensions(src),
+    staleTime: Infinity, // Cache forever
+  });
+  return data;
 }
 
 function LazyImage({
@@ -71,7 +72,6 @@ function LazyImage({
   width,
   height,
   maxWidth,
-  onError,
 }: {
   altText: string;
   className: string | null;
@@ -80,54 +80,14 @@ function LazyImage({
   maxWidth: number;
   src: string;
   width: "inherit" | number;
-  onError: () => void;
 }): JSX.Element {
-  const [dimensions, setDimensions] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
-  const isSVGImage = isSVG(src);
+  const { width: naturalWidth, height: naturalHeight } = useSuspenseImage(src);
+  const hasResized = width !== "inherit" && height !== "inherit";
 
-  // Set initial dimensions for SVG images
-  useEffect(() => {
-    if (imageRef.current && isSVGImage) {
-      const { naturalWidth, naturalHeight } = imageRef.current;
-      setDimensions({
-        height: naturalHeight,
-        width: naturalWidth,
-      });
-    }
-  }, [imageRef, isSVGImage]);
+  let finalWidth: number | "inherit" = hasResized ? width : naturalWidth;
+  let finalHeight: number | "inherit" = hasResized ? height : naturalHeight;
 
-  const hasError = useSuspenseImage(src);
-
-  useEffect(() => {
-    if (hasError) {
-      onError();
-    }
-  }, [hasError, onError]);
-
-  if (hasError) {
-    return <BrokenImage />;
-  }
-
-  // Calculate final dimensions with proper scaling
-  const calculateDimensions = () => {
-    if (!isSVGImage) {
-      return {
-        height,
-        maxWidth,
-        width,
-      };
-    }
-
-    // Use natural dimensions if available, otherwise fallback to defaults
-    const naturalWidth = dimensions?.width || 200;
-    const naturalHeight = dimensions?.height || 200;
-
-    let finalWidth = naturalWidth;
-    let finalHeight = naturalHeight;
-
+  if (typeof finalWidth === "number" && typeof finalHeight === "number") {
     // Scale down if width exceeds maxWidth while maintaining aspect ratio
     if (finalWidth > maxWidth) {
       const scale = maxWidth / finalWidth;
@@ -142,15 +102,13 @@ function LazyImage({
       finalHeight = maxHeight;
       finalWidth = Math.round(finalWidth * scale);
     }
+  }
 
-    return {
-      height: finalHeight,
-      maxWidth,
-      width: finalWidth,
-    };
+  const imageStyle = {
+    height: finalHeight,
+    maxWidth,
+    width: finalWidth,
   };
-
-  const imageStyle = calculateDimensions();
 
   return (
     <img
@@ -159,19 +117,30 @@ function LazyImage({
       alt={altText}
       ref={imageRef}
       style={imageStyle}
-      onError={onError}
       draggable="false"
-      onLoad={(e) => {
-        if (isSVGImage) {
-          const img = e.currentTarget;
-          setDimensions({
-            height: img.naturalHeight,
-            width: img.naturalWidth,
-          });
-        }
-      }}
     />
   );
+}
+
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; fallback: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
 }
 
 function BrokenImage(): JSX.Element {
@@ -216,7 +185,6 @@ export default function ImageComponent({
   const [editor] = useLexicalComposerContext();
   const [selection, setSelection] = useState<BaseSelection | null>(null);
   const activeEditorRef = useRef<LexicalEditor | null>(null);
-  const [isLoadError, setIsLoadError] = useState<boolean>(false);
   const isEditable = useLexicalEditable();
 
   const onClick = useCallback(
@@ -345,38 +313,32 @@ export default function ImageComponent({
   const isFocused = (isSelected || isResizing) && isEditable;
   return (
     <Suspense fallback={null}>
-      <>
+      <ErrorBoundary fallback={<BrokenImage />}>
         <div draggable={draggable}>
-          {isLoadError ? (
-            <BrokenImage />
-          ) : (
-            <LazyImage
-              className={
-                isFocused
-                  ? `focused ${$isNodeSelection(selection) ? "draggable" : ""}`
-                  : null
-              }
-              src={src}
-              altText={altText}
-              imageRef={imageRef}
-              width={width}
-              height={height}
-              maxWidth={maxWidth}
-              onError={() => setIsLoadError(true)}
-            />
-          )}
-        </div>
-
-        {resizable && $isNodeSelection(selection) && isFocused && (
-          <ImageResizer
-            editor={editor}
+          <LazyImage
+            className={
+              isFocused
+                ? `focused ${$isNodeSelection(selection) ? "draggable" : ""}`
+                : null
+            }
+            src={src}
+            altText={altText}
             imageRef={imageRef}
+            width={width}
+            height={height}
             maxWidth={maxWidth}
-            onResizeStart={onResizeStart}
-            onResizeEnd={onResizeEnd}
           />
-        )}
-      </>
+        </div>
+      </ErrorBoundary>
+      {resizable && $isNodeSelection(selection) && isFocused && (
+        <ImageResizer
+          editor={editor}
+          imageRef={imageRef}
+          maxWidth={maxWidth}
+          onResizeStart={onResizeStart}
+          onResizeEnd={onResizeEnd}
+        />
+      )}
     </Suspense>
   );
 }
