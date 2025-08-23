@@ -31,7 +31,7 @@ export function createCodeTransformer(): MultilineElementTransformer {
       }
       return node.getTextContent();
     },
-    replace: (rootNode, _children, startMatch, _endMatch, linesInBetween) => {
+    replace: (rootNode, _children, startMatch, endMatch, linesInBetween) => {
       if (linesInBetween) {
         if (linesInBetween?.[0]?.trim().length === 0) {
           // Filter out all start and end lines that are length 0 until we find the first line with content
@@ -64,7 +64,12 @@ export function createCodeTransformer(): MultilineElementTransformer {
       });
 
       rootNode.append(codeBlockNode);
-      codeBlockNode.select();
+
+      // if no ending backticks, user has just created the code block
+      if (!endMatch) {
+        // refocus after replacement
+        codeBlockNode.select();
+      }
     },
   };
 }
