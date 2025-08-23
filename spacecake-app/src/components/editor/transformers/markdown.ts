@@ -18,7 +18,7 @@ import {
   $isImageNode,
   ImageNode,
 } from "@/components/editor/nodes/image-node";
-import { $setSelection, $createNodeSelection, LexicalNode } from "lexical";
+import { LexicalNode } from "lexical";
 import { $createLinkNode, $isLinkNode, LinkNode } from "@lexical/link";
 
 export function createCodeTransformer(): MultilineElementTransformer {
@@ -29,20 +29,7 @@ export function createCodeTransformer(): MultilineElementTransformer {
       if (!$isCodeBlockNode(node)) {
         return null;
       }
-      const language = node.getLanguage();
-      const textContent = node.getTextContent();
-
-      if (language === "markdown") {
-        return textContent;
-      }
-
-      return (
-        "```" +
-        (language || "") +
-        (textContent ? "\n" + textContent : "") +
-        "\n" +
-        "```"
-      );
+      return node.getTextContent();
     },
     replace: (rootNode, _children, startMatch, _endMatch, linesInBetween) => {
       if (linesInBetween) {
@@ -68,7 +55,7 @@ export function createCodeTransformer(): MultilineElementTransformer {
       }
 
       const language = startMatch[1] ?? "";
-      const code = linesInBetween?.join("\n");
+      const code = linesInBetween?.join("\n") ?? "";
 
       const codeBlockNode = $createCodeBlockNode({
         code: code,
@@ -76,11 +63,8 @@ export function createCodeTransformer(): MultilineElementTransformer {
         meta: "",
       });
 
-      // Replace the parent node and immediately select the new node
       rootNode.append(codeBlockNode);
-      const nodeSelection = $createNodeSelection();
-      nodeSelection.add(codeBlockNode.getKey());
-      $setSelection(nodeSelection);
+      codeBlockNode.select();
     },
   };
 }
