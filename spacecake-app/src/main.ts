@@ -8,7 +8,7 @@ import {
   REACT_DEVELOPER_TOOLS,
 } from "electron-devtools-installer";
 
-const LEXCIAL_DEVELOPER_TOOLS = "kgljmdocanfjckcgfpcpdoklodllfdpc";
+const LEXICAL_DEVELOPER_TOOLS = "kgljmdocanfjckcgfpcpdoklodllfdpc";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -19,6 +19,8 @@ const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 const isTest = process.env.IS_PLAYWRIGHT === "1";
 
 const createWindow = () => {
+  console.log("createWindow");
+
   // Create the browser window.
 
   const mainWindow = new BrowserWindow({
@@ -70,9 +72,13 @@ const createWindow = () => {
     }
   );
 
-  // Open DevTools
   if (isDev && !isTest) {
-    mainWindow.webContents.openDevTools();
+    installExtension([REACT_DEVELOPER_TOOLS, LEXICAL_DEVELOPER_TOOLS])
+      .then(([react, lexical]) =>
+        console.log(`added extensions: ${react.name}, ${lexical.name}`)
+      )
+      .then(() => mainWindow.webContents.openDevTools())
+      .catch((err) => console.log("an error occurred: ", err));
   }
 };
 
@@ -100,14 +106,3 @@ app.on("activate", () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
-
-app.whenReady().then(() => {
-  if (isDev) {
-    installExtension(REACT_DEVELOPER_TOOLS)
-      .then((ext) => console.log(`Added Extension:  ${ext.name}`))
-      .catch((err) => console.log("An error occurred: ", err));
-    installExtension(LEXCIAL_DEVELOPER_TOOLS)
-      .then((ext) => console.log(`Added Extension:  ${ext.name}`))
-      .catch((err) => console.log("An error occurred: ", err));
-  }
-});
