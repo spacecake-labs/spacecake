@@ -41,7 +41,7 @@ export async function convertPythonBlocksToLexical(
         () => {
           const root = $getRoot();
           if (block.kind === "doc") {
-            const delimitedString = docToBlock(block);
+            const delimitedString = docToBlock(block.text);
             const moduleDocNode = delimitedNode(
               (text: string) =>
                 $createHeadingNode("h2").append($createTextNode(text)),
@@ -49,7 +49,7 @@ export async function convertPythonBlocksToLexical(
             );
             root.append(moduleDocNode);
           } else {
-            const delimitedString = codeToBlock(block);
+            const delimitedString = codeToBlock(block.text);
             const codeNode = delimitedNode(
               (text: string) =>
                 $createCodeBlockNode({

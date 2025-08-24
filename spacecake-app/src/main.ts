@@ -8,6 +8,8 @@ import {
   REACT_DEVELOPER_TOOLS,
 } from "electron-devtools-installer";
 
+const LEXCIAL_DEVELOPER_TOOLS = "kgljmdocanfjckcgfpcpdoklodllfdpc";
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
@@ -102,6 +104,9 @@ app.on("activate", () => {
 app.whenReady().then(() => {
   if (isDev) {
     installExtension(REACT_DEVELOPER_TOOLS)
+      .then((ext) => console.log(`Added Extension:  ${ext.name}`))
+      .catch((err) => console.log("An error occurred: ", err));
+    installExtension(LEXCIAL_DEVELOPER_TOOLS)
       .then((ext) => console.log(`Added Extension:  ${ext.name}`))
       .catch((err) => console.log("An error occurred: ", err));
   }

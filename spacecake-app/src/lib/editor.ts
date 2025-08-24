@@ -87,7 +87,8 @@ export function serializeEditorToPython(editor: LexicalEditor): string {
       }
 
       const textContent = child.getTextContent();
-      return result + (textContent.length > 0 ? textContent + "\n" : "");
+
+      return result + (textContent ? textContent + "\n" : "");
     }, "");
   });
 }
@@ -119,7 +120,7 @@ export function reconcilePythonBlocks(
 
       // If module docstring
       if (reconciledBlockCount === 0 && block.kind === "doc") {
-        const delimitedString = docToBlock(block);
+        const delimitedString = docToBlock(block.text);
         // Create DelimitedNode instead of converting to markdown
         const moduleDocNode = delimitedNode(
           (text: string) =>
@@ -128,7 +129,7 @@ export function reconcilePythonBlocks(
         );
         root.append(moduleDocNode);
       } else {
-        const delimitedString = codeToBlock(block);
+        const delimitedString = codeToBlock(block.text);
         const codeNode = delimitedNode(
           (text: string) =>
             $createCodeBlockNode({

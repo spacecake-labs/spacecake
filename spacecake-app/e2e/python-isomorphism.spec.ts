@@ -192,6 +192,8 @@ if __name__ == "__main__":
     // open the complex file
     await window.getByRole("button", { name: "complex.py" }).first().click();
 
+    await expect(window.getByTestId("lexical-editor")).toBeVisible();
+
     // verify complex file loads with all expected blocks
     await window.getByText("🐍").first().click();
     await expect(window.getByText("doc").first()).toBeVisible();
@@ -209,6 +211,8 @@ if __name__ == "__main__":
     // save the file without any changes
     const saveBtn = window.getByRole("button", { name: "save" });
     await saveBtn.click();
+
+    await expect(window.getByTestId("lexical-editor")).toBeVisible();
 
     // verify the content was saved exactly
     const savedContent = fs.readFileSync(complexPyPath, "utf-8");
