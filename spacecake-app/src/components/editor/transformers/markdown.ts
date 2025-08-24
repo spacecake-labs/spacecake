@@ -18,8 +18,10 @@ import {
   $isImageNode,
   ImageNode,
 } from "@/components/editor/nodes/image-node";
-import { LexicalNode } from "lexical";
+import { $createNodeSelection, $setSelection, LexicalNode } from "lexical";
 import { $createLinkNode, $isLinkNode, LinkNode } from "@lexical/link";
+import { codeToBlock } from "@/lib/parser/python/blocks";
+import { delimitedNode } from "@/components/editor/nodes/delimited";
 
 export function createCodeTransformer(): MultilineElementTransformer {
   return {
@@ -29,7 +31,19 @@ export function createCodeTransformer(): MultilineElementTransformer {
       if (!$isCodeBlockNode(node)) {
         return null;
       }
-      return node.getTextContent();
+      const language = node.getLanguage();
+      const textContent = node.getTextContent();
+
+      if (language === "markdown") {
+        return textContent;
+      }
+      return (
+        "```" +
+        (language || "") +
+        (textContent ? "\n" + textContent : "") +
+        "\n" +
+        "```"
+      );
     },
     replace: (rootNode, _children, startMatch, endMatch, linesInBetween) => {
       if (linesInBetween) {
@@ -57,18 +71,34 @@ export function createCodeTransformer(): MultilineElementTransformer {
       const language = startMatch[1] ?? "";
       const code = linesInBetween?.join("\n") ?? "";
 
-      const codeBlockNode = $createCodeBlockNode({
-        code: code,
-        language: language,
-        meta: "",
-      });
+      const delimitedString = codeToBlock("\n" + code);
 
-      rootNode.append(codeBlockNode);
+      const codeNode = delimitedNode(
+        (text: string) =>
+          $createCodeBlockNode({
+            code: text,
+            language: language,
+            // meta: "",
+            // src: "",
+            // block: node.getBlock(),
+          }),
+        delimitedString
+      );
+
+      if (!rootNode.getParent()) {
+        rootNode.append(codeNode);
+      } else {
+        rootNode.replace(codeNode);
+      }
+
+      const nodeSelection = $createNodeSelection();
+      nodeSelection.add(codeNode.getKey());
+      $setSelection(nodeSelection);
 
       // if no ending backticks, user has just created the code block
       if (!endMatch) {
         // refocus after replacement
-        codeBlockNode.select();
+        codeNode.select();
       }
     },
   };

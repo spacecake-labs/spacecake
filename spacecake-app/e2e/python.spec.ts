@@ -366,6 +366,9 @@ test.describe("python e2e", () => {
 
     // open core.py
     await window.getByRole("button", { name: "core.py" }).first().click();
+
+    await expect(window.getByTestId("lexical-editor")).toBeVisible();
+
     await window.getByText("🐍").first().click();
 
     // focus import block editor content and add a misc line after two Enters
@@ -386,6 +389,7 @@ test.describe("python e2e", () => {
     // save from header and wait for rerender: observe button text transition
     const saveBtn = window.getByRole("button", { name: "save" });
     await saveBtn.click();
+    await expect(window.getByTestId("lexical-editor")).toBeVisible();
     await window.locator(".cm-editor").first().waitFor({ state: "visible" });
 
     // verify an editor now contains the new misc code (could be a new block)
