@@ -21,7 +21,12 @@ export const test = base.extend<TestFixtures>({
       args: [".vite/build/main.js"],
       cwd: process.cwd(),
       timeout: 60000,
-      env: { ...process.env, IS_PLAYWRIGHT: "1" },
+    });
+
+    // clear localStorage before each test to prevent interference
+    const page = await app.firstWindow();
+    await page.evaluate(() => {
+      localStorage.clear();
     });
 
     await use(app);

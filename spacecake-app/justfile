@@ -16,6 +16,9 @@ unit:
 e2e filter="":
     pnpm run package && pnpm run e2e-test --grep="{{filter}}"
 
+e2e-show filter="":
+    pnpm run package && pnpm run e2e-show --grep="{{filter}}"
+
 test:
     just unit && just e2e
 
