@@ -40,7 +40,7 @@ const createWindow = () => {
   });
 
   // Maximize the window to fill the screen
-  if (isTest) {
+  if (!isTest) {
     mainWindow.maximize();
   }
 
