@@ -16,7 +16,8 @@ if (started) {
 }
 
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
-const isTest = process.env.IS_PLAYWRIGHT === "1";
+const isTest = process.env.IS_PLAYWRIGHT === "true";
+const showWindow = process.env.SHOW_WINDOW === "true";
 
 const createWindow = () => {
   console.log("createWindow");
@@ -26,7 +27,7 @@ const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
-    show: !isTest,
+    show: !isTest || showWindow,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
@@ -40,7 +41,7 @@ const createWindow = () => {
   });
 
   // Maximize the window to fill the screen
-  if (!isTest) {
+  if (!isTest || showWindow) {
     mainWindow.maximize();
   }
 

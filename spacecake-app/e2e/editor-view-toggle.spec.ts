@@ -5,14 +5,6 @@ import path from "path";
 import fs from "fs";
 
 test.describe("editor view toggle", () => {
-  test.beforeEach(async ({ electronApp }) => {
-    const page = await electronApp.firstWindow();
-    // Clear localStorage to ensure clean state for view preference tests
-    await page.evaluate(() => {
-      localStorage.clear();
-    });
-  });
-
   test("python file can toggle between block and source views", async ({
     electronApp,
     tempTestDir,

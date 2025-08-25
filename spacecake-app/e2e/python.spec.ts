@@ -145,9 +145,7 @@ test.describe("python e2e", () => {
 
     // navigation tests: dynamic paragraph creation/removal between code blocks
     const editors = window.locator(".cm-editor");
-    const firstEditorRoot = editors.nth(0);
     const secondEditorRoot = editors.nth(1);
-    const firstContent = firstEditorRoot.locator(".cm-content");
     const secondContent = secondEditorRoot.locator(".cm-content");
 
     // Move caret to end of first code block and ArrowDown into spacer (creates paragraph)

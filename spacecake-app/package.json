@@ -12,7 +12,8 @@
     "lint": "eslint --ext .ts,.tsx .",
     "typecheck": "tsc --noEmit",
     "unit-test": "vitest run",
-    "e2e-test": "playwright test"
+    "e2e-test": "cross-env IS_PLAYWRIGHT=true playwright test",
+    "e2e-show": "cross-env IS_PLAYWRIGHT=true SHOW_WINDOW=true playwright test"
   },
   "keywords": [],
   "author": {
@@ -40,6 +41,7 @@
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vitejs/plugin-react": "^4.7.0",
+    "cross-env": "^10.0.0",
     "electron": "37.2.3",
     "electron-devtools-installer": "^4.0.0",
     "electron-playwright-helpers": "^1.7.1",
