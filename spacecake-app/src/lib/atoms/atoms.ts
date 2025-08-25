@@ -44,6 +44,10 @@ export const editorStateAtom = atom<SerializedEditorState | null>(null);
 // File content state
 export const fileContentAtom = atom<FileContent | null>(null);
 
+export const fileTypeAtom = atom((get) => {
+  return get(fileContentAtom)?.fileType ?? FileType.Plaintext;
+});
+
 // Selected file path
 export const selectedFilePathAtom = atom<string | null>(null);
 
@@ -99,7 +103,7 @@ export const deletionStateAtom = atom<{
   isDeleting: false,
 });
 
-// Tree-sitter parsing atoms
+// parsing atoms
 export const parsedFileAtom = atom<PyParsedFile | null>(null);
 export const parsedAnnotationsAtom = atom<PyParsedFile | null>(null);
 export const parsingStatusAtom = atom<{
@@ -131,6 +135,14 @@ export const viewKindAtom = atom((get) => (fileType: FileType): ViewKind => {
   return supportsBlockView(fileType) ? "block" : "source";
 });
 
+export const fileViewAtom = atom((get) => {
+  const currentFile = get(fileContentAtom);
+  if (!currentFile) return { file: null, view: "source" as ViewKind };
+
+  const view = get(viewKindAtom)(currentFile.fileType);
+  return { file: currentFile, view };
+});
+
 // Derived atom that determines if the current file can toggle between views
 export const canToggleViewsAtom = atom((get) => {
   const currentFile = get(fileContentAtom);
@@ -140,57 +152,12 @@ export const canToggleViewsAtom = atom((get) => {
   return views.size > 1;
 });
 
-// Atom to store the computed editor config
-export const editorConfigAtom = atom<InitialConfigType | null>(null);
-
-// Factory function to create editor config effect with injected dependencies
-export const createEditorConfigEffect = (
-  createEditorConfigFromState: (
-    state: SerializedEditorState
-  ) => InitialConfigType,
-  createEditorConfigFromContent: (
-    content: FileContent,
-    viewKind: ViewKind
-  ) => InitialConfigType
-) =>
-  atomEffect((get, set) => {
-    const editorState = get(editorStateAtom);
-    const fileContent = get(fileContentAtom);
-    const selectedFilePath = get(selectedFilePathAtom);
-    const userPrefs = get(userViewPreferencesAtom); // Add as dependency
-
-    // If we have an editor state, always use that (preserves current view)
-    if (editorState) {
-      const config = createEditorConfigFromState(editorState);
-      set(editorConfigAtom, config);
-    }
-    // Create from content when we have fileContent and selectedFilePath
-    else if (fileContent && selectedFilePath) {
-      // Get the current view preference for this file type
-      const userPref = userPrefs[fileContent.fileType];
-      const viewKind =
-        userPref ||
-        (supportsBlockView(fileContent.fileType) ? "block" : "source");
-
-      const config = createEditorConfigFromContent(fileContent, viewKind);
-      set(editorConfigAtom, config);
-    } else if (!fileContent || !selectedFilePath) {
-      set(editorConfigAtom, null);
-    }
-  });
-
 // Derived atom that handles toggling between block and source views
 export const toggleViewAtom = atom(null, (get, set) => {
-  const currentFile = get(fileContentAtom);
+  const { file: currentFile, view: currentView } = get(fileViewAtom);
+
   if (!currentFile) return;
 
-  // Get current view preference directly instead of calling the derived atom function
-  const userPrefs = get(userViewPreferencesAtom);
-  const currentView =
-    userPrefs[currentFile.fileType] ||
-    (supportsBlockView(currentFile.fileType) ? "block" : "source");
-
-  // Simple toggle: block ↔ source
   const nextView: ViewKind = currentView === "block" ? "source" : "block";
 
   // Update the preference
@@ -232,6 +199,45 @@ export const toggleViewAtom = atom(null, (get, set) => {
     }
   }
 });
+
+// Atom to store the computed editor config
+export const editorConfigAtom = atom<InitialConfigType | null>(null);
+
+// Factory function to create editor config effect with injected dependencies
+export const createEditorConfigEffect = (
+  createEditorConfigFromState: (
+    state: SerializedEditorState
+  ) => InitialConfigType,
+  createEditorConfigFromContent: (
+    content: FileContent,
+    viewKind: ViewKind
+  ) => InitialConfigType
+) =>
+  atomEffect((get, set) => {
+    const editorState = get(editorStateAtom);
+    const fileContent = get(fileContentAtom);
+    const selectedFilePath = get(selectedFilePathAtom);
+    const userPrefs = get(userViewPreferencesAtom); // Add as dependency
+
+    // If we have an editor state, always use that (preserves current view)
+    if (editorState) {
+      const config = createEditorConfigFromState(editorState);
+      set(editorConfigAtom, config);
+    }
+    // Create from content when we have fileContent and selectedFilePath
+    else if (fileContent && selectedFilePath) {
+      // Get the current view preference for this file type
+      const userPref = userPrefs[fileContent.fileType];
+      const viewKind =
+        userPref ||
+        (supportsBlockView(fileContent.fileType) ? "block" : "source");
+
+      const config = createEditorConfigFromContent(fileContent, viewKind);
+      set(editorConfigAtom, config);
+    } else if (!fileContent || !selectedFilePath) {
+      set(editorConfigAtom, null);
+    }
+  });
 
 // An action atom to handle selecting a new file
 export const selectFileAtom = atom(

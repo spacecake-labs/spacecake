@@ -9,8 +9,10 @@ import {
 } from "lexical";
 import React from "react";
 import { useCodeBlockEditorContext } from "@/components/editor/nodes/code-node";
-import { atom, useAtom } from "jotai";
+import { atom, useSetAtom } from "jotai";
 import { EditorView } from "@codemirror/view";
+import { debounce } from "@/lib/utils";
+import { maybeSplitBlock } from "@/components/editor/plugins/block-splitting";
 
 // jotai atoms for editor state
 export const activeEditorAtom = atom<LexicalEditor | null>(null);
@@ -34,9 +36,15 @@ export function useCodeMirrorRef(
   }
 ) {
   const [editor] = useLexicalComposerContext();
-  const [, setEditorInFocus] = useAtom(editorInFocusAtom);
+  const setEditorInFocus = useSetAtom(editorInFocusAtom);
   const codeMirrorRef = React.useRef<CodeMirrorRef | null>(null);
   const { lexicalNode } = useCodeBlockEditorContext();
+
+  const debouncedSplit = React.useRef(
+    debounce(() => {
+      maybeSplitBlock(editor, nodeKey);
+    }, 250)
+  );
 
   // helpers
   const isOnFirstDocLine = (view: EditorView) => {
@@ -97,6 +105,7 @@ export function useCodeMirrorRef(
                 paragraph.select();
               }
             });
+            debouncedSplit.current.schedule();
             // ensure focus transitions to lexical so the caret is visible
             setTimeout(() => {
               editor.focus();
@@ -136,6 +145,7 @@ export function useCodeMirrorRef(
                 paragraph.select();
               }
             });
+            debouncedSplit.current.schedule();
             setTimeout(() => {
               editor.focus();
               const rootEl = editor.getRootElement();
@@ -160,6 +170,22 @@ export function useCodeMirrorRef(
           });
         }
       }
+      // else if (e.key === "Enter") {
+      //   console.log("enter key down");
+      //   // const node = $getNodeByKey(nodeKey);
+      //   // prevent default enter behavior
+      //   // e.preventDefault();
+      //   // e.stopPropagation();
+      //   // insert a newline
+      //   // const view = codeMirrorRef.current?.getCodemirror();
+      //   // if (view) {
+      //   //   view.dispatch({
+      //   //     changes: { from: view.state.selection.main.head, insert: "\n" },
+      //   //   });
+      //   // }
+
+      //   debouncedSplit.current.schedule();
+      // }
     },
     [editor, nodeKey]
   );

@@ -6,19 +6,13 @@ import {
   $createTextNode,
   LexicalEditor,
 } from "lexical";
-import { $createCodeBlockNode } from "@/components/editor/nodes/code-node";
 import { INITIAL_LOAD_TAG } from "@/types/editor";
 import { FileType } from "@/types/workspace";
-import {
-  parsePythonContentStreaming,
-  docToBlock,
-  codeToBlock,
-} from "@/lib/parser/python/blocks";
+import { parsePythonContentStreaming } from "@/lib/parser/python/blocks";
 import type { FileContent } from "@/types/workspace";
 import { toast } from "sonner";
-import { delimitedNode } from "@/components/editor/nodes/delimited";
-import { $createHeadingNode } from "@lexical/rich-text";
 import { convertToSourceView } from "@/lib/editor";
+import { delimitPyBlock } from "./block-utils";
 
 /**
  * Converts Python blocks into Lexical nodes with progressive rendering
@@ -40,29 +34,8 @@ export async function convertPythonBlocksToLexical(
       editor.update(
         () => {
           const root = $getRoot();
-          if (block.kind === "doc") {
-            const delimitedString = docToBlock(block.text);
-            const moduleDocNode = delimitedNode(
-              (text: string) =>
-                $createHeadingNode("h2").append($createTextNode(text)),
-              delimitedString
-            );
-            root.append(moduleDocNode);
-          } else {
-            const delimitedString = codeToBlock(block.text);
-            const codeNode = delimitedNode(
-              (text: string) =>
-                $createCodeBlockNode({
-                  code: text,
-                  language: "python",
-                  meta: String(block.kind),
-                  src: file.path,
-                  block: block,
-                }),
-              delimitedString
-            );
-            root.append(codeNode);
-          }
+          const delimitedNodeElement = delimitPyBlock(block, file.path);
+          root.append(delimitedNodeElement);
         },
         { tag: INITIAL_LOAD_TAG }
       );

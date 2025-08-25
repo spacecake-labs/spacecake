@@ -104,6 +104,25 @@ describe("Python parser", () => {
       expect(blocks[2].startLine).toBe(5);
     });
 
+    it("yields misc block before import and function", async () => {
+      const code = "x = 1\n\n" + "import os\n\n" + "def f():\n    pass\n";
+
+      const blocks: PyBlock[] = [];
+      for await (const block of parseCodeBlocks(code)) {
+        blocks.push(block);
+      }
+
+      expect(blocks.length).toBe(3);
+      expect(blocks[0].kind).toBe("misc");
+      expect(blocks[0].text).toBe("x = 1");
+      expect(blocks[0].startLine).toBe(1);
+      expect(blocks[1].kind).toBe("import");
+      expect(blocks[1].text).toBe("\n\nimport os");
+      expect(blocks[1].startLine).toBe(3);
+      expect(blocks[2].kind).toBe("function");
+      expect(blocks[2].startLine).toBe(5);
+    });
+
     it("yields import block at EOF", async () => {
       const code = "from dataclasses import dataclass";
 

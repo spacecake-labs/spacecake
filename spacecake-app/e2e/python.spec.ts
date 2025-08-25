@@ -195,26 +195,11 @@ test.describe("python e2e", () => {
     await expect(fibonacciBlock.locator(".cm-editor").first()).toHaveClass(
       /focused/
     );
-    await fibonacciBlock
-      .locator(".cm-content")
-      .press("Meta+ArrowUp", { delay: 100 });
-    await window.keyboard.press("ArrowUp", { delay: 100 }); // to spacer above
-
-    // Also verify right/left behave like down/up at edges
-    await firstEditor
-      .locator(".cm-content")
-      .getByText("datetime")
-      .first()
-      .click();
-
-    // From "datetime" in import block, Cmd+Down goes to end, then ArrowDown creates spacer below
-    await firstContent.press("Meta+ArrowDown", { delay: 100 });
-    await firstContent.press("ArrowDown", { delay: 100 });
+    await window.keyboard.press("Meta+ArrowUp", { delay: 100 });
+    await fibonacciBlock.press("ArrowUp", { delay: 100 }); // to spacer above
 
     const spacerText2 = "PARA-TEXT-TWO";
-    await window
-      .getByTestId("lexical-editor")
-      .type(spacerText2, { delay: 100 });
+    await window.keyboard.type(spacerText2, { delay: 100 });
     await expect(window.getByText(spacerText2).first()).toBeVisible();
     await window.keyboard.press("ArrowDown", { delay: 100 }); // into next code block
 

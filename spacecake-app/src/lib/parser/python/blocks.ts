@@ -228,6 +228,22 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
     return block;
   };
 
+  function* flushImportBlock() {
+    if (importNodes.length) {
+      const importBlock = emitImportBlock();
+      prevBlockEndByte = importBlock.endByte;
+      yield importBlock;
+    }
+  }
+
+  function* flushMiscBlock() {
+    if (miscNodes.length) {
+      const miscBlock = emitMiscBlock();
+      prevBlockEndByte = miscBlock.endByte;
+      yield miscBlock;
+    }
+  }
+
   for (
     let node: SyntaxNode | null = tree.topNode.firstChild;
     node;
@@ -243,32 +259,32 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
         commentNodes.push(node);
         continue;
       }
+
+      // This is a misc node, so flush any pending imports first.
+      yield* flushImportBlock();
+
       // anything else accumulates into a `misc` block
       // consume any accumulated comments
       miscNodes.push(...commentNodes, node);
       commentNodes = [];
       continue;
     }
-    // else if it's a recognised block kind
 
     if (kind === "import") {
+      // This is an import node, so flush any pending misc block first.
+      yield* flushMiscBlock();
+
       // consume any accumulated comments
       importNodes.push(...commentNodes, node);
       commentNodes = [];
+      // continue to next iteration
       continue;
     }
 
-    if (importNodes.length) {
-      const importBlock = emitImportBlock();
-      prevBlockEndByte = importBlock.endByte;
-      yield importBlock;
-    }
-
-    if (miscNodes.length) {
-      const miscBlock = emitMiscBlock();
-      prevBlockEndByte = miscBlock.endByte;
-      yield miscBlock;
-    }
+    // This is a "real" block (e.g., function/class).
+    // Flush any pending block, whichever it may be.
+    yield* flushImportBlock();
+    yield* flushMiscBlock();
 
     const startByte = prevBlockEndByte;
     const raw = code.slice(startByte, node.to);
@@ -291,14 +307,9 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
     };
   }
 
-  if (importNodes.length) {
-    const importBlock = emitImportBlock();
-    yield importBlock;
-  }
-  if (miscNodes.length) {
-    const miscBlock = emitMiscBlock();
-    yield miscBlock;
-  }
+  // Finally, flush anything left at the end of the file.
+  yield* flushImportBlock();
+  yield* flushMiscBlock();
 }
 
 /**
