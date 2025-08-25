@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { FileContent } from "@/types/workspace";
 
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
@@ -14,7 +15,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   //   ipcRenderer.invoke("read-directory", dirPath),
   readWorkspace: (dirPath: string) =>
     ipcRenderer.invoke("read-workspace", dirPath),
-  readFile: (filePath: string) => ipcRenderer.invoke("read-file", filePath),
+  readFile: (filePath: string): Promise<{ success: boolean; file?: FileContent; error?: string }> =>
+    ipcRenderer.invoke("read-file", filePath),
   createFile: (filePath: string, content?: string) =>
     ipcRenderer.invoke("create-file", filePath, content),
   createFolder: (folderPath: string) =>

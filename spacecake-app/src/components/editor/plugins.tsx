@@ -19,6 +19,7 @@ import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
 
 import { ContentEditable } from "@/components/editor/content-editable";
 import { NodeNavigationPlugin } from "@/components/editor/plugins/node-navigation";
+
 import { atom, useAtom } from "jotai";
 
 const floatingAnchorAtom = atom<HTMLDivElement | null>(null);
@@ -62,6 +63,7 @@ export const Plugins = React.memo(function Plugins() {
         {/* <CodeHighlightPlugin /> */}
         {/* <CodeBlockPlugin /> */}
         <NodeNavigationPlugin />
+        
         {/* <CodeToolbarPlugin /> */}
         <MarkdownShortcutPlugin transformers={MARKDOWN_TRANSFORMERS} />
       </div>

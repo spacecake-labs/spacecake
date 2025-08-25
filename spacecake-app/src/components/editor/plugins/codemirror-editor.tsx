@@ -226,20 +226,25 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     };
   }, [language, theme, debounceMs, flushPending]);
 
-  // keep codemirror doc in sync if external updates change the node code
-  React.useEffect(() => {
-    const view = editorViewRef.current;
-    if (!view) return;
-    const current = view.state.doc.toString();
-    if (current !== code) {
-      // preserve selection anchor/head where possible
-      const sel = view.state.selection;
-      view.dispatch({
-        changes: { from: 0, to: current.length, insert: code },
-        selection: sel,
-      });
-    }
-  }, [code]);
+  // // keep codemirror doc in sync if external updates change the node code
+  // React.useEffect(() => {
+  //   const view = editorViewRef.current;
+  //   if (!view) return;
+  //   const current = view.state.doc.toString();
+  //   if (current !== code) {
+  //     // TO DO: when splitting blocks, selection logic can fail
+
+  //     // preserve selection anchor/head where possible
+  //     const sel = view.state.selection;
+  //     const newLength = code.length;
+  //     const clamp = (pos: number) => Math.min(pos, newLength);
+
+  //     view.dispatch({
+  //       changes: { from: 0, to: clamp(current.length), insert: code },
+  //       selection: sel,
+  //     });
+  //   }
+  // }, [code]);
 
   // flush debounced changes when the app dispatches a before-save signal
   React.useEffect(() => {

@@ -252,6 +252,8 @@ class AsyncClass:
     // open the async file
     await window.getByRole("button", { name: "async.py" }).first().click();
 
+    await expect(window.getByTestId("lexical-editor")).toBeVisible();
+
     // verify async file loads correctly
     await window.getByText("🐍").first().click();
 
@@ -270,6 +272,8 @@ class AsyncClass:
     // save the file without any changes
     const saveBtn = window.getByRole("button", { name: "save" });
     await saveBtn.click();
+
+    await expect(window.getByTestId("lexical-editor")).toBeVisible();
 
     // verify content remains identical
     const savedContent = fs.readFileSync(asyncPyPath, "utf-8");
