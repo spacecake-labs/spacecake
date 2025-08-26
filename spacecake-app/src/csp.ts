@@ -24,13 +24,13 @@ export const CSP_CONFIG = {
     "base-uri": ["'self'"],
     "form-action": ["'self'"],
   },
-};
+}
 
 export function buildCSPString(
   environment: "development" | "production" = "development"
 ): string {
-  const config = CSP_CONFIG[environment];
+  const config = CSP_CONFIG[environment]
   return Object.entries(config)
     .map(([key, values]) => `${key} ${values.join(" ")}`)
-    .join("; ");
+    .join("; ")
 }

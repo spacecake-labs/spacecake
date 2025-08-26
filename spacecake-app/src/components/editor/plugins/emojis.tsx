@@ -6,74 +6,73 @@
  *
  */
 
-import type { LexicalEditor } from "lexical";
-import type { JSX } from "react";
-
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { TextNode } from "lexical";
-import { useEffect } from "react";
+import type { JSX } from "react"
+import { useEffect } from "react"
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
+import type { LexicalEditor } from "lexical"
+import { TextNode } from "lexical"
 
 import {
   $createEmojiNode,
   EmojiNode,
-} from "@/components/editor/nodes/emoji-node";
+} from "@/components/editor/nodes/emoji-node"
 
 const emojis: Map<string, [string, string]> = new Map([
   [":)", ["emoji happysmile", "🙂"]],
   [":D", ["emoji veryhappysmile", "😀"]],
   [":(", ["emoji unhappysmile", "🙁"]],
   ["<3", ["emoji heart", "❤"]],
-]);
+])
 
 function $findAndTransformEmoji(node: TextNode): null | TextNode {
-  const text = node.getTextContent();
+  const text = node.getTextContent()
 
   for (let i = 0; i < text.length; i++) {
-    const emojiData = emojis.get(text[i]) || emojis.get(text.slice(i, i + 2));
+    const emojiData = emojis.get(text[i]) || emojis.get(text.slice(i, i + 2))
 
     if (emojiData !== undefined) {
-      const [emojiStyle, emojiText] = emojiData;
-      let targetNode;
+      const [emojiStyle, emojiText] = emojiData
+      let targetNode
 
       if (i === 0) {
-        [targetNode] = node.splitText(i + 2);
+        ;[targetNode] = node.splitText(i + 2)
       } else {
-        [, targetNode] = node.splitText(i, i + 2);
+        ;[, targetNode] = node.splitText(i, i + 2)
       }
 
-      const emojiNode = $createEmojiNode(emojiStyle, emojiText);
-      targetNode.replace(emojiNode);
-      return emojiNode;
+      const emojiNode = $createEmojiNode(emojiStyle, emojiText)
+      targetNode.replace(emojiNode)
+      return emojiNode
     }
   }
 
-  return null;
+  return null
 }
 
 function $textNodeTransform(node: TextNode): void {
-  let targetNode: TextNode | null = node;
+  let targetNode: TextNode | null = node
 
   while (targetNode !== null) {
     if (!targetNode.isSimpleText()) {
-      return;
+      return
     }
 
-    targetNode = $findAndTransformEmoji(targetNode);
+    targetNode = $findAndTransformEmoji(targetNode)
   }
 }
 
 function useEmojis(editor: LexicalEditor): void {
   useEffect(() => {
     if (!editor.hasNodes([EmojiNode])) {
-      throw new Error("EmojisPlugin: EmojiNode not registered on editor");
+      throw new Error("EmojisPlugin: EmojiNode not registered on editor")
     }
 
-    return editor.registerNodeTransform(TextNode, $textNodeTransform);
-  }, [editor]);
+    return editor.registerNodeTransform(TextNode, $textNodeTransform)
+  }, [editor])
 }
 
 export default function EmojisPlugin(): JSX.Element | null {
-  const [editor] = useLexicalComposerContext();
-  useEmojis(editor);
-  return null;
+  const [editor] = useLexicalComposerContext()
+  useEmojis(editor)
+  return null
 }

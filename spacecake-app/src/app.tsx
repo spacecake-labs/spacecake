@@ -1,43 +1,43 @@
-import { StrictMode } from "react";
-import ReactDOM from "react-dom/client";
+import { StrictMode } from "react"
+// Import the generated route tree
+import { routeTree } from "@/routeTree.gen"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import {
   createMemoryHistory,
   createRouter,
   RouterProvider,
-} from "@tanstack/react-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+} from "@tanstack/react-router"
+import ReactDOM from "react-dom/client"
 
-// Import the generated route tree
-import { routeTree } from "@/routeTree.gen";
-import { useTheme } from "@/components/theme-provider";
+import { useTheme } from "@/components/theme-provider"
 
 // Create a new router instance with hash routing
 const memoryHistory = createMemoryHistory({
   initialEntries: ["/"], // Pass your initial url
-});
+})
 
-const router = createRouter({ routeTree, history: memoryHistory });
+const router = createRouter({ routeTree, history: memoryHistory })
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient()
 
 // Register the router instance for type safety
 declare module "@tanstack/react-router" {
   interface Register {
-    router: typeof router;
+    router: typeof router
   }
 }
 
 // Render the app
-const rootElement = document.getElementById("root")!;
-const root = ReactDOM.createRoot(rootElement);
+const rootElement = document.getElementById("root")!
+const root = ReactDOM.createRoot(rootElement)
 function RootWithTheme() {
-  const { theme } = useTheme();
+  const { theme } = useTheme()
   // set class on body; tailwind v4 supports .dark variants via :root class as well,
   // but body works given our globals.css @custom-variant
-  document.documentElement.classList.remove("light", "dark");
-  document.documentElement.classList.add(theme);
-  return <RouterProvider router={router} />;
+  document.documentElement.classList.remove("light", "dark")
+  document.documentElement.classList.add(theme)
+  return <RouterProvider router={router} />
 }
 
 root.render(
@@ -47,4 +47,4 @@ root.render(
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   </StrictMode>
-);
+)

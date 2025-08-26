@@ -2,54 +2,55 @@
 EditorToolbar handles the toolbar UI and view toggling.
 */
 
-import { Save, FileText, Grid3X3, Code } from "lucide-react";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai"
+import { Code, FileText, Grid3X3, Save } from "lucide-react"
+
 import {
+  canToggleViewsAtom,
+  fileContentAtom,
   isSavingAtom,
   selectedFilePathAtom,
-  canToggleViewsAtom,
-  viewKindAtom,
   toggleViewAtom,
-  fileContentAtom,
-} from "@/lib/atoms/atoms";
-import { ModeToggle } from "@/components/mode-toggle";
-import { Button } from "@/components/ui/button";
+  viewKindAtom,
+} from "@/lib/atoms/atoms"
+import { Button } from "@/components/ui/button"
+import { ModeToggle } from "@/components/mode-toggle"
 
 export function EditorToolbar({ onSave }: { onSave: () => void }) {
-  const selectedFilePath = useAtomValue(selectedFilePathAtom);
-  const isSaving = useAtomValue(isSavingAtom);
-  const canToggleViews = useAtomValue(canToggleViewsAtom);
-  const viewKind = useAtomValue(viewKindAtom);
-  const currentFile = useAtomValue(fileContentAtom);
-  const toggleView = useSetAtom(toggleViewAtom);
+  const selectedFilePath = useAtomValue(selectedFilePathAtom)
+  const isSaving = useAtomValue(isSavingAtom)
+  const canToggleViews = useAtomValue(canToggleViewsAtom)
+  const viewKind = useAtomValue(viewKindAtom)
+  const currentFile = useAtomValue(fileContentAtom)
+  const toggleView = useSetAtom(toggleViewAtom)
 
   // hide toolbar when no file is selected
   if (!selectedFilePath) {
-    return null;
+    return null
   }
 
   const handleViewToggle = () => {
-    toggleView();
-  };
+    toggleView()
+  }
 
   const getCurrentViewLabel = () => {
-    if (!currentFile) return "";
-    const currentView = viewKind(currentFile.fileType);
-    return currentView === "block" ? "blocks" : "source";
-  };
+    if (!currentFile) return ""
+    const currentView = viewKind(currentFile.fileType)
+    return currentView === "block" ? "blocks" : "source"
+  }
 
   const getToggleTitle = () => {
-    if (!currentFile) return "";
-    const currentView = viewKind(currentFile.fileType);
+    if (!currentFile) return ""
+    const currentView = viewKind(currentFile.fileType)
     return currentView === "block"
       ? "switch to source view"
-      : "switch to block view";
-  };
+      : "switch to block view"
+  }
 
   const getCurrentView = () => {
-    if (!currentFile) return null;
-    return viewKind(currentFile.fileType);
-  };
+    if (!currentFile) return null
+    return viewKind(currentFile.fileType)
+  }
 
   return (
     <div className="flex items-center justify-between flex-1 px-4">
@@ -96,5 +97,5 @@ export function EditorToolbar({ onSave }: { onSave: () => void }) {
         <ModeToggle variant="compact" />
       </div>
     </div>
-  );
+  )
 }

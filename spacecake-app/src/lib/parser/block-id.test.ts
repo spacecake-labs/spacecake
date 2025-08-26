@@ -1,7 +1,8 @@
-import { describe, it, expect } from "vitest";
-import { blockId } from "@/lib/parser/block-id";
-import type { Block, PyBlock } from "@/types/parser";
-import { anonymousName, namedBlock } from "@/types/parser";
+import { describe, expect, it } from "vitest"
+
+import type { Block, PyBlock } from "@/types/parser"
+import { anonymousName, namedBlock } from "@/types/parser"
+import { blockId } from "@/lib/parser/block-id"
 
 describe("blockId", () => {
   it("should generate correct ID for function blocks", () => {
@@ -12,10 +13,10 @@ describe("blockId", () => {
       endByte: 50,
       text: "def fibonacci(n):\n    return n",
       startLine: 1,
-    };
+    }
 
-    expect(blockId(block)).toBe("fibonacci-function");
-  });
+    expect(blockId(block)).toBe("fibonacci-function")
+  })
 
   it("should generate correct ID for class blocks", () => {
     const block: PyBlock = {
@@ -25,10 +26,10 @@ describe("blockId", () => {
       endByte: 100,
       text: "class Calculator:\n    pass",
       startLine: 1,
-    };
+    }
 
-    expect(blockId(block)).toBe("calculator-class");
-  });
+    expect(blockId(block)).toBe("calculator-class")
+  })
 
   it("should generate correct ID for import blocks", () => {
     const block: PyBlock = {
@@ -38,10 +39,10 @@ describe("blockId", () => {
       endByte: 20,
       text: "import math\nimport os",
       startLine: 1,
-    };
+    }
 
-    expect(blockId(block)).toBe("anonymous-import");
-  });
+    expect(blockId(block)).toBe("anonymous-import")
+  })
 
   it("should generate correct ID for decorated function blocks", () => {
     const block: PyBlock = {
@@ -51,10 +52,10 @@ describe("blockId", () => {
       endByte: 80,
       text: "@property\ndef myMethod(self):\n    return self._value",
       startLine: 1,
-    };
+    }
 
-    expect(blockId(block)).toBe("mymethod-decorated-function");
-  });
+    expect(blockId(block)).toBe("mymethod-decorated-function")
+  })
 
   it("should handle uppercase names by converting to lowercase", () => {
     const block: PyBlock = {
@@ -64,10 +65,10 @@ describe("blockId", () => {
       endByte: 30,
       text: "class MyBigClassName:\n    pass",
       startLine: 1,
-    };
+    }
 
-    expect(blockId(block)).toBe("mybigclassname-class");
-  });
+    expect(blockId(block)).toBe("mybigclassname-class")
+  })
 
   it("should work with generic Block type", () => {
     const block: Block<string> = {
@@ -77,10 +78,10 @@ describe("blockId", () => {
       endByte: 10,
       text: "test",
       startLine: 1,
-    };
+    }
 
-    expect(blockId(block)).toBe("testblock-custom");
-  });
+    expect(blockId(block)).toBe("testblock-custom")
+  })
 
   it("should handle file blocks", () => {
     const block: PyBlock = {
@@ -90,10 +91,10 @@ describe("blockId", () => {
       endByte: 200,
       text: "# entire file content",
       startLine: 1,
-    };
+    }
 
-    expect(blockId(block)).toBe("anonymous-file");
-  });
+    expect(blockId(block)).toBe("anonymous-file")
+  })
 
   it("should replace spaces in kind with dashes and support dataclass", () => {
     const decoratedBlock: PyBlock = {
@@ -103,7 +104,7 @@ describe("blockId", () => {
       endByte: 50,
       text: "@some_decorator\nclass MyClass:\n    pass",
       startLine: 1,
-    };
+    }
 
     const dataclassBlock: PyBlock = {
       kind: "dataclass",
@@ -112,11 +113,11 @@ describe("blockId", () => {
       endByte: 60,
       text: "@dataclass\nclass MyData:\n    x: int",
       startLine: 1,
-    };
+    }
 
-    expect(blockId(decoratedBlock)).toBe("myclass-decorated-class");
-    expect(blockId(dataclassBlock)).toBe("mydata-dataclass");
-  });
+    expect(blockId(decoratedBlock)).toBe("myclass-decorated-class")
+    expect(blockId(dataclassBlock)).toBe("mydata-dataclass")
+  })
 
   it("should handle Anonymous name type", () => {
     const block: PyBlock = {
@@ -126,8 +127,8 @@ describe("blockId", () => {
       endByte: 100,
       text: "# Some file content",
       startLine: 1,
-    };
+    }
 
-    expect(blockId(block)).toBe("anonymous-file");
-  });
-});
+    expect(blockId(block)).toBe("anonymous-file")
+  })
+})

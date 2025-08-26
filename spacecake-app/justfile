@@ -1,6 +1,9 @@
 start:
     pnpm run start
 
+format:
+    pnpm run format
+
 lint:
     pnpm run lint
 
@@ -8,7 +11,7 @@ tc:
     pnpm run typecheck
 
 check:
-    just lint && just tc
+    just format && just lint && just tc
 
 unit:
     pnpm run unit-test

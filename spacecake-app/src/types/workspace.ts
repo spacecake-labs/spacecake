@@ -12,50 +12,50 @@ export enum FileType {
   TSX = "tsx",
 }
 
-export const ZERO_HASH = "0000000000000000";
+export const ZERO_HASH = "0000000000000000"
 
 export interface WorkspaceInfo {
-  path: string;
-  name: string;
+  path: string
+  name: string
 }
 
 export type FileTreeItem = {
-  name: string;
-  path: string;
-  cid: string;
-};
+  name: string
+  path: string
+  cid: string
+}
 
 export type File = FileTreeItem & {
-  kind: "file";
-  etag: ETag;
-  fileType: FileType;
-  cid: string; // Always present - ZERO_HASH for new files, actual hash for changed files
-};
+  kind: "file"
+  etag: ETag
+  fileType: FileType
+  cid: string // Always present - ZERO_HASH for new files, actual hash for changed files
+}
 
-export type FileContent = File & { content: string };
+export type FileContent = File & { content: string }
 
 export type Folder = FileTreeItem & {
-  kind: "folder";
-  children: FileTree;
-  isExpanded: boolean;
-};
+  kind: "folder"
+  children: FileTree
+  isExpanded: boolean
+}
 
-export type FileTree = (File | Folder)[];
+export type FileTree = (File | Folder)[]
 
-export type ETag = { mtimeMs: number; size: number };
+export type ETag = { mtimeMs: number; size: number }
 
 export type FileTreeEvent =
   | { kind: "addFile"; path: string; etag: ETag }
   | { kind: "addFolder"; path: string }
   | {
-      kind: "contentChange";
-      path: string;
-      etag: ETag;
-      content: string;
-      fileType: FileType;
-      cid: string;
+      kind: "contentChange"
+      path: string
+      etag: ETag
+      content: string
+      fileType: FileType
+      cid: string
     }
   | { kind: "unlinkFile"; path: string }
-  | { kind: "unlinkFolder"; path: string };
+  | { kind: "unlinkFolder"; path: string }
 
-export type ExpandedFolders = Record<Folder["path"], boolean>;
+export type ExpandedFolders = Record<Folder["path"], boolean>

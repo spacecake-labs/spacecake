@@ -1,12 +1,12 @@
-import * as React from "react";
-import type { JSX } from "react";
-import { ContentEditable as LexicalContentEditable } from "@lexical/react/LexicalContentEditable";
+import * as React from "react"
+import type { JSX } from "react"
+import { ContentEditable as LexicalContentEditable } from "@lexical/react/LexicalContentEditable"
 
 type Props = {
-  placeholder: string;
-  className?: string;
-  placeholderClassName?: string;
-};
+  placeholder: string
+  className?: string
+  placeholderClassName?: string
+}
 
 export const ContentEditable = React.memo(function ContentEditable({
   placeholder,
@@ -31,5 +31,5 @@ export const ContentEditable = React.memo(function ContentEditable({
         </div>
       }
     />
-  );
-});
+  )
+})

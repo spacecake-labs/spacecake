@@ -1,29 +1,30 @@
-import { useState } from "react";
-import { Copy, Check, Play, MoreHorizontal, Code } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react"
+import { Check, Code, Copy, MoreHorizontal, Play } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace";
+} from "@/components/ui/dropdown-menu"
 
 interface CodeBlockProps {
-  code: string;
-  language?: string;
-  blockName?: string;
-  title?: string;
-  showLineNumbers?: boolean;
-  editable?: boolean;
-  theme?: "light" | "dark" | "auto";
-  className?: string;
-  onCodeChange?: (code: string) => void;
-  onRun?: () => void;
-  children?: React.ReactNode;
-  dataBlockId?: string;
+  code: string
+  language?: string
+  blockName?: string
+  title?: string
+  showLineNumbers?: boolean
+  editable?: boolean
+  theme?: "light" | "dark" | "auto"
+  className?: string
+  onCodeChange?: (code: string) => void
+  onRun?: () => void
+  children?: React.ReactNode
+  dataBlockId?: string
 }
 
 export function CodeBlock({
@@ -37,20 +38,20 @@ export function CodeBlock({
   children,
   dataBlockId,
 }: CodeBlockProps) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(false)
 
   // dev-only render counter for the wrapper container
   // removed dev render logging
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error("Failed to copy code:", err);
+      console.error("Failed to copy code:", err)
     }
-  };
+  }
 
   return (
     <div
@@ -153,5 +154,5 @@ export function CodeBlock({
         </div>
       )}
     </div>
-  );
+  )
 }

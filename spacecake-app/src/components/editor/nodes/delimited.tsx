@@ -1,5 +1,6 @@
-import { DelimitedString, Delimiters } from "@/types/parser";
-import { createState, LexicalNode, $getState, $setState } from "lexical";
+import { $getState, $setState, createState, LexicalNode } from "lexical"
+
+import { DelimitedString, Delimiters } from "@/types/parser"
 
 // TODO: use zod/something to parse properly
 const delimitedState = createState("delimited", {
@@ -8,11 +9,11 @@ const delimitedState = createState("delimited", {
       return {
         prefix: String(v.prefix),
         suffix: String(v.suffix),
-      };
+      }
     }
-    return { prefix: "", suffix: "" };
+    return { prefix: "", suffix: "" }
   },
-});
+})
 
 export const delimitedNode = <T extends LexicalNode>(
   nodeCreator: (content: string) => T,
@@ -21,22 +22,22 @@ export const delimitedNode = <T extends LexicalNode>(
   const delimiters: Delimiters = {
     prefix: delimitedString.prefix,
     suffix: delimitedString.suffix,
-  };
+  }
 
-  const node = nodeCreator(delimitedString.between);
+  const node = nodeCreator(delimitedString.between)
 
-  $setState(node, delimitedState, delimiters);
+  $setState(node, delimitedState, delimiters)
 
-  return node;
-};
+  return node
+}
 
 export const $getDelimiters = (node: LexicalNode): Delimiters => {
-  return $getState(node, delimitedState);
-};
+  return $getState(node, delimitedState)
+}
 
 export const $getDelimitedString = (node: LexicalNode): string => {
-  const delimiters = $getDelimiters(node);
-  const content = node.getTextContent();
+  const delimiters = $getDelimiters(node)
+  const content = node.getTextContent()
 
-  return `${delimiters.prefix}${content}${delimiters.suffix}`;
-};
+  return `${delimiters.prefix}${content}${delimiters.suffix}`
+}

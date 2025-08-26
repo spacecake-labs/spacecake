@@ -1,39 +1,39 @@
-import * as React from "react";
-import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown";
-import { CheckListPlugin } from "@lexical/react/LexicalCheckListPlugin";
-import { ClearEditorPlugin } from "@lexical/react/LexicalClearEditorPlugin";
-import { ClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin";
-import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
-import { HashtagPlugin } from "@lexical/react/LexicalHashtagPlugin";
-import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { HorizontalRulePlugin } from "@lexical/react/LexicalHorizontalRulePlugin";
-import { ListPlugin } from "@lexical/react/LexicalListPlugin";
-import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
-import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
-import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
+import * as React from "react"
+import { CheckListPlugin } from "@lexical/react/LexicalCheckListPlugin"
+import { ClearEditorPlugin } from "@lexical/react/LexicalClearEditorPlugin"
+import { ClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin"
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
+import { HashtagPlugin } from "@lexical/react/LexicalHashtagPlugin"
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin"
+import { HorizontalRulePlugin } from "@lexical/react/LexicalHorizontalRulePlugin"
+import { ListPlugin } from "@lexical/react/LexicalListPlugin"
+import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin"
+import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
+import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin"
+import { TablePlugin } from "@lexical/react/LexicalTablePlugin"
+import { atom, useAtom } from "jotai"
+
 // import { CodeHighlightPlugin } from "@/components/editor/plugins/code-highlighter";
 // import { CodeBlockPlugin } from "@/components/editor/plugins/code-block";
 
 // import { CodeToolbarPlugin } from "@/components/editor/plugins/code-toolbar";
 
-import { ContentEditable } from "@/components/editor/content-editable";
-import { NodeNavigationPlugin } from "@/components/editor/plugins/node-navigation";
+import { ContentEditable } from "@/components/editor/content-editable"
+import { NodeNavigationPlugin } from "@/components/editor/plugins/node-navigation"
+import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 
-import { atom, useAtom } from "jotai";
-
-const floatingAnchorAtom = atom<HTMLDivElement | null>(null);
+const floatingAnchorAtom = atom<HTMLDivElement | null>(null)
 
 export const Plugins = React.memo(function Plugins() {
-  const [, setFloatingAnchorElem] = useAtom(floatingAnchorAtom);
+  const [, setFloatingAnchorElem] = useAtom(floatingAnchorAtom)
 
   const onRef = (_floatingAnchorElem: HTMLDivElement) => {
     if (_floatingAnchorElem !== null) {
-      setFloatingAnchorElem(_floatingAnchorElem);
+      setFloatingAnchorElem(_floatingAnchorElem)
     }
-  };
+  }
 
-  const placeholder = "...";
+  const placeholder = "..."
 
   return (
     <div className="relative">
@@ -63,12 +63,12 @@ export const Plugins = React.memo(function Plugins() {
         {/* <CodeHighlightPlugin /> */}
         {/* <CodeBlockPlugin /> */}
         <NodeNavigationPlugin />
-        
+
         {/* <CodeToolbarPlugin /> */}
         <MarkdownShortcutPlugin transformers={MARKDOWN_TRANSFORMERS} />
       </div>
 
       <ClearEditorPlugin />
     </div>
-  );
-});
+  )
+})

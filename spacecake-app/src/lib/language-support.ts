@@ -1,10 +1,10 @@
-import { FileType } from "@/types/workspace";
-import type { ViewKind } from "@/types/editor";
+import type { ViewKind } from "@/types/editor"
+import { FileType } from "@/types/workspace"
 
 // mapping of languages to supported editor views
 export interface LanguageSupport {
-  fileType: FileType;
-  supportedViews: Set<ViewKind>;
+  fileType: FileType
+  supportedViews: Set<ViewKind>
 }
 
 // static mapping - define once, canonical source
@@ -37,23 +37,23 @@ const LANGUAGE_SUPPORT: Record<FileType, LanguageSupport> = {
     fileType: FileType.Plaintext,
     supportedViews: new Set(["source"]),
   },
-};
+}
 
 // pure functions with better naming
 export function languageSupport(fileType: FileType): LanguageSupport {
-  return LANGUAGE_SUPPORT[fileType];
+  return LANGUAGE_SUPPORT[fileType]
 }
 
 export function supportsBlockView(fileType: FileType): boolean {
-  return LANGUAGE_SUPPORT[fileType].supportedViews.has("block");
+  return LANGUAGE_SUPPORT[fileType].supportedViews.has("block")
 }
 
 export function supportsSourceView(fileType: FileType): boolean {
-  return LANGUAGE_SUPPORT[fileType].supportedViews.has("source");
+  return LANGUAGE_SUPPORT[fileType].supportedViews.has("source")
 }
 
 export function supportedViews(fileType: FileType): Set<ViewKind> {
-  return LANGUAGE_SUPPORT[fileType].supportedViews;
+  return LANGUAGE_SUPPORT[fileType].supportedViews
 }
 
 // map FileType to CodeMirror language string
@@ -62,18 +62,18 @@ export function fileTypeToCodeMirrorLanguage(
 ): string | null {
   switch (fileType) {
     case FileType.Python:
-      return "python";
+      return "python"
     case FileType.JavaScript:
-      return "javascript";
+      return "javascript"
     case FileType.TypeScript:
-      return "typescript";
+      return "typescript"
     case FileType.JSX:
-      return "jsx";
+      return "jsx"
     case FileType.TSX:
-      return "tsx";
+      return "tsx"
     case FileType.Markdown:
-      return "markdown";
+      return "markdown"
     case FileType.Plaintext:
-      return null; // No syntax highlighting
+      return null // No syntax highlighting
   }
 }

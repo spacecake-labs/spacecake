@@ -1,7 +1,7 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import js from "@eslint/js";
-import tseslint from "typescript-eslint";
-import importPlugin from "eslint-plugin-import";
+import js from "@eslint/js"
+import importPlugin from "eslint-plugin-import"
+import { defineConfig, globalIgnores } from "eslint/config"
+import tseslint from "typescript-eslint"
 
 export default defineConfig([
   js.configs.recommended,
@@ -33,4 +33,4 @@ export default defineConfig([
       },
     },
   },
-]);
+])

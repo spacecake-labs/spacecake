@@ -6,6 +6,10 @@
  *
  */
 
+import type { JSX } from "react"
+import * as React from "react"
+import { HashtagNode } from "@lexical/hashtag"
+import { LinkNode } from "@lexical/link"
 import type {
   DOMConversionMap,
   DOMConversionOutput,
@@ -18,11 +22,7 @@ import type {
   SerializedEditor,
   SerializedLexicalNode,
   Spread,
-} from "lexical";
-import type { JSX } from "react";
-
-import { HashtagNode } from "@lexical/hashtag";
-import { LinkNode } from "@lexical/link";
+} from "lexical"
 import {
   $applyNodeReplacement,
   createEditor,
@@ -31,26 +31,25 @@ import {
   ParagraphNode,
   RootNode,
   TextNode,
-} from "lexical";
-import * as React from "react";
+} from "lexical"
 
-import { EmojiNode } from "@/components/editor/nodes/emoji-node";
-import { KeywordNode } from "@/components/editor/nodes/keyword-node";
+import { EmojiNode } from "@/components/editor/nodes/emoji-node"
+import { KeywordNode } from "@/components/editor/nodes/keyword-node"
 
 const ImageComponent = React.lazy(
   () => import("@/components/editor/image-component")
-);
+)
 
 export interface ImagePayload {
-  altText: string;
-  caption?: LexicalEditor;
-  height?: number;
-  key?: NodeKey;
-  maxWidth?: number;
-  showCaption?: boolean;
-  src: string;
-  width?: number;
-  captionsEnabled?: boolean;
+  altText: string
+  caption?: LexicalEditor
+  height?: number
+  key?: NodeKey
+  maxWidth?: number
+  showCaption?: boolean
+  src: string
+  width?: number
+  captionsEnabled?: boolean
 }
 
 function isGoogleDocCheckboxImg(img: HTMLImageElement): boolean {
@@ -59,45 +58,45 @@ function isGoogleDocCheckboxImg(img: HTMLImageElement): boolean {
     img.parentElement.tagName === "LI" &&
     img.previousSibling === null &&
     img.getAttribute("aria-roledescription") === "checkbox"
-  );
+  )
 }
 
 function $convertImageElement(domNode: Node): null | DOMConversionOutput {
-  const img = domNode as HTMLImageElement;
+  const img = domNode as HTMLImageElement
   if (img.src.startsWith("file:///") || isGoogleDocCheckboxImg(img)) {
-    return null;
+    return null
   }
-  const { alt: altText, src, width, height } = img;
-  const node = $createImageNode({ altText, height, src, width });
-  return { node };
+  const { alt: altText, src, width, height } = img
+  const node = $createImageNode({ altText, height, src, width })
+  return { node }
 }
 
 export type SerializedImageNode = Spread<
   {
-    altText: string;
-    caption: SerializedEditor;
-    height?: number;
-    maxWidth: number;
-    showCaption: boolean;
-    src: string;
-    width?: number;
+    altText: string
+    caption: SerializedEditor
+    height?: number
+    maxWidth: number
+    showCaption: boolean
+    src: string
+    width?: number
   },
   SerializedLexicalNode
->;
+>
 
 export class ImageNode extends DecoratorNode<JSX.Element> {
-  __src: string;
-  __altText: string;
-  __width: "inherit" | number;
-  __height: "inherit" | number;
-  __maxWidth: number;
-  __showCaption: boolean;
-  __caption: LexicalEditor;
+  __src: string
+  __altText: string
+  __width: "inherit" | number
+  __height: "inherit" | number
+  __maxWidth: number
+  __showCaption: boolean
+  __caption: LexicalEditor
   // Captions cannot yet be used within editor cells
-  __captionsEnabled: boolean;
+  __captionsEnabled: boolean
 
   static getType(): string {
-    return "image";
+    return "image"
   }
 
   static clone(node: ImageNode): ImageNode {
@@ -111,12 +110,12 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
       node.__caption,
       node.__captionsEnabled,
       node.__key
-    );
+    )
   }
 
   static importJSON(serializedNode: SerializedImageNode): ImageNode {
     const { altText, height, width, maxWidth, src, showCaption } =
-      serializedNode;
+      serializedNode
     return $createImageNode({
       altText,
       height,
@@ -124,28 +123,28 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
       showCaption,
       src,
       width,
-    }).updateFromJSON(serializedNode);
+    }).updateFromJSON(serializedNode)
   }
 
   updateFromJSON(serializedNode: LexicalUpdateJSON<SerializedImageNode>): this {
-    const node = super.updateFromJSON(serializedNode);
-    const { caption } = serializedNode;
+    const node = super.updateFromJSON(serializedNode)
+    const { caption } = serializedNode
 
-    const nestedEditor = node.__caption;
-    const editorState = nestedEditor.parseEditorState(caption.editorState);
+    const nestedEditor = node.__caption
+    const editorState = nestedEditor.parseEditorState(caption.editorState)
     if (!editorState.isEmpty()) {
-      nestedEditor.setEditorState(editorState);
+      nestedEditor.setEditorState(editorState)
     }
-    return node;
+    return node
   }
 
   exportDOM(): DOMExportOutput {
-    const element = document.createElement("img");
-    element.setAttribute("src", this.__src);
-    element.setAttribute("alt", this.__altText);
-    element.setAttribute("width", this.__width.toString());
-    element.setAttribute("height", this.__height.toString());
-    return { element };
+    const element = document.createElement("img")
+    element.setAttribute("src", this.__src)
+    element.setAttribute("alt", this.__altText)
+    element.setAttribute("width", this.__width.toString())
+    element.setAttribute("height", this.__height.toString())
+    return { element }
   }
 
   static importDOM(): DOMConversionMap | null {
@@ -154,7 +153,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
         conversion: $convertImageElement,
         priority: 0,
       }),
-    };
+    }
   }
 
   constructor(
@@ -168,13 +167,13 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
     captionsEnabled?: boolean,
     key?: NodeKey
   ) {
-    super(key);
-    this.__src = src;
-    this.__altText = altText;
-    this.__maxWidth = maxWidth;
-    this.__width = width || "inherit";
-    this.__height = height || "inherit";
-    this.__showCaption = showCaption || false;
+    super(key)
+    this.__src = src
+    this.__altText = altText
+    this.__maxWidth = maxWidth
+    this.__width = width || "inherit"
+    this.__height = height || "inherit"
+    this.__showCaption = showCaption || false
     this.__caption =
       caption ||
       createEditor({
@@ -189,8 +188,8 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
           HashtagNode,
           KeywordNode,
         ],
-      });
-    this.__captionsEnabled = captionsEnabled || captionsEnabled === undefined;
+      })
+    this.__captionsEnabled = captionsEnabled || captionsEnabled === undefined
   }
 
   exportJSON(): SerializedImageNode {
@@ -203,45 +202,45 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
       showCaption: this.__showCaption,
       src: this.getSrc(),
       width: this.__width === "inherit" ? 0 : this.__width,
-    };
+    }
   }
 
   setWidthAndHeight(
     width: "inherit" | number,
     height: "inherit" | number
   ): void {
-    const writable = this.getWritable();
-    writable.__width = width;
-    writable.__height = height;
+    const writable = this.getWritable()
+    writable.__width = width
+    writable.__height = height
   }
 
   setShowCaption(showCaption: boolean): void {
-    const writable = this.getWritable();
-    writable.__showCaption = showCaption;
+    const writable = this.getWritable()
+    writable.__showCaption = showCaption
   }
 
   // View
 
   createDOM(config: EditorConfig): HTMLElement {
-    const span = document.createElement("span");
-    const theme = config.theme;
-    const className = theme.image;
+    const span = document.createElement("span")
+    const theme = config.theme
+    const className = theme.image
     if (className !== undefined) {
-      span.className = className;
+      span.className = className
     }
-    return span;
+    return span
   }
 
   updateDOM(): false {
-    return false;
+    return false
   }
 
   getSrc(): string {
-    return this.__src;
+    return this.__src
   }
 
   getAltText(): string {
-    return this.__altText;
+    return this.__altText
   }
 
   decorate(): JSX.Element {
@@ -258,7 +257,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
         captionsEnabled={this.__captionsEnabled}
         resizable={true}
       />
-    );
+    )
   }
 }
 
@@ -285,11 +284,11 @@ export function $createImageNode({
       captionsEnabled,
       key
     )
-  );
+  )
 }
 
 export function $isImageNode(
   node: LexicalNode | null | undefined
 ): node is ImageNode {
-  return node instanceof ImageNode;
+  return node instanceof ImageNode
 }

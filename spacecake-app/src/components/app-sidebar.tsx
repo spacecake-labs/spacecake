@@ -1,51 +1,51 @@
 /*
 AppSidebar handles sidebar UI and folder expansion state.
 */
-import { useAtom, useAtomValue } from "jotai";
-import { workspaceAtom, expandedFoldersAtom } from "@/lib/atoms/atoms";
-import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
-import { NavSecondary } from "@/components/nav-secondary";
-import { NavUser } from "@/components/nav-user";
+import { Link } from "@tanstack/react-router"
+import { useAtom, useAtomValue } from "jotai"
+import { CakeSlice } from "lucide-react"
+
+import { ExpandedFolders, Folder } from "@/types/workspace"
+import { expandedFoldersAtom, workspaceAtom } from "@/lib/atoms/atoms"
+import { encodeBase64Url } from "@/lib/utils"
 import {
   Sidebar,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { CakeSlice } from "lucide-react";
-import { Link } from "@tanstack/react-router";
-import { encodeBase64Url } from "@/lib/utils";
-import { ExpandedFolders } from "@/types/workspace";
-import { Folder } from "@/types/workspace";
+} from "@/components/ui/sidebar"
+import { NavMain } from "@/components/nav-main"
+import { NavProjects } from "@/components/nav-projects"
+import { NavSecondary } from "@/components/nav-secondary"
+import { NavUser } from "@/components/nav-user"
 
 interface AppSidebarProps {
-  onFileClick?: (filePath: string) => void;
-  selectedFilePath?: string | null;
+  onFileClick?: (filePath: string) => void
+  selectedFilePath?: string | null
 }
 
 export function AppSidebar({ onFileClick, selectedFilePath }: AppSidebarProps) {
-  const workspace = useAtomValue(workspaceAtom);
-  const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom);
+  const workspace = useAtomValue(workspaceAtom)
+  const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom)
 
   const handleExpandFolder = async (
     folderPath: Folder["path"], // This is now the actual path, not a URL
     forceExpand?: boolean
   ) => {
     // Check if folder is currently expanded using the actual path
-    const isCurrentlyExpanded = expandedFolders[folderPath] ?? false;
+    const isCurrentlyExpanded = expandedFolders[folderPath] ?? false
 
     // Determine if we should expand the folder
     const shouldExpand =
-      forceExpand !== undefined ? forceExpand : !isCurrentlyExpanded;
+      forceExpand !== undefined ? forceExpand : !isCurrentlyExpanded
 
     // Set expanded state using the actual path
     setExpandedFolders((prev: ExpandedFolders) => ({
       ...prev,
       [folderPath]: shouldExpand,
-    }));
-  };
+    }))
+  }
 
   return (
     <Sidebar variant="inset">
@@ -57,7 +57,9 @@ export function AppSidebar({ onFileClick, selectedFilePath }: AppSidebarProps) {
                 to={workspace?.path ? "/w/$workspaceId" : "/"}
                 params={
                   workspace?.path
-                    ? { workspaceId: encodeBase64Url(workspace.path) }
+                    ? {
+                        workspaceId: encodeBase64Url(workspace.path),
+                      }
                     : undefined
                 }
                 preload="intent"
@@ -86,5 +88,5 @@ export function AppSidebar({ onFileClick, selectedFilePath }: AppSidebarProps) {
       <NavSecondary items={[]} />
       <NavUser user={{ name: "User", email: "user@example.com", avatar: "" }} />
     </Sidebar>
-  );
+  )
 }

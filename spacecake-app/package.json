@@ -11,6 +11,7 @@
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
     "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
     "unit-test": "vitest run",
     "e2e-test": "cross-env IS_PLAYWRIGHT=true playwright test",
     "e2e-show": "cross-env IS_PLAYWRIGHT=true SHOW_WINDOW=true playwright test"
@@ -32,6 +33,7 @@
     "@electron-forge/plugin-vite": "^7.8.1",
     "@electron/fuses": "^1.8.0",
     "@eslint/js": "^9.31.0",
+    "@ianvs/prettier-plugin-sort-imports": "^4.6.2",
     "@playwright/test": "^1.54.1",
     "@tanstack/router-plugin": "^1.128.3",
     "@types/electron-squirrel-startup": "^1.0.2",
@@ -47,6 +49,7 @@
     "electron-playwright-helpers": "^1.7.1",
     "eslint": "^9.31.0",
     "eslint-plugin-import": "^2.32.0",
+    "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.37.0",

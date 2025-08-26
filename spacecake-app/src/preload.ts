@@ -1,5 +1,6 @@
-import { contextBridge, ipcRenderer } from "electron";
-import type { FileContent } from "@/types/workspace";
+import { contextBridge, ipcRenderer } from "electron"
+
+import type { FileContent } from "@/types/workspace"
 
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
@@ -15,7 +16,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   //   ipcRenderer.invoke("read-directory", dirPath),
   readWorkspace: (dirPath: string) =>
     ipcRenderer.invoke("read-workspace", dirPath),
-  readFile: (filePath: string): Promise<{ success: boolean; file?: FileContent; error?: string }> =>
+  readFile: (
+    filePath: string
+  ): Promise<{ success: boolean; file?: FileContent; error?: string }> =>
     ipcRenderer.invoke("read-file", filePath),
   createFile: (filePath: string, content?: string) =>
     ipcRenderer.invoke("create-file", filePath, content),
@@ -33,20 +36,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("stop-watching", workspacePath),
   onFileEvent: (
     handler: (evt: {
-      type: string;
-      path: string;
-      etag?: { mtimeMs: number; size: number } | null;
+      type: string
+      path: string
+      etag?: { mtimeMs: number; size: number } | null
     }) => void
   ) => {
     const listener = (
       _e: Electron.IpcRendererEvent,
       payload: {
-        type: string;
-        path: string;
-        etag?: { mtimeMs: number; size: number } | null;
+        type: string
+        path: string
+        etag?: { mtimeMs: number; size: number } | null
       }
-    ) => handler(payload);
-    ipcRenderer.on("file-event", listener);
-    return () => ipcRenderer.removeListener("file-event", listener);
+    ) => handler(payload)
+    ipcRenderer.on("file-event", listener)
+    return () => ipcRenderer.removeListener("file-event", listener)
   },
-});
+})

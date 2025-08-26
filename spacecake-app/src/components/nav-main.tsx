@@ -1,13 +1,25 @@
-import * as React from "react";
+import * as React from "react"
+import { useAtom, useAtomValue } from "jotai"
+import { FileWarning, Loader2Icon } from "lucide-react"
+
+import { ExpandedFolders, File, Folder } from "@/types/workspace"
 import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+  contextItemNameAtom,
+  deletionStateAtom,
+  editingItemAtom,
+  expandedFoldersAtom,
+  isCreatingInContextAtom,
+  workspaceAtom,
+} from "@/lib/atoms/atoms"
+import { sortedFileTreeAtom } from "@/lib/atoms/file-tree"
+import {
+  createFile,
+  createFolder,
+  deleteFile,
+  // readDirectory,
+  renameFile,
+} from "@/lib/fs"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -15,36 +27,25 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import {
-  createFile,
-  // readDirectory,
-  renameFile,
-  deleteFile,
-  createFolder,
-} from "@/lib/fs";
-import { useAtom, useAtomValue } from "jotai";
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar"
 import {
-  workspaceAtom,
-  expandedFoldersAtom,
-  editingItemAtom,
-  isCreatingInContextAtom,
-  contextItemNameAtom,
-  deletionStateAtom,
-} from "@/lib/atoms/atoms";
-import { sortedFileTreeAtom } from "@/lib/atoms/file-tree";
-import {
-  WorkspaceTree,
   WorkspaceDropdownMenu,
-} from "@/components/workspace-tree";
-import { FileWarning, Loader2Icon } from "lucide-react";
-import { File, Folder, ExpandedFolders } from "@/types/workspace";
+  WorkspaceTree,
+} from "@/components/workspace-tree"
 
 interface NavMainProps {
-  onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void;
-  expandedFolders?: ExpandedFolders;
-  onFileClick?: (filePath: string) => void;
-  selectedFilePath?: string | null;
+  onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
+  expandedFolders?: ExpandedFolders
+  onFileClick?: (filePath: string) => void
+  selectedFilePath?: string | null
 }
 
 export function NavMain({
@@ -52,70 +53,70 @@ export function NavMain({
   onFileClick,
   selectedFilePath,
 }: NavMainProps) {
-  const [editingItem, setEditingItem] = useAtom(editingItemAtom);
-  const workspace = useAtomValue(workspaceAtom);
-  const [expandedFoldersState] = useAtom(expandedFoldersAtom);
+  const [editingItem, setEditingItem] = useAtom(editingItemAtom)
+  const workspace = useAtomValue(workspaceAtom)
+  const [expandedFoldersState] = useAtom(expandedFoldersAtom)
   const [isCreatingInContext, setIsCreatingInContext] = useAtom(
     isCreatingInContextAtom
-  );
-  const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom);
-  const [deletionState, setDeletionState] = useAtom(deletionStateAtom);
+  )
+  const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom)
+  const [deletionState, setDeletionState] = useAtom(deletionStateAtom)
 
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(
     null
-  );
+  )
 
-  const [sortedFileTree] = useAtom(sortedFileTreeAtom);
+  const [sortedFileTree] = useAtom(sortedFileTreeAtom)
 
   const isCreatingInWorkspace =
-    isCreatingInContext?.parentPath === workspace?.path;
+    isCreatingInContext?.parentPath === workspace?.path
 
   const handleCreateFile = async (parentPath: string) => {
     try {
-      const filePath = `${parentPath}/${contextItemName.trim()}`;
-      const success = await createFile(filePath, "");
+      const filePath = `${parentPath}/${contextItemName.trim()}`
+      const success = await createFile(filePath, "")
 
       if (success) {
         // Clear the creation state to hide the input field
-        setIsCreatingInContext(null);
-        setContextItemName("");
-        handleFileCreated(filePath);
+        setIsCreatingInContext(null)
+        setContextItemName("")
+        handleFileCreated(filePath)
       }
     } catch (error) {
-      console.error("error creating file:", error);
+      console.error("error creating file:", error)
     }
-  };
+  }
 
   const handleCreateFolder = async (parentPath: string) => {
     // if (!contextItemName.trim() || !workspace?.path) return;
 
     try {
-      const folderPath = `${parentPath}/${contextItemName.trim()}`;
-      const success = await createFolder(folderPath);
+      const folderPath = `${parentPath}/${contextItemName.trim()}`
+      const success = await createFolder(folderPath)
 
       if (success) {
         // Clear the creation state to hide the input field
-        setIsCreatingInContext(null);
-        setContextItemName("");
+        setIsCreatingInContext(null)
+        setContextItemName("")
       }
     } catch (error) {
-      console.error("error creating folder:", error);
+      console.error("error creating folder:", error)
     }
-  };
+  }
 
   const handleWorkspaceKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       if (isCreatingInContext?.kind === "file") {
-        handleCreateFile(isCreatingInContext.parentPath);
+        handleCreateFile(isCreatingInContext.parentPath)
       } else if (isCreatingInContext?.kind === "folder") {
-        handleCreateFolder(isCreatingInContext.parentPath);
+        handleCreateFolder(isCreatingInContext.parentPath)
       }
     } else if (e.key === "Escape") {
-      setIsCreatingInContext(null);
-      setContextItemName("");
+      setIsCreatingInContext(null)
+      setContextItemName("")
     }
-  };
+  }
 
   // Validate rename target
   const validateRenameTarget = (
@@ -123,47 +124,47 @@ export function NavMain({
     currentPath: string,
     originalName: string
   ): string | null => {
-    if (!newName.trim()) return "name cannot be empty";
+    if (!newName.trim()) return "name cannot be empty"
 
     // If the name hasn't changed, it's not an error
-    if (newName.trim() === originalName) return null;
+    if (newName.trim() === originalName) return null
 
-    const currentDir = currentPath.substring(0, currentPath.lastIndexOf("/"));
-    const newPath = `${currentDir}/${newName.trim()}`;
+    const currentDir = currentPath.substring(0, currentPath.lastIndexOf("/"))
+    const newPath = `${currentDir}/${newName.trim()}`
 
     // Check if target already exists
     const existingFile = sortedFileTree.find(
       (f: File | Folder) => f.path === newPath
-    );
+    )
     if (existingFile) {
-      return `'${newName.trim()}' already exists`;
+      return `'${newName.trim()}' already exists`
     }
 
-    return null;
-  };
+    return null
+  }
 
   const handleFileCreated = (filePath: string) => {
     if (onFileClick) {
-      onFileClick(filePath);
+      onFileClick(filePath)
     }
-  };
+  }
 
   const handleFilesUpdated = () => {
     // This will be called when files are updated through context-aware creation
     // The file tree will be automatically updated through the atoms
-  };
+  }
 
   const handleFileClick = (filePath: string) => {
     if (onFileClick) {
-      onFileClick(filePath);
+      onFileClick(filePath)
     }
-  };
+  }
 
   const handleFolderToggle = async (folderPath: Folder["path"]) => {
     if (onExpandFolder) {
-      onExpandFolder(folderPath);
+      onExpandFolder(folderPath)
     }
-  };
+  }
 
   const handleStartRename = (item: File | Folder) => {
     if (item.kind === "file" || item.kind === "folder") {
@@ -172,27 +173,27 @@ export function NavMain({
         path: item.path,
         value: item.name,
         originalValue: item.name,
-      });
-      setValidationError(null); // Clear any previous validation errors
+      })
+      setValidationError(null) // Clear any previous validation errors
     }
-  };
+  }
 
   const handleRename = async () => {
-    if (!editingItem || !workspace?.path) return;
+    if (!editingItem || !workspace?.path) return
 
-    const oldPath = editingItem.path;
-    const newName = editingItem.value.trim();
+    const oldPath = editingItem.path
+    const newName = editingItem.value.trim()
 
     if (!newName) {
-      setEditingItem(null);
-      return;
+      setEditingItem(null)
+      return
     }
 
     // If the name hasn't changed, just cancel the rename
     if (newName === editingItem.originalValue) {
-      setEditingItem(null);
-      setValidationError(null);
-      return;
+      setEditingItem(null)
+      setValidationError(null)
+      return
     }
 
     // Validate the rename target
@@ -200,95 +201,99 @@ export function NavMain({
       newName,
       oldPath,
       editingItem.originalValue || ""
-    );
+    )
     if (error) {
-      setValidationError(error);
-      return;
+      setValidationError(error)
+      return
     }
 
     try {
       // Construct new path
-      const pathParts = oldPath.split("/");
-      pathParts.pop(); // Remove the old filename
+      const pathParts = oldPath.split("/")
+      pathParts.pop() // Remove the old filename
       const newPath =
-        pathParts.length > 0 ? `${pathParts.join("/")}/${newName}` : newName;
+        pathParts.length > 0 ? `${pathParts.join("/")}/${newName}` : newName
 
-      const success = await renameFile(oldPath, newPath);
+      const success = await renameFile(oldPath, newPath)
 
       if (success) {
         // Update selected file path if it was the renamed file
         if (selectedFilePath === oldPath) {
-          handleFileClick(newPath);
+          handleFileClick(newPath)
         }
 
-        setEditingItem(null);
-        setValidationError(null);
+        setEditingItem(null)
+        setValidationError(null)
       } else {
-        setValidationError("error renaming file");
+        setValidationError("error renaming file")
       }
     } catch (error) {
-      console.error("error renaming file:", error);
-      setValidationError("error renaming file");
+      console.error("error renaming file:", error)
+      setValidationError("error renaming file")
     }
-  };
+  }
 
   const handleRenameKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      handleRename();
+      handleRename()
     } else if (e.key === "Escape") {
-      setEditingItem(null);
+      setEditingItem(null)
     }
-  };
+  }
 
   const cancelRename = () => {
-    setEditingItem(null);
-    setValidationError(null);
-  };
+    setEditingItem(null)
+    setValidationError(null)
+  }
 
   const handleRenameInputChange = (value: string) => {
     if (editingItem) {
-      setEditingItem({ ...editingItem, value });
+      setEditingItem({ ...editingItem, value })
 
       // Validate on input change
       const error = validateRenameTarget(
         value,
         editingItem.path,
         editingItem.originalValue || ""
-      );
-      setValidationError(error);
+      )
+      setValidationError(error)
     }
-  };
+  }
 
   const handleStartDelete = (item: File | Folder) => {
-    setDeletionState({ item, isOpen: true, isDeleting: false });
-  };
+    setDeletionState({ item, isOpen: true, isDeleting: false })
+  }
 
   const handleConfirmDelete = async () => {
-    if (!deletionState.item || !workspace?.path) return;
+    if (!deletionState.item || !workspace?.path) return
 
-    setDeletionState((prev) => ({ ...prev, isDeleting: true }));
+    setDeletionState((prev) => ({ ...prev, isDeleting: true }))
     try {
-      const filePath = deletionState.item.path;
-      const success = await deleteFile(filePath);
+      const filePath = deletionState.item.path
+      const success = await deleteFile(filePath)
 
       if (success) {
         // Close dialog only after successful deletion
-        setDeletionState({ item: null, isOpen: false, isDeleting: false });
+        setDeletionState({
+          item: null,
+          isOpen: false,
+          isDeleting: false,
+        })
       } else {
-        console.error("failed to delete file");
+        console.error("failed to delete file")
         // Reset deleting state on failure but keep dialog open
-        setDeletionState((prev) => ({ ...prev, isDeleting: false }));
+        setDeletionState((prev) => ({ ...prev, isDeleting: false }))
       }
     } catch (error) {
-      console.error("error deleting file:", error);
+      console.error("error deleting file:", error)
       // Reset deleting state on error but keep dialog open
-      setDeletionState((prev) => ({ ...prev, isDeleting: false }));
+      setDeletionState((prev) => ({ ...prev, isDeleting: false }))
     }
-  };
+  }
 
   const handleCancelDelete = () => {
-    setDeletionState({ item: null, isOpen: false, isDeleting: false });
-  };
+    setDeletionState({ item: null, isOpen: false, isDeleting: false })
+  }
 
   return (
     <>
@@ -361,7 +366,11 @@ export function NavMain({
         open={deletionState.isOpen}
         onOpenChange={(open) => {
           if (!open) {
-            setDeletionState({ item: null, isOpen: false, isDeleting: false });
+            setDeletionState({
+              item: null,
+              isOpen: false,
+              isDeleting: false,
+            })
           }
         }}
       >
@@ -412,5 +421,5 @@ export function NavMain({
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }

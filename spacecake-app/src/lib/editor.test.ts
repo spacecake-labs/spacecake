@@ -1,8 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { getEditorConfig } from "@/lib/editor";
-import { FileType, ZERO_HASH } from "@/types/workspace";
-import type { FileContent } from "@/types/workspace";
-import type { SerializedEditorState } from "lexical";
+import type { SerializedEditorState } from "lexical"
+import { describe, expect, it } from "vitest"
+
+import { FileType, ZERO_HASH } from "@/types/workspace"
+import type { FileContent } from "@/types/workspace"
+import { getEditorConfig } from "@/lib/editor"
 
 describe("Editor Integration", () => {
   const mockPythonFile: FileContent = {
@@ -25,7 +26,7 @@ class Calculator:
         return a + b`,
     fileType: FileType.Python,
     cid: ZERO_HASH,
-  };
+  }
 
   const mockMarkdownFile: FileContent = {
     name: "test.md",
@@ -38,28 +39,28 @@ class Calculator:
     content: "# Hello\n\nThis is markdown",
     fileType: FileType.Markdown,
     cid: ZERO_HASH,
-  };
+  }
 
   describe("getEditorConfig", () => {
     it("creates config for Python files", () => {
-      const config = getEditorConfig(null, mockPythonFile, "/test/test.py");
+      const config = getEditorConfig(null, mockPythonFile, "/test/test.py")
 
-      expect(config).not.toBeNull();
-      expect(config?.editorState).toBeDefined();
-    });
+      expect(config).not.toBeNull()
+      expect(config?.editorState).toBeDefined()
+    })
 
     it("creates config for Markdown files", () => {
-      const config = getEditorConfig(null, mockMarkdownFile, "/test/test.md");
+      const config = getEditorConfig(null, mockMarkdownFile, "/test/test.md")
 
-      expect(config).not.toBeNull();
-      expect(config?.editorState).toBeDefined();
-    });
+      expect(config).not.toBeNull()
+      expect(config?.editorState).toBeDefined()
+    })
 
     it("returns null when no file content", () => {
-      const config = getEditorConfig(null, null, null);
+      const config = getEditorConfig(null, null, null)
 
-      expect(config).toBeNull();
-    });
+      expect(config).toBeNull()
+    })
 
     it("prioritizes editor state over file content", () => {
       const mockEditorState: SerializedEditorState = {
@@ -71,15 +72,15 @@ class Calculator:
           format: "left",
           indent: 0,
         },
-      };
+      }
       const config = getEditorConfig(
         mockEditorState,
         mockPythonFile,
         "/test/test.py"
-      );
+      )
 
-      expect(config).not.toBeNull();
-      expect(config?.editorState).toBe(JSON.stringify(mockEditorState));
-    });
-  });
-});
+      expect(config).not.toBeNull()
+      expect(config?.editorState).toBe(JSON.stringify(mockEditorState))
+    })
+  })
+})
