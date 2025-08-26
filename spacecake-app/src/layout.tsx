@@ -48,11 +48,11 @@ function LayoutContent({
   }
   return (
     <ResizablePanelGroup direction="horizontal" className="h-screen">
-      <ResizablePanel defaultSize={20} minSize={20} maxSize={40}>
+      <ResizablePanel defaultSize={15} minSize={15} maxSize={40}>
         <AppSidebar selectedFilePath={selectedFilePath} />
       </ResizablePanel>
       <ResizableHandle withHandle className="w-0" />
-      <ResizablePanel defaultSize={80} className="p-2">
+      <ResizablePanel defaultSize={85} className="p-2">
         <main className="bg-background relative flex w-full flex-1 flex-col overflow-auto rounded-xl shadow-sm h-full">
           <header className="flex h-16 shrink-0 items-center gap-2 justify-between">
             <div className="flex items-center gap-2 px-4">
