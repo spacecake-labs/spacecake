@@ -48,7 +48,7 @@ export function AppSidebar({ onFileClick, selectedFilePath }: AppSidebarProps) {
   }
 
   return (
-    <Sidebar variant="inset">
+    <Sidebar variant="inset" data-testid="sidebar">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
