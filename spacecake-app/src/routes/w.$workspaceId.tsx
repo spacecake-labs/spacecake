@@ -1,19 +1,14 @@
 import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-import { Separator } from "@/components/ui/separator";
+
+import { RootLayout } from "@/layout";
 // mode toggle rendered inside EditorToolbar
 import {
   editorStateAtom,
   selectedFilePathAtom,
   editorConfigAtom,
   createEditorConfigEffect,
-  selectFileAtom,
+  
   saveFileAtom,
 } from "@/lib/atoms/atoms";
 import { Outlet } from "@tanstack/react-router";
@@ -58,7 +53,7 @@ function WorkspaceLayout() {
     };
   }, [workspaceData.workspace.path, setWorkspacePath]);
 
-  const selectFile = useSetAtom(selectFileAtom);
+  
   const saveFile = useSetAtom(saveFileAtom);
 
   const selectedFilePath = useAtomValue(selectedFilePathAtom);
@@ -102,41 +97,20 @@ function WorkspaceLayout() {
   }, [saveFile]);
 
   return (
-    <div className="flex h-screen">
+    <RootLayout selectedFilePath={selectedFilePath} headerRightContent={<EditorToolbar onSave={saveFile} />}>
       <WorkspaceWatcher />
-      <SidebarProvider>
-        <AppSidebar
-          onFileClick={selectFile}
-          selectedFilePath={selectedFilePath}
+      {/* integrated toolbar in header */}
+      {editorConfig && (
+        <Editor
+          // key={`${selectedFilePath ?? ""}:${fileContent?.modified ?? ""}`}
+          key={selectedFilePath ?? ""}
+          editorConfig={editorConfig}
+          onSerializedChange={(value: SerializedEditorState) => {
+            setEditorState(value);
+          }}
         />
-        <SidebarInset className="overflow-auto">
-          <header className="flex h-16 shrink-0 items-center gap-2 justify-between px-0">
-            <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1 cursor-pointer" />
-              <Separator
-                orientation="vertical"
-                className="mr-2 data-[orientation=vertical]:h-4"
-              />
-            </div>
-            <EditorToolbar onSave={saveFile} />
-          </header>
-
-          <div className="h-full flex flex-1 flex-col gap-4 p-4 pt-0">
-            {/* integrated toolbar in header */}
-            {editorConfig && (
-              <Editor
-                // key={`${selectedFilePath ?? ""}:${fileContent?.modified ?? ""}`}
-                key={selectedFilePath ?? ""}
-                editorConfig={editorConfig}
-                onSerializedChange={(value: SerializedEditorState) => {
-                  setEditorState(value);
-                }}
-              />
-            )}
-            <Outlet />
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-    </div>
+      )}
+      <Outlet />
+    </RootLayout>
   );
 }
