@@ -1,94 +1,92 @@
-import { test, expect } from "./fixtures";
-import { stubDialog } from "electron-playwright-helpers";
-import path from "path";
-import fs from "fs";
+import fs from "fs"
+import path from "path"
+
+import { stubDialog } from "electron-playwright-helpers"
+
+import { expect, test } from "./fixtures"
 
 test.describe("markdown e2e", () => {
   test("open workspace and render _README.md blocks", async ({
     electronApp,
     tempTestDir,
   }) => {
-    const window = await electronApp.firstWindow();
+    const window = await electronApp.firstWindow()
 
     // copy _README.md fixture into the temp workspace
-    const fixturePath = path.join(process.cwd(), "tests/fixtures/_README.md");
-    const destPath = path.join(tempTestDir, "_README.md");
-    fs.copyFileSync(fixturePath, destPath);
+    const fixturePath = path.join(process.cwd(), "tests/fixtures/_README.md")
+    const destPath = path.join(tempTestDir, "_README.md")
+    fs.copyFileSync(fixturePath, destPath)
 
     await stubDialog(electronApp, "showOpenDialog", {
       filePaths: [tempTestDir],
       canceled: false,
-    });
+    })
 
-    await window.getByRole("button", { name: "open folder" }).click();
+    await window.getByRole("button", { name: "open folder" }).click()
 
     await expect(
       window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // open the file
-    await window.getByRole("button", { name: "_README.md" }).first().click();
+    await window.getByRole("button", { name: "_README.md" }).first().click()
 
     // verify we're in blocks view (not source view)
-    await expect(window.getByRole("button", { name: "blocks" })).toBeVisible();
+    await expect(window.getByRole("button", { name: "blocks" })).toBeVisible()
 
-    await expect(window.getByTestId("lexical-editor")).toBeVisible();
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     // verify markdown header is parsed correctly
     await expect(
       window.getByRole("heading", {
         name: "An Example README File to Test Parsing",
       })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // verify subheadings are present
     await expect(
       window.getByRole("heading", { name: "Features" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     await expect(
       window.getByRole("heading", { name: "Code Blocks" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     await expect(
       window.getByRole("heading", { name: "Contributing" })
-    ).toBeVisible();
+    ).toBeVisible()
 
-    await expect(
-      window.getByRole("heading", { name: "Authors" })
-    ).toBeVisible();
+    await expect(window.getByRole("heading", { name: "Authors" })).toBeVisible()
 
-    await expect(
-      window.getByRole("heading", { name: "Used By" })
-    ).toBeVisible();
+    await expect(window.getByRole("heading", { name: "Used By" })).toBeVisible()
 
     // verify code block content is present in CodeMirror editor
     const codeBlock = window
       .locator(".cm-editor")
       .getByText('print("Hello, world!")')
-      .first();
+      .first()
 
-    await expect(codeBlock).toBeVisible();
+    await expect(codeBlock).toBeVisible()
 
     await expect(
       window.getByRole("img", { name: "Build Status" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // verify list items are present
     await expect(
       window.getByText("Light/dark mode toggle").first()
-    ).toBeVisible();
-    await expect(window.getByText("Live previews").first()).toBeVisible();
-    await expect(window.getByText("Fullscreen mode").first()).toBeVisible();
-    await expect(window.getByText("Cross platform").first()).toBeVisible();
+    ).toBeVisible()
+    await expect(window.getByText("Live previews").first()).toBeVisible()
+    await expect(window.getByText("Fullscreen mode").first()).toBeVisible()
+    await expect(window.getByText("Cross platform").first()).toBeVisible()
 
     // verify links are present
     await expect(
       window.getByRole("link", { name: "MIT License" })
-    ).toBeVisible();
+    ).toBeVisible()
     await expect(
       window.getByRole("link", { name: "@spacecake-labs" })
-    ).toBeVisible();
-    await expect(window.getByRole("link", { name: "readme.so" })).toBeVisible();
-  });
-});
+    ).toBeVisible()
+    await expect(window.getByRole("link", { name: "readme.so" })).toBeVisible()
+  })
+})

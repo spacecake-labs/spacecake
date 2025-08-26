@@ -1,17 +1,17 @@
+import { ReactNode } from "react"
 
-import { ReactNode } from "react";
-import { AppSidebar } from "@/components/app-sidebar";
+import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
+} from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar"
 
 interface RootLayoutProps {
-  children: ReactNode;
-  selectedFilePath: string | null;
-  headerRightContent: ReactNode;
+  children: ReactNode
+  selectedFilePath: string | null
+  headerRightContent: ReactNode
 }
 
 export function RootLayout({
@@ -40,5 +40,5 @@ export function RootLayout({
         </SidebarInset>
       </SidebarProvider>
     </div>
-  );
+  )
 }

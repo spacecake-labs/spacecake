@@ -1,15 +1,16 @@
-import { Moon, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useTheme } from "@/components/theme-provider";
+import { Moon, Sun } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { useTheme } from "@/components/theme-provider"
 
 export function ModeToggle({ variant }: { variant?: "icon" | "compact" }) {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme()
 
   const handleClick = () => {
     // toggle strictly between light/dark based on resolved theme value
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-  };
+    const next = theme === "light" ? "dark" : "light"
+    setTheme(next)
+  }
 
   if (variant === "compact") {
     return (
@@ -24,7 +25,7 @@ export function ModeToggle({ variant }: { variant?: "icon" | "compact" }) {
         <Moon className="absolute h-3 w-3 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
         <span className="sr-only">toggle theme</span>
       </Button>
-    );
+    )
   }
 
   return (
@@ -39,5 +40,5 @@ export function ModeToggle({ variant }: { variant?: "icon" | "compact" }) {
       <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
       <span className="sr-only">toggle theme</span>
     </Button>
-  );
+  )
 }

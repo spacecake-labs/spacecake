@@ -1,40 +1,40 @@
-import type { FileContent } from "@/types/workspace";
+import type { FileContent } from "@/types/workspace"
 
 // Discriminated union for block names
 export type BlockName =
   | { kind: "anonymous"; value: "anonymous" }
-  | { kind: "named"; value: string };
+  | { kind: "named"; value: string }
 
 // Helper constructors
 export const anonymousName = (): BlockName => ({
   kind: "anonymous",
   value: "anonymous",
-});
+})
 export const namedBlock = (value: string): BlockName => ({
   kind: "named",
   value,
-});
+})
 
 // Type guards
 export const isAnonymousName = (
   name: BlockName
 ): name is { kind: "anonymous"; value: "anonymous" } =>
-  name.kind === "anonymous";
+  name.kind === "anonymous"
 export const isNamedBlock = (
   name: BlockName
-): name is { kind: "named"; value: string } => name.kind === "named";
+): name is { kind: "named"; value: string } => name.kind === "named"
 
 export interface Block<TKind = string> {
-  kind: TKind;
-  name: BlockName;
-  startByte: number;
-  endByte: number;
-  text: string;
+  kind: TKind
+  name: BlockName
+  startByte: number
+  endByte: number
+  text: string
   // 1-based starting line number in the original source file
-  startLine: number;
+  startLine: number
   // optional content id for change detection (hash over normalized content)
-  cid?: string;
-  cidAlgo?: string;
+  cid?: string
+  cidAlgo?: string
 }
 
 // Python-specific block types
@@ -46,26 +46,26 @@ export type PyBlockKind =
   | "file"
   | "dataclass"
   | "main"
-  | "misc";
-export type PyBlockHigherKindPrefix = "async" | "decorated";
-export type PyBlockHigherKind = `${PyBlockHigherKindPrefix} ${PyBlockKind}`;
+  | "misc"
+export type PyBlockHigherKindPrefix = "async" | "decorated"
+export type PyBlockHigherKind = `${PyBlockHigherKindPrefix} ${PyBlockKind}`
 
 // Python-specific block type
-export type PyBlock = Block<PyBlockKind | PyBlockHigherKind>;
+export type PyBlock = Block<PyBlockKind | PyBlockHigherKind>
 
 // Parsed file type that extends File with parsed blocks
 export interface ParsedFile<TBlock = Block> extends FileContent {
   // Parsed blocks
-  blocks: TBlock[];
+  blocks: TBlock[]
 }
 
 // Python-specific parsed file
-export type PyParsedFile = ParsedFile<PyBlock>;
+export type PyParsedFile = ParsedFile<PyBlock>
 
 export type DelimitedString = {
-  readonly prefix: string;
-  readonly between: string;
-  readonly suffix: string;
-};
+  readonly prefix: string
+  readonly between: string
+  readonly suffix: string
+}
 
-export type Delimiters = Omit<DelimitedString, "between">;
+export type Delimiters = Omit<DelimitedString, "between">

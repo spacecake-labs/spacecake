@@ -1,19 +1,18 @@
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { useEffect } from "react"
+import { $isCodeNode, CodeNode } from "@lexical/code"
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import {
-  $getSelection,
-  $isRangeSelection,
-  $isElementNode,
   $createParagraphNode,
+  $getSelection,
+  $isElementNode,
+  $isRangeSelection,
   COMMAND_PRIORITY_HIGH,
   KEY_ARROW_DOWN_COMMAND,
+  KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
-  KEY_ARROW_LEFT_COMMAND,
   LexicalCommand,
-} from "lexical";
-import { useEffect } from "react";
-import { CodeNode } from "@lexical/code";
-import { $isCodeNode } from "@lexical/code";
+} from "lexical"
 
 /**
  * Handles arrow key navigation for code blocks in Lexical.
@@ -29,60 +28,60 @@ import { $isCodeNode } from "@lexical/code";
  * of code blocks using standard arrow key navigation.
  */
 export function CodeBlockPlugin(): null {
-  const [editor] = useLexicalComposerContext();
+  const [editor] = useLexicalComposerContext()
 
   const insertParagraphBefore = (
     codeNode: CodeNode,
     event: KeyboardEvent | null
   ) => {
-    event?.preventDefault();
+    event?.preventDefault()
 
     editor.update(() => {
-      const paragraph = $createParagraphNode();
-      codeNode.insertBefore(paragraph);
-      paragraph.select();
-    });
+      const paragraph = $createParagraphNode()
+      codeNode.insertBefore(paragraph)
+      paragraph.select()
+    })
 
-    return true;
-  };
+    return true
+  }
 
   const insertParagraphAfter = (
     codeNode: CodeNode,
     event: KeyboardEvent | null
   ) => {
-    event?.preventDefault();
+    event?.preventDefault()
 
     editor.update(() => {
-      const paragraph = $createParagraphNode();
-      codeNode.insertAfter(paragraph);
-      paragraph.select();
-    });
+      const paragraph = $createParagraphNode()
+      codeNode.insertAfter(paragraph)
+      paragraph.select()
+    })
 
-    return true;
-  };
+    return true
+  }
 
   const handleArrowNavigation = (command: LexicalCommand<KeyboardEvent>) => {
     return editor.registerCommand(
       command,
       (event) => {
-        const selection = $getSelection();
+        const selection = $getSelection()
         if (!$isRangeSelection(selection)) {
-          return false;
+          return false
         }
 
-        const anchor = selection.anchor;
-        const anchorNode = anchor.getNode();
+        const anchor = selection.anchor
+        const anchorNode = anchor.getNode()
         const codeNode = $isCodeNode(anchorNode)
           ? anchorNode
-          : anchorNode.getParent();
+          : anchorNode.getParent()
 
         if (!$isCodeNode(codeNode)) {
-          return false;
+          return false
         }
 
         // const codeText = codeNode.getTextContent();
-        const offset = anchor.offset;
-        const anchorTextLength = anchorNode.getTextContent().length;
+        const offset = anchor.offset
+        const anchorTextLength = anchorNode.getTextContent().length
 
         // Handle end of code block (DOWN/RIGHT)
         if (
@@ -90,17 +89,17 @@ export function CodeBlockPlugin(): null {
           command === KEY_ARROW_RIGHT_COMMAND
         ) {
           if (offset === anchorTextLength) {
-            const codeChildren = codeNode.getChildren();
-            const lastChild = codeChildren[codeChildren.length - 1];
+            const codeChildren = codeNode.getChildren()
+            const lastChild = codeChildren[codeChildren.length - 1]
 
             if (anchorNode === lastChild) {
-              const nextNode = codeNode.getNextSibling();
+              const nextNode = codeNode.getNextSibling()
               if (nextNode && $isElementNode(nextNode)) {
-                event?.preventDefault();
-                nextNode.selectStart();
-                return true;
+                event?.preventDefault()
+                nextNode.selectStart()
+                return true
               } else {
-                return insertParagraphAfter(codeNode, event);
+                return insertParagraphAfter(codeNode, event)
               }
             }
           }
@@ -112,41 +111,41 @@ export function CodeBlockPlugin(): null {
           command === KEY_ARROW_LEFT_COMMAND
         ) {
           if (offset === 0) {
-            const codeChildren = codeNode.getChildren();
-            const firstChild = codeChildren[0];
+            const codeChildren = codeNode.getChildren()
+            const firstChild = codeChildren[0]
 
             if (anchorNode === firstChild) {
-              const prevNode = codeNode.getPreviousSibling();
+              const prevNode = codeNode.getPreviousSibling()
               if (prevNode && $isElementNode(prevNode)) {
-                event?.preventDefault();
-                prevNode.selectEnd();
-                return true;
+                event?.preventDefault()
+                prevNode.selectEnd()
+                return true
               } else {
-                return insertParagraphBefore(codeNode, event);
+                return insertParagraphBefore(codeNode, event)
               }
             }
           }
         }
 
-        return false;
+        return false
       },
       COMMAND_PRIORITY_HIGH
-    );
-  };
+    )
+  }
 
   useEffect(() => {
-    const unregisterUp = handleArrowNavigation(KEY_ARROW_UP_COMMAND);
-    const unregisterLeft = handleArrowNavigation(KEY_ARROW_LEFT_COMMAND);
-    const unregisterDown = handleArrowNavigation(KEY_ARROW_DOWN_COMMAND);
-    const unregisterRight = handleArrowNavigation(KEY_ARROW_RIGHT_COMMAND);
+    const unregisterUp = handleArrowNavigation(KEY_ARROW_UP_COMMAND)
+    const unregisterLeft = handleArrowNavigation(KEY_ARROW_LEFT_COMMAND)
+    const unregisterDown = handleArrowNavigation(KEY_ARROW_DOWN_COMMAND)
+    const unregisterRight = handleArrowNavigation(KEY_ARROW_RIGHT_COMMAND)
 
     return () => {
-      unregisterUp();
-      unregisterLeft();
-      unregisterDown();
-      unregisterRight();
-    };
-  }, [editor]);
+      unregisterUp()
+      unregisterLeft()
+      unregisterDown()
+      unregisterRight()
+    }
+  }, [editor])
 
-  return null;
+  return null
 }

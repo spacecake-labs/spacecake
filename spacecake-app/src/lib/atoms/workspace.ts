@@ -1,24 +1,25 @@
-import { atom } from "jotai";
-import type { FileTreeEvent } from "@/types/workspace";
+import { atom } from "jotai"
+
+import type { FileTreeEvent } from "@/types/workspace"
 import {
   lexicalEditorAtom,
   selectedFilePathAtom,
   userViewPreferencesAtom,
-} from "@/lib/atoms/atoms";
-import { fileTreeEventAtom } from "@/lib/atoms/file-tree";
-import { getInitialEditorStateFromContent } from "@/components/editor/read-file";
+} from "@/lib/atoms/atoms"
+import { fileTreeEventAtom } from "@/lib/atoms/file-tree"
+import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 
-export const workspacePathAtom = atom<string | null>(null);
+export const workspacePathAtom = atom<string | null>(null)
 
 export const fileEventHandlerAtom = atom(
   null,
   (get, set, event: FileTreeEvent) => {
     // The original implementation had an async callback, so we'll wrap this in an async IIFE.
-    (async () => {
+    ;(async () => {
       // Handle content change events for editor updates
       if (event.kind === "contentChange") {
-        const currentPath = get(selectedFilePathAtom);
-        const currentEditor = get(lexicalEditorAtom);
+        const currentPath = get(selectedFilePathAtom)
+        const currentEditor = get(lexicalEditorAtom)
 
         // First, update file tree metadata (size, modified date, etag, content hash)
         set(fileTreeEventAtom, {
@@ -28,14 +29,14 @@ export const fileEventHandlerAtom = atom(
           content: event.content,
           fileType: event.fileType,
           cid: event.cid,
-        });
+        })
 
         // Then, update editor content if this is the currently open file
         if (currentPath && currentEditor && event.path === currentPath) {
           try {
             // Get the current view preference for this file type
-            const userPrefs = get(userViewPreferencesAtom);
-            const currentView = userPrefs[event.fileType];
+            const userPrefs = get(userViewPreferencesAtom)
+            const currentView = userPrefs[event.fileType]
 
             // Create a mock FileContent object for the event
             const mockFileContent = {
@@ -48,24 +49,24 @@ export const fileEventHandlerAtom = atom(
               etag: event.etag || "",
               cid: event.cid || "",
               kind: "file" as const,
-            };
+            }
 
             // Use the existing function to ensure consistency
             const updateFunction = getInitialEditorStateFromContent(
               mockFileContent,
               currentView
-            );
+            )
 
             // Apply the update using the existing logic
-            updateFunction(currentEditor);
+            updateFunction(currentEditor)
           } catch (error) {
-            console.error("error updating editor content:", error);
+            console.error("error updating editor content:", error)
           }
         }
       } else {
         // Handle other file tree events
-        set(fileTreeEventAtom, event);
+        set(fileTreeEventAtom, event)
       }
-    })();
+    })()
   }
-);
+)

@@ -1,8 +1,8 @@
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { useEffect } from "react";
+import { useEffect } from "react"
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import {
-  $getSelection,
   $getNodeByKey,
+  $getSelection,
   $isElementNode,
   $isParagraphNode,
   $isRangeSelection,
@@ -13,105 +13,106 @@ import {
   KEY_ARROW_UP_COMMAND,
   LexicalCommand,
   LexicalNode,
-} from "lexical";
-import { $isCodeBlockNode } from "@/components/editor/nodes/code-node";
+} from "lexical"
+
+import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 
 export function NodeNavigationPlugin(): null {
-  const [editor] = useLexicalComposerContext();
+  const [editor] = useLexicalComposerContext()
 
   const handle = (command: LexicalCommand<KeyboardEvent>) => {
     return editor.registerCommand(
       command,
       (event) => {
         if (event && (event.metaKey || event.ctrlKey || event.altKey))
-          return false;
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection)) return false;
+          return false
+        const selection = $getSelection()
+        if (!$isRangeSelection(selection)) return false
 
-        const anchor = selection.anchor;
-        const anchorNode = anchor.getNode();
+        const anchor = selection.anchor
+        const anchorNode = anchor.getNode()
         const paragraph = $isParagraphNode(anchorNode)
           ? anchorNode
-          : anchorNode.getParent();
+          : anchorNode.getParent()
 
-        if (!$isParagraphNode(paragraph)) return false;
+        if (!$isParagraphNode(paragraph)) return false
 
-        const firstDescendant = paragraph.getFirstDescendant();
-        const lastDescendant = paragraph.getLastDescendant();
-        const isEmpty = paragraph.getTextContent().length === 0;
+        const firstDescendant = paragraph.getFirstDescendant()
+        const lastDescendant = paragraph.getLastDescendant()
+        const isEmpty = paragraph.getTextContent().length === 0
         const isAtStart =
           isEmpty ||
           (anchor.offset === 0 &&
             !!firstDescendant &&
-            anchorNode === firstDescendant);
+            anchorNode === firstDescendant)
         const isAtEnd =
           isEmpty ||
           (!!lastDescendant &&
             anchorNode === lastDescendant &&
-            anchor.offset === lastDescendant.getTextContent().length);
+            anchor.offset === lastDescendant.getTextContent().length)
 
         const isForward =
           command === KEY_ARROW_DOWN_COMMAND ||
-          command === KEY_ARROW_RIGHT_COMMAND;
-        const shouldMove = (isForward && isAtEnd) || (!isForward && isAtStart);
+          command === KEY_ARROW_RIGHT_COMMAND
+        const shouldMove = (isForward && isAtEnd) || (!isForward && isAtStart)
         if (shouldMove) {
           const findSibling = (node: LexicalNode | null) => {
             let sib = isForward
               ? node?.getNextSibling()
-              : node?.getPreviousSibling();
+              : node?.getPreviousSibling()
             while (
               sib &&
               $isParagraphNode(sib) &&
               sib.getTextContent().length === 0
             ) {
-              sib = isForward ? sib.getNextSibling() : sib.getPreviousSibling();
+              sib = isForward ? sib.getNextSibling() : sib.getPreviousSibling()
             }
-            return sib ?? null;
-          };
-
-          const sibling = findSibling(paragraph);
-          if (!sibling) return false;
-
-          event?.preventDefault();
-          const targetKey = sibling.getKey();
-          const shouldRemoveCurrent =
-            isEmpty && paragraph.getParent()?.getChildren().length !== 1;
-          if (shouldRemoveCurrent) {
-            paragraph.remove();
+            return sib ?? null
           }
-          const target = $getNodeByKey(targetKey);
+
+          const sibling = findSibling(paragraph)
+          if (!sibling) return false
+
+          event?.preventDefault()
+          const targetKey = sibling.getKey()
+          const shouldRemoveCurrent =
+            isEmpty && paragraph.getParent()?.getChildren().length !== 1
+          if (shouldRemoveCurrent) {
+            paragraph.remove()
+          }
+          const target = $getNodeByKey(targetKey)
           if (target) {
             if ($isCodeBlockNode(target)) {
-              target.select();
+              target.select()
             } else if ($isElementNode(target)) {
-              if (isForward) target.selectStart();
-              else target.selectEnd();
+              if (isForward) target.selectStart()
+              else target.selectEnd()
             } else {
-              if (isForward) paragraph.selectEnd();
-              else paragraph.selectStart();
+              if (isForward) paragraph.selectEnd()
+              else paragraph.selectStart()
             }
           }
-          return true;
+          return true
         }
 
-        return false;
+        return false
       },
       COMMAND_PRIORITY_HIGH
-    );
-  };
+    )
+  }
 
   useEffect(() => {
-    const u1 = handle(KEY_ARROW_UP_COMMAND);
-    const u2 = handle(KEY_ARROW_DOWN_COMMAND);
-    const u3 = handle(KEY_ARROW_LEFT_COMMAND);
-    const u4 = handle(KEY_ARROW_RIGHT_COMMAND);
+    const u1 = handle(KEY_ARROW_UP_COMMAND)
+    const u2 = handle(KEY_ARROW_DOWN_COMMAND)
+    const u3 = handle(KEY_ARROW_LEFT_COMMAND)
+    const u4 = handle(KEY_ARROW_RIGHT_COMMAND)
     return () => {
-      u1();
-      u2();
-      u3();
-      u4();
-    };
-  }, [editor]);
+      u1()
+      u2()
+      u3()
+      u4()
+    }
+  }, [editor])
 
-  return null;
+  return null
 }

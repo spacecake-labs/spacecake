@@ -1,8 +1,9 @@
-import { atom } from "jotai";
-import type { FileTree, FileTreeEvent, File, Folder } from "@/types/workspace";
-import { ZERO_HASH } from "@/types/workspace";
-import { fileTreeAtom, workspaceAtom } from "@/lib/atoms/atoms";
-import { fileTypeFromExtension } from "@/lib/workspace";
+import { atom } from "jotai"
+
+import type { File, FileTree, FileTreeEvent, Folder } from "@/types/workspace"
+import { ZERO_HASH } from "@/types/workspace"
+import { fileTreeAtom, workspaceAtom } from "@/lib/atoms/atoms"
+import { fileTypeFromExtension } from "@/lib/workspace"
 
 // helper function to find and update items in the tree
 const updateFileTree = (
@@ -12,17 +13,17 @@ const updateFileTree = (
 ): FileTree => {
   return tree.map((item) => {
     if (item.path === path) {
-      return updater(item);
+      return updater(item)
     }
     if (item.kind === "folder" && path.startsWith(item.path + "/")) {
       return {
         ...item,
         children: updateFileTree(item.children, path, updater),
-      };
+      }
     }
-    return item;
-  });
-};
+    return item
+  })
+}
 
 const addItemToTree = (
   tree: FileTree,
@@ -33,52 +34,55 @@ const addItemToTree = (
     if (item.kind === "folder" && item.path === parentPath) {
       // Prevent adding duplicates
       if (item.children.find((child) => child.path === itemToAdd.path)) {
-        return item;
+        return item
       }
-      return { ...item, children: [...item.children, itemToAdd] };
+      return { ...item, children: [...item.children, itemToAdd] }
     }
     if (item.kind === "folder" && parentPath.startsWith(item.path + "/")) {
       return {
         ...item,
         children: addItemToTree(item.children, parentPath, itemToAdd),
-      };
+      }
     }
-    return item;
-  });
-};
+    return item
+  })
+}
 
 const removeItemFromTree = (tree: FileTree, path: string): FileTree => {
   // path is now absolute
-  const newTree = tree.filter((item) => item.path !== path);
+  const newTree = tree.filter((item) => item.path !== path)
   return newTree.map((item) => {
     if (item.kind === "folder" && path.startsWith(item.path + "/")) {
-      return { ...item, children: removeItemFromTree(item.children, path) };
+      return {
+        ...item,
+        children: removeItemFromTree(item.children, path),
+      }
     }
-    return item;
-  });
-};
+    return item
+  })
+}
 
 // atom for handling file tree events
 export const fileTreeEventAtom = atom(
   null,
   (get, set, event: FileTreeEvent) => {
-    const workspace = get(workspaceAtom);
-    if (!workspace?.path) return;
+    const workspace = get(workspaceAtom)
+    if (!workspace?.path) return
 
-    const currentTree = get(fileTreeAtom);
-    const absolutePath = event.path;
+    const currentTree = get(fileTreeAtom)
+    const absolutePath = event.path
 
     if (!absolutePath.startsWith(workspace.path)) {
-      return;
+      return
     }
 
     // Extract the name from the absolute path
-    const name = absolutePath.split("/").pop()!;
+    const name = absolutePath.split("/").pop()!
 
     // For nested items, we need the parent path for tree operations
-    const lastSlash = absolutePath.lastIndexOf("/");
+    const lastSlash = absolutePath.lastIndexOf("/")
     const parentPath =
-      lastSlash === -1 ? null : absolutePath.substring(0, lastSlash);
+      lastSlash === -1 ? null : absolutePath.substring(0, lastSlash)
 
     switch (event.kind) {
       case "addFile":
@@ -103,17 +107,17 @@ export const fileTreeEventAtom = atom(
                 kind: "folder",
                 children: [],
                 isExpanded: false, // ✅ Only on folders
-              };
+              }
 
         if (parentPath === null || parentPath === workspace.path) {
           // Add to workspace root level
-          if (currentTree.find((i) => i.path === absolutePath)) return;
-          set(fileTreeAtom, [...currentTree, newItem]);
+          if (currentTree.find((i) => i.path === absolutePath)) return
+          set(fileTreeAtom, [...currentTree, newItem])
         } else {
           // Add to parent folder
-          set(fileTreeAtom, addItemToTree(currentTree, parentPath, newItem));
+          set(fileTreeAtom, addItemToTree(currentTree, parentPath, newItem))
         }
-        break;
+        break
       }
 
       case "contentChange": {
@@ -126,41 +130,41 @@ export const fileTreeEventAtom = atom(
                 cid: event.cid, // Update the content hash
               }
             : item
-        );
-        set(fileTreeAtom, newTree);
-        break;
+        )
+        set(fileTreeAtom, newTree)
+        break
       }
 
       case "unlinkFile":
       case "unlinkFolder": {
-        const newTree = removeItemFromTree(currentTree, absolutePath);
-        set(fileTreeAtom, newTree);
-        break;
+        const newTree = removeItemFromTree(currentTree, absolutePath)
+        set(fileTreeAtom, newTree)
+        break
       }
     }
   }
-);
+)
 
 export const sortedFileTreeAtom = atom((get) => {
-  const fileTree = get(fileTreeAtom);
+  const fileTree = get(fileTreeAtom)
 
   const sortItems = (items: FileTree): FileTree => {
     return [...items].sort((a, b) => {
       if (a.kind !== b.kind) {
-        return a.kind === "folder" ? -1 : 1;
+        return a.kind === "folder" ? -1 : 1
       }
-      return a.name.localeCompare(b.name);
-    });
-  };
+      return a.name.localeCompare(b.name)
+    })
+  }
 
   const sortTree = (items: FileTree): FileTree => {
     return sortItems(items).map((item) => {
       if (item.kind === "folder") {
-        return { ...item, children: sortTree(item.children) };
+        return { ...item, children: sortTree(item.children) }
       }
-      return item;
-    });
-  };
+      return item
+    })
+  }
 
-  return sortTree(fileTree);
-});
+  return sortTree(fileTree)
+})

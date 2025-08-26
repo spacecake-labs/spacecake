@@ -1,534 +1,540 @@
-import { test, expect } from "./fixtures";
-import { stubDialog } from "electron-playwright-helpers";
-import path from "path";
-import fs from "fs";
+import fs from "fs"
+import path from "path"
+
+import { stubDialog } from "electron-playwright-helpers"
+
+import { expect, test } from "./fixtures"
 
 test.describe("spacecake app", () => {
   test("open electron app", async ({ electronApp }, testInfo) => {
     // wait for the first window to be ready
-    const window = await electronApp.firstWindow();
+    const window = await electronApp.firstWindow()
 
     // verify the window is visible by checking if it has content
-    await expect(window.locator("body")).toBeVisible();
+    await expect(window.locator("body")).toBeVisible()
 
     // verify the app has a title (spacecake) or is the main window
-    const title = await window.title();
+    const title = await window.title()
     testInfo.annotations.push({
       type: "info",
       description: `window title: ${title}`,
-    });
+    })
 
     await expect(
       window.getByRole("button", { name: "open folder" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // verify that "empty" text doesn't appear when no workspace is selected
-    await expect(window.getByText("empty")).not.toBeVisible();
-  });
+    await expect(window.getByText("empty")).not.toBeVisible()
+  })
 
   test("open workspace; create file", async ({
     electronApp,
     tempTestDir,
   }, testInfo) => {
     // wait for the first window to be ready
-    const window = await electronApp.firstWindow();
+    const window = await electronApp.firstWindow()
 
     // verify the window is visible by checking if it has content
-    await expect(window.locator("body")).toBeVisible();
+    await expect(window.locator("body")).toBeVisible()
 
     // verify the app has a title (spacecake) or is the main window
-    const title = await window.title();
+    const title = await window.title()
     testInfo.annotations.push({
       type: "info",
       description: `window title: ${title}`,
-    });
+    })
 
     // stub the showOpenDialog to return our temp test directory
     await stubDialog(electronApp, "showOpenDialog", {
       filePaths: [tempTestDir],
       canceled: false,
-    });
+    })
 
-    await window.getByRole("button", { name: "open folder" }).click();
+    await window.getByRole("button", { name: "open folder" }).click()
 
     // wait for the workspace to load (indicated by the create file button appearing)
     await expect(
       window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // verify that "empty" text appears when workspace is selected but empty
-    await expect(window.getByText("empty")).toBeVisible();
+    await expect(window.getByText("empty")).toBeVisible()
 
-    await window.getByRole("button", { name: "create file or folder" }).click();
+    await window.getByRole("button", { name: "create file or folder" }).click()
 
     // Click on "new file" option in the dropdown
-    await window.getByRole("menuitem", { name: "new file" }).click();
+    await window.getByRole("menuitem", { name: "new file" }).click()
 
-    const textbox = window.getByRole("textbox", { name: "filename.txt" });
+    const textbox = window.getByRole("textbox", { name: "filename.txt" })
 
-    await textbox.fill("test.txt");
-    await textbox.press("Enter", { delay: 100 }); // Added delay
+    await textbox.fill("test.txt")
+    await textbox.press("Enter", { delay: 100 }) // Added delay
 
     // Wait for the new file to appear in the sidebar
     await expect(
       window.getByRole("button", { name: "test.txt" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Wait for the create file input to disappear (indicating state reset)
-    await expect(textbox).not.toBeVisible();
+    await expect(textbox).not.toBeVisible()
 
     // Verify the file was actually created in the filesystem
-    const expectedFilePath = path.join(tempTestDir, "test.txt");
-    const fileExists = fs.existsSync(expectedFilePath);
+    const expectedFilePath = path.join(tempTestDir, "test.txt")
+    const fileExists = fs.existsSync(expectedFilePath)
 
     testInfo.annotations.push({
       type: "info",
       description: `File test.txt exists at ${expectedFilePath}: ${fileExists}`,
-    });
-  });
+    })
+  })
 
   test("nested folder structure and recursive expansion", async ({
     electronApp,
     tempTestDir,
   }, testInfo) => {
     // Create a nested folder structure in the temp test directory
-    const nestedFolderPath = path.join(tempTestDir, "nested-folder");
-    fs.mkdirSync(nestedFolderPath, { recursive: true });
+    const nestedFolderPath = path.join(tempTestDir, "nested-folder")
+    fs.mkdirSync(nestedFolderPath, { recursive: true })
 
     // Create files at root level: folder, file, file
     fs.writeFileSync(
       path.join(tempTestDir, "root-file-1.txt"),
       "root-file-1-content"
-    );
+    )
     fs.writeFileSync(
       path.join(tempTestDir, "root-file-2.txt"),
       "root-file-2-content"
-    );
+    )
 
     // Create files inside the nested folder
     fs.writeFileSync(
       path.join(nestedFolderPath, "nested-file-1.txt"),
       "nested-file-1-content"
-    );
+    )
     fs.writeFileSync(
       path.join(nestedFolderPath, "nested-file-2.txt"),
       "nested-file-2-content"
-    );
+    )
 
     testInfo.annotations.push({
       type: "info",
       description: `Created nested structure: ${tempTestDir}`,
-    });
+    })
 
     // wait for the first window to be ready
-    const window = await electronApp.firstWindow();
+    const window = await electronApp.firstWindow()
 
     // verify the window is visible by checking if it has content
-    await expect(window.locator("body")).toBeVisible();
+    await expect(window.locator("body")).toBeVisible()
 
     // stub the showOpenDialog to return our temp test directory
     await stubDialog(electronApp, "showOpenDialog", {
       filePaths: [tempTestDir],
       canceled: false,
-    });
+    })
 
-    await window.getByRole("button", { name: "open folder" }).click();
+    await window.getByRole("button", { name: "open folder" }).click()
 
     // wait for the workspace to load
     await expect(
       window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // verify that the nested folder structure is visible
     await expect(
       window.getByRole("button", { name: "nested-folder" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
 
     // click on the nested folder to expand it
-    await window.getByRole("button", { name: "nested-folder" }).first().click();
+    await window.getByRole("button", { name: "nested-folder" }).first().click()
 
     // verify that the nested files are visible
     await expect(
       window.getByRole("button", { name: "nested-file-1.txt" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
     await expect(
       window.getByRole("button", { name: "nested-file-2.txt" }).first()
-    ).toBeVisible();
-  });
+    ).toBeVisible()
+  })
 
   test("auto-expand and refresh when creating files and folders", async ({
     electronApp,
     tempTestDir,
   }, testInfo) => {
     // Create a test folder
-    const testFolderPath = path.join(tempTestDir, "test-folder");
-    fs.mkdirSync(testFolderPath, { recursive: true });
+    const testFolderPath = path.join(tempTestDir, "test-folder")
+    fs.mkdirSync(testFolderPath, { recursive: true })
 
     testInfo.annotations.push({
       type: "info",
       description: `Created test folder: ${testFolderPath}`,
-    });
+    })
 
     // wait for the first window to be ready
-    const window = await electronApp.firstWindow();
+    const window = await electronApp.firstWindow()
 
     // verify the window is visible by checking if it has content
-    await expect(window.locator("body")).toBeVisible();
+    await expect(window.locator("body")).toBeVisible()
 
     // stub the showOpenDialog to return our temp test directory
     await stubDialog(electronApp, "showOpenDialog", {
       filePaths: [tempTestDir],
       canceled: false,
-    });
+    })
 
-    await window.getByRole("button", { name: "open folder" }).click();
+    await window.getByRole("button", { name: "open folder" }).click()
 
     // wait for the workspace to load
     await expect(
       window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // verify that the test folder is visible
     await expect(
       window.getByRole("button", { name: "test-folder" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Test 1: Create a file inside the folder (should auto-expand)
-    await window.getByTestId("more-options-test-folder").click();
-    await window.getByRole("menuitem", { name: "new file" }).click();
+    await window.getByTestId("more-options-test-folder").click()
+    await window.getByRole("menuitem", { name: "new file" }).click()
 
     // Verify the folder auto-expanded and input field is visible
     await expect(
       window.getByRole("textbox", { name: "filename.txt" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Create the file
-    const fileInput = window.getByRole("textbox", { name: "filename.txt" });
-    await fileInput.fill("test-file.txt");
-    await fileInput.press("Enter", { delay: 100 }); // Added delay
+    const fileInput = window.getByRole("textbox", { name: "filename.txt" })
+    await fileInput.fill("test-file.txt")
+    await fileInput.press("Enter", { delay: 100 }) // Added delay
 
     // Verify the file was created and is visible
     await expect(
       window.getByRole("button", { name: "test-file.txt" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Test 2: Create a folder inside the folder (should auto-expand)
     // Ensure the test-folder is expanded before trying to create a folder inside it
-    await window.getByRole("button", { name: "test-folder" }).first().click();
+    await window.getByRole("button", { name: "test-folder" }).first().click()
 
-    await window.getByTestId("more-options-test-folder").click();
-    await window.getByRole("menuitem", { name: "new folder" }).click();
+    await window.getByTestId("more-options-test-folder").click()
+    await window.getByRole("menuitem", { name: "new folder" }).click()
 
     // Verify the folder auto-expanded and input field is visible
     await expect(
       window.getByRole("textbox", { name: "folder name" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Create the folder
-    const folderInput = window.getByRole("textbox", { name: "folder name" });
-    await folderInput.fill("test-subfolder");
-    await folderInput.press("Enter", { delay: 100 }); // Added delay
+    const folderInput = window.getByRole("textbox", { name: "folder name" })
+    await folderInput.fill("test-subfolder")
+    await folderInput.press("Enter", { delay: 100 }) // Added delay
 
     // Wait for the new folder to appear
     await expect(
       window.getByRole("button", { name: "test-subfolder" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Verify both new items are visible in the expanded folder
     await expect(
       window.getByRole("button", { name: "test-file.txt" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
     await expect(
       window.getByRole("button", { name: "test-subfolder" }).first()
-    ).toBeVisible();
-  });
+    ).toBeVisible()
+  })
 
   test("create multiple items in nested folders without collapse/expand", async ({
     electronApp,
     tempTestDir,
   }, testInfo) => {
     // Create a nested folder structure
-    const parentFolderPath = path.join(tempTestDir, "parent-folder");
-    const childFolderPath = path.join(parentFolderPath, "child-folder");
-    fs.mkdirSync(childFolderPath, { recursive: true });
+    const parentFolderPath = path.join(tempTestDir, "parent-folder")
+    const childFolderPath = path.join(parentFolderPath, "child-folder")
+    fs.mkdirSync(childFolderPath, { recursive: true })
 
     testInfo.annotations.push({
       type: "info",
       description: `Created nested structure: ${tempTestDir}`,
-    });
+    })
 
     // wait for the first window to be ready
-    const window = await electronApp.firstWindow();
+    const window = await electronApp.firstWindow()
 
     // verify the window is visible by checking if it has content
-    await expect(window.locator("body")).toBeVisible();
+    await expect(window.locator("body")).toBeVisible()
 
     // stub the showOpenDialog to return our temp test directory
     await stubDialog(electronApp, "showOpenDialog", {
       filePaths: [tempTestDir],
       canceled: false,
-    });
+    })
 
-    await window.getByRole("button", { name: "open folder" }).click();
+    await window.getByRole("button", { name: "open folder" }).click()
 
     // wait for the workspace to load
     await expect(
       window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // verify that the parent folder is visible
     await expect(
       window.getByRole("button", { name: "parent-folder" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Test 1: Create a file in the parent folder
-    await window.getByTestId("more-options-parent-folder").click();
-    await window.getByRole("menuitem", { name: "new file" }).click();
+    await window.getByTestId("more-options-parent-folder").click()
+    await window.getByRole("menuitem", { name: "new file" }).click()
 
-    const fileInput1 = window.getByRole("textbox", { name: "filename.txt" });
-    await fileInput1.fill("parent-file.txt");
-    await fileInput1.press("Enter", { delay: 100 }); // Added delay
+    const fileInput1 = window.getByRole("textbox", { name: "filename.txt" })
+    await fileInput1.fill("parent-file.txt")
+    await fileInput1.press("Enter", { delay: 100 }) // Added delay
 
     // Verify the file appears immediately
     await expect(
       window.getByRole("button", { name: "parent-file.txt" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Test 2: Create a folder in the parent folder
-    await window.getByTestId("more-options-parent-folder").click();
-    await window.getByRole("menuitem", { name: "new folder" }).click();
+    await window.getByTestId("more-options-parent-folder").click()
+    await window.getByRole("menuitem", { name: "new folder" }).click()
 
-    const folderInput1 = window.getByRole("textbox", { name: "folder name" });
-    await folderInput1.fill("new-child-folder");
-    await folderInput1.press("Enter", { delay: 100 }); // Added delay
+    const folderInput1 = window.getByRole("textbox", {
+      name: "folder name",
+    })
+    await folderInput1.fill("new-child-folder")
+    await folderInput1.press("Enter", { delay: 100 }) // Added delay
 
     // Verify the new folder appears immediately
     await expect(
       window.getByRole("button", { name: "new-child-folder" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Test 3: Create a file in the existing child folder
-    await window.getByTestId("more-options-child-folder").click();
-    await window.getByRole("menuitem", { name: "new file" }).click();
+    await window.getByTestId("more-options-child-folder").click()
+    await window.getByRole("menuitem", { name: "new file" }).click()
 
-    const fileInput2 = window.getByRole("textbox", { name: "filename.txt" });
-    await fileInput2.fill("child-file.txt");
-    await fileInput2.press("Enter", { delay: 100 }); // Added delay
+    const fileInput2 = window.getByRole("textbox", { name: "filename.txt" })
+    await fileInput2.fill("child-file.txt")
+    await fileInput2.press("Enter", { delay: 100 }) // Added delay
 
     // Verify the file appears immediately in the child folder
     await expect(
       window.getByRole("button", { name: "child-file.txt" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Test 4: Create another folder in the child folder
-    await window.getByTestId("more-options-child-folder").click();
-    await window.getByRole("menuitem", { name: "new folder" }).click();
+    await window.getByTestId("more-options-child-folder").click()
+    await window.getByRole("menuitem", { name: "new folder" }).click()
 
-    const folderInput2 = window.getByRole("textbox", { name: "folder name" });
-    await folderInput2.fill("grandchild-folder");
-    await folderInput2.press("Enter", { delay: 100 }); // Added delay
+    const folderInput2 = window.getByRole("textbox", {
+      name: "folder name",
+    })
+    await folderInput2.fill("grandchild-folder")
+    await folderInput2.press("Enter", { delay: 100 }) // Added delay
 
     // Verify the grandchild folder appears immediately
     await expect(
       window.getByRole("button", { name: "grandchild-folder" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Final verification: All items should be visible without any collapse/expand
     await expect(
       window.getByRole("button", { name: "parent-file.txt" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
     await expect(
       window.getByRole("button", { name: "new-child-folder" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
     await expect(
       window.getByRole("button", { name: "child-file.txt" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
     await expect(
       window.getByRole("button", { name: "grandchild-folder" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Verify all files were actually created in the filesystem
     expect(fs.existsSync(path.join(parentFolderPath, "parent-file.txt"))).toBe(
       true
-    );
+    )
     expect(fs.existsSync(path.join(parentFolderPath, "new-child-folder"))).toBe(
       true
-    );
+    )
     expect(fs.existsSync(path.join(childFolderPath, "child-file.txt"))).toBe(
       true
-    );
+    )
     expect(fs.existsSync(path.join(childFolderPath, "grandchild-folder"))).toBe(
       true
-    );
+    )
 
     testInfo.annotations.push({
       type: "info",
       description:
         "Successfully created multiple nested items without requiring collapse/expand cycles",
-    });
-  });
+    })
+  })
 
   test("delete file", async ({ electronApp, tempTestDir }, testInfo) => {
     // wait for the first window to be ready
-    const window = await electronApp.firstWindow();
+    const window = await electronApp.firstWindow()
 
     // verify the window is visible by checking if it has content
-    await expect(window.locator("body")).toBeVisible();
+    await expect(window.locator("body")).toBeVisible()
 
     // Create test files and folders to delete
-    const testFilePath = path.join(tempTestDir, "file-to-delete.txt");
-    fs.writeFileSync(testFilePath, "test content");
+    const testFilePath = path.join(tempTestDir, "file-to-delete.txt")
+    fs.writeFileSync(testFilePath, "test content")
 
-    const emptyFolderPath = path.join(tempTestDir, "empty-folder");
-    fs.mkdirSync(emptyFolderPath);
+    const emptyFolderPath = path.join(tempTestDir, "empty-folder")
+    fs.mkdirSync(emptyFolderPath)
 
-    const folderWithFilesPath = path.join(tempTestDir, "folder-with-files");
-    fs.mkdirSync(folderWithFilesPath);
+    const folderWithFilesPath = path.join(tempTestDir, "folder-with-files")
+    fs.mkdirSync(folderWithFilesPath)
 
     // Create some files inside the folder
-    const file1Path = path.join(folderWithFilesPath, "file1.txt");
-    const file2Path = path.join(folderWithFilesPath, "file2.txt");
-    const subfolderPath = path.join(folderWithFilesPath, "subfolder");
-    const subfilePath = path.join(subfolderPath, "subfile.txt");
+    const file1Path = path.join(folderWithFilesPath, "file1.txt")
+    const file2Path = path.join(folderWithFilesPath, "file2.txt")
+    const subfolderPath = path.join(folderWithFilesPath, "subfolder")
+    const subfilePath = path.join(subfolderPath, "subfile.txt")
 
-    fs.writeFileSync(file1Path, "content 1");
-    fs.writeFileSync(file2Path, "content 2");
-    fs.mkdirSync(subfolderPath);
-    fs.writeFileSync(subfilePath, "sub content");
+    fs.writeFileSync(file1Path, "content 1")
+    fs.writeFileSync(file2Path, "content 2")
+    fs.mkdirSync(subfolderPath)
+    fs.writeFileSync(subfilePath, "sub content")
 
     // stub the showOpenDialog to return our temp test directory
     await stubDialog(electronApp, "showOpenDialog", {
       filePaths: [tempTestDir],
       canceled: false,
-    });
+    })
 
-    await window.getByRole("button", { name: "open folder" }).click();
+    await window.getByRole("button", { name: "open folder" }).click()
 
     // wait for the workspace to load (indicated by the create file button appearing)
     await expect(
       window.getByRole("button", { name: "create file" })
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Wait for all items to appear
     await expect(
       window.getByRole("button", { name: "file-to-delete.txt" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
     await expect(
       window.getByRole("button", { name: "empty-folder" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
     await expect(
       window.getByRole("button", { name: "folder-with-files" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Test delete functionality
     await window
       .getByRole("button", { name: "file-to-delete.txt" })
       .first()
-      .hover();
-    await window.getByTestId("more-options-file-to-delete.txt").click();
-    await window.getByRole("menuitem", { name: "delete" }).click();
+      .hover()
+    await window.getByTestId("more-options-file-to-delete.txt").click()
+    await window.getByRole("menuitem", { name: "delete" }).click()
 
     // Verify delete confirmation dialog appears
     await expect(
       window.getByRole("dialog", { name: "delete file" })
-    ).toBeVisible();
+    ).toBeVisible()
     await expect(
       window.getByText("are you sure you want to delete 'file-to-delete.txt'?")
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Cancel the delete
-    await window.getByRole("button", { name: "cancel" }).click();
+    await window.getByRole("button", { name: "cancel" }).click()
     await expect(
       window.getByRole("dialog", { name: "delete file" })
-    ).not.toBeVisible();
+    ).not.toBeVisible()
 
     // Verify the file is still there
     await expect(
       window.getByRole("button", { name: "file-to-delete.txt" }).first()
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Now actually delete the file
     await window
       .getByRole("button", { name: "file-to-delete.txt" })
       .first()
-      .hover();
-    await window.getByTestId("more-options-file-to-delete.txt").click();
-    await window.getByRole("menuitem", { name: "delete" }).click();
+      .hover()
+    await window.getByTestId("more-options-file-to-delete.txt").click()
+    await window.getByRole("menuitem", { name: "delete" }).click()
 
     // Confirm the delete
-    await window.getByRole("button", { name: "delete" }).click();
+    await window.getByRole("button", { name: "delete" }).click()
 
     // Verify the file is removed from the UI
     await expect(
       window.getByRole("button", { name: "file-to-delete.txt" })
-    ).not.toBeVisible();
+    ).not.toBeVisible()
 
     // Verify the file was actually deleted from the filesystem
-    expect(fs.existsSync(testFilePath)).toBe(false);
+    expect(fs.existsSync(testFilePath)).toBe(false)
 
     // Test deleting an empty folder
-    await window.getByRole("button", { name: "empty-folder" }).first().hover();
-    await window.getByTestId("more-options-empty-folder").click();
-    await window.getByRole("menuitem", { name: "delete" }).click();
+    await window.getByRole("button", { name: "empty-folder" }).first().hover()
+    await window.getByTestId("more-options-empty-folder").click()
+    await window.getByRole("menuitem", { name: "delete" }).click()
 
     // Verify delete confirmation dialog appears with folder message
     await expect(
       window.getByRole("dialog", { name: "delete folder" })
-    ).toBeVisible();
+    ).toBeVisible()
     await expect(
       window.getByText(
         "are you sure you want to delete 'empty-folder' and its contents?"
       )
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Confirm the delete
-    await window.getByRole("button", { name: "delete" }).click();
+    await window.getByRole("button", { name: "delete" }).click()
 
     // Verify the folder is removed from the UI
     await expect(
       window.getByRole("button", { name: "empty-folder" })
-    ).not.toBeVisible();
+    ).not.toBeVisible()
 
     // Verify the folder was actually deleted from the filesystem
-    expect(fs.existsSync(emptyFolderPath)).toBe(false);
+    expect(fs.existsSync(emptyFolderPath)).toBe(false)
 
     // Test deleting a folder with files (recursive delete)
     await window
       .getByRole("button", { name: "folder-with-files" })
       .first()
-      .hover();
-    await window.getByTestId("more-options-folder-with-files").click();
-    await window.getByRole("menuitem", { name: "delete" }).click();
+      .hover()
+    await window.getByTestId("more-options-folder-with-files").click()
+    await window.getByRole("menuitem", { name: "delete" }).click()
 
     // Verify delete confirmation dialog appears with folder message
     await expect(
       window.getByRole("dialog", { name: "delete folder" })
-    ).toBeVisible();
+    ).toBeVisible()
     await expect(
       window.getByText(
         "are you sure you want to delete 'folder-with-files' and its contents?"
       )
-    ).toBeVisible();
+    ).toBeVisible()
 
     // Confirm the delete
-    await window.getByRole("button", { name: "delete" }).click();
+    await window.getByRole("button", { name: "delete" }).click()
 
     // Verify the folder is removed from the UI
     await expect(
       window.getByRole("button", { name: "folder-with-files" })
-    ).not.toBeVisible();
+    ).not.toBeVisible()
 
     // Verify the folder and all its contents were actually deleted from the filesystem
-    expect(fs.existsSync(folderWithFilesPath)).toBe(false);
-    expect(fs.existsSync(file1Path)).toBe(false);
-    expect(fs.existsSync(file2Path)).toBe(false);
-    expect(fs.existsSync(subfolderPath)).toBe(false);
-    expect(fs.existsSync(subfilePath)).toBe(false);
+    expect(fs.existsSync(folderWithFilesPath)).toBe(false)
+    expect(fs.existsSync(file1Path)).toBe(false)
+    expect(fs.existsSync(file2Path)).toBe(false)
+    expect(fs.existsSync(subfolderPath)).toBe(false)
+    expect(fs.existsSync(subfilePath)).toBe(false)
 
     testInfo.annotations.push({
       type: "info",
       description:
         "Successfully completed delete functionality tests including folder deletion",
-    });
-  });
-});
+    })
+  })
+})

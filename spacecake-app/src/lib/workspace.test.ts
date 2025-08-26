@@ -1,6 +1,7 @@
-import { expect, test, describe } from "vitest";
-import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace";
-import { FileType } from "@/types/workspace";
+import { describe, expect, test } from "vitest"
+
+import { FileType } from "@/types/workspace"
+import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace"
 
 // fileTypeEmoji tests
 
@@ -14,9 +15,9 @@ describe("fileTypeEmoji", () => {
     [FileType.TSX, "🔵"],
     [FileType.Plaintext, "📄"],
   ])("returns correct emoji for %s", (fileType, expectedEmoji) => {
-    expect(fileTypeEmoji(fileType)).toBe(expectedEmoji);
-  });
-});
+    expect(fileTypeEmoji(fileType)).toBe(expectedEmoji)
+  })
+})
 
 // fileTypeFromLanguage tests
 
@@ -32,8 +33,8 @@ describe("fileTypeFromLanguage", () => {
     ["markdown", FileType.Markdown],
     ["Markdown", FileType.Markdown],
   ])("returns correct FileType for language: %s", (language, expectedType) => {
-    expect(fileTypeFromLanguage(language)).toBe(expectedType);
-  });
+    expect(fileTypeFromLanguage(language)).toBe(expectedType)
+  })
 
   test.each([
     ["java", FileType.Plaintext],
@@ -43,7 +44,7 @@ describe("fileTypeFromLanguage", () => {
   ])(
     "returns Plaintext for unsupported languages: %s",
     (language, expectedType) => {
-      expect(fileTypeFromLanguage(language)).toBe(expectedType);
+      expect(fileTypeFromLanguage(language)).toBe(expectedType)
     }
-  );
-});
+  )
+})

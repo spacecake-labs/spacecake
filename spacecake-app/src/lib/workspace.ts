@@ -1,6 +1,7 @@
-import { Folder as FolderIcon, BookOpen, FileText, Code } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { FileType, File, Folder } from "@/types/workspace";
+import { BookOpen, Code, FileText, Folder as FolderIcon } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
+
+import { File, FileType, Folder } from "@/types/workspace"
 
 /**
  * Gets the file type based on the file extension
@@ -8,24 +9,24 @@ import { FileType, File, Folder } from "@/types/workspace";
  * @returns The FileType enum value
  */
 export function fileTypeFromExtension(extension: string): FileType {
-  const cleanExtension = extension.replace(/^\./, "").toLowerCase();
+  const cleanExtension = extension.replace(/^\./, "").toLowerCase()
 
   switch (cleanExtension) {
     case "md":
     case "markdown":
-      return FileType.Markdown;
+      return FileType.Markdown
     case "py":
-      return FileType.Python;
+      return FileType.Python
     case "js":
-      return FileType.JavaScript;
+      return FileType.JavaScript
     case "ts":
-      return FileType.TypeScript;
+      return FileType.TypeScript
     case "jsx":
-      return FileType.JSX;
+      return FileType.JSX
     case "tsx":
-      return FileType.TSX;
+      return FileType.TSX
     default:
-      return FileType.Plaintext;
+      return FileType.Plaintext
   }
 }
 
@@ -35,23 +36,23 @@ export function fileTypeFromExtension(extension: string): FileType {
  * @returns The FileType enum value
  */
 export function fileTypeFromLanguage(language: string): FileType {
-  const cleanLanguage = language.toLowerCase();
+  const cleanLanguage = language.toLowerCase()
 
   switch (cleanLanguage) {
     case "markdown":
-      return FileType.Markdown;
+      return FileType.Markdown
     case "python":
-      return FileType.Python;
+      return FileType.Python
     case "javascript":
-      return FileType.JavaScript;
+      return FileType.JavaScript
     case "typescript":
-      return FileType.TypeScript;
+      return FileType.TypeScript
     case "jsx":
-      return FileType.JSX;
+      return FileType.JSX
     case "tsx":
-      return FileType.TSX;
+      return FileType.TSX
     default:
-      return FileType.Plaintext;
+      return FileType.Plaintext
   }
 }
 
@@ -63,16 +64,16 @@ export function fileTypeFromLanguage(language: string): FileType {
 export function fileTypeIcon(fileType: FileType): LucideIcon {
   switch (fileType) {
     case FileType.Markdown:
-      return BookOpen;
+      return BookOpen
     case FileType.Python:
     case FileType.JavaScript:
     case FileType.TypeScript:
     case FileType.JSX:
     case FileType.TSX:
-      return Code;
+      return Code
     case FileType.Plaintext:
     default:
-      return FileText;
+      return FileText
   }
 }
 
@@ -84,18 +85,18 @@ export function fileTypeIcon(fileType: FileType): LucideIcon {
 export function fileTypeEmoji(fileType: FileType): string {
   switch (fileType) {
     case FileType.Markdown:
-      return "📖";
+      return "📖"
     case FileType.Python:
-      return "🐍";
+      return "🐍"
     case FileType.JavaScript:
     case FileType.JSX:
-      return "🟡";
+      return "🟡"
     case FileType.TypeScript:
     case FileType.TSX:
-      return "🔵";
+      return "🔵"
     case FileType.Plaintext:
     default:
-      return "📄";
+      return "📄"
   }
 }
 
@@ -106,10 +107,10 @@ export function fileTypeEmoji(fileType: FileType): string {
  */
 export function getNavItemIcon(item: File | Folder): LucideIcon {
   if (item.kind === "file") {
-    return fileTypeIcon(item.fileType);
+    return fileTypeIcon(item.fileType)
   }
   if (item.kind === "folder") {
-    return FolderIcon;
+    return FolderIcon
   }
-  return FileText;
+  return FileText
 }

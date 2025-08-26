@@ -6,19 +6,29 @@
  *
  */
 
+import type { JSX } from "react"
 import type {
   BaseSelection,
   LexicalCommand,
   LexicalEditor,
   NodeKey,
-} from "lexical";
-import type { JSX } from "react";
-import "@/components/editor/nodes/image-node.css";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { useLexicalEditable } from "@lexical/react/useLexicalEditable";
-import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { mergeRegister } from "@lexical/utils";
+} from "lexical"
+
+import "@/components/editor/nodes/image-node.css"
+
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
+import brokenImage from "@/images/image-broken.svg"
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
+import { useLexicalEditable } from "@lexical/react/useLexicalEditable"
+import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
+import { mergeRegister } from "@lexical/utils"
+import { useSuspenseQuery } from "@tanstack/react-query"
 import {
   $getNodeByKey,
   $getSelection,
@@ -29,39 +39,32 @@ import {
   createCommand,
   DRAGSTART_COMMAND,
   SELECTION_CHANGE_COMMAND,
-} from "lexical";
-import React, {
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import brokenImage from "@/images/image-broken.svg";
-import ImageResizer from "@/components/editor/image-resizer";
-import { $isImageNode } from "@/components/editor/nodes/image-node";
+} from "lexical"
+
+import ImageResizer from "@/components/editor/image-resizer"
+import { $isImageNode } from "@/components/editor/nodes/image-node"
 
 export const RIGHT_CLICK_IMAGE_COMMAND: LexicalCommand<MouseEvent> =
-  createCommand("RIGHT_CLICK_IMAGE_COMMAND");
+  createCommand("RIGHT_CLICK_IMAGE_COMMAND")
 
 const fetchImageDimensions = (
   src: string
 ): Promise<{ width: number; height: number }> =>
   new Promise((resolve, reject) => {
-    const img = new Image();
-    img.src = src;
+    const img = new Image()
+    img.src = src
     img.onload = () =>
-      resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    img.onerror = () => reject(new Error("image failed to load"));
-  });
+      resolve({ width: img.naturalWidth, height: img.naturalHeight })
+    img.onerror = () => reject(new Error("image failed to load"))
+  })
 
 function useSuspenseImage(src: string) {
   const { data } = useSuspenseQuery({
     queryKey: ["image", src],
     queryFn: () => fetchImageDimensions(src),
     staleTime: Infinity, // Cache forever
-  });
-  return data;
+  })
+  return data
 }
 
 function LazyImage({
@@ -73,34 +76,34 @@ function LazyImage({
   height,
   maxWidth,
 }: {
-  altText: string;
-  className: string | null;
-  height: "inherit" | number;
-  imageRef: { current: null | HTMLImageElement };
-  maxWidth: number;
-  src: string;
-  width: "inherit" | number;
+  altText: string
+  className: string | null
+  height: "inherit" | number
+  imageRef: { current: null | HTMLImageElement }
+  maxWidth: number
+  src: string
+  width: "inherit" | number
 }): JSX.Element {
-  const { width: naturalWidth, height: naturalHeight } = useSuspenseImage(src);
-  const hasResized = width !== "inherit" && height !== "inherit";
+  const { width: naturalWidth, height: naturalHeight } = useSuspenseImage(src)
+  const hasResized = width !== "inherit" && height !== "inherit"
 
-  let finalWidth: number | "inherit" = hasResized ? width : naturalWidth;
-  let finalHeight: number | "inherit" = hasResized ? height : naturalHeight;
+  let finalWidth: number | "inherit" = hasResized ? width : naturalWidth
+  let finalHeight: number | "inherit" = hasResized ? height : naturalHeight
 
   if (typeof finalWidth === "number" && typeof finalHeight === "number") {
     // Scale down if width exceeds maxWidth while maintaining aspect ratio
     if (finalWidth > maxWidth) {
-      const scale = maxWidth / finalWidth;
-      finalWidth = maxWidth;
-      finalHeight = Math.round(finalHeight * scale);
+      const scale = maxWidth / finalWidth
+      finalWidth = maxWidth
+      finalHeight = Math.round(finalHeight * scale)
     }
 
     // Scale down if height exceeds maxHeight while maintaining aspect ratio
-    const maxHeight = 500;
+    const maxHeight = 500
     if (finalHeight > maxHeight) {
-      const scale = maxHeight / finalHeight;
-      finalHeight = maxHeight;
-      finalWidth = Math.round(finalWidth * scale);
+      const scale = maxHeight / finalHeight
+      finalHeight = maxHeight
+      finalWidth = Math.round(finalWidth * scale)
     }
   }
 
@@ -108,7 +111,7 @@ function LazyImage({
     height: finalHeight,
     maxWidth,
     width: finalWidth,
-  };
+  }
 
   return (
     <img
@@ -119,7 +122,7 @@ function LazyImage({
       style={imageStyle}
       draggable="false"
     />
-  );
+  )
 }
 
 class ErrorBoundary extends React.Component<
@@ -127,19 +130,19 @@ class ErrorBoundary extends React.Component<
   { hasError: boolean }
 > {
   constructor(props: { children: React.ReactNode; fallback: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
+    super(props)
+    this.state = { hasError: false }
   }
 
   static getDerivedStateFromError() {
-    return { hasError: true };
+    return { hasError: true }
   }
 
   render() {
     if (this.state.hasError) {
-      return this.props.fallback;
+      return this.props.fallback
     }
-    return this.props.children;
+    return this.props.children
   }
 }
 
@@ -155,7 +158,7 @@ function BrokenImage(): JSX.Element {
       draggable="false"
       alt="Broken image"
     />
-  );
+  )
 }
 
 export default function ImageComponent({
@@ -167,81 +170,81 @@ export default function ImageComponent({
   maxWidth,
   resizable,
 }: {
-  altText: string;
-  caption: LexicalEditor;
-  height: "inherit" | number;
-  maxWidth: number;
-  nodeKey: NodeKey;
-  resizable: boolean;
-  showCaption: boolean;
-  src: string;
-  width: "inherit" | number;
-  captionsEnabled: boolean;
+  altText: string
+  caption: LexicalEditor
+  height: "inherit" | number
+  maxWidth: number
+  nodeKey: NodeKey
+  resizable: boolean
+  showCaption: boolean
+  src: string
+  width: "inherit" | number
+  captionsEnabled: boolean
 }): JSX.Element {
-  const imageRef = useRef<null | HTMLImageElement>(null);
+  const imageRef = useRef<null | HTMLImageElement>(null)
   const [isSelected, setSelected, clearSelection] =
-    useLexicalNodeSelection(nodeKey);
-  const [isResizing, setIsResizing] = useState<boolean>(false);
-  const [editor] = useLexicalComposerContext();
-  const [selection, setSelection] = useState<BaseSelection | null>(null);
-  const activeEditorRef = useRef<LexicalEditor | null>(null);
-  const isEditable = useLexicalEditable();
+    useLexicalNodeSelection(nodeKey)
+  const [isResizing, setIsResizing] = useState<boolean>(false)
+  const [editor] = useLexicalComposerContext()
+  const [selection, setSelection] = useState<BaseSelection | null>(null)
+  const activeEditorRef = useRef<LexicalEditor | null>(null)
+  const isEditable = useLexicalEditable()
 
   const onClick = useCallback(
     (payload: MouseEvent) => {
-      const event = payload;
+      const event = payload
 
       if (isResizing) {
-        return true;
+        return true
       }
       if (event.target === imageRef.current) {
         if (event.shiftKey) {
-          setSelected(!isSelected);
+          setSelected(!isSelected)
         } else {
-          clearSelection();
-          setSelected(true);
+          clearSelection()
+          setSelected(true)
         }
-        return true;
+        return true
       }
 
-      return false;
+      return false
     },
     [isResizing, isSelected, setSelected, clearSelection]
-  );
+  )
 
   const onRightClick = useCallback(
     (event: MouseEvent): void => {
       editor.getEditorState().read(() => {
-        const latestSelection = $getSelection();
-        const domElement = event.target as HTMLElement;
+        const latestSelection = $getSelection()
+        const domElement = event.target as HTMLElement
         if (
           domElement.tagName === "IMG" &&
           $isRangeSelection(latestSelection) &&
           latestSelection.getNodes().length === 1
         ) {
-          editor.dispatchCommand(RIGHT_CLICK_IMAGE_COMMAND, event);
+          editor.dispatchCommand(RIGHT_CLICK_IMAGE_COMMAND, event)
         }
-      });
+      })
     },
     [editor]
-  );
+  )
 
   useEffect(() => {
-    const rootElement = editor.getRootElement();
+    const rootElement = editor.getRootElement()
     const unregister = mergeRegister(
       editor.registerUpdateListener(({ editorState }) => {
-        const updatedSelection = editorState.read(() => $getSelection());
+        const updatedSelection = editorState.read(() => $getSelection())
         if ($isNodeSelection(updatedSelection)) {
-          setSelection(updatedSelection);
+          setSelection(updatedSelection)
         } else {
-          setSelection(null);
+          setSelection(null)
         }
       }),
       editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
         (_, activeEditor) => {
-          activeEditorRef.current = activeEditor;
-          return false;
+          activeEditorRef.current = activeEditor
+          return false
         },
         COMMAND_PRIORITY_LOW
       ),
@@ -261,21 +264,21 @@ export default function ImageComponent({
           if (event.target === imageRef.current) {
             // TODO This is just a temporary workaround for FF to behave like other browsers.
             // Ideally, this handles drag & drop too (and all browsers).
-            event.preventDefault();
-            return true;
+            event.preventDefault()
+            return true
           }
-          return false;
+          return false
         },
         COMMAND_PRIORITY_LOW
       )
-    );
+    )
 
-    rootElement?.addEventListener("contextmenu", onRightClick);
+    rootElement?.addEventListener("contextmenu", onRightClick)
 
     return () => {
-      unregister();
-      rootElement?.removeEventListener("contextmenu", onRightClick);
-    };
+      unregister()
+      rootElement?.removeEventListener("contextmenu", onRightClick)
+    }
   }, [
     clearSelection,
     editor,
@@ -286,7 +289,7 @@ export default function ImageComponent({
     onClick,
     onRightClick,
     setSelected,
-  ]);
+  ])
 
   const onResizeEnd = (
     nextWidth: "inherit" | number,
@@ -294,23 +297,23 @@ export default function ImageComponent({
   ) => {
     // Delay hiding the resize bars for click case
     setTimeout(() => {
-      setIsResizing(false);
-    }, 200);
+      setIsResizing(false)
+    }, 200)
 
     editor.update(() => {
-      const node = $getNodeByKey(nodeKey);
+      const node = $getNodeByKey(nodeKey)
       if ($isImageNode(node)) {
-        node.setWidthAndHeight(nextWidth, nextHeight);
+        node.setWidthAndHeight(nextWidth, nextHeight)
       }
-    });
-  };
+    })
+  }
 
   const onResizeStart = () => {
-    setIsResizing(true);
-  };
+    setIsResizing(true)
+  }
 
-  const draggable = isSelected && $isNodeSelection(selection) && !isResizing;
-  const isFocused = (isSelected || isResizing) && isEditable;
+  const draggable = isSelected && $isNodeSelection(selection) && !isResizing
+  const isFocused = (isSelected || isResizing) && isEditable
   return (
     <Suspense fallback={null}>
       <ErrorBoundary fallback={<BrokenImage />}>
@@ -340,5 +343,5 @@ export default function ImageComponent({
         />
       )}
     </Suspense>
-  );
+  )
 }

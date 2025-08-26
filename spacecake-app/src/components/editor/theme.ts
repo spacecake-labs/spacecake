@@ -1,6 +1,6 @@
-import { EditorThemeClasses } from "lexical";
+import { EditorThemeClasses } from "lexical"
 
-import "@/components/editor/theme.css";
+import "@/components/editor/theme.css"
 
 export const editorTheme: EditorThemeClasses = {
   ltr: "text-left",
@@ -123,4 +123,4 @@ export const editorTheme: EditorThemeClasses = {
   indent: "[--lexical-indent-base-value:40px]",
   mark: "",
   markOverlap: "",
-};
+}

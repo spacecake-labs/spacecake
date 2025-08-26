@@ -6,15 +6,15 @@
  * previous implementation semantics and keeping cids stable.
  */
 export function fnv1a64Hex(input: string): string {
-  let hash = 0xcbf29ce484222325n; // offset basis
-  const prime = 0x100000001b3n; // fnv prime
-  const mask64 = 0xffffffffffffffffn;
+  let hash = 0xcbf29ce484222325n // offset basis
+  const prime = 0x100000001b3n // fnv prime
+  const mask64 = 0xffffffffffffffffn
 
   for (let i = 0; i < input.length; i++) {
     // xor lower 8 bits (byte-wise)
-    hash ^= BigInt(input.charCodeAt(i) & 0xff);
-    hash = (hash * prime) & mask64;
+    hash ^= BigInt(input.charCodeAt(i) & 0xff)
+    hash = (hash * prime) & mask64
   }
 
-  return hash.toString(16).padStart(16, "0");
+  return hash.toString(16).padStart(16, "0")
 }

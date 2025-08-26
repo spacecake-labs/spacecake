@@ -1,8 +1,9 @@
-import { readFile } from "node:fs/promises";
-import { argv, exit } from "node:process";
-import Parser, { Language } from "tree-sitter";
-import Python from "tree-sitter-python";
-import type { TreeCursor } from "tree-sitter";
+import { readFile } from "node:fs/promises"
+import { argv, exit } from "node:process"
+
+import Parser, { Language } from "tree-sitter"
+import type { TreeCursor } from "tree-sitter"
+import Python from "tree-sitter-python"
 
 function makeSnippet(
   text: string,
@@ -10,50 +11,50 @@ function makeSnippet(
   to: number,
   maxLen: number = 80
 ): string {
-  const slice = text.slice(from, to).replace(/\s+/g, " ").trim();
-  if (slice.length <= maxLen) return slice;
-  return `${slice.slice(0, maxLen - 1)}…`;
+  const slice = text.slice(from, to).replace(/\s+/g, " ").trim()
+  if (slice.length <= maxLen) return slice
+  return `${slice.slice(0, maxLen - 1)}…`
 }
 
 function printCursor(cursor: TreeCursor, text: string, indent: number): void {
-  const pad = "  ".repeat(indent);
-  const snippet = makeSnippet(text, cursor.startIndex, cursor.endIndex);
+  const pad = "  ".repeat(indent)
+  const snippet = makeSnippet(text, cursor.startIndex, cursor.endIndex)
   // type [from,to] "snippet"
   console.log(
     `${pad}${cursor.nodeType} [${cursor.startIndex}, ${cursor.endIndex}] "${snippet}"`
-  );
+  )
   if (cursor.gotoFirstChild()) {
     do {
-      printCursor(cursor, text, indent + 1);
-    } while (cursor.gotoNextSibling());
-    cursor.gotoParent();
+      printCursor(cursor, text, indent + 1)
+    } while (cursor.gotoNextSibling())
+    cursor.gotoParent()
   }
 }
 
 async function main(): Promise<void> {
-  const filePath = argv[2];
+  const filePath = argv[2]
   if (!filePath) {
     console.error(
       "usage: pnpm tsx scripts/print-py-nodes-tree.ts <path-to-python-file>"
-    );
-    exit(1);
+    )
+    exit(1)
   }
 
-  let source: string;
+  let source: string
   try {
-    source = await readFile(filePath, "utf8");
+    source = await readFile(filePath, "utf8")
   } catch (err) {
-    console.error(`error reading file: ${String(err)}`);
-    exit(1);
-    return;
+    console.error(`error reading file: ${String(err)}`)
+    exit(1)
+    return
   }
 
-  const parser = new Parser();
-  parser.setLanguage(Python as Language);
+  const parser = new Parser()
+  parser.setLanguage(Python as Language)
 
-  const tree = parser.parse(source);
-  const cursor = tree.walk();
-  printCursor(cursor, source, 0);
+  const tree = parser.parse(source)
+  const cursor = tree.walk()
+  printCursor(cursor, source, 0)
 }
 
-void main();
+void main()

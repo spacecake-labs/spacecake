@@ -1,4 +1,4 @@
-import type { Block } from "@/types/parser";
+import type { Block } from "@/types/parser"
 
 /**
  * Generate a unique block ID from a block's name and kind.
@@ -19,7 +19,7 @@ import type { Block } from "@/types/parser";
  * ```
  */
 export function blockId<TKind = string>(block: Block<TKind>): string {
-  const kind = String(block.kind).replace(/\s+/g, "-");
-  const name = block.name.kind === "named" ? block.name.value : "anonymous";
-  return `${name.toLowerCase()}-${kind}`;
+  const kind = String(block.kind).replace(/\s+/g, "-")
+  const name = block.name.kind === "named" ? block.name.value : "anonymous"
+  return `${name.toLowerCase()}-${kind}`
 }
