@@ -94,23 +94,25 @@ function WorkspaceLayout() {
   }, [saveFile])
 
   return (
-    <RootLayout
-      selectedFilePath={selectedFilePath}
-      headerRightContent={<EditorToolbar onSave={saveFile} />}
-    >
+    <>
       <WorkspaceWatcher />
-      {/* integrated toolbar in header */}
-      {editorConfig && (
-        <Editor
-          // key={`${selectedFilePath ?? ""}:${fileContent?.modified ?? ""}`}
-          key={selectedFilePath ?? ""}
-          editorConfig={editorConfig}
-          onSerializedChange={(value: SerializedEditorState) => {
-            setEditorState(value)
-          }}
-        />
-      )}
-      <Outlet />
-    </RootLayout>
+      <RootLayout
+        selectedFilePath={selectedFilePath}
+        headerRightContent={<EditorToolbar onSave={saveFile} />}
+      >
+        {/* integrated toolbar in header */}
+        {editorConfig && (
+          <Editor
+            // key={`${selectedFilePath ?? ""}:${fileContent?.modified ?? ""}`}
+            key={selectedFilePath ?? ""}
+            editorConfig={editorConfig}
+            onSerializedChange={(value: SerializedEditorState) => {
+              setEditorState(value)
+            }}
+          />
+        )}
+        <Outlet />
+      </RootLayout>
+    </>
   )
 }
