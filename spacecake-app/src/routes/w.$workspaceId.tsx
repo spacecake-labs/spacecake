@@ -103,7 +103,6 @@ function WorkspaceLayout() {
         {/* integrated toolbar in header */}
         {editorConfig && (
           <Editor
-            // key={`${selectedFilePath ?? ""}:${fileContent?.modified ?? ""}`}
             key={selectedFilePath ?? ""}
             editorConfig={editorConfig}
             onSerializedChange={(value: SerializedEditorState) => {
