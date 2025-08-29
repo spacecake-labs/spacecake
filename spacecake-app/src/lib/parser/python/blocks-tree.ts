@@ -18,7 +18,7 @@
 // /**
 //  * Convert a docstring block to markdown header text.
 //  */
-// export function docToBlock(block: PyBlock): DelimitedString {
+// export function delimitDocString(block: PyBlock): DelimitedString {
 //   // parseDelimitedString handles all the pattern matching automatically
 //   return parseDelimitedString(block.text, {
 //     prefixPattern: /^(r?""")/, // consume r""" or """ at start
@@ -26,7 +26,7 @@
 //   });
 // }
 
-// export function codeToBlock(block: PyBlock): DelimitedString {
+// export function delimitCodeString(block: PyBlock): DelimitedString {
 //   const result = parseDelimitedString(block.text, {
 //     prefixPattern: /^[\s\n]*/, // consume any leading whitespace and newlines
 //     suffixPattern: /[\s\n]*$/, // consume any trailing whitespace and newlines

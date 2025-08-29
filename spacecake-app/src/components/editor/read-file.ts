@@ -12,9 +12,9 @@ import { FileType } from "@/types/workspace"
 import type { FileContent } from "@/types/workspace"
 import { convertToSourceView } from "@/lib/editor"
 import { parsePythonContentStreaming } from "@/lib/parser/python/blocks"
+import { delimitPyBlock } from "@/components/editor/block-utils"
+import { mdBlockToNode } from "@/components/editor/markdown-utils"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
-
-import { delimitPyBlock } from "./block-utils"
 
 /**
  * Converts Python blocks into Lexical nodes with progressive rendering
@@ -36,8 +36,16 @@ export async function convertPythonBlocksToLexical(
       editor.update(
         () => {
           const root = $getRoot()
-          const delimitedNodeElement = delimitPyBlock(block, file.path)
-          root.append(delimitedNodeElement)
+
+          if (
+            block.kind === "markdown inline" ||
+            block.kind === "markdown block"
+          ) {
+            root.append(mdBlockToNode(block))
+          } else {
+            const delimitedNode = delimitPyBlock(block, file.path)
+            root.append(delimitedNode)
+          }
         },
         { tag: INITIAL_LOAD_TAG }
       )

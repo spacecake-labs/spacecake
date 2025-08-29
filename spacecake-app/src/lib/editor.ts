@@ -1,27 +1,23 @@
 import { InitialConfigType } from "@lexical/react/LexicalComposer"
-import { $createHeadingNode, $isHeadingNode } from "@lexical/rich-text"
+import { $isHeadingNode } from "@lexical/rich-text"
 import { getDefaultStore } from "jotai"
 import {
-  $createTextNode,
   $getRoot,
+  $isParagraphNode,
   LexicalEditor,
   SerializedEditorState,
 } from "lexical"
 
-import type { PyBlock } from "@/types/parser"
-import { FileContent, FileTreeItem } from "@/types/workspace"
+import { FileContent } from "@/types/workspace"
 import { viewKindAtom } from "@/lib/atoms/atoms"
 import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
-import { codeToBlock, docToBlock } from "@/lib/parser/python/blocks"
 import { editorConfig } from "@/components/editor/editor"
+import { nodeToMdBlock } from "@/components/editor/markdown-utils"
 import {
   $createCodeBlockNode,
   $isCodeBlockNode,
 } from "@/components/editor/nodes/code-node"
-import {
-  $getDelimitedString,
-  delimitedNode,
-} from "@/components/editor/nodes/delimited"
+import { $getDelimitedString } from "@/components/editor/nodes/delimited"
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 
 // Pure function to create editor config from serialized state
@@ -90,6 +86,10 @@ export function serializeEditorToPython(editor: LexicalEditor): string {
         return result + delimitedString
       }
 
+      if ($isParagraphNode(child)) {
+        return result + nodeToMdBlock(child)
+      }
+
       const textContent = child.getTextContent()
 
       return result + (textContent ? textContent + "\n" : "")
@@ -104,52 +104,52 @@ export function serializeEditorToPython(editor: LexicalEditor): string {
 // baseline handling now lives in serializeEditorToPython
 /**
  * Reconcile the current editor tree against a new set of parsed Python blocks.
- */
-export function reconcilePythonBlocks(
-  editor: LexicalEditor,
-  filePath: FileTreeItem["path"],
-  newBlocks: PyBlock[]
-): void {
-  editor.update(() => {
-    const root = $getRoot()
-    root.clear()
+//  */
+// export function reconcilePythonBlocks(
+//   editor: LexicalEditor,
+//   filePath: FileTreeItem["path"],
+//   newBlocks: PyBlock[]
+// ): void {
+//   editor.update(() => {
+//     const root = $getRoot()
+//     root.clear()
 
-    // process all blocks in order
-    for (
-      let reconciledBlockCount = 0;
-      reconciledBlockCount < newBlocks.length;
-      reconciledBlockCount++
-    ) {
-      const block = newBlocks[reconciledBlockCount]
+//     // process all blocks in order
+//     for (
+//       let reconciledBlockCount = 0;
+//       reconciledBlockCount < newBlocks.length;
+//       reconciledBlockCount++
+//     ) {
+//       const block = newBlocks[reconciledBlockCount]
 
-      // If module docstring
-      if (reconciledBlockCount === 0 && block.kind === "doc") {
-        const delimitedString = docToBlock(block.text)
-        // Create DelimitedNode instead of converting to markdown
-        const moduleDocNode = delimitedNode(
-          (text: string) =>
-            $createHeadingNode("h2").append($createTextNode(text)),
-          delimitedString
-        )
-        root.append(moduleDocNode)
-      } else {
-        const delimitedString = codeToBlock(block.text)
-        const codeNode = delimitedNode(
-          (text: string) =>
-            $createCodeBlockNode({
-              code: text,
-              language: "python",
-              meta: String(block.kind),
-              src: filePath,
-              block: block,
-            }),
-          delimitedString
-        )
-        root.append(codeNode)
-      }
-    }
-  })
-}
+//       // If module docstring
+//       if (reconciledBlockCount === 0 && block.kind === "doc") {
+//         const delimitedString = delimitPythonDocString(block.text)
+//         // Create DelimitedNode instead of converting to markdown
+//         const moduleDocNode = delimitedNode(
+//           (text: string) =>
+//             $createHeadingNode("h2").append($createTextNode(text)),
+//           delimitedString
+//         )
+//         root.append(moduleDocNode)
+//       } else {
+//         const delimitedString = delimitWithSpaceConsumer(block.text)
+//         const codeNode = delimitedNode(
+//           (text: string) =>
+//             $createCodeBlockNode({
+//               code: text,
+//               language: "python",
+//               meta: String(block.kind),
+//               src: filePath,
+//               block: block,
+//             }),
+//           delimitedString
+//         )
+//         root.append(codeNode)
+//       }
+//     }
+//   })
+// }
 
 /**
  * Converts file content to a single source view (CodeMirror block)

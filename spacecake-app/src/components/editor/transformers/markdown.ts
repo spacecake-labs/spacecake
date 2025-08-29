@@ -11,7 +11,7 @@ import {
 } from "@lexical/markdown"
 import { $createNodeSelection, $setSelection, LexicalNode } from "lexical"
 
-import { codeToBlock } from "@/lib/parser/python/blocks"
+import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
 import {
   $createCodeBlockNode,
   $isCodeBlockNode,
@@ -72,7 +72,7 @@ export function createCodeTransformer(): MultilineElementTransformer {
       const language = startMatch[1] ?? ""
       const code = linesInBetween?.join("\n") ?? ""
 
-      const delimitedString = codeToBlock("\n" + code)
+      const delimitedString = delimitWithSpaceConsumer("\n" + code)
 
       const codeNode = delimitedNode(
         (text: string) =>
@@ -157,6 +157,15 @@ export const LINKED_IMAGE: TextMatchTransformer = {
   trigger: ")",
   type: "text-match",
 }
+
+// export const PyContextTransformer: TextMatchTransformer = {
+//   dependencies: [ElementNode],
+//   export: (node) => {
+//     if (!$isPyContextNode(node)) {
+//       return null
+//     }
+//   },
+// }
 
 // Filter out conflicting code transformers
 const MULTILINE_ELEMENT_TRANSFORMERS_FILTERED =

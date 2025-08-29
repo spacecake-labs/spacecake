@@ -23,8 +23,6 @@ const isTest = process.env.IS_PLAYWRIGHT === "true"
 const showWindow = process.env.SHOW_WINDOW === "true"
 
 const createWindow = () => {
-  console.log("createWindow")
-
   // Create the browser window.
 
   const mainWindow = new BrowserWindow({

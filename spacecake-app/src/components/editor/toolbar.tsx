@@ -68,7 +68,7 @@ export function EditorToolbar({ onSave }: { onSave: () => void }) {
             variant="ghost"
             size="sm"
             onClick={handleViewToggle}
-            className="h-7 px-2 text-xs"
+            className="h-7 px-2 text-xs cursor-pointer"
             aria-label={getCurrentViewLabel()}
             title={getToggleTitle()}
           >
