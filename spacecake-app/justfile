@@ -13,8 +13,8 @@ tc:
 check:
     just format && just lint && just tc
 
-unit:
-    pnpm run unit-test
+unit filter="":
+    pnpm run unit-test {{filter}}
 
 e2e filter="":
     pnpm run package && pnpm run e2e-test --grep="{{filter}}"
@@ -24,6 +24,9 @@ e2e-show filter="":
 
 test:
     just unit && just e2e
+
+coverage:
+    pnpm run package && pnpm run coverage
 
 codegen:
     pnpm run package && npx tsx scripts/playwright-codegen.ts

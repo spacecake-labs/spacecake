@@ -26,6 +26,8 @@ vi.mock("@/lib/parser/python/blocks", () => ({
       startLine: 2,
     }
   }),
+  delimitDocString: vi.fn(() => ({ prefix: "", between: "", suffix: "" })),
+  delimitCodeString: vi.fn(() => ({ prefix: "", between: "", suffix: "" })),
 }))
 
 // Mock Lexical components
@@ -84,6 +86,7 @@ vi.mock("@/components/editor/nodes/code-node", () => ({
 vi.mock("@/components/editor/nodes/delimited", () => ({
   $createDelimitedNode: vi.fn(() => ({})),
   DelimitedNode: vi.fn(),
+  delimitedNode: vi.fn(() => ({})),
 }))
 
 vi.mock("@/components/editor/nodes/emoji-node", () => ({
@@ -98,6 +101,10 @@ vi.mock("@/components/editor/nodes/image-node", () => ({
   ImageNode: vi.fn(),
   $createImageNode: vi.fn(() => ({})),
   $isImageNode: vi.fn(() => false),
+}))
+
+vi.mock("@/components/editor/markdown-utils", () => ({
+  delimitMdBlock: vi.fn(() => ({})),
 }))
 
 vi.mock("@/components/editor/image-component", () => ({

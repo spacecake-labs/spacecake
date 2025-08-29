@@ -1,36 +1,9 @@
 import { SyntaxNode } from "@lezer/common"
 import { parser } from "@lezer/python"
 
-import type {
-  BlockName,
-  DelimitedString,
-  PyBlock,
-  PyBlockHigherKind,
-  PyBlockKind,
-} from "@/types/parser"
+import type { BlockName, PyBlock, PyBlockHigherKind } from "@/types/parser"
 import { anonymousName, namedBlock } from "@/types/parser"
 import { fnv1a64Hex } from "@/lib/hash"
-import { parseDelimitedString } from "@/lib/parser/delimited-string"
-
-/**
- * Convert a docstring block to markdown header text.
- */
-export function docToBlock(text: string): DelimitedString {
-  // parseDelimitedString handles all the pattern matching automatically
-  return parseDelimitedString(text, {
-    prefixPattern: /^(r?""")/, // consume r""" or """ at start
-    suffixPattern: /"""$/, // consume """ at end
-  })
-}
-
-export function codeToBlock(text: string): DelimitedString {
-  const result = parseDelimitedString(text, {
-    prefixPattern: /^[\s\n]*/, // consume any leading whitespace and newlines
-    suffixPattern: /[\s\n]*$/, // consume any trailing whitespace and newlines
-  })
-
-  return result
-}
 
 function isDataclass(node: SyntaxNode, code: string): boolean {
   if (node.name !== "DecoratedStatement") return false
@@ -84,10 +57,13 @@ function isDocstring(node: SyntaxNode, code: string): boolean {
   return text.endsWith('"""')
 }
 
-function blockKind(
-  node: SyntaxNode,
-  code: string
-): PyBlockKind | PyBlockHigherKind | null {
+function isMdocString(node: SyntaxNode, code: string): boolean {
+  if (node.name !== "Comment") return false
+  const text = code.slice(node.from, node.to)
+  return text.startsWith("###")
+}
+
+function blockKind(node: SyntaxNode, code: string): PyBlock["kind"] | null {
   switch (node.name) {
     case "ExpressionStatement": {
       if (isDocstring(node, code)) return "doc"
@@ -125,6 +101,11 @@ function blockKind(
         return "main"
       }
       return null
+    }
+    case "Comment": {
+      // const directive = parsePythonDirective(code.slice(node.from, node.to))
+      // return Option.getOrNull(directive)?.kind ?? null
+      return isMdocString(node, code) ? "markdown block" : null
     }
     default:
       return null
@@ -181,6 +162,7 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
   let miscNodes: SyntaxNode[] = []
   // comments accumulate into the next recognised block
   let commentNodes: SyntaxNode[] = []
+  let mdNodes: SyntaxNode[] = []
   let prevBlockEndByte = 0
 
   // calculate line number for a block, accounting for prefix whitespace
@@ -229,6 +211,25 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
     return block
   }
 
+  const emitMdBlock = (): PyBlock => {
+    const first = mdNodes[0]
+    const last = mdNodes[mdNodes.length - 1]
+    const startByte = prevBlockEndByte
+    const raw = code.slice(startByte, last.to)
+    const block: PyBlock = {
+      kind: "markdown block",
+      name: anonymousName(),
+      startByte,
+      endByte: last.to,
+      text: raw,
+      startLine: countLinesBefore(first.from),
+      cid: computeCid("markdown block", "anonymous", raw),
+      cidAlgo: "fnv1a64-norm1",
+    }
+    mdNodes = []
+    return block
+  }
+
   function* flushImportBlock() {
     if (importNodes.length) {
       const importBlock = emitImportBlock()
@@ -245,6 +246,14 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
     }
   }
 
+  function* flushMdBlock() {
+    if (mdNodes.length) {
+      const mdBlock = emitMdBlock()
+      prevBlockEndByte = mdBlock.endByte
+      yield mdBlock
+    }
+  }
+
   for (
     let node: SyntaxNode | null = tree.topNode.firstChild;
     node;
@@ -257,28 +266,41 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
       if (node.name === "⚠") continue
       // comments accumulate into the next recognised block
       if (node.name === "Comment") {
-        commentNodes.push(node)
+        if (mdNodes.length) {
+          mdNodes.push(node)
+        } else {
+          commentNodes.push(node)
+        }
         continue
       }
 
       // This is a misc node, so flush any pending imports first.
       yield* flushImportBlock()
+      yield* flushMdBlock()
 
       // anything else accumulates into a `misc` block
       // consume any accumulated comments
       miscNodes.push(...commentNodes, node)
       commentNodes = []
+
       continue
     }
 
     if (kind === "import") {
       // This is an import node, so flush any pending misc block first.
       yield* flushMiscBlock()
+      yield* flushMdBlock()
 
       // consume any accumulated comments
       importNodes.push(...commentNodes, node)
       commentNodes = []
+
       // continue to next iteration
+      continue
+    }
+
+    if (kind === "markdown block") {
+      mdNodes.push(node)
       continue
     }
 
@@ -286,6 +308,7 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
     // Flush any pending block, whichever it may be.
     yield* flushImportBlock()
     yield* flushMiscBlock()
+    yield* flushMdBlock()
 
     const startByte = prevBlockEndByte
     const raw = code.slice(startByte, node.to)
@@ -311,6 +334,7 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
   // Finally, flush anything left at the end of the file.
   yield* flushImportBlock()
   yield* flushMiscBlock()
+  yield* flushMdBlock()
 }
 
 /**

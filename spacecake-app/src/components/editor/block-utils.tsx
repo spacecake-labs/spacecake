@@ -2,7 +2,8 @@ import { $createHeadingNode } from "@lexical/rich-text"
 import { $createTextNode } from "lexical"
 
 import type { PyBlock } from "@/types/parser"
-import { codeToBlock, docToBlock } from "@/lib/parser/python/blocks"
+import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
+import { delimitPythonDocString } from "@/lib/parser/python/delimit"
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { delimitedNode } from "@/components/editor/nodes/delimited"
 
@@ -11,13 +12,13 @@ import { delimitedNode } from "@/components/editor/nodes/delimited"
  */
 export function delimitPyBlock(block: PyBlock, filePath: string) {
   if (block.kind === "doc") {
-    const delimitedString = docToBlock(block.text)
+    const delimitedString = delimitPythonDocString(block.text)
     return delimitedNode(
       (text: string) => $createHeadingNode("h2").append($createTextNode(text)),
       delimitedString
     )
   } else {
-    const delimitedString = codeToBlock(block.text)
+    const delimitedString = delimitWithSpaceConsumer(block.text)
     return delimitedNode(
       (text: string) =>
         $createCodeBlockNode({
