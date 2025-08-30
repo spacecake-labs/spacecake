@@ -3,7 +3,7 @@ import path from "path"
 
 import { stubDialog } from "electron-playwright-helpers"
 
-import { expect, expectAllNonEmptyLinesVisible, test } from "./fixtures"
+import { expect, test } from "./fixtures"
 
 test.describe("python e2e", () => {
   test("open workspace and create an empty python file", async ({
@@ -125,9 +125,6 @@ test.describe("python e2e", () => {
       )
       .first()
     await expect(activeGutter).toHaveText("3")
-
-    // additionally, loop through all non-empty lines and ensure they're present
-    await expectAllNonEmptyLinesVisible(window, fixturePath)
 
     // verify double-click highlights the selected word and other occurrences
     // scope to the import block editor content

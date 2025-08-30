@@ -60,7 +60,7 @@ function isDocstring(node: SyntaxNode, code: string): boolean {
 function isMdocString(node: SyntaxNode, code: string): boolean {
   if (node.name !== "Comment") return false
   const text = code.slice(node.from, node.to)
-  return text.startsWith("###")
+  return text.startsWith("#🍰")
 }
 
 function blockKind(node: SyntaxNode, code: string): PyBlock["kind"] | null {

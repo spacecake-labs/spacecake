@@ -24,5 +24,13 @@ export function delimitPythonDocString(text: string): DelimitedString {
 }
 
 export function stripPythonCommentPrefixes(text: string): string {
-  return text.replace(/^# ?/gm, "")
+  return text.replace(/^#\s?/gm, "")
+}
+
+export function stripPythonMdocPrefixes(text: string): string {
+  return text.replace(/^#🍰\s?/gm, "")
+}
+
+export function addPythonMdocPrefixes(text: string): string {
+  return `#🍰 ${text}`.replace(/\n/g, "\n#🍰 ")
 }
