@@ -81,11 +81,28 @@ export async function expectAllNonEmptyLinesVisible(
       .replace(/"""$/, "")
       .trim()
 
+    // handle python markdown directives (strip #🍰 prefixes)
+    const strippedMdoc = trimmed.replace(/^#🍰\s?/, "").trim()
+
     if (trimmed.startsWith('"""') || trimmed.startsWith('r"""')) {
       await expect(page.getByText(strippedTripleQuotes).first()).toBeVisible()
     } else if (trimmed.endsWith('"""')) {
       // closing triple quote line in fixture; content likely on previous line, so skip
       continue
+    } else if (trimmed.startsWith("#🍰")) {
+      // markdown directive line - check for the content without the prefix
+      if (strippedMdoc.length > 0) {
+        // If it's a markdown header (starts with #), look for the text without the header syntax
+        if (strippedMdoc.startsWith("#")) {
+          const headerText = strippedMdoc.replace(/^#+\s*/, "").trim()
+          if (headerText.length > 0) {
+            await expect(page.getByText(headerText).first()).toBeVisible()
+          }
+        } else {
+          // Regular markdown content
+          await expect(page.getByText(strippedMdoc).first()).toBeVisible()
+        }
+      }
     } else {
       await expect(page.getByText(trimmed).first()).toBeVisible()
     }

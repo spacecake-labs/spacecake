@@ -9,20 +9,16 @@ import type { MdBlockKind } from "@/types/parser"
 import { Block } from "@/types/parser"
 import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
 import { parseDirective } from "@/lib/parser/directives"
+import {
+  addPythonMdocPrefixes,
+  stripPythonMdocPrefixes,
+} from "@/lib/parser/python/utils"
 import { SPACE_CONSUMER_PATTERN } from "@/lib/parser/regex"
 import {
   $getDelimiters,
   delimitedNode,
 } from "@/components/editor/nodes/delimited"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
-
-export function stripPythonMdocPrefixes(text: string): string {
-  return text.replace(/^#{3}\s?/gm, "")
-}
-
-export function addPythonMdocPrefixes(text: string): string {
-  return `### ${text}`.replace(/\n/g, "\n### ")
-}
 
 export function mdBlockToNode(block: Block<MdBlockKind>) {
   const delimitedString = delimitWithSpaceConsumer(block.text)

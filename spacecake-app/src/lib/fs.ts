@@ -1,9 +1,54 @@
 import type { FileContent } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
 
-const openDirectory = async (): Promise<string | null> => {
+// Define the interface for the electron API
+export interface ElectronAPI {
+  showOpenDialog: (options: { properties: string[] }) => Promise<{
+    canceled: boolean
+    filePaths: string[]
+  }>
+  readFile: (filePath: string) => Promise<{
+    success: boolean
+    file?: FileContent
+    error?: string
+  }>
+  saveFile: (
+    filePath: string,
+    content: string
+  ) => Promise<{
+    success: boolean
+    error?: string
+  }>
+  createFile: (
+    filePath: string,
+    content: string
+  ) => Promise<{
+    success: boolean
+    error?: string
+  }>
+  createFolder: (folderPath: string) => Promise<{
+    success: boolean
+    error?: string
+  }>
+  renameFile: (
+    oldPath: string,
+    newPath: string
+  ) => Promise<{
+    success: boolean
+    error?: string
+  }>
+  deleteFile: (filePath: string) => Promise<{
+    success: boolean
+    error?: string
+  }>
+}
+
+// Parameterize functions to accept the API as a dependency
+export const openDirectory = async (
+  electronAPI: ElectronAPI = window.electronAPI
+): Promise<string | null> => {
   try {
-    const result = await window.electronAPI.showOpenDialog({
+    const result = await electronAPI.showOpenDialog({
       properties: ["openDirectory"],
     })
 
@@ -13,17 +58,18 @@ const openDirectory = async (): Promise<string | null> => {
     }
     return null
   } catch (error) {
-    console.error("Error opening folder:", error)
+    console.error("error opening folder:", error)
     return null
   }
 }
 
-const createFile = async (
+export const createFile = async (
   filePath: string,
-  content: string = ""
+  content: string = "",
+  electronAPI: ElectronAPI = window.electronAPI
 ): Promise<boolean> => {
   try {
-    const result = await window.electronAPI.createFile(filePath, content)
+    const result = await electronAPI.createFile(filePath, content)
 
     if (result.success) {
       return true
@@ -37,9 +83,12 @@ const createFile = async (
   }
 }
 
-const createFolder = async (folderPath: string): Promise<boolean> => {
+export const createFolder = async (
+  folderPath: string,
+  electronAPI: ElectronAPI = window.electronAPI
+): Promise<boolean> => {
   try {
-    const result = await window.electronAPI.createFolder(folderPath)
+    const result = await electronAPI.createFolder(folderPath)
 
     if (result.success) {
       return true
@@ -53,9 +102,12 @@ const createFolder = async (folderPath: string): Promise<boolean> => {
   }
 }
 
-const readFile = async (filePath: string): Promise<FileContent | null> => {
+export const readFile = async (
+  filePath: string,
+  electronAPI: ElectronAPI = window.electronAPI
+): Promise<FileContent | null> => {
   try {
-    const result = await window.electronAPI.readFile(filePath)
+    const result = await electronAPI.readFile(filePath)
 
     if (result.success && result.file) {
       // compute cid from file content
@@ -74,12 +126,13 @@ const readFile = async (filePath: string): Promise<FileContent | null> => {
   }
 }
 
-const renameFile = async (
+export const renameFile = async (
   oldPath: string,
-  newPath: string
+  newPath: string,
+  electronAPI: ElectronAPI = window.electronAPI
 ): Promise<boolean> => {
   try {
-    const result = await window.electronAPI.renameFile(oldPath, newPath)
+    const result = await electronAPI.renameFile(oldPath, newPath)
 
     if (result.success) {
       return true
@@ -93,9 +146,12 @@ const renameFile = async (
   }
 }
 
-const deleteFile = async (filePath: string): Promise<boolean> => {
+export const deleteFile = async (
+  filePath: string,
+  electronAPI: ElectronAPI = window.electronAPI
+): Promise<boolean> => {
   try {
-    const result = await window.electronAPI.deleteFile(filePath)
+    const result = await electronAPI.deleteFile(filePath)
 
     if (result.success) {
       return true
@@ -109,12 +165,13 @@ const deleteFile = async (filePath: string): Promise<boolean> => {
   }
 }
 
-const saveFile = async (
+export const saveFile = async (
   filePath: string,
-  content: string
+  content: string,
+  electronAPI: ElectronAPI = window.electronAPI
 ): Promise<boolean> => {
   try {
-    const result = await window.electronAPI.saveFile(filePath, content)
+    const result = await electronAPI.saveFile(filePath, content)
     if (result.success) {
       return true
     } else {
@@ -125,14 +182,4 @@ const saveFile = async (
     console.error("error saving file:", error)
     return false
   }
-}
-
-export {
-  openDirectory,
-  createFile,
-  createFolder,
-  readFile,
-  renameFile,
-  deleteFile,
-  saveFile,
 }

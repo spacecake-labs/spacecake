@@ -12,4 +12,4 @@ export const DIRECTIVE_PATTERN = /@(\S+)\s+(::|:)\s*(.*)/
 
 export const PYTHON_COMMENT_PREFIX_PATTERN = /#\s?/
 
-export const PYTHON_MD_PREFIX_PATTERN = /#{3}\s?/
+export const PYTHON_MD_PREFIX_PATTERN = /#🍰\s?/
