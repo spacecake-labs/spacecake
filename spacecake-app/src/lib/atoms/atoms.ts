@@ -3,7 +3,7 @@ import {
   $convertToMarkdownString,
 } from "@lexical/markdown"
 import type { InitialConfigType } from "@lexical/react/LexicalComposer"
-import { atom } from "jotai"
+import { atom, WritableAtom } from "jotai"
 import { atomEffect } from "jotai-effect"
 import { atomWithStorage } from "jotai/utils"
 import { SerializedEditorState } from "lexical"
@@ -27,6 +27,19 @@ import { supportedViews, supportsBlockView } from "@/lib/language-support"
 import { fileTypeFromExtension } from "@/lib/workspace"
 import { convertPythonBlocksToLexical } from "@/components/editor/read-file"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
+
+export function atomWithToggle(
+  initialValue?: boolean
+): WritableAtom<boolean, [boolean?], void> {
+  const anAtom = atom(initialValue, (get, set, nextValue?: boolean) => {
+    const update = nextValue ?? !get(anAtom)
+    set(anAtom, update)
+  })
+
+  return anAtom as WritableAtom<boolean, [boolean?], void>
+}
+
+export const commandMenuOpenAtom = atomWithToggle(false)
 
 export const workspaceAtom = atom<WorkspaceInfo | null>(null)
 export const loadingAtom = atom<boolean>(false)
