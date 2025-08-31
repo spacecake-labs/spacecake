@@ -8,17 +8,8 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command"
+import { SlashCommandOption } from "@/components/editor/slash-commands/slash-command-options"
 import { TypographyInlineCode } from "@/components/typography"
-
-interface SlashCommandOption {
-  key: string
-  title: string
-  icon?: React.ReactElement
-  keywords: Array<string>
-  keyboardShortcut?: string
-  onSelect: (queryString: string) => void
-  setRefElement: (element: HTMLElement | null) => void
-}
 
 interface SlashCommandMenuProps {
   options: SlashCommandOption[]
