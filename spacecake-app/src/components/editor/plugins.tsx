@@ -13,7 +13,7 @@ import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin
 import { TablePlugin } from "@lexical/react/LexicalTablePlugin"
 import { atom, useAtom } from "jotai"
 
-import { CommandMenu } from "@/components/command-menu"
+// import { CommandMenu } from "@/components/command-menu"
 // import { CodeHighlightPlugin } from "@/components/editor/plugins/code-highlighter";
 // import { CodeBlockPlugin } from "@/components/editor/plugins/code-block";
 
@@ -69,8 +69,8 @@ export const Plugins = React.memo(function Plugins() {
         {/* <CodeToolbarPlugin /> */}
         <MarkdownShortcutPlugin transformers={MARKDOWN_TRANSFORMERS} />
 
-        {/* Command Menu - accessible via Cmd+J */}
-        <CommandMenu />
+        {/* Command Menu - accessible via Cmd+k */}
+        {/* <CommandMenu /> */}
         <SlashCommandPlugin />
       </div>
 
