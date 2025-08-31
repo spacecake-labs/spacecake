@@ -7,9 +7,11 @@ import { MenuOption } from "@lexical/react/LexicalTypeaheadMenuPlugin"
 import { $createHeadingNode } from "@lexical/rich-text"
 import { $setBlocksType } from "@lexical/selection"
 import {
+  $createNodeSelection,
   $createParagraphNode,
   $getSelection,
   $isRangeSelection,
+  $setSelection,
   LexicalEditor,
 } from "lexical"
 import {
@@ -23,6 +25,8 @@ import {
   // Quote,
   Type,
 } from "lucide-react"
+
+import { $createCodeBlockNode } from "@/components/editor/nodes/code-node"
 
 export class SlashCommandOption extends MenuOption {
   title: string
@@ -61,10 +65,48 @@ export function slashCommandOptions(
   return [
     new SlashCommandOption("code", {
       icon: <Code className="w-4 h-4" />,
-      keywords: ["code", "block", "snippet", "javascript", "python"],
-      onSelect: () => {
-        // placeholder for code block action
-      },
+      keywords: [
+        "code",
+        "codeblock",
+        "snippet",
+        "javascript",
+        "python",
+        "markdown",
+      ],
+      onSelect: () =>
+        editor.update(() => {
+          const selection = $getSelection()
+
+          if ($isRangeSelection(selection)) {
+            if (selection.isCollapsed()) {
+              const codeNode = $createCodeBlockNode({
+                code: "",
+                language: "",
+                // meta: String(block.kind),
+                // src: filePath,
+                // block: block,
+              })
+              selection.insertNodes([codeNode])
+
+              const nodeSelection = $createNodeSelection()
+              nodeSelection.add(codeNode.getKey())
+              $setSelection(nodeSelection)
+              codeNode.select()
+            } else {
+              // Will this ever happen?
+              const textContent = selection.getTextContent()
+              const codeNode = $createCodeBlockNode({
+                code: textContent,
+                language: "",
+                // meta: String(block.kind),
+                // src: filePath,
+                // block: block,
+              })
+              selection.insertNodes([codeNode])
+              selection.insertRawText(textContent)
+            }
+          }
+        }),
     }),
     new SlashCommandOption("text", {
       icon: <Type className="w-4 h-4" />,
