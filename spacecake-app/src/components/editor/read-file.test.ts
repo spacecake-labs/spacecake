@@ -109,4 +109,28 @@ import pandas as pd
       expect(paragraphChildren[2].getTextContent()).toBe("a paragraph")
     })
   })
+  it("should create an empty code block if the file is empty", async () => {
+    const emptyCode = ``
+    const editor = createEditor({ nodes })
+    const file: FileContent = {
+      name: "test.py",
+      path: "/test.py",
+      kind: "file",
+      etag: { mtimeMs: Date.now(), size: 50 },
+      fileType: FileType.Python,
+      cid: "test-cid",
+      content: emptyCode,
+    }
+    await convertPythonBlocksToLexical(file.content, file, editor)
+
+    console.log(JSON.stringify(editor.getEditorState().toJSON(), null, 2))
+
+    editor.getEditorState().read(() => {
+      const root = $getRoot()
+      const children = root.getChildren()
+      expect(children).toHaveLength(1)
+      expect(children[0].getType()).toBe("codeblock")
+      expect(children[0].getTextContent()).toBe("")
+    })
+  })
 })
