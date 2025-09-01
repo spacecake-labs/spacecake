@@ -28,7 +28,8 @@ export async function convertPythonBlocksToLexical(
   editor: LexicalEditor,
   streamParser: (
     content: string
-  ) => AsyncGenerator<PyBlock> = parsePythonContentStreaming
+  ) => AsyncGenerator<PyBlock> = parsePythonContentStreaming,
+  onComplete?: () => void
 ) {
   try {
     // Start with an empty editor
@@ -70,6 +71,8 @@ export async function convertPythonBlocksToLexical(
         root.append(paragraph)
       })
     }
+
+    onComplete?.()
   } catch {
     toast("failed to parse python file")
     // Fallback to plaintext
@@ -81,6 +84,8 @@ export async function convertPythonBlocksToLexical(
       paragraph.append($createTextNode(content))
       root.append(paragraph)
     })
+
+    onComplete?.()
   }
 }
 
@@ -90,7 +95,8 @@ export async function convertPythonBlocksToLexical(
  */
 export function getInitialEditorStateFromContent(
   file: FileContent,
-  viewKind?: "block" | "source"
+  viewKind?: "block" | "source",
+  onComplete?: () => void
 ) {
   return (editor: LexicalEditor) => {
     // If viewKind is explicitly provided, use it
@@ -102,7 +108,13 @@ export function getInitialEditorStateFromContent(
     // Default behavior based on file type
     if (file.fileType === FileType.Python) {
       // Python defaults to block view if no view specified
-      convertPythonBlocksToLexical(file.content, file, editor)
+      convertPythonBlocksToLexical(
+        file.content,
+        file,
+        editor,
+        undefined,
+        onComplete
+      )
     } else if (file.fileType === FileType.Markdown) {
       // Markdown defaults to block view (rendered markdown) when viewKind is "block" or undefined
       editor.update(() => {
