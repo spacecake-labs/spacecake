@@ -1,4 +1,10 @@
-import { $getNodeByKey, LexicalEditor, LexicalNode } from "lexical"
+import {
+  $addUpdateTag,
+  $getNodeByKey,
+  LexicalEditor,
+  LexicalNode,
+  SKIP_DOM_SELECTION_TAG,
+} from "lexical"
 
 import { PyBlock } from "@/types/parser"
 import { parseCodeBlocks } from "@/lib/parser/python/blocks"
@@ -24,6 +30,7 @@ export async function maybeSplitBlock(editor: LexicalEditor, nodeKey: string) {
 
   if (blocks.length > 1) {
     editor.update(() => {
+      $addUpdateTag(SKIP_DOM_SELECTION_TAG)
       let currentNode: LexicalNode = node
 
       if (blocks.length > 1) {

@@ -3,12 +3,14 @@ import { EditorView } from "@codemirror/view"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { atom, useSetAtom } from "jotai"
 import {
+  $addUpdateTag,
   $createParagraphNode,
   $getNodeByKey,
   $isParagraphNode,
   LexicalEditor,
   LexicalNode,
   ParagraphNode,
+  SKIP_DOM_SELECTION_TAG,
 } from "lexical"
 
 import { debounce } from "@/lib/utils"
@@ -94,6 +96,7 @@ export function useCodeMirrorRef(
             e.preventDefault()
             e.stopPropagation()
             editor.update(() => {
+              $addUpdateTag(SKIP_DOM_SELECTION_TAG)
               const node = $getNodeByKey(nodeKey)!
               view.contentDOM.blur()
               const next = node.getNextSibling()
@@ -135,6 +138,7 @@ export function useCodeMirrorRef(
             e.preventDefault()
             e.stopPropagation()
             editor.update(() => {
+              $addUpdateTag(SKIP_DOM_SELECTION_TAG)
               const node = $getNodeByKey(nodeKey)!
               view.contentDOM.blur()
               const prev = node.getPreviousSibling()
@@ -166,6 +170,7 @@ export function useCodeMirrorRef(
         const docLength = state?.doc.length
         if (docLength === 0) {
           editor.update(() => {
+            $addUpdateTag(SKIP_DOM_SELECTION_TAG)
             const node = $getNodeByKey(nodeKey)!
             node.remove()
           })

@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import { $isCodeNode, CodeNode } from "@lexical/code"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import {
+  $addUpdateTag,
   $createParagraphNode,
   $getSelection,
   $isElementNode,
@@ -12,6 +13,7 @@ import {
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   LexicalCommand,
+  SKIP_DOM_SELECTION_TAG,
 } from "lexical"
 
 /**
@@ -37,6 +39,7 @@ export function CodeBlockPlugin(): null {
     event?.preventDefault()
 
     editor.update(() => {
+      $addUpdateTag(SKIP_DOM_SELECTION_TAG)
       const paragraph = $createParagraphNode()
       codeNode.insertBefore(paragraph)
       paragraph.select()
@@ -52,6 +55,7 @@ export function CodeBlockPlugin(): null {
     event?.preventDefault()
 
     editor.update(() => {
+      $addUpdateTag(SKIP_DOM_SELECTION_TAG)
       const paragraph = $createParagraphNode()
       codeNode.insertAfter(paragraph)
       paragraph.select()
