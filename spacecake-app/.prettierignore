@@ -1,0 +1,6 @@
+# Ignore artifacts:
+build
+coverage
+
+# Ignore Tanstack route tree file
+**/routeTree.gen.ts

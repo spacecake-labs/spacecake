@@ -29,6 +29,20 @@ export function NodeNavigationPlugin(): null {
         const selection = $getSelection()
         if (!$isRangeSelection(selection)) return false
 
+        // check if typeahead (slash command) menu is open
+        const activeElement = document.activeElement
+        const hasTypeaheadMenu =
+          activeElement?.getAttribute("aria-controls") === "typeahead-menu"
+        const hasActiveDescendant = activeElement
+          ?.getAttribute("aria-activedescendant")
+          ?.startsWith("typeahead-item-")
+
+        const isInTypeaheadMenu = hasTypeaheadMenu && hasActiveDescendant
+        // allow default behavior for menu navigation
+        if (isInTypeaheadMenu) {
+          return false
+        }
+
         const anchor = selection.anchor
         const anchorNode = anchor.getNode()
         const paragraph = $isParagraphNode(anchorNode)
