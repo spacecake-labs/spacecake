@@ -6,7 +6,11 @@ import type { InitialConfigType } from "@lexical/react/LexicalComposer"
 import { atom, WritableAtom } from "jotai"
 import { atomEffect } from "jotai-effect"
 import { atomWithStorage } from "jotai/utils"
-import { SerializedEditorState } from "lexical"
+import {
+  $addUpdateTag,
+  SerializedEditorState,
+  SKIP_DOM_SELECTION_TAG,
+} from "lexical"
 import type { LexicalEditor } from "lexical"
 import { toast } from "sonner"
 
@@ -216,6 +220,7 @@ export const toggleViewAtom = atom(null, (get, set) => {
         return $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
       })
       currentEditor.update(() => {
+        $addUpdateTag(SKIP_DOM_SELECTION_TAG)
         $convertFromMarkdownString(markdownContent, MARKDOWN_TRANSFORMERS)
       })
     }

@@ -1,13 +1,16 @@
 import { $convertFromMarkdownString } from "@lexical/markdown"
 import {
+  $addUpdateTag,
   $createParagraphNode,
   $createTextNode,
   $getRoot,
   LexicalEditor,
+  SKIP_DOM_SELECTION_TAG,
 } from "lexical"
 import { toast } from "sonner"
 
 import { INITIAL_LOAD_TAG } from "@/types/editor"
+import type { PyBlock } from "@/types/parser"
 import { FileType } from "@/types/workspace"
 import type { FileContent } from "@/types/workspace"
 import { convertToSourceView } from "@/lib/editor"
@@ -22,17 +25,21 @@ import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown
 export async function convertPythonBlocksToLexical(
   content: string,
   file: FileContent,
-  editor: LexicalEditor
+  editor: LexicalEditor,
+  streamParser: (
+    content: string
+  ) => AsyncGenerator<PyBlock> = parsePythonContentStreaming
 ) {
   try {
     // Start with an empty editor
     editor.update(() => {
+      $addUpdateTag(SKIP_DOM_SELECTION_TAG)
       const root = $getRoot()
       root.clear()
     })
     // Parse blocks progressively, updating per block
     let parsedBlockCount = 0
-    for await (const block of parsePythonContentStreaming(content)) {
+    for await (const block of streamParser(content)) {
       editor.update(
         () => {
           const root = $getRoot()
@@ -55,6 +62,7 @@ export async function convertPythonBlocksToLexical(
     // If no blocks were parsed, fall back to plaintext
     if (parsedBlockCount === 0) {
       editor.update(() => {
+        $addUpdateTag(SKIP_DOM_SELECTION_TAG)
         const root = $getRoot()
         root.clear()
         const paragraph = $createParagraphNode()
@@ -66,6 +74,7 @@ export async function convertPythonBlocksToLexical(
     toast("failed to parse python file")
     // Fallback to plaintext
     editor.update(() => {
+      $addUpdateTag(SKIP_DOM_SELECTION_TAG)
       const root = $getRoot()
       root.clear()
       const paragraph = $createParagraphNode()
@@ -97,11 +106,13 @@ export function getInitialEditorStateFromContent(
     } else if (file.fileType === FileType.Markdown) {
       // Markdown defaults to block view (rendered markdown) when viewKind is "block" or undefined
       editor.update(() => {
+        $addUpdateTag(SKIP_DOM_SELECTION_TAG)
         $convertFromMarkdownString(file.content, MARKDOWN_TRANSFORMERS)
       })
     } else if (file.fileType === FileType.Plaintext) {
       // Plaintext files go to plaintext view
       editor.update(() => {
+        $addUpdateTag(SKIP_DOM_SELECTION_TAG)
         const root = $getRoot()
         root.clear()
         const paragraph = $createParagraphNode()

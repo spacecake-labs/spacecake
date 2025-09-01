@@ -1,5 +1,6 @@
 import React, { JSX } from "react"
 import {
+  $addUpdateTag,
   $applyNodeReplacement,
   DecoratorNode,
   DOMConversionMap,
@@ -8,6 +9,7 @@ import {
   LexicalNode,
   NodeKey,
   SerializedLexicalNode,
+  SKIP_DOM_SELECTION_TAG,
   Spread,
 } from "lexical"
 
@@ -283,21 +285,25 @@ const CodeBlockEditorContextProvider: React.FC<{
       src,
       setCode: (code: string) => {
         parentEditor.update(() => {
+          $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           lexicalNode.setCode(code)
         })
       },
       setLanguage: (language: string) => {
         parentEditor.update(() => {
+          $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           lexicalNode.setLanguage(language)
         })
       },
       setMeta: (meta: string) => {
         parentEditor.update(() => {
+          $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           lexicalNode.setMeta(meta)
         })
       },
       setSrc: (src: string | undefined) => {
         parentEditor.update(() => {
+          $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           lexicalNode.setSrc(src)
         })
       },
