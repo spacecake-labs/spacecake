@@ -1,6 +1,7 @@
 import { $getRoot, createEditor, type ElementNode } from "lexical"
 import { describe, expect, it } from "vitest"
 
+import type { PyBlock } from "@/types/parser"
 import { FileType } from "@/types/workspace"
 import type { FileContent } from "@/types/workspace"
 import { nodes } from "@/components/editor/nodes"
@@ -130,6 +131,47 @@ import pandas as pd
       const children = root.getChildren()
       expect(children).toHaveLength(1)
       expect(children[0].getType()).toBe("codeblock")
+      expect(children[0].getTextContent()).toBe("")
+    })
+  })
+  it("should create an empty paragraph if parsing fails", async () => {
+    const emptyCode = ""
+    const editor = createEditor({ nodes })
+    const file: FileContent = {
+      name: "test.py",
+      path: "/test.py",
+      kind: "file",
+      etag: { mtimeMs: Date.now(), size: 50 },
+      fileType: FileType.Python,
+      cid: "test-cid",
+      content: emptyCode,
+    }
+
+    // create an async generator that throws an error
+    const failingParser = async function* (
+      content: string
+    ): AsyncGenerator<PyBlock> {
+      // this will never execute since we pass empty content, but satisfies the linter
+      if (content) {
+        yield {} as PyBlock
+      }
+      throw new Error("parsing failed")
+    }
+
+    await convertPythonBlocksToLexical(
+      file.content,
+      file,
+      editor,
+      failingParser
+    )
+
+    console.log(JSON.stringify(editor.getEditorState().toJSON(), null, 2))
+
+    editor.getEditorState().read(() => {
+      const root = $getRoot()
+      const children = root.getChildren()
+      expect(children).toHaveLength(1)
+      expect(children[0].getType()).toBe("paragraph")
       expect(children[0].getTextContent()).toBe("")
     })
   })
