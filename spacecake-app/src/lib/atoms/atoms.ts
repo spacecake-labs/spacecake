@@ -23,7 +23,11 @@ import type {
 import { FileType } from "@/types/workspace"
 import { convertToSourceView, serializeEditorToPython } from "@/lib/editor"
 import { readFile, saveFile } from "@/lib/fs"
-import { supportedViews, supportsBlockView } from "@/lib/language-support"
+import {
+  fileTypeToCodeMirrorLanguage,
+  supportedViews,
+  supportsBlockView,
+} from "@/lib/language-support"
 import { fileTypeFromExtension } from "@/lib/workspace"
 import { convertPythonBlocksToLexical } from "@/components/editor/read-file"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
@@ -60,6 +64,10 @@ export const fileContentAtom = atom<FileContent | null>(null)
 
 export const fileTypeAtom = atom((get) => {
   return get(fileContentAtom)?.fileType ?? FileType.Plaintext
+})
+
+export const codeMirrorLanguageAtom = atom((get) => {
+  return fileTypeToCodeMirrorLanguage(get(fileTypeAtom)) ?? ""
 })
 
 // Selected file path

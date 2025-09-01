@@ -8,58 +8,58 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root"
-import { Route as AboutRouteImport } from "./routes/about"
-import { Route as IndexRouteImport } from "./routes/index"
-import { Route as WWorkspaceIdRouteImport } from "./routes/w.$workspaceId"
-import { Route as WWorkspaceIdFSplatRouteImport } from "./routes/w.$workspaceId.f.$"
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as WWorkspaceIdRouteImport } from './routes/w.$workspaceId'
+import { Route as WWorkspaceIdFSplatRouteImport } from './routes/w.$workspaceId.f.$'
 
 const AboutRoute = AboutRouteImport.update({
-  id: "/about",
-  path: "/about",
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WWorkspaceIdRoute = WWorkspaceIdRouteImport.update({
-  id: "/w/$workspaceId",
-  path: "/w/$workspaceId",
+  id: '/w/$workspaceId',
+  path: '/w/$workspaceId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WWorkspaceIdFSplatRoute = WWorkspaceIdFSplatRouteImport.update({
-  id: "/f/$",
-  path: "/f/$",
+  id: '/f/$',
+  path: '/f/$',
   getParentRoute: () => WWorkspaceIdRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute
-  "/about": typeof AboutRoute
-  "/w/$workspaceId": typeof WWorkspaceIdRouteWithChildren
-  "/w/$workspaceId/f/$": typeof WWorkspaceIdFSplatRoute
+  '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
+  '/w/$workspaceId/f/$': typeof WWorkspaceIdFSplatRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute
-  "/about": typeof AboutRoute
-  "/w/$workspaceId": typeof WWorkspaceIdRouteWithChildren
-  "/w/$workspaceId/f/$": typeof WWorkspaceIdFSplatRoute
+  '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
+  '/w/$workspaceId/f/$': typeof WWorkspaceIdFSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  "/": typeof IndexRoute
-  "/about": typeof AboutRoute
-  "/w/$workspaceId": typeof WWorkspaceIdRouteWithChildren
-  "/w/$workspaceId/f/$": typeof WWorkspaceIdFSplatRoute
+  '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
+  '/w/$workspaceId/f/$': typeof WWorkspaceIdFSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/about" | "/w/$workspaceId" | "/w/$workspaceId/f/$"
+  fullPaths: '/' | '/about' | '/w/$workspaceId' | '/w/$workspaceId/f/$'
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/about" | "/w/$workspaceId" | "/w/$workspaceId/f/$"
-  id: "__root__" | "/" | "/about" | "/w/$workspaceId" | "/w/$workspaceId/f/$"
+  to: '/' | '/about' | '/w/$workspaceId' | '/w/$workspaceId/f/$'
+  id: '__root__' | '/' | '/about' | '/w/$workspaceId' | '/w/$workspaceId/f/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -68,33 +68,33 @@ export interface RootRouteChildren {
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/about": {
-      id: "/about"
-      path: "/about"
-      fullPath: "/about"
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/": {
-      id: "/"
-      path: "/"
-      fullPath: "/"
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/w/$workspaceId": {
-      id: "/w/$workspaceId"
-      path: "/w/$workspaceId"
-      fullPath: "/w/$workspaceId"
+    '/w/$workspaceId': {
+      id: '/w/$workspaceId'
+      path: '/w/$workspaceId'
+      fullPath: '/w/$workspaceId'
       preLoaderRoute: typeof WWorkspaceIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/w/$workspaceId/f/$": {
-      id: "/w/$workspaceId/f/$"
-      path: "/f/$"
-      fullPath: "/w/$workspaceId/f/$"
+    '/w/$workspaceId/f/$': {
+      id: '/w/$workspaceId/f/$'
+      path: '/f/$'
+      fullPath: '/w/$workspaceId/f/$'
       preLoaderRoute: typeof WWorkspaceIdFSplatRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
@@ -110,7 +110,7 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
 }
 
 const WWorkspaceIdRouteWithChildren = WWorkspaceIdRoute._addFileChildren(
-  WWorkspaceIdRouteChildren
+  WWorkspaceIdRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {

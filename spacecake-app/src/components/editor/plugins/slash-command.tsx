@@ -4,9 +4,11 @@ import {
   LexicalTypeaheadMenuPlugin,
   useBasicTypeaheadTriggerMatch,
 } from "@lexical/react/LexicalTypeaheadMenuPlugin"
+import { useAtomValue } from "jotai"
 import { TextNode } from "lexical"
 import * as ReactDOM from "react-dom"
 
+import { codeMirrorLanguageAtom } from "@/lib/atoms/atoms"
 // import useModal from "@/components/editor/hooks/use-modal";
 import { SlashCommandMenu } from "@/components/editor/slash-commands/slash-command-menu"
 import {
@@ -16,6 +18,7 @@ import {
 
 export function SlashCommandPlugin(): React.JSX.Element {
   const [editor] = useLexicalComposerContext()
+  const language = useAtomValue(codeMirrorLanguageAtom)
   // const [, showModal] = useModal()
   const [queryString, setQueryString] = useState<string | null>(null)
 
@@ -25,7 +28,7 @@ export function SlashCommandPlugin(): React.JSX.Element {
   })
 
   const options = useMemo(() => {
-    const baseOptions = slashCommandOptions(editor) // , showModal
+    const baseOptions = slashCommandOptions(editor, language) // , showModal
 
     if (!queryString) {
       return baseOptions

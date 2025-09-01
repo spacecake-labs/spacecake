@@ -59,7 +59,8 @@ export class SlashCommandOption extends MenuOption {
 // ) => void
 
 export function slashCommandOptions(
-  editor: LexicalEditor
+  editor: LexicalEditor,
+  language: string
   // showModal: ShowModal
 ) {
   return [
@@ -81,7 +82,7 @@ export function slashCommandOptions(
             if (selection.isCollapsed()) {
               const codeNode = $createCodeBlockNode({
                 code: "",
-                language: "",
+                language: language,
                 // meta: String(block.kind),
                 // src: filePath,
                 // block: block,
@@ -97,7 +98,7 @@ export function slashCommandOptions(
               const textContent = selection.getTextContent()
               const codeNode = $createCodeBlockNode({
                 code: textContent,
-                language: "",
+                language: language,
                 // meta: String(block.kind),
                 // src: filePath,
                 // block: block,
