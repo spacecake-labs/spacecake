@@ -5,7 +5,10 @@ import type { PyBlock } from "@/types/parser"
 import { FileType } from "@/types/workspace"
 import type { FileContent } from "@/types/workspace"
 import { nodes } from "@/components/editor/nodes"
-import { convertPythonBlocksToLexical } from "@/components/editor/read-file"
+import {
+  convertPythonBlocksToLexical,
+  getInitialEditorStateFromContent,
+} from "@/components/editor/read-file"
 
 describe("read-file: convertPythonBlocksToLexical", () => {
   it("should convert python code to lexical nodes", async () => {
@@ -124,8 +127,6 @@ import pandas as pd
     }
     await convertPythonBlocksToLexical(file.content, file, editor)
 
-    console.log(JSON.stringify(editor.getEditorState().toJSON(), null, 2))
-
     editor.getEditorState().read(() => {
       const root = $getRoot()
       const children = root.getChildren()
@@ -165,14 +166,69 @@ import pandas as pd
       failingParser
     )
 
-    console.log(JSON.stringify(editor.getEditorState().toJSON(), null, 2))
-
     editor.getEditorState().read(() => {
       const root = $getRoot()
       const children = root.getChildren()
       expect(children).toHaveLength(1)
       expect(children[0].getType()).toBe("paragraph")
       expect(children[0].getTextContent()).toBe("")
+    })
+  })
+})
+
+describe("read-file: getInitialEditorStateFromContent", () => {
+  it("should load python file in block view by default", async () => {
+    const pythonCode = `import os
+
+def my_function():
+    x = 1
+    y = 2
+    return x + y
+    `
+
+    const file: FileContent = {
+      name: "test.py",
+      path: "/test.py",
+      kind: "file",
+      etag: { mtimeMs: Date.now(), size: 50 },
+      fileType: FileType.Python,
+      cid: "test-cid",
+      content: pythonCode,
+    }
+
+    // Create editor and then apply the initial state
+    const editor = createEditor({ nodes })
+
+    // Create a promise that resolves when the async operation completes
+    const completionPromise = new Promise<void>((resolve) => {
+      const updateFunction = getInitialEditorStateFromContent(
+        file,
+        "block",
+        resolve
+      )
+
+      // Apply the update using the existing logic
+      updateFunction(editor)
+    })
+
+    // Wait for the completion callback to be called
+    await completionPromise
+
+    // Now check the editor state after initialization
+    editor.getEditorState().read(() => {
+      const root = $getRoot()
+      const children = root.getChildren()
+      expect(children).toHaveLength(2)
+
+      // first child: import statement
+      expect(children[0].getType()).toBe("codeblock")
+      expect(children[0].getTextContent()).toBe("import os")
+
+      // second child: function definition
+      expect(children[1].getType()).toBe("codeblock")
+      expect(children[1].getTextContent()).toBe(
+        "def my_function():\n    x = 1\n    y = 2\n    return x + y"
+      )
     })
   })
 })
