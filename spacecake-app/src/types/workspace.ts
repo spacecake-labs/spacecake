@@ -59,3 +59,9 @@ export type FileTreeEvent =
   | { kind: "unlinkFolder"; path: string }
 
 export type ExpandedFolders = Record<Folder["path"], boolean>
+
+export type QuickOpenFileItem = {
+  file: File
+  relativePath: string
+  displayPath: string
+}

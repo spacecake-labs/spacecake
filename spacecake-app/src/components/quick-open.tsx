@@ -1,80 +1,116 @@
 "use client"
 
 import * as React from "react"
-import { useAtom } from "jotai"
-import {
-  Calculator,
-  Calendar,
-  CreditCard,
-  Settings,
-  Smile,
-  User,
-} from "lucide-react"
+import { useVirtualizer } from "@tanstack/react-virtual"
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
+import { File as FileIcon } from "lucide-react"
 
-import { commandMenuOpenAtom } from "@/lib/atoms/atoms"
+import type { File } from "@/types/workspace"
+import { quickOpenMenuOpenAtom, selectFileAtom } from "@/lib/atoms/atoms"
+import { quickOpenFileItemsAtom } from "@/lib/atoms/file-tree"
+import { filterAndSortFiles } from "@/lib/filter-files"
 import {
   CommandDialog,
   CommandEmpty,
-  CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
-  CommandShortcut,
 } from "@/components/ui/command"
 
+const quickOpenSearchAtom = atom("")
+
 export function QuickOpen() {
-  const [isOpen, toggleOpen] = useAtom(commandMenuOpenAtom)
+  const [isOpen, setIsOpen] = useAtom(quickOpenMenuOpenAtom)
+  const [search, setSearch] = useAtom(quickOpenSearchAtom)
+  const allFileItems = useAtomValue(quickOpenFileItemsAtom)
+  const selectFile = useSetAtom(selectFileAtom)
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "p" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
-        toggleOpen() // Just call toggleOpen() to toggle the state
+        setIsOpen()
       }
     }
 
     document.addEventListener("keydown", down)
     return () => document.removeEventListener("keydown", down)
-  }, [toggleOpen])
+  }, [setIsOpen])
+
+  const filteredItems = React.useMemo(
+    () => filterAndSortFiles(allFileItems, search),
+    [search, allFileItems]
+  )
+
+  const parentRef = React.useRef(null)
+
+  const rowVirtualizer = useVirtualizer({
+    count: filteredItems.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 32,
+    overscan: 5,
+  })
+
+  const handleSelectFile = (file: File) => {
+    selectFile(file.path)
+    setIsOpen(false)
+  }
+
+  // Reset search on close
+  React.useEffect(() => {
+    if (!isOpen) {
+      setSearch("")
+    }
+  }, [isOpen, setSearch])
 
   return (
-    <CommandDialog open={isOpen} onOpenChange={toggleOpen}>
-      <CommandInput placeholder="type a command or search..." />
-      <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
-        <CommandGroup heading="suggestions">
-          <CommandItem>
-            <Calendar />
-            <span>Calendar</span>
-          </CommandItem>
-          <CommandItem>
-            <Smile />
-            <span>Search Emoji</span>
-          </CommandItem>
-          <CommandItem>
-            <Calculator />
-            <span>Calculator</span>
-          </CommandItem>
-        </CommandGroup>
-        <CommandSeparator />
-        <CommandGroup heading="settings">
-          <CommandItem>
-            <User />
-            <span>profile</span>
-            <CommandShortcut>⌘P</CommandShortcut>
-          </CommandItem>
-          <CommandItem>
-            <CreditCard />
-            <span>billing</span>
-            <CommandShortcut>⌘B</CommandShortcut>
-          </CommandItem>
-          <CommandItem>
-            <Settings />
-            <span>settings</span>
-            <CommandShortcut>⌘S</CommandShortcut>
-          </CommandItem>
-        </CommandGroup>
+    <CommandDialog
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      shouldFilter={false}
+      title="quick open"
+    >
+      <CommandInput
+        placeholder="search files..."
+        value={search}
+        onValueChange={setSearch}
+      />
+      <CommandList ref={parentRef}>
+        {rowVirtualizer.getVirtualItems().length === 0 && search.length > 0 ? (
+          <CommandEmpty>no results found.</CommandEmpty>
+        ) : null}
+        <div
+          style={{
+            height: `${rowVirtualizer.getTotalSize()}px`,
+            width: "100%",
+            position: "relative",
+          }}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+            const item = filteredItems[virtualItem.index]
+            return (
+              <CommandItem
+                key={virtualItem.key}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: `${virtualItem.size}px`,
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
+                value={item.file.path}
+                onSelect={() => handleSelectFile(item.file)}
+              >
+                <FileIcon className="mr-2 h-4 w-4" />
+                <span>{item.file.name}</span>
+                <span className="text-muted-foreground ml-auto text-xs">
+                  {item.displayPath}
+                </span>
+              </CommandItem>
+            )
+          })}
+        </div>
       </CommandList>
     </CommandDialog>
   )

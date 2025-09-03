@@ -1,6 +1,12 @@
 import { atom } from "jotai"
 
-import type { File, FileTree, FileTreeEvent, Folder } from "@/types/workspace"
+import type {
+  File,
+  FileTree,
+  FileTreeEvent,
+  Folder,
+  QuickOpenFileItem,
+} from "@/types/workspace"
 import { ZERO_HASH } from "@/types/workspace"
 import { fileTreeAtom, workspaceAtom } from "@/lib/atoms/atoms"
 import { fileTypeFromExtension } from "@/lib/workspace"
@@ -167,4 +173,35 @@ export const sortedFileTreeAtom = atom((get) => {
   }
 
   return sortTree(fileTree)
+})
+
+export const flatFileTreeAtom = atom<File[]>((get) => {
+  const fileTree = get(fileTreeAtom)
+
+  const flatten = (items: FileTree): File[] => {
+    let files: File[] = []
+    for (const item of items) {
+      if (item.kind === "file") {
+        files.push(item)
+      } else if (item.kind === "folder") {
+        files = files.concat(flatten(item.children))
+      }
+    }
+    return files
+  }
+
+  return flatten(fileTree)
+})
+
+export const quickOpenFileItemsAtom = atom<QuickOpenFileItem[]>((get) => {
+  const files = get(flatFileTreeAtom)
+  const workspace = get(workspaceAtom)
+
+  if (!workspace?.path) return []
+
+  return files.map((file) => {
+    const relativePath = file.path.replace(`${workspace.path}/`, "")
+    const displayPath = relativePath.replace(file.name, "").replace(/\/$/, "")
+    return { file, relativePath, displayPath }
+  })
 })
