@@ -13,16 +13,10 @@ import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin
 import { TablePlugin } from "@lexical/react/LexicalTablePlugin"
 import { atom, useAtom } from "jotai"
 
-// import { CodeHighlightPlugin } from "@/components/editor/plugins/code-highlighter";
-// import { CodeBlockPlugin } from "@/components/editor/plugins/code-block";
-
-// import { CodeToolbarPlugin } from "@/components/editor/plugins/code-toolbar";
-
 import { ContentEditable } from "@/components/editor/content-editable"
 import { NodeNavigationPlugin } from "@/components/editor/plugins/node-navigation"
 import { SlashCommandPlugin } from "@/components/editor/plugins/slash-command"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
-import { QuickOpen } from "@/components/quick-open"
 
 const floatingAnchorAtom = atom<HTMLDivElement | null>(null)
 
@@ -62,15 +56,10 @@ export const Plugins = React.memo(function Plugins() {
         <TabIndentationPlugin />
         <HashtagPlugin />
         <HistoryPlugin />
-        {/* <CodeHighlightPlugin /> */}
-        {/* <CodeBlockPlugin /> */}
         <NodeNavigationPlugin />
 
-        {/* <CodeToolbarPlugin /> */}
         <MarkdownShortcutPlugin transformers={MARKDOWN_TRANSFORMERS} />
 
-        {/* Quick Open - accessible via Cmd+k */}
-        <QuickOpen />
         <SlashCommandPlugin />
       </div>
 

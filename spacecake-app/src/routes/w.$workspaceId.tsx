@@ -22,6 +22,7 @@ import { WorkspaceWatcher } from "@/lib/workspace-watcher"
 import { Editor } from "@/components/editor/editor"
 // toolbar renders the save button
 import { EditorToolbar } from "@/components/editor/toolbar"
+import { QuickOpen } from "@/components/quick-open"
 
 export const Route = createFileRoute("/w/$workspaceId")({
   loader: async ({ params }) => {
@@ -112,6 +113,7 @@ function WorkspaceLayout() {
         )}
         <Outlet />
       </RootLayout>
+      <QuickOpen />
     </>
   )
 }

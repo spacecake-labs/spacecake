@@ -47,7 +47,7 @@ export function atomWithToggle(
   return anAtom as WritableAtom<boolean, [boolean?], void>
 }
 
-export const commandMenuOpenAtom = atomWithToggle(false)
+export const quickOpenMenuOpenAtom = atomWithToggle(false)
 
 export const workspaceAtom = atom<WorkspaceInfo | null>(null)
 export const loadingAtom = atom<boolean>(false)
