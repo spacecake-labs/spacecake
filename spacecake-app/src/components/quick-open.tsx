@@ -23,7 +23,7 @@ import {
   CommandShortcut,
 } from "@/components/ui/command"
 
-export function CommandPalette() {
+export function QuickOpen() {
   const [isOpen, toggleOpen] = useAtom(commandMenuOpenAtom)
 
   React.useEffect(() => {
