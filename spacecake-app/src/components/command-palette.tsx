@@ -23,12 +23,12 @@ import {
   CommandShortcut,
 } from "@/components/ui/command"
 
-export function CommandMenu() {
+export function CommandPalette() {
   const [isOpen, toggleOpen] = useAtom(commandMenuOpenAtom)
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "p" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         toggleOpen() // Just call toggleOpen() to toggle the state
       }
