@@ -537,4 +537,43 @@ test.describe("spacecake app", () => {
         "Successfully completed delete functionality tests including folder deletion",
     })
   })
+
+  test("previously opened workspace reopens on launch", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    // 1. Setup: Create a file in the temp dir
+    const testFilePath = path.join(tempTestDir, "persistent-file.txt")
+    fs.writeFileSync(testFilePath, "hello persistence")
+
+    const window = await electronApp.firstWindow()
+    await window.waitForLoadState("domcontentloaded")
+
+    // 2. Open the workspace for the first time
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    })
+    await window.getByRole("button", { name: "open folder" }).click()
+
+    // 3. Verify workspace is loaded
+    await expect(
+      window.getByRole("button", { name: "persistent-file.txt" })
+    ).toBeVisible()
+
+    // 4. Reload the window
+    // At some point we should improve this test
+    // to simulate a proper restart
+    await window.reload()
+
+    // 5. Verify the same workspace is automatically reopened
+    await expect(
+      window.getByRole("button", { name: "persistent-file.txt" })
+    ).toBeVisible()
+
+    // Also verify the "open folder" button is not there, since a workspace is open
+    await expect(
+      window.getByRole("button", { name: "open folder" })
+    ).not.toBeVisible()
+  })
 })

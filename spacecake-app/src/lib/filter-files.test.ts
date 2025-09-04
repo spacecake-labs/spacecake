@@ -18,22 +18,18 @@ describe("filterAndSortFiles", () => {
   const mockItems: QuickOpenFileItem[] = [
     {
       file: mockFile("/user/home/docs/resume.doc"),
-      relativePath: "docs/resume.doc",
       displayPath: "docs",
     },
     {
       file: mockFile("/user/home/docs/contract.doc"),
-      relativePath: "docs/contract.doc",
       displayPath: "docs",
     },
     {
       file: mockFile("/user/home/images/photo.jpg"),
-      relativePath: "images/photo.jpg",
       displayPath: "images",
     },
     {
       file: mockFile("/user/home/readme.md"),
-      relativePath: "readme.md",
       displayPath: "",
     },
   ]

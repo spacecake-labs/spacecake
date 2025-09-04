@@ -1,14 +1,15 @@
-"use client"
-
 import * as React from "react"
+import { useNavigate } from "@tanstack/react-router"
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
+import { atom, useAtom, useAtomValue } from "jotai"
 import { File as FileIcon } from "lucide-react"
 
 import type { File } from "@/types/workspace"
-import { quickOpenMenuOpenAtom, selectFileAtom } from "@/lib/atoms/atoms"
+import { quickOpenMenuOpenAtom, workspaceAtom } from "@/lib/atoms/atoms"
 import { quickOpenFileItemsAtom } from "@/lib/atoms/file-tree"
-import { filterAndSortFiles } from "@/lib/filter-files"
+import { workspaceRecentFilesAtom } from "@/lib/atoms/storage"
+import { createQuickOpenItems } from "@/lib/filter-files"
+import { encodeBase64Url } from "@/lib/utils"
 import {
   CommandDialog,
   CommandEmpty,
@@ -18,12 +19,17 @@ import {
 } from "@/components/ui/command"
 
 const quickOpenSearchAtom = atom("")
+const quickOpenParentAtom = atom<HTMLDivElement | null>(null)
 
 export function QuickOpen() {
   const [isOpen, setIsOpen] = useAtom(quickOpenMenuOpenAtom)
   const [search, setSearch] = useAtom(quickOpenSearchAtom)
   const allFileItems = useAtomValue(quickOpenFileItemsAtom)
-  const selectFile = useSetAtom(selectFileAtom)
+  const recentFiles = useAtomValue(workspaceRecentFilesAtom)
+  const navigate = useNavigate()
+  const workspace = useAtomValue(workspaceAtom)
+
+  const [parent, setParent] = useAtom(quickOpenParentAtom)
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -38,25 +44,35 @@ export function QuickOpen() {
   }, [setIsOpen])
 
   const filteredItems = React.useMemo(
-    () => filterAndSortFiles(allFileItems, search),
-    [search, allFileItems]
+    () =>
+      createQuickOpenItems(allFileItems, recentFiles, search, workspace?.path),
+    [search, allFileItems, recentFiles, workspace?.path]
   )
-
-  const parentRef = React.useRef(null)
 
   const rowVirtualizer = useVirtualizer({
     count: filteredItems.length,
-    getScrollElement: () => parentRef.current,
+    getScrollElement: () => parent,
     estimateSize: () => 32,
     overscan: 5,
   })
 
   const handleSelectFile = (file: File) => {
-    selectFile(file.path)
+    if (!workspace?.path) return
+
+    const workspaceIdEncoded = encodeBase64Url(workspace.path)
+    const filePathEncoded = encodeBase64Url(file.path)
+
+    navigate({
+      to: "/w/$workspaceId/f/$",
+      params: {
+        workspaceId: workspaceIdEncoded,
+        _splat: filePathEncoded,
+      },
+    })
     setIsOpen(false)
   }
 
-  // Reset search on close
+  // reset search on close
   React.useEffect(() => {
     if (!isOpen) {
       setSearch("")
@@ -69,15 +85,16 @@ export function QuickOpen() {
       onOpenChange={setIsOpen}
       shouldFilter={false}
       title="quick open"
+      className="top-4 translate-y-0"
     >
       <CommandInput
         placeholder="search files..."
         value={search}
         onValueChange={setSearch}
       />
-      <CommandList ref={parentRef}>
+      <CommandList ref={setParent}>
         {rowVirtualizer.getVirtualItems().length === 0 && search.length > 0 ? (
-          <CommandEmpty>no results found.</CommandEmpty>
+          <CommandEmpty>no results found</CommandEmpty>
         ) : null}
         <div
           style={{
