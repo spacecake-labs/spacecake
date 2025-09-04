@@ -1,13 +1,15 @@
 import { useEffect } from "react"
 import { createFileRoute, ErrorComponent } from "@tanstack/react-router"
-import { useSetAtom } from "jotai"
+import { useAtomValue, useSetAtom } from "jotai"
 
 import {
   baselineFileAtom,
   editorStateAtom,
   fileContentAtom,
   selectedFilePathAtom,
+  workspaceAtom,
 } from "@/lib/atoms/atoms"
+import { addRecentFileAtom } from "@/lib/atoms/storage"
 import { readFile } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
 
@@ -37,6 +39,8 @@ function FileRouteComponent() {
   const setFile = useSetAtom(fileContentAtom)
   const setEditorState = useSetAtom(editorStateAtom)
   const setBaseline = useSetAtom(baselineFileAtom)
+  const addRecentFile = useSetAtom(addRecentFileAtom)
+  const workspace = useAtomValue(workspaceAtom)
 
   // push into atoms so the editor at layout renders
   useEffect(() => {
@@ -45,6 +49,10 @@ function FileRouteComponent() {
     setSelected(data.filePath)
     setFile(data.file)
     setBaseline({ path: data.file.path, content: data.file.content })
-  }, [data, setSelected, setFile, setEditorState])
+
+    if (workspace?.path) {
+      addRecentFile(data.file, workspace.path)
+    }
+  }, [data, setSelected, setFile, setEditorState, addRecentFile, workspace])
   return null
 }

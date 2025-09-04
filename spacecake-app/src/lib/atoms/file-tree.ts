@@ -9,6 +9,7 @@ import type {
 } from "@/types/workspace"
 import { ZERO_HASH } from "@/types/workspace"
 import { fileTreeAtom, workspaceAtom } from "@/lib/atoms/atoms"
+import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
 // helper function to find and update items in the tree
@@ -200,8 +201,7 @@ export const quickOpenFileItemsAtom = atom<QuickOpenFileItem[]>((get) => {
   if (!workspace?.path) return []
 
   return files.map((file) => {
-    const relativePath = file.path.replace(`${workspace.path}/`, "")
-    const displayPath = relativePath.replace(file.name, "").replace(/\/$/, "")
-    return { file, relativePath, displayPath }
+    const displayPath = parentFolderName(file.path, workspace.path, file.name)
+    return { file, displayPath }
   })
 })

@@ -9,6 +9,7 @@ import {
   createEditorConfigEffect,
   editorConfigAtom,
   editorStateAtom,
+  recentFilesLoadingEffect,
   saveFileAtom,
   selectedFilePathAtom,
 } from "@/lib/atoms/atoms"
@@ -73,6 +74,9 @@ function WorkspaceLayout() {
 
   // Activate the effect atom to ensure config is computed
   useAtom(editorConfigEffectAtom)
+
+  // Activate the recent files loading effect
+  useAtom(recentFilesLoadingEffect)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

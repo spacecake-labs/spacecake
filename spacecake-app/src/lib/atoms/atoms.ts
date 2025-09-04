@@ -25,8 +25,9 @@ import type {
   WorkspaceInfo,
 } from "@/types/workspace"
 import { FileType } from "@/types/workspace"
+import { readRecentFilesForWorkspaceAtom } from "@/lib/atoms/storage"
 import { convertToSourceView, serializeEditorToPython } from "@/lib/editor"
-import { readFile, saveFile } from "@/lib/fs"
+import { saveFile } from "@/lib/fs"
 import {
   fileTypeToCodeMirrorLanguage,
   supportedViews,
@@ -49,7 +50,10 @@ export function atomWithToggle(
 
 export const quickOpenMenuOpenAtom = atomWithToggle(false)
 
-export const workspaceAtom = atom<WorkspaceInfo | null>(null)
+export const workspaceAtom = atomWithStorage<WorkspaceInfo | null>(
+  "spacecake:workspace",
+  null
+)
 export const loadingAtom = atom<boolean>(false)
 
 export const fileTreeAtom = atom<FileTree>([])
@@ -266,24 +270,6 @@ export const createEditorConfigEffect = (
     }
   })
 
-// An action atom to handle selecting a new file
-export const selectFileAtom = atom(
-  null, // This atom has no value to read
-  async (get, set, filePath: string) => {
-    // All the logic from handleFileClick moves here
-    const file = await readFile(filePath)
-    if (file) {
-      // This sequence is now an atomic "transaction" from Jotai's perspective
-      set(editorStateAtom, null)
-      set(fileContentAtom, file)
-      set(baselineFileAtom, { path: file.path, content: file.content })
-      set(selectedFilePathAtom, filePath) // Set this last to trigger downstream effects
-    } else {
-      toast(`error reading file: ${filePath}`)
-    }
-  }
-)
-
 // An action atom to handle saving the current file
 export const saveFileAtom = atom(null, async (get, set) => {
   const selectedFilePath = get(selectedFilePathAtom)
@@ -336,5 +322,13 @@ export const saveFileAtom = atom(null, async (get, set) => {
     }
   } finally {
     set(isSavingAtom, false)
+  }
+})
+
+// Effect to load recent files when the workspace changes
+export const recentFilesLoadingEffect = atomEffect((get, set) => {
+  const workspace = get(workspaceAtom)
+  if (workspace) {
+    set(readRecentFilesForWorkspaceAtom, workspace.path)
   }
 })

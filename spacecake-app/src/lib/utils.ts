@@ -70,3 +70,12 @@ export function debounce(fn: () => void, waitMs: number) {
 
   return { schedule, flush, cancel, isScheduled }
 }
+
+export function parentFolderName(
+  filePath: string,
+  workspacePath: string,
+  fileName: string
+): string {
+  const relativePath = filePath.replace(`${workspacePath}/`, "")
+  return relativePath.replace(fileName, "").replace(/\/$/, "")
+}

@@ -2,15 +2,29 @@
  * Workspace and file tree types
  */
 
-export enum FileType {
-  Markdown = "markdown",
-  Plaintext = "plaintext",
-  Python = "python",
-  JavaScript = "javascript",
-  TypeScript = "typescript",
-  JSX = "jsx",
-  TSX = "tsx",
-}
+import { Schema } from "effect"
+
+export const FileTypeSchema = Schema.Union(
+  Schema.Literal("markdown"),
+  Schema.Literal("plaintext"),
+  Schema.Literal("python"),
+  Schema.Literal("javascript"),
+  Schema.Literal("typescript"),
+  Schema.Literal("jsx"),
+  Schema.Literal("tsx")
+)
+export type FileType = typeof FileTypeSchema.Type
+
+// Export constants for the values
+export const FileType = {
+  Markdown: "markdown" as const,
+  Plaintext: "plaintext" as const,
+  Python: "python" as const,
+  JavaScript: "javascript" as const,
+  TypeScript: "typescript" as const,
+  JSX: "jsx" as const,
+  TSX: "tsx" as const,
+} as const
 
 export const ZERO_HASH = "0000000000000000"
 
@@ -62,6 +76,5 @@ export type ExpandedFolders = Record<Folder["path"], boolean>
 
 export type QuickOpenFileItem = {
   file: File
-  relativePath: string
   displayPath: string
 }
