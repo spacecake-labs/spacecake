@@ -35,6 +35,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Editor } from "@/components/editor/editor"
 // toolbar renders the save button
 import { EditorToolbar } from "@/components/editor/toolbar"
+import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
 
 const NotFoundFilePathSchema = Schema.standardSchemaV1(
@@ -176,7 +177,12 @@ function WorkspaceLayout() {
       <WorkspaceWatcher onNotFound={handleNotFound} />
       <RootLayout
         selectedFilePath={selectedFilePath}
-        headerRightContent={<EditorToolbar onSave={saveFile} />}
+        headerRightContent={
+          <div className="px-4 flex items-center space-x-4">
+            <EditorToolbar onSave={saveFile} />
+            <ModeToggle />
+          </div>
+        }
       >
         {notFoundFilePath ? (
           <div className="flex flex-col items-center justify-center h-full space-y-4">

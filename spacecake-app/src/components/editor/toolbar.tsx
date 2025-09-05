@@ -14,7 +14,6 @@ import {
   viewKindAtom,
 } from "@/lib/atoms/atoms"
 import { Button } from "@/components/ui/button"
-import { ModeToggle } from "@/components/mode-toggle"
 
 export function EditorToolbar({ onSave }: { onSave: () => void }) {
   const selectedFilePath = useAtomValue(selectedFilePathAtom)
@@ -53,7 +52,7 @@ export function EditorToolbar({ onSave }: { onSave: () => void }) {
   }
 
   return (
-    <div className="flex items-center justify-between flex-1 px-4">
+    <div className="flex items-center justify-between flex-1 px-4 gap-3">
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <div className="min-w-0 flex-1">
@@ -94,7 +93,6 @@ export function EditorToolbar({ onSave }: { onSave: () => void }) {
           <Save className="h-3 w-3 mr-1" />
           {isSaving ? "saving…" : "save"}
         </button>
-        <ModeToggle variant="compact" />
       </div>
     </div>
   )
