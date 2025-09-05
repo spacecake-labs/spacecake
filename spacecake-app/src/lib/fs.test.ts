@@ -15,6 +15,7 @@ const createTestElectronAPI = (
   createFolder: async () => ({ success: true }),
   renameFile: async () => ({ success: true }),
   deleteFile: async () => ({ success: true }),
+  pathExists: async () => ({ success: true, exists: true }),
   ...overrides,
 })
 

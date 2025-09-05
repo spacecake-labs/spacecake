@@ -1,17 +1,20 @@
 import * as React from "react"
-import { useAtom, useAtomValue } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { FileWarning, Loader2Icon } from "lucide-react"
 
-import { ExpandedFolders, File, Folder } from "@/types/workspace"
+import type { EditorLayout } from "@/types/editor"
+import type { ExpandedFolders, File, Folder } from "@/types/workspace"
 import {
   contextItemNameAtom,
   deletionStateAtom,
   editingItemAtom,
   expandedFoldersAtom,
   isCreatingInContextAtom,
+  selectedFilePathAtom,
   workspaceAtom,
 } from "@/lib/atoms/atoms"
 import { sortedFileTreeAtom } from "@/lib/atoms/file-tree"
+import { removeRecentFileAtom, saveEditorLayoutAtom } from "@/lib/atoms/storage"
 import {
   createFile,
   createFolder,
@@ -51,7 +54,7 @@ interface NavMainProps {
 export function NavMain({
   onExpandFolder,
   onFileClick,
-  selectedFilePath,
+  selectedFilePath: initialSelectedFilePath, // renamed to avoid conflict
 }: NavMainProps) {
   const [editingItem, setEditingItem] = useAtom(editingItemAtom)
   const workspace = useAtomValue(workspaceAtom)
@@ -61,6 +64,10 @@ export function NavMain({
   )
   const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom)
   const [deletionState, setDeletionState] = useAtom(deletionStateAtom)
+
+  const [selectedFilePath, setSelectedFilePath] = useAtom(selectedFilePathAtom)
+  const saveEditorLayout = useSetAtom(saveEditorLayoutAtom)
+  const removeRecentFile = useSetAtom(removeRecentFileAtom)
 
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(
@@ -269,10 +276,23 @@ export function NavMain({
 
     setDeletionState((prev) => ({ ...prev, isDeleting: true }))
     try {
-      const filePath = deletionState.item.path
-      const success = await deleteFile(filePath)
+      const itemToDelete = deletionState.item
+      const success = await deleteFile(itemToDelete.path)
 
       if (success) {
+        // if the deleted file was the currently selected one, clear it
+        if (selectedFilePath === itemToDelete.path) {
+          setSelectedFilePath(null)
+          const emptyLayout: EditorLayout = {
+            tabGroups: [],
+            activeTabGroupId: null,
+          }
+          saveEditorLayout(emptyLayout, workspace.path)
+        }
+
+        // remove from recent files
+        removeRecentFile(itemToDelete.path, workspace.path)
+
         // Close dialog only after successful deletion
         setDeletionState({
           item: null,
@@ -334,7 +354,7 @@ export function NavMain({
                 onStartDelete={handleStartDelete}
                 onCreateFile={handleCreateFile}
                 onCreateFolder={handleCreateFolder}
-                selectedFilePath={selectedFilePath}
+                selectedFilePath={initialSelectedFilePath} // Use the prop here
                 expandedFolders={expandedFoldersState}
                 editingItem={editingItem}
                 setEditingItem={setEditingItem}

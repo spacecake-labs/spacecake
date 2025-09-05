@@ -41,6 +41,11 @@ export interface ElectronAPI {
     success: boolean
     error?: string
   }>
+  pathExists: (path: string) => Promise<{
+    success: boolean
+    exists?: boolean
+    error?: string
+  }>
 }
 
 // Parameterize functions to accept the API as a dependency
@@ -180,6 +185,24 @@ export const saveFile = async (
     }
   } catch (error) {
     console.error("error saving file:", error)
+    return false
+  }
+}
+
+export const pathExists = async (
+  path: string,
+  electronAPI: ElectronAPI = window.electronAPI
+): Promise<boolean> => {
+  try {
+    const result = await electronAPI.pathExists(path)
+    if (result.success) {
+      return result.exists ?? false
+    } else {
+      console.error("failed to check path exists:", result.error)
+      return false
+    }
+  } catch (error) {
+    console.error("error checking path exists:", error)
     return false
   }
 }

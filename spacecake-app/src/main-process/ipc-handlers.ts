@@ -367,3 +367,16 @@ ipcMain.handle("create-folder", async (event, folderPath: string) => {
     }
   }
 })
+
+ipcMain.handle("path-exists", async (event, path: string) => {
+  try {
+    const exists = fs.existsSync(path)
+    return { success: true, exists }
+  } catch (error) {
+    console.error("error checking path exists:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "unknown error",
+    }
+  }
+})
