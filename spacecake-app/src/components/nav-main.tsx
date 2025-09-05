@@ -319,7 +319,7 @@ export function NavMain({
     <>
       <SidebarGroup>
         <SidebarGroupLabel className="flex items-center justify-between">
-          <span>workspace</span>
+          {<span>{workspace?.path.split("/").pop() ?? "workspace"}</span>}
           {workspace?.path && <WorkspaceDropdownMenu />}
         </SidebarGroupLabel>
 
