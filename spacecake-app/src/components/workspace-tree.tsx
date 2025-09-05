@@ -261,6 +261,7 @@ export function WorkspaceDropdownMenu() {
               variant="ghost"
               size="sm"
               className="h-4 w-4 p-0 hover:bg-accent cursor-pointer"
+              title="create file or folder"
             >
               <Plus className="h-3 w-3" />
               <span className="sr-only">create file or folder</span>
