@@ -178,7 +178,7 @@ function WorkspaceLayout() {
       <RootLayout
         selectedFilePath={selectedFilePath}
         headerRightContent={
-          <div className="px-4 flex items-center space-x-4">
+          <div className="flex items-center gap-3">
             <EditorToolbar onSave={saveFile} />
             <ModeToggle />
           </div>
