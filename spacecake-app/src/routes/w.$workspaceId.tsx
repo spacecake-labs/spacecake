@@ -1,33 +1,57 @@
 import { useEffect, useMemo } from "react"
 import { RootLayout } from "@/layout"
-import { createFileRoute, ErrorComponent, Outlet } from "@tanstack/react-router"
+import {
+  createFileRoute,
+  ErrorComponent,
+  notFound,
+  Outlet,
+  useNavigate,
+} from "@tanstack/react-router"
+import { Schema } from "effect"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import type { SerializedEditorState } from "lexical"
+import { AlertCircleIcon } from "lucide-react"
 
 // mode toggle rendered inside EditorToolbar
 import {
   createEditorConfigEffect,
   editorConfigAtom,
+  editorLayoutLoadingEffect,
   editorStateAtom,
   recentFilesLoadingEffect,
   saveFileAtom,
   selectedFilePathAtom,
 } from "@/lib/atoms/atoms"
+import { editorLayoutAtom } from "@/lib/atoms/storage"
 import { workspacePathAtom } from "@/lib/atoms/workspace"
 import {
   createEditorConfigFromContent,
   createEditorConfigFromState,
 } from "@/lib/editor"
-import { decodeBase64Url } from "@/lib/utils"
+import { pathExists } from "@/lib/fs"
+import { decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Editor } from "@/components/editor/editor"
 // toolbar renders the save button
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { QuickOpen } from "@/components/quick-open"
 
+const NotFoundFilePathSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    notFoundFilePath: Schema.optional(Schema.String),
+  })
+)
+
 export const Route = createFileRoute("/w/$workspaceId")({
+  validateSearch: NotFoundFilePathSchema,
   loader: async ({ params }) => {
     const workspacePath = decodeBase64Url(params.workspaceId)
+    // check if workspace path exists
+    const exists = await pathExists(workspacePath)
+    if (!exists) {
+      throw notFound()
+    }
     return {
       workspace: {
         path: workspacePath,
@@ -40,22 +64,42 @@ export const Route = createFileRoute("/w/$workspaceId")({
   ),
   errorComponent: ({ error }) => <ErrorComponent error={error} />,
   component: WorkspaceLayout,
+  notFoundComponent: WorkspaceNotFound,
 })
 
-function WorkspaceLayout() {
-  const workspaceData = Route.useLoaderData()
-  const setWorkspacePath = useSetAtom(workspacePathAtom)
+function WorkspaceNotFound() {
+  const { workspaceId } = Route.useParams()
+  const workspacePath = decodeBase64Url(workspaceId)
+
+  const navigate = useNavigate()
 
   useEffect(() => {
-    setWorkspacePath(workspaceData.workspace.path)
+    navigate({ to: "/", search: { notFoundPath: workspacePath } })
+  }, [navigate, workspacePath])
+
+  return null
+}
+
+function WorkspaceLayout() {
+  const { workspace } = Route.useLoaderData()
+  const { notFoundFilePath } = Route.useSearch()
+  const setWorkspacePath = useSetAtom(workspacePathAtom)
+  const navigate = useNavigate({ from: Route.id })
+
+  const handleNotFound = () => {
+    navigate({ to: "/" })
+  }
+
+  useEffect(() => {
+    setWorkspacePath(workspace.path)
     return () => {
       setWorkspacePath(null)
     }
-  }, [workspaceData.workspace.path, setWorkspacePath])
+  }, [workspace.path, setWorkspacePath])
 
   const saveFile = useSetAtom(saveFileAtom)
 
-  const selectedFilePath = useAtomValue(selectedFilePathAtom)
+  const [selectedFilePath, setSelectedFilePath] = useAtom(selectedFilePathAtom)
   const setEditorState = useSetAtom(editorStateAtom)
 
   // Create the effect atom with injected dependencies (no circular imports!)
@@ -77,6 +121,35 @@ function WorkspaceLayout() {
 
   // Activate the recent files loading effect
   useAtom(recentFilesLoadingEffect)
+
+  // Activate editor layout loading and saving effects
+  useAtom(editorLayoutLoadingEffect)
+
+  const layout = useAtomValue(editorLayoutAtom)
+
+  useEffect(() => {
+    // on initial load, if we have a layout and no file is selected, open the last active file
+    if (layout && !selectedFilePath) {
+      const activeGroupId = layout.activeTabGroupId
+      if (!activeGroupId) return
+
+      const activeGroup = layout.tabGroups.find((g) => g.id === activeGroupId)
+      if (activeGroup && activeGroup.activeTabId) {
+        const activeTab = activeGroup.tabs.find(
+          (t) => t.id === activeGroup.activeTabId
+        )
+        if (activeTab) {
+          navigate({
+            to: "/w/$workspaceId/f/$",
+            params: {
+              workspaceId: encodeBase64Url(workspace.path),
+              _splat: encodeBase64Url(activeTab.filePath),
+            },
+          })
+        }
+      }
+    }
+  }, [layout, selectedFilePath, setSelectedFilePath, workspace.path, navigate])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -100,22 +173,40 @@ function WorkspaceLayout() {
 
   return (
     <>
-      <WorkspaceWatcher />
+      <WorkspaceWatcher onNotFound={handleNotFound} />
       <RootLayout
         selectedFilePath={selectedFilePath}
         headerRightContent={<EditorToolbar onSave={saveFile} />}
       >
-        {/* integrated toolbar in header */}
-        {editorConfig && (
-          <Editor
-            key={selectedFilePath ?? ""}
-            editorConfig={editorConfig}
-            onSerializedChange={(value: SerializedEditorState) => {
-              setEditorState(value)
-            }}
-          />
+        {notFoundFilePath ? (
+          <div className="flex flex-col items-center justify-center h-full space-y-4">
+            <div className="w-full max-w-md">
+              <Alert variant="destructive">
+                <AlertCircleIcon />
+                <AlertDescription>
+                  file not found:{"\n"}
+                  <code className="font-mono text-xs break-all">
+                    {notFoundFilePath}
+                  </code>
+                </AlertDescription>
+              </Alert>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* integrated toolbar in header */}
+            {editorConfig && (
+              <Editor
+                key={selectedFilePath ?? ""}
+                editorConfig={editorConfig}
+                onSerializedChange={(value: SerializedEditorState) => {
+                  setEditorState(value)
+                }}
+              />
+            )}
+            <Outlet />
+          </>
         )}
-        <Outlet />
       </RootLayout>
       <QuickOpen />
     </>

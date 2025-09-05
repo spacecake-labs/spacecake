@@ -9,7 +9,7 @@ import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin"
 import { useAtomValue, useSetAtom } from "jotai"
 import type { EditorState, LexicalEditor, SerializedEditorState } from "lexical"
 
-import { hasInitialLoadTag } from "@/types/editor"
+import { hasInitialLoadTag } from "@/types/lexical"
 import { isSavingAtom, lexicalEditorAtom } from "@/lib/atoms/atoms"
 import { debounce } from "@/lib/utils"
 import { nodes } from "@/components/editor/nodes"

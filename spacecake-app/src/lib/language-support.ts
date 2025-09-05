@@ -1,4 +1,4 @@
-import type { ViewKind } from "@/types/editor"
+import type { ViewKind } from "@/types/lexical"
 import { FileType } from "@/types/workspace"
 
 // mapping of languages to supported editor views

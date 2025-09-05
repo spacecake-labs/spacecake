@@ -14,7 +14,7 @@ import {
 import type { LexicalEditor } from "lexical"
 import { toast } from "sonner"
 
-import type { ViewKind } from "@/types/editor"
+import type { ViewKind } from "@/types/lexical"
 import type { PyParsedFile } from "@/types/parser"
 import type {
   ExpandedFolders,
@@ -25,7 +25,10 @@ import type {
   WorkspaceInfo,
 } from "@/types/workspace"
 import { FileType } from "@/types/workspace"
-import { readRecentFilesForWorkspaceAtom } from "@/lib/atoms/storage"
+import {
+  readEditorLayoutAtom,
+  readRecentFilesForWorkspaceAtom,
+} from "@/lib/atoms/storage"
 import { convertToSourceView, serializeEditorToPython } from "@/lib/editor"
 import { saveFile } from "@/lib/fs"
 import {
@@ -330,5 +333,13 @@ export const recentFilesLoadingEffect = atomEffect((get, set) => {
   const workspace = get(workspaceAtom)
   if (workspace) {
     set(readRecentFilesForWorkspaceAtom, workspace.path)
+  }
+})
+
+// Effect to load editor layout when the workspace changes
+export const editorLayoutLoadingEffect = atomEffect((get, set) => {
+  const workspace = get(workspaceAtom)
+  if (workspace) {
+    set(readEditorLayoutAtom, workspace.path)
   }
 })

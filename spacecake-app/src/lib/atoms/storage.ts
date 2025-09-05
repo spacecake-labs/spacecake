@@ -1,15 +1,21 @@
 import { Schema } from "effect"
 import { atom } from "jotai"
 
-import type { RecentFile, RecentFiles } from "@/types/storage"
-import { RecentFilesSchema } from "@/types/storage"
+import { EditorLayoutSchema, type EditorLayout } from "@/types/editor"
+import {
+  RecentFilesSchema,
+  type RecentFile,
+  type RecentFiles,
+} from "@/types/storage"
 import type { File } from "@/types/workspace"
 
+function workspaceId(workspacePath: string): string {
+  return workspacePath.replace(/[^a-zA-Z0-9]/g, "_")
+}
+
 // Helper function to get localStorage key for a workspace's recent files
-function getWorkspaceRecentFilesKey(workspacePath: string): string {
-  // Create a safe key from the workspace path
-  const safePath = workspacePath.replace(/[^a-zA-Z0-9]/g, "_")
-  return `spacecake:recent-files:${safePath}`
+export function getWorkspaceRecentFilesKey(workspacePath: string): string {
+  return `spacecake:recent-files:${workspaceId(workspacePath)}`
 }
 
 // Atom for current workspace's recent files (loaded on demand)
@@ -69,6 +75,60 @@ export const readRecentFilesForWorkspaceAtom = atom(
       }
     } else {
       set(workspaceRecentFilesAtom, [])
+    }
+  }
+)
+
+export const removeRecentFileAtom = atom(
+  null,
+  (get, set, filePath: string, workspacePath: string) => {
+    const storageKey = getWorkspaceRecentFilesKey(workspacePath)
+    const currentFiles = get(workspaceRecentFilesAtom)
+
+    const updatedFiles = currentFiles.filter(
+      (f: RecentFile) => f.path !== filePath
+    )
+
+    if (updatedFiles.length < currentFiles.length) {
+      const encoded = Schema.encodeSync(RecentFilesSchema)(updatedFiles)
+      localStorage.setItem(storageKey, JSON.stringify(encoded))
+      set(workspaceRecentFilesAtom, updatedFiles)
+    }
+  }
+)
+
+export function getWorkspaceEditorLayoutKey(workspacePath: string): string {
+  return `spacecake:editor-layout:${workspaceId(workspacePath)}`
+}
+
+export const editorLayoutAtom = atom<EditorLayout | null>(null)
+
+export const saveEditorLayoutAtom = atom(
+  null,
+  (get, set, layout: EditorLayout, workspacePath: string) => {
+    const storageKey = getWorkspaceEditorLayoutKey(workspacePath)
+    const encoded = Schema.encodeSync(EditorLayoutSchema)(layout)
+    localStorage.setItem(storageKey, JSON.stringify(encoded))
+    set(editorLayoutAtom, layout)
+  }
+)
+
+export const readEditorLayoutAtom = atom(
+  null,
+  (get, set, workspacePath: string) => {
+    const storageKey = getWorkspaceEditorLayoutKey(workspacePath)
+    const stored = localStorage.getItem(storageKey)
+
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        const result = Schema.decodeUnknownSync(EditorLayoutSchema)(parsed)
+        set(editorLayoutAtom, result)
+      } catch {
+        set(editorLayoutAtom, null)
+      }
+    } else {
+      set(editorLayoutAtom, null)
     }
   }
 )

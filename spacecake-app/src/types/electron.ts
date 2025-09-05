@@ -53,6 +53,11 @@ export interface ElectronAPI {
   }>
   onFileEvent: (handler: (event: FileTreeEvent) => void) => () => void
   platform: string
+  pathExists: (path: string) => Promise<{
+    success: boolean
+    exists?: boolean
+    error?: string
+  }>
 }
 
 declare global {

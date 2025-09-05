@@ -6,7 +6,7 @@ import { _electron } from "playwright"
   const browser = await _electron.launch({
     args: [".vite/build/main.js"],
     cwd: process.cwd(),
-    timeout: 60000, // increase timeout to 60 seconds
+    timeout: 30000,
   })
   const context = browser.context()
   await context.route("**/*", (route) => route.continue())

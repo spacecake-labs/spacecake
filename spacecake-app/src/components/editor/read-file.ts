@@ -9,7 +9,7 @@ import {
 } from "lexical"
 import { toast } from "sonner"
 
-import { INITIAL_LOAD_TAG } from "@/types/editor"
+import { INITIAL_LOAD_TAG } from "@/types/lexical"
 import type { PyBlock } from "@/types/parser"
 import { FileType } from "@/types/workspace"
 import type { FileContent } from "@/types/workspace"
