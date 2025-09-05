@@ -61,8 +61,6 @@ test.describe("route not found", () => {
 
     await window.reload()
 
-    await window.waitForTimeout(5000)
-
     // expect file not found error message to be visible
     await expect(
       window.getByText(`file not found:\n${testFilePath}`)
