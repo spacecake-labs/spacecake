@@ -104,7 +104,8 @@ test.describe("quick open feature", () => {
     ).toBeVisible()
 
     // --- Test google-doc.py (two levels nested) ---
-    await window.keyboard.press("ControlOrMeta+p")
+    // Click the button this time instead of using the keyboard shortcut
+    await window.getByRole("button", { name: "search files" }).click()
     await expect(quickOpenInput).toBeVisible()
     await quickOpenInput.pressSequentially("google-doc.py", { delay: 100 })
     await window.keyboard.press("Enter")
