@@ -58,7 +58,7 @@ export const addRecentFileAtom = atom(
 )
 
 // Atom to load recent files for a specific workspace
-export const readRecentFilesForWorkspaceAtom = atom(
+export const initRecentFilesAtom = atom(
   null,
   (get, set, workspacePath: string) => {
     const storageKey = getWorkspaceRecentFilesKey(workspacePath)
@@ -129,6 +129,106 @@ export const readEditorLayoutAtom = atom(
       }
     } else {
       set(editorLayoutAtom, null)
+    }
+  }
+)
+
+// Atom to open a file and properly manage tabs
+export const openFileAtom = atom(
+  null,
+  (get, set, filePath: string, workspacePath: string) => {
+    const currentLayout = get(editorLayoutAtom)
+
+    if (!currentLayout) {
+      // create new layout with this file
+      const newLayout: EditorLayout = {
+        tabGroups: [
+          {
+            id: "main",
+            tabs: [
+              {
+                id: filePath,
+                filePath: filePath,
+              },
+            ],
+            activeTabId: filePath,
+          },
+        ],
+        activeTabGroupId: "main",
+      }
+      set(saveEditorLayoutAtom, newLayout, workspacePath)
+      return
+    }
+
+    // check if file is already open in any tab group
+    let existingTab = null
+    let existingGroup = null
+
+    for (const group of currentLayout.tabGroups) {
+      const tab = group.tabs.find((t) => t.filePath === filePath)
+      if (tab) {
+        existingTab = tab
+        existingGroup = group
+        break
+      }
+    }
+
+    if (existingTab && existingGroup) {
+      // file is already open, just switch to it
+      const updatedLayout = {
+        ...currentLayout,
+        activeTabGroupId: existingGroup.id,
+        tabGroups: currentLayout.tabGroups.map((group) =>
+          group.id === existingGroup.id
+            ? { ...group, activeTabId: existingTab.id }
+            : group
+        ),
+      }
+      set(saveEditorLayoutAtom, updatedLayout, workspacePath)
+    } else {
+      // add new tab to the active group
+      const activeGroup = currentLayout.tabGroups.find(
+        (g) => g.id === currentLayout.activeTabGroupId
+      )
+
+      if (activeGroup) {
+        const newTab = {
+          id: filePath,
+          filePath: filePath,
+        }
+
+        const updatedLayout = {
+          ...currentLayout,
+          tabGroups: currentLayout.tabGroups.map((group) =>
+            group.id === activeGroup.id
+              ? {
+                  ...group,
+                  tabs: [...group.tabs, newTab],
+                  activeTabId: newTab.id,
+                }
+              : group
+          ),
+        }
+        set(saveEditorLayoutAtom, updatedLayout, workspacePath)
+      } else {
+        // no active group, create a new one
+        const newLayout: EditorLayout = {
+          tabGroups: [
+            {
+              id: "main",
+              tabs: [
+                {
+                  id: filePath,
+                  filePath: filePath,
+                },
+              ],
+              activeTabId: filePath,
+            },
+          ],
+          activeTabGroupId: "main",
+        }
+        set(saveEditorLayoutAtom, newLayout, workspacePath)
+      }
     }
   }
 )

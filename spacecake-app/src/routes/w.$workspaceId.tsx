@@ -1,57 +1,34 @@
-import { useEffect, useMemo } from "react"
+import React, { useEffect } from "react"
 import { RootLayout } from "@/layout"
 import {
   createFileRoute,
   ErrorComponent,
-  notFound,
   Outlet,
-  useNavigate,
+  redirect,
 } from "@tanstack/react-router"
-import { Schema } from "effect"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import type { SerializedEditorState } from "lexical"
-import { AlertCircleIcon } from "lucide-react"
+import { useAtomValue, useSetAtom } from "jotai"
 
-// mode toggle rendered inside EditorToolbar
-import {
-  createEditorConfigEffect,
-  editorConfigAtom,
-  editorLayoutLoadingEffect,
-  editorStateAtom,
-  recentFilesLoadingEffect,
-  saveFileAtom,
-  selectedFilePathAtom,
-} from "@/lib/atoms/atoms"
-import { editorLayoutAtom } from "@/lib/atoms/storage"
-import { workspacePathAtom } from "@/lib/atoms/workspace"
-import {
-  createEditorConfigFromContent,
-  createEditorConfigFromState,
-} from "@/lib/editor"
+import { saveFileAtom, selectedFilePathAtom } from "@/lib/atoms/atoms"
+import { loadWorkspaceAtom } from "@/lib/atoms/workspace"
 import { pathExists } from "@/lib/fs"
-import { decodeBase64Url, encodeBase64Url } from "@/lib/utils"
+import { decodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Editor } from "@/components/editor/editor"
 // toolbar renders the save button
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
 
-const NotFoundFilePathSchema = Schema.standardSchemaV1(
-  Schema.Struct({
-    notFoundFilePath: Schema.optional(Schema.String),
-  })
-)
-
 export const Route = createFileRoute("/w/$workspaceId")({
-  validateSearch: NotFoundFilePathSchema,
   loader: async ({ params }) => {
     const workspacePath = decodeBase64Url(params.workspaceId)
     // check if workspace path exists
     const exists = await pathExists(workspacePath)
     if (!exists) {
-      throw notFound()
+      // redirect to home with workspace path as search param
+      throw redirect({
+        to: "/",
+        search: { notFoundPath: workspacePath },
+      })
     }
     return {
       workspace: {
@@ -65,92 +42,24 @@ export const Route = createFileRoute("/w/$workspaceId")({
   ),
   errorComponent: ({ error }) => <ErrorComponent error={error} />,
   component: WorkspaceLayout,
-  notFoundComponent: WorkspaceNotFound,
 })
 
-function WorkspaceNotFound() {
-  const { workspaceId } = Route.useParams()
-  const workspacePath = decodeBase64Url(workspaceId)
-
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    navigate({ to: "/", search: { notFoundPath: workspacePath } })
-  }, [navigate, workspacePath])
-
-  return null
-}
-
 function WorkspaceLayout() {
-  const { workspace } = Route.useLoaderData()
-  const { notFoundFilePath } = Route.useSearch()
-  const setWorkspacePath = useSetAtom(workspacePathAtom)
-  const navigate = useNavigate({ from: Route.id })
+  const data = Route.useLoaderData()
 
-  const handleNotFound = () => {
-    navigate({ to: "/" })
-  }
-
-  useEffect(() => {
-    setWorkspacePath(workspace.path)
-    return () => {
-      setWorkspacePath(null)
-    }
-  }, [workspace.path, setWorkspacePath])
-
+  const { workspace } = data
+  const selectedFilePath = useAtomValue(selectedFilePathAtom)
   const saveFile = useSetAtom(saveFileAtom)
 
-  const [selectedFilePath, setSelectedFilePath] = useAtom(selectedFilePathAtom)
-  const setEditorState = useSetAtom(editorStateAtom)
+  // Effect to load workspace data when the workspace path changes
+  const loadWorkspace = useSetAtom(loadWorkspaceAtom)
 
-  // Create the effect atom with injected dependencies (no circular imports!)
-  // Use useMemo to ensure the atom is only created once, not on every render
-  const editorConfigEffectAtom = useMemo(
-    () =>
-      createEditorConfigEffect(
-        createEditorConfigFromState,
-        createEditorConfigFromContent
-      ),
-    [] // Empty deps - these functions are stable
-  )
-
-  // Use the editor config atom directly - jotai handles the computation
-  const editorConfig = useAtomValue(editorConfigAtom)
-
-  // Activate the effect atom to ensure config is computed
-  useAtom(editorConfigEffectAtom)
-
-  // Activate the recent files loading effect
-  useAtom(recentFilesLoadingEffect)
-
-  // Activate editor layout loading and saving effects
-  useAtom(editorLayoutLoadingEffect)
-
-  const layout = useAtomValue(editorLayoutAtom)
-
+  // Effect to load workspace when workspace path changes
   useEffect(() => {
-    // on initial load, if we have a layout and no file is selected, open the last active file
-    if (layout && !selectedFilePath) {
-      const activeGroupId = layout.activeTabGroupId
-      if (!activeGroupId) return
-
-      const activeGroup = layout.tabGroups.find((g) => g.id === activeGroupId)
-      if (activeGroup && activeGroup.activeTabId) {
-        const activeTab = activeGroup.tabs.find(
-          (t) => t.id === activeGroup.activeTabId
-        )
-        if (activeTab) {
-          navigate({
-            to: "/w/$workspaceId/f/$",
-            params: {
-              workspaceId: encodeBase64Url(workspace.path),
-              _splat: encodeBase64Url(activeTab.filePath),
-            },
-          })
-        }
-      }
+    if (workspace.path) {
+      loadWorkspace(workspace)
     }
-  }, [layout, selectedFilePath, setSelectedFilePath, workspace.path, navigate])
+  }, [workspace.path, loadWorkspace])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -174,45 +83,19 @@ function WorkspaceLayout() {
 
   return (
     <>
-      <WorkspaceWatcher onNotFound={handleNotFound} />
+      <WorkspaceWatcher />
       <RootLayout
         selectedFilePath={selectedFilePath}
         headerRightContent={
-          <div className="flex items-center gap-3">
-            <EditorToolbar onSave={saveFile} />
-            <ModeToggle />
-          </div>
+          selectedFilePath ? (
+            <div className="flex items-center gap-3">
+              <EditorToolbar onSave={saveFile} />
+              <ModeToggle />
+            </div>
+          ) : undefined
         }
       >
-        {notFoundFilePath ? (
-          <div className="flex flex-col items-center justify-center h-full space-y-4">
-            <div className="w-full max-w-md">
-              <Alert variant="destructive">
-                <AlertCircleIcon />
-                <AlertDescription>
-                  file not found:{"\n"}
-                  <code className="font-mono text-xs break-all">
-                    {notFoundFilePath}
-                  </code>
-                </AlertDescription>
-              </Alert>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* integrated toolbar in header */}
-            {editorConfig && (
-              <Editor
-                key={selectedFilePath ?? ""}
-                editorConfig={editorConfig}
-                onSerializedChange={(value: SerializedEditorState) => {
-                  setEditorState(value)
-                }}
-              />
-            )}
-            <Outlet />
-          </>
-        )}
+        <Outlet />
       </RootLayout>
       <QuickOpen />
     </>

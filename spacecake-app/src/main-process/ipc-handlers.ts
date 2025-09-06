@@ -249,6 +249,15 @@ const emitInitialSnapshotFromWatcher = (
 
 ipcMain.handle("watch-workspace", async (event, workspacePath: string) => {
   try {
+    // Check if the workspace path exists and is a directory
+    const stats = await fs.promises.stat(workspacePath)
+    if (!stats.isDirectory()) {
+      return {
+        success: false,
+        error: `path is not a directory: ${workspacePath}`,
+      }
+    }
+
     const win = BrowserWindow.fromWebContents(event.sender)
     let entry = watchers.get(workspacePath)
     if (entry) {
@@ -340,7 +349,7 @@ ipcMain.handle("stop-watching", async (event, workspacePath: string) => {
   try {
     const entry = watchers.get(workspacePath)
     if (entry) {
-      entry.watcher.close()
+      await entry.watcher.close()
       watchers.delete(workspacePath)
       console.log(`stopped watching: ${workspacePath}`)
       return { success: true }
