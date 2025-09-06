@@ -4,7 +4,6 @@ import {
 } from "@lexical/markdown"
 import type { InitialConfigType } from "@lexical/react/LexicalComposer"
 import { atom, WritableAtom } from "jotai"
-import { atomEffect } from "jotai-effect"
 import { atomWithStorage } from "jotai/utils"
 import {
   $addUpdateTag,
@@ -25,10 +24,6 @@ import type {
   WorkspaceInfo,
 } from "@/types/workspace"
 import { FileType } from "@/types/workspace"
-import {
-  readEditorLayoutAtom,
-  readRecentFilesForWorkspaceAtom,
-} from "@/lib/atoms/storage"
 import { convertToSourceView, serializeEditorToPython } from "@/lib/editor"
 import { saveFile } from "@/lib/fs"
 import {
@@ -57,6 +52,7 @@ export const workspaceAtom = atomWithStorage<WorkspaceInfo | null>(
   "spacecake:workspace",
   null
 )
+
 export const loadingAtom = atom<boolean>(false)
 
 export const fileTreeAtom = atom<FileTree>([])
@@ -234,10 +230,7 @@ export const toggleViewAtom = atom(null, (get, set) => {
   }
 })
 
-// Atom to store the computed editor config
-export const editorConfigAtom = atom<InitialConfigType | null>(null)
-
-// Factory function to create editor config effect with injected dependencies
+// Factory function to create editor config with injected dependencies
 export const createEditorConfigEffect = (
   createEditorConfigFromState: (
     state: SerializedEditorState
@@ -246,32 +239,33 @@ export const createEditorConfigEffect = (
     content: FileContent,
     viewKind: ViewKind
   ) => InitialConfigType
-) =>
-  atomEffect((get, set) => {
+) => {
+  // Return a derived atom that computes the config synchronously
+  return atom((get) => {
     const editorState = get(editorStateAtom)
     const fileContent = get(fileContentAtom)
     const selectedFilePath = get(selectedFilePathAtom)
-    const userPrefs = get(userViewPreferencesAtom) // Add as dependency
+    const userPrefs = get(userViewPreferencesAtom)
 
     // If we have an editor state, always use that (preserves current view)
     if (editorState) {
-      const config = createEditorConfigFromState(editorState)
-      set(editorConfigAtom, config)
+      return createEditorConfigFromState(editorState)
     }
+
     // Create from content when we have fileContent and selectedFilePath
-    else if (fileContent && selectedFilePath) {
+    if (fileContent && selectedFilePath) {
       // Get the current view preference for this file type
       const userPref = userPrefs[fileContent.fileType]
       const viewKind =
         userPref ||
         (supportsBlockView(fileContent.fileType) ? "block" : "source")
 
-      const config = createEditorConfigFromContent(fileContent, viewKind)
-      set(editorConfigAtom, config)
-    } else if (!fileContent || !selectedFilePath) {
-      set(editorConfigAtom, null)
+      return createEditorConfigFromContent(fileContent, viewKind)
     }
+
+    return null
   })
+}
 
 // An action atom to handle saving the current file
 export const saveFileAtom = atom(null, async (get, set) => {
@@ -325,21 +319,5 @@ export const saveFileAtom = atom(null, async (get, set) => {
     }
   } finally {
     set(isSavingAtom, false)
-  }
-})
-
-// Effect to load recent files when the workspace changes
-export const recentFilesLoadingEffect = atomEffect((get, set) => {
-  const workspace = get(workspaceAtom)
-  if (workspace) {
-    set(readRecentFilesForWorkspaceAtom, workspace.path)
-  }
-})
-
-// Effect to load editor layout when the workspace changes
-export const editorLayoutLoadingEffect = atomEffect((get, set) => {
-  const workspace = get(workspaceAtom)
-  if (workspace) {
-    set(readEditorLayoutAtom, workspace.path)
   }
 })

@@ -1,17 +1,12 @@
 import { RootLayout } from "@/layout"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { Schema } from "effect"
-import { atom, useAtom, useSetAtom } from "jotai"
 import { AlertCircleIcon, FolderOpen, Loader2Icon } from "lucide-react"
 
-import { workspaceAtom } from "@/lib/atoms/atoms"
-import { openDirectory } from "@/lib/fs"
-import { encodeBase64Url } from "@/lib/utils"
+import { useOpenWorkspace } from "@/lib/open-workspace"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
-
-const fileExplorerIsOpenAtom = atom<boolean>(false)
 
 const NotFoundPathSchema = Schema.standardSchemaV1(
   Schema.Struct({
@@ -27,27 +22,7 @@ export const Route = createFileRoute("/")({
 function Index() {
   const { notFoundPath } = Route.useSearch()
 
-  const setWorkspace = useSetAtom(workspaceAtom)
-  const [fileExplorerIsOpen, setFileExplorerIsOpen] = useAtom(
-    fileExplorerIsOpenAtom
-  )
-
-  const navigate = useNavigate()
-
-  const handleOpenWorkspace = async () => {
-    setFileExplorerIsOpen(true)
-    try {
-      const selectedPath = await openDirectory()
-      if (selectedPath) {
-        // Just set basic workspace info and navigate
-        setWorkspace({ path: selectedPath, name: "" })
-        const id = encodeBase64Url(selectedPath)
-        navigate({ to: "/w/$workspaceId", params: { workspaceId: id } })
-      }
-    } finally {
-      setFileExplorerIsOpen(false)
-    }
-  }
+  const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
 
   return (
     <RootLayout

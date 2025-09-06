@@ -3,7 +3,7 @@ EditorToolbar handles the toolbar UI and view toggling.
 */
 
 import { useAtomValue, useSetAtom } from "jotai"
-import { Code, FileSearch, Grid3X3, Save } from "lucide-react"
+import { Code, FileSearch, FolderSearch, Grid3X3, Save } from "lucide-react"
 
 import {
   canToggleViewsAtom,
@@ -13,6 +13,7 @@ import {
   toggleViewAtom,
   viewKindAtom,
 } from "@/lib/atoms/atoms"
+import { useOpenWorkspace } from "@/lib/open-workspace"
 import { Button } from "@/components/ui/button"
 import { CommandShortcut } from "@/components/ui/command"
 
@@ -23,6 +24,7 @@ export function EditorToolbar({ onSave }: { onSave: () => void }) {
   const currentFile = useAtomValue(fileContentAtom)
   const toggleView = useSetAtom(toggleViewAtom)
   const openQuickOpen = useSetAtom(quickOpenMenuOpenAtom)
+  const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
 
   const handleViewToggle = () => {
     toggleView()
@@ -49,6 +51,18 @@ export function EditorToolbar({ onSave }: { onSave: () => void }) {
 
   return (
     <div className="flex items-center gap-3">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleOpenWorkspace}
+        disabled={fileExplorerIsOpen}
+        className="h-7 px-2 text-xs cursor-pointer"
+        aria-label="switch folder"
+        title="switch folder"
+      >
+        <FolderSearch className="h-3 w-3 mr-1" />
+        <CommandShortcut>⌘O</CommandShortcut>
+      </Button>
       <Button
         variant="ghost"
         size="sm"
