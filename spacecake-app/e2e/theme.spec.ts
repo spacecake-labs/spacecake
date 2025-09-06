@@ -13,8 +13,12 @@ test.describe("theme toggle", () => {
       document.documentElement.classList.contains("dark")
     )
 
+    let next = isDarkBefore ? "light" : "dark"
+
     // click the toggle button (always present in header)
-    await appWindow.getByRole("button", { name: "toggle theme" }).click()
+    await appWindow
+      .getByRole("button", { name: `switch to ${next} mode` })
+      .click()
 
     // wait for the class to flip, and verify dark/light are mutually exclusive
     await expect
@@ -36,8 +40,12 @@ test.describe("theme toggle", () => {
     })
     expect(["light", "dark"]).toContain(persisted as string)
 
+    next = next === "light" ? "dark" : "light"
+
     // toggle back; class should restore to original state and remain exclusive
-    await appWindow.getByRole("button", { name: "toggle theme" }).click()
+    await appWindow
+      .getByRole("button", { name: `switch to ${next} mode` })
+      .click()
     await expect
       .poll(async () =>
         appWindow.evaluate(() => {
