@@ -8,7 +8,18 @@ import {
 } from "@tanstack/react-router"
 import { useAtomValue, useSetAtom } from "jotai"
 
-import { saveFileAtom, selectedFilePathAtom } from "@/lib/atoms/atoms"
+import {
+  contextItemNameAtom,
+  isCreatingInContextAtom,
+  saveFileAtom,
+  selectedFilePathAtom,
+} from "@/lib/atoms/atoms"
+import {
+  editorLayoutAtom,
+  loadEditorLayoutSync,
+  loadRecentFilesSync,
+  workspaceRecentFilesAtom,
+} from "@/lib/atoms/storage"
 import { loadWorkspaceAtom } from "@/lib/atoms/workspace"
 import { pathExists } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
@@ -21,6 +32,7 @@ import { QuickOpen } from "@/components/quick-open"
 export const Route = createFileRoute("/w/$workspaceId")({
   loader: async ({ params }) => {
     const workspacePath = decodeBase64Url(params.workspaceId)
+
     // check if workspace path exists
     const exists = await pathExists(workspacePath)
     if (!exists) {
@@ -30,11 +42,20 @@ export const Route = createFileRoute("/w/$workspaceId")({
         search: { notFoundPath: workspacePath },
       })
     }
+
+    const workspace = {
+      path: workspacePath,
+      name: workspacePath.split("/").pop() || "spacecake",
+    }
+
+    // Load workspace data synchronously
+    const recentFiles = loadRecentFilesSync(workspacePath)
+    const editorLayout = loadEditorLayoutSync(workspacePath)
+
     return {
-      workspace: {
-        path: workspacePath,
-        name: workspacePath.split("/").pop() || "spacecake",
-      },
+      workspace,
+      recentFiles,
+      editorLayout,
     }
   },
   pendingComponent: () => (
@@ -47,14 +68,24 @@ export const Route = createFileRoute("/w/$workspaceId")({
 function WorkspaceLayout() {
   const data = Route.useLoaderData()
 
-  const { workspace } = data
+  const { workspace, recentFiles, editorLayout } = data
   const selectedFilePath = useAtomValue(selectedFilePathAtom)
   const saveFile = useSetAtom(saveFileAtom)
+  const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
+  const setContextItemName = useSetAtom(contextItemNameAtom)
 
-  // Effect to load workspace data when the workspace path changes
+  // Initialize atoms with loaded data
+  const setRecentFiles = useSetAtom(workspaceRecentFilesAtom)
+  const setEditorLayout = useSetAtom(editorLayoutAtom)
   const loadWorkspace = useSetAtom(loadWorkspaceAtom)
 
-  // Effect to load workspace when workspace path changes
+  // Initialize atoms with loaded data
+  useEffect(() => {
+    setRecentFiles(recentFiles)
+    setEditorLayout(editorLayout)
+  }, [recentFiles, editorLayout, setRecentFiles, setEditorLayout])
+
+  // Effect to load workspace data when the workspace path changes
   useEffect(() => {
     if (workspace.path) {
       loadWorkspace(workspace)
@@ -65,6 +96,9 @@ function WorkspaceLayout() {
     const onKey = (e: KeyboardEvent) => {
       const isSave =
         (e.metaKey || e.ctrlKey) && (e.key === "s" || e.key === "S")
+      const isNewFile =
+        (e.metaKey || e.ctrlKey) && (e.key === "n" || e.key === "N")
+
       if (isSave) {
         e.preventDefault()
         // if focused within CodeMirror, let its own handler dispatch the save event
@@ -74,12 +108,27 @@ function WorkspaceLayout() {
         if (isInCodeMirror) return
         void saveFile()
       }
+
+      if (isNewFile) {
+        e.preventDefault()
+        // if focused within CodeMirror, let its own handler dispatch the save event
+        const target = e.target as EventTarget | null
+        const isInCodeMirror =
+          target instanceof Element && !!target.closest(".cm-editor")
+        if (isInCodeMirror) return
+
+        // start creating a new file in the workspace root
+        if (workspace?.path) {
+          setIsCreatingInContext({ kind: "file", parentPath: workspace.path })
+          setContextItemName("")
+        }
+      }
     }
     window.addEventListener("keydown", onKey, true)
     return () => {
       window.removeEventListener("keydown", onKey, true)
     }
-  }, [saveFile])
+  }, [saveFile, workspace?.path, setIsCreatingInContext, setContextItemName])
 
   return (
     <>
@@ -90,9 +139,12 @@ function WorkspaceLayout() {
           selectedFilePath ? (
             <div className="flex items-center gap-3">
               <EditorToolbar onSave={saveFile} />
+            </div>
+          ) : (
+            <div className="px-4">
               <ModeToggle />
             </div>
-          ) : undefined
+          )
         }
       >
         <Outlet />

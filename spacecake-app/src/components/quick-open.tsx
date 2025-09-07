@@ -43,11 +43,14 @@ export function QuickOpen() {
     return () => document.removeEventListener("keydown", down)
   }, [setIsOpen])
 
-  const filteredItems = React.useMemo(
-    () =>
-      createQuickOpenItems(allFileItems, recentFiles, search, workspace?.path),
-    [search, allFileItems, recentFiles, workspace?.path]
-  )
+  const filteredItems = React.useMemo(() => {
+    return createQuickOpenItems(
+      allFileItems,
+      recentFiles,
+      search,
+      workspace?.path
+    )
+  }, [search, allFileItems, recentFiles, workspace?.path])
 
   const rowVirtualizer = useVirtualizer({
     count: filteredItems.length,

@@ -2,14 +2,15 @@ import React, { useEffect } from "react"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Schema } from "effect"
 import { useSetAtom } from "jotai"
-import { AlertCircleIcon } from "lucide-react"
+import { AlertCircleIcon, CakeSlice } from "lucide-react"
 
 import type { EditorTab, EditorTabGroup } from "@/types/editor"
 import { EditorLayoutSchema } from "@/types/editor"
 import { readEditorLayoutAtom } from "@/lib/atoms/storage"
 import { pathExists } from "@/lib/fs"
-import { decodeBase64Url, encodeBase64Url } from "@/lib/utils"
+import { condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CommandShortcut } from "@/components/ui/command"
 
 type LoaderData = { kind: "notFound"; filePath: string } | { kind: "empty" }
 
@@ -35,6 +36,13 @@ export const Route = createFileRoute("/w/$workspaceId/")({
         )
 
         if (activeTab) {
+          // check if file is within the current workspace
+          if (!activeTab.filePath.startsWith(workspacePath)) {
+            // file is from a different workspace, just show empty state
+            // (user switched workspaces, this is normal)
+            return { kind: "empty" }
+          }
+
           const fileExists = await pathExists(activeTab.filePath)
           if (fileExists) {
             throw redirect({
@@ -89,14 +97,26 @@ function WorkspaceIndex() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full space-y-4">
-      <div className="text-center">
-        <h2 className="text-lg font-semibold text-muted-foreground">
-          no file open
-        </h2>
-        <p className="text-sm text-muted-foreground mt-2">
-          select a file from the sidebar or use quick open (⌘+P)
+    <div className="flex flex-col items-center justify-center h-full max-w-2xl mx-auto text-center">
+      <div className="mb-8">
+        <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mb-4 mx-auto">
+          <CakeSlice className="w-8 h-" />
+        </div>
+        <h1 className="text-2xl font-bold mb-2">spacecake</h1>
+        <p className="text-muted-foreground text-sm">
+          {condensePath(workspacePath)}
         </p>
+      </div>
+      <h3 className="text-sm font-medium m-3">commands</h3>
+      <div className="w-full max-w-sm mx-auto grid grid-cols-1 gap-2 text-sm">
+        <div className="flex justify-between items-center py-1">
+          <span className="text-muted-foreground">quick open</span>
+          <CommandShortcut>⌘P</CommandShortcut>
+        </div>
+        <div className="flex justify-between items-center py-1">
+          <span className="text-muted-foreground">new file</span>
+          <CommandShortcut>⌘N</CommandShortcut>
+        </div>
       </div>
     </div>
   )

@@ -97,8 +97,10 @@ function FileLayout() {
     setBaseline({ path: data.file.path, content: data.file.content })
 
     if (workspace?.path) {
-      // add to recent files
-      addRecentFile(data.file, workspace.path)
+      // only add to recent files if the file belongs to the current workspace
+      if (data.file.path.startsWith(workspace.path)) {
+        addRecentFile(data.file, workspace.path)
+      }
 
       // open file in tab layout (handles existing tabs properly)
       openFile(data.filePath, workspace.path)

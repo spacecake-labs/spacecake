@@ -79,3 +79,50 @@ export function parentFolderName(
   const relativePath = filePath.replace(`${workspacePath}/`, "")
   return relativePath.replace(fileName, "").replace(/\/$/, "")
 }
+
+/**
+ * Condenses a file or folder path by showing the last two levels and an ellipsis.
+ * This approach is often the most useful in a UI, as it provides the most
+ * relevant context (the file/folder and its immediate parent).
+ *
+ * It handles both forward and backward slashes.
+ *
+ * Examples:
+ * "C:/Users/username/Documents/project/file.txt"  -> ".../project/file.txt"
+ * "/home/user/my_folder/app"                      -> ".../my_folder/app"
+ *
+ * @param path The full path string to condense.
+ * @returns The condensed path string, or the original path if it's too short.
+ */
+export const condensePath = (path: string): string => {
+  // Split the path by either forward or backward slash.
+  // Filter out any empty strings that might result from leading/trailing slashes.
+  const parts = path.split(/[/\\]/).filter((part) => part.length > 0)
+
+  // If the path has 2 or fewer parts, there's no need to condense it.
+  if (parts.length <= 2) {
+    return path
+  }
+
+  // Get the last two parts of the path.
+  const lastTwo = parts.slice(-2)
+
+  // Determine the original separator to maintain consistency.
+  const separator = path.includes("/") ? "/" : "\\"
+
+  // Join the last two parts with the separator and prepend the ellipsis.
+  return `...${separator}${lastTwo.join(separator)}`
+}
+
+// Example usage:
+const testPath1 = "C:\\Users\\username\\Documents\\project\\data\\file.txt"
+const testPath2 = "/home/user/documents/my_project/app_code.js"
+const testPath3 = "C:/Program Files/app.exe"
+const testPath4 = "/var/log/nginx"
+const testPath5 = "Users/document.txt"
+
+console.log(`Path: "${testPath1}" -> Condensed: "${condensePath(testPath1)}"`)
+console.log(`Path: "${testPath2}" -> Condensed: "${condensePath(testPath2)}"`)
+console.log(`Path: "${testPath3}" -> Condensed: "${condensePath(testPath3)}"`)
+console.log(`Path: "${testPath4}" -> Condensed: "${condensePath(testPath4)}"`)
+console.log(`Path: "${testPath5}" -> Condensed: "${condensePath(testPath5)}"`)
