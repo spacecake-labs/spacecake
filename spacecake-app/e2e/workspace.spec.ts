@@ -89,6 +89,64 @@ test.describe("spacecake app", () => {
     })
   })
 
+  test("open workspace; create file with key command", async ({
+    electronApp,
+    tempTestDir,
+  }, testInfo) => {
+    // wait for the first window to be ready
+    const window = await electronApp.firstWindow()
+
+    // verify the window is visible by checking if it has content
+    await expect(window.locator("body")).toBeVisible()
+
+    // verify the app has a title (spacecake) or is the main window
+    const title = await window.title()
+    testInfo.annotations.push({
+      type: "info",
+      description: `window title: ${title}`,
+    })
+
+    // stub the showOpenDialog to return our temp test directory
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    })
+
+    await window.getByRole("button", { name: "open folder" }).click()
+
+    // wait for the workspace to load (indicated by the create file button appearing)
+    await expect(
+      window.getByRole("button", { name: "create file or folder" })
+    ).toBeVisible()
+
+    // verify that "empty" text appears when workspace is selected but empty
+    await expect(window.getByText("empty")).toBeVisible()
+
+    await window.keyboard.press("ControlOrMeta+n")
+
+    const textbox = window.getByRole("textbox", { name: "filename.txt" })
+
+    await textbox.fill("test.txt")
+    await textbox.press("Enter", { delay: 100 }) // Added delay
+
+    // Wait for the new file to appear in the sidebar
+    await expect(
+      window.getByRole("button", { name: "test.txt" }).first()
+    ).toBeVisible()
+
+    // Wait for the create file input to disappear (indicating state reset)
+    await expect(textbox).not.toBeVisible()
+
+    // Verify the file was actually created in the filesystem
+    const expectedFilePath = path.join(tempTestDir, "test.txt")
+    const fileExists = fs.existsSync(expectedFilePath)
+
+    testInfo.annotations.push({
+      type: "info",
+      description: `File test.txt exists at ${expectedFilePath}: ${fileExists}`,
+    })
+  })
+
   test("nested folder structure and recursive expansion", async ({
     electronApp,
     tempTestDir,

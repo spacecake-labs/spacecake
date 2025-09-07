@@ -27,6 +27,11 @@ export const addRecentFileAtom = atom(
   (get, set, file: File, workspacePath: string) => {
     const now = Date.now()
 
+    // safety check: ensure file belongs to the workspace
+    if (!file.path.startsWith(workspacePath)) {
+      return
+    }
+
     // Create recent file entry
     const recentFile: RecentFile = {
       path: file.path,
@@ -99,6 +104,41 @@ export const removeRecentFileAtom = atom(
 
 export function getWorkspaceEditorLayoutKey(workspacePath: string): string {
   return `spacecake:editor-layout:${workspaceId(workspacePath)}`
+}
+
+// Synchronous data loading functions for use in route loaders
+export function loadRecentFilesSync(workspacePath: string): RecentFile[] {
+  const storageKey = getWorkspaceRecentFilesKey(workspacePath)
+  const stored = localStorage.getItem(storageKey)
+
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored)
+      const result = Schema.decodeUnknownSync(RecentFilesSchema)(parsed)
+      return [...result] // Convert readonly array to mutable array
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+export function loadEditorLayoutSync(
+  workspacePath: string
+): EditorLayout | null {
+  const storageKey = getWorkspaceEditorLayoutKey(workspacePath)
+  const stored = localStorage.getItem(storageKey)
+
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored)
+      const result = Schema.decodeUnknownSync(EditorLayoutSchema)(parsed)
+      return result
+    } catch {
+      return null
+    }
+  }
+  return null
 }
 
 export const editorLayoutAtom = atom<EditorLayout | null>(null)
