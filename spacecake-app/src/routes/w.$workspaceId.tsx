@@ -124,6 +124,7 @@ function WorkspaceLayout() {
           selectedFilePath ? (
             <div className="flex items-center gap-3">
               <EditorToolbar onSave={saveFile} />
+              <ModeToggle />
             </div>
           ) : (
             <div className="px-4">

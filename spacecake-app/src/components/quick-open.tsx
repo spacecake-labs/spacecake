@@ -31,9 +31,6 @@ export function QuickOpen() {
 
   const [parent, setParent] = useAtom(quickOpenParentAtom)
 
-  console.log("quick open recent files", recentFiles)
-  console.log("quick open all file items", allFileItems)
-
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "p" && (e.metaKey || e.ctrlKey)) {
