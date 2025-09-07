@@ -186,9 +186,13 @@ export const sortedFileTreeAtom = atom((get) => {
   return sortTree(fileTree)
 })
 
-export const flatFileTreeAtom = atom<File[]>((get) => {
+export const quickOpenFileItemsAtom = atom<QuickOpenFileItem[]>((get) => {
   const fileTree = get(fileTreeAtom)
+  const workspace = get(workspaceAtom)
 
+  if (!workspace?.path) return []
+
+  // Flatten the file tree to get all files
   const flatten = (items: FileTree): File[] => {
     let files: File[] = []
     for (const item of items) {
@@ -201,15 +205,7 @@ export const flatFileTreeAtom = atom<File[]>((get) => {
     return files
   }
 
-  return flatten(fileTree)
-})
-
-export const quickOpenFileItemsAtom = atom<QuickOpenFileItem[]>((get) => {
-  const files = get(flatFileTreeAtom)
-  const workspace = get(workspaceAtom)
-
-  if (!workspace?.path) return []
-
+  const files = flatten(fileTree)
   return files.map((file) => {
     const displayPath = parentFolderName(file.path, workspace.path, file.name)
     return { file, displayPath }

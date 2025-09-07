@@ -2,7 +2,6 @@ import {
   $convertFromMarkdownString,
   $convertToMarkdownString,
 } from "@lexical/markdown"
-import type { InitialConfigType } from "@lexical/react/LexicalComposer"
 import { atom, WritableAtom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 import {
@@ -14,7 +13,6 @@ import type { LexicalEditor } from "lexical"
 import { toast } from "sonner"
 
 import type { ViewKind } from "@/types/lexical"
-import type { PyParsedFile } from "@/types/parser"
 import type {
   ExpandedFolders,
   File,
@@ -53,8 +51,6 @@ export const workspaceAtom = atomWithStorage<WorkspaceInfo | null>(
   null
 )
 
-export const loadingAtom = atom<boolean>(false)
-
 export const fileTreeAtom = atom<FileTree>([])
 
 // Expanded folders state (keyed by folder path)
@@ -69,12 +65,10 @@ export const editorStateAtom = atom<SerializedEditorState | null>(null)
 // File content state
 export const fileContentAtom = atom<FileContent | null>(null)
 
-export const fileTypeAtom = atom((get) => {
-  return get(fileContentAtom)?.fileType ?? FileType.Plaintext
-})
-
 export const codeMirrorLanguageAtom = atom((get) => {
-  return fileTypeToCodeMirrorLanguage(get(fileTypeAtom)) ?? ""
+  const fileContent = get(fileContentAtom)
+  const fileType = fileContent?.fileType ?? FileType.Plaintext
+  return fileTypeToCodeMirrorLanguage(fileType) ?? ""
 })
 
 // Selected file path
@@ -92,14 +86,6 @@ export const lexicalEditorAtom = atom<LexicalEditor | null>(null)
 // saving state
 export const isSavingAtom = atom<boolean>(false)
 
-// recently saved indicator
-export const recentlySavedAtom = atom<boolean>(false)
-
-// per-path last saved etag (mtimeMs + size) to suppress self-watch events
-export const lastSavedEtagAtom = atom<
-  Record<string, { mtimeMs: number; size: number }>
->({})
-
 // Unified editing state for both create and rename operations
 export const editingItemAtom = atom<{
   type: "create" | "rename"
@@ -107,12 +93,6 @@ export const editingItemAtom = atom<{
   value: string
   originalValue?: string // for rename operations
 } | null>(null)
-
-// File creation and editing atoms
-export const isCreatingFileAtom = atom<boolean>(false)
-export const fileNameAtom = atom<string>("")
-export const isRenamingFileAtom = atom<boolean>(false)
-export const renameFileNameAtom = atom<string>("")
 
 // Context-aware creation atoms (for dropdown menu)
 export const isCreatingInContextAtom = atom<{
@@ -130,17 +110,6 @@ export const deletionStateAtom = atom<{
   item: null,
   isOpen: false,
   isDeleting: false,
-})
-
-// parsing atoms
-export const parsedFileAtom = atom<PyParsedFile | null>(null)
-export const parsedAnnotationsAtom = atom<PyParsedFile | null>(null)
-export const parsingStatusAtom = atom<{
-  isParsing: boolean
-  error: string | null
-}>({
-  isParsing: false,
-  error: null,
 })
 
 export type Theme = "light" | "dark" | "system"
@@ -164,14 +133,6 @@ export const viewKindAtom = atom((get) => (fileType: FileType): ViewKind => {
   return supportsBlockView(fileType) ? "block" : "source"
 })
 
-export const fileViewAtom = atom((get) => {
-  const currentFile = get(fileContentAtom)
-  if (!currentFile) return { file: null, view: "source" as ViewKind }
-
-  const view = get(viewKindAtom)(currentFile.fileType)
-  return { file: currentFile, view }
-})
-
 // Derived atom that determines if the current file can toggle between views
 export const canToggleViewsAtom = atom((get) => {
   const currentFile = get(fileContentAtom)
@@ -183,9 +144,13 @@ export const canToggleViewsAtom = atom((get) => {
 
 // Derived atom that handles toggling between block and source views
 export const toggleViewAtom = atom(null, (get, set) => {
-  const { file: currentFile, view: currentView } = get(fileViewAtom)
-
+  const currentFile = get(fileContentAtom)
   if (!currentFile) return
+
+  const userPrefs = get(userViewPreferencesAtom)
+  const currentView =
+    userPrefs[currentFile.fileType] ||
+    (supportsBlockView(currentFile.fileType) ? "block" : "source")
 
   const nextView: ViewKind = currentView === "block" ? "source" : "block"
 
@@ -229,43 +194,6 @@ export const toggleViewAtom = atom(null, (get, set) => {
     }
   }
 })
-
-// Factory function to create editor config with injected dependencies
-export const createEditorConfigEffect = (
-  createEditorConfigFromState: (
-    state: SerializedEditorState
-  ) => InitialConfigType,
-  createEditorConfigFromContent: (
-    content: FileContent,
-    viewKind: ViewKind
-  ) => InitialConfigType
-) => {
-  // Return a derived atom that computes the config synchronously
-  return atom((get) => {
-    const editorState = get(editorStateAtom)
-    const fileContent = get(fileContentAtom)
-    const selectedFilePath = get(selectedFilePathAtom)
-    const userPrefs = get(userViewPreferencesAtom)
-
-    // If we have an editor state, always use that (preserves current view)
-    if (editorState) {
-      return createEditorConfigFromState(editorState)
-    }
-
-    // Create from content when we have fileContent and selectedFilePath
-    if (fileContent && selectedFilePath) {
-      // Get the current view preference for this file type
-      const userPref = userPrefs[fileContent.fileType]
-      const viewKind =
-        userPref ||
-        (supportsBlockView(fileContent.fileType) ? "block" : "source")
-
-      return createEditorConfigFromContent(fileContent, viewKind)
-    }
-
-    return null
-  })
-}
 
 // An action atom to handle saving the current file
 export const saveFileAtom = atom(null, async (get, set) => {
