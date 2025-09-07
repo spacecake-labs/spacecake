@@ -9,7 +9,7 @@ import type {
 } from "@/types/workspace"
 import { ZERO_HASH } from "@/types/workspace"
 import { fileTreeAtom, workspaceAtom } from "@/lib/atoms/atoms"
-import { removeRecentFileAtom } from "@/lib/atoms/storage"
+import { manageRecentFilesAtom } from "@/lib/atoms/storage"
 import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
@@ -150,7 +150,11 @@ export const fileTreeEventAtom = atom(
 
         // also remove from recent files if it's a file
         if (event.kind === "unlinkFile") {
-          set(removeRecentFileAtom, absolutePath, workspace.path)
+          set(manageRecentFilesAtom, {
+            type: "remove",
+            filePath: absolutePath,
+            workspacePath: workspace.path,
+          })
         }
         break
       }

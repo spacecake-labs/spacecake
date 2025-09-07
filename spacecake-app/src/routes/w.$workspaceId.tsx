@@ -13,14 +13,12 @@ import {
   isCreatingInContextAtom,
   saveFileAtom,
   selectedFilePathAtom,
+  workspaceAtom,
 } from "@/lib/atoms/atoms"
 import {
-  editorLayoutAtom,
-  loadEditorLayoutSync,
-  loadRecentFilesSync,
-  workspaceRecentFilesAtom,
+  manageRecentFilesAtom,
+  readEditorLayoutAtom,
 } from "@/lib/atoms/storage"
-import { loadWorkspaceAtom } from "@/lib/atoms/workspace"
 import { pathExists } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
@@ -48,14 +46,8 @@ export const Route = createFileRoute("/w/$workspaceId")({
       name: workspacePath.split("/").pop() || "spacecake",
     }
 
-    // Load workspace data synchronously
-    const recentFiles = loadRecentFilesSync(workspacePath)
-    const editorLayout = loadEditorLayoutSync(workspacePath)
-
     return {
       workspace,
-      recentFiles,
-      editorLayout,
     }
   },
   pendingComponent: () => (
@@ -66,31 +58,24 @@ export const Route = createFileRoute("/w/$workspaceId")({
 })
 
 function WorkspaceLayout() {
-  const data = Route.useLoaderData()
-
-  const { workspace, recentFiles, editorLayout } = data
+  const { workspace } = Route.useLoaderData()
   const selectedFilePath = useAtomValue(selectedFilePathAtom)
   const saveFile = useSetAtom(saveFileAtom)
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
-
-  // Initialize atoms with loaded data
-  const setRecentFiles = useSetAtom(workspaceRecentFilesAtom)
-  const setEditorLayout = useSetAtom(editorLayoutAtom)
-  const loadWorkspace = useSetAtom(loadWorkspaceAtom)
-
-  // Initialize atoms with loaded data
-  useEffect(() => {
-    setRecentFiles(recentFiles)
-    setEditorLayout(editorLayout)
-  }, [recentFiles, editorLayout, setRecentFiles, setEditorLayout])
+  const setWorkspace = useSetAtom(workspaceAtom)
+  const manageRecentFiles = useSetAtom(manageRecentFilesAtom)
+  const readEditorLayout = useSetAtom(readEditorLayoutAtom)
 
   // Effect to load workspace data when the workspace path changes
   useEffect(() => {
     if (workspace.path) {
-      loadWorkspace(workspace)
+      // initialize all workspace-specific state
+      setWorkspace(workspace)
+      manageRecentFiles({ type: "init", workspacePath: workspace.path })
+      readEditorLayout(workspace.path)
     }
-  }, [workspace.path, loadWorkspace])
+  }, [workspace.path, setWorkspace, manageRecentFiles, readEditorLayout])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

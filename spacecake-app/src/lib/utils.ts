@@ -113,16 +113,3 @@ export const condensePath = (path: string): string => {
   // Join the last two parts with the separator and prepend the ellipsis.
   return `...${separator}${lastTwo.join(separator)}`
 }
-
-// Example usage:
-const testPath1 = "C:\\Users\\username\\Documents\\project\\data\\file.txt"
-const testPath2 = "/home/user/documents/my_project/app_code.js"
-const testPath3 = "C:/Program Files/app.exe"
-const testPath4 = "/var/log/nginx"
-const testPath5 = "Users/document.txt"
-
-console.log(`Path: "${testPath1}" -> Condensed: "${condensePath(testPath1)}"`)
-console.log(`Path: "${testPath2}" -> Condensed: "${condensePath(testPath2)}"`)
-console.log(`Path: "${testPath3}" -> Condensed: "${condensePath(testPath3)}"`)
-console.log(`Path: "${testPath4}" -> Condensed: "${condensePath(testPath4)}"`)
-console.log(`Path: "${testPath5}" -> Condensed: "${condensePath(testPath5)}"`)
