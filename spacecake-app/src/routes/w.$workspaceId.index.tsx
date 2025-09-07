@@ -6,7 +6,10 @@ import { AlertCircleIcon, CakeSlice } from "lucide-react"
 
 import type { EditorTab, EditorTabGroup } from "@/types/editor"
 import { EditorLayoutSchema } from "@/types/editor"
-import { readEditorLayoutAtom } from "@/lib/atoms/storage"
+import {
+  manageRecentFilesAtom,
+  readEditorLayoutAtom,
+} from "@/lib/atoms/storage"
 import { pathExists } from "@/lib/fs"
 import { condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -15,10 +18,28 @@ import { CommandShortcut } from "@/components/ui/command"
 type LoaderData = { kind: "notFound"; filePath: string } | { kind: "empty" }
 
 export const Route = createFileRoute("/w/$workspaceId/")({
-  loader: async ({ params }): Promise<LoaderData> => {
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { notFoundFilePath?: string } => {
+    return {
+      notFoundFilePath: search.notFoundFilePath as string | undefined,
+    }
+  },
+  loaderDeps: ({ search }) => ({
+    notFoundFilePath: search.notFoundFilePath,
+  }),
+  loader: async ({ params, deps }): Promise<LoaderData> => {
+    const { notFoundFilePath } = deps
+    const workspacePath = decodeBase64Url(params.workspaceId)
+
+    // if we were redirected here because a file was not found,
+    // we pass that path to the component to handle cleanup.
+    if (notFoundFilePath) {
+      return { kind: "notFound", filePath: notFoundFilePath }
+    }
+
     // we need to load the layout synchronously in the loader
     // since we can't use atoms in the loader, we'll need to read from localStorage directly
-    const workspacePath = decodeBase64Url(params.workspaceId)
     const workspaceId = workspacePath.replace(/[^a-zA-Z0-9]/g, "_")
     const storageKey = `spacecake:editor-layout:${workspaceId}`
     const stored = localStorage.getItem(storageKey)
@@ -69,6 +90,7 @@ function WorkspaceIndex() {
   const { workspaceId } = Route.useParams()
   const data = Route.useLoaderData()
   const readLayout = useSetAtom(readEditorLayoutAtom)
+  const manageRecentFiles = useSetAtom(manageRecentFilesAtom)
 
   const workspacePath = decodeBase64Url(workspaceId)
 
@@ -76,6 +98,17 @@ function WorkspaceIndex() {
   useEffect(() => {
     readLayout(workspacePath)
   }, [workspacePath, readLayout])
+
+  // if a file was not found, remove it from recent files
+  useEffect(() => {
+    if (data.kind === "notFound") {
+      manageRecentFiles({
+        type: "remove",
+        filePath: data.filePath,
+        workspacePath,
+      })
+    }
+  }, [data, workspacePath, manageRecentFiles])
 
   // if we have a not found file path, show the alert
   if (data.kind === "notFound") {

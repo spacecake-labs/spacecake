@@ -14,7 +14,10 @@ import {
   workspaceAtom,
 } from "@/lib/atoms/atoms"
 import { sortedFileTreeAtom } from "@/lib/atoms/file-tree"
-import { removeRecentFileAtom, saveEditorLayoutAtom } from "@/lib/atoms/storage"
+import {
+  manageRecentFilesAtom,
+  saveEditorLayoutAtom,
+} from "@/lib/atoms/storage"
 import {
   createFile,
   createFolder,
@@ -67,7 +70,7 @@ export function NavMain({
 
   const [selectedFilePath, setSelectedFilePath] = useAtom(selectedFilePathAtom)
   const saveEditorLayout = useSetAtom(saveEditorLayoutAtom)
-  const removeRecentFile = useSetAtom(removeRecentFileAtom)
+  const manageRecentFiles = useSetAtom(manageRecentFilesAtom)
 
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(
@@ -291,7 +294,11 @@ export function NavMain({
         }
 
         // remove from recent files
-        removeRecentFile(itemToDelete.path, workspace.path)
+        manageRecentFiles({
+          type: "remove",
+          filePath: itemToDelete.path,
+          workspacePath: workspace.path,
+        })
 
         // Close dialog only after successful deletion
         setDeletionState({

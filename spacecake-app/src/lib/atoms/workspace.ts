@@ -1,22 +1,12 @@
 import { atom } from "jotai"
 
-import type { FileTreeEvent, WorkspaceInfo } from "@/types/workspace"
+import type { FileTreeEvent } from "@/types/workspace"
 import {
-  expandedFoldersAtom,
-  fileTreeAtom,
   lexicalEditorAtom,
-  loadingFoldersAtom,
   selectedFilePathAtom,
   userViewPreferencesAtom,
-  workspaceAtom,
 } from "@/lib/atoms/atoms"
 import { fileTreeEventAtom } from "@/lib/atoms/file-tree"
-import {
-  editorLayoutAtom,
-  initRecentFilesAtom,
-  readEditorLayoutAtom,
-  workspaceRecentFilesAtom,
-} from "@/lib/atoms/storage"
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 
 export const fileEventHandlerAtom = atom(
@@ -76,22 +66,5 @@ export const fileEventHandlerAtom = atom(
         set(fileTreeEventAtom, event)
       }
     })()
-  }
-)
-
-export const loadWorkspaceAtom = atom(
-  null,
-  (get, set, workspace: WorkspaceInfo) => {
-    set(workspaceAtom, workspace)
-    set(selectedFilePathAtom, null)
-    set(fileTreeAtom, [])
-    set(expandedFoldersAtom, {})
-    set(loadingFoldersAtom, [])
-    set(editorLayoutAtom, null)
-    set(workspaceRecentFilesAtom, [])
-
-    // Load recent files and editor layout
-    set(initRecentFilesAtom, workspace.path)
-    set(readEditorLayoutAtom, workspace.path)
   }
 )

@@ -6,7 +6,6 @@ import {
 } from "@tanstack/react-router"
 import { useAtomValue, useSetAtom } from "jotai"
 
-import type { RecentFile } from "@/types/storage"
 import {
   baselineFileAtom,
   editorStateAtom,
@@ -14,7 +13,7 @@ import {
   selectedFilePathAtom,
   workspaceAtom,
 } from "@/lib/atoms/atoms"
-import { addRecentFileAtom, openFileAtom } from "@/lib/atoms/storage"
+import { manageRecentFilesAtom, openFileAtom } from "@/lib/atoms/storage"
 import { createEditorConfigFromContent } from "@/lib/editor"
 import { readFile } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
@@ -33,27 +32,8 @@ export const Route = createFileRoute("/w/$workspaceId/f/$")({
     const file = await readFile(filePath)
 
     if (!file) {
-      // clean up persisted state before redirecting
-      // we need to access the atoms directly since we can't use hooks in the loader
-      const workspaceId = workspacePath.replace(/[^a-zA-Z0-9]/g, "_")
-
-      // remove from recent files
-      const recentFilesKey = `spacecake:recent-files:${workspaceId}`
-      const storedRecentFiles = localStorage.getItem(recentFilesKey)
-      if (storedRecentFiles) {
-        try {
-          const recentFiles = JSON.parse(storedRecentFiles) as RecentFile[]
-          const updatedFiles = recentFiles.filter(
-            (f: RecentFile) => f.path !== filePath
-          )
-          localStorage.setItem(recentFilesKey, JSON.stringify(updatedFiles))
-        } catch (error) {
-          console.warn("failed to clean up recent files:", error)
-        }
-      }
-
-      // redirect to workspace root with file path as search param
-      return redirect({
+      // file not found, redirect to workspace index and let it handle cleanup
+      throw redirect({
         to: "/w/$workspaceId",
         params: { workspaceId: params.workspaceId },
         search: { notFoundFilePath: filePath },
@@ -71,16 +51,11 @@ export const Route = createFileRoute("/w/$workspaceId/f/$")({
 function FileLayout() {
   const data = Route.useLoaderData()
 
-  // if we get here, the loader didn't redirect, so we have file data
-  if (!("file" in data) || !("filePath" in data)) {
-    return null
-  }
-
   const setSelected = useSetAtom(selectedFilePathAtom)
   const setFile = useSetAtom(fileContentAtom)
   const setEditorState = useSetAtom(editorStateAtom)
   const setBaseline = useSetAtom(baselineFileAtom)
-  const addRecentFile = useSetAtom(addRecentFileAtom)
+  const manageRecentFiles = useSetAtom(manageRecentFilesAtom)
   const openFile = useSetAtom(openFileAtom)
   const workspace = useAtomValue(workspaceAtom)
 
@@ -97,10 +72,12 @@ function FileLayout() {
     setBaseline({ path: data.file.path, content: data.file.content })
 
     if (workspace?.path) {
-      // only add to recent files if the file belongs to the current workspace
-      if (data.file.path.startsWith(workspace.path)) {
-        addRecentFile(data.file, workspace.path)
-      }
+      // add to recent files using the new centralized atom
+      manageRecentFiles({
+        type: "add",
+        file: data.file,
+        workspacePath: workspace.path,
+      })
 
       // open file in tab layout (handles existing tabs properly)
       openFile(data.filePath, workspace.path)
@@ -110,7 +87,7 @@ function FileLayout() {
     setSelected,
     setFile,
     setBaseline,
-    addRecentFile,
+    manageRecentFiles,
     openFile,
     workspace,
   ])

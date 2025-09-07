@@ -1,9 +1,10 @@
 import type { RecentFile } from "@/types/storage"
 import type { FileType, QuickOpenFileItem } from "@/types/workspace"
+import { ZERO_HASH } from "@/types/workspace"
 import { commandScore } from "@/lib/command-score"
 import { parentFolderName } from "@/lib/utils"
 
-export function filterAndSortFiles(
+export function sortFilesByMatchingScore(
   files: QuickOpenFileItem[],
   searchQuery: string
 ): QuickOpenFileItem[] {
@@ -21,41 +22,38 @@ export function filterAndSortFiles(
   return results.map((r) => r.item)
 }
 
+export function sortFilesByRecency(recentFiles: RecentFile[]): RecentFile[] {
+  return recentFiles.sort((a, b) => b.lastAccessed - a.lastAccessed)
+}
+
 export function createQuickOpenItems(
   allFileItems: QuickOpenFileItem[],
   recentFiles: readonly RecentFile[],
   searchQuery: string,
   workspacePath?: string
 ): QuickOpenFileItem[] {
-  // If no search, show recent files first, then all files
+  // If no search, show recent files only (sorted by most recent first)
   if (searchQuery.length === 0) {
-    // Convert recent files to QuickOpenFileItem format
-    const recentFileItems = recentFiles.map((recentFile) => ({
+    const sortedRecentFiles = sortFilesByRecency([...recentFiles])
+
+    return sortedRecentFiles.map((recentFile) => ({
       file: {
         name: recentFile.name,
         path: recentFile.path,
         kind: "file" as const,
         etag: { mtimeMs: recentFile.lastAccessed, size: 0 },
         fileType: recentFile.fileType as FileType,
-        cid: "0000000000000000",
+        cid: ZERO_HASH,
       },
       displayPath:
         workspacePath && recentFile.path.includes(workspacePath)
           ? parentFolderName(recentFile.path, workspacePath, recentFile.name)
           : recentFile.path.split("/").pop() || recentFile.name,
     }))
-
-    // Combine recent files with all files, removing duplicates
-    const recentPaths = new Set(recentFiles.map((f) => f.path))
-    const otherFiles = allFileItems.filter(
-      (item) => !recentPaths.has(item.file.path)
-    )
-
-    return [...recentFileItems, ...otherFiles]
   }
 
   // When searching, use normal filtering but boost recent files
-  const filtered = filterAndSortFiles(allFileItems, searchQuery)
+  const filtered = sortFilesByMatchingScore(allFileItems, searchQuery)
   const recentPaths = new Set(recentFiles.map((f) => f.path))
 
   // Move recent files to the top of search results

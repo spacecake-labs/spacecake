@@ -2,11 +2,7 @@ import { Schema } from "effect"
 import { atom } from "jotai"
 
 import { EditorLayoutSchema, type EditorLayout } from "@/types/editor"
-import {
-  RecentFilesSchema,
-  type RecentFile,
-  type RecentFiles,
-} from "@/types/storage"
+import { RecentFilesSchema, type RecentFile } from "@/types/storage"
 import type { File } from "@/types/workspace"
 
 function workspaceId(workspacePath: string): string {
@@ -18,87 +14,67 @@ export function getWorkspaceRecentFilesKey(workspacePath: string): string {
   return `spacecake:recent-files:${workspaceId(workspacePath)}`
 }
 
-// Atom for current workspace's recent files (loaded on demand)
-export const workspaceRecentFilesAtom = atom<RecentFiles>([])
+// private atom to hold the actual state of recent files
+const recentFilesStateAtom = atom<RecentFile[]>([])
 
-// Utility function to add a recent file for a specific workspace
-export const addRecentFileAtom = atom(
-  null,
-  (get, set, file: File, workspacePath: string) => {
-    const now = Date.now()
+// publicly exported read-only atom for components to use
+export const workspaceRecentFilesAtom = atom((get) => get(recentFilesStateAtom))
 
-    // safety check: ensure file belongs to the workspace
-    if (!file.path.startsWith(workspacePath)) {
-      return
-    }
-
-    // Create recent file entry
-    const recentFile: RecentFile = {
-      path: file.path,
-      name: file.name,
-      fileType: file.fileType,
-      lastAccessed: now,
-      workspacePath,
-    }
-
-    // Get current workspace files from localStorage
+// single, centralized atom for all mutations
+export const manageRecentFilesAtom = atom(
+  null, // this is a write-only atom
+  (
+    get,
+    set,
+    action:
+      | { type: "init"; workspacePath: string }
+      | { type: "add"; file: File; workspacePath: string }
+      | { type: "remove"; filePath: string; workspacePath: string }
+  ) => {
+    const { workspacePath } = action
     const storageKey = getWorkspaceRecentFilesKey(workspacePath)
-    const currentFiles = get(workspaceRecentFilesAtom)
 
-    // Remove existing entry for this file if it exists
-    const filteredFiles = currentFiles.filter(
-      (f: RecentFile) => f.path !== file.path
-    )
+    // always read the latest from storage to prevent race conditions
+    const currentFiles = loadRecentFilesSync(workspacePath)
+    let updatedFiles: RecentFile[]
 
-    // Add new entry at the beginning and limit to 10 files
-    const updatedFiles = [recentFile, ...filteredFiles].slice(0, 10)
+    switch (action.type) {
+      case "init":
+        updatedFiles = currentFiles
+        break
 
-    // Update localStorage for this workspace with proper schema encoding
+      case "add": {
+        const { file } = action
+        if (!file.path.startsWith(workspacePath)) {
+          console.warn("attempted to add file from another workspace")
+          return
+        }
+
+        const recentFile: RecentFile = {
+          path: file.path,
+          name: file.name,
+          fileType: file.fileType,
+          lastAccessed: Date.now(),
+          workspacePath,
+        }
+
+        const filteredFiles = currentFiles.filter((f) => f.path !== file.path)
+        updatedFiles = [recentFile, ...filteredFiles].slice(0, 10)
+        break
+      }
+
+      case "remove": {
+        updatedFiles = currentFiles.filter((f) => f.path !== action.filePath)
+        break
+      }
+    }
+
+    // write the new state back to localStorage
     const encoded = Schema.encodeSync(RecentFilesSchema)(updatedFiles)
     localStorage.setItem(storageKey, JSON.stringify(encoded))
 
-    // Update the current workspace atom
-    set(workspaceRecentFilesAtom, updatedFiles)
-  }
-)
-
-// Atom to load recent files for a specific workspace
-export const initRecentFilesAtom = atom(
-  null,
-  (get, set, workspacePath: string) => {
-    const storageKey = getWorkspaceRecentFilesKey(workspacePath)
-    const stored = localStorage.getItem(storageKey)
-
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        const result = Schema.decodeUnknownSync(RecentFilesSchema)(parsed)
-        set(workspaceRecentFilesAtom, result)
-      } catch {
-        // If parsing or validation fails, start with empty array
-        set(workspaceRecentFilesAtom, [])
-      }
-    } else {
-      set(workspaceRecentFilesAtom, [])
-    }
-  }
-)
-
-export const removeRecentFileAtom = atom(
-  null,
-  (get, set, filePath: string, workspacePath: string) => {
-    const storageKey = getWorkspaceRecentFilesKey(workspacePath)
-    const currentFiles = get(workspaceRecentFilesAtom)
-
-    const updatedFiles = currentFiles.filter(
-      (f: RecentFile) => f.path !== filePath
-    )
-
-    if (updatedFiles.length < currentFiles.length) {
-      const encoded = Schema.encodeSync(RecentFilesSchema)(updatedFiles)
-      localStorage.setItem(storageKey, JSON.stringify(encoded))
-      set(workspaceRecentFilesAtom, updatedFiles)
-    }
+    // finally, update the in-memory atom state
+    set(recentFilesStateAtom, updatedFiles)
   }
 )
 
