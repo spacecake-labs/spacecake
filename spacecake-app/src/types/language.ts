@@ -132,25 +132,6 @@ for (const [id, spec] of Object.entries(LANGUAGES) as [
   LANGUAGE_LOOKUP.set(spec.code.toLowerCase(), id)
 }
 
-/**
- * Resolves a string alias (e.g., "md", "python") to a canonical `Language` ID.
- * The lookup is case-insensitive.
- * @param str The string to resolve.
- * @returns The canonical `Language` ID or `null` if not found.
- */
-export function fromString(str: string): Language | null {
-  return LANGUAGE_LOOKUP.get(str.toLowerCase()) ?? null
-}
-
-/**
- * Retrieves the full specification for a given canonical `Language` ID.
- * @param lang The canonical `Language` ID.
- * @returns The `LanguageSpec` for the given language.
- */
-export function getSpec(lang: Language): LanguageSpec {
-  return LANGUAGES[lang]
-}
-
 export function contextLanguageFromCode(
   code: string
 ): Option.Option<ContextLanguage> {

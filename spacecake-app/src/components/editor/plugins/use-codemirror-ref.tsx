@@ -7,7 +7,6 @@ import {
   $createParagraphNode,
   $getNodeByKey,
   $isParagraphNode,
-  LexicalEditor,
   LexicalNode,
   ParagraphNode,
   SKIP_DOM_SELECTION_TAG,
@@ -17,8 +16,6 @@ import { debounce } from "@/lib/utils"
 import { useCodeBlockEditorContext } from "@/components/editor/nodes/code-node"
 import { maybeSplitBlock } from "@/components/editor/plugins/block-splitting"
 
-// jotai atoms for editor state
-export const activeEditorAtom = atom<LexicalEditor | null>(null)
 export const editorInFocusAtom = atom<{
   editorType: string
   rootNode: LexicalNode

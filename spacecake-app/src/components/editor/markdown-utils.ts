@@ -2,18 +2,15 @@ import {
   $convertFromMarkdownString,
   $convertToMarkdownString,
 } from "@lexical/markdown"
-import { Option } from "effect"
 import { $createParagraphNode, ElementNode } from "lexical"
 
 import type { MdBlockKind } from "@/types/parser"
 import { Block } from "@/types/parser"
 import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
-import { parseDirective } from "@/lib/parser/directives"
 import {
   addPythonMdocPrefixes,
   stripPythonMdocPrefixes,
 } from "@/lib/parser/python/utils"
-import { SPACE_CONSUMER_PATTERN } from "@/lib/parser/regex"
 import {
   $getDelimiters,
   delimitedNode,
@@ -37,27 +34,6 @@ export function nodeToMdBlock(node: ElementNode) {
     $convertToMarkdownString(MARKDOWN_TRANSFORMERS, node, true)
   )
   return `${delimiters.prefix}${content}${delimiters.suffix}`
-}
-
-export function delimitMdBlock(block: Block<MdBlockKind>) {
-  const directive = Option.getOrNull(
-    parseDirective(block.text, SPACE_CONSUMER_PATTERN)
-  )
-
-  if (!directive) {
-    return null
-  }
-
-  const container = $createParagraphNode()
-
-  $convertFromMarkdownString(
-    directive.content.between,
-    MARKDOWN_TRANSFORMERS,
-    container
-  )
-
-  // Return the delimited node with the original text structure preserved
-  return delimitedNode(() => container, directive.content)
 }
 
 export const $getMarkdownDelimitedString = (node: ElementNode): string => {
