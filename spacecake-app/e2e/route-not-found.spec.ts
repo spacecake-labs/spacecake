@@ -24,14 +24,16 @@ test.describe("route not found", () => {
 
     await window.reload()
 
-    // expect error message to be visible
-    await expect(
-      window.getByText(`workspace not found:\n${tempTestDir}`)
-    ).toBeVisible()
-
     // expect 'open folder' button to be visible again
     await expect(
       window.getByRole("button", { name: "open folder" })
+    ).toBeVisible()
+
+    await expect(window.getByText("empty")).toBeVisible()
+
+    // expect error message to be visible
+    await expect(
+      window.getByText(`workspace not found:\n${tempTestDir}`)
     ).toBeVisible()
   })
 
@@ -59,7 +61,7 @@ test.describe("route not found", () => {
     // delete the file (not the directory)
     fs.unlinkSync(testFilePath)
 
-    await window.reload()
+    await await await window.reload()
 
     // expect file not found error message to be visible
     await expect(

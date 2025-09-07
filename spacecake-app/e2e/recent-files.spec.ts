@@ -64,7 +64,7 @@ test.describe("recent files", () => {
     expect(await recentFiles.nth(2).textContent()).toBe("core.py")
 
     // 5. Test persistence by reloading the page
-    await window.reload()
+    await await await window.reload()
 
     // workspace should automatically reopen
     await expect(window.getByRole("button", { name: "core.py" })).toBeVisible()
@@ -137,7 +137,7 @@ test.describe("recent files", () => {
     await quickOpenInput.press("Escape")
 
     // 10. Reload the window
-    await window.reload()
+    await await await window.reload()
 
     // 11. Verify workspace reopens
     await expect(
@@ -184,7 +184,7 @@ test.describe("recent files", () => {
     await quickOpenInput.press("Escape")
 
     // 19. Reload the window again
-    await window.reload()
+    await await await window.reload()
 
     // 20. Verify workspace reopens (empty)
     await expect(window.getByText("empty")).toBeVisible()

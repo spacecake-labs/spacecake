@@ -117,15 +117,12 @@ export function loadEditorLayoutSync(
   return null
 }
 
-export const editorLayoutAtom = atom<EditorLayout | null>(null)
-
 export const saveEditorLayoutAtom = atom(
   null,
   (get, set, layout: EditorLayout, workspacePath: string) => {
     const storageKey = getWorkspaceEditorLayoutKey(workspacePath)
     const encoded = Schema.encodeSync(EditorLayoutSchema)(layout)
     localStorage.setItem(storageKey, JSON.stringify(encoded))
-    set(editorLayoutAtom, layout)
   }
 )
 
@@ -139,12 +136,13 @@ export const readEditorLayoutAtom = atom(
       try {
         const parsed = JSON.parse(stored)
         const result = Schema.decodeUnknownSync(EditorLayoutSchema)(parsed)
-        set(editorLayoutAtom, result)
+        // Layout is read but not stored in atom state since editorLayoutAtom was removed
+        return result
       } catch {
-        set(editorLayoutAtom, null)
+        return null
       }
     } else {
-      set(editorLayoutAtom, null)
+      return null
     }
   }
 )
@@ -153,7 +151,7 @@ export const readEditorLayoutAtom = atom(
 export const openFileAtom = atom(
   null,
   (get, set, filePath: string, workspacePath: string) => {
-    const currentLayout = get(editorLayoutAtom)
+    const currentLayout = loadEditorLayoutSync(workspacePath)
 
     if (!currentLayout) {
       // create new layout with this file
