@@ -9,17 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WWorkspaceIdRouteImport } from './routes/w.$workspaceId'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w.$workspaceId.index'
 import { Route as WWorkspaceIdFSplatRouteImport } from './routes/w.$workspaceId.f.$'
 
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,21 +37,18 @@ const WWorkspaceIdFSplatRoute = WWorkspaceIdFSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/w/$workspaceId/f/$': typeof WWorkspaceIdFSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
   '/w/$workspaceId/f/$': typeof WWorkspaceIdFSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/w/$workspaceId/f/$': typeof WWorkspaceIdFSplatRoute
@@ -66,16 +57,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/about'
     | '/w/$workspaceId'
     | '/w/$workspaceId/'
     | '/w/$workspaceId/f/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/w/$workspaceId' | '/w/$workspaceId/f/$'
+  to: '/' | '/w/$workspaceId' | '/w/$workspaceId/f/$'
   id:
     | '__root__'
     | '/'
-    | '/about'
     | '/w/$workspaceId'
     | '/w/$workspaceId/'
     | '/w/$workspaceId/f/$'
@@ -83,19 +72,11 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -143,7 +124,6 @@ const WWorkspaceIdRouteWithChildren = WWorkspaceIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
   WWorkspaceIdRoute: WWorkspaceIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport

@@ -621,7 +621,7 @@ test.describe("spacecake app", () => {
     // 4. Reload the window
     // At some point we should improve this test
     // to simulate a proper restart
-    await await await window.reload()
+    await window.reload()
 
     // 5. Verify the same workspace is automatically reopened
     await expect(
@@ -661,7 +661,7 @@ test.describe("spacecake app", () => {
     // 4. Reload the window
     // At some point we should improve this test
     // to simulate a proper restart
-    await await await window.reload()
+    await window.reload()
 
     // 5. Verify the same file is automatically reopened
     await expect(window.getByTestId("lexical-editor")).toBeVisible()

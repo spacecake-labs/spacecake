@@ -34,18 +34,14 @@ test.describe("recent files", () => {
     await window.getByRole("button", { name: "open folder" }).click()
     await expect(window.getByRole("button", { name: "core.py" })).toBeVisible()
 
-    await window.waitForTimeout(1000)
-
     // 3. Open a few files to make them "recent"
     await window.getByRole("button", { name: "core.py" }).click()
     await expect(
       window.getByRole("heading", { name: "A file to test block parsing." })
     ).toBeVisible()
-    await window.waitForTimeout(1000)
 
     await window.getByRole("button", { name: "_README.md" }).click()
     await expect(window.getByText("An Example README File")).toBeVisible()
-    await window.waitForTimeout(1000)
 
     await window.getByRole("button", { name: "google-doc.py" }).click()
     await expect(
@@ -64,7 +60,7 @@ test.describe("recent files", () => {
     expect(await recentFiles.nth(2).textContent()).toBe("core.py")
 
     // 5. Test persistence by reloading the page
-    await await await window.reload()
+    await window.reload()
 
     // workspace should automatically reopen
     await expect(window.getByRole("button", { name: "core.py" })).toBeVisible()
@@ -137,7 +133,7 @@ test.describe("recent files", () => {
     await quickOpenInput.press("Escape")
 
     // 10. Reload the window
-    await await await window.reload()
+    await window.reload()
 
     // 11. Verify workspace reopens
     await expect(
@@ -184,7 +180,7 @@ test.describe("recent files", () => {
     await quickOpenInput.press("Escape")
 
     // 19. Reload the window again
-    await await await window.reload()
+    await window.reload()
 
     // 20. Verify workspace reopens (empty)
     await expect(window.getByText("empty")).toBeVisible()

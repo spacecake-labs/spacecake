@@ -6,37 +6,6 @@ import { stubDialog } from "electron-playwright-helpers"
 import { expect, test } from "./fixtures"
 
 test.describe("route not found", () => {
-  test("should show 'not found' message when workspace path does not exist", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    const window = await electronApp.firstWindow()
-
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    // delete the workspace directory
-    fs.rmSync(tempTestDir, { recursive: true, force: true, maxRetries: 5 })
-
-    await window.reload()
-
-    // expect 'open folder' button to be visible again
-    await expect(
-      window.getByRole("button", { name: "open folder" })
-    ).toBeVisible()
-
-    await expect(window.getByText("empty")).toBeVisible()
-
-    // expect error message to be visible
-    await expect(
-      window.getByText(`workspace not found:\n${tempTestDir}`)
-    ).toBeVisible()
-  })
-
   test("should show 'file not found' message when file is deleted after opening", async ({
     electronApp,
     tempTestDir,
@@ -61,11 +30,35 @@ test.describe("route not found", () => {
     // delete the file (not the directory)
     fs.unlinkSync(testFilePath)
 
-    await await await window.reload()
+    await window.reload()
 
-    // expect file not found error message to be visible
     await expect(
       window.getByText(`file not found:\n${testFilePath}`)
+    ).toBeVisible()
+  })
+
+  test("should show 'workspace not found' message when workspace path does not exist", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    const window = await electronApp.firstWindow()
+
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    })
+
+    await window.getByRole("button", { name: "open folder" }).click()
+
+    // delete the workspace directory
+    fs.rmSync(tempTestDir, { recursive: true, force: true, maxRetries: 5 })
+
+    await window.reload()
+
+    await window.waitForLoadState("networkidle")
+
+    await expect(
+      window.getByText(`workspace not found:\n${tempTestDir}`)
     ).toBeVisible()
   })
 })

@@ -39,7 +39,7 @@ function Index() {
             <Alert variant="destructive">
               <AlertCircleIcon />
               <AlertDescription>
-                previous workspace not found:{"\n"}
+                workspace not found:{"\n"}
                 <code className="font-mono text-xs break-all">
                   {notFoundPath}
                 </code>

@@ -98,60 +98,6 @@ export function serializeEditorToPython(editor: LexicalEditor): string {
 }
 
 /**
- * Assemble a Python file by splicing updated code blocks back into the original baseline content.
- * This preserves non-code regions like the module docstring and comments exactly as-is.
- */
-// baseline handling now lives in serializeEditorToPython
-/**
- * Reconcile the current editor tree against a new set of parsed Python blocks.
-//  */
-// export function reconcilePythonBlocks(
-//   editor: LexicalEditor,
-//   filePath: FileTreeItem["path"],
-//   newBlocks: PyBlock[]
-// ): void {
-//   editor.update(() => {
-//     const root = $getRoot()
-//     root.clear()
-
-//     // process all blocks in order
-//     for (
-//       let reconciledBlockCount = 0;
-//       reconciledBlockCount < newBlocks.length;
-//       reconciledBlockCount++
-//     ) {
-//       const block = newBlocks[reconciledBlockCount]
-
-//       // If module docstring
-//       if (reconciledBlockCount === 0 && block.kind === "doc") {
-//         const delimitedString = delimitPythonDocString(block.text)
-//         // Create DelimitedNode instead of converting to markdown
-//         const moduleDocNode = delimitedNode(
-//           (text: string) =>
-//             $createHeadingNode("h2").append($createTextNode(text)),
-//           delimitedString
-//         )
-//         root.append(moduleDocNode)
-//       } else {
-//         const delimitedString = delimitWithSpaceConsumer(block.text)
-//         const codeNode = delimitedNode(
-//           (text: string) =>
-//             $createCodeBlockNode({
-//               code: text,
-//               language: "python",
-//               meta: String(block.kind),
-//               src: filePath,
-//               block: block,
-//             }),
-//           delimitedString
-//         )
-//         root.append(codeNode)
-//       }
-//     }
-//   })
-// }
-
-/**
  * Converts file content to a single source view (CodeMirror block)
  * This function can be used for both initial loading and live view switching
  */

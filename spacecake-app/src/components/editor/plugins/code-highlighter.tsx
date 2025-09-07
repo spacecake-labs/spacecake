@@ -1,3 +1,7 @@
+/** Currently not used.
+ * This provides shiki code highlighting for markdown code blocks.
+ */
+
 import { JSX, useEffect } from "react"
 import { registerCodeHighlighting, ShikiTokenizer } from "@lexical/code-shiki"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
