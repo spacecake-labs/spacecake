@@ -1,12 +1,12 @@
 import { useEffect } from "react"
-import { useAtomValue, useSetAtom } from "jotai"
+import { useAtomValue } from "jotai"
 
 import { workspaceAtom } from "@/lib/atoms/atoms"
-import { fileEventHandlerAtom } from "@/lib/atoms/workspace"
+import { useFileEventHandler } from "@/hooks/use-file-event-handler"
 
 export function WorkspaceWatcher() {
   const workspace = useAtomValue(workspaceAtom)
-  const handleEvent = useSetAtom(fileEventHandlerAtom)
+  const handleEvent = useFileEventHandler()
 
   useEffect(() => {
     if (!workspace || workspace.path === "/") {

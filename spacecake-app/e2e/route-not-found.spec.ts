@@ -55,8 +55,6 @@ test.describe("route not found", () => {
 
     await window.reload()
 
-    await window.waitForLoadState("networkidle")
-
     await expect(
       window.getByText(`workspace not found:\n${tempTestDir}`)
     ).toBeVisible()
