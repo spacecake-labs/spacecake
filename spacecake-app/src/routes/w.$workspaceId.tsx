@@ -1,4 +1,9 @@
-import React, { useEffect } from "react"
+/**
+ * This route is matched when a workspace is open.
+ * If thee workspace path is not valid, it redirects to the home route.
+ */
+
+import { useEffect } from "react"
 import { RootLayout } from "@/layout"
 import {
   createFileRoute,
@@ -30,10 +35,9 @@ import { QuickOpen } from "@/components/quick-open"
 export const Route = createFileRoute("/w/$workspaceId")({
   loader: async ({ params }) => {
     const workspacePath = decodeBase64Url(params.workspaceId)
-
-    // check if workspace path exists
     const exists = await pathExists(workspacePath)
     if (!exists) {
+      console.log("workspace path does not exist", workspacePath)
       // redirect to home with workspace path as search param
       throw redirect({
         to: "/",

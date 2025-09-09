@@ -1,3 +1,8 @@
+/**
+ * This route is matched when a workspace is open but no file is open.
+ *
+ */
+
 import React, { useEffect } from "react"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Schema } from "effect"
@@ -31,6 +36,12 @@ export const Route = createFileRoute("/w/$workspaceId/")({
   loader: async ({ params, deps }): Promise<LoaderData> => {
     const { notFoundFilePath } = deps
     const workspacePath = decodeBase64Url(params.workspaceId)
+
+    console.log(
+      "w.$workspaceId.index route: notFoundFilePath",
+      notFoundFilePath
+    )
+    console.log("w.$workspaceId.index route: workspacePath", workspacePath)
 
     // if we were redirected here because a file was not found,
     // we pass that path to the component to handle cleanup.
