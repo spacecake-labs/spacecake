@@ -1,9 +1,17 @@
+/**
+ * This route is matched when a workspace is not open.
+ * If a valid workspace path is found in storage, it redirects to the workspace route.
+ */
+
 import { RootLayout } from "@/layout"
-import { createFileRoute } from "@tanstack/react-router"
-import { Schema } from "effect"
+import { localStorageService, workspaceFromStorage } from "@/services/storage"
+import { createFileRoute, redirect } from "@tanstack/react-router"
+import { Option, Schema } from "effect"
 import { AlertCircleIcon, FolderOpen, Loader2Icon } from "lucide-react"
 
+import { pathExists } from "@/lib/fs"
 import { useOpenWorkspace } from "@/lib/open-workspace"
+import { encodeBase64Url } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -17,10 +25,28 @@ const NotFoundPathSchema = Schema.standardSchemaV1(
 export const Route = createFileRoute("/")({
   validateSearch: NotFoundPathSchema,
   component: Index,
+  loader: async () => {
+    const workspace = workspaceFromStorage(localStorageService)
+
+    if (Option.isSome(workspace)) {
+      const exists = await pathExists(workspace.value.path)
+      if (exists) {
+        const id = encodeBase64Url(workspace.value.path)
+        throw redirect({
+          to: "/w/$workspaceId",
+          params: { workspaceId: id },
+        })
+      }
+      return { notFoundPath: Option.some(workspace.value.path) }
+    }
+    return { notFoundPath: Option.none() }
+  },
 })
 
 function Index() {
-  const { notFoundPath } = Route.useSearch()
+  const notFoundPath =
+    Option.getOrNull(Route.useLoaderData().notFoundPath) ??
+    Route.useSearch().notFoundPath
 
   const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
 

@@ -53,7 +53,11 @@ test.describe("route not found", () => {
     // delete the workspace directory
     fs.rmSync(tempTestDir, { recursive: true, force: true, maxRetries: 5 })
 
+    await window.waitForTimeout(3000)
+
     await window.reload()
+
+    await window.waitForTimeout(3000)
 
     await expect(
       window.getByText(`workspace not found:\n${tempTestDir}`)

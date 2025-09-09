@@ -4,3 +4,5 @@ coverage
 
 # Ignore Tanstack route tree file
 **/routeTree.gen.ts
+
+pnpm-lock.yaml

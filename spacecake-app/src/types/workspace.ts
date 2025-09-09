@@ -28,10 +28,11 @@ export const FileType = {
 
 export const ZERO_HASH = "0000000000000000"
 
-export interface WorkspaceInfo {
-  path: string
-  name: string
-}
+export const WorkspaceInfoSchema = Schema.Struct({
+  path: Schema.String,
+  name: Schema.String,
+})
+export type WorkspaceInfo = typeof WorkspaceInfoSchema.Type
 
 export type FileTreeItem = {
   name: string
