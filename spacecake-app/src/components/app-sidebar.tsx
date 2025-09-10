@@ -10,6 +10,7 @@ import { expandedFoldersAtom } from "@/lib/atoms/atoms"
 import { encodeBase64Url } from "@/lib/utils"
 import {
   Sidebar,
+  SidebarContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -82,16 +83,20 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <NavMain
-        onExpandFolder={handleExpandFolder}
-        expandedFolders={expandedFolders}
-        onFileClick={onFileClick}
-        selectedFilePath={selectedFilePath}
-        workspace={workspace}
-      />
-      <NavProjects projects={[]} />
-      <NavSecondary items={[]} />
-      <NavUser user={{ name: "User", email: "user@example.com", avatar: "" }} />
+      <SidebarContent>
+        <NavMain
+          onExpandFolder={handleExpandFolder}
+          expandedFolders={expandedFolders}
+          onFileClick={onFileClick}
+          selectedFilePath={selectedFilePath}
+          workspace={workspace}
+        />
+        <NavProjects projects={[]} />
+        <NavSecondary items={[]} />
+        <NavUser
+          user={{ name: "User", email: "user@example.com", avatar: "" }}
+        />
+      </SidebarContent>
     </Sidebar>
   )
 }

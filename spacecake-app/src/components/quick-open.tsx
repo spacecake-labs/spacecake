@@ -26,7 +26,6 @@ interface QuickOpenProps {
 }
 
 export function QuickOpen({ workspace }: QuickOpenProps) {
-  console.log("QuickOpen component rendered with workspace:", workspace.path)
   const [isOpen, setIsOpen] = useAtom(quickOpenMenuOpenAtom)
   const [search, setSearch] = useAtom(quickOpenSearchAtom)
 
@@ -34,12 +33,7 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
   const fileTree = useAtomValue(fileTreeAtom)
   const allFileItems = getQuickOpenFileItems(workspace, fileTree)
   const recentFiles = loadRecentFilesSync(workspace.path)
-  console.log(
-    "QuickOpen - allFileItems:",
-    allFileItems.length,
-    "recentFiles:",
-    recentFiles.length
-  )
+
   const navigate = useNavigate()
 
   const [parent, setParent] = useAtom(quickOpenParentAtom)
@@ -47,7 +41,6 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "p" && (e.metaKey || e.ctrlKey)) {
-        console.log("Quick open keyboard shortcut triggered")
         e.preventDefault()
         setIsOpen()
       }
@@ -58,21 +51,13 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
   }, [setIsOpen])
 
   const filteredItems = React.useMemo(() => {
-    console.log(
-      "Creating filtered items with search:",
-      search,
-      "allFileItems:",
-      allFileItems.length,
-      "recentFiles:",
-      recentFiles.length
-    )
     const items = createQuickOpenItems(
       allFileItems,
       recentFiles,
       search,
       workspace?.path
     )
-    console.log("Filtered items result:", items.length)
+
     return items
   }, [search, allFileItems, recentFiles, workspace?.path])
 
