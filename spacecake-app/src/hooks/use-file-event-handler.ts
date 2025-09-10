@@ -1,7 +1,7 @@
 import { useCallback } from "react"
 import { useSetAtom, useStore } from "jotai"
 
-import type { FileTreeEvent } from "@/types/workspace"
+import type { FileTreeEvent, WorkspaceInfo } from "@/types/workspace"
 import {
   fileContentAtom,
   fileTreeAtom,
@@ -12,7 +12,7 @@ import {
 import { fileTreeEventAtom } from "@/lib/atoms/file-tree"
 import { handleFileEvent } from "@/lib/file-event-handler"
 
-export const useFileEventHandler = () => {
+export const useFileEventHandler = (workspace: WorkspaceInfo) => {
   const setFileTreeEvent = useSetAtom(fileTreeEventAtom)
   const store = useStore()
 
@@ -33,9 +33,10 @@ export const useFileEventHandler = () => {
         currentTree,
         userViewPreferences,
         setFileTreeEvent,
-        currentFileContent
+        currentFileContent,
+        workspace
       )
     },
-    [setFileTreeEvent, store]
+    [setFileTreeEvent, store, workspace]
   )
 }

@@ -1,9 +1,14 @@
 import * as React from "react"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { useAtom, useSetAtom } from "jotai"
 import { FileWarning, Loader2Icon } from "lucide-react"
 
 import type { EditorLayout } from "@/types/editor"
-import type { ExpandedFolders, File, Folder } from "@/types/workspace"
+import type {
+  ExpandedFolders,
+  File,
+  Folder,
+  WorkspaceInfo,
+} from "@/types/workspace"
 import {
   contextItemNameAtom,
   deletionStateAtom,
@@ -11,7 +16,6 @@ import {
   expandedFoldersAtom,
   isCreatingInContextAtom,
   selectedFilePathAtom,
-  workspaceAtom,
 } from "@/lib/atoms/atoms"
 import { sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import {
@@ -52,15 +56,16 @@ interface NavMainProps {
   expandedFolders?: ExpandedFolders
   onFileClick?: (filePath: string) => void
   selectedFilePath?: string | null
+  workspace: WorkspaceInfo
 }
 
 export function NavMain({
   onExpandFolder,
   onFileClick,
   selectedFilePath: initialSelectedFilePath, // renamed to avoid conflict
+  workspace,
 }: NavMainProps) {
   const [editingItem, setEditingItem] = useAtom(editingItemAtom)
-  const workspace = useAtomValue(workspaceAtom)
   const [expandedFoldersState] = useAtom(expandedFoldersAtom)
   const [isCreatingInContext, setIsCreatingInContext] = useAtom(
     isCreatingInContextAtom
@@ -99,8 +104,6 @@ export function NavMain({
   }
 
   const handleCreateFolder = async (parentPath: string) => {
-    // if (!contextItemName.trim() || !workspace?.path) return;
-
     try {
       const folderPath = `${parentPath}/${contextItemName.trim()}`
       const success = await createFolder(folderPath)
@@ -327,7 +330,7 @@ export function NavMain({
       <SidebarGroup>
         <SidebarGroupLabel className="flex items-center justify-between">
           {<span>{workspace?.path.split("/").pop() ?? "workspace"}</span>}
-          {workspace?.path && <WorkspaceDropdownMenu />}
+          {workspace?.path && <WorkspaceDropdownMenu workspace={workspace} />}
         </SidebarGroupLabel>
 
         <SidebarMenu>
@@ -372,6 +375,7 @@ export function NavMain({
                 validationError={validationError}
                 onFilesUpdated={handleFilesUpdated}
                 onExpandFolder={onExpandFolder}
+                workspace={workspace}
               />
             ))}
           {/* Add empty state when workspace has no files/folders */}

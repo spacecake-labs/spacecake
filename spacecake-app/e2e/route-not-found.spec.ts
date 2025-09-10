@@ -57,6 +57,7 @@ test.describe("route not found", () => {
 
     await window.reload()
 
+    // TODO: find a reliable way to wait for reload to complete
     await window.waitForTimeout(3000)
 
     await expect(

@@ -1,17 +1,16 @@
-import React, { useEffect, useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import {
   createFileRoute,
   ErrorComponent,
   redirect,
 } from "@tanstack/react-router"
-import { useAtomValue, useSetAtom } from "jotai"
+import { useSetAtom } from "jotai"
 
 import {
   baselineFileAtom,
   editorStateAtom,
   fileContentAtom,
   selectedFilePathAtom,
-  workspaceAtom,
 } from "@/lib/atoms/atoms"
 import { manageRecentFilesAtom, openFileAtom } from "@/lib/atoms/storage"
 import { createEditorConfigFromContent } from "@/lib/editor"
@@ -39,7 +38,14 @@ export const Route = createFileRoute("/w/$workspaceId/f/$")({
         search: { notFoundFilePath: filePath },
       })
     }
-    return { filePath, file }
+    return {
+      workspace: {
+        path: workspacePath,
+        name: workspacePath.split("/").pop() || "spacecake",
+      },
+      filePath,
+      file,
+    }
   },
   pendingComponent: () => (
     <div className="p-2 text-xs text-muted-foreground">loading file…</div>
@@ -49,7 +55,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$")({
 })
 
 function FileLayout() {
-  const data = Route.useLoaderData()
+  const { workspace, filePath, file } = Route.useLoaderData()
 
   const setSelected = useSetAtom(selectedFilePathAtom)
   const setFile = useSetAtom(fileContentAtom)
@@ -57,46 +63,46 @@ function FileLayout() {
   const setBaseline = useSetAtom(baselineFileAtom)
   const manageRecentFiles = useSetAtom(manageRecentFilesAtom)
   const openFile = useSetAtom(openFileAtom)
-  const workspace = useAtomValue(workspaceAtom)
 
   // Create editor config for this specific file
   const editorConfig = useMemo(() => {
-    return createEditorConfigFromContent(data.file, "block") // Default to block view
-  }, [data.file, data.filePath])
+    return createEditorConfigFromContent(file, "block") // Default to block view
+  }, [file, filePath])
 
   // Set up atoms when component mounts
   useEffect(() => {
     // Set atoms for this file
-    setSelected(data.filePath)
-    setFile(data.file)
-    setBaseline({ path: data.file.path, content: data.file.content })
+    setSelected(filePath)
+    setFile(file)
+    setBaseline({ path: file.path, content: file.content })
 
     if (workspace?.path) {
       // add to recent files using the new centralized atom
       manageRecentFiles({
         type: "add",
-        file: data.file,
+        file: file,
         workspacePath: workspace.path,
       })
 
       // open file in tab layout (handles existing tabs properly)
-      openFile(data.filePath, workspace.path)
+      openFile(filePath, workspace.path)
     }
   }, [
-    data,
+    workspace,
+    file,
+    filePath,
     setSelected,
     setFile,
     setBaseline,
     manageRecentFiles,
     openFile,
-    workspace,
   ])
 
   return (
     <>
       {editorConfig && (
         <Editor
-          key={data.filePath}
+          key={filePath}
           editorConfig={editorConfig}
           onSerializedChange={(value) => {
             setEditorState(value)

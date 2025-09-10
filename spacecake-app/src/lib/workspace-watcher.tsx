@@ -1,17 +1,19 @@
 import { useEffect, useRef } from "react"
-import { useAtomValue } from "jotai"
 
-import { workspaceAtom } from "@/lib/atoms/atoms"
+import { WorkspaceInfo } from "@/types/workspace"
 import { useFileEventHandler } from "@/hooks/use-file-event-handler"
 
-export function WorkspaceWatcher() {
-  const workspace = useAtomValue(workspaceAtom)
-  const handleEvent = useFileEventHandler()
+interface WorkspaceWatcherProps {
+  workspace: WorkspaceInfo
+}
+
+export function WorkspaceWatcher({ workspace }: WorkspaceWatcherProps) {
+  const handleEvent = useFileEventHandler(workspace)
   const isListeningRef = useRef(false)
   const currentWorkspaceRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!workspace || workspace.path === "/") {
+    if (workspace.path === "/") {
       return
     }
     // prevent duplicate listeners for the same workspace

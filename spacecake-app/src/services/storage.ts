@@ -28,21 +28,32 @@ export function workspaceId(workspacePath: WorkspaceInfo["path"]): string {
   return workspacePath.replace(/[^a-zA-Z0-9]/g, "_")
 }
 
+export function workspaceKey(): string {
+  return "spacecake:workspace"
+}
+
 export function workspaceEditorLayoutKey(
   workspacePath: WorkspaceInfo["path"]
 ): string {
   return `spacecake:editor-layout:${workspaceId(workspacePath)}`
 }
 
-export function workspaceFromStorage(
+export function getWorkspace(
   storage: StorageService
 ): Option.Option<WorkspaceInfo> {
-  const stored = storage.get("spacecake:workspace")
+  const stored = storage.get(workspaceKey())
   if (stored) {
     const parsed = JSON.parse(stored)
     return Schema.decodeUnknownOption(WorkspaceInfoSchema)(parsed)
   }
   return Option.none()
+}
+
+export function setWorkspace(
+  storage: StorageService,
+  workspace: WorkspaceInfo
+) {
+  storage.set(workspaceKey(), JSON.stringify(workspace))
 }
 
 export function editorLayoutFromStorage(

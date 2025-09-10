@@ -14,8 +14,8 @@ export function getWorkspaceRecentFilesKey(workspacePath: string): string {
 // private atom to hold the actual state of recent files
 const recentFilesStateAtom = atom<RecentFile[]>([])
 
-// publicly exported read-only atom for components to use
-export const workspaceRecentFilesAtom = atom((get) => get(recentFilesStateAtom))
+// Legacy atom for backward compatibility (returns empty array)
+export const workspaceRecentFilesAtom = atom<RecentFile[]>([])
 
 // single, centralized atom for all mutations
 export const manageRecentFilesAtom = atom(
@@ -116,27 +116,6 @@ export const saveEditorLayoutAtom = atom(
     const storageKey = workspaceEditorLayoutKey(workspacePath)
     const encoded = Schema.encodeSync(EditorLayoutSchema)(layout)
     localStorage.setItem(storageKey, JSON.stringify(encoded))
-  }
-)
-
-export const readEditorLayoutAtom = atom(
-  null,
-  (get, set, workspacePath: string) => {
-    const storageKey = workspaceEditorLayoutKey(workspacePath)
-    const stored = localStorage.getItem(storageKey)
-
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        const result = Schema.decodeUnknownSync(EditorLayoutSchema)(parsed)
-        // Layout is read but not stored in atom state since editorLayoutAtom was removed
-        return result
-      } catch {
-        return null
-      }
-    } else {
-      return null
-    }
   }
 )
 
