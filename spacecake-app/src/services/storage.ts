@@ -1,5 +1,6 @@
 import { Option, Schema } from "effect"
 
+import { EditorLayoutSchema } from "@/types/editor"
 import { WorkspaceInfo, WorkspaceInfoSchema } from "@/types/workspace"
 
 export interface StorageService {
@@ -23,6 +24,16 @@ export const localStorageService: StorageService = {
   },
 }
 
+export function workspaceId(workspacePath: WorkspaceInfo["path"]): string {
+  return workspacePath.replace(/[^a-zA-Z0-9]/g, "_")
+}
+
+export function workspaceEditorLayoutKey(
+  workspacePath: WorkspaceInfo["path"]
+): string {
+  return `spacecake:editor-layout:${workspaceId(workspacePath)}`
+}
+
 export function workspaceFromStorage(
   storage: StorageService
 ): Option.Option<WorkspaceInfo> {
@@ -30,6 +41,18 @@ export function workspaceFromStorage(
   if (stored) {
     const parsed = JSON.parse(stored)
     return Schema.decodeUnknownOption(WorkspaceInfoSchema)(parsed)
+  }
+  return Option.none()
+}
+
+export function editorLayoutFromStorage(
+  storage: StorageService,
+  workspacePath: WorkspaceInfo["path"]
+) {
+  const stored = storage.get(workspaceEditorLayoutKey(workspacePath))
+  if (stored) {
+    const parsed = JSON.parse(stored)
+    return Schema.decodeUnknownOption(EditorLayoutSchema)(parsed)
   }
   return Option.none()
 }

@@ -1,13 +1,10 @@
+import { workspaceEditorLayoutKey, workspaceId } from "@/services/storage"
 import { Schema } from "effect"
 import { atom } from "jotai"
 
 import { EditorLayoutSchema, type EditorLayout } from "@/types/editor"
 import { RecentFilesSchema, type RecentFile } from "@/types/storage"
 import type { File } from "@/types/workspace"
-
-function workspaceId(workspacePath: string): string {
-  return workspacePath.replace(/[^a-zA-Z0-9]/g, "_")
-}
 
 // Helper function to get localStorage key for a workspace's recent files
 export function getWorkspaceRecentFilesKey(workspacePath: string): string {
@@ -78,10 +75,6 @@ export const manageRecentFilesAtom = atom(
   }
 )
 
-export function getWorkspaceEditorLayoutKey(workspacePath: string): string {
-  return `spacecake:editor-layout:${workspaceId(workspacePath)}`
-}
-
 // Synchronous data loading functions for use in route loaders
 export function loadRecentFilesSync(workspacePath: string): RecentFile[] {
   const storageKey = getWorkspaceRecentFilesKey(workspacePath)
@@ -102,7 +95,7 @@ export function loadRecentFilesSync(workspacePath: string): RecentFile[] {
 export function loadEditorLayoutSync(
   workspacePath: string
 ): EditorLayout | null {
-  const storageKey = getWorkspaceEditorLayoutKey(workspacePath)
+  const storageKey = workspaceEditorLayoutKey(workspacePath)
   const stored = localStorage.getItem(storageKey)
 
   if (stored) {
@@ -120,7 +113,7 @@ export function loadEditorLayoutSync(
 export const saveEditorLayoutAtom = atom(
   null,
   (get, set, layout: EditorLayout, workspacePath: string) => {
-    const storageKey = getWorkspaceEditorLayoutKey(workspacePath)
+    const storageKey = workspaceEditorLayoutKey(workspacePath)
     const encoded = Schema.encodeSync(EditorLayoutSchema)(layout)
     localStorage.setItem(storageKey, JSON.stringify(encoded))
   }
@@ -129,7 +122,7 @@ export const saveEditorLayoutAtom = atom(
 export const readEditorLayoutAtom = atom(
   null,
   (get, set, workspacePath: string) => {
-    const storageKey = getWorkspaceEditorLayoutKey(workspacePath)
+    const storageKey = workspaceEditorLayoutKey(workspacePath)
     const stored = localStorage.getItem(storageKey)
 
     if (stored) {

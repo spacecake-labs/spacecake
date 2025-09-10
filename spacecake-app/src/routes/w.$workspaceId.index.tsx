@@ -3,7 +3,7 @@
  *
  */
 
-import React, { useEffect } from "react"
+import { useEffect } from "react"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Schema } from "effect"
 import { useSetAtom } from "jotai"
@@ -11,10 +11,7 @@ import { AlertCircleIcon, CakeSlice } from "lucide-react"
 
 import type { EditorTab, EditorTabGroup } from "@/types/editor"
 import { EditorLayoutSchema } from "@/types/editor"
-import {
-  manageRecentFilesAtom,
-  readEditorLayoutAtom,
-} from "@/lib/atoms/storage"
+import { manageRecentFilesAtom } from "@/lib/atoms/storage"
 import { pathExists } from "@/lib/fs"
 import { condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -37,14 +34,6 @@ export const Route = createFileRoute("/w/$workspaceId/")({
     const { notFoundFilePath } = deps
     const workspacePath = decodeBase64Url(params.workspaceId)
 
-    console.log(
-      "w.$workspaceId.index route: notFoundFilePath",
-      notFoundFilePath
-    )
-    console.log("w.$workspaceId.index route: workspacePath", workspacePath)
-
-    // if we were redirected here because a file was not found,
-    // we pass that path to the component to handle cleanup.
     if (notFoundFilePath) {
       return { kind: "notFound", filePath: notFoundFilePath }
     }
@@ -100,15 +89,8 @@ export const Route = createFileRoute("/w/$workspaceId/")({
 function WorkspaceIndex() {
   const { workspaceId } = Route.useParams()
   const data = Route.useLoaderData()
-  const readLayout = useSetAtom(readEditorLayoutAtom)
   const manageRecentFiles = useSetAtom(manageRecentFilesAtom)
-
   const workspacePath = decodeBase64Url(workspaceId)
-
-  // load the editor layout when component mounts (for cases where loader didn't redirect)
-  useEffect(() => {
-    readLayout(workspacePath)
-  }, [workspacePath, readLayout])
 
   // if a file was not found, remove it from recent files
   useEffect(() => {
