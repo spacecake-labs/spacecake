@@ -62,7 +62,12 @@ function LayoutContent({
   }
   return (
     <ResizablePanelGroup direction="horizontal" className="h-screen">
-      <ResizablePanel defaultSize={15} minSize={15} maxSize={40}>
+      <ResizablePanel
+        defaultSize={15}
+        minSize={15}
+        maxSize={40}
+        className="flex flex-col h-full [&>*]:flex-1 [&>*]:min-h-0"
+      >
         <AppSidebar workspace={workspace} selectedFilePath={selectedFilePath} />
       </ResizablePanel>
       <ResizableHandle withHandle className="w-0" />
