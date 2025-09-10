@@ -5,6 +5,7 @@
 
 import { useEffect } from "react"
 import { RootLayout } from "@/layout"
+import { localStorageService, setWorkspace } from "@/services/storage"
 import {
   createFileRoute,
   ErrorComponent,
@@ -18,12 +19,8 @@ import {
   isCreatingInContextAtom,
   saveFileAtom,
   selectedFilePathAtom,
-  workspaceAtom,
 } from "@/lib/atoms/atoms"
-import {
-  manageRecentFilesAtom,
-  readEditorLayoutAtom,
-} from "@/lib/atoms/storage"
+import { manageRecentFilesAtom } from "@/lib/atoms/storage"
 import { pathExists } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
@@ -37,7 +34,6 @@ export const Route = createFileRoute("/w/$workspaceId")({
     const workspacePath = decodeBase64Url(params.workspaceId)
     const exists = await pathExists(workspacePath)
     if (!exists) {
-      console.log("workspace path does not exist", workspacePath)
       // redirect to home with workspace path as search param
       throw redirect({
         to: "/",
@@ -67,19 +63,16 @@ function WorkspaceLayout() {
   const saveFile = useSetAtom(saveFileAtom)
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
-  const setWorkspace = useSetAtom(workspaceAtom)
   const manageRecentFiles = useSetAtom(manageRecentFilesAtom)
-  const readEditorLayout = useSetAtom(readEditorLayoutAtom)
 
   // Effect to load workspace data when the workspace path changes
   useEffect(() => {
     if (workspace.path) {
       // initialize all workspace-specific state
-      setWorkspace(workspace)
+      setWorkspace(localStorageService, workspace)
       manageRecentFiles({ type: "init", workspacePath: workspace.path })
-      readEditorLayout(workspace.path)
     }
-  }, [workspace.path, setWorkspace, manageRecentFiles, readEditorLayout])
+  }, [workspace.path, setWorkspace, manageRecentFiles])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -121,8 +114,9 @@ function WorkspaceLayout() {
 
   return (
     <>
-      <WorkspaceWatcher />
+      <WorkspaceWatcher workspace={workspace} />
       <RootLayout
+        workspace={workspace}
         selectedFilePath={selectedFilePath}
         headerRightContent={
           selectedFilePath ? (
@@ -139,7 +133,7 @@ function WorkspaceLayout() {
       >
         <Outlet />
       </RootLayout>
-      <QuickOpen />
+      <QuickOpen workspace={workspace} />
     </>
   )
 }

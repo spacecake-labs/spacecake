@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
 import * as React from "react"
 import { Link } from "@tanstack/react-router"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { useAtom, useSetAtom } from "jotai"
 import {
   ChevronRight,
   FileWarning,
@@ -10,12 +10,14 @@ import {
   X,
 } from "lucide-react"
 
-import { ExpandedFolders, File, FileTree, Folder } from "@/types/workspace"
 import {
-  contextItemNameAtom,
-  isCreatingInContextAtom,
-  workspaceAtom,
-} from "@/lib/atoms/atoms"
+  ExpandedFolders,
+  File,
+  FileTree,
+  Folder,
+  WorkspaceInfo,
+} from "@/types/workspace"
+import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { encodeBase64Url } from "@/lib/utils"
 import { getNavItemIcon } from "@/lib/workspace"
 import { Button } from "@/components/ui/button"
@@ -70,6 +72,7 @@ interface WorkspaceTreeProps {
   validationError?: string | null
   onFilesUpdated?: () => void
   onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
+  workspace: WorkspaceInfo
 }
 
 // Component for the rename input field
@@ -220,12 +223,15 @@ function ItemDropdownMenu({
 }
 
 // Component for the workspace-level dropdown menu (plus icon)
-export function WorkspaceDropdownMenu() {
+export function WorkspaceDropdownMenu({
+  workspace,
+}: {
+  workspace: WorkspaceInfo
+}) {
   const [isCreatingInContext, setIsCreatingInContext] = useAtom(
     isCreatingInContextAtom
   )
   const setContextItemName = useSetAtom(contextItemNameAtom)
-  const workspace = useAtomValue(workspaceAtom)
 
   const startCreatingFile = () => {
     if (!workspace?.path) return
@@ -335,6 +341,7 @@ export function WorkspaceTree({
   validationError,
   onFilesUpdated,
   onExpandFolder,
+  workspace,
 }: WorkspaceTreeProps) {
   const filePath = item.path
   const isExpanded = expandedFolders[filePath] ?? false
@@ -362,7 +369,6 @@ export function WorkspaceTree({
   }
 
   if (item.kind === "file") {
-    const workspace = useAtomValue(workspaceAtom)
     const filePathEncoded = encodeBase64Url(filePath)
     const workspaceIdEncoded = workspace?.path
       ? encodeBase64Url(workspace.path)
@@ -474,6 +480,7 @@ export function WorkspaceTree({
                       validationError={validationError}
                       onFilesUpdated={onFilesUpdated}
                       onExpandFolder={onExpandFolder}
+                      workspace={workspace}
                     />
                   )
                 })

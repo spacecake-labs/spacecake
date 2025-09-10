@@ -6,9 +6,10 @@ import type {
   FileTreeEvent,
   Folder,
   QuickOpenFileItem,
+  WorkspaceInfo,
 } from "@/types/workspace"
 import { ZERO_HASH } from "@/types/workspace"
-import { fileTreeAtom, workspaceAtom } from "@/lib/atoms/atoms"
+import { fileTreeAtom } from "@/lib/atoms/atoms"
 import { manageRecentFilesAtom } from "@/lib/atoms/storage"
 import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
@@ -73,9 +74,8 @@ const removeItemFromTree = (tree: FileTree, path: string): FileTree => {
 // atom for handling file tree events
 export const fileTreeEventAtom = atom(
   null,
-  (get, set, event: FileTreeEvent) => {
-    const workspace = get(workspaceAtom)
-    if (!workspace?.path) return
+  (get, set, event: FileTreeEvent, workspace: WorkspaceInfo) => {
+    if (!workspace.path) return
 
     const currentTree = get(fileTreeAtom)
     const absolutePath = event.path
@@ -186,10 +186,11 @@ export const sortedFileTreeAtom = atom((get) => {
   return sortTree(fileTree)
 })
 
-export const quickOpenFileItemsAtom = atom<QuickOpenFileItem[]>((get) => {
-  const fileTree = get(fileTreeAtom)
-  const workspace = get(workspaceAtom)
-
+// Function to get quick open file items for a specific workspace
+export const getQuickOpenFileItems = (
+  workspace: WorkspaceInfo,
+  fileTree: FileTree
+): QuickOpenFileItem[] => {
   if (!workspace?.path) return []
 
   // Flatten the file tree to get all files
@@ -210,4 +211,4 @@ export const quickOpenFileItemsAtom = atom<QuickOpenFileItem[]>((get) => {
     const displayPath = parentFolderName(file.path, workspace.path, file.name)
     return { file, displayPath }
   })
-})
+}

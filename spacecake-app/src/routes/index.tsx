@@ -4,7 +4,7 @@
  */
 
 import { RootLayout } from "@/layout"
-import { localStorageService, workspaceFromStorage } from "@/services/storage"
+import { getWorkspace, localStorageService } from "@/services/storage"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Option, Schema } from "effect"
 import { AlertCircleIcon, FolderOpen, Loader2Icon } from "lucide-react"
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/")({
   validateSearch: NotFoundPathSchema,
   component: Index,
   loader: async () => {
-    const workspace = workspaceFromStorage(localStorageService)
+    const workspace = getWorkspace(localStorageService)
 
     if (Option.isSome(workspace)) {
       const exists = await pathExists(workspace.value.path)
@@ -52,6 +52,10 @@ function Index() {
 
   return (
     <RootLayout
+      workspace={{
+        path: "",
+        name: "workspace",
+      }}
       selectedFilePath={null}
       headerRightContent={
         <div className="px-4">

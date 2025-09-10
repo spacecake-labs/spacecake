@@ -19,7 +19,6 @@ import type {
   FileContent,
   FileTree,
   Folder,
-  WorkspaceInfo,
 } from "@/types/workspace"
 import { FileType } from "@/types/workspace"
 import { convertToSourceView, serializeEditorToPython } from "@/lib/editor"
@@ -45,11 +44,6 @@ export function atomWithToggle(
 }
 
 export const quickOpenMenuOpenAtom = atomWithToggle(false)
-
-export const workspaceAtom = atomWithStorage<WorkspaceInfo | null>(
-  "spacecake:workspace",
-  null
-)
 
 export const fileTreeAtom = atom<FileTree>([])
 

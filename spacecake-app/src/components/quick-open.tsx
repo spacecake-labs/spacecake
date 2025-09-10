@@ -4,10 +4,10 @@ import { useVirtualizer } from "@tanstack/react-virtual"
 import { atom, useAtom, useAtomValue } from "jotai"
 import { File as FileIcon } from "lucide-react"
 
-import type { File } from "@/types/workspace"
-import { quickOpenMenuOpenAtom, workspaceAtom } from "@/lib/atoms/atoms"
-import { quickOpenFileItemsAtom } from "@/lib/atoms/file-tree"
-import { workspaceRecentFilesAtom } from "@/lib/atoms/storage"
+import type { File, WorkspaceInfo } from "@/types/workspace"
+import { fileTreeAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
+import { getQuickOpenFileItems } from "@/lib/atoms/file-tree"
+import { loadRecentFilesSync } from "@/lib/atoms/storage"
 import { createQuickOpenItems } from "@/lib/filter-files"
 import { encodeBase64Url } from "@/lib/utils"
 import {
@@ -21,19 +21,33 @@ import {
 const quickOpenSearchAtom = atom("")
 const quickOpenParentAtom = atom<HTMLDivElement | null>(null)
 
-export function QuickOpen() {
+interface QuickOpenProps {
+  workspace: WorkspaceInfo
+}
+
+export function QuickOpen({ workspace }: QuickOpenProps) {
+  console.log("QuickOpen component rendered with workspace:", workspace.path)
   const [isOpen, setIsOpen] = useAtom(quickOpenMenuOpenAtom)
   const [search, setSearch] = useAtom(quickOpenSearchAtom)
-  const allFileItems = useAtomValue(quickOpenFileItemsAtom)
-  const recentFiles = useAtomValue(workspaceRecentFilesAtom)
+
+  // Get file tree from atom and derive file items
+  const fileTree = useAtomValue(fileTreeAtom)
+  const allFileItems = getQuickOpenFileItems(workspace, fileTree)
+  const recentFiles = loadRecentFilesSync(workspace.path)
+  console.log(
+    "QuickOpen - allFileItems:",
+    allFileItems.length,
+    "recentFiles:",
+    recentFiles.length
+  )
   const navigate = useNavigate()
-  const workspace = useAtomValue(workspaceAtom)
 
   const [parent, setParent] = useAtom(quickOpenParentAtom)
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "p" && (e.metaKey || e.ctrlKey)) {
+        console.log("Quick open keyboard shortcut triggered")
         e.preventDefault()
         setIsOpen()
       }
@@ -44,12 +58,22 @@ export function QuickOpen() {
   }, [setIsOpen])
 
   const filteredItems = React.useMemo(() => {
-    return createQuickOpenItems(
+    console.log(
+      "Creating filtered items with search:",
+      search,
+      "allFileItems:",
+      allFileItems.length,
+      "recentFiles:",
+      recentFiles.length
+    )
+    const items = createQuickOpenItems(
       allFileItems,
       recentFiles,
       search,
       workspace?.path
     )
+    console.log("Filtered items result:", items.length)
+    return items
   }, [search, allFileItems, recentFiles, workspace?.path])
 
   const rowVirtualizer = useVirtualizer({

@@ -1,6 +1,7 @@
 import { ReactNode } from "react"
 import { FileText } from "lucide-react"
 
+import { WorkspaceInfo } from "@/types/workspace"
 import {
   ResizableHandle,
   ResizablePanel,
@@ -15,12 +16,14 @@ import { AppSidebar } from "@/components/app-sidebar"
 
 interface RootLayoutProps {
   children: ReactNode
+  workspace: WorkspaceInfo
   selectedFilePath: string | null
   headerRightContent: ReactNode
 }
 
 function LayoutContent({
   children,
+  workspace,
   selectedFilePath,
   headerRightContent,
 }: RootLayoutProps) {
@@ -29,7 +32,7 @@ function LayoutContent({
   if (isMobile) {
     return (
       <>
-        <AppSidebar selectedFilePath={selectedFilePath} />
+        <AppSidebar workspace={workspace} selectedFilePath={selectedFilePath} />
         <main className="bg-background relative flex w-full flex-1 flex-col overflow-auto rounded-xl shadow-sm h-full p-2">
           <header className="flex h-16 shrink-0 items-center gap-2 justify-between">
             <div className="flex items-center gap-2 px-4">
@@ -60,7 +63,7 @@ function LayoutContent({
   return (
     <ResizablePanelGroup direction="horizontal" className="h-screen">
       <ResizablePanel defaultSize={15} minSize={15} maxSize={40}>
-        <AppSidebar selectedFilePath={selectedFilePath} />
+        <AppSidebar workspace={workspace} selectedFilePath={selectedFilePath} />
       </ResizablePanel>
       <ResizableHandle withHandle className="w-0" />
       <ResizablePanel defaultSize={85} className="p-2">
@@ -95,6 +98,7 @@ function LayoutContent({
 
 export function RootLayout({
   children,
+  workspace,
   selectedFilePath,
   headerRightContent,
 }: RootLayoutProps) {
@@ -102,6 +106,7 @@ export function RootLayout({
     <div className="flex h-screen">
       <SidebarProvider>
         <LayoutContent
+          workspace={workspace}
           selectedFilePath={selectedFilePath}
           headerRightContent={headerRightContent}
         >

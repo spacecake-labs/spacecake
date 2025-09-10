@@ -1,7 +1,12 @@
 import type { LexicalEditor } from "lexical"
 
 import type { ViewKind } from "@/types/lexical"
-import type { FileContent, FileTree, FileTreeEvent } from "@/types/workspace"
+import type {
+  FileContent,
+  FileTree,
+  FileTreeEvent,
+  WorkspaceInfo,
+} from "@/types/workspace"
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 
 export const handleFileEvent = async (
@@ -10,8 +15,9 @@ export const handleFileEvent = async (
   currentEditor: LexicalEditor | null,
   currentTree: FileTree,
   userViewPreferences: Record<string, ViewKind>,
-  setFileTreeEvent: (event: FileTreeEvent) => void,
-  currentFileContent: FileContent | null
+  setFileTreeEvent: (event: FileTreeEvent, workspace: WorkspaceInfo) => void,
+  currentFileContent: FileContent | null,
+  workspace: WorkspaceInfo
 ) => {
   // Handle content change events for editor updates
   if (event.kind === "contentChange") {
@@ -23,14 +29,17 @@ export const handleFileEvent = async (
     }
 
     // Update file tree metadata (size, modified date, etag, content hash)
-    setFileTreeEvent({
-      kind: "contentChange",
-      path: event.path,
-      etag: event.etag,
-      content: event.content,
-      fileType: event.fileType,
-      cid: event.cid,
-    })
+    setFileTreeEvent(
+      {
+        kind: "contentChange",
+        path: event.path,
+        etag: event.etag,
+        content: event.content,
+        fileType: event.fileType,
+        cid: event.cid,
+      },
+      workspace
+    )
 
     // Then, update editor content if this is the currently open file
     if (currentPath && currentEditor && event.path === currentPath) {
@@ -65,6 +74,6 @@ export const handleFileEvent = async (
     }
   } else {
     // Handle other file tree events
-    setFileTreeEvent(event)
+    setFileTreeEvent(event, workspace)
   }
 }
