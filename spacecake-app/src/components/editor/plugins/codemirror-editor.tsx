@@ -36,10 +36,6 @@ export const codeBlockLanguagesAtom = atom<Record<string, string>>({
   //   sql: "SQL",
 })
 
-export const codeMirrorExtensionsAtom = atom<Extension[]>([])
-export const codeMirrorAutoLoadLanguageSupportAtom = atom<boolean>(true)
-export const readOnlyAtom = atom<boolean>(false)
-
 interface CodeMirrorEditorProps {
   language: string
   nodeKey: string
