@@ -24,7 +24,8 @@ export const handleFileEvent = async (
     // For the currently open file, check if CID has changed to avoid unnecessary updates
     if (currentPath && event.path === currentPath && currentFileContent) {
       if (currentFileContent.cid === event.cid) {
-        return // Skip update - CID hasn't changed
+        // Skip update - CID hasn't changed (frontend already handled re-parsing)
+        return
       }
     }
 

@@ -251,6 +251,29 @@ export const saveFileAtom = atom(
           path: filePath,
           content: contentToWrite,
         })
+
+        // Trigger immediate re-parsing for block splitting after successful save
+        if (inferredType === FileType.Python && lexicalEditor) {
+          // Create a mock FileContent object for re-parsing
+          const mockFileContent = {
+            path: filePath,
+            name: filePath.split("/").pop() || "",
+            content: contentToWrite,
+            fileType: inferredType,
+            size: contentToWrite.length,
+            modified: new Date().toISOString(),
+            etag: { mtimeMs: Date.now(), size: contentToWrite.length },
+            cid: newCid,
+            kind: "file" as const,
+          }
+
+          // Trigger re-parsing for block splitting
+          convertPythonBlocksToLexical(
+            contentToWrite,
+            mockFileContent,
+            lexicalEditor
+          )
+        }
       } else {
         // Rollback CID on failure
         if (oldCid !== newCid && oldCid !== undefined) {
