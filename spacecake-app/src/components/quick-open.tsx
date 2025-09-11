@@ -1,4 +1,5 @@
 import * as React from "react"
+import { localStorageService, readRecentFiles } from "@/services/storage"
 import { useNavigate } from "@tanstack/react-router"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { atom, useAtom, useAtomValue } from "jotai"
@@ -7,7 +8,6 @@ import { File as FileIcon } from "lucide-react"
 import type { File, WorkspaceInfo } from "@/types/workspace"
 import { fileTreeAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
 import { getQuickOpenFileItems } from "@/lib/atoms/file-tree"
-import { loadRecentFilesSync } from "@/lib/atoms/storage"
 import { createQuickOpenItems } from "@/lib/filter-files"
 import { encodeBase64Url } from "@/lib/utils"
 import {
@@ -32,7 +32,7 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
   // Get file tree from atom and derive file items
   const fileTree = useAtomValue(fileTreeAtom)
   const allFileItems = getQuickOpenFileItems(workspace, fileTree)
-  const recentFiles = loadRecentFilesSync(workspace.path)
+  const recentFiles = readRecentFiles(localStorageService, workspace.path)
 
   const navigate = useNavigate()
 

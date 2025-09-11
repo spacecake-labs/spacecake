@@ -1,3 +1,4 @@
+import { localStorageService, updateRecentFiles } from "@/services/storage"
 import { atom } from "jotai"
 
 import type {
@@ -10,7 +11,6 @@ import type {
 } from "@/types/workspace"
 import { ZERO_HASH } from "@/types/workspace"
 import { fileTreeAtom } from "@/lib/atoms/atoms"
-import { manageRecentFilesAtom } from "@/lib/atoms/storage"
 import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
@@ -150,7 +150,7 @@ export const fileTreeEventAtom = atom(
 
         // also remove from recent files if it's a file
         if (event.kind === "unlinkFile") {
-          set(manageRecentFilesAtom, {
+          updateRecentFiles(localStorageService, {
             type: "remove",
             filePath: absolutePath,
             workspacePath: workspace.path,

@@ -20,7 +20,6 @@ import {
   saveFileAtom,
   selectedFilePathAtom,
 } from "@/lib/atoms/atoms"
-import { manageRecentFilesAtom } from "@/lib/atoms/storage"
 import { pathExists } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
@@ -63,16 +62,14 @@ function WorkspaceLayout() {
   const saveFile = useSetAtom(saveFileAtom)
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
-  const manageRecentFiles = useSetAtom(manageRecentFilesAtom)
 
   // Effect to load workspace data when the workspace path changes
   useEffect(() => {
     if (workspace.path) {
       // initialize all workspace-specific state
       setWorkspace(localStorageService, workspace)
-      manageRecentFiles({ type: "init", workspacePath: workspace.path })
     }
-  }, [workspace.path, setWorkspace, manageRecentFiles])
+  }, [workspace.path, setWorkspace])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -1,5 +1,10 @@
 import { useEffect, useMemo } from "react"
 import {
+  localStorageService,
+  openFile,
+  updateRecentFiles,
+} from "@/services/storage"
+import {
   createFileRoute,
   ErrorComponent,
   redirect,
@@ -12,7 +17,6 @@ import {
   fileContentAtom,
   selectedFilePathAtom,
 } from "@/lib/atoms/atoms"
-import { manageRecentFilesAtom, openFileAtom } from "@/lib/atoms/storage"
 import { createEditorConfigFromContent } from "@/lib/editor"
 import { readFile } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
@@ -61,8 +65,6 @@ function FileLayout() {
   const setFile = useSetAtom(fileContentAtom)
   const setEditorState = useSetAtom(editorStateAtom)
   const setBaseline = useSetAtom(baselineFileAtom)
-  const manageRecentFiles = useSetAtom(manageRecentFilesAtom)
-  const openFile = useSetAtom(openFileAtom)
 
   // Create editor config for this specific file
   const editorConfig = useMemo(() => {
@@ -78,25 +80,16 @@ function FileLayout() {
 
     if (workspace?.path) {
       // add to recent files using the new centralized atom
-      manageRecentFiles({
+      updateRecentFiles(localStorageService, {
         type: "add",
         file: file,
         workspacePath: workspace.path,
       })
 
       // open file in tab layout (handles existing tabs properly)
-      openFile(filePath, workspace.path)
+      openFile(localStorageService, filePath, workspace.path)
     }
-  }, [
-    workspace,
-    file,
-    filePath,
-    setSelected,
-    setFile,
-    setBaseline,
-    manageRecentFiles,
-    openFile,
-  ])
+  }, [workspace, file, filePath, setSelected, setFile, setBaseline])
 
   return (
     <>
