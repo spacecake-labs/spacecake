@@ -1,4 +1,5 @@
 import { StrictMode } from "react"
+import { EditorProvider } from "@/contexts/editor-context"
 // Import the generated route tree
 import { routeTree } from "@/routeTree.gen"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
@@ -43,8 +44,10 @@ function RootWithTheme() {
 root.render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RootWithTheme />
-      <ReactQueryDevtools initialIsOpen={false} />
+      <EditorProvider>
+        <RootWithTheme />
+        <ReactQueryDevtools initialIsOpen={false} />
+      </EditorProvider>
     </QueryClientProvider>
   </StrictMode>
 )

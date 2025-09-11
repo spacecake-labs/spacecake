@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useEditor } from "@/contexts/editor-context"
 import {
   InitialConfigType,
   LexicalComposer,
@@ -6,11 +7,9 @@ import {
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin"
 // removed FileType re-export; import no longer needed
-import { useAtomValue, useSetAtom } from "jotai"
 import type { EditorState, LexicalEditor, SerializedEditorState } from "lexical"
 
 import { hasInitialLoadTag } from "@/types/lexical"
-import { isSavingAtom, lexicalEditorAtom } from "@/lib/atoms/atoms"
 import { debounce } from "@/lib/utils"
 import { nodes } from "@/components/editor/nodes"
 import { Plugins } from "@/components/editor/plugins"
@@ -42,8 +41,7 @@ export function Editor({
   onChange,
   onSerializedChange,
 }: EditorProps) {
-  const setLexicalEditor = useSetAtom(lexicalEditorAtom)
-  const isSaving = useAtomValue(isSavingAtom)
+  const { editorRef } = useEditor()
   const lastEditorStateRef = React.useRef<EditorState | null>(null)
   const onChangeRef = React.useRef<EditorProps["onChange"]>(onChange)
   const onSerializedChangeRef =
@@ -82,7 +80,11 @@ export function Editor({
             : {}),
         }}
       >
-        <CaptureLexicalPlugin onCapture={setLexicalEditor} />
+        <CaptureLexicalPlugin
+          onCapture={(editor) => {
+            editorRef.current = editor
+          }}
+        />
         <Plugins />
 
         <OnChangePlugin
@@ -91,9 +93,6 @@ export function Editor({
             if (hasInitialLoadTag(tags)) {
               return
             }
-            // always capture latest editor instance for save
-            setLexicalEditor(editor)
-            if (isSaving) return
             lastEditorStateRef.current = editorState
             debouncedNotifyRef.current.schedule()
           }}

@@ -43,6 +43,7 @@ export async function convertPythonBlocksToLexical(
     for await (const block of streamParser(content)) {
       editor.update(
         () => {
+          $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           const root = $getRoot()
 
           if (
