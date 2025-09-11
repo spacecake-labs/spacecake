@@ -384,10 +384,10 @@ export function WorkspaceTree({
           />
         ) : (
           <Link
-            to="/w/$workspaceId/f/$"
+            to="/w/$workspaceId/f/$filePath"
             params={{
               workspaceId: workspaceIdEncoded,
-              _splat: filePathEncoded,
+              filePath: filePathEncoded,
             }}
             preload="intent"
             className="w-full"

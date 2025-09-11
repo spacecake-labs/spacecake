@@ -65,9 +65,6 @@ export const codeMirrorLanguageAtom = atom((get) => {
   return fileTypeToCodeMirrorLanguage(fileType) ?? ""
 })
 
-// Selected file path
-export const selectedFilePathAtom = atom<string | null>(null)
-
 // baseline content for the currently opened file
 export const baselineFileAtom = atom<{
   path: string
@@ -190,56 +187,58 @@ export const toggleViewAtom = atom(null, (get, set) => {
 })
 
 // An action atom to handle saving the current file
-export const saveFileAtom = atom(null, async (get, set) => {
-  const selectedFilePath = get(selectedFilePathAtom)
-  const lexicalEditor = get(lexicalEditorAtom)
-  const isSaving = get(isSavingAtom)
-  const fileContent = get(fileContentAtom)
-  const baseline = get(baselineFileAtom)
+export const saveFileAtom = atom(
+  null,
+  async (get, set, filePath: string | null) => {
+    const lexicalEditor = get(lexicalEditorAtom)
+    const isSaving = get(isSavingAtom)
+    const fileContent = get(fileContentAtom)
+    const baseline = get(baselineFileAtom)
 
-  if (!selectedFilePath || !lexicalEditor || isSaving) return
+    if (!filePath || !lexicalEditor || isSaving) return
 
-  set(isSavingAtom, true)
-  try {
-    // All the logic from doSave moves here
-    let contentToWrite = ""
-    const inferredType = (() => {
-      if (fileContent?.fileType) return fileContent.fileType
-      if (selectedFilePath) {
-        const ext = selectedFilePath.split(".").pop() || ""
-        return fileTypeFromExtension(ext)
+    set(isSavingAtom, true)
+    try {
+      // All the logic from doSave moves here
+      let contentToWrite = ""
+      const inferredType = (() => {
+        if (fileContent?.fileType) return fileContent.fileType
+        if (filePath) {
+          const ext = filePath.split(".").pop() || ""
+          return fileTypeFromExtension(ext)
+        }
+        return FileType.Plaintext
+      })()
+
+      if (inferredType === FileType.Python) {
+        contentToWrite = serializeEditorToPython(lexicalEditor)
+      } else if (inferredType === FileType.Markdown) {
+        // For markdown files, convert Lexical state to markdown
+        contentToWrite = lexicalEditor.read(() =>
+          $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
+        )
+      } else if (baseline && baseline.path === filePath) {
+        // fallback: write baseline until other serializers exist
+        contentToWrite = baseline.content
+      } else {
+        contentToWrite = ""
       }
-      return FileType.Plaintext
-    })()
 
-    if (inferredType === FileType.Python) {
-      contentToWrite = serializeEditorToPython(lexicalEditor)
-    } else if (inferredType === FileType.Markdown) {
-      // For markdown files, convert Lexical state to markdown
-      contentToWrite = lexicalEditor.read(() =>
-        $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
-      )
-    } else if (baseline && baseline.path === selectedFilePath) {
-      // fallback: write baseline until other serializers exist
-      contentToWrite = baseline.content
-    } else {
-      contentToWrite = ""
+      window.dispatchEvent(new Event("sc-before-save"))
+      const ok = await saveFile(filePath, contentToWrite)
+
+      if (ok) {
+        toast(`saved ${filePath}`)
+        // Update the baseline to the content we just wrote
+        set(baselineFileAtom, {
+          path: filePath,
+          content: contentToWrite,
+        })
+      } else {
+        toast("failed to save file")
+      }
+    } finally {
+      set(isSavingAtom, false)
     }
-
-    window.dispatchEvent(new Event("sc-before-save"))
-    const ok = await saveFile(selectedFilePath, contentToWrite)
-
-    if (ok) {
-      toast(`saved ${selectedFilePath}`)
-      // Update the baseline to the content we just wrote
-      set(baselineFileAtom, {
-        path: selectedFilePath,
-        content: contentToWrite,
-      })
-    } else {
-      toast("failed to save file")
-    }
-  } finally {
-    set(isSavingAtom, false)
   }
-})
+)

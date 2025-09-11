@@ -12,17 +12,17 @@ import {
   Outlet,
   redirect,
 } from "@tanstack/react-router"
-import { useAtomValue, useSetAtom } from "jotai"
+import { useSetAtom } from "jotai"
 
 import {
   contextItemNameAtom,
   isCreatingInContextAtom,
   saveFileAtom,
-  selectedFilePathAtom,
 } from "@/lib/atoms/atoms"
 import { pathExists } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
+import { useFilepath } from "@/hooks/use-filepath"
 // toolbar renders the save button
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -58,7 +58,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
 function WorkspaceLayout() {
   const { workspace } = Route.useLoaderData()
-  const selectedFilePath = useAtomValue(selectedFilePathAtom)
+  const selectedFilePath = useFilepath()
   const saveFile = useSetAtom(saveFileAtom)
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
@@ -85,7 +85,7 @@ function WorkspaceLayout() {
         const isInCodeMirror =
           target instanceof Element && !!target.closest(".cm-editor")
         if (isInCodeMirror) return
-        void saveFile()
+        void saveFile(selectedFilePath)
       }
 
       if (isNewFile) {
@@ -118,7 +118,7 @@ function WorkspaceLayout() {
         headerRightContent={
           selectedFilePath ? (
             <div className="flex items-center gap-3">
-              <EditorToolbar onSave={saveFile} />
+              <EditorToolbar onSave={() => saveFile(selectedFilePath)} />
               <ModeToggle />
             </div>
           ) : (

@@ -20,7 +20,6 @@ import {
   editingItemAtom,
   expandedFoldersAtom,
   isCreatingInContextAtom,
-  selectedFilePathAtom,
 } from "@/lib/atoms/atoms"
 import { sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import {
@@ -30,6 +29,7 @@ import {
   // readDirectory,
   renameFile,
 } from "@/lib/fs"
+import { useFilepath } from "@/hooks/use-filepath"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -74,7 +74,7 @@ export function NavMain({
   const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom)
   const [deletionState, setDeletionState] = useAtom(deletionStateAtom)
 
-  const [selectedFilePath, setSelectedFilePath] = useAtom(selectedFilePathAtom)
+  const selectedFilePath = useFilepath()
 
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(
@@ -285,9 +285,8 @@ export function NavMain({
       const success = await deleteFile(itemToDelete.path)
 
       if (success) {
-        // if the deleted file was the currently selected one, clear it
+        // if the deleted file was the currently selected one, clear the layout
         if (selectedFilePath === itemToDelete.path) {
-          setSelectedFilePath(null)
           const emptyLayout: EditorLayout = {
             tabGroups: [],
             activeTabGroupId: null,

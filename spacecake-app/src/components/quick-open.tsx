@@ -75,10 +75,10 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
     const filePathEncoded = encodeBase64Url(file.path)
 
     navigate({
-      to: "/w/$workspaceId/f/$",
+      to: "/w/$workspaceId/f/$filePath",
       params: {
         workspaceId: workspaceIdEncoded,
-        _splat: filePathEncoded,
+        filePath: filePathEncoded,
       },
     })
     setIsOpen(false)
