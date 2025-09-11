@@ -66,10 +66,10 @@ export const Route = createFileRoute("/w/$workspaceId/")({
           const fileExists = await pathExists(activeTab.filePath)
           if (fileExists) {
             throw redirect({
-              to: "/w/$workspaceId/f/$",
+              to: "/w/$workspaceId/f/$filePath",
               params: {
                 workspaceId: params.workspaceId,
-                _splat: encodeBase64Url(activeTab.filePath),
+                filePath: encodeBase64Url(activeTab.filePath),
               },
             })
           } else {

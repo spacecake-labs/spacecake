@@ -15,18 +15,16 @@ import {
   baselineFileAtom,
   editorStateAtom,
   fileContentAtom,
-  selectedFilePathAtom,
 } from "@/lib/atoms/atoms"
 import { createEditorConfigFromContent } from "@/lib/editor"
 import { readFile } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
 import { Editor } from "@/components/editor/editor"
 
-export const Route = createFileRoute("/w/$workspaceId/f/$")({
+export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   loader: async ({ params }) => {
     const workspacePath = decodeBase64Url(params.workspaceId)
-    // the catch-all $ is mapped to _splat in TS types
-    const filePath = decodeBase64Url(params._splat as string)
+    const filePath = decodeBase64Url(params.filePath)
 
     // ensure file belongs to workspace by prefix (best-effort client guard)
     if (!filePath.startsWith(workspacePath)) {
@@ -61,7 +59,6 @@ export const Route = createFileRoute("/w/$workspaceId/f/$")({
 function FileLayout() {
   const { workspace, filePath, file } = Route.useLoaderData()
 
-  const setSelected = useSetAtom(selectedFilePathAtom)
   const setFile = useSetAtom(fileContentAtom)
   const setEditorState = useSetAtom(editorStateAtom)
   const setBaseline = useSetAtom(baselineFileAtom)
@@ -74,7 +71,6 @@ function FileLayout() {
   // Set up atoms when component mounts
   useEffect(() => {
     // Set atoms for this file
-    setSelected(filePath)
     setFile(file)
     setBaseline({ path: file.path, content: file.content })
 
@@ -89,7 +85,7 @@ function FileLayout() {
       // open file in tab layout (handles existing tabs properly)
       openFile(localStorageService, filePath, workspace.path)
     }
-  }, [workspace, file, filePath, setSelected, setFile, setBaseline])
+  }, [workspace, file, filePath, setFile, setBaseline])
 
   return (
     <>

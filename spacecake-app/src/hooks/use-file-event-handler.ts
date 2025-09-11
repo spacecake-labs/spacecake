@@ -6,21 +6,21 @@ import {
   fileContentAtom,
   fileTreeAtom,
   lexicalEditorAtom,
-  selectedFilePathAtom,
   userViewPreferencesAtom,
 } from "@/lib/atoms/atoms"
 import { fileTreeEventAtom } from "@/lib/atoms/file-tree"
 import { handleFileEvent } from "@/lib/file-event-handler"
+import { useFilepath } from "@/hooks/use-filepath"
 
 export const useFileEventHandler = (workspace: WorkspaceInfo) => {
   const setFileTreeEvent = useSetAtom(fileTreeEventAtom)
   const store = useStore()
+  const currentPath = useFilepath()
 
   return useCallback(
     (event: FileTreeEvent) => {
       // Get current values at the time of the event using the store
       // This ensures we always get the latest values without causing re-renders
-      const currentPath = store.get(selectedFilePathAtom)
       const currentEditor = store.get(lexicalEditorAtom)
       const currentTree = store.get(fileTreeAtom)
       const userViewPreferences = store.get(userViewPreferencesAtom)
@@ -37,6 +37,6 @@ export const useFileEventHandler = (workspace: WorkspaceInfo) => {
         workspace
       )
     },
-    [setFileTreeEvent, store, workspace]
+    [setFileTreeEvent, store, workspace, currentPath]
   )
 }
