@@ -71,9 +71,6 @@ export const baselineFileAtom = atom<{
   content: string
 } | null>(null)
 
-// store the current lexical editor instance
-export const lexicalEditorAtom = atom<LexicalEditor | null>(null)
-
 // saving state
 export const isSavingAtom = atom<boolean>(false)
 
@@ -134,94 +131,108 @@ export const canToggleViewsAtom = atom((get) => {
 })
 
 // Derived atom that handles toggling between block and source views
-export const toggleViewAtom = atom(null, (get, set) => {
-  const currentFile = get(fileContentAtom)
-  if (!currentFile) return
+export const toggleViewAtom = atom(
+  null,
+  (get, set, lexicalEditor?: LexicalEditor) => {
+    const currentFile = get(fileContentAtom)
+    if (!currentFile) return
 
-  const userPrefs = get(userViewPreferencesAtom)
-  const currentView =
-    userPrefs[currentFile.fileType] ||
-    (supportsBlockView(currentFile.fileType) ? "block" : "source")
+    const userPrefs = get(userViewPreferencesAtom)
+    const currentView =
+      userPrefs[currentFile.fileType] ||
+      (supportsBlockView(currentFile.fileType) ? "block" : "source")
 
-  const nextView: ViewKind = currentView === "block" ? "source" : "block"
+    const nextView: ViewKind = currentView === "block" ? "source" : "block"
 
-  // Update the preference
-  set(userViewPreferencesAtom, (prev) => ({
-    ...prev,
-    [currentFile.fileType]: nextView,
-  }))
+    // Update the preference
+    set(userViewPreferencesAtom, (prev) => ({
+      ...prev,
+      [currentFile.fileType]: nextView,
+    }))
 
-  // Get the current editor instance for live switching
-  const currentEditor = get(lexicalEditorAtom)
-  if (!currentEditor) return
+    // Use the passed editor instance for live switching
+    if (!lexicalEditor) return
 
-  // Handle live view switching for Python files
-  if (currentFile.fileType === FileType.Python) {
-    const sourceContent = serializeEditorToPython(currentEditor)
-    if (nextView === "source") {
-      convertToSourceView(sourceContent, currentFile, currentEditor)
-    } else {
-      convertPythonBlocksToLexical(sourceContent, currentFile, currentEditor)
+    // Handle live view switching for Python files
+    if (currentFile.fileType === FileType.Python) {
+      const sourceContent = serializeEditorToPython(lexicalEditor)
+      if (nextView === "source") {
+        convertToSourceView(sourceContent, currentFile, lexicalEditor)
+      } else {
+        convertPythonBlocksToLexical(sourceContent, currentFile, lexicalEditor)
+      }
+    }
+
+    // Handle live view switching for Markdown files
+    if (currentFile.fileType === FileType.Markdown) {
+      if (nextView === "source") {
+        // Convert current WYSIWYG state to markdown string
+        const markdownContent = lexicalEditor.getEditorState().read(() => {
+          return $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
+        })
+        convertToSourceView(markdownContent, currentFile, lexicalEditor)
+      } else {
+        // Convert markdown string back to WYSIWYG state
+        const markdownContent = lexicalEditor.getEditorState().read(() => {
+          return $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
+        })
+        lexicalEditor.update(() => {
+          $addUpdateTag(SKIP_DOM_SELECTION_TAG)
+          $convertFromMarkdownString(markdownContent, MARKDOWN_TRANSFORMERS)
+        })
+      }
     }
   }
-
-  // Handle live view switching for Markdown files
-  if (currentFile.fileType === FileType.Markdown) {
-    if (nextView === "source") {
-      // Convert current WYSIWYG state to markdown string
-      const markdownContent = currentEditor.getEditorState().read(() => {
-        return $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
-      })
-      convertToSourceView(markdownContent, currentFile, currentEditor)
-    } else {
-      // Convert markdown string back to WYSIWYG state
-      const markdownContent = currentEditor.getEditorState().read(() => {
-        return $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
-      })
-      currentEditor.update(() => {
-        $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-        $convertFromMarkdownString(markdownContent, MARKDOWN_TRANSFORMERS)
-      })
-    }
-  }
-})
+)
 
 // An action atom to handle saving the current file
 export const saveFileAtom = atom(
   null,
-  async (get, set, filePath: string | null) => {
-    const lexicalEditor = get(lexicalEditorAtom)
+  async (get, set, filePath: string | null, lexicalEditor?: LexicalEditor) => {
     const isSaving = get(isSavingAtom)
     const fileContent = get(fileContentAtom)
     const baseline = get(baselineFileAtom)
 
     if (!filePath || !lexicalEditor || isSaving) return
 
-    set(isSavingAtom, true)
-    try {
-      // All the logic from doSave moves here
-      let contentToWrite = ""
-      const inferredType = (() => {
-        if (fileContent?.fileType) return fileContent.fileType
-        if (filePath) {
-          const ext = filePath.split(".").pop() || ""
-          return fileTypeFromExtension(ext)
-        }
-        return FileType.Plaintext
-      })()
+    // Calculate content and CID first
+    let contentToWrite = ""
+    const inferredType = (() => {
+      if (fileContent?.fileType) return fileContent.fileType
+      if (filePath) {
+        const ext = filePath.split(".").pop() || ""
+        return fileTypeFromExtension(ext)
+      }
+      return FileType.Plaintext
+    })()
 
-      if (inferredType === FileType.Python) {
-        contentToWrite = serializeEditorToPython(lexicalEditor)
-      } else if (inferredType === FileType.Markdown) {
-        // For markdown files, convert Lexical state to markdown
-        contentToWrite = lexicalEditor.read(() =>
-          $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
+    if (inferredType === FileType.Python) {
+      contentToWrite = serializeEditorToPython(lexicalEditor)
+    } else if (inferredType === FileType.Markdown) {
+      // For markdown files, convert Lexical state to markdown
+      contentToWrite = lexicalEditor.read(() =>
+        $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
+      )
+    } else if (baseline && baseline.path === filePath) {
+      // fallback: write baseline until other serializers exist
+      contentToWrite = baseline.content
+    } else {
+      contentToWrite = ""
+    }
+
+    const { fnv1a64Hex } = await import("@/lib/hash")
+    const newCid = fnv1a64Hex(contentToWrite)
+    const oldCid = fileContent?.cid
+
+    // Set saving state for UI feedback
+    set(isSavingAtom, true)
+
+    try {
+      // OPTIMISTIC: Update CID immediately (before save!)
+      if (oldCid !== newCid) {
+        set(fileContentAtom, (prev) =>
+          prev && prev.path === filePath ? { ...prev, cid: newCid } : prev
         )
-      } else if (baseline && baseline.path === filePath) {
-        // fallback: write baseline until other serializers exist
-        contentToWrite = baseline.content
-      } else {
-        contentToWrite = ""
       }
 
       window.dispatchEvent(new Event("sc-before-save"))
@@ -229,12 +240,24 @@ export const saveFileAtom = atom(
 
       if (ok) {
         toast(`saved ${filePath}`)
+        // Update content to match what was saved
+        set(fileContentAtom, (prev) =>
+          prev && prev.path === filePath
+            ? { ...prev, content: contentToWrite }
+            : prev
+        )
         // Update the baseline to the content we just wrote
         set(baselineFileAtom, {
           path: filePath,
           content: contentToWrite,
         })
       } else {
+        // Rollback CID on failure
+        if (oldCid !== newCid && oldCid !== undefined) {
+          set(fileContentAtom, (prev) =>
+            prev && prev.path === filePath ? { ...prev, cid: oldCid } : prev
+          )
+        }
         toast("failed to save file")
       }
     } finally {

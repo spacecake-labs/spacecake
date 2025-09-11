@@ -1,0 +1,26 @@
+import React, { createContext, useContext, useRef } from "react"
+import type { LexicalEditor } from "lexical"
+
+interface EditorContextType {
+  editorRef: React.RefObject<LexicalEditor | null>
+}
+
+const EditorContext = createContext<EditorContextType | null>(null)
+
+export function EditorProvider({ children }: { children: React.ReactNode }) {
+  const editorRef = useRef<LexicalEditor | null>(null)
+
+  return (
+    <EditorContext.Provider value={{ editorRef }}>
+      {children}
+    </EditorContext.Provider>
+  )
+}
+
+export function useEditor() {
+  const context = useContext(EditorContext)
+  if (!context) {
+    throw new Error("useEditor must be used within an EditorProvider")
+  }
+  return context
+}

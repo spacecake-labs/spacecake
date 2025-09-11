@@ -12,7 +12,7 @@ import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 export const handleFileEvent = async (
   event: FileTreeEvent,
   currentPath: string | null,
-  currentEditor: LexicalEditor | null,
+  currentEditor: LexicalEditor | null | undefined,
   currentTree: FileTree,
   userViewPreferences: Record<string, ViewKind>,
   setFileTreeEvent: (event: FileTreeEvent, workspace: WorkspaceInfo) => void,

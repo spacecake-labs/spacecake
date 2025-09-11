@@ -4,6 +4,7 @@
  */
 
 import { useEffect } from "react"
+import { useEditor } from "@/contexts/editor-context"
 import { RootLayout } from "@/layout"
 import { localStorageService, setWorkspace } from "@/services/storage"
 import {
@@ -58,6 +59,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
 function WorkspaceLayout() {
   const { workspace } = Route.useLoaderData()
+  const { editorRef } = useEditor()
   const selectedFilePath = useFilepath()
   const saveFile = useSetAtom(saveFileAtom)
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
@@ -85,7 +87,7 @@ function WorkspaceLayout() {
         const isInCodeMirror =
           target instanceof Element && !!target.closest(".cm-editor")
         if (isInCodeMirror) return
-        void saveFile(selectedFilePath)
+        void saveFile(selectedFilePath, editorRef.current || undefined)
       }
 
       if (isNewFile) {

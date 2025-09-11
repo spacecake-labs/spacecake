@@ -2,6 +2,7 @@
 EditorToolbar handles the toolbar UI and view toggling.
 */
 
+import { useEditor } from "@/contexts/editor-context"
 import { useAtomValue, useSetAtom } from "jotai"
 import { Code, FileSearch, FolderSearch, Grid3X3, Save } from "lucide-react"
 
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button"
 import { CommandShortcut } from "@/components/ui/command"
 
 export function EditorToolbar({ onSave }: { onSave: () => void }) {
+  const { editorRef } = useEditor()
   const isSaving = useAtomValue(isSavingAtom)
   const canToggleViews = useAtomValue(canToggleViewsAtom)
   const viewKind = useAtomValue(viewKindAtom)
@@ -27,7 +29,7 @@ export function EditorToolbar({ onSave }: { onSave: () => void }) {
   const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
 
   const handleViewToggle = () => {
-    toggleView()
+    toggleView(editorRef.current || undefined)
   }
 
   const getCurrentViewLabel = () => {

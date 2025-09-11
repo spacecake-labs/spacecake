@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react"
+import { useEditor } from "@/contexts/editor-context"
 
 import { WorkspaceInfo } from "@/types/workspace"
 import { useFileEventHandler } from "@/hooks/use-file-event-handler"
@@ -8,6 +9,7 @@ interface WorkspaceWatcherProps {
 }
 
 export function WorkspaceWatcher({ workspace }: WorkspaceWatcherProps) {
+  const { editorRef } = useEditor()
   const handleEvent = useFileEventHandler(workspace)
   const isListeningRef = useRef(false)
   const currentWorkspaceRef = useRef<string | null>(null)
@@ -35,7 +37,9 @@ export function WorkspaceWatcher({ workspace }: WorkspaceWatcherProps) {
           !isListeningRef.current ||
           currentWorkspaceRef.current !== workspace.path
         ) {
-          off = window.electronAPI.onFileEvent(handleEvent)
+          off = window.electronAPI.onFileEvent((event) =>
+            handleEvent(event, editorRef.current)
+          )
           isListeningRef.current = true
           currentWorkspaceRef.current = workspace.path
         }
