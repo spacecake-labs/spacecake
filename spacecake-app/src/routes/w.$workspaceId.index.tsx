@@ -4,14 +4,13 @@
  */
 
 import { useEffect } from "react"
+import { localStorageService, updateRecentFiles } from "@/services/storage"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Schema } from "effect"
-import { useSetAtom } from "jotai"
 import { AlertCircleIcon, CakeSlice } from "lucide-react"
 
 import type { EditorTab, EditorTabGroup } from "@/types/editor"
 import { EditorLayoutSchema } from "@/types/editor"
-import { manageRecentFilesAtom } from "@/lib/atoms/storage"
 import { pathExists } from "@/lib/fs"
 import { condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -89,19 +88,18 @@ export const Route = createFileRoute("/w/$workspaceId/")({
 function WorkspaceIndex() {
   const { workspaceId } = Route.useParams()
   const data = Route.useLoaderData()
-  const manageRecentFiles = useSetAtom(manageRecentFilesAtom)
   const workspacePath = decodeBase64Url(workspaceId)
 
   // if a file was not found, remove it from recent files
   useEffect(() => {
     if (data.kind === "notFound") {
-      manageRecentFiles({
+      updateRecentFiles(localStorageService, {
         type: "remove",
         filePath: data.filePath,
         workspacePath,
       })
     }
-  }, [data, workspacePath, manageRecentFiles])
+  }, [data, workspacePath])
 
   // if we have a not found file path, show the alert
   if (data.kind === "notFound") {

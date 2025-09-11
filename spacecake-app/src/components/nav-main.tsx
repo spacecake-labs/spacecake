@@ -1,5 +1,10 @@
 import * as React from "react"
-import { useAtom, useSetAtom } from "jotai"
+import {
+  localStorageService,
+  saveEditorLayout,
+  updateRecentFiles,
+} from "@/services/storage"
+import { useAtom } from "jotai"
 import { FileWarning, Loader2Icon } from "lucide-react"
 
 import type { EditorLayout } from "@/types/editor"
@@ -18,10 +23,6 @@ import {
   selectedFilePathAtom,
 } from "@/lib/atoms/atoms"
 import { sortedFileTreeAtom } from "@/lib/atoms/file-tree"
-import {
-  manageRecentFilesAtom,
-  saveEditorLayoutAtom,
-} from "@/lib/atoms/storage"
 import {
   createFile,
   createFolder,
@@ -74,8 +75,6 @@ export function NavMain({
   const [deletionState, setDeletionState] = useAtom(deletionStateAtom)
 
   const [selectedFilePath, setSelectedFilePath] = useAtom(selectedFilePathAtom)
-  const saveEditorLayout = useSetAtom(saveEditorLayoutAtom)
-  const manageRecentFiles = useSetAtom(manageRecentFilesAtom)
 
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(
@@ -293,11 +292,11 @@ export function NavMain({
             tabGroups: [],
             activeTabGroupId: null,
           }
-          saveEditorLayout(emptyLayout, workspace.path)
+          saveEditorLayout(localStorageService, emptyLayout, workspace.path)
         }
 
         // remove from recent files
-        manageRecentFiles({
+        updateRecentFiles(localStorageService, {
           type: "remove",
           filePath: itemToDelete.path,
           workspacePath: workspace.path,
