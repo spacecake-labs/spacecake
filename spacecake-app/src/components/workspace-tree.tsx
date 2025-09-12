@@ -30,6 +30,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -276,6 +277,7 @@ export function WorkspaceDropdownMenu({
           <DropdownMenuContent className="w-48">
             <DropdownMenuItem onClick={startCreatingFile}>
               <span>new file</span>
+              <DropdownMenuShortcut>⌘N</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={startCreatingFolder}>
               <span>new folder</span>
