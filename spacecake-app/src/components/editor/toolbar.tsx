@@ -17,8 +17,9 @@ import {
 import { useOpenWorkspace } from "@/lib/open-workspace"
 import { Button } from "@/components/ui/button"
 import { CommandShortcut } from "@/components/ui/command"
+import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 
-export function EditorToolbar({ onSave }: { onSave: () => void }) {
+export function EditorToolbar() {
   const { editorRef } = useEditor()
   const isSaving = useAtomValue(isSavingAtom)
   const canToggleViews = useAtomValue(canToggleViewsAtom)
@@ -49,6 +50,12 @@ export function EditorToolbar({ onSave }: { onSave: () => void }) {
   const getCurrentView = () => {
     if (!currentFile) return null
     return viewKind(currentFile.fileType)
+  }
+
+  const handleSave = () => {
+    if (editorRef.current) {
+      editorRef.current.dispatchCommand(SAVE_FILE_COMMAND, undefined)
+    }
   }
 
   return (
@@ -101,7 +108,7 @@ export function EditorToolbar({ onSave }: { onSave: () => void }) {
       <Button
         variant="ghost"
         size="sm"
-        onClick={onSave}
+        onClick={handleSave}
         className="h-7 px-2 text-xs cursor-pointer"
         disabled={isSaving}
         aria-label="save"

@@ -721,10 +721,8 @@ test.describe("spacecake app", () => {
       window.getByTestId("lexical-editor").getByRole("paragraph")
     ).toContainText("Hello, autofocus!")
 
-    // save and wait for editor to be visible again
-    // await window.keyboard.press("ControlOrMeta+s", { delay: 100 })
-    const saveBtn = window.getByRole("button", { name: "save" })
-    await saveBtn.click()
+    await window.keyboard.press("ControlOrMeta+s", { delay: 100 })
+
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
     await expect(
       window.getByTestId("lexical-editor").getByRole("paragraph")

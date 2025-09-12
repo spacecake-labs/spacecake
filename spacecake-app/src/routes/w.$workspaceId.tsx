@@ -4,7 +4,6 @@
  */
 
 import { useEffect } from "react"
-import { useEditor } from "@/contexts/editor-context"
 import { RootLayout } from "@/layout"
 import { localStorageService, setWorkspace } from "@/services/storage"
 import {
@@ -15,11 +14,7 @@ import {
 } from "@tanstack/react-router"
 import { useSetAtom } from "jotai"
 
-import {
-  contextItemNameAtom,
-  isCreatingInContextAtom,
-  saveFileAtom,
-} from "@/lib/atoms/atoms"
+import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { pathExists } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
@@ -59,9 +54,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
 function WorkspaceLayout() {
   const { workspace } = Route.useLoaderData()
-  const { editorRef } = useEditor()
   const selectedFilePath = useFilepath()
-  const saveFile = useSetAtom(saveFileAtom)
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
 
@@ -75,20 +68,8 @@ function WorkspaceLayout() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const isSave =
-        (e.metaKey || e.ctrlKey) && (e.key === "s" || e.key === "S")
       const isNewFile =
         (e.metaKey || e.ctrlKey) && (e.key === "n" || e.key === "N")
-
-      if (isSave) {
-        e.preventDefault()
-        // if focused within CodeMirror, let its own handler dispatch the save event
-        const target = e.target as EventTarget | null
-        const isInCodeMirror =
-          target instanceof Element && !!target.closest(".cm-editor")
-        if (isInCodeMirror) return
-        void saveFile(selectedFilePath, editorRef.current || undefined)
-      }
 
       if (isNewFile) {
         e.preventDefault()
@@ -109,7 +90,7 @@ function WorkspaceLayout() {
     return () => {
       window.removeEventListener("keydown", onKey, true)
     }
-  }, [saveFile, workspace?.path, setIsCreatingInContext, setContextItemName])
+  }, [workspace?.path, setIsCreatingInContext, setContextItemName])
 
   return (
     <>
@@ -120,11 +101,7 @@ function WorkspaceLayout() {
         headerRightContent={
           selectedFilePath ? (
             <div className="flex items-center gap-3">
-              <EditorToolbar
-                onSave={() =>
-                  saveFile(selectedFilePath, editorRef.current || undefined)
-                }
-              />
+              <EditorToolbar />
               <ModeToggle />
             </div>
           ) : (

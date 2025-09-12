@@ -16,6 +16,7 @@ import { atom, useAtom } from "jotai"
 
 import { ContentEditable } from "@/components/editor/content-editable"
 import { NodeNavigationPlugin } from "@/components/editor/plugins/node-navigation"
+import { SaveCommandPlugin } from "@/components/editor/plugins/save-command"
 import { SlashCommandPlugin } from "@/components/editor/plugins/slash-command"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 
@@ -60,6 +61,7 @@ export const Plugins = React.memo(function Plugins() {
 
         <MarkdownShortcutPlugin transformers={MARKDOWN_TRANSFORMERS} />
 
+        <SaveCommandPlugin />
         <SlashCommandPlugin />
       </div>
 
