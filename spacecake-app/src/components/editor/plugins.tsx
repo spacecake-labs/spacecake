@@ -1,4 +1,5 @@
 import * as React from "react"
+import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin"
 import { CheckListPlugin } from "@lexical/react/LexicalCheckListPlugin"
 import { ClearEditorPlugin } from "@lexical/react/LexicalClearEditorPlugin"
 import { ClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin"
@@ -29,8 +30,6 @@ export const Plugins = React.memo(function Plugins() {
     }
   }
 
-  const placeholder = "..."
-
   return (
     <div className="relative">
       <div className="relative">
@@ -39,7 +38,7 @@ export const Plugins = React.memo(function Plugins() {
             <div className="h-full flex flex-1 min-h-0">
               <div className="h-full flex-1 min-h-0" ref={onRef}>
                 <ContentEditable
-                  placeholder={placeholder}
+                  placeholder={""}
                   className="ContentEditable__root relative block h-full min-h-0 flex-1 overflow-auto px-8 py-4 focus:outline-none"
                 />
               </div>
@@ -48,6 +47,7 @@ export const Plugins = React.memo(function Plugins() {
           ErrorBoundary={LexicalErrorBoundary}
         />
 
+        <AutoFocusPlugin />
         <ClickableLinkPlugin />
         <CheckListPlugin />
         <HorizontalRulePlugin />

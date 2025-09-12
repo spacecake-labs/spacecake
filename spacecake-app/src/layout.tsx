@@ -1,7 +1,9 @@
 import { ReactNode } from "react"
+import { useNavigate } from "@tanstack/react-router"
 import { FileText } from "lucide-react"
 
 import { WorkspaceInfo } from "@/types/workspace"
+import { encodeBase64Url } from "@/lib/utils"
 import {
   ResizableHandle,
   ResizablePanel,
@@ -28,11 +30,30 @@ function LayoutContent({
   headerRightContent,
 }: RootLayoutProps) {
   const { isMobile } = useSidebar()
+  const navigate = useNavigate()
+
+  const handleFileClick = (filePath: string) => {
+    if (workspace?.path) {
+      const workspaceIdEncoded = encodeBase64Url(workspace.path)
+      const filePathEncoded = encodeBase64Url(filePath)
+      navigate({
+        to: "/w/$workspaceId/f/$filePath",
+        params: {
+          workspaceId: workspaceIdEncoded,
+          filePath: filePathEncoded,
+        },
+      })
+    }
+  }
 
   if (isMobile) {
     return (
       <>
-        <AppSidebar workspace={workspace} selectedFilePath={selectedFilePath} />
+        <AppSidebar
+          onFileClick={handleFileClick}
+          workspace={workspace}
+          selectedFilePath={selectedFilePath}
+        />
         <main className="bg-background relative flex w-full flex-1 flex-col overflow-auto rounded-xl shadow-sm h-full p-2">
           <header className="flex h-16 shrink-0 items-center gap-2 justify-between">
             <div className="flex items-center gap-2 px-4">
@@ -41,7 +62,10 @@ function LayoutContent({
                 className="-ml-1 cursor-pointer"
               />
               {selectedFilePath && (
-                <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className="flex items-center gap-2 min-w-0"
+                  data-testid="current-file-path"
+                >
                   <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="font-mono text-xs text-muted-foreground/70 truncate">
@@ -68,7 +92,11 @@ function LayoutContent({
         maxSize={40}
         className="flex flex-col h-full [&>*]:flex-1 [&>*]:min-h-0"
       >
-        <AppSidebar workspace={workspace} selectedFilePath={selectedFilePath} />
+        <AppSidebar
+          onFileClick={handleFileClick}
+          workspace={workspace}
+          selectedFilePath={selectedFilePath}
+        />
       </ResizablePanel>
       <ResizableHandle withHandle className="w-0" />
       <ResizablePanel defaultSize={85} className="p-2">
@@ -80,7 +108,10 @@ function LayoutContent({
                 className="-ml-1 cursor-pointer"
               />
               {selectedFilePath && (
-                <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className="flex items-center gap-2 min-w-0"
+                  data-testid="current-file-path"
+                >
                   <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="font-mono text-xs text-muted-foreground/70 truncate">
