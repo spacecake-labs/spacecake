@@ -120,7 +120,11 @@ function WorkspaceLayout() {
         headerRightContent={
           selectedFilePath ? (
             <div className="flex items-center gap-3">
-              <EditorToolbar onSave={() => saveFile(selectedFilePath)} />
+              <EditorToolbar
+                onSave={() =>
+                  saveFile(selectedFilePath, editorRef.current || undefined)
+                }
+              />
               <ModeToggle />
             </div>
           ) : (

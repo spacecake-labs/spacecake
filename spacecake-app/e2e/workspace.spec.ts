@@ -668,4 +668,80 @@ test.describe("spacecake app", () => {
 
     await expect(window.getByText("hello persistence")).toBeVisible()
   })
+
+  test("autofocus and type in new file", async ({
+    electronApp,
+    tempTestDir,
+  }, testInfo) => {
+    // 1. Setup: Create a test file in the temp dir
+    const testFilePath = path.join(tempTestDir, "existing-file.txt")
+    fs.writeFileSync(testFilePath, "existing content")
+
+    const window = await electronApp.firstWindow()
+
+    // 2. Open the workspace
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    })
+    await window.getByRole("button", { name: "open folder" }).click()
+
+    // 3. Wait for workspace to load
+    await expect(
+      window.getByRole("button", { name: "create file or folder" })
+    ).toBeVisible()
+
+    // 4. Create a new markdown file using keyboard shortcut
+    await window.keyboard.press("ControlOrMeta+n")
+
+    const textbox = window.getByRole("textbox", { name: "filename.txt" })
+    await textbox.fill("test-autofocus.md")
+    await textbox.press("Enter", { delay: 100 })
+
+    // 5. Wait for the new file to appear in sidebar and be opened
+    await expect(
+      window.getByRole("button", { name: "test-autofocus.md" })
+    ).toBeVisible()
+
+    // 6. Verify the file is open by checking the file path in toolbar
+    await expect(window.getByTestId("current-file-path")).toBeVisible()
+    await expect(
+      window.getByTestId("current-file-path").getByText("test-autofocus.md")
+    ).toBeVisible()
+
+    // 7. Verify the editor is focused and ready for typing
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    // 8. Type some text - this will only work if autofocus is working!
+    await window.keyboard.type("Hello, autofocus!", { delay: 100 })
+
+    // 9. Verify the text was typed into the editor (not just the sidebar)
+    // We'll look for the text in a paragraph element within the editor
+    await expect(
+      window.getByTestId("lexical-editor").getByRole("paragraph")
+    ).toContainText("Hello, autofocus!")
+
+    // save and wait for editor to be visible again
+    // await window.keyboard.press("ControlOrMeta+s", { delay: 100 })
+    const saveBtn = window.getByRole("button", { name: "save" })
+    await saveBtn.click()
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
+    await expect(
+      window.getByTestId("lexical-editor").getByRole("paragraph")
+    ).toContainText("Hello, autofocus!")
+
+    // 10. Verify the file was actually created in the filesystem
+    const expectedFilePath = path.join(tempTestDir, "test-autofocus.md")
+    const fileExists = fs.existsSync(expectedFilePath)
+    expect(fileExists).toBe(true)
+
+    // 11. Verify the content was saved to the file
+    const fileContent = fs.readFileSync(expectedFilePath, "utf-8")
+    expect(fileContent).toContain("Hello, autofocus!")
+
+    testInfo.annotations.push({
+      type: "info",
+      description: `autofocus test completed. file created at ${expectedFilePath} with content: ${fileContent}`,
+    })
+  })
 })

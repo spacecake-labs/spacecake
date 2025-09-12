@@ -5,11 +5,10 @@ import {
   LexicalComposer,
 } from "@lexical/react/LexicalComposer"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
-import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin"
-// removed FileType re-export; import no longer needed
 import type { EditorState, LexicalEditor, SerializedEditorState } from "lexical"
 
-import { hasInitialLoadTag } from "@/types/lexical"
+// import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin"
+// import { hasInitialLoadTag } from "@/types/lexical";
 import { debounce } from "@/lib/utils"
 import { nodes } from "@/components/editor/nodes"
 import { Plugins } from "@/components/editor/plugins"
@@ -87,7 +86,7 @@ export function Editor({
         />
         <Plugins />
 
-        <OnChangePlugin
+        {/* <OnChangePlugin
           ignoreSelectionChange={true}
           onChange={(editorState, editor, tags) => {
             if (hasInitialLoadTag(tags)) {
@@ -96,13 +95,11 @@ export function Editor({
             lastEditorStateRef.current = editorState
             debouncedNotifyRef.current.schedule()
           }}
-        />
+        /> */}
       </LexicalComposer>
     </div>
   )
 }
-
-// removed capture component in favor of OnChangePlugin one-liner above
 
 const CaptureLexicalPlugin: React.FC<{
   onCapture: (ed: LexicalEditor) => void

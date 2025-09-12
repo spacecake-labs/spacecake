@@ -120,7 +120,15 @@ export function getInitialEditorStateFromContent(
       // Markdown defaults to block view (rendered markdown) when viewKind is "block" or undefined
       editor.update(() => {
         $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-        $convertFromMarkdownString(file.content, MARKDOWN_TRANSFORMERS)
+        if (file.content.trim()) {
+          $convertFromMarkdownString(file.content, MARKDOWN_TRANSFORMERS)
+        } else {
+          // Empty markdown file - create empty paragraph
+          const root = $getRoot()
+          root.clear()
+          const paragraph = $createParagraphNode()
+          root.append(paragraph)
+        }
       })
     } else if (file.fileType === FileType.Plaintext) {
       // Plaintext files go to plaintext view
@@ -129,7 +137,9 @@ export function getInitialEditorStateFromContent(
         const root = $getRoot()
         root.clear()
         const paragraph = $createParagraphNode()
-        paragraph.append($createTextNode(file.content))
+        if (file.content.trim()) {
+          paragraph.append($createTextNode(file.content))
+        }
         root.append(paragraph)
       })
     } else {
