@@ -122,8 +122,9 @@
     @apply bg-background text-foreground;
   }
 
-  ::-webkit-scrollbar {
+  *:hover::-webkit-scrollbar {
     @apply w-2.5 h-2.5;
+    opacity: 1;
   }
 
   ::-webkit-scrollbar-track {
