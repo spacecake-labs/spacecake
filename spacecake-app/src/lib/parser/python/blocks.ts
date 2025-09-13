@@ -1,153 +1,158 @@
-import { SyntaxNode } from "@lezer/common"
-import { parser } from "@lezer/python"
+import { Node, Parser } from "web-tree-sitter"
 
-import type { BlockName, PyBlock, PyBlockHigherKind } from "@/types/parser"
-import { anonymousName, namedBlock } from "@/types/parser"
+import {
+  anonymousName,
+  BlockName,
+  namedBlock,
+  PyBlock,
+  PyBlockHigherKind,
+} from "@/types/parser"
 import { fnv1a64Hex } from "@/lib/hash"
+import languages from "@/lib/parser/languages"
 
-function isDataclass(node: SyntaxNode, code: string): boolean {
-  if (node.name !== "DecoratedStatement") return false
+const lang = await languages
+const parser = new Parser()
+parser.setLanguage(lang.Python)
 
-  const hasDataclassName = (decorator: SyntaxNode): boolean => {
-    // Check immediate children and one level deeper for a name token "dataclass".
-    let nameChild: SyntaxNode | null = decorator.firstChild
-    while (nameChild) {
-      if (
-        (nameChild.name === "VariableName" ||
-          nameChild.name === "PropertyName") &&
-        code.slice(nameChild.from, nameChild.to) === "dataclass"
-      ) {
-        return true
+export function isDataclass(node: Node): boolean {
+  if (node.type !== "decorated_definition") return false
+
+  const hasDataclassName = (decoratorNode: Node): boolean => {
+    let found = false
+    function walk(n: Node) {
+      if (n.type === "identifier" && n.text === "dataclass") {
+        found = true
       }
-      // one level deeper (to cover dotted paths like module.dataclass or call wrappers)
-      let inner: SyntaxNode | null = nameChild.firstChild
-      while (inner) {
-        if (
-          (inner.name === "VariableName" || inner.name === "PropertyName") &&
-          code.slice(inner.from, inner.to) === "dataclass"
-        ) {
-          return true
-        }
-        inner = inner.nextSibling
+      if (found) return
+      for (const child of n.children) {
+        if (!child) continue
+        walk(child)
       }
-      nameChild = nameChild.nextSibling
     }
-    return false
+    walk(decoratorNode)
+    return found
   }
 
-  let child: SyntaxNode | null = node.firstChild
-  while (child) {
-    if (child.name === "Decorator" && hasDataclassName(child)) {
-      return true
+  for (const child of node.children) {
+    if (child?.type === "decorator") {
+      if (hasDataclassName(child)) {
+        return true
+      }
     }
-    child = child.nextSibling
   }
   return false
 }
 
-function isDocstring(node: SyntaxNode, code: string): boolean {
-  if (node.name !== "ExpressionStatement") return false
-  const child = node.firstChild
-  if (child?.name !== "String") return false
+export function isDocstring(node: Node): boolean {
+  if (node.type !== "expression_statement") return false
 
-  const text = code.slice(node.from, node.to)
+  // must be a string literal
+  const stringNode = node.namedChild(0)
+  if (!stringNode || stringNode.type !== "string" || node.namedChild(1)) {
+    return false
+  }
 
-  if (!text.startsWith('"""') && !text.startsWith('r"""')) return false
+  // Check for triple quotes using child nodes
+  const firstChild = stringNode.firstChild
+  const lastChild = stringNode.lastChild
 
-  return text.endsWith('"""')
+  if (!firstChild || !lastChild) return false
+
+  // Check if it's a triple-quoted string
+  const isTripleQuoted =
+    firstChild.type === "string_start" &&
+    lastChild.type === "string_end" &&
+    (firstChild.text === '"""' ||
+      firstChild.text === 'r"""' ||
+      firstChild.text === "'''" ||
+      firstChild.text === "r'''")
+
+  if (!isTripleQuoted) {
+    return false
+  }
+
+  // check if it's the first statement in the parent body
+  const parent = node.parent
+  if (!parent) return false
+
+  if (parent.type === "block" || parent.type === "module") {
+    // 'block' is for function/class bodies
+    // 'module' is for top-level
+    for (const child of parent.children) {
+      if (child?.type === "comment") continue
+      // first non-comment child must be our node
+      return child?.id === node.id
+    }
+  }
+
+  return false
 }
 
-function isMdocString(node: SyntaxNode, code: string): boolean {
-  if (node.name !== "Comment") return false
-  const text = code.slice(node.from, node.to)
-  return text.startsWith("#🍰")
+export function isMdocString(node: Node): boolean {
+  if (node.type !== "comment") return false
+  return node.text.startsWith("#🍰")
 }
 
-function blockKind(node: SyntaxNode, code: string): PyBlock["kind"] | null {
-  switch (node.name) {
-    case "ExpressionStatement": {
-      if (isDocstring(node, code)) return "doc"
+export function blockKind(node: Node): PyBlock["kind"] | null {
+  switch (node.type) {
+    case "expression_statement": {
+      if (isDocstring(node)) return "doc"
       return null
     }
-    case "ClassDefinition":
+    case "class_definition":
       return "class"
-    case "FunctionDefinition":
+    case "function_definition":
       return "function"
-    case "ImportStatement":
+    case "import_statement":
       return "import"
-    case "ImportFromStatement":
+    case "import_from_statement":
       return "import"
-    case "DecoratedStatement": {
-      // DecoratedStatement should have two children:
-      // 1. Decorator
-      // 2. ClassDefinition or FunctionDefinition
-      const definition = node.firstChild?.nextSibling
+    case "decorated_definition": {
+      const definition = node.lastNamedChild
       if (!definition) return null
 
-      const childKind = blockKind(definition, code)
+      const childKind = blockKind(definition)
       if (!childKind) return null
-      if (childKind === "class" && isDataclass(node, code)) {
+      if (childKind === "class" && isDataclass(node)) {
         return "dataclass"
       }
       return `decorated ${childKind}` as PyBlockHigherKind
     }
-    case "IfStatement": {
-      // Detect top-level if __name__ == '__main__' or "__main__"
-      // Check that the if condition matches the __name__ main guard
-      const conditionNode = node.getChild("BinaryExpression")
+    case "if_statement": {
+      const conditionNode = node.childForFieldName("condition")
       if (!conditionNode) return null
-      const conditionText = code.slice(conditionNode.from, conditionNode.to)
+      const conditionText = conditionNode.text
       if (/^__name__\s*==\s*(['"])__main__\1$/.test(conditionText)) {
         return "main"
       }
       return null
     }
-    case "Comment": {
-      // const directive = parsePythonDirective(code.slice(node.from, node.to))
-      // return Option.getOrNull(directive)?.kind ?? null
-      return isMdocString(node, code) ? "markdown block" : null
+    case "comment": {
+      return isMdocString(node) ? "markdown block" : null
     }
     default:
       return null
   }
 }
 
-function blockName(node: SyntaxNode, code: string): BlockName {
-  switch (node.name) {
-    case "IfStatement":
-      return anonymousName()
-    case "ClassDefinition": {
-      // Find the class name (should be the first identifier after 'class')
-      let child = node.firstChild
-      while (child) {
-        if (child.name === "VariableName") {
-          return namedBlock(code.slice(child.from, child.to))
-        }
-        child = child.nextSibling
-      }
+export function blockName(node: Node): BlockName {
+  switch (node.type) {
+    case "class_definition": {
+      const nameNode = node.childForFieldName("name")
+      return nameNode ? namedBlock(nameNode.text) : anonymousName()
+    }
+    case "function_definition": {
+      const nameNode = node.childForFieldName("name")
+      return nameNode ? namedBlock(nameNode.text) : anonymousName()
+    }
+    case "import_statement":
+    case "import_from_statement": {
       return anonymousName()
     }
-    case "FunctionDefinition": {
-      // Find the function name (should be the first identifier after 'def')
-      let child = node.firstChild
-      while (child) {
-        if (child.name === "VariableName") {
-          return namedBlock(code.slice(child.from, child.to))
-        }
-        child = child.nextSibling
-      }
-      return anonymousName()
-    }
-    case "ImportStatement":
-    case "ImportFromStatement": {
-      // For import blocks, return anonymous
-      return anonymousName()
-    }
-    case "DecoratedStatement": {
-      // For decorated statements, get the name from the underlying definition
-      const definition = node.firstChild?.nextSibling
+    case "decorated_definition": {
+      const definition = node.lastNamedChild
       if (definition) {
-        return blockName(definition, code)
+        return blockName(definition)
       }
       return namedBlock("decorated")
     }
@@ -156,16 +161,16 @@ function blockName(node: SyntaxNode, code: string): BlockName {
   }
 }
 
-export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
+export function* parseCodeBlocks(code: string): Generator<PyBlock> {
   const tree = parser.parse(code)
-  let importNodes: SyntaxNode[] = []
-  let miscNodes: SyntaxNode[] = []
-  // comments accumulate into the next recognised block
-  let commentNodes: SyntaxNode[] = []
-  let mdNodes: SyntaxNode[] = []
+  if (!tree) throw new Error("failed to parse code")
+
+  let importNodes: Node[] = []
+  let miscNodes: Node[] = []
+  let commentNodes: Node[] = []
+  let mdNodes: Node[] = []
   let prevBlockEndByte = 0
 
-  // calculate line number for a block, accounting for prefix whitespace
   const countLinesBefore = (byte: number): number => {
     const before = code.substring(0, byte)
     const lines = (before.match(/\n/g) || []).length
@@ -177,15 +182,16 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
     const lastImport = importNodes[importNodes.length - 1]
 
     const startByte = prevBlockEndByte
-    const raw = code.slice(startByte, lastImport.to)
+    const raw = code.slice(startByte, lastImport.endIndex)
+    const name = blockName(firstImport)
     const block: PyBlock = {
       kind: "import",
-      name: blockName(firstImport, code),
+      name,
       startByte,
-      endByte: lastImport.to,
+      endByte: lastImport.endIndex,
       text: raw,
-      startLine: countLinesBefore(firstImport.from),
-      cid: computeCid("import", blockName(firstImport, code).value, raw),
+      startLine: countLinesBefore(firstImport.startIndex),
+      cid: computeCid("import", name.value, raw),
       cidAlgo: "fnv1a64-norm1",
     }
     importNodes = []
@@ -196,14 +202,14 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
     const first = miscNodes[0]
     const last = miscNodes[miscNodes.length - 1]
     const startByte = prevBlockEndByte
-    const raw = code.slice(startByte, last.to)
+    const raw = code.slice(startByte, last.endIndex)
     const block: PyBlock = {
       kind: "misc",
       name: anonymousName(),
       startByte,
-      endByte: last.to,
+      endByte: last.endIndex,
       text: raw,
-      startLine: countLinesBefore(first.from),
+      startLine: countLinesBefore(first.startIndex),
       cid: computeCid("misc", "anonymous", raw),
       cidAlgo: "fnv1a64-norm1",
     }
@@ -214,15 +220,15 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
   const emitMdBlock = (): PyBlock => {
     const first = mdNodes[0]
     const last = mdNodes[mdNodes.length - 1]
-    const startByte = prevBlockEndByte
-    const raw = code.slice(startByte, last.to)
+    const startByte = first.startIndex
+    const raw = code.slice(startByte, last.endIndex)
     const block: PyBlock = {
       kind: "markdown block",
       name: anonymousName(),
       startByte,
-      endByte: last.to,
+      endByte: last.endIndex,
       text: raw,
-      startLine: countLinesBefore(first.from),
+      startLine: countLinesBefore(first.startIndex),
       cid: computeCid("markdown block", "anonymous", raw),
       cidAlgo: "fnv1a64-norm1",
     }
@@ -230,53 +236,29 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
     return block
   }
 
-  function* flushImportBlock() {
-    if (importNodes.length) {
-      const importBlock = emitImportBlock()
-      prevBlockEndByte = importBlock.endByte
-      yield importBlock
-    }
-  }
-
-  function* flushMiscBlock() {
-    if (miscNodes.length) {
-      const miscBlock = emitMiscBlock()
-      prevBlockEndByte = miscBlock.endByte
-      yield miscBlock
-    }
-  }
-
-  function* flushMdBlock() {
-    if (mdNodes.length) {
-      const mdBlock = emitMdBlock()
-      prevBlockEndByte = mdBlock.endByte
-      yield mdBlock
-    }
-  }
-
-  for (
-    let node: SyntaxNode | null = tree.topNode.firstChild;
-    node;
-    node = node.nextSibling
-  ) {
-    const kind = blockKind(node, code)
+  for (const node of tree.rootNode.children) {
+    if (!node) continue
+    const kind = blockKind(node)
 
     if (!kind) {
-      // skip error nodes
-      if (node.name === "⚠") continue
-      // comments accumulate into the next recognised block
-      if (node.name === "Comment") {
-        if (mdNodes.length) {
-          mdNodes.push(node)
-        } else {
-          commentNodes.push(node)
-        }
+      if (node.type === "ERROR") continue
+      if (node.type === "comment") {
+        commentNodes.push(node)
         continue
       }
 
-      // This is a misc node, so flush any pending imports first.
-      yield* flushImportBlock()
-      yield* flushMdBlock()
+      // This is a misc node, so flush any pending blocks first.
+      if (importNodes.length) {
+        const importBlock = emitImportBlock()
+        prevBlockEndByte = importBlock.endByte
+        yield importBlock
+      }
+
+      if (mdNodes.length) {
+        const mdBlock = emitMdBlock()
+        prevBlockEndByte = mdBlock.endByte
+        yield mdBlock
+      }
 
       // anything else accumulates into a `misc` block
       // consume any accumulated comments
@@ -288,8 +270,17 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
 
     if (kind === "import") {
       // This is an import node, so flush any pending misc block first.
-      yield* flushMiscBlock()
-      yield* flushMdBlock()
+      if (miscNodes.length) {
+        const miscBlock = emitMiscBlock()
+        prevBlockEndByte = miscBlock.endByte
+        yield miscBlock
+      }
+
+      if (mdNodes.length) {
+        const mdBlock = emitMdBlock()
+        prevBlockEndByte = mdBlock.endByte
+        yield mdBlock
+      }
 
       // consume any accumulated comments
       importNodes.push(...commentNodes, node)
@@ -306,24 +297,40 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
 
     // This is a "real" block (e.g., function/class).
     // Flush any pending block, whichever it may be.
-    yield* flushImportBlock()
-    yield* flushMiscBlock()
-    yield* flushMdBlock()
+    if (importNodes.length) {
+      const importBlock = emitImportBlock()
+      prevBlockEndByte = importBlock.endByte
+      yield importBlock
+    }
+
+    if (miscNodes.length) {
+      const miscBlock = emitMiscBlock()
+      prevBlockEndByte = miscBlock.endByte
+      yield miscBlock
+    }
+
+    if (mdNodes.length) {
+      const mdBlock = emitMdBlock()
+      prevBlockEndByte = mdBlock.endByte
+      yield mdBlock
+    }
 
     const startByte = prevBlockEndByte
-    const raw = code.slice(startByte, node.to)
-    const name = blockName(node, code)
+    const raw = code.slice(startByte, node.endIndex)
+    const name = blockName(node)
 
-    const nodeFrom = commentNodes.length ? commentNodes[0].from : node.from
+    const nodeFrom = commentNodes.length
+      ? commentNodes[0].startIndex
+      : node.startIndex
 
     commentNodes = []
-    prevBlockEndByte = node.to
+    prevBlockEndByte = node.endIndex
 
     yield {
       kind,
       name,
       startByte,
-      endByte: node.to,
+      endByte: node.endIndex,
       text: raw,
       startLine: countLinesBefore(nodeFrom),
       cid: computeCid(kind, name.value, raw),
@@ -331,22 +338,30 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
     }
   }
 
-  // Finally, flush anything left at the end of the file.
-  yield* flushImportBlock()
-  yield* flushMiscBlock()
-  yield* flushMdBlock()
+  if (importNodes.length) {
+    const importBlock = emitImportBlock()
+    yield importBlock
+  }
+  if (miscNodes.length) {
+    const miscBlock = emitMiscBlock()
+    yield miscBlock
+  }
+  if (mdNodes.length) {
+    const mdBlock = emitMdBlock()
+    yield mdBlock
+  }
 }
 
 /**
  * Parse Python content into blocks with error handling
  * Returns a generator that yields blocks as they're parsed
  */
-export async function* parsePythonContentStreaming(
+export function* parsePythonContentStreaming(
   content: string
-): AsyncGenerator<PyBlock> {
+): Generator<PyBlock> {
   try {
     let blockCount = 0
-    for await (const block of parseCodeBlocks(content)) {
+    for (const block of parseCodeBlocks(content)) {
       blockCount++
       yield block
     }

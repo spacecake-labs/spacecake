@@ -7,7 +7,7 @@ import {
 } from "lexical"
 
 import { PyBlock } from "@/types/parser"
-import { parseCodeBlocks } from "@/lib/parser/python/blocks"
+import { parseCodeBlocks } from "@/lib/parser/python/blocks-lezer"
 import { delimitPyBlock } from "@/components/editor/block-utils"
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 
