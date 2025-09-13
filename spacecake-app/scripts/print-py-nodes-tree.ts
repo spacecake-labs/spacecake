@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises"
 import { argv, exit } from "node:process"
 
-import Parser, { Language } from "tree-sitter"
-import type { TreeCursor } from "tree-sitter"
-import Python from "tree-sitter-python"
+import { Parser, type TreeCursor } from "web-tree-sitter"
+
+import languages from "../src/lib/parser/languages"
 
 function makeSnippet(
   text: string,
@@ -49,10 +49,12 @@ async function main(): Promise<void> {
     return
   }
 
+  const lang = await languages
   const parser = new Parser()
-  parser.setLanguage(Python as Language)
+  parser.setLanguage(lang.Python)
 
   const tree = parser.parse(source)
+  if (!tree) throw new Error("failed to parse code")
   const cursor = tree.walk()
   printCursor(cursor, source, 0)
 }

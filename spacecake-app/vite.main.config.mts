@@ -15,6 +15,8 @@ export default defineConfig({
         // Don't bundle electron
         "electron",
         "chokidar",
+        "web-tree-sitter",
+        "tree-sitter-python",
       ],
     },
   },
