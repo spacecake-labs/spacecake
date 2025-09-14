@@ -46,7 +46,7 @@ export type PyBlockKind =
   | "class"
   | "function"
   | "import"
-  | "file"
+  | "module"
   | "dataclass"
   | "main"
   | "misc"

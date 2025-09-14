@@ -1,3 +1,9 @@
+/**
+ * @deprecated
+ * Please migrate to the new implementation in ./src/lib/parser/python/blocks.ts
+ * This file will be removed in a future version.
+ */
+
 import { readFileSync } from "fs"
 import { join } from "path"
 
@@ -215,9 +221,9 @@ describe("Python parser", () => {
         blocks.push(block)
       }
 
-      // with the new approach, the parser will still yield a single 'file' fallback
+      // with the new approach, the parser will still yield a single 'module' fallback
       expect(blocks.length).toBe(1)
-      expect(blocks[0].kind).toBe("file")
+      expect(blocks[0].kind).toBe("module")
       expect(blocks[0].name.kind).toBe("anonymous")
       expect(blocks[0].text).toBe(content)
       expect(blocks[0].startLine).toBe(1)
