@@ -1,3 +1,9 @@
+/**
+ * @deprecated
+ * Please migrate to the new implementation in ./src/lib/parser/python/blocks.ts
+ * This file will be removed in a future version.
+ */
+
 import { SyntaxNode } from "@lezer/common"
 import { parser } from "@lezer/python"
 
@@ -351,16 +357,16 @@ export async function* parsePythonContentStreaming(
       yield block
     }
 
-    // If no blocks were parsed, fall back to a single "file" block
+    // If no blocks were parsed, fall back to a single "module" block
     if (blockCount === 0) {
       const fallbackBlock: PyBlock = {
-        kind: "file",
+        kind: "module",
         name: anonymousName(),
         startByte: 0,
         endByte: content.length,
         text: content,
         startLine: 1,
-        cid: computeCid("file", "anonymous", content),
+        cid: computeCid("module", "anonymous", content),
         cidAlgo: "fnv1a64-norm1",
       }
       yield fallbackBlock
@@ -370,13 +376,13 @@ export async function* parsePythonContentStreaming(
 
     // Fallback: create a single block with the entire content
     const fallbackBlock: PyBlock = {
-      kind: "file",
+      kind: "module",
       name: anonymousName(),
       startByte: 0,
       endByte: content.length,
       text: content,
       startLine: 1,
-      cid: computeCid("file", "anonymous", content),
+      cid: computeCid("module", "anonymous", content),
       cidAlgo: "fnv1a64-norm1",
     }
 

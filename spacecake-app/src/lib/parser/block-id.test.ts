@@ -85,7 +85,7 @@ describe("blockId", () => {
 
   it("should handle file blocks", () => {
     const block: PyBlock = {
-      kind: "file",
+      kind: "module",
       name: anonymousName(),
       startByte: 0,
       endByte: 200,
@@ -93,7 +93,7 @@ describe("blockId", () => {
       startLine: 1,
     }
 
-    expect(blockId(block)).toBe("anonymous-file")
+    expect(blockId(block)).toBe("anonymous-module")
   })
 
   it("should replace spaces in kind with dashes and support dataclass", () => {
@@ -121,7 +121,7 @@ describe("blockId", () => {
 
   it("should handle Anonymous name type", () => {
     const block: PyBlock = {
-      kind: "file",
+      kind: "module",
       name: anonymousName(),
       startByte: 0,
       endByte: 100,
@@ -129,6 +129,6 @@ describe("blockId", () => {
       startLine: 1,
     }
 
-    expect(blockId(block)).toBe("anonymous-file")
+    expect(blockId(block)).toBe("anonymous-module")
   })
 })

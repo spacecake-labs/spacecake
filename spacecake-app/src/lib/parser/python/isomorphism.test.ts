@@ -126,9 +126,9 @@ describe("Python parser isomorphism", () => {
       streamingBlocks.push(block)
     }
 
-    // Streaming parser should create a fallback 'file' block
+    // Streaming parser should create a fallback 'module' block
     expect(streamingBlocks.length).toBe(1)
-    expect(streamingBlocks[0].kind).toBe("file")
+    expect(streamingBlocks[0].kind).toBe("module")
     expect(streamingBlocks[0].text).toBe(code)
 
     const streamingSerialized = serializeBlocksToPython(streamingBlocks)

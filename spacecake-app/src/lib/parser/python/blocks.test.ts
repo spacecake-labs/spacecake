@@ -459,9 +459,9 @@ import pandas as pd
         blocks.push(block)
       }
 
-      // with the new approach, the parser will still yield a single 'file' fallback
+      // with the new approach, the parser will still yield a single 'module' fallback
       expect(blocks.length).toBe(1)
-      expect(blocks[0].kind).toBe("file")
+      expect(blocks[0].kind).toBe("module")
       expect(blocks[0].name.kind).toBe("anonymous")
       expect(blocks[0].text).toBe(content)
       expect(blocks[0].startLine).toBe(1)
