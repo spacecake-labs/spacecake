@@ -5,11 +5,12 @@ import { Language, Parser } from "web-tree-sitter"
 export type LanguageName = "python" | "javascript" | "typescript" | "json"
 
 function languageURL(name: LanguageName): string {
-  const basePath = process.cwd()
-  return path.join(
-    basePath,
-    `node_modules/tree-sitter-${name}/tree-sitter-${name}.wasm`
-  )
+  if (typeof window !== "undefined") {
+    // browser environment - load from public directory
+    return `tree-sitter-${name}.wasm`
+  }
+  // Node.js environment (tests) - load from public directory relative to project root
+  return path.join(process.cwd(), "public", `tree-sitter-${name}.wasm`)
 }
 
 export default Parser.init().then(async () => ({

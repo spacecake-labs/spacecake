@@ -8,7 +8,7 @@ import {
   parseCodeBlocks,
   parsePythonContentStreaming,
   serializeBlocksToPython,
-} from "@/lib/parser/python/blocks-lezer"
+} from "@/lib/parser/python/blocks"
 
 describe("Python parser isomorphism", () => {
   it("tests that parse/serialize is isomorphic for core.py", async () => {
