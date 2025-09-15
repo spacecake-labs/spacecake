@@ -1,7 +1,7 @@
 import { $createHeadingNode } from "@lexical/rich-text"
 import { $createTextNode } from "lexical"
 
-import type { PyBlock } from "@/types/parser"
+import { PyBlock } from "@/types/parser"
 import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
 import { delimitPythonDocString } from "@/lib/parser/python/utils"
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node"
@@ -11,8 +11,8 @@ import { delimitedNode } from "@/components/editor/nodes/delimited"
  * Pure function that converts a Python block into a delimited Lexical node
  */
 export function delimitPyBlock(block: PyBlock, filePath: string) {
-  if (block.kind === "doc") {
-    const delimitedString = delimitPythonDocString(block.text)
+  if (block?.doc) {
+    const delimitedString = delimitPythonDocString(block.doc.text)
     return delimitedNode(
       (text: string) => $createHeadingNode("h2").append($createTextNode(text)),
       delimitedString

@@ -38,28 +38,65 @@ export interface Block<TKind = string> {
   // optional content id for change detection (hash over normalized content)
   cid?: string
   cidAlgo?: string
+  doc?: Block<"doc">
 }
 
-// Python-specific block types
-export type PyBlockKind =
-  | "doc"
-  | "class"
-  | "function"
-  | "import"
-  | "module"
-  | "dataclass"
-  | "main"
-  | "misc"
-export type PyBlockHigherKindPrefix = "async" | "decorated"
-export type PyBlockHigherKind = `${PyBlockHigherKindPrefix} ${PyBlockKind}`
+// Docable block kinds that can have docstrings
+export const PyDocableKindSchema = Schema.Union(
+  Schema.Literal("module"),
+  Schema.Literal("class"),
+  Schema.Literal("dataclass"),
+  Schema.Literal("function"),
+  Schema.Literal("method"),
+  Schema.Literal("async function"),
+  Schema.Literal("async method"),
+  Schema.Literal("decorated class"),
+  Schema.Literal("decorated function"),
+  Schema.Literal("decorated method")
+)
+export type PyDocableKind = typeof PyDocableKindSchema.Type
 
-// Python-specific block type
-export type PyBlock =
-  | Block<PyBlockKind>
-  | Block<PyBlockHigherKind>
-  | Block<MdBlockKind>
+// Non-docable block kinds that cannot have docstrings
+export const PyNonDocableKindSchema = Schema.Union(
+  Schema.Literal("import"),
+  Schema.Literal("main"),
+  Schema.Literal("misc")
+)
+export type PyNonDocableKind = typeof PyNonDocableKindSchema.Type
 
-// Markdown block type
+export const isDocablePyKind = Schema.is(PyDocableKindSchema)
+
+// Overall Python block kind discriminated union
+export const PyBlockKindSchema = Schema.Union(
+  Schema.Struct({
+    kind: Schema.Literal("docable"),
+    value: PyDocableKindSchema,
+  }),
+  Schema.Struct({
+    kind: Schema.Literal("non-docable"),
+    value: PyNonDocableKindSchema,
+  })
+)
+export type PyBlockKind = typeof PyBlockKindSchema.Type
+
+// Helper types for async and decorated variants
+export type PyAsyncKind =
+  `async ${Extract<PyDocableKind, "function" | "method">}`
+export type PyDecoratedKind =
+  `decorated ${Extract<PyDocableKind, "class" | "function" | "method">}`
+
+type DocableBlock = Block & {
+  kind: PyDocableKind
+  doc?: Block<"doc">
+}
+
+type NonDocableBlock = Block & {
+  kind: PyNonDocableKind
+}
+
+export type PyBlock = DocableBlock | NonDocableBlock | Block<MdBlockKind>
+
+// markdown block type
 export const ContextBlockKindSchema = Schema.Union(
   Schema.Literal("block"),
   Schema.Literal("inline")

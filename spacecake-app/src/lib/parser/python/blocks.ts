@@ -3,16 +3,17 @@ import { Node, Parser } from "web-tree-sitter"
 import {
   anonymousName,
   BlockName,
+  isDocablePyKind,
   namedBlock,
   PyBlock,
-  PyBlockHigherKind,
+  PyDecoratedKind,
 } from "@/types/parser"
 import { fnv1a64Hex } from "@/lib/hash"
 import languages from "@/lib/parser/languages"
 
-const lang = await languages
+const { Python } = await languages
 const parser = new Parser()
-parser.setLanguage(lang.Python)
+parser.setLanguage(Python)
 
 export function isDataclass(node: Node): boolean {
   if (node.type !== "decorated_definition") return false
@@ -95,10 +96,6 @@ export function isMdocString(node: Node): boolean {
 
 export function blockKind(node: Node): PyBlock["kind"] | null {
   switch (node.type) {
-    case "expression_statement": {
-      if (isDocstring(node)) return "doc"
-      return null
-    }
     case "class_definition":
       return "class"
     case "function_definition":
@@ -116,7 +113,7 @@ export function blockKind(node: Node): PyBlock["kind"] | null {
       if (childKind === "class" && isDataclass(node)) {
         return "dataclass"
       }
-      return `decorated ${childKind}` as PyBlockHigherKind
+      return `decorated ${childKind}` as PyDecoratedKind
     }
     case "if_statement": {
       const conditionNode = node.childForFieldName("condition")
@@ -161,7 +158,7 @@ export function blockName(node: Node): BlockName {
   }
 }
 
-export function* parseCodeBlocks(code: string): Generator<PyBlock> {
+export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
   const tree = parser.parse(code)
   if (!tree) throw new Error("failed to parse code")
 
@@ -236,8 +233,39 @@ export function* parseCodeBlocks(code: string): Generator<PyBlock> {
     return block
   }
 
-  for (const node of tree.rootNode.children) {
+  for (const [index, node] of tree.rootNode.children.entries()) {
     if (!node) continue
+
+    // if this is the last node, extend its range to include any trailing content
+    const isLastNode = index === tree.rootNode.children.length - 1
+    const nodeEndIndex = isLastNode ? code.length : node.endIndex
+
+    if (index === 0 && isDocstring(node)) {
+      prevBlockEndByte = nodeEndIndex
+      const moduleDocCid = computeCid("module", "anonymous", node.text)
+      yield {
+        kind: "module",
+        name: anonymousName(),
+        startByte: node.startIndex,
+        endByte: nodeEndIndex,
+        text: code.slice(node.startIndex, nodeEndIndex),
+        startLine: 1,
+        cid: moduleDocCid,
+        cidAlgo: "fnv1a64-norm1",
+        doc: {
+          kind: "doc",
+          name: anonymousName(),
+          startByte: node.startIndex,
+          endByte: nodeEndIndex,
+          text: code.slice(node.startIndex, nodeEndIndex),
+          startLine: 1,
+          cid: moduleDocCid,
+          cidAlgo: "fnv1a64-norm1",
+        },
+      }
+      continue
+    }
+
     const kind = blockKind(node)
 
     if (!kind) {
@@ -316,7 +344,7 @@ export function* parseCodeBlocks(code: string): Generator<PyBlock> {
     }
 
     const startByte = prevBlockEndByte
-    const raw = code.slice(startByte, node.endIndex)
+    const raw = code.slice(startByte, nodeEndIndex)
     const name = blockName(node)
 
     const nodeFrom = commentNodes.length
@@ -324,13 +352,39 @@ export function* parseCodeBlocks(code: string): Generator<PyBlock> {
       : node.startIndex
 
     commentNodes = []
-    prevBlockEndByte = node.endIndex
+    prevBlockEndByte = nodeEndIndex
 
+    if (isDocablePyKind(kind)) {
+      const child = node.firstChild
+      if (child && isDocstring(child)) {
+        yield {
+          kind,
+          name,
+          startByte,
+          endByte: nodeEndIndex,
+          text: raw,
+          startLine: countLinesBefore(nodeFrom),
+          cid: computeCid(kind, name.value, raw),
+          cidAlgo: "fnv1a64-norm1",
+          doc: {
+            kind: "doc",
+            name: anonymousName(),
+            startByte: child.startIndex,
+            endByte: child.endIndex,
+            text: child.text,
+            startLine: countLinesBefore(child.startIndex),
+            cid: computeCid("doc", "anonymous", child.text),
+            cidAlgo: "fnv1a64-norm1",
+          },
+        }
+        continue
+      }
+    }
     yield {
       kind,
       name,
       startByte,
-      endByte: node.endIndex,
+      endByte: nodeEndIndex,
       text: raw,
       startLine: countLinesBefore(nodeFrom),
       cid: computeCid(kind, name.value, raw),
@@ -356,12 +410,12 @@ export function* parseCodeBlocks(code: string): Generator<PyBlock> {
  * Parse Python content into blocks with error handling
  * Returns a generator that yields blocks as they're parsed
  */
-export function* parsePythonContentStreaming(
+export async function* parsePythonContentStreaming(
   content: string
-): Generator<PyBlock> {
+): AsyncGenerator<PyBlock> {
   try {
     let blockCount = 0
-    for (const block of parseCodeBlocks(content)) {
+    for await (const block of parseCodeBlocks(content)) {
       blockCount++
       yield block
     }

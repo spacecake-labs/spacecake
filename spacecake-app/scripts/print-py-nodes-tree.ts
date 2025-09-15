@@ -5,6 +5,11 @@ import { Parser, type TreeCursor } from "web-tree-sitter"
 
 import languages from "../src/lib/parser/languages"
 
+const { Python } = await languages
+
+const parser = new Parser()
+parser.setLanguage(Python)
+
 function makeSnippet(
   text: string,
   from: number,
@@ -48,10 +53,6 @@ async function main(): Promise<void> {
     exit(1)
     return
   }
-
-  const lang = await languages
-  const parser = new Parser()
-  parser.setLanguage(lang.Python)
 
   const tree = parser.parse(source)
   if (!tree) throw new Error("failed to parse code")
