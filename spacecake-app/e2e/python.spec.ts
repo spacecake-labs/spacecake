@@ -172,7 +172,9 @@ test.describe("python e2e", () => {
     await secondContent.press("ArrowUp", { delay: 100 }) // create spacer above
 
     const spacerText1 = "PARA-TEXT-ONE"
-    await window.getByTestId("lexical-editor").type(spacerText1, { delay: 100 })
+    await window
+      .getByTestId("lexical-editor")
+      .pressSequentially(spacerText1, { delay: 100 })
     await expect(window.getByText(spacerText1).first()).toBeVisible()
 
     // From spacer, ArrowDown should jump into next code block (fibonacci function)
@@ -205,7 +207,9 @@ test.describe("python e2e", () => {
     await secondContent.press("ArrowLeft", { delay: 100 }) // to spacer above
     // type into spacer above and verify it appears
     const spacerText3 = "PARA-TEXT-THREE"
-    await window.getByTestId("lexical-editor").type(spacerText3, { delay: 100 })
+    await window
+      .getByTestId("lexical-editor")
+      .pressSequentially(spacerText3, { delay: 100 })
     await expect(window.getByText(spacerText3).first()).toBeVisible()
     await window.keyboard.press("ArrowLeft", { delay: 100 }) // to previous code block
 
@@ -219,7 +223,9 @@ test.describe("python e2e", () => {
     await secondContent.press("Meta+ArrowDown", { delay: 100 })
     await secondContent.press("ArrowDown", { delay: 100 }) // create spacer below second block
     const keepText = "KEEP-PARA"
-    await window.getByTestId("lexical-editor").type(keepText, { delay: 100 })
+    await window
+      .getByTestId("lexical-editor")
+      .pressSequentially(keepText, { delay: 100 })
     await expect(window.getByText(keepText).first()).toBeVisible()
     await window.keyboard.press("ArrowDown", { delay: 100 }) // into next code block (fibonacci function)
     // ensure text persists
@@ -358,7 +364,7 @@ test.describe("python e2e", () => {
     await importContent.press("ControlOrMeta+ArrowDown", { delay: 100 })
     await importContent.press("Enter", { delay: 100 })
     await importContent.press("Enter", { delay: 100 })
-    await importContent.type("x = 5", { delay: 100 })
+    await importContent.pressSequentially("x = 5", { delay: 100 })
 
     // save from header and wait for rerender: observe button text transition
     const saveBtn = window.getByRole("button", { name: "save" })

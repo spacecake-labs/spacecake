@@ -3,6 +3,7 @@ import { indentWithTab } from "@codemirror/commands"
 import { languages } from "@codemirror/language-data"
 import { EditorState, Extension } from "@codemirror/state"
 import { EditorView, keymap, lineNumbers } from "@codemirror/view"
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github"
 import { basicSetup } from "codemirror"
 import { atom } from "jotai"
@@ -10,9 +11,13 @@ import { atom } from "jotai"
 import type { Block } from "@/types/parser"
 import { blockId } from "@/lib/parser/block-id"
 import { debounce } from "@/lib/utils"
-import { CodeBlock } from "@/components/code-block"
-import { useCodeBlockEditorContext } from "@/components/editor/nodes/code-node"
-import { useCodeMirrorRef } from "@/components/editor/plugins/use-codemirror-ref"
+import { ContentBlock } from "@/components/content-block"
+import {
+  CodeBlockNode,
+  useCodeBlockEditorContext,
+} from "@/components/editor/nodes/code-node"
+import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
+import { useNavigation } from "@/components/editor/plugins/use-navigation"
 import { useTheme } from "@/components/theme-provider"
 
 // jotai atoms for state management
@@ -41,10 +46,7 @@ interface CodeMirrorEditorProps {
   nodeKey: string
   code: string
   block: Block
-  focusEmitter?: {
-    publish: () => void
-    subscribe: (cb: () => void) => void
-  }
+  codeBlockNode: CodeBlockNode
 }
 
 const EMPTY_VALUE = "__EMPTY_VALUE__"
@@ -92,8 +94,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   nodeKey,
   code,
   block,
-  focusEmitter,
+  codeBlockNode,
 }) => {
+  const [editor] = useLexicalComposerContext()
   const { setCode } = useCodeBlockEditorContext()
 
   // Use block info
@@ -111,17 +114,23 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   const setCodeRef = React.useRef(setCode)
   setCodeRef.current = setCode
 
-  // Use the focus management hook
-  const codeMirrorRef = useCodeMirrorRef(
-    nodeKey,
-    "codeblock",
-    language,
-    focusEmitter || { subscribe: () => {}, publish: () => {} }
-  )
+  // Use the navigation hook
+  const { navigationKeymap } = useNavigation(nodeKey)
 
-  codeMirrorRef.current = {
-    getCodemirror: () => editorViewRef.current!,
-  }
+  // Set up focus manager for the code block node
+  React.useEffect(() => {
+    const focusManager = {
+      focus: () => {
+        const view = editorViewRef.current
+        if (view) {
+          view.focus()
+        }
+      },
+    }
+
+    // Use the setFocusManager method which uses WeakMap internally
+    codeBlockNode.setFocusManager(focusManager)
+  }, [codeBlockNode])
 
   const { theme } = useTheme()
 
@@ -136,6 +145,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       }
     }, debounceMs)
   )
+
   const flushPending = React.useCallback(() => {
     debouncedCommitRef.current.flush()
   }, [])
@@ -153,6 +163,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
       const extensions = [
         ...codeMirrorExtensions,
+        navigationKeymap,
         basicSetup,
         lineNumbers({
           formatNumber: (lineNo) => String(lineNo + startLine - 1),
@@ -185,23 +196,25 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
       const view = editorViewRef.current
 
+      // Focus the editor if the node is selected
+      editor.read(() => {
+        if (codeBlockNode.isSelected()) {
+          console.log("Focusing CodeMirror editor after creation")
+          view.focus()
+        }
+      })
+
       const onKeyDown = (ev: KeyboardEvent) => {
         // prevent lexical from handling keystrokes while in codemirror
         ev.stopPropagation()
+
         // flush on save shortcuts
-        const isSaveKey =
-          (ev.key === "s" || ev.key === "S") && (ev.metaKey || ev.ctrlKey)
+        const isSaveKey = (ev.metaKey || ev.ctrlKey) && ev.key === "s"
         if (isSaveKey) {
           ev.preventDefault()
           flushPending()
-          // let window keydown handler trigger save if not inside cm-editor
-          window.dispatchEvent(
-            new KeyboardEvent("keydown", {
-              key: "s",
-              metaKey: ev.metaKey,
-              ctrlKey: ev.ctrlKey,
-            })
-          )
+          // dispatch save command directly to the Lexical editor
+          editor.dispatchCommand(SAVE_FILE_COMMAND, undefined)
         }
       }
 
@@ -210,8 +223,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         flushPending()
       }
 
-      view.contentDOM.addEventListener("keydown", onKeyDown)
-      view.contentDOM.addEventListener("blur", onBlur, true)
+      view.contentDOM.addEventListener("keydown", onKeyDown, false)
+      view.contentDOM.addEventListener("blur", onBlur, false)
     })()
 
     return () => {
@@ -243,22 +256,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   //   }
   // }, [code]);
 
-  // flush debounced changes when the app dispatches a before-save signal
-  React.useEffect(() => {
-    const onBeforeSave = () => {
-      flushPending()
-    }
-    window.addEventListener("sc-before-save", onBeforeSave as EventListener)
-    return () => {
-      window.removeEventListener(
-        "sc-before-save",
-        onBeforeSave as EventListener
-      )
-    }
-  }, [flushPending])
-
   return (
-    <CodeBlock
+    <ContentBlock
       code={code}
       language={language}
       blockName={blockKind}
@@ -272,7 +271,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       }}
     >
       <div ref={elRef} />
-    </CodeBlock>
+    </ContentBlock>
   )
 }
 

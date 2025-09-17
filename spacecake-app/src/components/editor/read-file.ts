@@ -23,11 +23,10 @@ import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown
  * Converts Python blocks into Lexical nodes with progressive rendering
  */
 export async function convertPythonBlocksToLexical(
-  content: string,
   file: FileContent,
   editor: LexicalEditor,
   streamParser: (
-    content: string
+    file: FileContent
   ) => AsyncGenerator<PyBlock> = parsePythonContentStreaming,
   onComplete?: () => void
 ) {
@@ -40,7 +39,7 @@ export async function convertPythonBlocksToLexical(
     })
     // Parse blocks progressively, updating per block
     let parsedBlockCount = 0
-    for await (const block of streamParser(content)) {
+    for await (const block of streamParser(file)) {
       editor.update(
         () => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
@@ -55,6 +54,9 @@ export async function convertPythonBlocksToLexical(
             const delimitedNode = delimitPyBlock(block, file.path)
             root.append(delimitedNode)
           }
+
+          const emptyParagraph = $createParagraphNode()
+          root.append(emptyParagraph)
         },
         { tag: INITIAL_LOAD_TAG }
       )
@@ -68,7 +70,7 @@ export async function convertPythonBlocksToLexical(
         const root = $getRoot()
         root.clear()
         const paragraph = $createParagraphNode()
-        paragraph.append($createTextNode(content))
+        paragraph.append($createTextNode(file.content))
         root.append(paragraph)
       })
     }
@@ -82,7 +84,7 @@ export async function convertPythonBlocksToLexical(
       const root = $getRoot()
       root.clear()
       const paragraph = $createParagraphNode()
-      paragraph.append($createTextNode(content))
+      paragraph.append($createTextNode(file.content))
       root.append(paragraph)
     })
 
@@ -109,13 +111,7 @@ export function getInitialEditorStateFromContent(
     // Default behavior based on file type
     if (file.fileType === FileType.Python) {
       // Python defaults to block view if no view specified
-      convertPythonBlocksToLexical(
-        file.content,
-        file,
-        editor,
-        undefined,
-        onComplete
-      )
+      convertPythonBlocksToLexical(file, editor, undefined, onComplete)
     } else if (file.fileType === FileType.Markdown) {
       // Markdown defaults to block view (rendered markdown) when viewKind is "block" or undefined
       editor.update(() => {

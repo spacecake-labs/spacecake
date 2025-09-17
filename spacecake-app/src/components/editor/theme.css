@@ -101,3 +101,20 @@
 .Collapsible__container[open] > .Collapsible__title {
   list-style-type: disclosure-open;
 }
+
+/* Global overrides for all text elements within context blocks */
+.context-block h1,
+.context-block h2,
+.context-block h3,
+.context-block h4,
+.context-block h5,
+.context-block h6,
+.context-block p,
+.context-block blockquote {
+  margin-top: 1rem !important;
+}
+
+/* Exclude header elements from the margin override */
+.context-block .context-block-header-title {
+  margin-top: 0 !important;
+}

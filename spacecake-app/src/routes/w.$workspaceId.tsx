@@ -100,9 +100,9 @@ function WorkspaceLayout() {
         selectedFilePath={selectedFilePath}
         headerRightContent={
           selectedFilePath ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 px-4">
               <EditorToolbar />
-              <ModeToggle />
+              <ModeToggle variant="compact" />
             </div>
           ) : (
             <div className="px-4">

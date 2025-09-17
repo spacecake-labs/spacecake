@@ -15,6 +15,7 @@ import {
 } from "lexical"
 
 import { CodeBlockNode } from "@/components/editor/nodes/code-node"
+import { ContextNode } from "@/components/editor/nodes/context-node"
 import { ImageNode } from "@/components/editor/nodes/image-node"
 import { InlineImageNode } from "@/components/editor/nodes/inline-image-node"
 
@@ -34,6 +35,7 @@ export const nodes: ReadonlyArray<Klass<LexicalNode> | LexicalNodeReplacement> =
     TableRowNode,
     CodeNode,
     CodeBlockNode,
+    ContextNode,
     CodeHighlightNode,
     HorizontalRuleNode,
     AutoLinkNode,

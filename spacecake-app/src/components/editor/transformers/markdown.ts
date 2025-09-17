@@ -17,7 +17,7 @@ import {
   $isCodeBlockNode,
   CodeBlockNode,
 } from "@/components/editor/nodes/code-node"
-import { delimitedNode } from "@/components/editor/nodes/delimited"
+import { delimitedNode } from "@/components/editor/nodes/delimited-node"
 import {
   $createImageNode,
   $isImageNode,

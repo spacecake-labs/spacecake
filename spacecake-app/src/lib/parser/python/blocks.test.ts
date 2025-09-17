@@ -5,6 +5,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { Language, Parser } from "web-tree-sitter"
 
 import { PyBlock } from "@/types/parser"
+import { FileType } from "@/types/workspace"
+import type { FileContent } from "@/types/workspace"
 import languages from "@/lib/parser/languages"
 import {
   blockKind,
@@ -233,7 +235,7 @@ class Person:
       )
 
       const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code)) {
+      for await (const block of parseCodeBlocks(code, "test.py")) {
         blocks.push(block)
       }
 
@@ -287,7 +289,7 @@ class Person:
       const code = `r"""module header"""\nimport os\nimport sys\n\n\ndef f():\n    pass\n`
 
       const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code)) {
+      for await (const block of parseCodeBlocks(code, "test.py")) {
         blocks.push(block)
       }
 
@@ -307,7 +309,7 @@ class Person:
       const code = "import os\n\n" + "x = 1\n\n" + "def f():\n    pass\n"
 
       const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code)) {
+      for await (const block of parseCodeBlocks(code, "test.py")) {
         blocks.push(block)
       }
 
@@ -325,7 +327,7 @@ class Person:
       const code = "from dataclasses import dataclass"
 
       const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code)) {
+      for await (const block of parseCodeBlocks(code, "test.py")) {
         blocks.push(block)
       }
 
@@ -339,7 +341,7 @@ class Person:
       const code = "def f():\n    return 1\n\n" + "x = 2\n"
 
       const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code)) {
+      for await (const block of parseCodeBlocks(code, "test.py")) {
         blocks.push(block)
       }
 
@@ -355,7 +357,7 @@ class Person:
       const code = '"""A docstring"""'
 
       const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code)) {
+      for await (const block of parseCodeBlocks(code, "test.py")) {
         blocks.push(block)
       }
 
@@ -369,7 +371,7 @@ class Person:
       const code = "# a comment\nimport os"
 
       const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code)) {
+      for await (const block of parseCodeBlocks(code, "test.py")) {
         blocks.push(block)
       }
 
@@ -451,7 +453,7 @@ import pandas as pd
     // markdown block - all consecutive mdocstring comments should be in one block
     expect(blocks[2].kind).toBe("markdown block")
     expect(blocks[2].text).toBe(
-      "#🍰 # a header\n#🍰 ## a subheader\n#🍰 a paragraph"
+      "\n\n#🍰 # a header\n#🍰 ## a subheader\n#🍰 a paragraph"
     )
     expect(blocks[2].startLine).toBe(5)
   })
@@ -459,15 +461,25 @@ import pandas as pd
   describe("fallback block naming", () => {
     it("uses anonymous name when no blocks are parsed", async () => {
       const content = "# just comments or empty file\n"
+      const file: FileContent = {
+        name: "test.py",
+        path: "/test.py",
+        kind: "file",
+        etag: { mtimeMs: Date.now(), size: content.length },
+        fileType: FileType.Python,
+        cid: "test-cid",
+        content,
+      }
       const blocks: PyBlock[] = []
-      for await (const block of parsePythonContentStreaming(content)) {
+      for await (const block of parsePythonContentStreaming(file)) {
         blocks.push(block)
       }
 
       // with the new approach, the parser will still yield a single 'module' fallback
       expect(blocks.length).toBe(1)
       expect(blocks[0].kind).toBe("module")
-      expect(blocks[0].name.kind).toBe("anonymous")
+      expect(blocks[0].name.kind).toBe("named")
+      expect(blocks[0].name.value).toBe("test.py")
       expect(blocks[0].text).toBe(content)
       expect(blocks[0].startLine).toBe(1)
     })

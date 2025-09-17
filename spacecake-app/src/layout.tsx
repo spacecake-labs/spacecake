@@ -1,9 +1,10 @@
-import { ReactNode } from "react"
+import { ReactNode, useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
-import { FileText } from "lucide-react"
+import { Check, Copy } from "lucide-react"
 
 import { WorkspaceInfo } from "@/types/workspace"
-import { encodeBase64Url } from "@/lib/utils"
+import { condensePath, encodeBase64Url } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import {
   ResizableHandle,
   ResizablePanel,
@@ -46,6 +47,18 @@ function LayoutContent({
     }
   }
 
+  const [copied, setCopied] = useState(false)
+
+  const handleCopyPath = async (filePath: string) => {
+    try {
+      await navigator.clipboard.writeText(filePath)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("failed to copy path:", err)
+    }
+  }
+
   if (isMobile) {
     return (
       <>
@@ -66,12 +79,25 @@ function LayoutContent({
                   className="flex items-center gap-2 min-w-0"
                   data-testid="current-file-path"
                 >
-                  <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="font-mono text-xs text-muted-foreground/70 truncate">
-                      {selectedFilePath}
+                      {condensePath(selectedFilePath)}
                     </div>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopyPath(selectedFilePath)}
+                    className="h-7 w-7 p-0 cursor-pointer flex-shrink-0"
+                    aria-label="copy path"
+                    title="copy path"
+                  >
+                    {copied ? (
+                      <Check className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </Button>
                 </div>
               )}
             </div>
@@ -112,12 +138,25 @@ function LayoutContent({
                   className="flex items-center gap-2 min-w-0"
                   data-testid="current-file-path"
                 >
-                  <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="font-mono text-xs text-muted-foreground/70 truncate">
-                      {selectedFilePath}
+                      {condensePath(selectedFilePath)}
                     </div>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopyPath(selectedFilePath)}
+                    className="h-7 w-7 p-0 cursor-pointer flex-shrink-0"
+                    aria-label="copy path"
+                    title="copy path"
+                  >
+                    {copied ? (
+                      <Check className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </Button>
                 </div>
               )}
             </div>

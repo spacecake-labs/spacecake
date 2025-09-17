@@ -1,3 +1,8 @@
+/**
+ * A component that displays a block of content.
+ * Used for code blocks and doc/context blocks.
+ */
+
 import { useState } from "react"
 import { Check, Code, Copy, MoreHorizontal, Play } from "lucide-react"
 
@@ -12,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-interface CodeBlockProps {
+interface ContentBlockProps {
   code: string
   language?: string
   blockName?: string
@@ -27,7 +32,7 @@ interface CodeBlockProps {
   dataBlockId?: string
 }
 
-export function CodeBlock({
+export function ContentBlock({
   code,
   language = "javascript",
   blockName,
@@ -37,11 +42,8 @@ export function CodeBlock({
   onRun,
   children,
   dataBlockId,
-}: CodeBlockProps) {
+}: ContentBlockProps) {
   const [copied, setCopied] = useState(false)
-
-  // dev-only render counter for the wrapper container
-  // removed dev render logging
 
   const copyToClipboard = async () => {
     try {
@@ -49,7 +51,7 @@ export function CodeBlock({
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error("Failed to copy code:", err)
+      console.error("failed to copy code:", err)
     }
   }
 
@@ -96,7 +98,7 @@ export function CodeBlock({
               className="h-7 w-7 p-0 cursor-pointer"
             >
               <Play className="h-3 w-3" />
-              <span className="sr-only">Run code</span>
+              <span className="sr-only">run code</span>
             </Button>
           )}
 
@@ -111,7 +113,7 @@ export function CodeBlock({
             ) : (
               <Copy className="h-3 w-3" />
             )}
-            <span className="sr-only">Copy code</span>
+            <span className="sr-only">copy code</span>
           </Button>
 
           <DropdownMenu>
@@ -122,15 +124,15 @@ export function CodeBlock({
                 className="h-7 w-7 p-0 cursor-pointer"
               >
                 <MoreHorizontal className="h-3 w-3" />
-                <span className="sr-only">More options</span>
+                <span className="sr-only">more options</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={copyToClipboard}>
-                Copy code
+                copy code
               </DropdownMenuItem>
-              <DropdownMenuItem>Download</DropdownMenuItem>
-              <DropdownMenuItem>Share</DropdownMenuItem>
+              <DropdownMenuItem>download</DropdownMenuItem>
+              <DropdownMenuItem>share</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

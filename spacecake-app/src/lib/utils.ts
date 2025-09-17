@@ -81,6 +81,23 @@ export function parentFolderName(
 }
 
 /**
+ * Extracts the filename from a file path, handling both forward and backward slashes.
+ * This is more robust than using split("/").pop() as it works cross-platform.
+ *
+ * @param filePath - The full file path
+ * @returns The filename portion of the path
+ *
+ * @example
+ * filename("/path/to/file.py") // "file.py"
+ * filename("C:\\Users\\file.txt") // "file.txt"
+ * filename("simple.txt") // "simple.txt"
+ */
+export function filename(filePath: string): string {
+  const pathParts = filePath.split(/[/\\]/).filter((part) => part.length > 0)
+  return pathParts[pathParts.length - 1] || filePath
+}
+
+/**
  * Condenses a file or folder path by showing the last two levels and an ellipsis.
  * This approach is often the most useful in a UI, as it provides the most
  * relevant context (the file/folder and its immediate parent).
@@ -110,6 +127,6 @@ export const condensePath = (path: string): string => {
   // Determine the original separator to maintain consistency.
   const separator = path.includes("/") ? "/" : "\\"
 
-  // Join the last two parts with the separator and prepend the ellipsis.
-  return `...${separator}${lastTwo.join(separator)}`
+  // Join the last two parts with the separator
+  return lastTwo.join(separator)
 }
