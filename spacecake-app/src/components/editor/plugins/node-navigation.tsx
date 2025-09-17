@@ -1,18 +1,17 @@
 import { useEffect } from "react"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import {
-  $getNodeByKey,
   $getSelection,
   $isElementNode,
   $isParagraphNode,
   $isRangeSelection,
+  $isTextNode,
   COMMAND_PRIORITY_HIGH,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   LexicalCommand,
-  LexicalNode,
 } from "lexical"
 
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
@@ -70,41 +69,21 @@ export function NodeNavigationPlugin(): null {
           command === KEY_ARROW_RIGHT_COMMAND
         const shouldMove = (isForward && isAtEnd) || (!isForward && isAtStart)
         if (shouldMove) {
-          const findSibling = (node: LexicalNode | null) => {
-            let sib = isForward
-              ? node?.getNextSibling()
-              : node?.getPreviousSibling()
-            while (
-              sib &&
-              $isParagraphNode(sib) &&
-              sib.getTextContent().length === 0
-            ) {
-              sib = isForward ? sib.getNextSibling() : sib.getPreviousSibling()
-            }
-            return sib ?? null
-          }
+          const sibling = isForward
+            ? paragraph.getNextSibling()
+            : paragraph.getPreviousSibling()
 
-          const sibling = findSibling(paragraph)
           if (!sibling) return false
 
           event?.preventDefault()
-          const targetKey = sibling.getKey()
-          const shouldRemoveCurrent =
-            isEmpty && paragraph.getParent()?.getChildren().length !== 1
-          if (shouldRemoveCurrent) {
-            paragraph.remove()
-          }
-          const target = $getNodeByKey(targetKey)
-          if (target) {
-            if ($isCodeBlockNode(target)) {
-              target.select()
-            } else if ($isElementNode(target)) {
-              if (isForward) target.selectStart()
-              else target.selectEnd()
-            } else {
-              if (isForward) paragraph.selectEnd()
-              else paragraph.selectStart()
-            }
+          if ($isCodeBlockNode(sibling)) {
+            sibling.select()
+          } else if ($isElementNode(sibling)) {
+            if (isForward) sibling.selectStart()
+            else sibling.selectEnd()
+          } else if ($isTextNode(sibling)) {
+            if (isForward) sibling.selectStart()
+            else sibling.selectEnd()
           }
           return true
         }

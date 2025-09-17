@@ -32,5 +32,5 @@ export function stripPythonMdocPrefixes(text: string): string {
 }
 
 export function addPythonMdocPrefixes(text: string): string {
-  return `#🍰 ${text}`.replace(/\n/g, "\n#🍰 ")
+  return text.replace(/^(.+)$/gm, "#🍰 $1")
 }

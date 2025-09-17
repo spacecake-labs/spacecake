@@ -92,7 +92,6 @@ export function slashCommandOptions(
               const nodeSelection = $createNodeSelection()
               nodeSelection.add(codeNode.getKey())
               $setSelection(nodeSelection)
-              codeNode.select()
             } else {
               // Will this ever happen?
               const textContent = selection.getTextContent()

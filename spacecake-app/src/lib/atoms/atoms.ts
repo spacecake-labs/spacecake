@@ -159,7 +159,7 @@ export const toggleViewAtom = atom(
       if (nextView === "source") {
         convertToSourceView(sourceContent, currentFile, lexicalEditor)
       } else {
-        convertPythonBlocksToLexical(sourceContent, currentFile, lexicalEditor)
+        convertPythonBlocksToLexical(currentFile, lexicalEditor)
       }
     }
 
@@ -235,7 +235,15 @@ export const saveFileAtom = atom(
         )
       }
 
-      window.dispatchEvent(new Event("sc-before-save"))
+      // Serialize the current editor state
+      if (inferredType === FileType.Python) {
+        contentToWrite = serializeEditorToPython(lexicalEditor)
+      } else if (inferredType === FileType.Markdown) {
+        contentToWrite = lexicalEditor.read(() =>
+          $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
+        )
+      }
+
       const ok = await saveFile(filePath, contentToWrite)
 
       if (ok) {
@@ -268,11 +276,7 @@ export const saveFileAtom = atom(
           }
 
           // Trigger re-parsing for block splitting
-          convertPythonBlocksToLexical(
-            contentToWrite,
-            mockFileContent,
-            lexicalEditor
-          )
+          convertPythonBlocksToLexical(mockFileContent, lexicalEditor)
         }
       } else {
         // Rollback CID on failure

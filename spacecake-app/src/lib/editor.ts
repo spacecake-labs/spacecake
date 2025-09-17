@@ -17,7 +17,8 @@ import {
   $createCodeBlockNode,
   $isCodeBlockNode,
 } from "@/components/editor/nodes/code-node"
-import { $getDelimitedString } from "@/components/editor/nodes/delimited"
+import { $isContextNode } from "@/components/editor/nodes/context-node"
+import { $getDelimitedString } from "@/components/editor/nodes/delimited-node"
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 
 // Pure function to create editor config from serialized state
@@ -74,15 +75,19 @@ export function serializeEditorToPython(editor: LexicalEditor): string {
     const children = root.getChildren()
 
     return children.reduce((result, child) => {
+      // process the node
       if ($isCodeBlockNode(child)) {
         const delimitedString = $getDelimitedString(child)
-
         return result + delimitedString
       }
 
       if ($isHeadingNode(child)) {
         const delimitedString = $getDelimitedString(child)
+        return result + delimitedString
+      }
 
+      if ($isContextNode(child)) {
+        const delimitedString = $getDelimitedString(child)
         return result + delimitedString
       }
 
@@ -91,7 +96,6 @@ export function serializeEditorToPython(editor: LexicalEditor): string {
       }
 
       const textContent = child.getTextContent()
-
       return result + (textContent ? textContent + "\n" : "")
     }, "")
   })

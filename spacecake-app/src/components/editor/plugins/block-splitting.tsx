@@ -13,7 +13,7 @@ import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 
 async function getBlocks(code: string): Promise<PyBlock[]> {
   const blocks: PyBlock[] = []
-  for await (const block of parseCodeBlocks(code)) {
+  for await (const block of parseCodeBlocks(code, "")) {
     blocks.push(block)
   }
   return blocks

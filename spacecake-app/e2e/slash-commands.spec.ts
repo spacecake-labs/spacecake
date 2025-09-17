@@ -247,6 +247,8 @@ test.describe("slash commands e2e", () => {
 
     await heading.click({ delay: 100 })
 
+    await window.waitForTimeout(3000)
+
     // navigate to a new paragraph and type slash
     await window.keyboard.press("ControlOrMeta+ArrowRight", { delay: 100 })
     await window.keyboard.press("Enter", { delay: 100 })

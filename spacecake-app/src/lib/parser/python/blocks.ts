@@ -8,8 +8,10 @@ import {
   PyBlock,
   PyDecoratedKind,
 } from "@/types/parser"
+import type { FileContent } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
 import languages from "@/lib/parser/languages"
+import { filename } from "@/lib/utils"
 
 const { Python } = await languages
 const parser = new Parser()
@@ -158,7 +160,10 @@ export function blockName(node: Node): BlockName {
   }
 }
 
-export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
+export async function* parseCodeBlocks(
+  code: string,
+  filePath?: string
+): AsyncGenerator<PyBlock> {
   const tree = parser.parse(code)
   if (!tree) throw new Error("failed to parse code")
 
@@ -217,7 +222,7 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
   const emitMdBlock = (): PyBlock => {
     const first = mdNodes[0]
     const last = mdNodes[mdNodes.length - 1]
-    const startByte = first.startIndex
+    const startByte = prevBlockEndByte
     const raw = code.slice(startByte, last.endIndex)
     const block: PyBlock = {
       kind: "markdown block",
@@ -242,10 +247,14 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
 
     if (index === 0 && isDocstring(node)) {
       prevBlockEndByte = nodeEndIndex
-      const moduleDocCid = computeCid("module", "anonymous", node.text)
+      // Extract filename from path for module docstring naming
+      const moduleName = filePath
+        ? namedBlock(filename(filePath))
+        : anonymousName()
+      const moduleDocCid = computeCid("module", moduleName.value, node.text)
       yield {
         kind: "module",
-        name: anonymousName(),
+        name: moduleName,
         startByte: node.startIndex,
         endByte: nodeEndIndex,
         text: code.slice(node.startIndex, nodeEndIndex),
@@ -254,7 +263,7 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
         cidAlgo: "fnv1a64-norm1",
         doc: {
           kind: "doc",
-          name: anonymousName(),
+          name: moduleName,
           startByte: node.startIndex,
           endByte: nodeEndIndex,
           text: code.slice(node.startIndex, nodeEndIndex),
@@ -394,14 +403,17 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
 
   if (importNodes.length) {
     const importBlock = emitImportBlock()
+    prevBlockEndByte = importBlock.endByte
     yield importBlock
   }
   if (miscNodes.length) {
     const miscBlock = emitMiscBlock()
+    prevBlockEndByte = miscBlock.endByte
     yield miscBlock
   }
   if (mdNodes.length) {
     const mdBlock = emitMdBlock()
+    prevBlockEndByte = mdBlock.endByte
     yield mdBlock
   }
 }
@@ -411,25 +423,26 @@ export async function* parseCodeBlocks(code: string): AsyncGenerator<PyBlock> {
  * Returns a generator that yields blocks as they're parsed
  */
 export async function* parsePythonContentStreaming(
-  content: string
+  file: FileContent
 ): AsyncGenerator<PyBlock> {
   try {
     let blockCount = 0
-    for await (const block of parseCodeBlocks(content)) {
+    for await (const block of parseCodeBlocks(file.content, file.path)) {
       blockCount++
       yield block
     }
 
     // If no blocks were parsed, fall back to a single "module" block
     if (blockCount === 0) {
+      const moduleName = namedBlock(filename(file.path))
       const fallbackBlock: PyBlock = {
         kind: "module",
-        name: anonymousName(),
+        name: moduleName,
         startByte: 0,
-        endByte: content.length,
-        text: content,
+        endByte: file.content.length,
+        text: file.content,
         startLine: 1,
-        cid: computeCid("module", "anonymous", content),
+        cid: computeCid("module", moduleName.value, file.content),
         cidAlgo: "fnv1a64-norm1",
       }
       yield fallbackBlock
@@ -438,14 +451,15 @@ export async function* parsePythonContentStreaming(
     console.warn("failed to parse python content into blocks:", error)
 
     // Fallback: create a single block with the entire content
+    const moduleName = namedBlock(file.path.split("/").pop() || file.path)
     const fallbackBlock: PyBlock = {
       kind: "module",
-      name: anonymousName(),
+      name: moduleName,
       startByte: 0,
-      endByte: content.length,
-      text: content,
+      endByte: file.content.length,
+      text: file.content,
       startLine: 1,
-      cid: computeCid("module", "anonymous", content),
+      cid: computeCid("module", moduleName.value, file.content),
       cidAlgo: "fnv1a64-norm1",
     }
 

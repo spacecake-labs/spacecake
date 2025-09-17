@@ -14,7 +14,7 @@ import {
 import {
   $getDelimiters,
   delimitedNode,
-} from "@/components/editor/nodes/delimited"
+} from "@/components/editor/nodes/delimited-node"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 
 export function mdBlockToNode(block: Block<MdBlockKind>) {

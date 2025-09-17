@@ -16,18 +16,13 @@ import {
 import type { Block } from "@/types/parser"
 import { CodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor"
 
-// Simple void emitter for focus events - only allows one subscription
-const voidEmitter = () => {
-  let subscription = () => {} // noop
-  return {
-    publish: () => {
-      subscription()
-    },
-    subscribe: (cb: () => void) => {
-      subscription = cb
-    },
-  }
+// Focus management interface for CodeMirror integration
+export interface CodeMirrorFocusManager {
+  focus: () => void
 }
+
+// WeakMap to store focus managers for code block nodes
+const focusManagerMap = new WeakMap<CodeBlockNode, CodeMirrorFocusManager>()
 
 /**
  * The options necessary to construct a new code block node.
@@ -72,7 +67,6 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
   __language: string
   __src?: string
   __block?: Block
-  __focusEmitter = voidEmitter()
 
   static getType(): string {
     return "codeblock"
@@ -208,10 +202,13 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
   }
 
   select = () => {
-    // small delay so DOM selection updates settle before focusing codemirror
-    setTimeout(() => {
-      this.__focusEmitter.publish()
-    }, 50)
+    // focus the CodeMirror editor directly
+    const focusManager = focusManagerMap.get(this)
+    focusManager?.focus()
+  }
+
+  setFocusManager = (focusManager: CodeMirrorFocusManager) => {
+    focusManagerMap.set(this, focusManager)
   }
 
   decorate(editor: LexicalEditor): JSX.Element {
@@ -225,7 +222,6 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
         block={this.getBlock()}
         codeBlockNode={this}
         nodeKey={this.getKey()}
-        focusEmitter={this.__focusEmitter}
       />
     )
   }
@@ -335,10 +331,6 @@ interface CodeBlockEditorProps {
   src?: string
   block: Block
   nodeKey: string
-  focusEmitter: {
-    publish: () => void
-    subscribe: (cb: () => void) => void
-  }
 }
 
 const CodeBlockEditorContainer: React.FC<
@@ -360,7 +352,7 @@ const CodeBlockEditorContainer: React.FC<
         language={props.language}
         block={props.block}
         nodeKey={props.nodeKey}
-        focusEmitter={props.focusEmitter}
+        codeBlockNode={props.codeBlockNode}
       />
     </CodeBlockEditorContextProvider>
   )

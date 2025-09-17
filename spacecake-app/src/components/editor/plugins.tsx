@@ -15,6 +15,7 @@ import { TablePlugin } from "@lexical/react/LexicalTablePlugin"
 import { atom, useAtom } from "jotai"
 
 import { ContentEditable } from "@/components/editor/content-editable"
+import { BackspacePreventionPlugin } from "@/components/editor/plugins/backspace-prevention"
 import { NodeNavigationPlugin } from "@/components/editor/plugins/node-navigation"
 import { SaveCommandPlugin } from "@/components/editor/plugins/save-command"
 import { SlashCommandPlugin } from "@/components/editor/plugins/slash-command"
@@ -58,6 +59,7 @@ export const Plugins = React.memo(function Plugins() {
         <HashtagPlugin />
         <HistoryPlugin />
         <NodeNavigationPlugin />
+        <BackspacePreventionPlugin />
 
         <MarkdownShortcutPlugin transformers={MARKDOWN_TRANSFORMERS} />
 
