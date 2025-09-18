@@ -144,8 +144,8 @@ test.describe("python e2e", () => {
 
     // navigation tests: dynamic paragraph creation/removal between code blocks
     const editors = window.locator(".cm-editor")
-    const secondEditorRoot = editors.nth(1)
-    const secondContent = secondEditorRoot.locator(".cm-content")
+    const thirdEditorRoot = editors.nth(2)
+    const thirdContent = thirdEditorRoot.locator(".cm-content")
 
     // Move caret to end of first code block and ArrowDown into spacer (creates paragraph)
     // click a stable token within the first editor to ensure caret placement
@@ -161,15 +161,15 @@ test.describe("python e2e", () => {
     await window.keyboard.press("ArrowDown", { delay: 100 })
 
     // recreate a spacer and then type to verify text stays
-    await secondEditorRoot
+    await thirdEditorRoot
       .locator(".cm-content")
       .getByText("Person")
       .first()
       .click()
     // Click on "Person" puts us in the Person dataclass block
     // From here, Cmd+Up should go to start of block, then ArrowUp creates spacer above
-    await secondContent.press("Meta+ArrowUp", { delay: 100 })
-    await secondContent.press("ArrowUp", { delay: 100 }) // create spacer above
+    await thirdContent.press("Meta+ArrowUp", { delay: 100 })
+    await thirdContent.press("ArrowUp", { delay: 100 }) // create spacer above
 
     const spacerText1 = "PARA-TEXT-ONE"
     await window
@@ -197,14 +197,14 @@ test.describe("python e2e", () => {
     await window.keyboard.press("ArrowDown", { delay: 100 }) // into next code block
 
     // Verify ArrowLeft behaves like ArrowUp at the start edge
-    await secondEditorRoot
+    await thirdEditorRoot
       .locator(".cm-content")
       .getByText("Person")
       .first()
       .click()
 
-    await secondContent.press("Meta+ArrowUp", { delay: 100 })
-    await secondContent.press("ArrowLeft", { delay: 100 }) // to spacer above
+    await thirdContent.press("Meta+ArrowUp", { delay: 100 })
+    await thirdContent.press("ArrowLeft", { delay: 100 }) // to spacer above
     // type into spacer above and verify it appears
     const spacerText3 = "PARA-TEXT-THREE"
     await window
@@ -214,14 +214,14 @@ test.describe("python e2e", () => {
     await window.keyboard.press("ArrowLeft", { delay: 100 }) // to previous code block
 
     // Test that non-empty spacer persists when navigating away
-    await secondEditorRoot
+    await thirdEditorRoot
       .locator(".cm-content")
       .getByText("Person")
       .first()
       .click()
 
-    await secondContent.press("Meta+ArrowDown", { delay: 100 })
-    await secondContent.press("ArrowDown", { delay: 100 }) // create spacer below second block
+    await thirdContent.press("Meta+ArrowDown", { delay: 100 })
+    await thirdContent.press("ArrowDown", { delay: 100 }) // create spacer below second block
     const keepText = "KEEP-PARA"
     await window
       .getByTestId("lexical-editor")

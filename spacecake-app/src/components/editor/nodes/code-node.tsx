@@ -201,6 +201,12 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     }
   }
 
+  setBlock = (block: Block) => {
+    if (block !== this.__block) {
+      this.getWritable().__block = block
+    }
+  }
+
   select = () => {
     // focus the CodeMirror editor directly
     const focusManager = focusManagerMap.get(this)

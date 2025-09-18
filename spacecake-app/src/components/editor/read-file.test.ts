@@ -94,9 +94,9 @@ import pandas as pd
       expect(children).toHaveLength(6)
 
       // first child: heading with docstring
-      expect(children[0].getType()).toBe("context")
+      expect(children[0].getType()).toBe("codeblock")
       expect(children[0].getTextContent()).toBe(
-        "A file with markdown directives."
+        '"""A file with markdown directives."""'
       )
 
       // second child: empty paragraph

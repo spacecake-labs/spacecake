@@ -458,6 +458,44 @@ import pandas as pd
     expect(blocks[2].startLine).toBe(5)
   })
 
+  it("parses function with docstring", async () => {
+    const code = `def f():
+    """A docstring."""
+    pass`
+
+    const blocks: PyBlock[] = []
+    for await (const block of parseCodeBlocks(code)) {
+      blocks.push(block)
+    }
+
+    expect(blocks.length).toBe(1)
+    expect(blocks[0].kind).toBe("function")
+    expect(blocks[0].name.value).toBe("f")
+    expect(blocks[0].doc).toBeDefined()
+    expect(blocks[0].doc?.text).toBe('"""A docstring."""')
+    expect(blocks[0].doc?.startLine).toBe(2)
+  })
+
+  it("parses class with docstring", async () => {
+    const code = `class MyClass:
+    """This is a class docstring."""
+    
+    def method(self):
+        return "hello"`
+
+    const blocks: PyBlock[] = []
+    for await (const block of parseCodeBlocks(code)) {
+      blocks.push(block)
+    }
+
+    expect(blocks.length).toBe(1)
+    expect(blocks[0].kind).toBe("class")
+    expect(blocks[0].name.value).toBe("MyClass")
+    expect(blocks[0].doc).toBeDefined()
+    expect(blocks[0].doc?.text).toBe('"""This is a class docstring."""')
+    expect(blocks[0].doc?.startLine).toBe(2)
+  })
+
   describe("fallback block naming", () => {
     it("uses anonymous name when no blocks are parsed", async () => {
       const content = "# just comments or empty file\n"

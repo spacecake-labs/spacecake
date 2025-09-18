@@ -15,14 +15,14 @@ import {
 
 import { debounce } from "@/lib/utils"
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
-import { maybeSplitBlock } from "@/components/editor/plugins/block-splitting"
+import { maybeUpdateBlockAndDocstring } from "@/components/editor/plugins/block-utils"
 
 export function useNavigation(nodeKey: string) {
   const [editor] = useLexicalComposerContext()
 
-  const debouncedSplit = React.useRef(
+  const debouncedUpdate = React.useRef(
     debounce(() => {
-      maybeSplitBlock(editor, nodeKey)
+      maybeUpdateBlockAndDocstring(editor, nodeKey)
     }, 250)
   )
 
@@ -84,7 +84,7 @@ export function useNavigation(nodeKey: string) {
       }
     }
 
-    debouncedSplit.current.schedule()
+    debouncedUpdate.current.schedule()
   }, [editor, nodeKey])
 
   const navigateToPreviousNode = React.useCallback(() => {
@@ -119,7 +119,7 @@ export function useNavigation(nodeKey: string) {
       }
     }
 
-    debouncedSplit.current.schedule()
+    debouncedUpdate.current.schedule()
   }, [editor, nodeKey])
 
   // Create CodeMirror keymap for navigation

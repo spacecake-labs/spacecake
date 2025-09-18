@@ -9,9 +9,8 @@ import { basicSetup } from "codemirror"
 import { atom } from "jotai"
 
 import type { Block } from "@/types/parser"
-import { blockId } from "@/lib/parser/block-id"
 import { debounce } from "@/lib/utils"
-import { ContentBlock } from "@/components/content-block"
+import { CodeBlock } from "@/components/code-block"
 import {
   CodeBlockNode,
   useCodeBlockEditorContext,
@@ -99,9 +98,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   const [editor] = useLexicalComposerContext()
   const { setCode } = useCodeBlockEditorContext()
 
-  // Use block info
-  const blockKind = String(block.kind)
-  const blockName = block.name.value
+  // Use block info for context
 
   // Use hardcoded values instead of atoms to avoid re-renders
   const readOnly = false
@@ -257,21 +254,17 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   // }, [code]);
 
   return (
-    <ContentBlock
-      code={code}
+    <CodeBlock
+      block={block}
       language={language}
-      blockName={blockKind}
-      title={blockName}
       editable={!readOnly}
-      showLineNumbers={true}
       theme="dark"
-      dataBlockId={blockId(block)}
       onCodeChange={(newCode) => {
         setCodeRef.current(newCode)
       }}
     >
       <div ref={elRef} />
-    </ContentBlock>
+    </CodeBlock>
   )
 }
 
