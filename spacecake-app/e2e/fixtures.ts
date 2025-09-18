@@ -26,9 +26,14 @@ export const test = base.extend<TestFixtures>({
 
     // clear localStorage before each test to prevent interference
     const page = await app.firstWindow()
-    await page.evaluate(() => {
-      localStorage.clear()
-    })
+    try {
+      await page.evaluate(() => {
+        localStorage.clear()
+      })
+    } catch (error) {
+      // localStorage might not be available in some contexts
+      console.warn("Could not clear localStorage:", error)
+    }
 
     await use(app)
 

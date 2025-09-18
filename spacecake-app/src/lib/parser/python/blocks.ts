@@ -91,6 +91,18 @@ export function isDocstring(node: Node): boolean {
   return false
 }
 
+export function findDocstringNode(node: Node): Node | null {
+  for (const child of node.children) {
+    if (child && child.type === "block") {
+      const blockChild = child.firstChild
+      if (blockChild && isDocstring(blockChild)) {
+        return blockChild
+      }
+    }
+  }
+  return null
+}
+
 export function isMdocString(node: Node): boolean {
   if (node.type !== "comment") return false
   return node.text.startsWith("#🍰")
@@ -364,8 +376,8 @@ export async function* parseCodeBlocks(
     prevBlockEndByte = nodeEndIndex
 
     if (isDocablePyKind(kind)) {
-      const child = node.firstChild
-      if (child && isDocstring(child)) {
+      const docstringNode = findDocstringNode(node)
+      if (docstringNode) {
         yield {
           kind,
           name,
@@ -378,11 +390,11 @@ export async function* parseCodeBlocks(
           doc: {
             kind: "doc",
             name: anonymousName(),
-            startByte: child.startIndex,
-            endByte: child.endIndex,
-            text: child.text,
-            startLine: countLinesBefore(child.startIndex),
-            cid: computeCid("doc", "anonymous", child.text),
+            startByte: docstringNode.startIndex,
+            endByte: docstringNode.endIndex,
+            text: docstringNode.text,
+            startLine: countLinesBefore(docstringNode.startIndex),
+            cid: computeCid("doc", "anonymous", docstringNode.text),
             cidAlgo: "fnv1a64-norm1",
           },
         }

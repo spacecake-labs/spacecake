@@ -241,17 +241,13 @@ test.describe("slash commands e2e", () => {
     // verify we're in blocks view
     await expect(window.getByRole("button", { name: "blocks" })).toBeVisible()
 
-    const heading = window.getByRole("heading", {
-      name: "A file to test block parsing.",
-    })
+    const moduleDoc = window.getByText('"""A file to test block parsing."""')
 
-    await heading.click({ delay: 100 })
-
-    await window.waitForTimeout(3000)
+    await moduleDoc.click({ delay: 100 })
 
     // navigate to a new paragraph and type slash
     await window.keyboard.press("ControlOrMeta+ArrowRight", { delay: 100 })
-    await window.keyboard.press("Enter", { delay: 100 })
+    await window.keyboard.press("ArrowDown", { delay: 100 })
     await window.keyboard.press("/", { delay: 200 })
 
     await window.getByRole("option", { name: "code" }).click({ delay: 100 })

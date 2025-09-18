@@ -6,6 +6,9 @@
 import { useState } from "react"
 import { Check, Code, Copy, MoreHorizontal, Play } from "lucide-react"
 
+import type { Block } from "@/types/parser"
+import { blockId } from "@/lib/parser/block-id"
+import { delimitPythonDocString } from "@/lib/parser/python/utils"
 import { cn } from "@/lib/utils"
 import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace"
 import { Badge } from "@/components/ui/badge"
@@ -16,34 +19,38 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { TypographyH3, TypographyP } from "@/components/typography"
 
-interface ContentBlockProps {
-  code: string
+interface CodeBlockProps {
+  block: Block
   language?: string
-  blockName?: string
-  title?: string
-  showLineNumbers?: boolean
   editable?: boolean
   theme?: "light" | "dark" | "auto"
   className?: string
   onCodeChange?: (code: string) => void
   onRun?: () => void
   children?: React.ReactNode
-  dataBlockId?: string
 }
 
-export function ContentBlock({
-  code,
+export function CodeBlock({
+  block,
   language = "javascript",
-  blockName,
-  title,
   editable = false,
   className,
   onRun,
   children,
-  dataBlockId,
-}: ContentBlockProps) {
+}: CodeBlockProps) {
   const [copied, setCopied] = useState(false)
+
+  // derive properties from block
+  const code = block.text
+  const blockName = block.name.value
+  const title = blockName
+  const dataBlockId = blockId(block)
+  const doc =
+    language === "python" && block.doc
+      ? delimitPythonDocString(block.doc?.text)
+      : null
 
   const copyToClipboard = async () => {
     try {
@@ -54,6 +61,15 @@ export function ContentBlock({
       console.error("failed to copy code:", err)
     }
   }
+
+  // split docstring at first linebreak
+  const firstLineBreak = doc?.between.indexOf("\n") ?? -1
+  const docHeader =
+    firstLineBreak === -1
+      ? doc?.between
+      : doc?.between.substring(0, firstLineBreak)
+  const docContent =
+    firstLineBreak === -1 ? null : doc?.between.substring(firstLineBreak + 1)
 
   return (
     <div
@@ -72,21 +88,18 @@ export function ContentBlock({
               {fileTypeEmoji(fileTypeFromLanguage(language))}
             </span>
           )}
-          {title &&
-            (title === "anonymous" ? (
-              <h3 className="font-semibold text-foreground text-sm leading-tight">
-                <Code className="inline-block h-[1em] w-[1em] align-middle text-foreground" />
-              </h3>
-            ) : (
-              <h3 className="font-semibold text-foreground text-sm leading-tight">
-                {title}
-              </h3>
-            ))}
-          {blockName ? (
-            <Badge variant="secondary" className="text-xs font-mono">
-              {blockName}
-            </Badge>
-          ) : null}
+          {title === "anonymous" ? (
+            <h3 className="font-semibold text-foreground text-sm leading-tight">
+              <Code className="inline-block h-[1em] w-[1em] align-middle text-foreground" />
+            </h3>
+          ) : (
+            <h3 className="font-semibold text-foreground text-sm leading-tight">
+              {title}
+            </h3>
+          )}
+          <Badge variant="secondary" className="text-xs font-mono">
+            {block.kind}
+          </Badge>
         </div>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -138,8 +151,16 @@ export function ContentBlock({
         </div>
       </div>
 
-      {/* Code Editor Container */}
-      <div className="overflow-hidden rounded-b-lg">
+      {/* doc section */}
+      {doc && (
+        <div className="border-b bg-muted/10 px-4 py-3" data-section="doc">
+          <TypographyH3>{docHeader}</TypographyH3>
+          {docContent && <TypographyP>{docContent}</TypographyP>}
+        </div>
+      )}
+
+      {/* code section */}
+      <div className="overflow-hidden rounded-b-lg" data-section="code">
         {children || (
           <div className="min-h-[60px] p-4 bg-muted/10 rounded-b-lg">
             <pre className="text-sm font-mono text-muted-foreground">
@@ -149,7 +170,7 @@ export function ContentBlock({
         )}
       </div>
 
-      {/* Resize handle for editable blocks */}
+      {/* resize handle for editable blocks */}
       {editable && (
         <div className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover:opacity-50 transition-opacity">
           <div className="absolute bottom-1 right-1 w-2 h-2 border-r-2 border-b-2 border-muted-foreground/50" />

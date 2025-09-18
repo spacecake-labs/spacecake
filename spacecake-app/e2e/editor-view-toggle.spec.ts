@@ -44,8 +44,12 @@ class MathUtils:
 
     // Should start in block view for Python
     await expect(page.getByRole("button", { name: "blocks" })).toBeVisible()
-    await expect(page.getByRole("heading", { name: "fibonacci" })).toBeVisible()
-    await expect(page.getByRole("heading", { name: "MathUtils" })).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "fibonacci" }).first()
+    ).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "MathUtils" }).first()
+    ).toBeVisible()
 
     // Toggle to source view
     await page.getByRole("button", { name: "blocks" }).click()
@@ -56,7 +60,9 @@ class MathUtils:
     // Toggle back to block view
     await page.getByRole("button", { name: "source" }).click()
     await expect(page.getByRole("button", { name: "blocks" })).toBeVisible()
-    await expect(page.getByRole("heading", { name: "fibonacci" })).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "fibonacci" }).first()
+    ).toBeVisible()
   })
 
   test("python file with markdown directives can toggle between block and source views", async ({
@@ -113,7 +119,9 @@ class MathUtils:
 
     // Should start in block view for Python
     await expect(page.getByRole("button", { name: "blocks" })).toBeVisible()
-    await expect(page.getByRole("heading", { name: "fibonacci" })).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "fibonacci" }).first()
+    ).toBeVisible()
     await expect(page.getByRole("heading", { name: "MathUtils" })).toBeVisible()
 
     // Verify markdown directives are rendered in block view
@@ -160,7 +168,9 @@ class MathUtils:
     // Toggle back to block view
     await page.getByRole("button", { name: "source" }).click()
     await expect(page.getByRole("button", { name: "blocks" })).toBeVisible()
-    await expect(page.getByRole("heading", { name: "fibonacci" })).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "fibonacci" }).first()
+    ).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "main section" })
     ).toBeVisible()
