@@ -111,13 +111,19 @@ export const userViewPreferencesAtom = atomWithStorage<
 >("spacecake-view-preferences", {})
 
 // Derived atom that computes the current view kind for a file type
-export const viewKindAtom = atom((get) => (fileType: FileType): ViewKind => {
+export const viewKindAtom = atom((get): ViewKind => {
+  const fileContent = get(fileContentAtom)
+  if (!fileContent) {
+    return "source" // sensible default
+  }
+  const { fileType } = fileContent
   const userPrefs = get(userViewPreferencesAtom)
   const userPref = userPrefs[fileType]
 
-  if (userPref) return userPref
+  if (userPref) {
+    return userPref
+  }
 
-  // default: block if supported, otherwise source
   return supportsBlockView(fileType) ? "block" : "source"
 })
 
