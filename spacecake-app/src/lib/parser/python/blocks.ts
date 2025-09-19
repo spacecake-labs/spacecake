@@ -13,6 +13,8 @@ import { fnv1a64Hex } from "@/lib/hash"
 import languages from "@/lib/parser/languages"
 import { filename } from "@/lib/utils"
 
+import { dedentDocstring, findDocstringNode } from "./docstring"
+
 const { Python } = await languages
 const parser = new Parser()
 parser.setLanguage(Python)
@@ -89,18 +91,6 @@ export function isDocstring(node: Node): boolean {
   }
 
   return false
-}
-
-export function findDocstringNode(node: Node): Node | null {
-  for (const child of node.children) {
-    if (child && child.type === "block") {
-      const blockChild = child.firstChild
-      if (blockChild && isDocstring(blockChild)) {
-        return blockChild
-      }
-    }
-  }
-  return null
 }
 
 export function isMdocString(node: Node): boolean {
@@ -278,7 +268,7 @@ export async function* parseCodeBlocks(
           name: moduleName,
           startByte: node.startIndex,
           endByte: nodeEndIndex,
-          text: code.slice(node.startIndex, nodeEndIndex),
+          text: dedentDocstring(code.slice(node.startIndex, nodeEndIndex)),
           startLine: 1,
           cid: moduleDocCid,
           cidAlgo: "fnv1a64-norm1",
@@ -392,7 +382,7 @@ export async function* parseCodeBlocks(
             name: anonymousName(),
             startByte: docstringNode.startIndex,
             endByte: docstringNode.endIndex,
-            text: docstringNode.text,
+            text: dedentDocstring(docstringNode.text),
             startLine: countLinesBefore(docstringNode.startIndex),
             cid: computeCid("doc", "anonymous", docstringNode.text),
             cidAlgo: "fnv1a64-norm1",
