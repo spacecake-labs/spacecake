@@ -25,15 +25,8 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  build: {
-    rollupOptions: {
-      output: {
-        format: "es",
-      },
-    },
-  },
   optimizeDeps: {
-    exclude: ["web-tree-sitter"],
+    exclude: ["web-tree-sitter", "tree-sitter-python"],
   },
   server: {
     hmr: {

@@ -1,5 +1,9 @@
 onlyBuiltDependencies:
+  - "@swc/core"
   - "@tailwindcss/oxide"
   - electron
   - electron-winstaller
   - esbuild
+  - fs-xattr
+  - macos-alias
+  - tree-sitter-python
