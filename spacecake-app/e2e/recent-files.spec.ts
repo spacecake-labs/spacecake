@@ -46,7 +46,7 @@ test.describe("recent files", () => {
     await window.getByRole("button", { name: "google-doc.py" }).click()
 
     await expect(
-      window.getByText('"""A one-line summary of the module')
+      window.getByRole("heading", { name: "A one-line summary of the module" })
     ).toBeVisible()
 
     // 4. Open Quick Open and check for recent files
