@@ -55,7 +55,7 @@ export const getEditorConfig = (
   if (fileContent && selectedFilePath) {
     // Get the current view preference for this file type
     const store = getDefaultStore()
-    const viewKind = store.get(viewKindAtom)(fileContent.fileType)
+    const viewKind = store.get(viewKindAtom)
 
     return createEditorConfigFromContent(fileContent, viewKind)
   }
