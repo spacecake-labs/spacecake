@@ -1,7 +1,8 @@
 import React from "react"
 import { indentWithTab } from "@codemirror/commands"
+import { foldEffect } from "@codemirror/language"
 import { languages } from "@codemirror/language-data"
-import { EditorState, Extension } from "@codemirror/state"
+import { Compartment, EditorState, Extension } from "@codemirror/state"
 import { EditorView, keymap, lineNumbers } from "@codemirror/view"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github"
@@ -88,6 +89,40 @@ const focusedActiveLineTheme = EditorView.theme({
   },
 })
 
+const foldPlaceholderTheme = EditorView.theme({
+  ".cm-foldPlaceholder": {
+    backgroundColor: "var(--popover)",
+    color: "var(--popover-foreground)",
+    border: "none",
+    padding: "0 1ch",
+    margin: "0 1px",
+    borderRadius: "4px",
+  },
+})
+
+// Function to automatically fold docstrings using parsed block data
+const foldDocstrings = (view: EditorView, block: Block) => {
+  if (!block.doc) return
+
+  const doc = view.state.doc
+  const docText = doc.toString()
+  const offset = block.text.length - docText.length
+
+  const docStartChar = block.doc.startByte - block.startByte - offset
+  const docEndChar = block.doc.endByte - block.startByte - offset
+
+  if (docStartChar >= 0 && docEndChar <= docText.length) {
+    const startLine = doc.lineAt(docStartChar).number
+    const endLine = doc.lineAt(docEndChar).number
+
+    if (endLine > startLine) {
+      view.dispatch({
+        effects: foldEffect.of({ from: docStartChar, to: docEndChar }),
+      })
+    }
+  }
+}
+
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   language,
   nodeKey,
@@ -131,6 +166,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   const { theme } = useTheme()
 
+  // Create a compartment for the theme extension
+  const themeCompartment = React.useRef(new Compartment())
+
   // debounce settings and helpers
   const debounceMs = 250
   const debouncedCommitRef = React.useRef(
@@ -167,8 +205,11 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         }),
         keymap.of([indentWithTab]),
         EditorView.lineWrapping,
-        theme === "dark" ? githubDark : githubLight,
+        themeCompartment.current.of(
+          theme === "dark" ? githubDark : githubLight
+        ),
         focusedActiveLineTheme,
+        foldPlaceholderTheme,
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             debouncedCommitRef.current.schedule()
@@ -196,10 +237,14 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       // Focus the editor if the node is selected
       editor.read(() => {
         if (codeBlockNode.isSelected()) {
-          console.log("Focusing CodeMirror editor after creation")
           view.focus()
         }
       })
+
+      // automatically fold docstrings if this block has one
+      if (language === "python" && block.doc) {
+        foldDocstrings(view, block)
+      }
 
       const onKeyDown = (ev: KeyboardEvent) => {
         // prevent lexical from handling keystrokes while in codemirror
@@ -231,7 +276,18 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       editorViewRef.current = null
       // listeners are attached to contentDOM; they are removed by destroy()
     }
-  }, [language, theme, debounceMs, flushPending])
+  }, [language, debounceMs, flushPending])
+
+  // Handle theme changes dynamically using compartment
+  React.useEffect(() => {
+    const view = editorViewRef.current
+    if (!view) return
+
+    const newTheme = theme === "dark" ? githubDark : githubLight
+    view.dispatch({
+      effects: themeCompartment.current.reconfigure(newTheme),
+    })
+  }, [theme])
 
   // // keep codemirror doc in sync if external updates change the node code
   // React.useEffect(() => {
