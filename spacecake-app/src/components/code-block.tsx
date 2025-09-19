@@ -69,7 +69,9 @@ export function CodeBlock({
       ? doc?.between
       : doc?.between.substring(0, firstLineBreak)
   const docContent =
-    firstLineBreak === -1 ? null : doc?.between.substring(firstLineBreak + 1)
+    firstLineBreak === -1
+      ? null
+      : doc?.between.substring(firstLineBreak + 1).trimStart()
 
   return (
     <div
