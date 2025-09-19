@@ -26,6 +26,7 @@ const createWindow = () => {
   // Create the browser window.
 
   const mainWindow = new BrowserWindow({
+    icon: path.join(__dirname, "../assets/icons/icon.icns"),
     width: 800,
     height: 600,
     show: !isTest || showWindow,
