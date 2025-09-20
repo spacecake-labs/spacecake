@@ -63,7 +63,7 @@ export function isDocstring(node: Node): boolean {
 
   if (!firstChild || !lastChild) return false
 
-  // Check if it's a triple-quoted string
+  // Check if it's a triple-quoted string (supports both single-line and multi-line)
   const isTripleQuoted =
     firstChild.type === "string_start" &&
     lastChild.type === "string_end" &&

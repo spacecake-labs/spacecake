@@ -241,7 +241,11 @@ test.describe("slash commands e2e", () => {
     // verify we're in rich view
     await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
 
-    const moduleDoc = window.getByText('"""A file to test block parsing."""')
+    const moduleBlock = editor.locator('[data-block-id*="core.py-module"]')
+    const codeSection = moduleBlock.locator('[data-section="code"]')
+
+    await codeSection.getByLabel("folded code").click()
+    const moduleDoc = codeSection.getByText("A file to test block parsing.")
 
     await moduleDoc.click({ delay: 100 })
 
