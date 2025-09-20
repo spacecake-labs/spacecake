@@ -11,7 +11,7 @@ export interface LanguageSupport {
 const LANGUAGE_SUPPORT: Record<FileType, LanguageSupport> = {
   [FileType.Python]: {
     fileType: FileType.Python,
-    supportedViews: new Set(["block", "source"]),
+    supportedViews: new Set(["rich", "source"]),
   },
   [FileType.JavaScript]: {
     fileType: FileType.JavaScript,
@@ -31,7 +31,7 @@ const LANGUAGE_SUPPORT: Record<FileType, LanguageSupport> = {
   },
   [FileType.Markdown]: {
     fileType: FileType.Markdown,
-    supportedViews: new Set(["block", "source"]),
+    supportedViews: new Set(["rich", "source"]),
   },
   [FileType.Plaintext]: {
     fileType: FileType.Plaintext,
@@ -44,8 +44,8 @@ export function languageSupport(fileType: FileType): LanguageSupport {
   return LANGUAGE_SUPPORT[fileType]
 }
 
-export function supportsBlockView(fileType: FileType): boolean {
-  return LANGUAGE_SUPPORT[fileType].supportedViews.has("block")
+export function supportsRichView(fileType: FileType): boolean {
+  return LANGUAGE_SUPPORT[fileType].supportedViews.has("rich")
 }
 
 export function supportsSourceView(fileType: FileType): boolean {

@@ -11,7 +11,7 @@ import {
   fileTypeToCodeMirrorLanguage,
   languageSupport,
   supportedViews,
-  supportsBlockView,
+  supportsRichView,
   supportsSourceView,
 } from "@/lib/language-support"
 
@@ -31,8 +31,8 @@ const mockFileContent = (
 
 describe("language support", () => {
   describe("python support", () => {
-    it("supports block view", () => {
-      expect(supportsBlockView(FileType.Python)).toBe(true)
+    it("supports rich view", () => {
+      expect(supportsRichView(FileType.Python)).toBe(true)
     })
 
     it("supports source view", () => {
@@ -41,15 +41,15 @@ describe("language support", () => {
 
     it("has correct supported views", () => {
       const views = supportedViews(FileType.Python)
-      expect(views.has("block")).toBe(true)
+      expect(views.has("rich")).toBe(true)
       expect(views.has("source")).toBe(true)
       expect(views.size).toBe(2)
     })
   })
 
   describe("markdown support", () => {
-    it("supports block view", () => {
-      expect(supportsBlockView(FileType.Markdown)).toBe(true)
+    it("supports rich view", () => {
+      expect(supportsRichView(FileType.Markdown)).toBe(true)
     })
 
     it("supports source view", () => {
@@ -58,15 +58,15 @@ describe("language support", () => {
 
     it("has correct supported views", () => {
       const views = supportedViews(FileType.Markdown)
-      expect(views.has("block")).toBe(true)
+      expect(views.has("rich")).toBe(true)
       expect(views.has("source")).toBe(true)
       expect(views.size).toBe(2)
     })
   })
 
   describe("javascript support", () => {
-    it("does not support block view", () => {
-      expect(supportsBlockView(FileType.JavaScript)).toBe(false)
+    it("does not support rich view", () => {
+      expect(supportsRichView(FileType.JavaScript)).toBe(false)
     })
 
     it("supports source view", () => {
@@ -75,7 +75,7 @@ describe("language support", () => {
 
     it("has correct supported views", () => {
       const views = supportedViews(FileType.JavaScript)
-      expect(views.has("block")).toBe(false)
+      expect(views.has("rich")).toBe(false)
       expect(views.has("source")).toBe(true)
       expect(views.size).toBe(1)
     })
@@ -85,14 +85,14 @@ describe("language support", () => {
     it("returns correct support for python", () => {
       const support = languageSupport(FileType.Python)
       expect(support.fileType).toBe(FileType.Python)
-      expect(support.supportedViews.has("block")).toBe(true)
+      expect(support.supportedViews.has("rich")).toBe(true)
       expect(support.supportedViews.has("source")).toBe(true)
     })
 
     it("returns correct support for markdown", () => {
       const support = languageSupport(FileType.Markdown)
       expect(support.fileType).toBe(FileType.Markdown)
-      expect(support.supportedViews.has("block")).toBe(true)
+      expect(support.supportedViews.has("rich")).toBe(true)
       expect(support.supportedViews.has("source")).toBe(true)
       expect(support.supportedViews.size).toBe(2)
     })
@@ -122,10 +122,10 @@ describe("language support", () => {
       store.set(fileContentAtom, null)
     })
 
-    it("defaults to block for python when no user preference", () => {
+    it("defaults to rich for python when no user preference", () => {
       store.set(fileContentAtom, mockFileContent(FileType.Python, "/test.py"))
       const viewKind = store.get(viewKindAtom)
-      expect(viewKind).toBe("block")
+      expect(viewKind).toBe("rich")
     })
 
     it("defaults to source for javascript when no user preference", () => {

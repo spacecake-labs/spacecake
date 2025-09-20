@@ -33,8 +33,8 @@ test.describe("python markdown directives e2e", () => {
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // verify we're in blocks view (not source view)
-    await expect(window.getByRole("button", { name: "blocks" })).toBeVisible()
+    // verify we're in rich view (not source view)
+    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
 
     // verify module docstring is parsed as markdown header
     await expect(
@@ -240,8 +240,8 @@ def test_function():
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // verify we're in blocks view initially
-    await expect(window.getByRole("button", { name: "blocks" })).toBeVisible()
+    // verify we're in rich view initially
+    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
 
     // verify markdown content is rendered
     await expect(

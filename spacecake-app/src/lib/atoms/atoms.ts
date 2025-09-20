@@ -26,7 +26,7 @@ import { saveFile } from "@/lib/fs"
 import {
   fileTypeToCodeMirrorLanguage,
   supportedViews,
-  supportsBlockView,
+  supportsRichView,
 } from "@/lib/language-support"
 import { fileTypeFromExtension } from "@/lib/workspace"
 import { convertPythonBlocksToLexical } from "@/components/editor/read-file"
@@ -124,7 +124,7 @@ export const viewKindAtom = atom((get): ViewKind => {
     return userPref
   }
 
-  return supportsBlockView(fileType) ? "block" : "source"
+  return supportsRichView(fileType) ? "rich" : "source"
 })
 
 // Derived atom that determines if the current file can toggle between views
@@ -136,7 +136,7 @@ export const canToggleViewsAtom = atom((get) => {
   return views.size > 1
 })
 
-// Derived atom that handles toggling between block and source views
+// Derived atom that handles toggling between rich and source views
 export const toggleViewAtom = atom(
   null,
   (get, set, lexicalEditor?: LexicalEditor) => {
@@ -146,9 +146,9 @@ export const toggleViewAtom = atom(
     const userPrefs = get(userViewPreferencesAtom)
     const currentView =
       userPrefs[currentFile.fileType] ||
-      (supportsBlockView(currentFile.fileType) ? "block" : "source")
+      (supportsRichView(currentFile.fileType) ? "rich" : "source")
 
-    const nextView: ViewKind = currentView === "block" ? "source" : "block"
+    const nextView: ViewKind = currentView === "rich" ? "source" : "rich"
 
     // Update the preference
     set(userViewPreferencesAtom, (prev) => ({

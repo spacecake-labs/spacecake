@@ -194,7 +194,7 @@ import pandas as pd
 })
 
 describe("read-file: getInitialEditorStateFromContent", () => {
-  it("should load python file in block view by default", async () => {
+  it("should load python file in rich view by default", async () => {
     const pythonCode = `import os
 
 def my_function():
@@ -220,7 +220,7 @@ def my_function():
     const completionPromise = new Promise<void>((resolve) => {
       const updateFunction = getInitialEditorStateFromContent(
         file,
-        "block",
+        "rich",
         resolve
       )
 

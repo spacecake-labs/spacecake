@@ -27,8 +27,8 @@ test.describe("markdown isomorphism e2e", () => {
     // open the file
     await window.getByRole("button", { name: "_README.md" }).first().click()
 
-    // verify we're in blocks view (not source view)
-    await expect(window.getByRole("button", { name: "blocks" })).toBeVisible()
+    // verify we're in rich view (not source view)
+    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 

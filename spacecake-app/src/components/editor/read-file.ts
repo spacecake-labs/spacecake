@@ -98,7 +98,7 @@ export async function convertPythonBlocksToLexical(
  */
 export function getInitialEditorStateFromContent(
   file: FileContent,
-  viewKind?: "block" | "source",
+  viewKind?: "rich" | "source",
   onComplete?: () => void
 ) {
   return (editor: LexicalEditor) => {
@@ -110,10 +110,10 @@ export function getInitialEditorStateFromContent(
 
     // Default behavior based on file type
     if (file.fileType === FileType.Python) {
-      // Python defaults to block view if no view specified
+      // Python defaults to rich view if no view specified
       convertPythonBlocksToLexical(file, editor, undefined, onComplete)
     } else if (file.fileType === FileType.Markdown) {
-      // Markdown defaults to block view (rendered markdown) when viewKind is "block" or undefined
+      // Markdown defaults to rich view (rendered markdown) when viewKind is "rich" or undefined
       editor.update(() => {
         $addUpdateTag(SKIP_DOM_SELECTION_TAG)
         if (file.content.trim()) {

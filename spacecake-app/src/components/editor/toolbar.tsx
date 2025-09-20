@@ -4,7 +4,7 @@ EditorToolbar handles the toolbar UI and view toggling.
 
 import { useEditor } from "@/contexts/editor-context"
 import { useAtomValue, useSetAtom } from "jotai"
-import { Code, FileSearch, FolderSearch, Grid3X3, Save } from "lucide-react"
+import { Code, Eye, FileSearch, FolderSearch, Save } from "lucide-react"
 
 import {
   canToggleViewsAtom,
@@ -68,17 +68,17 @@ export function EditorToolbar() {
           size="sm"
           onClick={handleViewToggle}
           className="h-7 px-2 text-xs cursor-pointer"
-          aria-label={viewKind === "block" ? "blocks" : "source"}
+          aria-label={viewKind === "rich" ? "rich" : "source"}
           title={
-            viewKind === "block"
+            viewKind === "rich"
               ? "switch to source view"
-              : "switch to block view"
+              : "switch to rich view"
           }
         >
-          {viewKind === "block" ? (
+          {viewKind === "rich" ? (
             <>
-              <Grid3X3 className="h-3 w-3 mr-1" />
-              blocks
+              <Eye className="h-3 w-3 mr-1" />
+              rich
             </>
           ) : (
             <>
