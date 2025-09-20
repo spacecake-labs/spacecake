@@ -21,7 +21,11 @@ import type {
   Folder,
 } from "@/types/workspace"
 import { FileType } from "@/types/workspace"
-import { convertToSourceView, serializeEditorToPython } from "@/lib/editor"
+import {
+  convertToSourceView,
+  serializeEditorToPython,
+  serializeEditorToSource,
+} from "@/lib/editor"
 import { saveFile } from "@/lib/fs"
 import {
   fileTypeToCodeMirrorLanguage,
@@ -219,6 +223,14 @@ export const saveFileAtom = atom(
       contentToWrite = lexicalEditor.read(() =>
         $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
       )
+    } else if (
+      inferredType === FileType.TypeScript ||
+      inferredType === FileType.JavaScript ||
+      inferredType === FileType.TSX ||
+      inferredType === FileType.JSX
+    ) {
+      // For TypeScript/JavaScript files, use the source serializer
+      contentToWrite = serializeEditorToSource(lexicalEditor)
     } else if (baseline && baseline.path === filePath) {
       // fallback: write baseline until other serializers exist
       contentToWrite = baseline.content

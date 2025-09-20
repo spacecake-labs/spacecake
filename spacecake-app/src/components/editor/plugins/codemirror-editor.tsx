@@ -254,11 +254,20 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         // flush on save shortcuts
         const isSaveKey = (ev.metaKey || ev.ctrlKey) && ev.key === "s"
         if (isSaveKey) {
+          console.log(
+            "CodeMirror: Cmd+S detected, dispatching SAVE_FILE_COMMAND"
+          )
           ev.preventDefault()
           flushPending()
           // dispatch save command directly to the Lexical editor
           editor.dispatchCommand(SAVE_FILE_COMMAND, undefined)
+          console.log("CodeMirror: SAVE_FILE_COMMAND dispatched")
         }
+      }
+
+      const onPaste = (ev: ClipboardEvent) => {
+        // prevent lexical from handling paste events while in codemirror
+        ev.stopPropagation()
       }
 
       const onBlur = () => {
@@ -267,6 +276,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       }
 
       view.contentDOM.addEventListener("keydown", onKeyDown, false)
+      view.contentDOM.addEventListener("paste", onPaste, false)
       view.contentDOM.addEventListener("blur", onBlur, false)
     })()
 

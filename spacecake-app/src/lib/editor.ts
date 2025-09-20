@@ -102,6 +102,30 @@ export function serializeEditorToPython(editor: LexicalEditor): string {
 }
 
 /**
+ * Serialize the Lexical editor contents for TypeScript/JavaScript files.
+ * For source view files, just get the code from the single code block.
+ */
+export function serializeEditorToSource(editor: LexicalEditor): string {
+  return editor.getEditorState().read(() => {
+    const root = $getRoot()
+    const children = root.getChildren()
+    // For source view files, we expect a single code block
+    const codeBlock = children.find((child) => $isCodeBlockNode(child))
+    if (codeBlock && $isCodeBlockNode(codeBlock)) {
+      return codeBlock.getCode()
+    }
+
+    // Fallback: concatenate all text content
+    return children
+      .reduce((result, child) => {
+        const textContent = child.getTextContent()
+        return result + (textContent ? textContent + "\n" : "")
+      }, "")
+      .trim()
+  })
+}
+
+/**
  * Converts file content to a single source view (CodeMirror block)
  * This function can be used for both initial loading and live view switching
  */

@@ -20,9 +20,17 @@ export function SaveCommandPlugin() {
   const selectedFilePath = useFilepath()
 
   useEffect(() => {
+    console.log(
+      "SaveCommandPlugin: Registering SAVE_FILE_COMMAND with editor:",
+      editor
+    )
     return editor.registerCommand(
       SAVE_FILE_COMMAND,
       () => {
+        console.log(
+          "SaveCommandPlugin: SAVE_FILE_COMMAND received, selectedFilePath:",
+          selectedFilePath
+        )
         // Only save if we have a valid file path
         if (selectedFilePath) {
           void saveFile(selectedFilePath, editor)
