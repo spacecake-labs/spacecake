@@ -2,7 +2,12 @@
 export const CSP_CONFIG = {
   development: {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'"],
+    "script-src": [
+      "'self'",
+      "'unsafe-inline'",
+      "'wasm-unsafe-eval'",
+      "https://us-assets.i.posthog.com",
+    ],
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "https:", "blob:"],
     "connect-src": ["'self'", "https:", "ws:", "wss:", "blob:"],
@@ -15,7 +20,11 @@ export const CSP_CONFIG = {
   },
   production: {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'wasm-unsafe-eval'"],
+    "script-src": [
+      "'self'",
+      "'wasm-unsafe-eval'",
+      "https://us-assets.i.posthog.com",
+    ],
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "https:"],
     "connect-src": ["'self'", "https:"],
