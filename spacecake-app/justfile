@@ -1,6 +1,9 @@
 start:
     pnpm run start
 
+make:
+    pnpm run make
+
 format:
     pnpm run format
 

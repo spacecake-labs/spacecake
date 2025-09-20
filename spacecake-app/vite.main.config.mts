@@ -14,9 +14,10 @@ export default defineConfig({
       external: [
         // Don't bundle electron
         "electron",
-        "chokidar",
         "web-tree-sitter",
         "tree-sitter-python",
+        // Don't bundle native dependencies - let auto unpack plugin handle them
+        "fsevents",
       ],
     },
   },
