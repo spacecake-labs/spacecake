@@ -26,7 +26,11 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ["web-tree-sitter", "tree-sitter-python"],
+    exclude: [
+      "web-tree-sitter",
+      "tree-sitter-python",
+      "tree-sitter-typescript",
+    ],
   },
   server: {
     hmr: {

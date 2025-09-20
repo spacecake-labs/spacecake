@@ -16,7 +16,7 @@ export default defineConfig({
         "electron",
         "web-tree-sitter",
         "tree-sitter-python",
-        // Don't bundle native dependencies - let auto unpack plugin handle them
+        "tree-sitter-typescript",
         "fsevents",
       ],
     },
