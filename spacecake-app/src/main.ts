@@ -85,8 +85,10 @@ const createWindow = () => {
   }
 }
 
-// for mac development mode
-app.dock?.setIcon(path.join(process.cwd(), "assets", "icon.png"))
+// set iconfor mac development mode
+if (!app.isPackaged && app.dock) {
+  app.dock.setIcon(path.join(process.cwd(), "assets", "icon.png"))
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
