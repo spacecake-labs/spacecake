@@ -84,14 +84,14 @@ describe("language support", () => {
   describe("language support function", () => {
     it("returns correct support for python", () => {
       const support = languageSupport(FileType.Python)
-      expect(support.fileType).toBe(FileType.Python)
+      expect(support.name).toBe("Python")
       expect(support.supportedViews.has("rich")).toBe(true)
       expect(support.supportedViews.has("source")).toBe(true)
     })
 
     it("returns correct support for markdown", () => {
       const support = languageSupport(FileType.Markdown)
-      expect(support.fileType).toBe(FileType.Markdown)
+      expect(support.name).toBe("Markdown")
       expect(support.supportedViews.has("rich")).toBe(true)
       expect(support.supportedViews.has("source")).toBe(true)
       expect(support.supportedViews.size).toBe(2)

@@ -3,6 +3,11 @@ import type { LucideIcon } from "lucide-react"
 
 import { File, FileType, Folder } from "@/types/workspace"
 
+export function fileExtension(fileName: string): string | null {
+  if (!fileName.includes(".")) return null
+  return fileName.split(".").pop()?.toLowerCase() || null
+}
+
 /**
  * Gets the file type based on the file extension
  * @param extension - The file extension (with or without leading dot)
@@ -28,6 +33,10 @@ export function fileTypeFromExtension(extension: string): FileType {
     default:
       return FileType.Plaintext
   }
+}
+
+export function fileTypeFromFileName(fileName: string): FileType {
+  return fileTypeFromExtension(fileExtension(fileName) || "")
 }
 
 /**
