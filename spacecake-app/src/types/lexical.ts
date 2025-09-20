@@ -8,4 +8,4 @@ export function hasInitialLoadTag(tags: ReadonlySet<string>): boolean {
 }
 
 // view kinds for editor modes
-export type ViewKind = "block" | "source"
+export type ViewKind = "rich" | "source"

@@ -57,7 +57,7 @@ test.describe("python e2e", () => {
     })
   })
 
-  test("open workspace and render core.py blocks", async ({
+  test("open workspace and render core.py rich", async ({
     electronApp,
     tempTestDir,
   }) => {
@@ -89,7 +89,7 @@ test.describe("python e2e", () => {
       })
     ).toBeVisible()
 
-    // verify blocks are present via toolbar and labels
+    // verify rich are present via toolbar and labels
     await window.getByText("🐍").first().click()
     await expect(window.getByText("import").first()).toBeVisible()
     await expect(window.getByText("Person").first()).toBeVisible()
@@ -142,7 +142,7 @@ test.describe("python e2e", () => {
     await expect(selectionBackgrounds).toHaveCount(1)
     await expect(selectionMatches).toHaveCount(1)
 
-    // navigation tests: dynamic paragraph creation/removal between code blocks
+    // navigation tests: dynamic paragraph creation/removal between code rich
     const editors = window.locator(".cm-editor")
     const thirdEditorRoot = editors.nth(2)
     const thirdContent = thirdEditorRoot.locator(".cm-content")
@@ -257,7 +257,7 @@ test.describe("python e2e", () => {
       window.getByRole("button", { name: "create file or folder" })
     ).toBeVisible()
 
-    // open core.py and verify python blocks are visible
+    // open core.py and verify python rich are visible
     await window.getByRole("button", { name: "core.py" }).first().click()
     await window.getByText("🐍").first().click()
     await expect(window.getByText("import").first()).toBeVisible()

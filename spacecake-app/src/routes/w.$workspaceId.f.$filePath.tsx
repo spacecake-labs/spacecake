@@ -65,7 +65,7 @@ function FileLayout() {
 
   // Create editor config for this specific file
   const editorConfig = useMemo(() => {
-    return createEditorConfigFromContent(file, "block") // Default to block view
+    return createEditorConfigFromContent(file, "rich") // Default to rich view
   }, [file, filePath])
 
   // Set up atoms when component mounts

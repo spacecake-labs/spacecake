@@ -6,7 +6,7 @@ import { stubDialog } from "electron-playwright-helpers"
 import { expect, test } from "./fixtures"
 
 test.describe("Python block splitting", () => {
-  test("should split python blocks on navigation out of a code block", async ({
+  test("should split python rich on navigation out of a code block", async ({
     electronApp,
     tempTestDir,
   }) => {
@@ -44,8 +44,8 @@ def my_function():
     // Explicitly wait for the Lexical editor to be visible
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
-    // verify we're in blocks view (not source view)
-    await expect(window.getByRole("button", { name: "blocks" })).toBeVisible()
+    // verify we're in rich view (not source view)
+    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
 
     await expect(window.getByText("import os")).toBeVisible()
     await expect(window.getByText("def my_function():")).toBeVisible()
@@ -71,7 +71,7 @@ def my_function():
     await expect(secondCodeblock).toBeVisible()
     await expect(secondCodeblock.getByText("class MyClass:")).toBeVisible()
   })
-  test("should split python blocks on save", async ({
+  test("should split python rich on save", async ({
     electronApp,
     tempTestDir,
   }) => {
@@ -109,8 +109,8 @@ def my_function():
     // Explicitly wait for the Lexical editor to be visible
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
-    // verify we're in blocks view (not source view)
-    await expect(window.getByRole("button", { name: "blocks" })).toBeVisible()
+    // verify we're in rich view (not source view)
+    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
 
     await expect(window.getByText("import os")).toBeVisible()
     await expect(window.getByText("def my_function():")).toBeVisible()

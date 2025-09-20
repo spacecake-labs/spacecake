@@ -33,8 +33,8 @@ test.describe("slash commands e2e", () => {
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // verify we're in blocks view
-    await expect(window.getByRole("button", { name: "blocks" })).toBeVisible()
+    // verify we're in rich view
+    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
 
     const heading = window.getByRole("heading", {
       name: "An Example README File to Test Parsing",
@@ -83,8 +83,8 @@ test.describe("slash commands e2e", () => {
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
 
-    // verify we're in blocks view
-    await expect(window.getByRole("button", { name: "blocks" })).toBeVisible()
+    // verify we're in rich view
+    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
 
     const heading = window.getByRole("heading", {
       name: "An Example README File to Test Parsing",
@@ -140,8 +140,8 @@ test.describe("slash commands e2e", () => {
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // verify we're in blocks view
-    await expect(window.getByRole("button", { name: "blocks" })).toBeVisible()
+    // verify we're in rich view
+    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
 
     const heading = window.getByRole("heading", {
       name: "An Example README File to Test Parsing",
@@ -192,8 +192,8 @@ test.describe("slash commands e2e", () => {
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // verify we're in blocks view
-    await expect(window.getByRole("button", { name: "blocks" })).toBeVisible()
+    // verify we're in rich view
+    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
 
     await window.getByText("A brief description").click({ delay: 200 })
 
@@ -238,8 +238,8 @@ test.describe("slash commands e2e", () => {
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
 
-    // verify we're in blocks view
-    await expect(window.getByRole("button", { name: "blocks" })).toBeVisible()
+    // verify we're in rich view
+    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
 
     const moduleDoc = window.getByText('"""A file to test block parsing."""')
 

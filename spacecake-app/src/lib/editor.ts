@@ -34,7 +34,7 @@ export const createEditorConfigFromState = (
 // Pure function to create editor config from file content
 export const createEditorConfigFromContent = (
   file: FileContent,
-  viewKind?: "block" | "source"
+  viewKind?: "rich" | "source"
 ): InitialConfigType => {
   return {
     ...editorConfig,

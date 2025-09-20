@@ -42,8 +42,8 @@ class MathUtils:
     const editor = page.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
 
-    // Should start in block view for Python
-    await expect(page.getByRole("button", { name: "blocks" })).toBeVisible()
+    // Should start in rich view for Python
+    await expect(page.getByRole("button", { name: "rich" })).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "fibonacci" }).first()
     ).toBeVisible()
@@ -52,14 +52,14 @@ class MathUtils:
     ).toBeVisible()
 
     // Toggle to source view
-    await page.getByRole("button", { name: "blocks" }).click()
+    await page.getByRole("button", { name: "rich" }).click()
     await expect(page.getByRole("button", { name: "source" })).toBeVisible()
     await expect(page.getByText('"""Module docstring"""')).toBeVisible()
     await expect(page.getByText("def fibonacci(n):")).toBeVisible()
 
-    // Toggle back to block view
+    // Toggle back to rich view
     await page.getByRole("button", { name: "source" }).click()
-    await expect(page.getByRole("button", { name: "blocks" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "rich" })).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "fibonacci" }).first()
     ).toBeVisible()
@@ -117,14 +117,14 @@ class MathUtils:
     const editor = page.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
 
-    // Should start in block view for Python
-    await expect(page.getByRole("button", { name: "blocks" })).toBeVisible()
+    // Should start in rich view for Python
+    await expect(page.getByRole("button", { name: "rich" })).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "fibonacci" }).first()
     ).toBeVisible()
     await expect(page.getByRole("heading", { name: "MathUtils" })).toBeVisible()
 
-    // Verify markdown directives are rendered in block view
+    // Verify markdown directives are rendered in rich view
     await expect(
       page.getByRole("heading", { name: "main section" })
     ).toBeVisible()
@@ -139,7 +139,7 @@ class MathUtils:
     await expect(page.getByText("list item 2").first()).toBeVisible()
 
     // Toggle to source view
-    await page.getByRole("button", { name: "blocks" }).click()
+    await page.getByRole("button", { name: "rich" }).click()
     await expect(page.getByRole("button", { name: "source" })).toBeVisible()
 
     // Verify raw Python code is visible
@@ -165,9 +165,9 @@ class MathUtils:
     await expect(page.getByText("#🍰 result = fibonacci(10)")).toBeVisible()
     await expect(page.getByText("#🍰 ```", { exact: true })).toBeVisible()
 
-    // Toggle back to block view
+    // Toggle back to rich view
     await page.getByRole("button", { name: "source" }).click()
-    await expect(page.getByRole("button", { name: "blocks" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "rich" })).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "fibonacci" }).first()
     ).toBeVisible()
@@ -195,23 +195,23 @@ This is a **markdown** file.
     await page.getByRole("button", { name: "open folder" }).click()
     await page.getByRole("button", { name: "test.md" }).click()
 
-    // Should start in block view (Lexical)
+    // Should start in rich view (Lexical)
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
-    await expect(page.getByRole("button", { name: "blocks" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "rich" })).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "Test Document" })
     ).toBeVisible()
     await expect(page.getByRole("heading", { name: "Section 1" })).toBeVisible()
 
     // Toggle to source view (CodeMirror)
-    await page.getByRole("button", { name: "blocks" }).click()
+    await page.getByRole("button", { name: "rich" }).click()
     await expect(page.getByRole("button", { name: "source" })).toBeVisible()
     await expect(page.getByText("# Test Document")).toBeVisible()
     await expect(page.getByText("## Section 1")).toBeVisible()
 
-    // Toggle back to block view (Lexical)
+    // Toggle back to rich view (Lexical)
     await page.getByRole("button", { name: "source" }).click()
-    await expect(page.getByRole("button", { name: "blocks" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "rich" })).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "Test Document" })
     ).toBeVisible()
@@ -237,7 +237,7 @@ This is a **markdown** file.
     await expect(page.getByText(textContent)).toBeVisible()
 
     // Verify that no view toggle button is present
-    await expect(page.getByRole("button", { name: "blocks" })).not.toBeVisible()
+    await expect(page.getByRole("button", { name: "rich" })).not.toBeVisible()
     await expect(page.getByRole("button", { name: "source" })).not.toBeVisible()
   })
 
@@ -261,7 +261,7 @@ This is a **markdown** file.
     // Open first file and switch to source view
     await page.getByRole("button", { name: "file1.py" }).click()
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
-    await page.getByRole("button", { name: "blocks" }).click()
+    await page.getByRole("button", { name: "rich" }).click()
     await expect(page.getByRole("button", { name: "source" })).toBeVisible()
 
     // Open second file and verify it's in source view
@@ -299,9 +299,9 @@ This is a **markdown** file.
     // Open the README file
     await page.getByRole("button", { name: "_README.md" }).click()
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
-    await expect(page.getByRole("button", { name: "blocks" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "rich" })).toBeVisible()
 
-    // Should start in block view (Lexical editor).
+    // Should start in rich view (Lexical editor).
     // Wait for the content to be visible first, as it's the most reliable indicator.
     await expect(
       page.getByRole("heading", {
@@ -310,7 +310,7 @@ This is a **markdown** file.
     ).toBeVisible()
 
     // Switch to source view (CodeMirror editor)
-    await page.getByRole("button", { name: "blocks" }).click()
+    await page.getByRole("button", { name: "rich" }).click()
     const editor = page.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
     await expect(page.getByRole("button", { name: "source" })).toBeVisible()
@@ -353,7 +353,7 @@ This is a **markdown** file.
     await page.getByRole("button", { name: "source" }).click()
 
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
-    await expect(page.getByRole("button", { name: "blocks" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "rich" })).toBeVisible()
 
     await expect(
       page.getByRole("heading", { name: "New Section Added" })

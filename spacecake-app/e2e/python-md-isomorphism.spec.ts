@@ -48,7 +48,7 @@ test.describe("python markdown directives isomorphism e2e", () => {
 
     await expect(window.getByText("a paragraph").first()).toBeVisible()
 
-    // verify blocks are present via toolbar
+    // verify rich are present via toolbar
     await window.getByText("🐍").first().click()
     await expect(window.getByText("import").first()).toBeVisible()
 
@@ -134,7 +134,7 @@ class TestClass:
     await expect(window.getByText("list item 2").first()).toBeVisible()
     await expect(window.getByText('print("code block")').first()).toBeVisible()
 
-    // verify blocks are present via toolbar
+    // verify rich are present via toolbar
     await window.getByText("🐍").first().click()
     await expect(window.getByText("import").first()).toBeVisible()
     await expect(window.getByText("test_function").first()).toBeVisible()
@@ -317,7 +317,7 @@ if __name__ == "__main__":
       window.getByText('result = process_data({"input": "test"})').first()
     ).toBeVisible()
 
-    // verify blocks are present via toolbar
+    // verify rich are present via toolbar
     await window.getByText("🐍").first().click()
     await expect(window.getByText("import").first()).toBeVisible()
     await expect(window.getByText("process_data").first()).toBeVisible()
@@ -389,7 +389,7 @@ def test():
     await expect(window.getByText("def example():").first()).toBeVisible()
     await expect(window.getByText('return "formatted"').first()).toBeVisible()
 
-    // verify blocks are present via toolbar
+    // verify rich are present via toolbar
     await window.getByText("🐍").first().click()
     await expect(window.getByText("test").first()).toBeVisible()
     await expect(window.getByText("function").first()).toBeVisible()

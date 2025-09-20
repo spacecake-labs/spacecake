@@ -52,7 +52,7 @@ if __name__ == "__main__":
     await window.getByRole("button", { name: "core.py" }).first().click()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // verify the file loads with all blocks
+    // verify the file loads with all rich
     await window.getByText("🐍").first().click()
     await expect(window.getByText("import").first()).toBeVisible()
     await expect(window.getByText("Person").first()).toBeVisible()
@@ -196,7 +196,7 @@ if __name__ == "__main__":
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // verify complex file loads with all expected blocks
+    // verify complex file loads with all expected rich
     await window.getByText("🐍").first().click()
     await expect(window.getByText("doc").first()).toBeVisible()
     await expect(window.getByText("import").first()).toBeVisible()
@@ -259,7 +259,7 @@ class AsyncClass:
     // verify async file loads correctly
     await window.getByText("🐍").first().click()
 
-    // Check what blocks are actually visible - the docstring might not be parsed as a separate block
+    // Check what rich are actually visible - the docstring might not be parsed as a separate block
     // Let's verify the key elements are present
     await expect(window.getByText("import").first()).toBeVisible()
     await expect(window.getByText("async_function").first()).toBeVisible()
