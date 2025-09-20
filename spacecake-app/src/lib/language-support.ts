@@ -1,46 +1,9 @@
+import { LANGUAGE_SUPPORT, LanguageSpec } from "@/types/language"
 import type { ViewKind } from "@/types/lexical"
 import { FileType } from "@/types/workspace"
 
-// mapping of languages to supported editor views
-export interface LanguageSupport {
-  fileType: FileType
-  supportedViews: Set<ViewKind>
-}
-
-// static mapping - define once, canonical source
-const LANGUAGE_SUPPORT: Record<FileType, LanguageSupport> = {
-  [FileType.Python]: {
-    fileType: FileType.Python,
-    supportedViews: new Set(["rich", "source"]),
-  },
-  [FileType.JavaScript]: {
-    fileType: FileType.JavaScript,
-    supportedViews: new Set(["source"]),
-  },
-  [FileType.TypeScript]: {
-    fileType: FileType.TypeScript,
-    supportedViews: new Set(["source"]),
-  },
-  [FileType.JSX]: {
-    fileType: FileType.JSX,
-    supportedViews: new Set(["source"]),
-  },
-  [FileType.TSX]: {
-    fileType: FileType.TSX,
-    supportedViews: new Set(["source"]),
-  },
-  [FileType.Markdown]: {
-    fileType: FileType.Markdown,
-    supportedViews: new Set(["rich", "source"]),
-  },
-  [FileType.Plaintext]: {
-    fileType: FileType.Plaintext,
-    supportedViews: new Set(["source"]),
-  },
-}
-
 // pure functions with better naming
-export function languageSupport(fileType: FileType): LanguageSupport {
+export function languageSupport(fileType: FileType): LanguageSpec {
   return LANGUAGE_SUPPORT[fileType]
 }
 

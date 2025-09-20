@@ -1,5 +1,7 @@
 // minimal, typesafe helpers for lexical update tags used in the app
 
+import { Schema } from "effect"
+
 export const INITIAL_LOAD_TAG = "initial-load" as const
 export type InitialLoadTag = typeof INITIAL_LOAD_TAG
 
@@ -8,4 +10,8 @@ export function hasInitialLoadTag(tags: ReadonlySet<string>): boolean {
 }
 
 // view kinds for editor modes
-export type ViewKind = "rich" | "source"
+export const ViewKindSchema = Schema.Union(
+  Schema.Literal("rich"),
+  Schema.Literal("source")
+)
+export type ViewKind = typeof ViewKindSchema.Type

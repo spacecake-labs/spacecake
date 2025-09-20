@@ -1,5 +1,6 @@
-import { Option, Schema } from "effect"
+import { Schema } from "effect"
 
+import { ViewKindSchema } from "@/types/lexical"
 import { FileType } from "@/types/workspace"
 
 export const LanguageSchema = Schema.Union(
@@ -20,7 +21,8 @@ export type ContextLanguage = typeof ContextLanguageSchema.Type
 export const LanguageSpecSchema = Schema.Struct({
   name: Schema.String,
   code: Schema.String,
-  extensions: Schema.Array(Schema.String),
+  extensions: Schema.Set(Schema.String),
+  supportedViews: Schema.Set(ViewKindSchema),
 })
 
 export type LanguageSpec = typeof LanguageSpecSchema.Type
@@ -31,114 +33,47 @@ export const Languages = Schema.Record({
 })
 export type Languages = typeof Languages.Type
 
-export const LANGUAGES: Languages = {
+export const LANGUAGE_SUPPORT: Record<FileType, LanguageSpec> = {
   [FileType.Markdown]: {
     name: "Markdown",
     code: "md",
-    extensions: [".md", ".markdown"],
+    extensions: new Set([".md", ".markdown"]),
+    supportedViews: new Set(["rich", "source"]),
   },
   [FileType.Python]: {
     name: "Python",
     code: "py",
-    extensions: [".py", ".pyw"],
+    extensions: new Set([".py", ".pyw"]),
+    supportedViews: new Set(["rich", "source"]),
   },
   [FileType.JavaScript]: {
     name: "JavaScript",
     code: "js",
-    extensions: [".js", ".mjs", ".cjs"],
+    extensions: new Set([".js", ".mjs", ".cjs"]),
+    supportedViews: new Set(["source"]),
   },
   [FileType.TypeScript]: {
     name: "TypeScript",
     code: "ts",
-    extensions: [".ts", ".mts", ".cts"],
+    extensions: new Set([".ts", ".mts", ".cts"]),
+    supportedViews: new Set(["source"]),
   },
   [FileType.JSX]: {
     name: "JSX",
     code: "jsx",
-    extensions: [".jsx"],
+    extensions: new Set([".jsx"]),
+    supportedViews: new Set(["source"]),
   },
   [FileType.TSX]: {
     name: "TSX",
     code: "tsx",
-    extensions: [".tsx"],
+    extensions: new Set([".tsx"]),
+    supportedViews: new Set(["source"]),
   },
-}
-
-// A Language is any FileType that can be used in directives.
-// We explicitly exclude Plaintext for now.
-// export type Language = Exclude<FileType, FileType.Plaintext>
-
-/**
- * Defines the properties of a supported language.
- */
-// export interface LanguageSpec {
-//   /** The human-friendly name, e.g., "Python" */
-//   name: string
-//   /** The short code used for directives, e.g., "py" */
-//   code: string
-//   /** Associated file extensions for this language */
-//   extensions: string[]
-// }
-
-/**
- * The single source of truth for language specifications.
- * The key is the canonical `Language` ID (which is a `FileType`).
- */
-// export const LANGUAGES: Record<Language, LanguageSpec> = {
-//   [FileType.Markdown]: {
-//     name: "Markdown",
-//     code: "md",
-//     extensions: [".md", ".markdown"],
-//   },
-//   [FileType.Python]: {
-//     name: "Python",
-//     code: "py",
-//     extensions: [".py", ".pyw"],
-//   },
-//   [FileType.JavaScript]: {
-//     name: "JavaScript",
-//     code: "js",
-//     extensions: [".js", ".mjs", ".cjs"],
-//   },
-//   [FileType.TypeScript]: {
-//     name: "TypeScript",
-//     code: "ts",
-//     extensions: [".ts", ".mts", ".cts"],
-//   },
-//   [FileType.JSX]: {
-//     name: "JSX",
-//     code: "jsx",
-//     extensions: [".jsx"],
-//   },
-//   [FileType.TSX]: {
-//     name: "TSX",
-//     code: "tsx",
-//     extensions: [".tsx"],
-//   },
-// }
-
-/**
- * A lookup map to resolve a string (e.g., "md", "python") to a canonical
- * `Language` ID.
- */
-export const LANGUAGE_LOOKUP: Map<string, Language> = new Map()
-for (const [id, spec] of Object.entries(LANGUAGES) as [
-  Language,
-  LanguageSpec,
-][]) {
-  // "markdown" -> FileType.Markdown
-  LANGUAGE_LOOKUP.set(id.toLowerCase(), id)
-  // "md" -> FileType.Markdown
-  LANGUAGE_LOOKUP.set(spec.code.toLowerCase(), id)
-}
-
-export function contextLanguageFromCode(
-  code: string
-): Option.Option<ContextLanguage> {
-  switch (code) {
-    case "md":
-      return Option.some(FileType.Markdown)
-    default:
-      return Option.none()
-  }
+  [FileType.Plaintext]: {
+    name: "Plaintext",
+    code: "plaintext",
+    extensions: new Set([".txt", ".text"]),
+    supportedViews: new Set(["source"]),
+  },
 }

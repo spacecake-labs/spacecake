@@ -5,8 +5,8 @@ import path from "path"
 import writeFileAtomic from "write-file-atomic"
 
 import type { FileContent } from "@/types/workspace"
-import { FileType } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
+import { fileTypeFromFileName } from "@/lib/workspace"
 
 export interface FileNode {
   name: string
@@ -145,25 +145,6 @@ export async function createFolder(
 }
 
 /**
- * Gets the file type based on the file extension
- * @param fileName - The name of the file
- * @returns The FileType enum value
- */
-export function getFileType(fileName: string): FileType {
-  const extension = fileName.split(".").pop()?.toLowerCase()
-
-  switch (extension) {
-    case "md":
-    case "markdown":
-      return FileType.Markdown
-    case "py":
-      return FileType.Python
-    default:
-      return FileType.Plaintext
-  }
-}
-
-/**
  * Reads a file and returns both content and metadata
  * @param filePath - The path of the file to read
  * @param fsModule - The fs module to use (defaults to fs/promises)
@@ -190,7 +171,7 @@ export async function readFile(
       size: stats.size,
     },
     content,
-    fileType: getFileType(name),
+    fileType: fileTypeFromFileName(name),
     cid: fnv1a64Hex(content),
   }
 }
