@@ -182,13 +182,10 @@ export const toggleViewAtom = atom(
         })
         convertToSourceView(markdownContent, currentFile, lexicalEditor)
       } else {
-        // Convert markdown string back to WYSIWYG state
-        const markdownContent = lexicalEditor.getEditorState().read(() => {
-          return $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
-        })
+        // Convert markdown string back to WYSIWYG state from the original content
         lexicalEditor.update(() => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-          $convertFromMarkdownString(markdownContent, MARKDOWN_TRANSFORMERS)
+          $convertFromMarkdownString(currentFile.content, MARKDOWN_TRANSFORMERS)
         })
       }
     }
