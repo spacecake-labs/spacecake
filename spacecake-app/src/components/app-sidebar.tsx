@@ -17,9 +17,10 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user"
+
+// import { NavProjects } from "@/components/nav-projects"
+// import { NavSecondary } from "@/components/nav-secondary"
+// import { NavUser } from "@/components/nav-user"
 
 interface AppSidebarProps {
   onFileClick?: (filePath: string) => void
@@ -91,11 +92,11 @@ export function AppSidebar({
           selectedFilePath={selectedFilePath}
           workspace={workspace}
         />
-        <NavProjects projects={[]} />
+        {/* <NavProjects projects={[]} />
         <NavSecondary items={[]} />
         <NavUser
           user={{ name: "User", email: "user@example.com", avatar: "" }}
-        />
+        /> */}
       </SidebarContent>
     </Sidebar>
   )
