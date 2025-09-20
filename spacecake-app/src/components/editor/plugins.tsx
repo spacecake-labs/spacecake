@@ -4,7 +4,7 @@ import { CheckListPlugin } from "@lexical/react/LexicalCheckListPlugin"
 import { ClearEditorPlugin } from "@lexical/react/LexicalClearEditorPlugin"
 import { ClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
-import { HashtagPlugin } from "@lexical/react/LexicalHashtagPlugin"
+// import { HashtagPlugin } from "@lexical/react/LexicalHashtagPlugin"
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin"
 import { HorizontalRulePlugin } from "@lexical/react/LexicalHorizontalRulePlugin"
 import { ListPlugin } from "@lexical/react/LexicalListPlugin"
@@ -56,7 +56,7 @@ export const Plugins = React.memo(function Plugins() {
         <TablePlugin />
         <ListPlugin />
         <TabIndentationPlugin />
-        <HashtagPlugin />
+        {/* <HashtagPlugin /> */}
         <HistoryPlugin />
         <NodeNavigationPlugin />
         <BackspacePreventionPlugin />
