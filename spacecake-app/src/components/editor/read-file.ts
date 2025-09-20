@@ -42,7 +42,6 @@ export async function convertPythonBlocksToLexical(
     for await (const block of streamParser(file)) {
       editor.update(
         () => {
-          $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           const root = $getRoot()
 
           if (
@@ -66,7 +65,6 @@ export async function convertPythonBlocksToLexical(
     // If no blocks were parsed, fall back to plaintext
     if (parsedBlockCount === 0) {
       editor.update(() => {
-        $addUpdateTag(SKIP_DOM_SELECTION_TAG)
         const root = $getRoot()
         root.clear()
         const paragraph = $createParagraphNode()
@@ -80,7 +78,6 @@ export async function convertPythonBlocksToLexical(
     toast("failed to parse python file")
     // Fallback to plaintext
     editor.update(() => {
-      $addUpdateTag(SKIP_DOM_SELECTION_TAG)
       const root = $getRoot()
       root.clear()
       const paragraph = $createParagraphNode()

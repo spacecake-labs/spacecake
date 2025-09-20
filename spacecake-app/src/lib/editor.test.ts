@@ -1,9 +1,21 @@
-import type { SerializedEditorState } from "lexical"
-import { describe, expect, it } from "vitest"
+import type { LexicalEditor, SerializedEditorState } from "lexical"
+import {
+  $createParagraphNode,
+  $createTextNode,
+  $getRoot,
+  createEditor,
+} from "lexical"
+import { beforeEach, describe, expect, it } from "vitest"
 
 import { FileType, ZERO_HASH } from "@/types/workspace"
 import type { FileContent } from "@/types/workspace"
-import { getEditorConfig } from "@/lib/editor"
+import {
+  convertToSourceView,
+  getEditorConfig,
+  serializeEditorToPython,
+  serializeEditorToSource,
+} from "@/lib/editor"
+import { nodes } from "@/components/editor/nodes"
 
 describe("Editor Integration", () => {
   const mockPythonFile: FileContent = {
@@ -81,6 +93,115 @@ class Calculator:
 
       expect(config).not.toBeNull()
       expect(config?.editorState).toBe(JSON.stringify(mockEditorState))
+    })
+  })
+
+  describe("serializeEditorToPython", () => {
+    let editor: LexicalEditor
+
+    beforeEach(() => {
+      editor = createEditor({ nodes })
+    })
+
+    it("handles empty editor gracefully", () => {
+      const result = serializeEditorToPython(editor)
+      expect(result).toBe("")
+    })
+  })
+
+  describe("serializeEditorToSource", () => {
+    let editor: LexicalEditor
+
+    beforeEach(() => {
+      editor = createEditor({ nodes })
+    })
+
+    it("handles empty editor gracefully", () => {
+      const result = serializeEditorToSource(editor)
+      expect(result).toBe("")
+    })
+
+    it("falls back to concatenated text when no code block found", async () => {
+      await new Promise<void>((resolve) => {
+        editor.update(() => {
+          const root = $getRoot()
+          const paragraph = $createParagraphNode()
+          const textNode = $createTextNode("some text content")
+          paragraph.append(textNode)
+          root.append(paragraph)
+        })
+        editor.registerUpdateListener(() => {
+          resolve()
+        })
+      })
+
+      const result = serializeEditorToSource(editor)
+      expect(result).toBe("some text content")
+    })
+  })
+
+  describe("convertToSourceView", () => {
+    let editor: LexicalEditor
+    const mockFile: FileContent = {
+      name: "test.js",
+      path: "/test/test.js",
+      kind: "file",
+      etag: { mtimeMs: 1714732800000, size: 100 },
+      content: "console.log('hello');",
+      fileType: FileType.JavaScript,
+      cid: ZERO_HASH,
+    }
+
+    beforeEach(() => {
+      editor = createEditor({ nodes })
+    })
+
+    it("handles empty content gracefully", async () => {
+      await new Promise<void>((resolve) => {
+        convertToSourceView("", mockFile, editor)
+        editor.registerUpdateListener(() => {
+          resolve()
+        })
+      })
+
+      editor.getEditorState().read(() => {
+        const root = $getRoot()
+        const children = root.getChildren()
+        expect(children).toHaveLength(1)
+        expect(children[0].getType()).toBe("codeblock")
+      })
+    })
+
+    it("clears existing content before adding new code block", async () => {
+      // First add some content
+      await new Promise<void>((resolve) => {
+        editor.update(() => {
+          const root = $getRoot()
+          const paragraph = $createParagraphNode()
+          const textNode = $createTextNode("old content")
+          paragraph.append(textNode)
+          root.append(paragraph)
+        })
+        editor.registerUpdateListener(() => {
+          resolve()
+        })
+      })
+
+      // Then convert to source view
+      const content = "new code content"
+      await new Promise<void>((resolve) => {
+        convertToSourceView(content, mockFile, editor)
+        editor.registerUpdateListener(() => {
+          resolve()
+        })
+      })
+
+      editor.getEditorState().read(() => {
+        const root = $getRoot()
+        const children = root.getChildren()
+        expect(children).toHaveLength(1)
+        expect(children[0].getType()).toBe("codeblock")
+      })
     })
   })
 })
