@@ -1,4 +1,7 @@
+import path from "path"
+
 import { MakerZIP } from "@electron-forge/maker-zip"
+import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives"
 import { FusesPlugin } from "@electron-forge/plugin-fuses"
 import { VitePlugin } from "@electron-forge/plugin-vite"
 import type { ForgeConfig } from "@electron-forge/shared-types"
@@ -7,7 +10,8 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses"
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: "./assets/icons/icon", // no file extension required
+    icon: "./assets/icon", // no file extension required
+    // icon: path.join(process.cwd(), "assets", "icon.png"),
   },
   rebuildConfig: {},
   makers: [
@@ -15,11 +19,15 @@ const config: ForgeConfig = {
     {
       name: "@electron-forge/maker-dmg",
       config: {
-        icon: "./assets/icons/icon.icns",
+        icon: "./assets/icon.icns",
       },
     },
   ],
   plugins: [
+    new AutoUnpackNativesPlugin({
+      // Ensure native dependencies are properly unpacked
+      unpack: ["fsevents"],
+    }),
     new VitePlugin({
       // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
       // If you are familiar with Vite configuration, it will look really familiar.

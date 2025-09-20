@@ -26,7 +26,7 @@ const createWindow = () => {
   // Create the browser window.
 
   const mainWindow = new BrowserWindow({
-    icon: path.join(__dirname, "../assets/icons/icon.icns"),
+    icon: path.join(process.cwd(), "assets", "icon.png"),
     width: 800,
     height: 600,
     show: !isTest || showWindow,
@@ -84,6 +84,9 @@ const createWindow = () => {
       .catch((err) => console.log("an error occurred: ", err))
   }
 }
+
+// for mac development mode
+app.dock?.setIcon(path.join(process.cwd(), "assets", "icon.png"))
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
