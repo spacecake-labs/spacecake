@@ -1,5 +1,3 @@
-import path from "path"
-
 import { MakerZIP } from "@electron-forge/maker-zip"
 import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives"
 import { FusesPlugin } from "@electron-forge/plugin-fuses"
