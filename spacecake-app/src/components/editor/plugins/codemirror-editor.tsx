@@ -115,7 +115,8 @@ const foldDocstrings = (view: EditorView, block: Block) => {
     const startLine = doc.lineAt(docStartChar).number
     const endLine = doc.lineAt(docEndChar).number
 
-    if (endLine > startLine) {
+    // fold both single-line and multi-line docstrings
+    if (endLine >= startLine) {
       view.dispatch({
         effects: foldEffect.of({ from: docStartChar, to: docEndChar }),
       })

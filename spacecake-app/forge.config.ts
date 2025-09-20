@@ -23,7 +23,6 @@ const config: ForgeConfig = {
   ],
   plugins: [
     new AutoUnpackNativesPlugin({
-      // Ensure native dependencies are properly unpacked
       unpack: ["fsevents"],
     }),
     new VitePlugin({

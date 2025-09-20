@@ -54,6 +54,9 @@ test.describe("Python docstring updating", () => {
     // verify docstring is initially rendered in the docstring section
     await expect(docSection.getByText("A docstring.")).toBeVisible()
 
+    // unfold the docstring section
+    await codeSection.getByLabel("folded code").click()
+
     // click on the code block to focus it
     await codeSection.getByText("docstring").first().dblclick()
 
@@ -113,6 +116,9 @@ test.describe("Python docstring updating", () => {
 
     // verify docstring is initially rendered in the docstring section
     await expect(docSection.getByText("A docstring.")).toBeVisible()
+
+    // unfold the docstring section
+    await codeSection.getByLabel("folded code").click()
 
     // click on the code block to focus it
     await codeSection.getByText("docstring").first().dblclick()
