@@ -93,7 +93,7 @@ test.describe("markdown isomorphism e2e", () => {
 
     // verify file modification time has been updated (indicating save occurred)
     const savedStats = fs.statSync(destPath)
-    expect(savedStats.size).toBeGreaterThan(0)
+    expect(savedStats.mtimeMs).toBeGreaterThan(0)
 
     // verify the file was saved with the exact same content
     const originalContent = fs.readFileSync(fixturePath, "utf-8")

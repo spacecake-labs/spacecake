@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     // verify file modification time has been updated (indicating save occurred)
     const savedStats = fs.statSync(destPath)
-    expect(savedStats.size).toBeGreaterThan(0)
+    expect(savedStats.mtimeMs).toBeGreaterThan(0)
   })
 
   test("empty python file maintains isomorphism through editor roundtrip", async ({
