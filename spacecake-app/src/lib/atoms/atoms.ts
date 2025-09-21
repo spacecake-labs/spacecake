@@ -53,12 +53,6 @@ export const codeMirrorLanguageAtom = atom((get) => {
   return fileTypeToCodeMirrorLanguage(fileType) ?? ""
 })
 
-// baseline content for the currently opened file
-export const baselineFileAtom = atom<{
-  path: string
-  content: string
-} | null>(null)
-
 // saving state
 export const isSavingAtom = atom<boolean>(false)
 
@@ -99,7 +93,6 @@ export const saveFileAtom = atom(
   async (get, set, filePath: string | null, lexicalEditor?: LexicalEditor) => {
     const isSaving = get(isSavingAtom)
     const fileContent = get(fileContentAtom)
-    const baseline = get(baselineFileAtom)
 
     if (!filePath || !lexicalEditor || isSaving) return
 
@@ -129,9 +122,6 @@ export const saveFileAtom = atom(
     ) {
       // For TypeScript/JavaScript files, use the source serializer
       contentToWrite = serializeEditorToSource(lexicalEditor)
-    } else if (baseline && baseline.path === filePath) {
-      // fallback: write baseline until other serializers exist
-      contentToWrite = baseline.content
     } else {
       contentToWrite = ""
     }
@@ -170,11 +160,6 @@ export const saveFileAtom = atom(
             ? { ...prev, content: contentToWrite }
             : prev
         )
-        // Update the baseline to the content we just wrote
-        set(baselineFileAtom, {
-          path: filePath,
-          content: contentToWrite,
-        })
 
         // Trigger immediate re-parsing for block splitting after successful save
         if (inferredType === FileType.Python && lexicalEditor) {
