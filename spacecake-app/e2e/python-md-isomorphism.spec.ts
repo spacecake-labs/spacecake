@@ -62,7 +62,7 @@ test.describe("python markdown directives isomorphism e2e", () => {
 
     // verify file modification time has been updated (indicating save occurred)
     const savedStats = fs.statSync(destPath)
-    expect(savedStats.size).toBeGreaterThan(0)
+    expect(savedStats.mtimeMs).toBeGreaterThan(0)
   })
 
   test("python file with markdown directives maintains isomorphism through editor roundtrip", async ({
