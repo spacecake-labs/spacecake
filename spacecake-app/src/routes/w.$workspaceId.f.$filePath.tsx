@@ -9,8 +9,10 @@ import {
   ErrorComponent,
   redirect,
 } from "@tanstack/react-router"
+import { Schema } from "effect"
 import { useSetAtom } from "jotai"
 
+import { ViewKindSchema } from "@/types/lexical"
 import {
   baselineFileAtom,
   editorStateAtom,
@@ -19,10 +21,18 @@ import {
 import { createEditorConfigFromContent } from "@/lib/editor"
 import { readFile } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
+import { determineView } from "@/lib/view-preferences"
 import { Editor } from "@/components/editor/editor"
 
+const fileSearchSchema = Schema.Struct({
+  view: Schema.optional(ViewKindSchema),
+})
+
 export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
-  loader: async ({ params }) => {
+  validateSearch: (search) =>
+    Schema.decodeUnknownSync(fileSearchSchema)(search),
+  loaderDeps: ({ search: { view } }) => ({ view }),
+  loader: async ({ params, deps: { view } }) => {
     const workspacePath = decodeBase64Url(params.workspaceId)
     const filePath = decodeBase64Url(params.filePath)
 
@@ -40,6 +50,10 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         search: { notFoundFilePath: filePath },
       })
     }
+
+    // Determine the final view using centralized logic
+    const finalView = determineView(filePath, view)
+
     return {
       workspace: {
         path: workspacePath,
@@ -47,6 +61,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
       },
       filePath,
       file,
+      view: finalView,
     }
   },
   pendingComponent: () => (
@@ -57,7 +72,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 })
 
 function FileLayout() {
-  const { workspace, filePath, file } = Route.useLoaderData()
+  const { workspace, filePath, file, view } = Route.useLoaderData()
 
   const setFile = useSetAtom(fileContentAtom)
   const setEditorState = useSetAtom(editorStateAtom)
@@ -65,8 +80,8 @@ function FileLayout() {
 
   // Create editor config for this specific file
   const editorConfig = useMemo(() => {
-    return createEditorConfigFromContent(file, "rich") // Default to rich view
-  }, [file, filePath])
+    return createEditorConfigFromContent(file, view)
+  }, [file, view])
 
   // Set up atoms when component mounts
   useEffect(() => {
@@ -91,7 +106,7 @@ function FileLayout() {
     <>
       {editorConfig && (
         <Editor
-          key={filePath}
+          key={`${filePath}-${view}`}
           editorConfig={editorConfig}
           onSerializedChange={(value) => {
             setEditorState(value)

@@ -42,7 +42,9 @@ test.describe("Python docstring updating", () => {
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
     // verify we're in rich view (not source view)
-    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
+    await expect(
+      window.getByRole("link", { name: "switch to source view" })
+    ).toBeVisible()
 
     // find the code block by data-block-id
     const codeBlock = editor.locator('[data-block-id*="my_function-function"]')
@@ -105,7 +107,9 @@ test.describe("Python docstring updating", () => {
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
     // verify we're in rich view (not source view)
-    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
+    await expect(
+      window.getByRole("link", { name: "switch to source view" })
+    ).toBeVisible()
 
     // find the code block by data-block-id
     const codeBlock = editor.locator('[data-block-id*="my_function-function"]')

@@ -34,7 +34,9 @@ test.describe("slash commands e2e", () => {
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     // verify we're in rich view
-    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
+    await expect(
+      window.getByRole("link", { name: "switch to source view" })
+    ).toBeVisible()
 
     const heading = window.getByRole("heading", {
       name: "An Example README File to Test Parsing",
@@ -84,7 +86,9 @@ test.describe("slash commands e2e", () => {
     await expect(editor).toBeVisible()
 
     // verify we're in rich view
-    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
+    await expect(
+      window.getByRole("link", { name: "switch to source view" })
+    ).toBeVisible()
 
     const heading = window.getByRole("heading", {
       name: "An Example README File to Test Parsing",
@@ -141,7 +145,9 @@ test.describe("slash commands e2e", () => {
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     // verify we're in rich view
-    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
+    await expect(
+      window.getByRole("link", { name: "switch to source view" })
+    ).toBeVisible()
 
     const heading = window.getByRole("heading", {
       name: "An Example README File to Test Parsing",
@@ -193,7 +199,9 @@ test.describe("slash commands e2e", () => {
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     // verify we're in rich view
-    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
+    await expect(
+      window.getByRole("link", { name: "switch to source view" })
+    ).toBeVisible()
 
     await window.getByText("A brief description").click({ delay: 200 })
 
@@ -239,7 +247,9 @@ test.describe("slash commands e2e", () => {
     await expect(editor).toBeVisible()
 
     // verify we're in rich view
-    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
+    await expect(
+      window.getByRole("link", { name: "switch to source view" })
+    ).toBeVisible()
 
     const moduleBlock = editor.locator('[data-block-id*="core.py-module"]')
     const codeSection = moduleBlock.locator('[data-section="code"]')

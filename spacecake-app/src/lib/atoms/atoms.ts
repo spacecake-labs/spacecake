@@ -1,18 +1,10 @@
-import {
-  $convertFromMarkdownString,
-  $convertToMarkdownString,
-} from "@lexical/markdown"
+import { $convertToMarkdownString } from "@lexical/markdown"
 import { atom, WritableAtom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
-import {
-  $addUpdateTag,
-  SerializedEditorState,
-  SKIP_DOM_SELECTION_TAG,
-} from "lexical"
+import { SerializedEditorState } from "lexical"
 import type { LexicalEditor } from "lexical"
 import { toast } from "sonner"
 
-import type { ViewKind } from "@/types/lexical"
 import type {
   ExpandedFolders,
   File,
@@ -21,17 +13,9 @@ import type {
   Folder,
 } from "@/types/workspace"
 import { FileType } from "@/types/workspace"
-import {
-  convertToSourceView,
-  serializeEditorToPython,
-  serializeEditorToSource,
-} from "@/lib/editor"
+import { serializeEditorToPython, serializeEditorToSource } from "@/lib/editor"
 import { saveFile } from "@/lib/fs"
-import {
-  fileTypeToCodeMirrorLanguage,
-  supportedViews,
-  supportsRichView,
-} from "@/lib/language-support"
+import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
 import { fileTypeFromExtension } from "@/lib/workspace"
 import { convertPythonBlocksToLexical } from "@/components/editor/read-file"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
@@ -108,89 +92,6 @@ export type Theme = "light" | "dark" | "system"
 
 // theme state (persisted)
 export const themeAtom = atomWithStorage<Theme>("spacecake-theme", "system")
-
-// View management atoms (persisted)
-export const userViewPreferencesAtom = atomWithStorage<
-  Partial<Record<FileType, ViewKind>>
->("spacecake-view-preferences", {})
-
-// Derived atom that computes the current view kind for a file type
-export const viewKindAtom = atom((get): ViewKind => {
-  const fileContent = get(fileContentAtom)
-  if (!fileContent) {
-    return "source" // sensible default
-  }
-  const { fileType } = fileContent
-  const userPrefs = get(userViewPreferencesAtom)
-  const userPref = userPrefs[fileType]
-
-  if (userPref) {
-    return userPref
-  }
-
-  return supportsRichView(fileType) ? "rich" : "source"
-})
-
-// Derived atom that determines if the current file can toggle between views
-export const canToggleViewsAtom = atom((get) => {
-  const currentFile = get(fileContentAtom)
-  if (!currentFile) return false
-
-  const views = supportedViews(currentFile.fileType)
-  return views.size > 1
-})
-
-// Derived atom that handles toggling between rich and source views
-export const toggleViewAtom = atom(
-  null,
-  (get, set, lexicalEditor?: LexicalEditor) => {
-    const currentFile = get(fileContentAtom)
-    if (!currentFile) return
-
-    const userPrefs = get(userViewPreferencesAtom)
-    const currentView =
-      userPrefs[currentFile.fileType] ||
-      (supportsRichView(currentFile.fileType) ? "rich" : "source")
-
-    const nextView: ViewKind = currentView === "rich" ? "source" : "rich"
-
-    // Update the preference
-    set(userViewPreferencesAtom, (prev) => ({
-      ...prev,
-      [currentFile.fileType]: nextView,
-    }))
-
-    // Use the passed editor instance for live switching
-    if (!lexicalEditor) return
-
-    // Handle live view switching for Python files
-    if (currentFile.fileType === FileType.Python) {
-      const sourceContent = serializeEditorToPython(lexicalEditor)
-      if (nextView === "source") {
-        convertToSourceView(sourceContent, currentFile, lexicalEditor)
-      } else {
-        convertPythonBlocksToLexical(currentFile, lexicalEditor)
-      }
-    }
-
-    // Handle live view switching for Markdown files
-    if (currentFile.fileType === FileType.Markdown) {
-      if (nextView === "source") {
-        // Convert current WYSIWYG state to markdown string
-        const markdownContent = lexicalEditor.getEditorState().read(() => {
-          return $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
-        })
-        convertToSourceView(markdownContent, currentFile, lexicalEditor)
-      } else {
-        // Convert markdown string back to WYSIWYG state from the original content
-        lexicalEditor.update(() => {
-          $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-          $convertFromMarkdownString(currentFile.content, MARKDOWN_TRANSFORMERS)
-        })
-      }
-    }
-  }
-)
 
 // An action atom to handle saving the current file
 export const saveFileAtom = atom(

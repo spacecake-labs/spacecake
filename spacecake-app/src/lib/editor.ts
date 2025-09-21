@@ -1,6 +1,5 @@
 import { InitialConfigType } from "@lexical/react/LexicalComposer"
 import { $isHeadingNode } from "@lexical/rich-text"
-import { getDefaultStore } from "jotai"
 import {
   $getRoot,
   $isParagraphNode,
@@ -9,7 +8,6 @@ import {
 } from "lexical"
 
 import { FileContent } from "@/types/workspace"
-import { viewKindAtom } from "@/lib/atoms/atoms"
 import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
 import { editorConfig } from "@/components/editor/editor"
 import { nodeToMdBlock } from "@/components/editor/markdown-utils"
@@ -46,17 +44,14 @@ export const createEditorConfigFromContent = (
 export const getEditorConfig = (
   editorState: SerializedEditorState | null,
   fileContent: FileContent | null,
-  selectedFilePath: string | null
+  selectedFilePath: string | null,
+  viewKind: "rich" | "source" = "rich"
 ): InitialConfigType | null => {
   if (editorState) {
     return createEditorConfigFromState(editorState)
   }
 
   if (fileContent && selectedFilePath) {
-    // Get the current view preference for this file type
-    const store = getDefaultStore()
-    const viewKind = store.get(viewKindAtom)
-
     return createEditorConfigFromContent(fileContent, viewKind)
   }
 

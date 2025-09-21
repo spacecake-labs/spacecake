@@ -29,7 +29,7 @@ import {
   // readDirectory,
   renameFile,
 } from "@/lib/fs"
-import { useFilepath } from "@/hooks/use-filepath"
+import { useEditorContext } from "@/hooks/use-filepath"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -74,7 +74,8 @@ export function NavMain({
   const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom)
   const [deletionState, setDeletionState] = useAtom(deletionStateAtom)
 
-  const selectedFilePath = useFilepath()
+  const editorContext = useEditorContext()
+  const selectedFilePath = editorContext?.filePath || null
 
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(

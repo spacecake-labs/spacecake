@@ -1,27 +1,50 @@
-import { useParams } from "@tanstack/react-router"
+import { useParams, useSearch } from "@tanstack/react-router"
+import { Schema } from "effect"
 
+import {
+  EditorContext,
+  EditorContextHelpers,
+  RouteParamsSchema,
+  SearchParamsSchema,
+} from "@/types/workspace"
 import { decodeBase64Url } from "@/lib/utils"
+import { determineView } from "@/lib/view-preferences"
 
 /**
- * Hook to get the current filepath from the router.
- * Returns null if not on a file route or if the filepath is invalid.
+ * Hook to get the current editor context from the router.
+ * Returns null if not on a file route or if the context is invalid.
  */
-export function useFilepath(): string | null {
+export function useEditorContext(): EditorContext | null {
   const params = useParams({ strict: false })
+  const search = useSearch({ strict: false })
 
-  // Check if we're on a file route
-  if (params.filePath && params.workspaceId) {
-    try {
-      const filePath = decodeBase64Url(params.filePath as string)
-      const workspacePath = decodeBase64Url(params.workspaceId as string)
+  try {
+    // Validate and decode route params using Effect schema
+    const paramsResult = Schema.decodeUnknownSync(RouteParamsSchema)(params)
+    const searchResult = Schema.decodeUnknownSync(SearchParamsSchema)(search)
+
+    // Check if we're on a file route with valid params
+    if (paramsResult.workspaceId && paramsResult.filePath) {
+      const filePath = decodeBase64Url(paramsResult.filePath)
+      const workspacePath = decodeBase64Url(paramsResult.workspaceId)
+
+      // Use centralized view determination logic
+      const viewKind = determineView(filePath, searchResult.view)
+
+      // Create editor context
+      const context: EditorContext = {
+        workspacePath,
+        filePath,
+        viewKind,
+      }
 
       // Validate that file belongs to workspace
-      if (filePath.startsWith(workspacePath)) {
-        return filePath
+      if (EditorContextHelpers.isValid(context)) {
+        return context
       }
-    } catch {
-      // Invalid encoding
     }
+  } catch {
+    // Invalid params or encoding
   }
 
   return null
