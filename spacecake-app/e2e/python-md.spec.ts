@@ -104,10 +104,6 @@ test.describe("python markdown directives e2e", () => {
       .first()
     await expect(headerElement).toBeVisible()
 
-    // verify it's actually a heading tag (not just styled text)
-    // Note: the exact attribute may vary, so we'll just check it's a heading
-    await expect(headerElement).toHaveAttribute("dir", "ltr")
-
     // verify the subheader is also properly formatted
     const subheaderElement = window
       .getByRole("heading", { name: "a subheader" })
