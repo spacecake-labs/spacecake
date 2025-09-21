@@ -9,7 +9,7 @@ import {
 } from "lexical"
 
 import { saveFileAtom } from "@/lib/atoms/atoms"
-import { useFilepath } from "@/hooks/use-filepath"
+import { useEditorContext } from "@/hooks/use-filepath"
 
 // Create the save command
 export const SAVE_FILE_COMMAND: LexicalCommand<void> = createCommand()
@@ -17,7 +17,8 @@ export const SAVE_FILE_COMMAND: LexicalCommand<void> = createCommand()
 export function SaveCommandPlugin() {
   const [editor] = useLexicalComposerContext()
   const saveFile = useSetAtom(saveFileAtom)
-  const selectedFilePath = useFilepath()
+  const editorContext = useEditorContext()
+  const selectedFilePath = editorContext?.filePath || null
 
   useEffect(() => {
     return editor.registerCommand(

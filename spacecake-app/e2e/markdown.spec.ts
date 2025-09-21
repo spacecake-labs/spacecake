@@ -32,7 +32,9 @@ test.describe("markdown e2e", () => {
     await window.getByRole("button", { name: "_README.md" }).first().click()
 
     // verify we're in rich view (not source view)
-    await expect(window.getByRole("button", { name: "rich" })).toBeVisible()
+    await expect(
+      window.getByRole("link", { name: "switch to source view" })
+    ).toBeVisible()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 

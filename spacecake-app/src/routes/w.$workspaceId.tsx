@@ -18,7 +18,7 @@ import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { pathExists } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
-import { useFilepath } from "@/hooks/use-filepath"
+import { useEditorContext } from "@/hooks/use-filepath"
 // toolbar renders the save button
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -43,6 +43,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
     return {
       workspace,
+      workspaceId: params.workspaceId,
     }
   },
   pendingComponent: () => (
@@ -54,7 +55,8 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
 function WorkspaceLayout() {
   const { workspace } = Route.useLoaderData()
-  const selectedFilePath = useFilepath()
+  const editorContext = useEditorContext()
+  const selectedFilePath = editorContext?.filePath || null
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
 
@@ -101,7 +103,7 @@ function WorkspaceLayout() {
         headerRightContent={
           selectedFilePath ? (
             <div className="flex items-center gap-3 px-4">
-              <EditorToolbar />
+              {editorContext && <EditorToolbar editorContext={editorContext} />}
               <ModeToggle variant="compact" />
             </div>
           ) : (

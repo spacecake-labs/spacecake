@@ -55,21 +55,31 @@ class Calculator:
 
   describe("getEditorConfig", () => {
     it("creates config for Python files", () => {
-      const config = getEditorConfig(null, mockPythonFile, "/test/test.py")
+      const config = getEditorConfig(
+        null,
+        mockPythonFile,
+        "/test/test.py",
+        "rich"
+      )
 
       expect(config).not.toBeNull()
       expect(config?.editorState).toBeDefined()
     })
 
     it("creates config for Markdown files", () => {
-      const config = getEditorConfig(null, mockMarkdownFile, "/test/test.md")
+      const config = getEditorConfig(
+        null,
+        mockMarkdownFile,
+        "/test/test.md",
+        "rich"
+      )
 
       expect(config).not.toBeNull()
       expect(config?.editorState).toBeDefined()
     })
 
     it("returns null when no file content", () => {
-      const config = getEditorConfig(null, null, null)
+      const config = getEditorConfig(null, null, null, "rich")
 
       expect(config).toBeNull()
     })
@@ -88,7 +98,8 @@ class Calculator:
       const config = getEditorConfig(
         mockEditorState,
         mockPythonFile,
-        "/test/test.py"
+        "/test/test.py",
+        "rich"
       )
 
       expect(config).not.toBeNull()

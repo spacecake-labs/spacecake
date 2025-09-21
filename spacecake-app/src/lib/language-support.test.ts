@@ -1,12 +1,6 @@
-import { createStore } from "jotai"
-import { beforeEach, describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest"
 
-import { FileContent, FileType } from "@/types/workspace"
-import {
-  fileContentAtom,
-  userViewPreferencesAtom,
-  viewKindAtom,
-} from "@/lib/atoms/atoms"
+import { FileType } from "@/types/workspace"
 import {
   fileTypeToCodeMirrorLanguage,
   languageSupport,
@@ -14,20 +8,6 @@ import {
   supportsRichView,
   supportsSourceView,
 } from "@/lib/language-support"
-
-const mockFileContent = (
-  fileType: FileType,
-  path: string,
-  content = ""
-): FileContent => ({
-  path,
-  name: path.split("/").pop() || "",
-  content,
-  fileType,
-  kind: "file",
-  etag: { mtimeMs: Date.now(), size: content.length },
-  cid: "mock_cid",
-})
 
 describe("language support", () => {
   describe("python support", () => {
@@ -111,45 +91,6 @@ describe("language support", () => {
 
     it("maps plaintext to null", () => {
       expect(fileTypeToCodeMirrorLanguage(FileType.Plaintext)).toBe(null)
-    })
-  })
-
-  describe("viewKindAtom", () => {
-    let store: ReturnType<typeof createStore>
-    beforeEach(() => {
-      store = createStore()
-      store.set(userViewPreferencesAtom, {})
-      store.set(fileContentAtom, null)
-    })
-
-    it("defaults to rich for python when no user preference", () => {
-      store.set(fileContentAtom, mockFileContent(FileType.Python, "/test.py"))
-      const viewKind = store.get(viewKindAtom)
-      expect(viewKind).toBe("rich")
-    })
-
-    it("defaults to source for javascript when no user preference", () => {
-      store.set(
-        fileContentAtom,
-        mockFileContent(FileType.JavaScript, "/test.js")
-      )
-      const viewKind = store.get(viewKindAtom)
-      expect(viewKind).toBe("source")
-    })
-
-    it("respects user preferences when set", () => {
-      store.set(userViewPreferencesAtom, {
-        [FileType.Python]: "source",
-      })
-
-      store.set(fileContentAtom, mockFileContent(FileType.Python, "/test.py"))
-      expect(store.get(viewKindAtom)).toBe("source")
-
-      store.set(
-        fileContentAtom,
-        mockFileContent(FileType.JavaScript, "/test.js")
-      )
-      expect(store.get(viewKindAtom)).toBe("source")
     })
   })
 })

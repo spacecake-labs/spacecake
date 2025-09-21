@@ -1,35 +1,32 @@
-/*
-EditorToolbar handles the toolbar UI and view toggling.
-*/
-
 import { useEditor } from "@/contexts/editor-context"
+import { Link } from "@tanstack/react-router"
 import { useAtomValue, useSetAtom } from "jotai"
 import { Code, Eye, FileSearch, FolderSearch, Save } from "lucide-react"
 
-import {
-  canToggleViewsAtom,
-  isSavingAtom,
-  quickOpenMenuOpenAtom,
-  toggleViewAtom,
-  viewKindAtom,
-} from "@/lib/atoms/atoms"
+import { EditorContext, EditorContextHelpers } from "@/types/workspace"
+import { isSavingAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
+import { supportedViews } from "@/lib/language-support"
 import { useOpenWorkspace } from "@/lib/open-workspace"
+import { encodeBase64Url } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { CommandShortcut } from "@/components/ui/command"
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 
-export function EditorToolbar() {
+interface EditorToolbarProps {
+  editorContext: EditorContext
+}
+
+export function EditorToolbar({ editorContext }: EditorToolbarProps) {
   const { editorRef } = useEditor()
   const isSaving = useAtomValue(isSavingAtom)
-  const canToggleViews = useAtomValue(canToggleViewsAtom)
-  const viewKind = useAtomValue(viewKindAtom)
-  const toggleView = useSetAtom(toggleViewAtom)
   const openQuickOpen = useSetAtom(quickOpenMenuOpenAtom)
   const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
 
-  const handleViewToggle = () => {
-    toggleView(editorRef.current || undefined)
-  }
+  // Extract values from editor context
+  const { filePath, viewKind } = editorContext
+  const workspaceId = EditorContextHelpers.workspaceId(editorContext)
+  const fileType = EditorContextHelpers.fileType(editorContext)
+  const canToggleViews = supportedViews(fileType).size > 1
 
   const handleSave = () => {
     if (editorRef.current) {
@@ -64,28 +61,41 @@ export function EditorToolbar() {
       </Button>
       {canToggleViews && (
         <Button
+          asChild
           variant="ghost"
           size="sm"
-          onClick={handleViewToggle}
           className="h-7 px-2 text-xs cursor-pointer"
-          aria-label={viewKind === "rich" ? "rich" : "source"}
+          aria-label={
+            viewKind === "rich"
+              ? "switch to source view"
+              : "switch to rich view"
+          }
           title={
             viewKind === "rich"
               ? "switch to source view"
               : "switch to rich view"
           }
         >
-          {viewKind === "rich" ? (
-            <>
-              <Eye className="h-3 w-3 mr-1" />
-              rich
-            </>
-          ) : (
-            <>
-              <Code className="h-3 w-3 mr-1" />
-              source
-            </>
-          )}
+          <Link
+            to="/w/$workspaceId/f/$filePath"
+            params={{
+              workspaceId,
+              filePath: encodeBase64Url(filePath),
+            }}
+            search={{ view: viewKind === "rich" ? "source" : "rich" }}
+          >
+            {viewKind === "rich" ? (
+              <>
+                <Eye className="h-3 w-3 mr-1" />
+                rich
+              </>
+            ) : (
+              <>
+                <Code className="h-3 w-3 mr-1" />
+                source
+              </>
+            )}
+          </Link>
         </Button>
       )}
       <Button

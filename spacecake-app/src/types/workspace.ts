@@ -4,6 +4,10 @@
 
 import { Schema } from "effect"
 
+import { ViewKindSchema } from "@/types/lexical"
+import { encodeBase64Url } from "@/lib/utils"
+import { fileTypeFromExtension } from "@/lib/workspace"
+
 export const FileTypeSchema = Schema.Union(
   Schema.Literal("markdown"),
   Schema.Literal("plaintext"),
@@ -78,4 +82,40 @@ export type ExpandedFolders = Record<Folder["path"], boolean>
 export type QuickOpenFileItem = {
   file: File
   displayPath: string
+}
+
+/**
+ * Schemas for route params and search params
+ */
+export const RouteParamsSchema = Schema.Struct({
+  workspaceId: Schema.String,
+  filePath: Schema.String,
+})
+
+export const SearchParamsSchema = Schema.Struct({
+  view: Schema.optional(ViewKindSchema),
+})
+
+/**
+ * Editor context - contains the core data needed for the editor
+ * Derived/computed properties are available via EditorContextHelpers
+ */
+export const EditorContextSchema = Schema.Struct({
+  workspacePath: Schema.String,
+  filePath: Schema.String,
+  viewKind: Schema.String,
+})
+export type EditorContext = typeof EditorContextSchema.Type
+
+/**
+ * Helper functions for computed properties of EditorContext
+ */
+export const EditorContextHelpers = {
+  workspaceName: (ctx: EditorContext) =>
+    ctx.workspacePath.split("/").pop() || "spacecake",
+  workspaceId: (ctx: EditorContext) => encodeBase64Url(ctx.workspacePath),
+  fileName: (ctx: EditorContext) => ctx.filePath.split("/").pop() || "",
+  fileType: (ctx: EditorContext) =>
+    fileTypeFromExtension(ctx.filePath.split(".").pop() || ""),
+  isValid: (ctx: EditorContext) => ctx.filePath.startsWith(ctx.workspacePath),
 }
