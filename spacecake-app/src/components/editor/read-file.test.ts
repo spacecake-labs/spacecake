@@ -112,7 +112,7 @@ import pandas as pd
       expect(children[3].getTextContent()).toBe("")
 
       // fifth child: paragraph with markdown content
-      expect(children[4].getType()).toBe("paragraph")
+      expect(children[4].getType()).toBe("container")
       const paragraphChildren = (children[4] as ElementNode).getChildren()
       expect(paragraphChildren).toHaveLength(3)
 

@@ -2,7 +2,7 @@ import {
   $convertFromMarkdownString,
   $convertToMarkdownString,
 } from "@lexical/markdown"
-import { $createParagraphNode, ElementNode } from "lexical"
+import { ElementNode } from "lexical"
 
 import type { MdBlockKind } from "@/types/parser"
 import { Block } from "@/types/parser"
@@ -11,6 +11,7 @@ import {
   addPythonMdocPrefixes,
   stripPythonMdocPrefixes,
 } from "@/lib/parser/python/utils"
+import { $createContainerNode } from "@/components/editor/nodes/container-node"
 import {
   $getDelimiters,
   delimitedNode,
@@ -19,7 +20,10 @@ import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown
 
 export function mdBlockToNode(block: Block<MdBlockKind>) {
   const delimitedString = delimitWithSpaceConsumer(block.text)
-  const container = $createParagraphNode()
+
+  // container node has isShadowRoot set so that
+  // top-level markdown shortcuts (element transformers) still work
+  const container = $createContainerNode()
   $convertFromMarkdownString(
     stripPythonMdocPrefixes(block.text),
     MARKDOWN_TRANSFORMERS,
