@@ -13,11 +13,7 @@ import { Schema } from "effect"
 import { useSetAtom } from "jotai"
 
 import { ViewKindSchema } from "@/types/lexical"
-import {
-  baselineFileAtom,
-  editorStateAtom,
-  fileContentAtom,
-} from "@/lib/atoms/atoms"
+import { editorStateAtom, fileContentAtom } from "@/lib/atoms/atoms"
 import { createEditorConfigFromContent } from "@/lib/editor"
 import { readFile } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
@@ -76,7 +72,6 @@ function FileLayout() {
 
   const setFile = useSetAtom(fileContentAtom)
   const setEditorState = useSetAtom(editorStateAtom)
-  const setBaseline = useSetAtom(baselineFileAtom)
 
   // Create editor config for this specific file
   const editorConfig = useMemo(() => {
@@ -87,7 +82,6 @@ function FileLayout() {
   useEffect(() => {
     // Set atoms for this file
     setFile(file)
-    setBaseline({ path: file.path, content: file.content })
 
     if (workspace?.path) {
       // add to recent files using the new centralized atom
@@ -100,7 +94,7 @@ function FileLayout() {
       // open file in tab layout (handles existing tabs properly)
       openFile(localStorageService, filePath, workspace.path)
     }
-  }, [workspace, file, filePath, setFile, setBaseline])
+  }, [workspace, file, filePath, setFile])
 
   return (
     <>

@@ -3,8 +3,8 @@
  * Used for code blocks and doc/context blocks.
  */
 
-import { useState } from "react"
-import { Check, Code, Copy, MoreHorizontal, Play } from "lucide-react"
+// import { useState } from "react"
+import { Code } from "lucide-react"
 
 import type { Block } from "@/types/parser"
 import { blockId } from "@/lib/parser/block-id"
@@ -12,13 +12,6 @@ import { delimitPythonDocString } from "@/lib/parser/python/utils"
 import { cn } from "@/lib/utils"
 import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { TypographyH3, TypographyP } from "@/components/typography"
 
 interface CodeBlockProps {
@@ -37,10 +30,10 @@ export function CodeBlock({
   language = "javascript",
   editable = false,
   className,
-  onRun,
+  // onRun,
   children,
 }: CodeBlockProps) {
-  const [copied, setCopied] = useState(false)
+  // const [copied, setCopied] = useState(false)
 
   // derive properties from block
   const code = block.text
@@ -52,15 +45,15 @@ export function CodeBlock({
       ? delimitPythonDocString(block.doc?.text)
       : null
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(code)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error("failed to copy code:", err)
-    }
-  }
+  // const copyToClipboard = async () => {
+  //   try {
+  //     await navigator.clipboard.writeText(code)
+  //     setCopied(true)
+  //     setTimeout(() => setCopied(false), 2000)
+  //   } catch (err) {
+  //     console.error("failed to copy code:", err)
+  //   }
+  // }
 
   // split docstring at first linebreak
   const firstLineBreak = doc?.between.indexOf("\n") ?? -1
