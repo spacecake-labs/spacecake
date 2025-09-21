@@ -18,6 +18,7 @@ export const editorTheme: EditorThemeClasses = {
   link: "text-blue-600 hover:underline hover:cursor-pointer",
   list: {
     ul: "my-6 ml-6 list-disc [&>li]:mt-2",
+    ol: "my-6 ml-6 list-decimal [&>li]:mt-2",
   },
   // list: {
   //   checklist: "relative",
