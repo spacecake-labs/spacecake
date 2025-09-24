@@ -34,6 +34,9 @@ coverage:
 codegen:
     pnpm run package && npx tsx scripts/playwright-codegen.ts
 
+drizzle:
+    pnpm run drizzle
+
 print-py-nodes file:
     npx tsx scripts/print-py-nodes.ts {{file}}
 

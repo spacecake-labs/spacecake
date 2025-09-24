@@ -12,11 +12,11 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "jsx": "react-jsx",
     "types": ["electron", "vite/client"]
   },
-  "include": ["src/**/*", "src/types/**/*", "forge.env.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "forge.env.d.ts"],
   "exclude": ["tests/fixtures/**"]
 }
