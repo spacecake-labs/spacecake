@@ -29,10 +29,11 @@ export const test = base.extend<TestFixtures>({
     try {
       await page.evaluate(() => {
         localStorage.clear()
+        // indexedDB.deleteDatabase("spacecake")
       })
     } catch (error) {
       // localStorage might not be available in some contexts
-      console.warn("Could not clear localStorage:", error)
+      console.warn("could not clear localStorage:", error)
     }
 
     await use(app)

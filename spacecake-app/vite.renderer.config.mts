@@ -25,11 +25,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  assetsInclude: ["./src/drizzle/*.sql"],
   optimizeDeps: {
     exclude: [
       "web-tree-sitter",
       "tree-sitter-python",
       "tree-sitter-typescript",
+      "@electric-sql/pglite",
     ],
   },
   server: {

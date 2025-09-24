@@ -6,7 +6,7 @@ import { stubDialog } from "electron-playwright-helpers"
 import { expect, test } from "./fixtures"
 
 test.describe("Python block splitting", () => {
-  test("should split python rich on navigation out of a code block", async ({
+  test("should split python blocks on navigation out of a code block", async ({
     electronApp,
     tempTestDir,
   }) => {
@@ -73,7 +73,7 @@ def my_function():
     await expect(secondCodeblock).toBeVisible()
     await expect(secondCodeblock.getByText("class MyClass:")).toBeVisible()
   })
-  test("should split python rich on save", async ({
+  test("should split python blocks on save", async ({
     electronApp,
     tempTestDir,
   }) => {
