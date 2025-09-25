@@ -2,13 +2,15 @@ import { StrictMode } from "react"
 import { EditorProvider } from "@/contexts/editor-context"
 // Import the generated route tree
 import { routeTree } from "@/routeTree.gen"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
+import { Database } from "@/services/database"
+import { Migrations } from "@/services/migrations"
+import { RuntimeClient } from "@/services/runtime-client"
 import {
   createMemoryHistory,
   createRouter,
   RouterProvider,
 } from "@tanstack/react-router"
+import { Effect } from "effect"
 import { PostHogProvider } from "posthog-js/react"
 import ReactDOM from "react-dom/client"
 
@@ -19,9 +21,19 @@ const memoryHistory = createMemoryHistory({
   initialEntries: ["/"], // Pass your initial url
 })
 
-const router = createRouter({ routeTree, history: memoryHistory })
+const db = RuntimeClient.runPromise(
+  Effect.gen(function* () {
+    const migration = yield* Migrations
+    yield* migration.apply
+    return yield* Database
+  })
+)
 
-const queryClient = new QueryClient()
+const router = createRouter({
+  routeTree,
+  history: memoryHistory,
+  context: { db },
+})
 
 // Register the router instance for type safety
 declare module "@tanstack/react-router" {
@@ -53,12 +65,9 @@ root.render(
         // debug: import.meta.env.MODE === "development",
       }}
     >
-      <QueryClientProvider client={queryClient}>
-        <EditorProvider>
-          <RootWithTheme />
-          <ReactQueryDevtools initialIsOpen={false} />
-        </EditorProvider>
-      </QueryClientProvider>
+      <EditorProvider>
+        <RootWithTheme />
+      </EditorProvider>
     </PostHogProvider>
   </StrictMode>
 )

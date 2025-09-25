@@ -5,6 +5,7 @@
 
 import { useEffect } from "react"
 import { RootLayout } from "@/layout"
+import { RuntimeClient } from "@/services/runtime-client"
 import { localStorageService, setWorkspace } from "@/services/storage"
 import {
   createFileRoute,
@@ -25,7 +26,7 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
 
 export const Route = createFileRoute("/w/$workspaceId")({
-  loader: async ({ params }) => {
+  loader: async ({ params, context: { db } }) => {
     const workspacePath = decodeBase64Url(params.workspaceId)
     const exists = await pathExists(workspacePath)
     if (!exists) {
@@ -36,14 +37,18 @@ export const Route = createFileRoute("/w/$workspaceId")({
       })
     }
 
-    const workspace = {
-      path: workspacePath,
-      name: workspacePath.split("/").pop() || "spacecake",
-    }
+    await RuntimeClient.runPromise(
+      (await db).upsertWorkspace({
+        path: workspacePath,
+        is_open: true,
+      })
+    )
 
     return {
-      workspace,
-      workspaceId: params.workspaceId,
+      workspace: {
+        path: workspacePath,
+        name: workspacePath.split("/").pop() || "spacecake",
+      },
     }
   },
   pendingComponent: () => (
@@ -59,14 +64,6 @@ function WorkspaceLayout() {
   const selectedFilePath = editorContext?.filePath || null
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
-
-  // Effect to load workspace data when the workspace path changes
-  useEffect(() => {
-    if (workspace.path) {
-      // initialize all workspace-specific state
-      setWorkspace(localStorageService, workspace)
-    }
-  }, [workspace.path, setWorkspace])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

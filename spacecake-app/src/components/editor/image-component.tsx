@@ -28,7 +28,6 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { useLexicalEditable } from "@lexical/react/useLexicalEditable"
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
 import { mergeRegister } from "@lexical/utils"
-import { useSuspenseQuery } from "@tanstack/react-query"
 import {
   $getNodeByKey,
   $getSelection,
@@ -47,24 +46,29 @@ import { $isImageNode } from "@/components/editor/nodes/image-node"
 export const RIGHT_CLICK_IMAGE_COMMAND: LexicalCommand<MouseEvent> =
   createCommand("RIGHT_CLICK_IMAGE_COMMAND")
 
-const fetchImageDimensions = (
-  src: string
-): Promise<{ width: number; height: number }> =>
-  new Promise((resolve, reject) => {
-    const img = new Image()
-    img.src = src
-    img.onload = () =>
-      resolve({ width: img.naturalWidth, height: img.naturalHeight })
-    img.onerror = () => reject(new Error("image failed to load"))
-  })
+// simple cache for image dimensions
+const imageDimensionsCache = new Map<
+  string,
+  { width: number; height: number }
+>()
 
 function useSuspenseImage(src: string) {
-  const { data } = useSuspenseQuery({
-    queryKey: ["image", src],
-    queryFn: () => fetchImageDimensions(src),
-    staleTime: Infinity, // Cache forever
+  // check if we already have dimensions cached
+  if (imageDimensionsCache.has(src)) {
+    return imageDimensionsCache.get(src)!
+  }
+
+  // if not cached, throw a promise that resolves when image loads
+  throw new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const img = new Image()
+    img.src = src
+    img.onload = () => {
+      const dimensions = { width: img.naturalWidth, height: img.naturalHeight }
+      imageDimensionsCache.set(src, dimensions)
+      resolve(dimensions)
+    }
+    img.onerror = () => reject(new Error("image failed to load"))
   })
-  return data
 }
 
 function LazyImage({
