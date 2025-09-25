@@ -54,13 +54,6 @@ export function getWorkspace(
   return Option.none()
 }
 
-export function setWorkspace(
-  storage: StorageService,
-  workspace: WorkspaceInfo
-) {
-  storage.set(workspaceKey(), JSON.stringify(workspace))
-}
-
 export function editorLayoutFromStorage(
   storage: StorageService,
   workspacePath: WorkspaceInfo["path"]
