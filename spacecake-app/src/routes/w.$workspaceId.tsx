@@ -6,7 +6,6 @@
 import { useEffect } from "react"
 import { RootLayout } from "@/layout"
 import { RuntimeClient } from "@/services/runtime-client"
-import { localStorageService, setWorkspace } from "@/services/storage"
 import {
   createFileRoute,
   ErrorComponent,
