@@ -6,7 +6,12 @@ import tseslint from "typescript-eslint"
 export default defineConfig([
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  globalIgnores([".tanstack", ".vite", "tests/fixtures/**"]),
+  globalIgnores([
+    ".tanstack",
+    ".vite",
+    "tests/fixtures/**",
+    "src/schema/drizzle-effect.ts",
+  ]),
   {
     languageOptions: {
       parser: tseslint.parser,

@@ -4,7 +4,7 @@
  */
 
 import { RootLayout } from "@/layout"
-import { getWorkspace, localStorageService } from "@/services/storage"
+import { RuntimeClient } from "@/services/runtime-client"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Option, Schema } from "effect"
 import { AlertCircleIcon, FolderOpen, Loader2Icon } from "lucide-react"
@@ -25,20 +25,22 @@ const NotFoundPathSchema = Schema.standardSchemaV1(
 export const Route = createFileRoute("/")({
   validateSearch: NotFoundPathSchema,
   component: Index,
-  loader: async () => {
-    const workspace = getWorkspace(localStorageService)
-
-    if (Option.isSome(workspace)) {
-      const exists = await pathExists(workspace.value.path)
+  loader: async ({ context: { db } }) => {
+    const lastOpenedWorkspace = await RuntimeClient.runPromise(
+      (await db).selectLastOpenedWorkspace
+    )
+    if (lastOpenedWorkspace) {
+      const exists = await pathExists(lastOpenedWorkspace.path)
       if (exists) {
-        const id = encodeBase64Url(workspace.value.path)
+        const id = encodeBase64Url(lastOpenedWorkspace.path)
         throw redirect({
           to: "/w/$workspaceId",
           params: { workspaceId: id },
         })
       }
-      return { notFoundPath: Option.some(workspace.value.path) }
+      return { notFoundPath: Option.some(lastOpenedWorkspace.path) }
     }
+
     return { notFoundPath: Option.none() }
   },
 })
