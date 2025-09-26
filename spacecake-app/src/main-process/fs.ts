@@ -9,14 +9,8 @@ import type { FileContent } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
 import { fileTypeFromFileName } from "@/lib/workspace"
 
-// layer & runner
+// layer
 export const FsLive = NodeFileSystem.layer
-
-export const run = <E, A>(
-  effect: Effect.Effect<A, E, FileSystem.FileSystem>
-) => {
-  return Effect.runPromise(Effect.provide(effect, FsLive))
-}
 
 // error
 export class FsError extends Data.TaggedError("FsError")<{
