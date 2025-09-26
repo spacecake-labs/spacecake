@@ -117,5 +117,4 @@ export const EditorContextHelpers = {
   fileName: (ctx: EditorContext) => ctx.filePath.split("/").pop() || "",
   fileType: (ctx: EditorContext) =>
     fileTypeFromExtension(ctx.filePath.split(".").pop() || ""),
-  isValid: (ctx: EditorContext) => ctx.filePath.startsWith(ctx.workspacePath),
 }

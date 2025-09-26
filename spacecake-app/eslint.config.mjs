@@ -1,5 +1,6 @@
 import js from "@eslint/js"
 import importPlugin from "eslint-plugin-import"
+import unusedImports from "eslint-plugin-unused-imports"
 import { defineConfig, globalIgnores } from "eslint/config"
 import tseslint from "typescript-eslint"
 
@@ -28,9 +29,20 @@ export default defineConfig([
     },
     plugins: {
       import: importPlugin,
+      "unused-imports": unusedImports,
     },
     rules: {
-      // Add custom rules or overrides here
+      "no-unused-vars": "off", // or "@typescript-eslint/no-unused-vars": "off",
+      "unused-imports/no-unused-imports": "error",
+      "unused-imports/no-unused-vars": [
+        "warn",
+        {
+          vars: "all",
+          varsIgnorePattern: "^_",
+          args: "after-used",
+          argsIgnorePattern: "^_",
+        },
+      ],
     },
     settings: {
       "import/resolver": {

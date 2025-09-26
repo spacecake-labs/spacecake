@@ -29,16 +29,17 @@ export const Route = createFileRoute("/")({
     const lastOpenedWorkspace = await RuntimeClient.runPromise(
       (await db).selectLastOpenedWorkspace
     )
-    if (lastOpenedWorkspace) {
-      const exists = await pathExists(lastOpenedWorkspace.path)
+    if (Option.isSome(lastOpenedWorkspace)) {
+      const workspace = lastOpenedWorkspace.value
+      const exists = await pathExists(workspace.path)
       if (exists) {
-        const id = encodeBase64Url(lastOpenedWorkspace.path)
+        const id = encodeBase64Url(workspace.path)
         throw redirect({
           to: "/w/$workspaceId",
           params: { workspaceId: id },
         })
       }
-      return { notFoundPath: Option.some(lastOpenedWorkspace.path) }
+      return { notFoundPath: Option.some(workspace.path) }
     }
 
     return { notFoundPath: Option.none() }

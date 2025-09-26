@@ -37,3 +37,30 @@ export type WorkspaceInsert = typeof WorkspaceInsertSchema.Type
 
 export const WorkspaceSelectSchema = createSelectSchema(workspaceTable)
 export type WorkspaceSelect = typeof WorkspaceSelectSchema.Type
+
+export const fileTable = pgTable(
+  "file",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    workspace_id: uuid("workspace_id")
+      .references(() => workspaceTable.id)
+      .notNull(),
+    path: text("path").notNull(),
+    created_at: timestamp("created_at", { mode: "string" })
+      .defaultNow()
+      .notNull(),
+    last_accessed_at: timestamp("last_accessed_at", { mode: "string" })
+      .defaultNow()
+      .notNull(),
+    is_open: boolean("is_open").default(false).notNull(),
+  },
+  (table) => [uniqueIndex("file_path_idx").on(table.path)]
+)
+
+export const FileInsertSchema = createInsertSchema(fileTable)
+export type FileInsert = typeof FileInsertSchema.Type
+
+export const FileSelectSchema = createSelectSchema(fileTable)
+export type FileSelect = typeof FileSelectSchema.Type

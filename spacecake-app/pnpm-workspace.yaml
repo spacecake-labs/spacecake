@@ -1,3 +1,6 @@
+ignoredBuiltDependencies:
+  - msgpackr-extract
+
 onlyBuiltDependencies:
   - "@swc/core"
   - "@tailwindcss/oxide"

@@ -1,16 +1,9 @@
-import fs from "fs"
 import path from "path"
 
 import { setupExitHandlers, type WatchEntry } from "@/main-process/cleanup"
-import {
-  createFile,
-  createFolder,
-  deleteFile,
-  readFile,
-  renameFile,
-  saveFileAtomic,
-} from "@/main-process/fs"
+import * as fsEffects from "@/main-process/fs"
 import chokidar from "chokidar"
+import { Effect, Option as EffectOption } from "effect"
 import { BrowserWindow, dialog, ipcMain } from "electron"
 
 import type { ETag, FileTreeEvent } from "@/types/workspace"
@@ -32,121 +25,58 @@ ipcMain.handle("show-save-dialog", async (event, options) => {
   return result
 })
 
-ipcMain.handle("read-file", async (event, filePath: string) => {
-  try {
-    const file = await readFile(filePath)
-    return { success: true, file }
-  } catch (error) {
-    return {
-      success: false,
-      error: `error reading file: ${error instanceof Error ? error.message : String(error)}`,
-    }
-  }
+ipcMain.handle("read-file", (_, filePath: string) => {
+  const program = Effect.match(fsEffects.readFile(filePath), {
+    onFailure: (error) => ({ success: false, error: error.message }),
+    onSuccess: (file) => ({ success: true, file }),
+  })
+  return fsEffects.run(program)
 })
 
-ipcMain.handle(
-  "create-file",
-  async (event, filePath: string, content: string = "") => {
-    try {
-      // Create the file
-      await createFile(filePath, content)
-
-      // Wait for the chokidar event to confirm the file exists
-      const watcherData = getWatcherEntry(event, filePath)
-      if (!watcherData) return { success: false, error: "no watcher or window" }
-      const { entry } = watcherData
-
-      // Wait for the add event (with timeout)
-      return waitForChokidarEvent(
-        entry,
-        "add",
-        filePath,
-        2000,
-        "timeout waiting for file event"
-      )
-    } catch (error) {
-      console.error("error creating file:", error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "unknown error",
-      }
-    }
-  }
-)
-
-ipcMain.handle(
-  "rename-file",
-  async (event, oldPath: string, newPath: string) => {
-    try {
-      await renameFile(oldPath, newPath)
-      return { success: true }
-    } catch (error) {
-      console.error("error renaming file:", error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "unknown error",
-      }
-    }
-  }
-)
-
-// removed unused stat-file handler; etag suppression occurs in-process after save
-
-ipcMain.handle("delete-file", async (event, filePath: string) => {
-  try {
-    // Check if it's a directory BEFORE deleting
-    const isDirectory = fs.statSync(filePath).isDirectory()
-    const eventType = isDirectory ? "unlinkDir" : "unlink"
-
-    // Delete the file/folder
-    await deleteFile(filePath)
-
-    // Wait for the chokidar event to confirm deletion
-    const watcherData = getWatcherEntry(event, filePath)
-    if (!watcherData) return { success: false, error: "no watcher or window" }
-    const { entry } = watcherData
-
-    // Wait for the appropriate event (with timeout)
-    return waitForChokidarEvent(
-      entry,
-      eventType,
-      filePath,
-      2000,
-      `timeout waiting for ${isDirectory ? "folder" : "file"} deletion event`
-    )
-  } catch (error) {
-    console.error("error deleting file:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "unknown error",
-    }
-  }
+ipcMain.handle("create-file", (_, filePath: string, content: string = "") => {
+  const program = Effect.match(fsEffects.createFile(filePath, content), {
+    onFailure: (error) => ({ success: false, error: error.message }),
+    onSuccess: () => ({ success: true }),
+  })
+  return fsEffects.run(program)
 })
 
-ipcMain.handle(
-  "save-file",
-  async (event, filePath: string, content: string) => {
-    try {
-      await saveFileAtomic(filePath, content)
-      try {
-        const st = await fs.promises.stat(filePath)
-        lastWriteEtag.set(filePath, {
-          mtimeMs: st.mtimeMs,
-          size: st.size,
-        })
-      } catch {
-        // ignore inability to stat saved file for etag recording
-      }
-      return { success: true }
-    } catch (error) {
-      console.error("error saving file:", error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "unknown error",
-      }
-    }
-  }
-)
+ipcMain.handle("rename-file", (_, oldPath: string, newPath: string) => {
+  const program = Effect.match(fsEffects.renameFile(oldPath, newPath), {
+    onFailure: (error) => ({ success: false, error: error.message }),
+    onSuccess: () => ({ success: true }),
+  })
+  return fsEffects.run(program)
+})
+
+ipcMain.handle("delete-file", (_, filePath: string) => {
+  const program = Effect.match(fsEffects.deleteFile(filePath), {
+    onFailure: (error) => ({ success: false, error: error.message }),
+    onSuccess: () => ({ success: true }),
+  })
+  return fsEffects.run(program)
+})
+
+ipcMain.handle("save-file", (_, filePath: string, content: string) => {
+  const program = Effect.gen(function* (_) {
+    yield* _(fsEffects.saveFileAtomic(filePath, content))
+    const stats = yield* _(fsEffects.statEffect(filePath))
+    lastWriteEtag.set(filePath, {
+      mtimeMs: EffectOption.getOrElse(
+        EffectOption.map(stats.mtime, (d) => d.getTime()),
+        () => Date.now()
+      ),
+      size: Number(stats.size),
+    })
+  })
+
+  const resultProgram = Effect.match(program, {
+    onFailure: (error) => ({ success: false, error: error.message }),
+    onSuccess: () => ({ success: true }),
+  })
+
+  return fsEffects.run(resultProgram)
+})
 
 const watchers = new Map<string, WatchEntry>()
 const lastWriteEtag = new Map<string, { mtimeMs: number; size: number }>()
@@ -154,74 +84,6 @@ const ZERO_ETAG: ETag = { mtimeMs: 0, size: 0 }
 
 // Setup exit handlers for cleanup
 setupExitHandlers(watchers)
-
-/**
- * Helper function to get the watcher entry for a given file path
- * @param event - The IPC event
- * @param filePath - The file path to get the watcher for
- * @returns The watcher entry and workspace path, or null if not found
- */
-function getWatcherEntry(
-  event: Electron.IpcMainInvokeEvent,
-  filePath: string
-): {
-  entry: WatchEntry
-  workspacePath: string
-  win: BrowserWindow
-} | null {
-  const win = BrowserWindow.fromWebContents(event.sender)
-  if (!win) return null
-
-  // Find the watcher by checking if the filePath is within any watched workspace
-  for (const [workspacePath, entry] of watchers.entries()) {
-    if (filePath.startsWith(workspacePath)) {
-      return { entry, workspacePath, win }
-    }
-  }
-
-  return null
-}
-
-/**
- * Helper function to wait for a specific chokidar event
- * @param entry - The watcher entry
- * @param eventType - The chokidar event type to wait for
- * @param expectedPath - The expected file path
- * @param timeoutMs - Timeout in milliseconds
- * @param errorMessage - Error message for timeout
- * @returns Promise that resolves to success/failure
- */
-function waitForChokidarEvent(
-  entry: WatchEntry,
-  eventType: "add" | "unlink" | "unlinkDir",
-  expectedPath: string,
-  timeoutMs: number = 2000,
-  errorMessage: string
-): Promise<{ success: boolean; error?: string }> {
-  return new Promise((resolve) => {
-    // Check if the event already happened (for add events, check if file exists)
-    if (eventType === "add") {
-      if (fs.existsSync(expectedPath)) {
-        resolve({ success: true })
-        return
-      }
-    }
-
-    const timeout = setTimeout(() => {
-      resolve({ success: false, error: errorMessage })
-    }, timeoutMs)
-
-    const onEvent = (p: string) => {
-      if (p === expectedPath) {
-        clearTimeout(timeout)
-        entry.watcher.off(eventType, onEvent)
-        resolve({ success: true })
-      }
-    }
-
-    entry.watcher.on(eventType, onEvent)
-  })
-}
 
 const emitInitialSnapshotFromWatcher = (
   watcher: chokidar.FSWatcher,
@@ -248,14 +110,15 @@ const emitInitialSnapshotFromWatcher = (
 }
 
 ipcMain.handle("watch-workspace", async (event, workspacePath: string) => {
-  try {
-    // Check if the workspace path exists and is a directory
-    const stats = await fs.promises.stat(workspacePath)
-    if (!stats.isDirectory()) {
-      return {
-        success: false,
-        error: `path is not a directory: ${workspacePath}`,
-      }
+  const program = Effect.gen(function* (_) {
+    const stats = yield* _(fsEffects.statEffect(workspacePath))
+    if (stats.type !== "Directory") {
+      return yield* _(
+        Effect.fail({
+          success: false,
+          error: `path is not a directory: ${workspacePath}`,
+        })
+      )
     }
 
     const win = BrowserWindow.fromWebContents(event.sender)
@@ -306,29 +169,27 @@ ipcMain.handle("watch-workspace", async (event, workspacePath: string) => {
           size: stats?.size ?? 0,
         }
 
-        try {
-          const { readFile } = await import("@/main-process/fs")
-          const file = await readFile(p)
-          if (file) {
-            // Calculate content hash using existing fnv1a64Hex function
-            const { fnv1a64Hex } = await import("@/lib/hash")
-            const newContentHash = fnv1a64Hex(file.content)
+        const readProgram = Effect.gen(function* (_) {
+          const file = yield* _(fsEffects.readFile(p))
+          const { fnv1a64Hex } = yield* _(
+            Effect.promise(() => import("@/lib/hash"))
+          )
+          const newContentHash = fnv1a64Hex(file.content)
+          emit({
+            kind: "contentChange",
+            path: p,
+            etag,
+            content: file.content,
+            fileType: file.fileType,
+            cid: newContentHash,
+          })
+        })
 
-            // Check if content hash has changed by comparing with previous hash
-            // For now, we'll always emit since we don't have previous hash storage
-            // In the future, we could store previous hashes in a Map for comparison
-            emit({
-              kind: "contentChange",
-              path: p,
-              etag,
-              content: file.content,
-              fileType: file.fileType,
-              cid: newContentHash,
-            })
+        Effect.runPromise(Effect.provide(readProgram, fsEffects.FsLive)).catch(
+          (error) => {
+            console.error("error reading file for content change:", error)
           }
-        } catch (error) {
-          console.error("error reading file for content change:", error)
-        }
+        )
       })
       .on("unlink", (p) => emit({ kind: "unlinkFile", path: p }))
       .on("addDir", (p) => emit({ kind: "addFolder", path: p }))
@@ -336,13 +197,15 @@ ipcMain.handle("watch-workspace", async (event, workspacePath: string) => {
 
     watchers.set(workspacePath, entry)
     return { success: true }
-  } catch (error) {
+  })
+
+  return fsEffects.run(program).catch((error) => {
     console.error("error starting watcher:", error)
     return {
       success: false,
       error: error instanceof Error ? error.message : "unknown error",
     }
-  }
+  })
 })
 
 ipcMain.handle("stop-watching", async (event, workspacePath: string) => {
@@ -353,8 +216,9 @@ ipcMain.handle("stop-watching", async (event, workspacePath: string) => {
       watchers.delete(workspacePath)
       console.log(`stopped watching: ${workspacePath}`)
       return { success: true }
+    } else {
+      return { success: false, error: "no watcher found" }
     }
-    return { success: false, error: "no watcher found" }
   } catch (error) {
     console.error("error stopping watcher:", error)
     return {
@@ -364,28 +228,18 @@ ipcMain.handle("stop-watching", async (event, workspacePath: string) => {
   }
 })
 
-ipcMain.handle("create-folder", async (event, folderPath: string) => {
-  try {
-    await createFolder(folderPath)
-    return { success: true }
-  } catch (error) {
-    console.error("error creating folder:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "unknown error",
-    }
-  }
+ipcMain.handle("create-folder", (_, folderPath: string) => {
+  const program = Effect.match(fsEffects.createFolder(folderPath), {
+    onFailure: (error) => ({ success: false, error: error.message }),
+    onSuccess: () => ({ success: true }),
+  })
+  return fsEffects.run(program)
 })
 
-ipcMain.handle("path-exists", async (event, path: string) => {
-  try {
-    const exists = fs.existsSync(path)
-    return { success: true, exists }
-  } catch (error) {
-    console.error("error checking path exists:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "unknown error",
-    }
-  }
+ipcMain.handle("path-exists", (_, path: string) => {
+  const program = Effect.match(fsEffects.existsEffect(path), {
+    onFailure: (error) => ({ success: false, error: error.message }),
+    onSuccess: (exists) => ({ success: true, exists }),
+  })
+  return fsEffects.run(program)
 })
