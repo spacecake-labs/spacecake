@@ -3,7 +3,6 @@ import { Schema } from "effect"
 
 import {
   EditorContext,
-  EditorContextHelpers,
   RouteParamsSchema,
   SearchParamsSchema,
 } from "@/types/workspace"
@@ -38,10 +37,7 @@ export function useEditorContext(): EditorContext | null {
         viewKind,
       }
 
-      // Validate that file belongs to workspace
-      if (EditorContextHelpers.isValid(context)) {
-        return context
-      }
+      return context
     }
   } catch {
     // Invalid params or encoding

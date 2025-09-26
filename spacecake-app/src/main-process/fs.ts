@@ -1,235 +1,171 @@
-import type { Dirent } from "fs"
-import fs from "fs/promises"
 import path from "path"
 
+import { FileSystem } from "@effect/platform"
+import { NodeFileSystem } from "@effect/platform-node"
+import { Data, Effect, Option } from "effect"
 import writeFileAtomic from "write-file-atomic"
 
 import type { FileContent } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
 import { fileTypeFromFileName } from "@/lib/workspace"
 
-export interface FileNode {
-  name: string
-  isDirectory(): boolean
-}
-export interface FileStat {
-  size: number
-  mtime: Date
-  isDirectory(): boolean
-}
-export interface Fs {
-  readdir: (
-    dirPath: string,
-    opts?: { withFileTypes?: boolean }
-  ) => Promise<FileNode[]>
-  stat: (path: string) => Promise<FileStat>
-  access: (path: string) => Promise<void>
-  mkdir: (
-    path: string,
-    options?: { recursive?: boolean }
-  ) => Promise<string | undefined>
-  writeFile: (
-    path: string,
-    data: string,
-    options?: BufferEncoding | { encoding?: BufferEncoding }
-  ) => Promise<void>
-  readFile: (
-    path: string,
-    options?: BufferEncoding | { encoding?: BufferEncoding }
-  ) => Promise<string>
-  rename: (oldPath: string, newPath: string) => Promise<void>
-  rmdir: (path: string, options?: { recursive?: boolean }) => Promise<void>
-  unlink: (path: string) => Promise<void>
+// layer & runner
+export const FsLive = NodeFileSystem.layer
+
+export const run = <E, A>(
+  effect: Effect.Effect<A, E, FileSystem.FileSystem>
+) => {
+  return Effect.runPromise(Effect.provide(effect, FsLive))
 }
 
-// Create an fs adapter that implements our Fs interface
-const createFsAdapter = (): Fs => ({
-  async readdir(
-    dirPath: string,
-    opts?: { withFileTypes?: boolean }
-  ): Promise<FileNode[]> {
-    if (opts?.withFileTypes) {
-      const dirents = await fs.readdir(dirPath, { withFileTypes: true })
-      return dirents.map((dirent: Dirent) => ({
-        name: dirent.name,
-        path: path.join(dirPath, dirent.name),
-        mtime: new Date(), // We'll need to stat for real mtime if needed
-        isDirectory: () => dirent.isDirectory(),
-      }))
-    } else {
-      const names = await fs.readdir(dirPath)
-      return Promise.all(
-        names.map(async (name: string) => {
-          const fullPath = path.join(dirPath, name)
-          const stats = await fs.stat(fullPath)
-          return {
-            name,
-            path: fullPath,
-            mtime: stats.mtime,
-            isDirectory: () => stats.isDirectory(),
-          }
-        })
+// error
+export class FsError extends Data.TaggedError("FsError")<{
+  error: unknown
+  message: string
+}> {}
+
+// public effects
+export const statEffect = (
+  filePath: string
+): Effect.Effect<FileSystem.File.Info, FsError, FileSystem.FileSystem> =>
+  Effect.flatMap(FileSystem.FileSystem, (fs) => fs.stat(filePath)).pipe(
+    Effect.mapError(
+      (error) =>
+        new FsError({ error, message: `error stating file: ${filePath}` })
+    )
+  )
+
+export const existsEffect = (
+  filePath: string
+): Effect.Effect<boolean, FsError, FileSystem.FileSystem> =>
+  Effect.flatMap(FileSystem.FileSystem, (fs) => fs.exists(filePath)).pipe(
+    Effect.mapError(
+      (error) =>
+        new FsError({ error, message: `error checking exists: ${filePath}` })
+    )
+  )
+
+export const readFile = (
+  filePath: string
+): Effect.Effect<FileContent, FsError, FileSystem.FileSystem> =>
+  Effect.gen(function* (_) {
+    const fs = yield* _(FileSystem.FileSystem)
+    const [contentBuffer, stats] = yield* _(
+      Effect.all([fs.readFile(filePath), fs.stat(filePath)])
+    )
+    const content = new TextDecoder().decode(contentBuffer)
+    const name = path.basename(filePath)
+    return {
+      name,
+      path: filePath,
+      kind: "file" as const,
+      etag: {
+        mtimeMs: Option.getOrElse(
+          Option.map(stats.mtime, (d) => d.getTime()),
+          () => Date.now()
+        ),
+        size: Number(stats.size),
+      },
+      content,
+      fileType: fileTypeFromFileName(name),
+      cid: fnv1a64Hex(content),
+    }
+  }).pipe(
+    Effect.mapError(
+      (error) =>
+        new FsError({ error, message: `Failed to read file ${filePath}` })
+    )
+  )
+
+export const createFile = (
+  filePath: string,
+  content: string = ""
+): Effect.Effect<void, FsError, FileSystem.FileSystem> =>
+  Effect.flatMap(FileSystem.FileSystem, (fs) =>
+    fs.writeFile(filePath, new TextEncoder().encode(content))
+  ).pipe(
+    Effect.mapError(
+      (error) =>
+        new FsError({ error, message: `error creating file: ${filePath}` })
+    )
+  )
+
+export const createFolder = (
+  folderPath: string
+): Effect.Effect<void, FsError, FileSystem.FileSystem> =>
+  Effect.flatMap(FileSystem.FileSystem, (fs) =>
+    fs.makeDirectory(folderPath, { recursive: true })
+  ).pipe(
+    Effect.mapError(
+      (error) =>
+        new FsError({ error, message: `error creating folder: ${folderPath}` })
+    )
+  )
+
+export const ensureSpacecakeFolder = (
+  workspacePath: string
+): Effect.Effect<void, FsError, FileSystem.FileSystem> => {
+  const spacecakePath = path.join(workspacePath, ".spacecake")
+  return createFolder(spacecakePath)
+}
+
+export const renameFile = (
+  oldPath: string,
+  newPath: string
+): Effect.Effect<void, FsError, FileSystem.FileSystem> =>
+  Effect.gen(function* (_) {
+    const fs = yield* _(FileSystem.FileSystem)
+    const exists = yield* _(fs.exists(newPath))
+    if (exists) {
+      return yield* _(
+        Effect.fail(
+          new FsError({
+            error: "EEXIST",
+            message: `file or directory already exists: ${newPath}`,
+          })
+        )
       )
     }
-  },
-  stat: fs.stat,
-  access: fs.access,
-  mkdir: fs.mkdir,
-  writeFile: fs.writeFile,
-  async readFile(
-    path: string,
-    options?: BufferEncoding | { encoding?: BufferEncoding }
-  ): Promise<string> {
-    if (typeof options === "string") {
-      return fs.readFile(path, { encoding: options })
-    } else if (options?.encoding) {
-      return fs.readFile(path, { encoding: options.encoding })
+    return yield* _(fs.rename(oldPath, newPath))
+  }).pipe(
+    Effect.mapError((error) => {
+      if (error instanceof FsError) {
+        return error
+      }
+      return new FsError({
+        error,
+        message: `error renaming file from ${oldPath} to ${newPath}`,
+      })
+    })
+  )
+
+export const deleteFile = (
+  filePath: string
+): Effect.Effect<void, FsError, FileSystem.FileSystem> =>
+  Effect.gen(function* (_) {
+    const fs = yield* _(FileSystem.FileSystem)
+    const stats = yield* _(fs.stat(filePath))
+    if (stats.type === "Directory") {
+      return yield* _(fs.remove(filePath, { recursive: true }))
     } else {
-      return fs.readFile(path, { encoding: "utf8" })
+      return yield* _(fs.remove(filePath))
     }
-  },
-  rename: fs.rename,
-  rmdir: fs.rmdir,
-  unlink: fs.unlink,
-})
+  }).pipe(
+    Effect.mapError(
+      (error) =>
+        new FsError({ error, message: `error deleting file: ${filePath}` })
+    )
+  )
 
-// Create the default fs adapter instance
-const fsAdapter = createFsAdapter()
-
-/**
- * Ensures the .spacecake folder exists in the given workspace directory
- * @param workspacePath - The workspace directory path
- * @param fsModule - The fs module to use (defaults to fs/promises)
- * @returns Promise that resolves when the folder is created or already exists
- */
-export async function ensureSpacecakeFolder(
-  workspacePath: string,
-  fsModule: Fs = fsAdapter
-): Promise<void> {
-  const spacecakePath = path.join(workspacePath, ".spacecake")
-  try {
-    // Check if the folder already exists
-    await fsModule.access(spacecakePath)
-  } catch {
-    // Folder doesn't exist, create it
-    await fsModule.mkdir(spacecakePath, { recursive: true })
-  }
-}
-
-/**
- * Creates a new file in the specified directory
- * @param filePath - The full path where the file should be created
- * @param content - The initial content of the file (optional)
- * @param fsModule - The fs module to use (defaults to fs/promises)
- * @returns Promise that resolves when the file is created
- */
-export async function createFile(
-  filePath: string,
-  content: string = "",
-  fsModule: Fs = fsAdapter
-): Promise<void> {
-  await fsModule.writeFile(filePath, content, { encoding: "utf8" })
-}
-
-/**
- * Creates a new folder in the specified directory
- * @param folderPath - The full path where the folder should be created
- * @param fsModule - The fs module to use (defaults to fs/promises)
- * @returns Promise that resolves when the folder is created
- */
-export async function createFolder(
-  folderPath: string,
-  fsModule: Fs = fsAdapter
-): Promise<void> {
-  await fsModule.mkdir(folderPath, { recursive: true })
-}
-
-/**
- * Reads a file and returns both content and metadata
- * @param filePath - The path of the file to read
- * @param fsModule - The fs module to use (defaults to fs/promises)
- * @returns Promise that resolves to file entry with content
- */
-export async function readFile(
-  filePath: string,
-  fsModule: Fs = fsAdapter
-): Promise<FileContent> {
-  const [content, stats] = await Promise.all([
-    fsModule.readFile(filePath, { encoding: "utf8" }),
-    fsModule.stat(filePath),
-  ])
-
-  const pathParts = filePath.split(path.sep)
-  const name = pathParts[pathParts.length - 1]
-
-  return {
-    name,
-    path: filePath,
-    kind: "file" as const,
-    etag: {
-      mtimeMs: stats.mtime.getTime(),
-      size: stats.size,
-    },
-    content,
-    fileType: fileTypeFromFileName(name),
-    cid: fnv1a64Hex(content),
-  }
-}
-
-/**
- * Renames a file or directory
- * @param oldPath - The current path of the file/directory
- * @param newPath - The new path for the file/directory
- * @param fsModule - The fs module to use (defaults to fs/promises)
- * @returns Promise that resolves when the file/directory is renamed
- * @throws Error if the new path already exists
- */
-export async function renameFile(
-  oldPath: string,
-  newPath: string,
-  fsModule: Fs = fsAdapter
-): Promise<void> {
-  // Check if the new path already exists
-  try {
-    await fsModule.access(newPath)
-    throw new Error(`file or directory already exists: ${newPath}`)
-  } catch (error) {
-    // If access throws an error, it means the file doesn't exist, which is what we want
-    if (error instanceof Error && error.message.includes("already exists")) {
-      throw error
-    }
-    // Otherwise, the file doesn't exist, so we can proceed with the rename
-  }
-
-  await fsModule.rename(oldPath, newPath)
-}
-
-/**
- * Deletes a file or directory
- * @param filePath - The path of the file/directory to delete
- * @param fsModule - The fs module to use (defaults to fs/promises)
- * @returns Promise that resolves when the file/directory is deleted
- */
-export async function deleteFile(
-  filePath: string,
-  fsModule: Fs = fsAdapter
-): Promise<void> {
-  const stats = await fsModule.stat(filePath)
-  if (stats.isDirectory()) {
-    await fsModule.rmdir(filePath, { recursive: true })
-  } else {
-    await fsModule.unlink(filePath)
-  }
-}
-
-/**
- * Writes a file atomically to avoid partial writes and corruption
- * @param filePath - The path of the file to write
- * @param content - The file contents to write
- */
-export async function saveFileAtomic(
+export const saveFileAtomic = (
   filePath: string,
   content: string
-): Promise<void> {
-  await writeFileAtomic(filePath, content, { encoding: "utf8" })
-}
+): Effect.Effect<void, FsError, FileSystem.FileSystem> =>
+  Effect.tryPromise({
+    try: () => writeFileAtomic(filePath, content, { encoding: "utf8" }),
+    catch: (error) =>
+      new FsError({
+        error,
+        message: `error saving file atomically: ${filePath}`,
+      }),
+  })

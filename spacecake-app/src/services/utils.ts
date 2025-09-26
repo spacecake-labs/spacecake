@@ -12,3 +12,6 @@ export const singleResult = <A, E>(orFail: () => E) =>
   Effect.flatMap((results: A[]) =>
     pipe(results, Array.head, Effect.mapError(orFail))
   )
+
+export const maybeSingleResult = <A>() =>
+  Effect.flatMap((results: A[]) => Effect.succeed(Array.head(results)))

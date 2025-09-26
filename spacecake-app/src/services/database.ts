@@ -1,15 +1,19 @@
 import {
+  FileInsertSchema,
+  FileSelectSchema,
+  fileTable,
   WorkspaceInsertSchema,
   WorkspaceSelectSchema,
   workspaceTable,
+  type FileInsert,
   type WorkspaceInsert,
 } from "@/schema/drizzle"
-import { singleResult } from "@/services/utils"
+import { maybeSingleResult, singleResult } from "@/services/utils"
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
 import { desc, eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
-import { Data, DateTime, Effect, flow, Schema } from "effect"
+import { Data, DateTime, Effect, flow, Option, Schema } from "effect"
 
 class PgliteError extends Data.TaggedError("PgliteError")<{
   cause: unknown
@@ -70,7 +74,9 @@ export class Database extends Effect.Service<Database>()("Database", {
             )
           })
         ),
-        singleResult(() => new PgliteError({ cause: "workspace not created" })),
+        singleResult(
+          () => new PgliteError({ cause: "workspace not upserted" })
+        ),
         Effect.flatMap(Schema.decode(WorkspaceSelectSchema)),
         Effect.tap((workspace) =>
           Effect.log("db: upserted workspace:", workspace)
@@ -84,8 +90,69 @@ export class Database extends Effect.Service<Database>()("Database", {
           .orderBy(desc(workspaceTable.last_accessed_at))
           .limit(1)
       ).pipe(
-        singleResult(() => new PgliteError({ cause: "no workspace found" })),
-        Effect.flatMap(Schema.decode(WorkspaceSelectSchema))
+        maybeSingleResult(),
+        Effect.flatMap((maybeWorkspace) =>
+          Option.isNone(maybeWorkspace)
+            ? Effect.succeed(Option.none())
+            : Schema.decode(WorkspaceSelectSchema)(maybeWorkspace.value).pipe(
+                Effect.map(Option.some)
+              )
+        )
+      ),
+
+      upsertFile: flow(
+        execute(FileInsertSchema, (values: FileInsert) =>
+          Effect.gen(function* () {
+            const now = yield* DateTime.now
+            return yield* query((_) =>
+              _.insert(fileTable)
+                .values(values)
+                .onConflictDoUpdate({
+                  target: [fileTable.path],
+                  set: {
+                    ...values,
+                    last_accessed_at: DateTime.formatIso(now),
+                  },
+                })
+                .returning()
+            )
+          })
+        ),
+        singleResult(() => new PgliteError({ cause: "file not upserted" })),
+        Effect.flatMap(Schema.decode(FileSelectSchema)),
+        Effect.tap((file) => Effect.log("db: upserted file:", file))
+      ),
+
+      deleteFile: (filePath: string) =>
+        query((_) =>
+          _.delete(fileTable).where(eq(fileTable.path, filePath)).returning()
+        ).pipe(
+          singleResult(() => new PgliteError({ cause: "file not deleted" })),
+          Effect.tap((deletedFiles) =>
+            Effect.log("db: deleted file:", deletedFiles)
+          )
+        ),
+
+      selectLastOpenedFile: query((_) =>
+        _.select()
+          .from(fileTable)
+          .where(eq(fileTable.is_open, true))
+          .orderBy(desc(fileTable.last_accessed_at))
+          .limit(1)
+      ).pipe(
+        singleResult(() => new PgliteError({ cause: "no file found" })),
+        Effect.flatMap(Schema.decode(FileSelectSchema))
+      ),
+
+      selectRecentFiles: query((_) =>
+        _.select()
+          .from(fileTable)
+          .orderBy(desc(fileTable.last_accessed_at))
+          .limit(10)
+      ).pipe(
+        Effect.flatMap((files) =>
+          Effect.forEach(files, (file) => Schema.decode(FileSelectSchema)(file))
+        )
       ),
     }
   }),
