@@ -30,7 +30,7 @@ ipcMain.handle("read-file", (_, filePath: string) => {
     onFailure: (error) => ({ success: false, error: error.message }),
     onSuccess: (file) => ({ success: true, file }),
   })
-  return fsEffects.run(program)
+  return Effect.runPromise(Effect.provide(program, fsEffects.FsLive))
 })
 
 ipcMain.handle("create-file", (_, filePath: string, content: string = "") => {
@@ -38,7 +38,7 @@ ipcMain.handle("create-file", (_, filePath: string, content: string = "") => {
     onFailure: (error) => ({ success: false, error: error.message }),
     onSuccess: () => ({ success: true }),
   })
-  return fsEffects.run(program)
+  return Effect.runPromise(Effect.provide(program, fsEffects.FsLive))
 })
 
 ipcMain.handle("rename-file", (_, oldPath: string, newPath: string) => {
@@ -46,7 +46,7 @@ ipcMain.handle("rename-file", (_, oldPath: string, newPath: string) => {
     onFailure: (error) => ({ success: false, error: error.message }),
     onSuccess: () => ({ success: true }),
   })
-  return fsEffects.run(program)
+  return Effect.runPromise(Effect.provide(program, fsEffects.FsLive))
 })
 
 ipcMain.handle("delete-file", (_, filePath: string) => {
@@ -54,7 +54,7 @@ ipcMain.handle("delete-file", (_, filePath: string) => {
     onFailure: (error) => ({ success: false, error: error.message }),
     onSuccess: () => ({ success: true }),
   })
-  return fsEffects.run(program)
+  return Effect.runPromise(Effect.provide(program, fsEffects.FsLive))
 })
 
 ipcMain.handle("save-file", (_, filePath: string, content: string) => {
@@ -75,7 +75,7 @@ ipcMain.handle("save-file", (_, filePath: string, content: string) => {
     onSuccess: () => ({ success: true }),
   })
 
-  return fsEffects.run(resultProgram)
+  return Effect.runPromise(Effect.provide(resultProgram, fsEffects.FsLive))
 })
 
 const watchers = new Map<string, WatchEntry>()
@@ -199,13 +199,15 @@ ipcMain.handle("watch-workspace", async (event, workspacePath: string) => {
     return { success: true }
   })
 
-  return fsEffects.run(program).catch((error) => {
-    console.error("error starting watcher:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "unknown error",
+  return Effect.runPromise(Effect.provide(program, fsEffects.FsLive)).catch(
+    (error) => {
+      console.error("error starting watcher:", error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "unknown error",
+      }
     }
-  })
+  )
 })
 
 ipcMain.handle("stop-watching", async (event, workspacePath: string) => {
@@ -233,7 +235,7 @@ ipcMain.handle("create-folder", (_, folderPath: string) => {
     onFailure: (error) => ({ success: false, error: error.message }),
     onSuccess: () => ({ success: true }),
   })
-  return fsEffects.run(program)
+  return Effect.runPromise(Effect.provide(program, fsEffects.FsLive))
 })
 
 ipcMain.handle("path-exists", (_, path: string) => {
@@ -241,5 +243,5 @@ ipcMain.handle("path-exists", (_, path: string) => {
     onFailure: (error) => ({ success: false, error: error.message }),
     onSuccess: (exists) => ({ success: true, exists }),
   })
-  return fsEffects.run(program)
+  return Effect.runPromise(Effect.provide(program, fsEffects.FsLive))
 })
