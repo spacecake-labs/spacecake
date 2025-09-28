@@ -4,17 +4,14 @@ import {
   InitialConfigType,
   LexicalComposer,
 } from "@lexical/react/LexicalComposer"
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
-import type { EditorState, LexicalEditor, SerializedEditorState } from "lexical"
+import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin"
+import type { EditorState, SerializedEditorState } from "lexical"
 
-// import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin"
-// import { hasInitialLoadTag } from "@/types/lexical";
+import { hasInitialLoadTag } from "@/types/lexical"
 import { debounce } from "@/lib/utils"
 import { nodes } from "@/components/editor/nodes"
 import { Plugins } from "@/components/editor/plugins"
 import { editorTheme } from "@/components/editor/theme"
-
-// no direct composer context usage; editor instance captured via OnChangePlugin
 
 interface EditorProps {
   editorConfig: InitialConfigType
@@ -79,34 +76,35 @@ export function Editor({
             : {}),
         }}
       >
-        <CaptureLexicalPlugin
+        {/* <CaptureLexicalPlugin
           onCapture={(editor) => {
             editorRef.current = editor
           }}
-        />
+        /> */}
         <Plugins />
 
-        {/* <OnChangePlugin
+        <OnChangePlugin
           ignoreSelectionChange={true}
           onChange={(editorState, editor, tags) => {
             if (hasInitialLoadTag(tags)) {
+              editorRef.current = editor
               return
             }
             lastEditorStateRef.current = editorState
             debouncedNotifyRef.current.schedule()
           }}
-        /> */}
+        />
       </LexicalComposer>
     </div>
   )
 }
 
-const CaptureLexicalPlugin: React.FC<{
-  onCapture: (ed: LexicalEditor) => void
-}> = ({ onCapture }) => {
-  const [editor] = useLexicalComposerContext()
-  React.useEffect(() => {
-    onCapture(editor)
-  }, [editor, onCapture])
-  return null
-}
+// const CaptureLexicalPlugin: React.FC<{
+//   onCapture: (ed: LexicalEditor) => void
+// }> = ({ onCapture }) => {
+//   const [editor] = useLexicalComposerContext()
+//   React.useEffect(() => {
+//     onCapture(editor)
+//   }, [editor, onCapture])
+//   return null
+// }

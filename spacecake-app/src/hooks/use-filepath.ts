@@ -8,6 +8,7 @@ import {
 } from "@/types/workspace"
 import { decodeBase64Url } from "@/lib/utils"
 import { determineView } from "@/lib/view-preferences"
+import { fileTypeFromExtension } from "@/lib/workspace"
 
 /**
  * Hook to get the current editor context from the router.
@@ -25,18 +26,17 @@ export function useEditorContext(): EditorContext | null {
     // Check if we're on a file route with valid params
     if (paramsResult.workspaceId && paramsResult.filePath) {
       const filePath = decodeBase64Url(paramsResult.filePath)
-      const workspacePath = decodeBase64Url(paramsResult.workspaceId)
 
       // Use centralized view determination logic
       const viewKind = determineView(filePath, searchResult.view)
 
       // Create editor context
       const context: EditorContext = {
-        workspacePath,
+        workspaceId: decodeBase64Url(paramsResult.workspaceId),
         filePath,
         viewKind,
+        fileType: fileTypeFromExtension(filePath.split(".").pop() || ""),
       }
-
       return context
     }
   } catch {

@@ -1,4 +1,3 @@
-import { StrictMode } from "react"
 import { EditorProvider } from "@/contexts/editor-context"
 // Import the generated route tree
 import { routeTree } from "@/routeTree.gen"
@@ -11,9 +10,11 @@ import {
   RouterProvider,
 } from "@tanstack/react-router"
 import { Effect } from "effect"
+import { Provider } from "jotai"
 import { PostHogProvider } from "posthog-js/react"
 import ReactDOM from "react-dom/client"
 
+import { store } from "@/lib/store"
 import { useTheme } from "@/components/theme-provider"
 
 // Create a new router instance with hash routing
@@ -55,7 +56,8 @@ function RootWithTheme() {
 }
 
 root.render(
-  <StrictMode>
+  // <StrictMode>
+  <Provider store={store}>
     <PostHogProvider
       apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
       options={{
@@ -69,5 +71,6 @@ root.render(
         <RootWithTheme />
       </EditorProvider>
     </PostHogProvider>
-  </StrictMode>
+  </Provider>
+  // </StrictMode>
 )

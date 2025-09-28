@@ -9,8 +9,14 @@ import type { FileContent } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
 import { fileTypeFromFileName } from "@/lib/workspace"
 
-// layer
+// layer & runner
 export const FsLive = NodeFileSystem.layer
+
+export const run = <E, A>(
+  effect: Effect.Effect<A, E, FileSystem.FileSystem>
+) => {
+  return Effect.runPromise(Effect.provide(effect, FsLive))
+}
 
 // error
 export class FsError extends Data.TaggedError("FsError")<{
@@ -122,15 +128,13 @@ export const renameFile = (
     }
     return yield* _(fs.rename(oldPath, newPath))
   }).pipe(
-    Effect.mapError((error) => {
-      if (error instanceof FsError) {
-        return error
-      }
-      return new FsError({
-        error,
-        message: `error renaming file from ${oldPath} to ${newPath}`,
-      })
-    })
+    Effect.mapError(
+      (error) =>
+        new FsError({
+          error,
+          message: `error renaming file from ${oldPath} to ${newPath}`,
+        })
+    )
   )
 
 export const deleteFile = (

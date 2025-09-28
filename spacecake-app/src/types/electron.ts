@@ -1,4 +1,4 @@
-import type { FileContent, FileTreeEvent } from "@/types/workspace"
+import type { FileContent, FileTree, FileTreeEvent } from "@/types/workspace"
 
 export interface ElectronAPI {
   showOpenDialog: (options: unknown) => Promise<{
@@ -41,6 +41,11 @@ export interface ElectronAPI {
     content: string
   ) => Promise<{
     success: boolean
+    error?: string
+  }>
+  readWorkspace: (dirPath: string) => Promise<{
+    success: boolean
+    tree?: FileTree
     error?: string
   }>
   watchWorkspace: (workspacePath: string) => Promise<{

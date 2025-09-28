@@ -10,7 +10,7 @@ import type {
   WorkspaceInfo,
 } from "@/types/workspace"
 import { ZERO_HASH } from "@/types/workspace"
-import { fileTreeAtom } from "@/lib/atoms/atoms"
+import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms" // Import expandedFoldersAtom
 import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
@@ -71,6 +71,43 @@ const removeItemFromTree = (tree: FileTree, path: string): FileTree => {
   })
 }
 
+// Helper to merge new tree with existing, preserving expanded state
+const mergeTrees = (
+  newTree: FileTree,
+  oldTree: FileTree,
+  expandedFolders: { [path: string]: boolean }
+): FileTree => {
+  return newTree.map((newItem) => {
+    if (newItem.kind === "folder") {
+      const oldItem = oldTree.find(
+        (item) => item.path === newItem.path && item.kind === "folder"
+      ) as Folder | undefined
+
+      const isExpanded =
+        expandedFolders[newItem.path] || oldItem?.isExpanded || false
+
+      return {
+        ...newItem,
+        isExpanded,
+        children: mergeTrees(
+          newItem.children,
+          oldItem?.children || [],
+          expandedFolders
+        ),
+      }
+    }
+    return newItem
+  })
+}
+
+// atom for setting the initial file tree from readWorkspace
+export const setFileTreeAtom = atom(null, (get, set, tree: FileTree) => {
+  const currentExpandedFolders = get(expandedFoldersAtom)
+  const currentTree = get(fileTreeAtom)
+  const mergedTree = mergeTrees(tree, currentTree, currentExpandedFolders)
+  set(fileTreeAtom, mergedTree)
+})
+
 // atom for handling file tree events
 export const fileTreeEventAtom = atom(
   null,
@@ -114,7 +151,7 @@ export const fileTreeEventAtom = atom(
                 cid: "",
                 kind: "folder",
                 children: [],
-                isExpanded: false, // ✅ Only on folders
+                isExpanded: true, // Set to true for auto-expansion
               }
 
         if (parentPath === null || parentPath === workspace.path) {
@@ -124,6 +161,14 @@ export const fileTreeEventAtom = atom(
         } else {
           // Add to parent folder
           set(fileTreeAtom, addItemToTree(currentTree, parentPath, newItem))
+        }
+
+        // If a folder was added, mark it as expanded
+        if (newItem.kind === "folder") {
+          set(expandedFoldersAtom, (prev) => ({
+            ...prev,
+            [newItem.path]: true,
+          }))
         }
         break
       }

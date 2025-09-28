@@ -3,7 +3,6 @@ import type { LexicalEditor } from "lexical"
 import type { ViewKind } from "@/types/lexical"
 import type {
   FileContent,
-  FileTree,
   FileTreeEvent,
   WorkspaceInfo,
 } from "@/types/workspace"
@@ -13,7 +12,6 @@ export const handleFileEvent = async (
   event: FileTreeEvent,
   currentPath: string | null,
   currentEditor: LexicalEditor | null | undefined,
-  currentTree: FileTree,
   userViewPreferences: Record<string, ViewKind>,
   setFileTreeEvent: (event: FileTreeEvent, workspace: WorkspaceInfo) => void,
   currentFileContent: FileContent | null,

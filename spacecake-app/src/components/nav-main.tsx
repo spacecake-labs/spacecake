@@ -4,7 +4,7 @@ import {
   saveEditorLayout,
   updateRecentFiles,
 } from "@/services/storage"
-import { useAtom } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import { FileWarning, Loader2Icon } from "lucide-react"
 
 import type { EditorLayout } from "@/types/editor"
@@ -82,7 +82,7 @@ export function NavMain({
     null
   )
 
-  const [sortedFileTree] = useAtom(sortedFileTreeAtom)
+  const sortedFileTree = useAtomValue(sortedFileTreeAtom)
 
   const isCreatingInWorkspace =
     isCreatingInContext?.parentPath === workspace?.path
@@ -352,6 +352,7 @@ export function NavMain({
             </SidebarMenuItem>
           )}
           {workspace?.path &&
+            sortedFileTree &&
             sortedFileTree.map((item) => (
               <WorkspaceTree
                 key={item.path}
@@ -378,7 +379,7 @@ export function NavMain({
               />
             ))}
           {/* Add empty state when workspace has no files/folders */}
-          {workspace?.path && sortedFileTree.length === 0 && (
+          {workspace?.path && !sortedFileTree.length && (
             <SidebarMenuItem>
               <SidebarMenuButton className="cursor-default">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">

@@ -1,8 +1,12 @@
 import path from "node:path"
 
 import { buildCSPString } from "@/csp"
-import { NodeRuntime } from "@effect/platform-node"
-import { Effect } from "effect"
+import { registerIpcHandlers } from "@/main-process/ipc-handlers"
+import { watcherService } from "@/main-process/watcher"
+import { FileSystem } from "@effect/platform"
+import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
+import * as ParcelWatcher from "@effect/platform-node/NodeFileSystem/ParcelWatcher"
+import { Effect, Layer } from "effect"
 import { app, BrowserWindow } from "electron"
 import {
   installExtension,
@@ -10,12 +14,8 @@ import {
 } from "electron-devtools-installer"
 import started from "electron-squirrel-startup"
 
-// Import IPC handlers to register them.
-import "@/main-process/ipc-handlers"
-
 const LEXICAL_DEVELOPER_TOOLS = "kgljmdocanfjckcgfpcpdoklodllfdpc"
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit()
 }
@@ -24,8 +24,6 @@ const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
 const isTest = process.env.IS_PLAYWRIGHT === "true"
 const showWindow = process.env.SHOW_WINDOW === "true"
 
-// This function contains side-effects and is not wrapped in Effect.
-// This is a pragmatic choice to avoid over-complicating the refactoring.
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
     icon: path.join(process.cwd(), "assets", "icon.png"),
@@ -66,7 +64,7 @@ const createWindow = () => {
     }
   )
 
-  if (isDev && !isTest) {
+  if (isDev && (!isTest || showWindow)) {
     installExtension([REACT_DEVELOPER_TOOLS, LEXICAL_DEVELOPER_TOOLS])
       .then(([react, lexical]) =>
         console.log(`added extensions: ${react.name}, ${lexical.name}`)
@@ -76,7 +74,14 @@ const createWindow = () => {
   }
 }
 
-const mainProgram = Effect.gen(function* (_) {
+const AppLive = NodeFileSystem.layer.pipe(Layer.provide(ParcelWatcher.layer))
+
+// The main program effect, which requires FileSystem
+const program = Effect.gen(function* (_) {
+  const runtime = yield* _(Effect.runtime<FileSystem.FileSystem>())
+
+  registerIpcHandlers(runtime)
+
   yield* _(Effect.promise(() => app.whenReady()))
 
   if (!app.isPackaged && app.dock) {
@@ -84,6 +89,8 @@ const mainProgram = Effect.gen(function* (_) {
   }
 
   createWindow()
+
+  yield* _(Effect.forkDaemon(watcherService.pipe(Effect.provide(AppLive))))
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -98,6 +105,12 @@ const mainProgram = Effect.gen(function* (_) {
   })
 
   yield* _(Effect.never)
-}).pipe(Effect.scoped, Effect.catchAll(Effect.logError))
+})
 
-NodeRuntime.runMain(mainProgram)
+// A separate effect that provides the services and handles errors
+const main = Effect.scoped(program).pipe(
+  Effect.provide(AppLive),
+  Effect.catchAll(Effect.logError)
+)
+
+NodeRuntime.runMain(main)

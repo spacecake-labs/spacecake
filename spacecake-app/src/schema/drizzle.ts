@@ -48,6 +48,7 @@ export const fileTable = pgTable(
       .references(() => workspaceTable.id)
       .notNull(),
     path: text("path").notNull(),
+    cid: text("cid").notNull(),
     created_at: timestamp("created_at", { mode: "string" })
       .defaultNow()
       .notNull(),

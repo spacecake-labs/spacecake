@@ -382,16 +382,16 @@ test.describe("python e2e", () => {
     await expect(importBlock).toBeVisible()
   })
 
-  test("external file change updates only the changed block (watcher)", async ({
+  test("external file change updates editor via watcher", async ({
     electronApp,
     tempTestDir,
   }) => {
-    const window = await electronApp.firstWindow()
-
     // copy core.py fixture into the temp workspace
     const fixturePath = path.join(process.cwd(), "tests/fixtures/core.py")
     const destPath = path.join(tempTestDir, "core.py")
     fs.copyFileSync(fixturePath, destPath)
+
+    const window = await electronApp.firstWindow()
 
     await stubDialog(electronApp, "showOpenDialog", {
       filePaths: [tempTestDir],
@@ -410,6 +410,9 @@ test.describe("python e2e", () => {
 
     // ensure second block (class Person / dataclass label present) is visible
     await expect(window.getByText("Person").first()).toBeVisible()
+
+    // remove when a more robust soltion is in place
+    await window.waitForTimeout(3000)
 
     // overwrite core.py on disk: add a comment at the start of the dataclass block
     const original = fs.readFileSync(destPath, "utf8")

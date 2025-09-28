@@ -2,11 +2,15 @@ ignoredBuiltDependencies:
   - msgpackr-extract
 
 onlyBuiltDependencies:
+  - "@parcel/watcher"
   - "@swc/core"
   - "@tailwindcss/oxide"
+  - core-js
   - electron
   - electron-winstaller
   - esbuild
   - fs-xattr
   - macos-alias
+  - tree-sitter-javascript
   - tree-sitter-python
+  - tree-sitter-typescript

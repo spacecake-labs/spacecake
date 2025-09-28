@@ -41,7 +41,9 @@ describe("renameFile", () => {
 
     expect(Either.isLeft(result)).toBe(true)
     if (Either.isLeft(result)) {
-      expect(result.left.message).toContain("file or directory already exists")
+      expect(result.left.message).toContain(
+        "error renaming file from /old/file.txt to /existing/file.txt"
+      )
     }
   })
 })

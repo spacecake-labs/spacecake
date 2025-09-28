@@ -506,14 +506,4 @@ export function WorkspaceTree({
       </SidebarMenuItem>
     )
   }
-
-  // This is an empty item
-  // return (
-  //   <SidebarMenuItem>
-  //     <SidebarMenuButton className="cursor-default">
-  //       <FileWarning className="text-muted-foreground" />
-  //       <span className="truncate">{item.name}</span>
-  //     </SidebarMenuButton>
-  //   </SidebarMenuItem>
-  // );
 }
