@@ -12,12 +12,12 @@ export default defineConfig({
   build: {
     rollupOptions: {
       external: [
-        // Don't bundle electron
+        // don't bundle
         "electron",
         "web-tree-sitter",
         "tree-sitter-python",
         "tree-sitter-typescript",
-        "fsevents",
+        "@parcel/watcher",
       ],
     },
   },

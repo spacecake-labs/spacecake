@@ -28,7 +28,7 @@ test.describe("spacecake app", () => {
     await expect(window.getByText("empty")).not.toBeVisible()
   })
 
-  test("open workspace; create file", async ({
+  test("open workspace; create file with button", async ({
     electronApp,
     tempTestDir,
   }, testInfo) => {
@@ -69,6 +69,7 @@ test.describe("spacecake app", () => {
     const textbox = window.getByRole("textbox", { name: "filename.txt" })
 
     await textbox.fill("test.txt")
+
     await textbox.press("Enter", { delay: 100 }) // Added delay
 
     // Wait for the new file to appear in the sidebar
@@ -85,7 +86,7 @@ test.describe("spacecake app", () => {
 
     testInfo.annotations.push({
       type: "info",
-      description: `File test.txt exists at ${expectedFilePath}: ${fileExists}`,
+      description: `file test.txt exists at ${expectedFilePath}: ${fileExists}`,
     })
   })
 
@@ -242,6 +243,8 @@ test.describe("spacecake app", () => {
     })
 
     await window.getByRole("button", { name: "open folder" }).click()
+
+    await window.waitForTimeout(3000)
 
     // wait for the workspace to load
     await expect(

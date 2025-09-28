@@ -101,9 +101,10 @@ export const SearchParamsSchema = Schema.Struct({
  * Derived/computed properties are available via EditorContextHelpers
  */
 export const EditorContextSchema = Schema.Struct({
-  workspacePath: Schema.String,
+  workspaceId: Schema.String,
   filePath: Schema.String,
   viewKind: Schema.String,
+  fileType: FileTypeSchema,
 })
 export type EditorContext = typeof EditorContextSchema.Type
 
@@ -112,9 +113,10 @@ export type EditorContext = typeof EditorContextSchema.Type
  */
 export const EditorContextHelpers = {
   workspaceName: (ctx: EditorContext) =>
-    ctx.workspacePath.split("/").pop() || "spacecake",
-  workspaceId: (ctx: EditorContext) => encodeBase64Url(ctx.workspacePath),
+    ctx.workspaceId.split("/").pop() || "spacecake",
+  workspaceId: (ctx: EditorContext) => encodeBase64Url(ctx.workspaceId),
   fileName: (ctx: EditorContext) => ctx.filePath.split("/").pop() || "",
   fileType: (ctx: EditorContext) =>
     fileTypeFromExtension(ctx.filePath.split(".").pop() || ""),
+  workspacePath: (ctx: EditorContext) => encodeBase64Url(ctx.workspaceId),
 }

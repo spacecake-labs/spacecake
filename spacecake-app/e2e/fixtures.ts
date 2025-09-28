@@ -14,35 +14,58 @@ export type TestFixtures = {
   electronApp: ElectronApplication
   tempTestDir: string
 }
-
 export const test = base.extend<TestFixtures>({
   // eslint-disable-next-line no-empty-pattern
-  electronApp: async ({}, use) => {
+  electronApp: async ({}, use, testInfo) => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "spacecake-e2e-data"))
+
     const app = await _electron.launch({
-      args: [".vite/build/main.js"],
+      args: [
+        ".vite/build/main.js",
+        `--user-data-dir=${dataDir}`, // isolate electron data per test
+      ],
       cwd: process.cwd(),
       timeout: 60000,
     })
 
-    // clear localStorage before each test to prevent interference
+    // log electron process output
+    // app.process()?.stdout?.on("data", (data) => console.log(`stdout: ${data}`))
+    // app
+    //   .process()
+    //   ?.stderr?.on("data", (error) => console.log(`stderr: ${error}`))
+
+    // clear localStorage before each test
     const page = await app.firstWindow()
     try {
       await page.evaluate(() => {
         localStorage.clear()
-        // indexedDB.deleteDatabase("spacecake")
       })
     } catch (error) {
-      // localStorage might not be available in some contexts
       console.warn("could not clear localStorage:", error)
     }
 
     await use(app)
 
     await app.close()
+
+    if (fs.existsSync(dataDir)) {
+      fs.rmSync(dataDir, { recursive: true, force: true, maxRetries: 5 })
+      testInfo.annotations.push({
+        type: "info",
+        description: `cleaned up temp data directory: ${dataDir}`,
+      })
+    }
   },
 
   tempTestDir: async ({ electronApp }, use, testInfo) => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "spacecake-e2e-"))
+    const testOutputRoot = path.join(process.cwd(), "test-output")
+    const workerTempRoot = path.join(
+      testOutputRoot,
+      `worker-${testInfo.workerIndex}`
+    )
+    fs.mkdirSync(workerTempRoot, { recursive: true })
+    const tempDir = fs.mkdtempSync(path.join(workerTempRoot, "spacecake-e2e-"))
+
     testInfo.annotations.push({
       type: "info",
       description: `created temp test directory: ${tempDir}`,
