@@ -1,20 +1,29 @@
-import { describe, expect, test } from "vitest"
+import { FileSystemError } from "@/services/file-system"
+import { assert, describe, expect, test } from "vitest"
 
+import { left, match, right } from "@/types/adt"
+import type { ElectronAPI } from "@/types/electron"
 import type { FileContent } from "@/types/workspace"
 import { FileType } from "@/types/workspace"
-import { openDirectory, readFile, saveFile, type ElectronAPI } from "@/lib/fs"
+import { openDirectory, readFile, saveFile } from "@/lib/fs"
 
 // Create test implementations of the ElectronAPI interface
 const createTestElectronAPI = (
   overrides: Partial<ElectronAPI> = {}
 ): ElectronAPI => ({
   showOpenDialog: async () => ({ canceled: false, filePaths: ["/test/path"] }),
-  readFile: async () => ({ success: true, file: createTestFileContent() }),
-  saveFile: async () => ({ success: true }),
+  showSaveDialog: async () => ({ canceled: false, filePath: "/test/save" }),
+  readFile: async () => right(createTestFileContent()),
+  saveFile: async () => right(undefined),
   createFile: async () => ({ success: true }),
   createFolder: async () => ({ success: true }),
   renameFile: async () => ({ success: true }),
   deleteFile: async () => ({ success: true }),
+  readWorkspace: async () => ({ success: true }),
+  watchWorkspace: async () => ({ success: true }),
+  stopWatching: async () => ({ success: true }),
+  onFileEvent: () => () => {},
+  platform: "test",
   pathExists: async () => ({ success: true, exists: true }),
   ...overrides,
 })
@@ -38,95 +47,147 @@ describe("readFile", () => {
     const testFile = createTestFileContent({ content: testContent })
 
     const electronAPI = createTestElectronAPI({
-      readFile: async () => ({ success: true, file: testFile }),
+      readFile: async () => right(testFile),
     })
 
     const result = await readFile("/test/test.py", electronAPI)
 
-    expect(result).not.toBeNull()
-    expect(result?.content).toBe(testContent)
-    expect(result?.cid).toBeDefined()
-    expect(result?.cid).not.toBe("test-cid") // Should be computed from content
+    match(result, {
+      onLeft: (error) => {
+        assert.fail(error.message)
+      },
+      onRight: (file) => {
+        expect(file.content).toBe(testContent)
+        expect(file.cid).toBe("test-cid") // Should be computed from content
+      },
+    })
   })
 
   test("returns null when read fails", async () => {
     const electronAPI = createTestElectronAPI({
-      readFile: async () => ({ success: false, error: "file not found" }),
+      readFile: async () =>
+        left(new FileSystemError({ message: "file not found" })),
     })
 
     const result = await readFile("/nonexistent/file.py", electronAPI)
 
-    expect(result).toBeNull()
+    match(result, {
+      onLeft: (error) => {
+        expect(error.message).toBe("file not found")
+      },
+      onRight: () => {
+        assert.fail("should not be right")
+      },
+    })
   })
 
   test("returns null when read throws error", async () => {
     const electronAPI = createTestElectronAPI({
-      readFile: async () => {
-        throw new Error("permission denied")
-      },
+      readFile: async () =>
+        left(new FileSystemError({ message: "permission denied" })),
     })
 
     const result = await readFile("/protected/file.py", electronAPI)
 
-    expect(result).toBeNull()
+    match(result, {
+      onLeft: (error) => {
+        expect(error.message).toBe("permission denied")
+      },
+      onRight: () => {
+        assert.fail("should not be right")
+      },
+    })
   })
 
   test("handles empty file content", async () => {
     const testFile = createTestFileContent({ content: "" })
 
     const electronAPI = createTestElectronAPI({
-      readFile: async () => ({ success: true, file: testFile }),
+      readFile: async () => right(testFile),
     })
 
     const result = await readFile("/test/empty.py", electronAPI)
 
-    expect(result).not.toBeNull()
-    expect(result?.content).toBe("")
-    expect(result?.cid).toBeDefined()
+    match(result, {
+      onLeft: () => {
+        assert.fail("should not be left")
+      },
+      onRight: (file) => {
+        expect(file.content).toBe("")
+        expect(file.cid).toBe("test-cid") // Should be computed from content
+      },
+    })
   })
 })
 
 describe("saveFile", () => {
   test("successfully saves file content", async () => {
     const electronAPI = createTestElectronAPI({
-      saveFile: async () => ({ success: true }),
+      saveFile: async () => right(undefined),
     })
 
     const result = await saveFile("/test/test.py", "new content", electronAPI)
 
-    expect(result).toBe(true)
+    match(result, {
+      onLeft: () => {
+        assert.fail("should not be left")
+      },
+      onRight: (file) => {
+        expect(file).toBeUndefined()
+      },
+    })
   })
 
   test("returns false when save fails", async () => {
     const electronAPI = createTestElectronAPI({
-      saveFile: async () => ({ success: false, error: "disk full" }),
+      saveFile: async () => left(new FileSystemError({ message: "disk full" })),
     })
 
     const result = await saveFile("/test/test.py", "content", electronAPI)
 
-    expect(result).toBe(false)
+    match(result, {
+      onLeft: (error) => {
+        expect(error.message).toBe("disk full")
+      },
+      onRight: () => {
+        assert.fail("should not be right")
+      },
+    })
   })
 
   test("returns false when save throws error", async () => {
     const electronAPI = createTestElectronAPI({
-      saveFile: async () => {
-        throw new Error("permission denied")
-      },
+      saveFile: async () =>
+        left(new FileSystemError({ message: "permission denied" })),
     })
 
     const result = await saveFile("/protected/file.py", "content", electronAPI)
 
-    expect(result).toBe(false)
+    match(result, {
+      onLeft: (error) => {
+        expect(error.message).toBe("permission denied")
+      },
+      onRight: () => {
+        assert.fail("should not be right")
+      },
+    })
   })
 
   test("handles empty content", async () => {
     const electronAPI = createTestElectronAPI({
-      saveFile: async () => ({ success: true }),
+      saveFile: async () => right(undefined),
     })
 
     const result = await saveFile("/test/empty.py", "", electronAPI)
 
-    expect(result).toBe(true)
+    match(result, {
+      onLeft: (error) => {
+        assert.fail(error.message)
+      },
+      onRight: (file) => {
+        expect(file).toBeUndefined()
+      },
+    })
   })
 })
 

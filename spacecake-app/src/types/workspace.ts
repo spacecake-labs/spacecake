@@ -48,7 +48,6 @@ export type File = FileTreeItem & {
   kind: "file"
   etag: ETag
   fileType: FileType
-  cid: string // Always present - ZERO_HASH for new files, actual hash for changed files
 }
 
 export type FileContent = File & { content: string }

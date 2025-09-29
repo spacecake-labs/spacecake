@@ -12,6 +12,7 @@ import {
 import { Schema } from "effect"
 import { useSetAtom } from "jotai"
 
+import { match } from "@/types/adt"
 import { ViewKindSchema } from "@/types/lexical"
 import { editorStateAtom, fileContentAtom } from "@/lib/atoms/atoms"
 import { createEditorConfigFromContent } from "@/lib/editor"
@@ -36,29 +37,30 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
     if (!filePath.startsWith(workspacePath)) {
       throw new Error("file not in workspace")
     }
+    const finalView = determineView(filePath, view)
     const file = await readFile(filePath)
 
-    if (!file) {
-      // file not found, redirect to workspace index and let it handle cleanup
-      throw redirect({
-        to: "/w/$workspaceId",
-        params: { workspaceId: params.workspaceId },
-        search: { notFoundFilePath: filePath },
-      })
-    }
-
-    // Determine the final view using centralized logic
-    const finalView = determineView(filePath, view)
-
-    return {
-      workspace: {
-        path: workspacePath,
-        name: workspacePath.split("/").pop() || "spacecake",
+    return match(file, {
+      onLeft: (error) => {
+        console.error("failed to read file:", error)
+        throw redirect({
+          to: "/w/$workspaceId",
+          params: { workspaceId: params.workspaceId },
+          search: { notFoundFilePath: filePath },
+        })
       },
-      filePath,
-      file,
-      view: finalView,
-    }
+      onRight: (file) => {
+        return {
+          workspace: {
+            path: workspacePath,
+            name: workspacePath.split("/").pop() || "spacecake",
+          },
+          filePath,
+          file,
+          view: finalView,
+        }
+      },
+    })
   },
   pendingComponent: () => (
     <div className="p-2 text-xs text-muted-foreground">loading file…</div>
