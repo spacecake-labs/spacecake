@@ -3,7 +3,8 @@ import path from "node:path"
 import { buildCSPString } from "@/csp"
 import { registerIpcHandlers } from "@/main-process/ipc-handlers"
 import { watcherService } from "@/main-process/watcher"
-import { FileSystem } from "@effect/platform"
+import { Ipc } from "@/services/ipc"
+import { FileSystem as EffectFileSystem } from "@effect/platform"
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
 import * as ParcelWatcher from "@effect/platform-node/NodeFileSystem/ParcelWatcher"
 import { Effect, Layer } from "effect"
@@ -74,12 +75,20 @@ const createWindow = () => {
   }
 }
 
-const AppLive = NodeFileSystem.layer.pipe(Layer.provide(ParcelWatcher.layer))
+// The existing layer for old functionality that is not yet migrated
+const OldStuffLive = NodeFileSystem.layer.pipe(
+  Layer.provide(ParcelWatcher.layer)
+)
 
-// The main program effect, which requires FileSystem
+// The final composed layer for the whole app.
+// Layer.merge combines independent layers.
+const AppLive = Layer.merge(Ipc.Default, OldStuffLive)
+
+// --- Main Program
 const program = Effect.gen(function* (_) {
-  const runtime = yield* _(Effect.runtime<FileSystem.FileSystem>())
-
+  // The new IPC handlers are registered automatically when the NewServicesLive layer is used.
+  // We still need to register the old handlers for now.
+  const runtime = yield* _(Effect.runtime<EffectFileSystem.FileSystem>())
   registerIpcHandlers(runtime)
 
   yield* _(Effect.promise(() => app.whenReady()))
@@ -90,7 +99,8 @@ const program = Effect.gen(function* (_) {
 
   createWindow()
 
-  yield* _(Effect.forkDaemon(watcherService.pipe(Effect.provide(AppLive))))
+  // The watcher service still needs its specific layer context
+  yield* _(Effect.forkDaemon(watcherService.pipe(Effect.provide(OldStuffLive))))
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -107,6 +117,7 @@ const program = Effect.gen(function* (_) {
   yield* _(Effect.never)
 })
 
+// --- Main Execution
 // A separate effect that provides the services and handles errors
 const main = Effect.scoped(program).pipe(
   Effect.provide(AppLive),

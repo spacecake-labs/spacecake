@@ -1,3 +1,6 @@
+import { FileSystemError } from "@/services/file-system"
+
+import { type Either } from "@/types/adt"
 import type { FileContent, FileTree, FileTreeEvent } from "@/types/workspace"
 
 export interface ElectronAPI {
@@ -9,11 +12,7 @@ export interface ElectronAPI {
     canceled: boolean
     filePath?: string
   }>
-  readFile: (filePath: string) => Promise<{
-    success: boolean
-    file?: FileContent
-    error?: string
-  }>
+  readFile: (filePath: string) => Promise<Either<FileSystemError, FileContent>>
   createFile: (
     filePath: string,
     content?: string
@@ -39,10 +38,7 @@ export interface ElectronAPI {
   saveFile: (
     filePath: string,
     content: string
-  ) => Promise<{
-    success: boolean
-    error?: string
-  }>
+  ) => Promise<Either<FileSystemError, undefined>>
   readWorkspace: (dirPath: string) => Promise<{
     success: boolean
     tree?: FileTree

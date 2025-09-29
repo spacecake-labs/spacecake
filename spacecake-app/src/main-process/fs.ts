@@ -160,7 +160,8 @@ export const saveFileAtomic = (
   content: string
 ): Effect.Effect<void, FsError, FileSystem.FileSystem> =>
   Effect.tryPromise({
-    try: () => writeFileAtomic(filePath, content, { encoding: "utf8" }),
+    try: async () =>
+      await writeFileAtomic(filePath, content, { encoding: "utf8" }),
     catch: (error) =>
       new FsError({
         error,

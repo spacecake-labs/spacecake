@@ -1,52 +1,4 @@
-import type { FileContent } from "@/types/workspace"
-import { fnv1a64Hex } from "@/lib/hash"
-
-// Define the interface for the electron API
-export interface ElectronAPI {
-  showOpenDialog: (options: { properties: string[] }) => Promise<{
-    canceled: boolean
-    filePaths: string[]
-  }>
-  readFile: (filePath: string) => Promise<{
-    success: boolean
-    file?: FileContent
-    error?: string
-  }>
-  saveFile: (
-    filePath: string,
-    content: string
-  ) => Promise<{
-    success: boolean
-    error?: string
-  }>
-  createFile: (
-    filePath: string,
-    content: string
-  ) => Promise<{
-    success: boolean
-    error?: string
-  }>
-  createFolder: (folderPath: string) => Promise<{
-    success: boolean
-    error?: string
-  }>
-  renameFile: (
-    oldPath: string,
-    newPath: string
-  ) => Promise<{
-    success: boolean
-    error?: string
-  }>
-  deleteFile: (filePath: string) => Promise<{
-    success: boolean
-    error?: string
-  }>
-  pathExists: (path: string) => Promise<{
-    success: boolean
-    exists?: boolean
-    error?: string
-  }>
-}
+import type { ElectronAPI } from "@/types/electron"
 
 // Parameterize functions to accept the API as a dependency
 export const openDirectory = async (
@@ -107,28 +59,19 @@ export const createFolder = async (
   }
 }
 
-export const readFile = async (
+export const readFile = (
   filePath: string,
   electronAPI: ElectronAPI = window.electronAPI
-): Promise<FileContent | null> => {
-  try {
-    const result = await electronAPI.readFile(filePath)
+) => {
+  return electronAPI.readFile(filePath)
+}
 
-    if (result.success && result.file) {
-      // compute cid from file content
-      const cid = fnv1a64Hex(result.file.content)
-      return {
-        ...result.file,
-        cid,
-      }
-    } else {
-      console.error("failed to read file:", result.error)
-      return null
-    }
-  } catch (error) {
-    console.error("error reading file:", error)
-    return null
-  }
+export const saveFile = async (
+  filePath: string,
+  content: string,
+  electronAPI: ElectronAPI = window.electronAPI
+) => {
+  return electronAPI.saveFile(filePath, content)
 }
 
 export const renameFile = async (
@@ -166,25 +109,6 @@ export const deleteFile = async (
     }
   } catch (error) {
     console.error("error deleting file:", error)
-    return false
-  }
-}
-
-export const saveFile = async (
-  filePath: string,
-  content: string,
-  electronAPI: ElectronAPI = window.electronAPI
-): Promise<boolean> => {
-  try {
-    const result = await electronAPI.saveFile(filePath, content)
-    if (result.success) {
-      return true
-    } else {
-      console.error("failed to save file:", result.error)
-      return false
-    }
-  } catch (error) {
-    console.error("error saving file:", error)
     return false
   }
 }

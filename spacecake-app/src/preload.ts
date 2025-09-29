@@ -15,9 +15,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   readWorkspace: (dirPath: string) => {
     return ipcRenderer.invoke("read-workspace", dirPath)
   },
-  readFile: (
-    filePath: string
-  ): Promise<{ success: boolean; file?: FileContent; error?: string }> =>
+  readFile: (filePath: string): Promise<FileContent> =>
     ipcRenderer.invoke("read-file", filePath),
   createFile: (filePath: string, content?: string) =>
     ipcRenderer.invoke("create-file", filePath, content),

@@ -109,13 +109,13 @@ export const registerIpcHandlers = (
     return result
   })
 
-  ipcMain.handle("read-file", (_, filePath: string) => {
-    const program = Effect.match(fsEffects.readFile(filePath), {
-      onFailure: (error) => ({ success: false, error: error.message }),
-      onSuccess: (file) => ({ success: true, file }),
-    })
-    return run(program)
-  })
+  // ipcMain.handle("read-file", (_, filePath: string) => {
+  //   const program = Effect.match(fsEffects.readFile(filePath), {
+  //     onFailure: (error) => ({ success: false, error: error.message }),
+  //     onSuccess: (file) => ({ success: true, file }),
+  //   })
+  //   return run(program)
+  // })
 
   ipcMain.handle("create-file", (_, filePath: string, content: string = "") => {
     const program = Effect.match(fsEffects.createFile(filePath, content), {
@@ -141,13 +141,13 @@ export const registerIpcHandlers = (
     return run(program)
   })
 
-  ipcMain.handle("save-file", (_, filePath: string, content: string) => {
-    const program = Effect.match(fsEffects.saveFileAtomic(filePath, content), {
-      onFailure: (error) => ({ success: false, error: error.message }),
-      onSuccess: () => ({ success: true }),
-    })
-    return run(program)
-  })
+  // ipcMain.handle("save-file", (_, filePath: string, content: string) => {
+  //   const program = Effect.match(fsEffects.saveFileAtomic(filePath, content), {
+  //     onFailure: (error) => ({ success: false, error: error.message }),
+  //     onSuccess: () => ({ success: true }),
+  //   })
+  //   return run(program)
+  // })
 
   ipcMain.handle("create-folder", (_, folderPath: string) => {
     Effect.log("ipc: create-folder called for", folderPath)
