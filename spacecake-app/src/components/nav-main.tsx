@@ -27,7 +27,7 @@ import {
   createFolder,
   remove,
   // readDirectory,
-  renameFile,
+  rename,
   saveFile,
 } from "@/lib/fs"
 import { useEditorContext } from "@/hooks/use-filepath"
@@ -221,16 +221,20 @@ export function NavMain({
       return
     }
 
-    try {
-      // Construct new path
-      const pathParts = oldPath.split("/")
-      pathParts.pop() // Remove the old filename
-      const newPath =
-        pathParts.length > 0 ? `${pathParts.join("/")}/${newName}` : newName
+    // Construct new path
+    const pathParts = oldPath.split("/")
+    pathParts.pop() // Remove the old filename
+    const newPath =
+      pathParts.length > 0 ? `${pathParts.join("/")}/${newName}` : newName
 
-      const success = await renameFile(oldPath, newPath)
+    const result = await rename(oldPath, newPath)
 
-      if (success) {
+    match(result, {
+      onLeft: (error) => {
+        console.error(error)
+        setValidationError("error renaming file")
+      },
+      onRight: () => {
         // Update selected file path if it was the renamed file
         if (selectedFilePath === oldPath) {
           handleFileClick(newPath)
@@ -238,13 +242,8 @@ export function NavMain({
 
         setEditingItem(null)
         setValidationError(null)
-      } else {
-        setValidationError("error renaming file")
-      }
-    } catch (error) {
-      console.error("error renaming file:", error)
-      setValidationError("error renaming file")
-    }
+      },
+    })
   }
 
   const handleRenameKeyDown = (e: React.KeyboardEvent) => {

@@ -43,6 +43,14 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         })
       )
     )
+    ipcMain.handle("rename", (_, path: string, newPath: string) =>
+      Effect.runPromise(
+        Effect.match(fs.rename(path, newPath), {
+          onFailure: (error) => left(error),
+          onSuccess: () => right(undefined),
+        })
+      )
+    )
     ipcMain.handle("path-exists", (_, path: string) =>
       Effect.runPromise(
         Effect.match(fs.pathExists(path), {

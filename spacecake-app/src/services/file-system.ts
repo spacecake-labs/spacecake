@@ -88,6 +88,21 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         )
       )
 
+    const rename = (
+      path: string,
+      newPath: string
+    ): Effect.Effect<void, FileSystemError> =>
+      Effect.gen(function* () {
+        return yield* fs.rename(path, newPath)
+      }).pipe(
+        Effect.mapError(
+          (error) =>
+            new FileSystemError({
+              message: `failed to rename path \`${path}\`: ${error}`,
+            })
+        )
+      )
+
     const pathExists = (
       path: string
     ): Effect.Effect<boolean, FileSystemError> =>
@@ -107,6 +122,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
       writeTextFile,
       createFolder,
       remove,
+      rename,
       pathExists,
     } as const
   }),
