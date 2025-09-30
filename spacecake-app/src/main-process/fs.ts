@@ -24,17 +24,6 @@ export class FsError extends Data.TaggedError("FsError")<{
   message: string
 }> {}
 
-// public effects
-export const statEffect = (
-  filePath: string
-): Effect.Effect<FileSystem.File.Info, FsError, FileSystem.FileSystem> =>
-  Effect.flatMap(FileSystem.FileSystem, (fs) => fs.stat(filePath)).pipe(
-    Effect.mapError(
-      (error) =>
-        new FsError({ error, message: `error stating file: ${filePath}` })
-    )
-  )
-
 export const existsEffect = (
   filePath: string
 ): Effect.Effect<boolean, FsError, FileSystem.FileSystem> =>
