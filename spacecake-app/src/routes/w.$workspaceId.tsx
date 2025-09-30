@@ -14,6 +14,7 @@ import {
 } from "@tanstack/react-router"
 import { useSetAtom } from "jotai"
 
+import { match } from "@/types/adt"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { pathExists } from "@/lib/fs"
 import { decodeBase64Url } from "@/lib/utils"
@@ -28,13 +29,18 @@ export const Route = createFileRoute("/w/$workspaceId")({
   loader: async ({ params, context: { db } }) => {
     const workspacePath = decodeBase64Url(params.workspaceId)
     const exists = await pathExists(workspacePath)
-    if (!exists) {
-      // redirect to home with workspace path as search param
-      throw redirect({
-        to: "/",
-        search: { notFoundPath: workspacePath },
-      })
-    }
+    match(exists, {
+      onLeft: (error) => console.error(error),
+      onRight: (exists) => {
+        if (!exists) {
+          // redirect to home with workspace path as search param
+          throw redirect({
+            to: "/",
+            search: { notFoundPath: workspacePath },
+          })
+        }
+      },
+    })
 
     await RuntimeClient.runPromise(
       (await db).upsertWorkspace({

@@ -2,12 +2,7 @@ import path from "path"
 
 import { FileSystem } from "@effect/platform"
 import { NodeFileSystem } from "@effect/platform-node"
-import { Data, Effect, Option } from "effect"
-import writeFileAtomic from "write-file-atomic"
-
-import type { FileContent } from "@/types/workspace"
-import { fnv1a64Hex } from "@/lib/hash"
-import { fileTypeFromFileName } from "@/lib/workspace"
+import { Data, Effect } from "effect"
 
 // layer & runner
 export const FsLive = NodeFileSystem.layer
@@ -31,38 +26,6 @@ export const existsEffect = (
     Effect.mapError(
       (error) =>
         new FsError({ error, message: `error checking exists: ${filePath}` })
-    )
-  )
-
-export const readFile = (
-  filePath: string
-): Effect.Effect<FileContent, FsError, FileSystem.FileSystem> =>
-  Effect.gen(function* (_) {
-    const fs = yield* _(FileSystem.FileSystem)
-    const [contentBuffer, stats] = yield* _(
-      Effect.all([fs.readFile(filePath), fs.stat(filePath)])
-    )
-    const content = new TextDecoder().decode(contentBuffer)
-    const name = path.basename(filePath)
-    return {
-      name,
-      path: filePath,
-      kind: "file" as const,
-      etag: {
-        mtimeMs: Option.getOrElse(
-          Option.map(stats.mtime, (d) => d.getTime()),
-          () => Date.now()
-        ),
-        size: Number(stats.size),
-      },
-      content,
-      fileType: fileTypeFromFileName(name),
-      cid: fnv1a64Hex(content),
-    }
-  }).pipe(
-    Effect.mapError(
-      (error) =>
-        new FsError({ error, message: `Failed to read file ${filePath}` })
     )
   )
 
@@ -143,17 +106,3 @@ export const deleteFile = (
         new FsError({ error, message: `error deleting file: ${filePath}` })
     )
   )
-
-export const saveFileAtomic = (
-  filePath: string,
-  content: string
-): Effect.Effect<void, FsError, FileSystem.FileSystem> =>
-  Effect.tryPromise({
-    try: async () =>
-      await writeFileAtomic(filePath, content, { encoding: "utf8" }),
-    catch: (error) =>
-      new FsError({
-        error,
-        message: `error saving file atomically: ${filePath}`,
-      }),
-  })
