@@ -9,6 +9,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Option, Schema } from "effect"
 import { AlertCircleIcon, FolderOpen, Loader2Icon } from "lucide-react"
 
+import { match } from "@/types/adt"
 import { pathExists } from "@/lib/fs"
 import { useOpenWorkspace } from "@/lib/open-workspace"
 import { encodeBase64Url } from "@/lib/utils"
@@ -30,21 +31,25 @@ export const Route = createFileRoute("/")({
       (await db).selectLastOpenedWorkspace
     )
     if (Option.isSome(lastOpenedWorkspace)) {
-      console.log("index:workspace", lastOpenedWorkspace.value)
       const workspace = lastOpenedWorkspace.value
       const exists = await pathExists(workspace.path)
-      console.log("index:exists", exists)
-      if (exists) {
-        const id = encodeBase64Url(workspace.path)
-        throw redirect({
-          to: "/w/$workspaceId",
-          params: { workspaceId: id },
-        })
-      }
-      return { notFoundPath: Option.some(workspace.path) }
+      return match(exists, {
+        onLeft: (error) => {
+          console.error(error)
+          return { notFoundPath: Option.none() }
+        },
+        onRight: (exists) => {
+          if (exists) {
+            const id = encodeBase64Url(workspace.path)
+            throw redirect({
+              to: "/w/$workspaceId",
+              params: { workspaceId: id },
+            })
+          }
+          return { notFoundPath: Option.some(workspace.path) }
+        },
+      })
     }
-    console.log("index:lastOpenedWorkspace not found")
-
     return { notFoundPath: Option.none() }
   },
 })

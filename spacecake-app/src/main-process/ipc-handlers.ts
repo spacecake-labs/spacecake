@@ -158,12 +158,4 @@ export const registerIpcHandlers = (
     })
     return run(program)
   })
-
-  ipcMain.handle("path-exists", (_, path: string) => {
-    const program = Effect.match(fsEffects.existsEffect(path), {
-      onFailure: (error) => ({ success: false, error: error.message }),
-      onSuccess: (exists) => ({ success: true, exists }),
-    })
-    return run(program)
-  })
 }

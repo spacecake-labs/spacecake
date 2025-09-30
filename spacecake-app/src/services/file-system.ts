@@ -62,7 +62,21 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
           }),
       })
 
-    return { readTextFile, writeTextFile } as const
+    const pathExists = (
+      path: string
+    ): Effect.Effect<boolean, FileSystemError> =>
+      Effect.gen(function* () {
+        return yield* fs.exists(path)
+      }).pipe(
+        Effect.mapError(
+          (error) =>
+            new FileSystemError({
+              message: `failed to check if path exists \`${path}\`: ${error}`,
+            })
+        )
+      )
+
+    return { readTextFile, writeTextFile, pathExists } as const
   }),
 
   dependencies: [NodeFileSystem.layer],

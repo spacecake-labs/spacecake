@@ -9,6 +9,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Schema } from "effect"
 import { AlertCircleIcon, CakeSlice } from "lucide-react"
 
+import { match } from "@/types/adt"
 import type { EditorTab, EditorTabGroup } from "@/types/editor"
 import { EditorLayoutSchema } from "@/types/editor"
 import { pathExists } from "@/lib/fs"
@@ -64,18 +65,25 @@ export const Route = createFileRoute("/w/$workspaceId/")({
           }
 
           const fileExists = await pathExists(activeTab.filePath)
-          if (fileExists) {
-            throw redirect({
-              to: "/w/$workspaceId/f/$filePath",
-              params: {
-                workspaceId: params.workspaceId,
-                filePath: encodeBase64Url(activeTab.filePath),
-              },
-            })
-          } else {
-            // file no longer exists, return the file path so we can show the alert
-            return { kind: "notFound", filePath: activeTab.filePath }
-          }
+
+          return match(fileExists, {
+            onLeft: (error) => {
+              console.error(error)
+              return { kind: "notFound", filePath: activeTab.filePath }
+            },
+            onRight: (exists) => {
+              if (exists) {
+                throw redirect({
+                  to: "/w/$workspaceId/f/$filePath",
+                  params: {
+                    workspaceId: params.workspaceId,
+                    filePath: encodeBase64Url(activeTab.filePath),
+                  },
+                })
+              }
+              return { kind: "notFound", filePath: activeTab.filePath }
+            },
+          })
         }
       }
     }

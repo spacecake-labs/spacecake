@@ -27,6 +27,14 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         })
       )
     )
+    ipcMain.handle("path-exists", (_, path: string) =>
+      Effect.runPromise(
+        Effect.match(fs.pathExists(path), {
+          onFailure: (error) => left(error),
+          onSuccess: (exists) => right(exists),
+        })
+      )
+    )
 
     return {}
   }),

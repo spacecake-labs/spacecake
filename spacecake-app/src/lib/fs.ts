@@ -62,17 +62,13 @@ export const createFolder = async (
 export const readFile = (
   filePath: string,
   electronAPI: ElectronAPI = window.electronAPI
-) => {
-  return electronAPI.readFile(filePath)
-}
+) => electronAPI.readFile(filePath)
 
-export const saveFile = async (
+export const saveFile = (
   filePath: string,
   content: string,
   electronAPI: ElectronAPI = window.electronAPI
-) => {
-  return electronAPI.saveFile(filePath, content)
-}
+) => electronAPI.saveFile(filePath, content)
 
 export const renameFile = async (
   oldPath: string,
@@ -113,20 +109,7 @@ export const deleteFile = async (
   }
 }
 
-export const pathExists = async (
+export const pathExists = (
   path: string,
   electronAPI: ElectronAPI = window.electronAPI
-): Promise<boolean> => {
-  try {
-    const result = await electronAPI.pathExists(path)
-    if (result.success) {
-      return result.exists ?? false
-    } else {
-      console.error("failed to check path exists:", result.error)
-      return false
-    }
-  } catch (error) {
-    console.error("error checking path exists:", error)
-    return false
-  }
-}
+) => electronAPI.pathExists(path)
