@@ -3,7 +3,7 @@ import path from "path"
 import { commandQueue } from "@/main-process/watcher"
 import { FileSystem } from "@effect/platform"
 import { Effect, Option as EffectOption, Runtime } from "effect"
-import { BrowserWindow, dialog, ipcMain } from "electron"
+import { ipcMain } from "electron"
 
 import type { File, FileTree, Folder } from "@/types/workspace"
 import { ZERO_HASH } from "@/types/workspace"
@@ -90,21 +90,5 @@ export const registerIpcHandlers = (
       return { success: true }
     })
     return run(program)
-  })
-
-  ipcMain.handle("show-open-dialog", async (event, options) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (win) {
-      const result = await dialog.showOpenDialog(win, options)
-      return result
-    } else {
-      const result = await dialog.showOpenDialog(options)
-      return result
-    }
-  })
-
-  ipcMain.handle("show-save-dialog", async (event, options) => {
-    const result = await dialog.showSaveDialog(options)
-    return result
   })
 }

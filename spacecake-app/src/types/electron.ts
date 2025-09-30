@@ -8,10 +8,7 @@ export interface ElectronAPI {
     canceled: boolean
     filePaths: string[]
   }>
-  showSaveDialog: (options: unknown) => Promise<{
-    canceled: boolean
-    filePath?: string
-  }>
+
   readFile: (filePath: string) => Promise<Either<FileSystemError, FileContent>>
 
   createFolder: (

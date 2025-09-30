@@ -12,7 +12,6 @@ const createTestElectronAPI = (
   overrides: Partial<ElectronAPI> = {}
 ): ElectronAPI => ({
   showOpenDialog: async () => ({ canceled: false, filePaths: ["/test/path"] }),
-  showSaveDialog: async () => ({ canceled: false, filePath: "/test/save" }),
   readFile: async () => right(createTestFileContent()),
   saveFile: async () => right(undefined),
   createFolder: async () => right(undefined),
