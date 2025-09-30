@@ -10,8 +10,6 @@ import type { FileContent, FileTreeEvent } from "@/types/workspace"
 contextBridge.exposeInMainWorld("electronAPI", {
   showOpenDialog: (options: unknown) =>
     ipcRenderer.invoke("show-open-dialog", options),
-  showSaveDialog: (options: unknown) =>
-    ipcRenderer.invoke("show-save-dialog", options),
   readWorkspace: (dirPath: string) => {
     return ipcRenderer.invoke("read-workspace", dirPath)
   },

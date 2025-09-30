@@ -1,6 +1,6 @@
 import { FileSystem, type FileSystemError } from "@/services/file-system"
 import { Effect } from "effect"
-import { ipcMain } from "electron"
+import { BrowserWindow, dialog, ipcMain } from "electron"
 
 import { left, right, type Either } from "@/types/adt"
 import { FileContent } from "@/types/workspace"
@@ -59,6 +59,14 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         })
       )
     )
+    ipcMain.handle("show-open-dialog", (event, options) => {
+      const win = BrowserWindow.fromWebContents(event.sender)
+      if (win) {
+        return dialog.showOpenDialog(win, options)
+      } else {
+        return dialog.showOpenDialog(options)
+      }
+    })
 
     return {}
   }),
