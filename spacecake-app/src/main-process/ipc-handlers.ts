@@ -109,22 +109,6 @@ export const registerIpcHandlers = (
     return result
   })
 
-  // ipcMain.handle("read-file", (_, filePath: string) => {
-  //   const program = Effect.match(fsEffects.readFile(filePath), {
-  //     onFailure: (error) => ({ success: false, error: error.message }),
-  //     onSuccess: (file) => ({ success: true, file }),
-  //   })
-  //   return run(program)
-  // })
-
-  ipcMain.handle("create-file", (_, filePath: string, content: string = "") => {
-    const program = Effect.match(fsEffects.createFile(filePath, content), {
-      onFailure: (error) => ({ success: false, error: error.message }),
-      onSuccess: () => ({ success: true }),
-    })
-    return run(program)
-  })
-
   ipcMain.handle("rename-file", (_, oldPath: string, newPath: string) => {
     const program = Effect.match(fsEffects.renameFile(oldPath, newPath), {
       onFailure: (error) => ({ success: false, error: error.message }),

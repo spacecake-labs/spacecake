@@ -1,28 +1,7 @@
 import * as fs from "@/main-process/fs"
 import { FileSystem } from "@effect/platform"
 import { Effect, Either } from "effect"
-import { describe, expect, test, vi } from "vitest"
-
-describe("createFile", () => {
-  test("calls fs.writeFile with correct arguments", async () => {
-    const filePath = "/test/file.txt"
-    const content = "hello world"
-    const mockWriteFile = vi.fn(() => Effect.succeed(undefined))
-
-    const program = fs.createFile(filePath, content)
-
-    const mockLayer = FileSystem.layerNoop({
-      writeFile: mockWriteFile,
-    })
-
-    await Effect.runPromise(Effect.provide(program, mockLayer))
-
-    expect(mockWriteFile).toHaveBeenCalledWith(
-      filePath,
-      new TextEncoder().encode(content)
-    )
-  })
-})
+import { describe, expect, test } from "vitest"
 
 describe("renameFile", () => {
   test("throws error when new path already exists", async () => {

@@ -13,13 +13,7 @@ export interface ElectronAPI {
     filePath?: string
   }>
   readFile: (filePath: string) => Promise<Either<FileSystemError, FileContent>>
-  createFile: (
-    filePath: string,
-    content?: string
-  ) => Promise<{
-    success: boolean
-    error?: string
-  }>
+
   createFolder: (folderPath: string) => Promise<{
     success: boolean
     error?: string

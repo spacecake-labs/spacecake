@@ -15,7 +15,6 @@ const createTestElectronAPI = (
   showSaveDialog: async () => ({ canceled: false, filePath: "/test/save" }),
   readFile: async () => right(createTestFileContent()),
   saveFile: async () => right(undefined),
-  createFile: async () => ({ success: true }),
   createFolder: async () => ({ success: true }),
   renameFile: async () => ({ success: true }),
   deleteFile: async () => ({ success: true }),
