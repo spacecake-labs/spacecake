@@ -23,11 +23,11 @@ import {
 } from "@/lib/atoms/atoms"
 import { sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import {
-  createFile,
   createFolder,
   deleteFile,
   // readDirectory,
   renameFile,
+  saveFile,
 } from "@/lib/fs"
 import { useEditorContext } from "@/hooks/use-filepath"
 import { Button } from "@/components/ui/button"
@@ -90,7 +90,7 @@ export function NavMain({
   const handleCreateFile = async (parentPath: string) => {
     try {
       const filePath = `${parentPath}/${contextItemName.trim()}`
-      const success = await createFile(filePath, "")
+      const success = await saveFile(filePath, "")
 
       if (success) {
         // Clear the creation state to hide the input field

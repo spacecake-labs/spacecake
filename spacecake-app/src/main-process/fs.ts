@@ -29,19 +29,6 @@ export const existsEffect = (
     )
   )
 
-export const createFile = (
-  filePath: string,
-  content: string = ""
-): Effect.Effect<void, FsError, FileSystem.FileSystem> =>
-  Effect.flatMap(FileSystem.FileSystem, (fs) =>
-    fs.writeFile(filePath, new TextEncoder().encode(content))
-  ).pipe(
-    Effect.mapError(
-      (error) =>
-        new FsError({ error, message: `error creating file: ${filePath}` })
-    )
-  )
-
 export const createFolder = (
   folderPath: string
 ): Effect.Effect<void, FsError, FileSystem.FileSystem> =>

@@ -17,8 +17,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   readFile: (filePath: string): Promise<FileContent> =>
     ipcRenderer.invoke("read-file", filePath),
-  createFile: (filePath: string, content?: string) =>
-    ipcRenderer.invoke("create-file", filePath, content),
+
   createFolder: (folderPath: string) =>
     ipcRenderer.invoke("create-folder", folderPath),
   renameFile: (oldPath: string, newPath: string) =>
