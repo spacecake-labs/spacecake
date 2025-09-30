@@ -35,25 +35,11 @@ export const saveFile = (
   electronAPI: ElectronAPI = window.electronAPI
 ) => electronAPI.saveFile(filePath, content)
 
-export const renameFile = async (
-  oldPath: string,
+export const rename = (
+  path: string,
   newPath: string,
   electronAPI: ElectronAPI = window.electronAPI
-): Promise<boolean> => {
-  try {
-    const result = await electronAPI.renameFile(oldPath, newPath)
-
-    if (result.success) {
-      return true
-    } else {
-      console.error("failed to rename file:", result.error)
-      return false
-    }
-  } catch (error) {
-    console.error("error renaming file:", error)
-    return false
-  }
-}
+) => electronAPI.rename(path, newPath)
 
 export const remove = (
   filePath: string,

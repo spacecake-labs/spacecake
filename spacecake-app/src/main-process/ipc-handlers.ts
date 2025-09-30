@@ -1,6 +1,5 @@
 import path from "path"
 
-import * as fsEffects from "@/main-process/fs"
 import { commandQueue } from "@/main-process/watcher"
 import { FileSystem } from "@effect/platform"
 import { Effect, Option as EffectOption, Runtime } from "effect"
@@ -107,13 +106,5 @@ export const registerIpcHandlers = (
   ipcMain.handle("show-save-dialog", async (event, options) => {
     const result = await dialog.showSaveDialog(options)
     return result
-  })
-
-  ipcMain.handle("rename-file", (_, oldPath: string, newPath: string) => {
-    const program = Effect.match(fsEffects.renameFile(oldPath, newPath), {
-      onFailure: (error) => ({ success: false, error: error.message }),
-      onSuccess: () => ({ success: true }),
-    })
-    return run(program)
   })
 }

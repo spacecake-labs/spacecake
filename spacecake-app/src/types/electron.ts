@@ -17,13 +17,10 @@ export interface ElectronAPI {
   createFolder: (
     folderPath: string
   ) => Promise<Either<FileSystemError, undefined>>
-  renameFile: (
-    oldPath: string,
+  rename: (
+    path: string,
     newPath: string
-  ) => Promise<{
-    success: boolean
-    error?: string
-  }>
+  ) => Promise<Either<FileSystemError, undefined>>
   remove: (
     path: string,
     recursive?: boolean
