@@ -54,21 +54,3 @@ export const renameFile = (
         })
     )
   )
-
-export const deleteFile = (
-  filePath: string
-): Effect.Effect<void, FsError, FileSystem.FileSystem> =>
-  Effect.gen(function* (_) {
-    const fs = yield* _(FileSystem.FileSystem)
-    const stats = yield* _(fs.stat(filePath))
-    if (stats.type === "Directory") {
-      return yield* _(fs.remove(filePath, { recursive: true }))
-    } else {
-      return yield* _(fs.remove(filePath))
-    }
-  }).pipe(
-    Effect.mapError(
-      (error) =>
-        new FsError({ error, message: `error deleting file: ${filePath}` })
-    )
-  )

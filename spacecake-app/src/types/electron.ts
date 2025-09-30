@@ -24,10 +24,10 @@ export interface ElectronAPI {
     success: boolean
     error?: string
   }>
-  deleteFile: (filePath: string) => Promise<{
-    success: boolean
-    error?: string
-  }>
+  remove: (
+    path: string,
+    recursive?: boolean
+  ) => Promise<Either<FileSystemError, undefined>>
   saveFile: (
     filePath: string,
     content: string
