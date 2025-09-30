@@ -124,22 +124,4 @@ export const registerIpcHandlers = (
     })
     return run(program)
   })
-
-  // ipcMain.handle("save-file", (_, filePath: string, content: string) => {
-  //   const program = Effect.match(fsEffects.saveFileAtomic(filePath, content), {
-  //     onFailure: (error) => ({ success: false, error: error.message }),
-  //     onSuccess: () => ({ success: true }),
-  //   })
-  //   return run(program)
-  // })
-
-  ipcMain.handle("create-folder", (_, folderPath: string) => {
-    Effect.log("ipc: create-folder called for", folderPath)
-
-    const program = Effect.match(fsEffects.createFolder(folderPath), {
-      onFailure: (error) => ({ success: false, error: error.message }),
-      onSuccess: () => ({ success: true }),
-    })
-    return run(program)
-  })
 }

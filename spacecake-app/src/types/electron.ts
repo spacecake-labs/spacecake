@@ -14,10 +14,9 @@ export interface ElectronAPI {
   }>
   readFile: (filePath: string) => Promise<Either<FileSystemError, FileContent>>
 
-  createFolder: (folderPath: string) => Promise<{
-    success: boolean
-    error?: string
-  }>
+  createFolder: (
+    folderPath: string
+  ) => Promise<Either<FileSystemError, undefined>>
   renameFile: (
     oldPath: string,
     newPath: string

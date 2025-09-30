@@ -27,6 +27,15 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         })
       )
     )
+    ipcMain.handle("create-folder", (_, folderPath: string) =>
+      Effect.runPromise(
+        Effect.match(fs.createFolder(folderPath), {
+          onFailure: (error) => left(error),
+          onSuccess: () => right(undefined),
+        })
+      )
+    )
+
     ipcMain.handle("path-exists", (_, path: string) =>
       Effect.runPromise(
         Effect.match(fs.pathExists(path), {

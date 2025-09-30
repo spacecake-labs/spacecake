@@ -1,5 +1,3 @@
-import path from "path"
-
 import { FileSystem } from "@effect/platform"
 import { NodeFileSystem } from "@effect/platform-node"
 import { Data, Effect } from "effect"
@@ -28,25 +26,6 @@ export const existsEffect = (
         new FsError({ error, message: `error checking exists: ${filePath}` })
     )
   )
-
-export const createFolder = (
-  folderPath: string
-): Effect.Effect<void, FsError, FileSystem.FileSystem> =>
-  Effect.flatMap(FileSystem.FileSystem, (fs) =>
-    fs.makeDirectory(folderPath, { recursive: true })
-  ).pipe(
-    Effect.mapError(
-      (error) =>
-        new FsError({ error, message: `error creating folder: ${folderPath}` })
-    )
-  )
-
-export const ensureSpacecakeFolder = (
-  workspacePath: string
-): Effect.Effect<void, FsError, FileSystem.FileSystem> => {
-  const spacecakePath = path.join(workspacePath, ".spacecake")
-  return createFolder(spacecakePath)
-}
 
 export const renameFile = (
   oldPath: string,
