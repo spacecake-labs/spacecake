@@ -55,24 +55,11 @@ export const renameFile = async (
   }
 }
 
-export const deleteFile = async (
+export const remove = (
   filePath: string,
+  recursive?: boolean,
   electronAPI: ElectronAPI = window.electronAPI
-): Promise<boolean> => {
-  try {
-    const result = await electronAPI.deleteFile(filePath)
-
-    if (result.success) {
-      return true
-    } else {
-      console.error("failed to delete file:", result.error)
-      return false
-    }
-  } catch (error) {
-    console.error("error deleting file:", error)
-    return false
-  }
-}
+) => electronAPI.remove(filePath, recursive)
 
 export const pathExists = (
   path: string,

@@ -7,6 +7,7 @@ import {
 import { useAtom, useAtomValue } from "jotai"
 import { FileWarning, Loader2Icon } from "lucide-react"
 
+import { match } from "@/types/adt"
 import type { EditorLayout } from "@/types/editor"
 import type {
   ExpandedFolders,
@@ -24,7 +25,7 @@ import {
 import { sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import {
   createFolder,
-  deleteFile,
+  remove,
   // readDirectory,
   renameFile,
   saveFile,
@@ -281,11 +282,20 @@ export function NavMain({
     if (!deletionState.item || !workspace?.path) return
 
     setDeletionState((prev) => ({ ...prev, isDeleting: true }))
-    try {
-      const itemToDelete = deletionState.item
-      const success = await deleteFile(itemToDelete.path)
 
-      if (success) {
+    const itemToDelete = deletionState.item
+    const result = await remove(
+      itemToDelete.path,
+      deletionState.item.kind === "folder"
+    )
+
+    match(result, {
+      onLeft: (error) => {
+        console.error(error)
+        // Reset deleting state on failure but keep dialog open
+        setDeletionState((prev) => ({ ...prev, isDeleting: false }))
+      },
+      onRight: () => {
         // if the deleted file was the currently selected one, clear the layout
         if (selectedFilePath === itemToDelete.path) {
           const emptyLayout: EditorLayout = {
@@ -308,16 +318,8 @@ export function NavMain({
           isOpen: false,
           isDeleting: false,
         })
-      } else {
-        console.error("failed to delete file")
-        // Reset deleting state on failure but keep dialog open
-        setDeletionState((prev) => ({ ...prev, isDeleting: false }))
-      }
-    } catch (error) {
-      console.error("error deleting file:", error)
-      // Reset deleting state on error but keep dialog open
-      setDeletionState((prev) => ({ ...prev, isDeleting: false }))
-    }
+      },
+    })
   }
 
   const handleCancelDelete = () => {

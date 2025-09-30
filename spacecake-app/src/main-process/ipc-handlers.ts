@@ -116,12 +116,4 @@ export const registerIpcHandlers = (
     })
     return run(program)
   })
-
-  ipcMain.handle("delete-file", (_, filePath: string) => {
-    const program = Effect.match(fsEffects.deleteFile(filePath), {
-      onFailure: (error) => ({ success: false, error: error.message }),
-      onSuccess: () => ({ success: true }),
-    })
-    return run(program)
-  })
 }

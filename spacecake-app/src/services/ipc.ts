@@ -35,7 +35,14 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         })
       )
     )
-
+    ipcMain.handle("remove", (_, path: string, recursive?: boolean) =>
+      Effect.runPromise(
+        Effect.match(fs.remove(path, recursive), {
+          onFailure: (error) => left(error),
+          onSuccess: () => right(undefined),
+        })
+      )
+    )
     ipcMain.handle("path-exists", (_, path: string) =>
       Effect.runPromise(
         Effect.match(fs.pathExists(path), {

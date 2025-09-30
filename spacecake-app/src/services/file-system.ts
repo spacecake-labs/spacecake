@@ -76,6 +76,18 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         )
       )
 
+    const remove = (path: string, recursive?: boolean) =>
+      Effect.gen(function* (_) {
+        return yield* fs.remove(path, { recursive: recursive })
+      }).pipe(
+        Effect.mapError(
+          (error) =>
+            new FileSystemError({
+              message: `error deleting file \`${path}\`: ${error}`,
+            })
+        )
+      )
+
     const pathExists = (
       path: string
     ): Effect.Effect<boolean, FileSystemError> =>
@@ -90,7 +102,13 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         )
       )
 
-    return { readTextFile, writeTextFile, createFolder, pathExists } as const
+    return {
+      readTextFile,
+      writeTextFile,
+      createFolder,
+      remove,
+      pathExists,
+    } as const
   }),
 
   dependencies: [NodeFileSystem.layer],
