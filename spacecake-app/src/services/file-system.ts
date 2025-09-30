@@ -62,6 +62,20 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
           }),
       })
 
+    const createFolder = (
+      folderPath: string
+    ): Effect.Effect<void, FileSystemError> =>
+      Effect.gen(function* () {
+        return yield* fs.makeDirectory(folderPath)
+      }).pipe(
+        Effect.mapError(
+          (error) =>
+            new FileSystemError({
+              message: `failed to create folder \`${folderPath}\`: ${error}`,
+            })
+        )
+      )
+
     const pathExists = (
       path: string
     ): Effect.Effect<boolean, FileSystemError> =>
@@ -76,7 +90,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         )
       )
 
-    return { readTextFile, writeTextFile, pathExists } as const
+    return { readTextFile, writeTextFile, createFolder, pathExists } as const
   }),
 
   dependencies: [NodeFileSystem.layer],

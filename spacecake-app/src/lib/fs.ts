@@ -22,21 +22,7 @@ export const openDirectory = async (
 export const createFolder = async (
   folderPath: string,
   electronAPI: ElectronAPI = window.electronAPI
-): Promise<boolean> => {
-  try {
-    const result = await electronAPI.createFolder(folderPath)
-
-    if (result.success) {
-      return true
-    } else {
-      console.error("failed to create folder:", result.error)
-      return false
-    }
-  } catch (error) {
-    console.error("error creating folder:", error)
-    return false
-  }
-}
+) => await electronAPI.createFolder(folderPath)
 
 export const readFile = (
   filePath: string,
