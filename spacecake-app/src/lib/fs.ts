@@ -19,10 +19,10 @@ export const openDirectory = async (
   }
 }
 
-export const createFolder = async (
+export const createFolder = (
   folderPath: string,
   electronAPI: ElectronAPI = window.electronAPI
-) => await electronAPI.createFolder(folderPath)
+) => electronAPI.createFolder(folderPath)
 
 export const readFile = (
   filePath: string,
@@ -51,3 +51,18 @@ export const pathExists = (
   path: string,
   electronAPI: ElectronAPI = window.electronAPI
 ) => electronAPI.pathExists(path)
+
+export const readDirectory = (
+  path: string,
+  electronAPI: ElectronAPI = window.electronAPI
+) => electronAPI.readDirectory(path)
+
+export const startWatcher = (
+  path: string,
+  electronAPI: ElectronAPI = window.electronAPI
+) => electronAPI.startWatcher(path)
+
+export const stopWatcher = (
+  path: string,
+  electronAPI: ElectronAPI = window.electronAPI
+) => electronAPI.stopWatcher(path)

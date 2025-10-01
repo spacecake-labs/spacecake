@@ -16,7 +16,9 @@ import { useSetAtom } from "jotai"
 
 import { match } from "@/types/adt"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
-import { pathExists } from "@/lib/fs"
+import { setFileTreeAtom } from "@/lib/atoms/file-tree"
+import { pathExists, readDirectory } from "@/lib/fs"
+import { store } from "@/lib/store"
 import { decodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
 import { useEditorContext } from "@/hooks/use-filepath"
@@ -48,6 +50,14 @@ export const Route = createFileRoute("/w/$workspaceId")({
         is_open: true,
       })
     )
+
+    const result = await readDirectory(workspacePath)
+    match(result, {
+      onLeft: (error) => console.error(error),
+      onRight: (tree) => {
+        store.set(setFileTreeAtom, tree)
+      },
+    })
 
     return {
       workspace: {

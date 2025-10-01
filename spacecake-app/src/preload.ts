@@ -10,8 +10,8 @@ import type { FileContent, FileTreeEvent } from "@/types/workspace"
 contextBridge.exposeInMainWorld("electronAPI", {
   showOpenDialog: (options: unknown) =>
     ipcRenderer.invoke("show-open-dialog", options),
-  readWorkspace: (dirPath: string) => {
-    return ipcRenderer.invoke("read-workspace", dirPath)
+  readDirectory: (dirPath: string) => {
+    return ipcRenderer.invoke("read-directory", dirPath)
   },
   readFile: (filePath: string): Promise<FileContent> =>
     ipcRenderer.invoke("read-file", filePath),
@@ -25,8 +25,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   saveFile: (filePath: string, content: string) =>
     ipcRenderer.invoke("save-file", filePath, content),
   platform: process.platform,
-  stopWatching: (workspacePath: string) =>
-    ipcRenderer.invoke("stop-watching", workspacePath),
+  startWatcher: (path: string) => ipcRenderer.invoke("start-watcher", path),
+  stopWatcher: (workspacePath: string) =>
+    ipcRenderer.invoke("stop-watcher", workspacePath),
   onFileEvent: (handler: (evt: FileTreeEvent) => void) => {
     const listener = (
       _e: Electron.IpcRendererEvent,

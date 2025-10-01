@@ -99,8 +99,8 @@ function convertToFileTreeEvent(
 // --- Watcher Service Definition ---
 
 export type WatcherCommand =
-  | { readonly _tag: "start"; readonly path: string }
-  | { readonly _tag: "stop"; readonly path: string }
+  | { readonly _tag: "Start"; readonly path: string }
+  | { readonly _tag: "Stop"; readonly path: string }
 
 export const commandQueue = Effect.runSync(Queue.unbounded<WatcherCommand>())
 
@@ -117,7 +117,7 @@ export const watcherService = Effect.gen(function* (_) {
   const processCommands = Queue.take(commandQueue).pipe(
     Effect.flatMap((command) =>
       Match.value(command).pipe(
-        Match.when({ _tag: "start" }, ({ path }) =>
+        Match.when({ _tag: "Start" }, ({ path }) =>
           Effect.gen(function* (_) {
             if (runningWatchers.has(path)) {
               return yield* _(Effect.log(`watcher for ${path} already running`))
@@ -145,7 +145,7 @@ export const watcherService = Effect.gen(function* (_) {
             runningWatchers.set(path, fiber)
           })
         ),
-        Match.when({ _tag: "stop" }, ({ path }) =>
+        Match.when({ _tag: "Stop" }, ({ path }) =>
           Effect.gen(function* (_) {
             const fiber = runningWatchers.get(path)
             if (!fiber) {
