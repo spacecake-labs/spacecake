@@ -5,7 +5,7 @@ import type { LexicalEditor } from "lexical"
 
 import type { FileTreeEvent, WorkspaceInfo } from "@/types/workspace"
 import { fileContentAtom } from "@/lib/atoms/atoms"
-import { fileTreeEventAtom } from "@/lib/atoms/file-tree"
+import { fileTreeEventAtom, sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import { handleFileEvent } from "@/lib/file-event-handler"
 
 export const useFileEventHandler = (workspace: WorkspaceInfo) => {
@@ -19,6 +19,7 @@ export const useFileEventHandler = (workspace: WorkspaceInfo) => {
       const storedPrefs = localStorageService.get("spacecake-view-preferences")
       const userViewPreferences = storedPrefs ? JSON.parse(storedPrefs) : {}
       const currentFileContent = store.get(fileContentAtom)
+      const fileTree = store.get(sortedFileTreeAtom)
 
       // Get current path from the store instead of context to avoid dependency issues
       // We can derive this from the current file content
@@ -31,7 +32,8 @@ export const useFileEventHandler = (workspace: WorkspaceInfo) => {
         userViewPreferences,
         setFileTreeEvent,
         currentFileContent,
-        workspace
+        workspace,
+        fileTree
       )
     },
     [setFileTreeEvent, store, workspace] // Stable dependencies only

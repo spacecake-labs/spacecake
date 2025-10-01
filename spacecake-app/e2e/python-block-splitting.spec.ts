@@ -134,7 +134,6 @@ def my_function():
 
     await expect(window.getByText("class MyClass:")).toBeVisible()
 
-    // await window.waitForTimeout(3000)
     await window.keyboard.press("ControlOrMeta+s", { delay: 300 })
 
     const secondCodeblock = editor.locator('[data-block-id="myclass-class"]')
