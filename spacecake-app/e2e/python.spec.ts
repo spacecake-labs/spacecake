@@ -411,9 +411,6 @@ test.describe("python e2e", () => {
     // ensure second block (class Person / dataclass label present) is visible
     await expect(window.getByText("Person").first()).toBeVisible()
 
-    // remove when a more robust solution is in place
-    await window.waitForTimeout(5000)
-
     // overwrite core.py on disk: add a comment at the start of the dataclass block
     const original = fs.readFileSync(destPath, "utf8")
     const insertion = "# updated: hello from watcher\n"

@@ -244,9 +244,6 @@ test.describe("spacecake app", () => {
 
     await window.getByRole("button", { name: "open folder" }).click()
 
-    await window.waitForTimeout(3000)
-
-    // wait for the workspace to load
     await expect(
       window.getByRole("button", { name: "create file or folder" })
     ).toBeVisible()

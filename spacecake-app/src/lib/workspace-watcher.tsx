@@ -36,9 +36,9 @@ export function WorkspaceWatcher({ workspace }: WorkspaceWatcherProps) {
           onLeft: (error) => console.error(error),
           onRight: () => {
             // set up file event listener for ongoing changes
-            off = window.electronAPI.onFileEvent((event) =>
+            off = window.electronAPI.onFileEvent((event) => {
               handleEvent(event, editorRef.current)
-            )
+            })
             isListeningRef.current = true
             currentWorkspaceRef.current = workspace.path
           },
