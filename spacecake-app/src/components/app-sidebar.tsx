@@ -68,7 +68,7 @@ export function AppSidebar({
                       }
                     : undefined
                 }
-                preload="intent"
+                // preload="intent"
               >
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <CakeSlice className="size-4" />
