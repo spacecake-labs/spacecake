@@ -3,7 +3,6 @@
  * If a valid workspace path is found in storage, it redirects to the workspace route.
  */
 
-import { RootLayout } from "@/layout"
 import { RuntimeClient } from "@/services/runtime-client"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Option, Schema } from "effect"
@@ -62,19 +61,11 @@ function Index() {
   const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
 
   return (
-    <RootLayout
-      workspace={{
-        path: "",
-        name: "workspace",
-      }}
-      selectedFilePath={null}
-      headerRightContent={
-        <div className="px-4">
-          <ModeToggle />
-        </div>
-      }
-    >
-      <div className="flex flex-col items-center justify-center h-full space-y-4">
+    <div className="flex flex-col h-screen">
+      <header className="flex h-16 shrink-0 items-center justify-end px-4">
+        <ModeToggle />
+      </header>
+      <main className="flex-1 flex flex-col items-center justify-center h-full space-y-4">
         {notFoundPath && (
           <div className="w-full max-w-md">
             <Alert variant="destructive">
@@ -104,7 +95,7 @@ function Index() {
             open folder
           </Button>
         </div>
-      </div>
-    </RootLayout>
+      </main>
+    </div>
   )
 }

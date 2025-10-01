@@ -391,7 +391,7 @@ export function WorkspaceTree({
               workspaceId: workspaceIdEncoded,
               filePath: filePathEncoded,
             }}
-            preload="intent"
+            // preload="intent"
             className="w-full"
           >
             <ItemButton
