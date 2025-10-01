@@ -59,6 +59,30 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         })
       )
     )
+    ipcMain.handle("read-directory", (_, path: string) =>
+      Effect.runPromise(
+        Effect.match(fs.readDirectory(path), {
+          onFailure: (error) => left(error),
+          onSuccess: (tree) => right(tree),
+        })
+      )
+    )
+    ipcMain.handle("start-watcher", (_, path: string) =>
+      Effect.runPromise(
+        Effect.match(fs.startWatcher(path), {
+          onFailure: (error) => left(error),
+          onSuccess: () => right(undefined),
+        })
+      )
+    )
+    ipcMain.handle("stop-watcher", (_, path: string) =>
+      Effect.runPromise(
+        Effect.match(fs.stopWatcher(path), {
+          onFailure: (error) => left(error),
+          onSuccess: () => right(undefined),
+        })
+      )
+    )
     ipcMain.handle("show-open-dialog", (event, options) => {
       const win = BrowserWindow.fromWebContents(event.sender)
       if (win) {

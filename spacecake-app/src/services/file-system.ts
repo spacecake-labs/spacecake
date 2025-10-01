@@ -1,13 +1,15 @@
 import path from "path"
 
+import { commandQueue } from "@/main-process/watcher"
 import { FileSystem as EffectFileSystem } from "@effect/platform"
 import { NodeFileSystem } from "@effect/platform-node"
 import { Data, Effect, Option } from "effect"
 import writeFileAtomic from "write-file-atomic"
 
-import type { FileContent } from "@/types/workspace"
+import type { File, FileContent, FileTree, Folder } from "@/types/workspace"
+import { ZERO_HASH } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
-import { fileTypeFromFileName } from "@/lib/workspace"
+import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 
 export class FileSystemError extends Data.TaggedError("FileSystemError")<{
   message: string
@@ -117,6 +119,81 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         )
       )
 
+    const readDirectory = (
+      workspacePath: string,
+      currentPath: string = workspacePath
+    ): Effect.Effect<FileTree, Error> => {
+      return Effect.gen(function* (_) {
+        const entries = yield* _(fs.readDirectory(currentPath))
+        const tree: FileTree = []
+
+        for (const entryName of entries) {
+          const fullPath = path.join(currentPath, entryName)
+          const relativePath = path.relative(workspacePath, fullPath)
+
+          if (relativePath.startsWith(".") || relativePath.includes("/.")) {
+            continue
+          }
+
+          const stats = yield* _(fs.stat(fullPath))
+
+          if (stats.type === "Directory") {
+            const children = yield* _(readDirectory(workspacePath, fullPath))
+            const folder: Folder = {
+              name: entryName,
+              path: fullPath,
+              children,
+              kind: "folder",
+              cid: ZERO_HASH,
+              isExpanded: false,
+            }
+            tree.push(folder)
+          } else if (stats.type === "File") {
+            const file: File = {
+              name: entryName,
+              path: fullPath,
+              fileType: fileTypeFromExtension(path.extname(entryName)),
+              kind: "file",
+              cid: ZERO_HASH, // Initial scan, no content read yet
+              etag: {
+                mtimeMs: Option.getOrElse(
+                  Option.map(stats.mtime, (d) => d.getTime()),
+                  () => Date.now()
+                ),
+                size: Number(stats.size),
+              },
+            }
+            tree.push(file)
+          }
+        }
+        return tree
+      })
+    }
+
+    const startWatcher = (path: string) =>
+      Effect.gen(function* (_) {
+        return yield* _(commandQueue.offer({ _tag: "Start", path: path }))
+      }).pipe(
+        Effect.mapError(
+          (error) =>
+            new FileSystemError({
+              message: `failed to watch path \`${path}\`: ${error}`,
+            })
+        )
+      )
+
+    const stopWatcher = (path: string) =>
+      Effect.gen(function* (_) {
+        return yield* _(commandQueue.offer({ _tag: "Stop", path: path }))
+      }).pipe(
+        Effect.mapError(
+          (error) =>
+            new FileSystemError({
+              message: `failed to stop watcher \`${path}\`: ${error}`,
+            })
+        )
+      )
+
     return {
       readTextFile,
       writeTextFile,
@@ -124,6 +201,9 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
       remove,
       rename,
       pathExists,
+      readDirectory,
+      startWatcher,
+      stopWatcher,
     } as const
   }),
 

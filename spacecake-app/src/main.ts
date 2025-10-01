@@ -1,10 +1,8 @@
 import path from "node:path"
 
 import { buildCSPString } from "@/csp"
-import { registerIpcHandlers } from "@/main-process/ipc-handlers"
 import { watcherService } from "@/main-process/watcher"
 import { Ipc } from "@/services/ipc"
-import { FileSystem as EffectFileSystem } from "@effect/platform"
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
 import * as ParcelWatcher from "@effect/platform-node/NodeFileSystem/ParcelWatcher"
 import { Effect, Layer } from "effect"
@@ -75,22 +73,16 @@ const createWindow = () => {
   }
 }
 
-// The existing layer for old functionality that is not yet migrated
-const OldStuffLive = NodeFileSystem.layer.pipe(
+const WatcherLive = NodeFileSystem.layer.pipe(
   Layer.provide(ParcelWatcher.layer)
 )
 
 // The final composed layer for the whole app.
 // Layer.merge combines independent layers.
-const AppLive = Layer.merge(Ipc.Default, OldStuffLive)
+const AppLive = Layer.merge(Ipc.Default, WatcherLive)
 
 // --- Main Program
 const program = Effect.gen(function* (_) {
-  // The new IPC handlers are registered automatically when the NewServicesLive layer is used.
-  // We still need to register the old handlers for now.
-  const runtime = yield* _(Effect.runtime<EffectFileSystem.FileSystem>())
-  registerIpcHandlers(runtime)
-
   yield* _(Effect.promise(() => app.whenReady()))
 
   if (!app.isPackaged && app.dock) {
@@ -100,7 +92,7 @@ const program = Effect.gen(function* (_) {
   createWindow()
 
   // The watcher service still needs its specific layer context
-  yield* _(Effect.forkDaemon(watcherService.pipe(Effect.provide(OldStuffLive))))
+  yield* _(Effect.forkDaemon(watcherService.pipe(Effect.provide(WatcherLive))))
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

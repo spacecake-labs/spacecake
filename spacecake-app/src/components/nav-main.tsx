@@ -89,42 +89,44 @@ export function NavMain({
     isCreatingInContext?.parentPath === workspace?.path
 
   const handleCreateFile = async (parentPath: string) => {
-    try {
-      const filePath = `${parentPath}/${contextItemName.trim()}`
-      const success = await saveFile(filePath, "")
+    const filePath = `${parentPath}/${contextItemName.trim()}`
+    const result = await saveFile(filePath, "")
 
-      if (success) {
+    match(result, {
+      onLeft: (error) => {
+        console.error("error creating file:", error)
+      },
+      onRight: () => {
         // Clear the creation state to hide the input field
         setIsCreatingInContext(null)
         setContextItemName("")
         handleFileCreated(filePath)
-      }
-    } catch (error) {
-      console.error("error creating file:", error)
-    }
+      },
+    })
   }
 
   const handleCreateFolder = async (parentPath: string) => {
-    try {
-      const folderPath = `${parentPath}/${contextItemName.trim()}`
-      const success = await createFolder(folderPath)
+    const folderPath = `${parentPath}/${contextItemName.trim()}`
+    const result = await createFolder(folderPath)
 
-      if (success) {
+    match(result, {
+      onLeft: (error) => {
+        console.error("error creating folder:", error)
+      },
+      onRight: () => {
         // Clear the creation state to hide the input field
         setIsCreatingInContext(null)
         setContextItemName("")
-      }
-    } catch (error) {
-      console.error("error creating folder:", error)
-    }
+      },
+    })
   }
 
-  const handleWorkspaceKeyDown = (e: React.KeyboardEvent) => {
+  const handleWorkspaceKeyDown = async (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       if (isCreatingInContext?.kind === "file") {
-        handleCreateFile(isCreatingInContext.parentPath)
+        await handleCreateFile(isCreatingInContext.parentPath)
       } else if (isCreatingInContext?.kind === "folder") {
-        handleCreateFolder(isCreatingInContext.parentPath)
+        await handleCreateFolder(isCreatingInContext.parentPath)
       }
     } else if (e.key === "Escape") {
       setIsCreatingInContext(null)
@@ -345,7 +347,7 @@ export function NavMain({
                   }
                   value={contextItemName}
                   onChange={(e) => setContextItemName(e.target.value)}
-                  onKeyDown={handleWorkspaceKeyDown}
+                  onKeyDown={async (e) => await handleWorkspaceKeyDown(e)}
                   className="h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                   autoFocus
                 />
