@@ -85,24 +85,80 @@ export const Route = createFileRoute("/w/$workspaceId")({
   component: WorkspaceLayout,
 })
 
+// component for the file path part of the header
+function FileHeader() {
+  const editorContext = useEditorContext()
+  const selectedFilePath = editorContext?.filePath || null
+  const [copied, setCopied] = useState(false)
+
+  const handleCopyPath = async (filePath: string) => {
+    try {
+      await navigator.clipboard.writeText(filePath)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("failed to copy path:", err)
+    }
+  }
+
+  if (!selectedFilePath) return null
+
+  return (
+    <div
+      className="flex items-center gap-2 min-w-0"
+      data-testid="current-file-path"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="font-mono text-xs text-muted-foreground/70 truncate">
+          {condensePath(selectedFilePath)}
+        </div>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => handleCopyPath(selectedFilePath)}
+        className="h-7 w-7 p-0 cursor-pointer flex-shrink-0"
+        aria-label="copy path"
+        title="copy path"
+      >
+        {copied ? (
+          <Check className="h-3 w-3 text-green-600" />
+        ) : (
+          <Copy className="h-3 w-3" />
+        )}
+      </Button>
+    </div>
+  )
+}
+
+// component for the right side of the header
+function HeaderToolbar() {
+  const editorContext = useEditorContext()
+  const selectedFilePath = editorContext?.filePath || null
+
+  if (selectedFilePath) {
+    return (
+      <div className="flex items-center gap-3 px-4">
+        {editorContext && <EditorToolbar editorContext={editorContext} />}
+        <ModeToggle variant="compact" />
+      </div>
+    )
+  }
+  return (
+    <div className="px-4">
+      <ModeToggle />
+    </div>
+  )
+}
+
 function LayoutContent() {
   const { workspace } = Route.useLoaderData()
   const { isMobile } = useSidebar()
   const navigate = useNavigate()
 
+  // this hook is still needed here because AppSidebar needs the path as a prop
   const editorContext = useEditorContext()
   const selectedFilePath = editorContext?.filePath || null
-
-  const headerRightContent = selectedFilePath ? (
-    <div className="flex items-center gap-3 px-4">
-      {editorContext && <EditorToolbar editorContext={editorContext} />}
-      <ModeToggle variant="compact" />
-    </div>
-  ) : (
-    <div className="px-4">
-      <ModeToggle />
-    </div>
-  )
 
   const handleFileClick = (filePath: string) => {
     if (workspace?.path) {
@@ -115,18 +171,6 @@ function LayoutContent() {
           filePath: filePathEncoded,
         },
       })
-    }
-  }
-
-  const [copied, setCopied] = useState(false)
-
-  const handleCopyPath = async (filePath: string) => {
-    try {
-      await navigator.clipboard.writeText(filePath)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error("failed to copy path:", err)
     }
   }
 
@@ -145,34 +189,9 @@ function LayoutContent() {
                 aria-label="toggle sidebar"
                 className="-ml-1 cursor-pointer"
               />
-              {selectedFilePath && (
-                <div
-                  className="flex items-center gap-2 min-w-0"
-                  data-testid="current-file-path"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="font-mono text-xs text-muted-foreground/70 truncate">
-                      {condensePath(selectedFilePath)}
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleCopyPath(selectedFilePath)}
-                    className="h-7 w-7 p-0 cursor-pointer flex-shrink-0"
-                    aria-label="copy path"
-                    title="copy path"
-                  >
-                    {copied ? (
-                      <Check className="h-3 w-3 text-green-600" />
-                    ) : (
-                      <Copy className="h-3 w-3" />
-                    )}
-                  </Button>
-                </div>
-              )}
+              <FileHeader />
             </div>
-            {headerRightContent}
+            <HeaderToolbar />
           </header>
           <div className="h-full flex flex-1 flex-col gap-4 p-4 pt-0">
             <Outlet />
@@ -204,34 +223,9 @@ function LayoutContent() {
                 aria-label="toggle sidebar"
                 className="-ml-1 cursor-pointer"
               />
-              {selectedFilePath && (
-                <div
-                  className="flex items-center gap-2 min-w-0"
-                  data-testid="current-file-path"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="font-mono text-xs text-muted-foreground/70 truncate">
-                      {condensePath(selectedFilePath)}
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleCopyPath(selectedFilePath)}
-                    className="h-7 w-7 p-0 cursor-pointer flex-shrink-0"
-                    aria-label="copy path"
-                    title="copy path"
-                  >
-                    {copied ? (
-                      <Check className="h-3 w-3 text-green-600" />
-                    ) : (
-                      <Copy className="h-3 w-3" />
-                    )}
-                  </Button>
-                </div>
-              )}
+              <FileHeader />
             </div>
-            {headerRightContent}
+            <HeaderToolbar />
           </header>
           <div className="h-full flex flex-1 flex-col gap-4 p-4 pt-0">
             <Outlet />

@@ -34,6 +34,7 @@ const router = createRouter({
   routeTree,
   history: memoryHistory,
   context: { db },
+  defaultStructuralSharing: true,
 })
 
 // Register the router instance for type safety
