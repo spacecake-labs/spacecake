@@ -1,10 +1,10 @@
 import path from "node:path"
 
 import { buildCSPString } from "@/csp"
+import * as ParcelWatcher from "@/main-process/parcel-watcher"
 import { watcherService } from "@/main-process/watcher"
 import { Ipc } from "@/services/ipc"
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
-import * as ParcelWatcher from "@effect/platform-node/NodeFileSystem/ParcelWatcher"
 import { Effect, Layer } from "effect"
 import { app, BrowserWindow } from "electron"
 import {
