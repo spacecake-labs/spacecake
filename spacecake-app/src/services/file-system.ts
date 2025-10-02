@@ -4,11 +4,13 @@ import { commandQueue } from "@/main-process/watcher"
 import { FileSystem as EffectFileSystem } from "@effect/platform"
 import { NodeFileSystem } from "@effect/platform-node"
 import { Data, Effect, Option } from "effect"
+import micromatch from "micromatch"
 import writeFileAtomic from "write-file-atomic"
 
 import type { File, FileContent, FileTree, Folder } from "@/types/workspace"
 import { ZERO_HASH } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
+import { DEFAULT_FILE_EXCLUDES } from "@/lib/ignore-patterns"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 
 export class FileSystemError extends Data.TaggedError("FileSystemError")<{
@@ -129,9 +131,14 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
 
         for (const entryName of entries) {
           const fullPath = path.join(currentPath, entryName)
-          const relativePath = path.relative(workspacePath, fullPath)
 
-          if (relativePath.startsWith(".") || relativePath.includes("/.")) {
+          const shouldIgnore = micromatch.isMatch(
+            fullPath,
+            DEFAULT_FILE_EXCLUDES,
+            { cwd: workspacePath, dot: true }
+          )
+
+          if (shouldIgnore) {
             continue
           }
 
@@ -167,7 +174,14 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
           }
         }
         return tree
-      })
+      }).pipe(
+        Effect.mapError(
+          (error) =>
+            new FileSystemError({
+              message: `failed to read directory \`${currentPath}\`: ${error}`,
+            })
+        )
+      )
     }
 
     const startWatcher = (path: string) =>
