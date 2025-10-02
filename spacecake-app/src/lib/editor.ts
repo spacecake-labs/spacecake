@@ -74,19 +74,16 @@ export function serializeEditorToPython(editor: LexicalEditor): string {
       // process the node
       if ($isCodeBlockNode(child)) {
         const delimitedString = $getDelimitedString(child)
-
         return result + delimitedString
       }
 
       if ($isHeadingNode(child)) {
         const delimitedString = $getDelimitedString(child)
-
         return result + delimitedString
       }
 
       if ($isContextNode(child)) {
         const delimitedString = $getDelimitedString(child)
-
         return result + delimitedString
       }
 
