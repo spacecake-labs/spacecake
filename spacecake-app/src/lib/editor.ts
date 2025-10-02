@@ -15,6 +15,7 @@ import {
   $createCodeBlockNode,
   $isCodeBlockNode,
 } from "@/components/editor/nodes/code-node"
+import { $isContainerNode } from "@/components/editor/nodes/container-node"
 import { $isContextNode } from "@/components/editor/nodes/context-node"
 import { $getDelimitedString } from "@/components/editor/nodes/delimited-node"
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
@@ -73,20 +74,23 @@ export function serializeEditorToPython(editor: LexicalEditor): string {
       // process the node
       if ($isCodeBlockNode(child)) {
         const delimitedString = $getDelimitedString(child)
+
         return result + delimitedString
       }
 
       if ($isHeadingNode(child)) {
         const delimitedString = $getDelimitedString(child)
+
         return result + delimitedString
       }
 
       if ($isContextNode(child)) {
         const delimitedString = $getDelimitedString(child)
+
         return result + delimitedString
       }
 
-      if ($isParagraphNode(child)) {
+      if ($isParagraphNode(child) || $isContainerNode(child)) {
         return result + nodeToMdBlock(child)
       }
 
