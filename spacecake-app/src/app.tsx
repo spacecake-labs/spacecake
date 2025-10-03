@@ -65,6 +65,8 @@ root.render(
         api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
         defaults: "2025-05-24",
         capture_exceptions: true,
+        cookieless_mode: "always",
+        person_profiles: "identified_only",
         // debug: import.meta.env.MODE === "development",
       }}
     >
