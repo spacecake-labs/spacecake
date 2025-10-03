@@ -742,4 +742,63 @@ test.describe("spacecake app", () => {
       description: `autofocus test completed. file created at ${expectedFilePath} with content: ${fileContent}`,
     })
   })
+
+  test("dot files and folders are visible after external creation", async ({
+    electronApp,
+    tempTestDir,
+  }, testInfo) => {
+    // 1. Setup: Create a dot folder in the temp dir
+    const dotFolderPath = path.join(tempTestDir, ".notes")
+    fs.mkdirSync(dotFolderPath)
+
+    testInfo.annotations.push({
+      type: "info",
+      description: `Created dot folder: ${dotFolderPath}`,
+    })
+
+    const window = await electronApp.firstWindow()
+
+    // 2. Open the workspace
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    })
+    await window.getByRole("button", { name: "open folder" }).click()
+
+    // 3. Wait for workspace to load
+    await expect(
+      window.getByRole("button", { name: "create file or folder" })
+    ).toBeVisible()
+
+    // 4. Click on the dot folder to expand it
+    await window.getByRole("button", { name: ".notes" }).first().click()
+
+    // 5. Verify that test.md is not visible yet (since it doesn't exist)
+    await expect(
+      window.getByRole("button", { name: "test.md" })
+    ).not.toBeVisible()
+
+    // 6. Create the test.md file in the background using filesystem
+    const testFilePath = path.join(dotFolderPath, "test.md")
+    fs.writeFileSync(testFilePath, "# test content")
+
+    testInfo.annotations.push({
+      type: "info",
+      description: `Created test.md file at: ${testFilePath}`,
+    })
+
+    // 7. Wait for the file to become visible in the sidebar (file watching should detect it)
+    await expect(
+      window.getByRole("button", { name: "test.md" }).first()
+    ).toBeVisible()
+
+    // 8. Verify the file was actually created in the filesystem
+    expect(fs.existsSync(testFilePath)).toBe(true)
+
+    testInfo.annotations.push({
+      type: "info",
+      description:
+        "Successfully verified dot files are visible after external creation",
+    })
+  })
 })

@@ -26,11 +26,6 @@ function convertToFileTreeEvent(
     return Effect.succeed(null)
   }
 
-  const relativePath = path.relative(workspacePath, eventPath)
-  if (relativePath.startsWith(".") || relativePath.includes("/.")) {
-    return Effect.succeed(null)
-  }
-
   const match = Match.type<FileSystem.WatchEvent>().pipe(
     Match.tag("Create", (event) => {
       const ext = path.extname(event.path)
