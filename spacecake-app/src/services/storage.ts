@@ -3,6 +3,7 @@ import { Option, Schema } from "effect"
 import { EditorLayoutSchema, type EditorLayout } from "@/types/editor"
 import { RecentFilesSchema, type RecentFile } from "@/types/storage"
 import {
+  AbsolutePath,
   WorkspaceInfo,
   WorkspaceInfoSchema,
   type FileType,
@@ -169,7 +170,7 @@ export function saveEditorLayout(
 
 export function openFile(
   storage: StorageService,
-  filePath: string,
+  filePath: AbsolutePath,
   workspacePath: string
 ): void {
   const currentLayout = readEditorLayout(storage, workspacePath)

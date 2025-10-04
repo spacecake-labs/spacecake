@@ -10,6 +10,7 @@ import type {
   Folder,
   WorkspaceInfo,
 } from "@/types/workspace"
+import { AbsolutePath } from "@/types/workspace"
 import { readFile } from "@/lib/fs"
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 
@@ -45,7 +46,7 @@ export const handleFileEvent = async (
     const fileExists = findItemInTree(fileTree, event.path)
     if (fileExists) {
       // File exists, so this is an atomic write. read the file and transform the event
-      const result = await readFile(event.path)
+      const result = await readFile(AbsolutePath(event.path))
       match(result, {
         onLeft: (error) => {
           console.error(error)

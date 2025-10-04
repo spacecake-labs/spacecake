@@ -1,5 +1,7 @@
 import { Schema } from "effect"
 
+import { AbsolutePathSchema } from "@/types/workspace"
+
 /**
  * types for the editor layout and state.
  * this structure is designed to be extensible for features like split panes and multiple tabs,
@@ -18,7 +20,7 @@ export type TabGroupId = typeof TabGroupIdSchema.Type
 export const EditorTabSchema = Schema.Struct({
   id: TabIdSchema,
   // the absolute path to the file opened in the tab.
-  filePath: Schema.String,
+  filePath: AbsolutePathSchema,
 })
 export type EditorTab = typeof EditorTabSchema.Type
 

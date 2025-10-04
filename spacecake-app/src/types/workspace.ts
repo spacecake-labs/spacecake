@@ -2,7 +2,7 @@
  * Workspace and file tree types
  */
 
-import { Schema } from "effect"
+import { Brand, Schema } from "effect"
 
 import { ViewKindSchema } from "@/types/lexical"
 import { encodeBase64Url } from "@/lib/utils"
@@ -119,3 +119,15 @@ export const EditorContextHelpers = {
     fileTypeFromExtension(ctx.filePath.split(".").pop() || ""),
   workspacePath: (ctx: EditorContext) => encodeBase64Url(ctx.workspaceId),
 }
+
+export type RelativePath = string & Brand.Brand<"RelativePath">
+export const RelativePath = Brand.nominal<RelativePath>()
+export const RelativePathSchema = Schema.String.pipe(
+  Schema.fromBrand(RelativePath)
+)
+
+export type AbsolutePath = string & Brand.Brand<"AbsolutePath">
+export const AbsolutePath = Brand.nominal<AbsolutePath>()
+export const AbsolutePathSchema = Schema.String.pipe(
+  Schema.fromBrand(AbsolutePath)
+)

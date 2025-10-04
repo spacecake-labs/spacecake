@@ -14,6 +14,7 @@ import { useSetAtom } from "jotai"
 
 import { match } from "@/types/adt"
 import { ViewKindSchema } from "@/types/lexical"
+import { AbsolutePath } from "@/types/workspace"
 import { editorStateAtom, fileContentAtom } from "@/lib/atoms/atoms"
 import { createEditorConfigFromContent } from "@/lib/editor"
 import { readFile } from "@/lib/fs"
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   loaderDeps: ({ search: { view } }) => ({ view }),
   loader: async ({ params, deps: { view } }) => {
     const workspacePath = decodeBase64Url(params.workspaceId)
-    const filePath = decodeBase64Url(params.filePath)
+    const filePath = AbsolutePath(decodeBase64Url(params.filePath))
 
     // ensure file belongs to workspace by prefix (best-effort client guard)
     if (!filePath.startsWith(workspacePath)) {

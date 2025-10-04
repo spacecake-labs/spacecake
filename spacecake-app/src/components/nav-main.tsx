@@ -15,6 +15,7 @@ import type {
   Folder,
   WorkspaceInfo,
 } from "@/types/workspace"
+import { AbsolutePath } from "@/types/workspace"
 import {
   contextItemNameAtom,
   deletionStateAtom,
@@ -90,7 +91,7 @@ export function NavMain({
 
   const handleCreateFile = async (parentPath: string) => {
     const filePath = `${parentPath}/${contextItemName.trim()}`
-    const result = await saveFile(filePath, "")
+    const result = await saveFile(AbsolutePath(filePath), "")
 
     match(result, {
       onLeft: (error) => {
@@ -107,7 +108,7 @@ export function NavMain({
 
   const handleCreateFolder = async (parentPath: string) => {
     const folderPath = `${parentPath}/${contextItemName.trim()}`
-    const result = await createFolder(folderPath)
+    const result = await createFolder(AbsolutePath(folderPath))
 
     match(result, {
       onLeft: (error) => {
@@ -229,7 +230,7 @@ export function NavMain({
     const newPath =
       pathParts.length > 0 ? `${pathParts.join("/")}/${newName}` : newName
 
-    const result = await rename(oldPath, newPath)
+    const result = await rename(AbsolutePath(oldPath), AbsolutePath(newPath))
 
     match(result, {
       onLeft: (error) => {
@@ -286,7 +287,7 @@ export function NavMain({
 
     const itemToDelete = deletionState.item
     const result = await remove(
-      itemToDelete.path,
+      AbsolutePath(itemToDelete.path),
       deletionState.item.kind === "folder"
     )
 
@@ -303,14 +304,18 @@ export function NavMain({
             tabGroups: [],
             activeTabGroupId: null,
           }
-          saveEditorLayout(localStorageService, emptyLayout, workspace.path)
+          saveEditorLayout(
+            localStorageService,
+            emptyLayout,
+            AbsolutePath(workspace.path)
+          )
         }
 
         // remove from recent files
         updateRecentFiles(localStorageService, {
           type: "remove",
-          filePath: itemToDelete.path,
-          workspacePath: workspace.path,
+          filePath: AbsolutePath(itemToDelete.path),
+          workspacePath: AbsolutePath(workspace.path),
         })
 
         // Close dialog only after successful deletion

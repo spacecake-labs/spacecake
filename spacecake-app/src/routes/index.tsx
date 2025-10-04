@@ -9,6 +9,7 @@ import { Option, Schema } from "effect"
 import { AlertCircleIcon, FolderOpen, Loader2Icon } from "lucide-react"
 
 import { match } from "@/types/adt"
+import { AbsolutePath } from "@/types/workspace"
 import { pathExists } from "@/lib/fs"
 import { useOpenWorkspace } from "@/lib/open-workspace"
 import { encodeBase64Url } from "@/lib/utils"
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/")({
     )
     if (Option.isSome(lastOpenedWorkspace)) {
       const workspace = lastOpenedWorkspace.value
-      const exists = await pathExists(workspace.path)
+      const exists = await pathExists(AbsolutePath(workspace.path))
       return match(exists, {
         onLeft: (error) => {
           console.error(error)
@@ -39,13 +40,13 @@ export const Route = createFileRoute("/")({
         },
         onRight: (exists) => {
           if (exists) {
-            const id = encodeBase64Url(workspace.path)
+            const id = encodeBase64Url(AbsolutePath(workspace.path))
             throw redirect({
               to: "/w/$workspaceId",
               params: { workspaceId: id },
             })
           }
-          return { notFoundPath: Option.some(workspace.path) }
+          return { notFoundPath: Option.some(AbsolutePath(workspace.path)) }
         },
       })
     }

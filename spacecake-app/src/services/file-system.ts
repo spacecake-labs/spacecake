@@ -8,7 +8,7 @@ import micromatch from "micromatch"
 import writeFileAtomic from "write-file-atomic"
 
 import type { File, FileContent, FileTree, Folder } from "@/types/workspace"
-import { ZERO_HASH } from "@/types/workspace"
+import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
 import { DEFAULT_FILE_EXCLUDES } from "@/lib/ignore-patterns"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
@@ -23,7 +23,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
     const fs = yield* EffectFileSystem.FileSystem
 
     const readTextFile = (
-      filePath: string
+      filePath: AbsolutePath
     ): Effect.Effect<FileContent, FileSystemError> =>
       Effect.gen(function* () {
         const name = path.basename(filePath)
@@ -54,7 +54,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         )
       )
     const writeTextFile = (
-      filePath: string,
+      filePath: AbsolutePath,
       content: string
     ): Effect.Effect<void, FileSystemError> =>
       Effect.tryPromise({

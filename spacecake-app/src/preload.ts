@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron"
 
 import type { FileContent, FileTreeEvent } from "@/types/workspace"
+import { AbsolutePath } from "@/types/workspace"
 
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
@@ -13,7 +14,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   readDirectory: (dirPath: string) => {
     return ipcRenderer.invoke("read-directory", dirPath)
   },
-  readFile: (filePath: string): Promise<FileContent> =>
+  readFile: (filePath: AbsolutePath): Promise<FileContent> =>
     ipcRenderer.invoke("read-file", filePath),
 
   createFolder: (folderPath: string) =>
