@@ -4,10 +4,11 @@ import { Schema } from "effect"
 import {
   AbsolutePath,
   EditorContext,
+  RelativePath,
   RouteParamsSchema,
   SearchParamsSchema,
 } from "@/types/workspace"
-import { decodeBase64Url } from "@/lib/utils"
+import { decodeBase64Url, toAbsolutePath } from "@/lib/utils"
 import { determineView } from "@/lib/view-preferences"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
@@ -26,7 +27,11 @@ export function useEditorContext(): EditorContext | null {
 
     // Check if we're on a file route with valid params
     if (paramsResult.workspaceId && paramsResult.filePath) {
-      const filePath = AbsolutePath(decodeBase64Url(paramsResult.filePath))
+      const workspacePath = AbsolutePath(
+        decodeBase64Url(paramsResult.workspaceId)
+      )
+      const fileSegment = RelativePath(decodeBase64Url(paramsResult.filePath))
+      const filePath = toAbsolutePath(workspacePath, fileSegment)
 
       // Use centralized view determination logic
       const viewKind = determineView(filePath, searchResult.view)
@@ -35,6 +40,7 @@ export function useEditorContext(): EditorContext | null {
       const context: EditorContext = {
         workspaceId: decodeBase64Url(paramsResult.workspaceId),
         filePath,
+        fileSegment,
         viewKind,
         fileType: fileTypeFromExtension(filePath.split(".").pop() || ""),
       }

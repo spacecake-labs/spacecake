@@ -23,7 +23,7 @@ export function EditorToolbar({ editorContext }: EditorToolbarProps) {
   const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
 
   // Extract values from editor context
-  const { filePath, viewKind } = editorContext
+  const { fileSegment, viewKind } = editorContext
   const workspaceId = EditorContextHelpers.workspaceId(editorContext)
   const fileType = EditorContextHelpers.fileType(editorContext)
   const canToggleViews = supportedViews(fileType).size > 1
@@ -80,7 +80,7 @@ export function EditorToolbar({ editorContext }: EditorToolbarProps) {
             to="/w/$workspaceId/f/$filePath"
             params={{
               workspaceId,
-              filePath: encodeBase64Url(filePath),
+              filePath: encodeBase64Url(fileSegment),
             }}
             search={{ view: viewKind === "rich" ? "source" : "rich" }}
           >

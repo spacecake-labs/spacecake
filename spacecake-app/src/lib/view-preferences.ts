@@ -1,6 +1,7 @@
 import { localStorageService } from "@/services/storage"
 
 import type { ViewKind } from "@/types/lexical"
+import { AbsolutePath, RelativePath } from "@/types/workspace"
 import { supportsRichView } from "@/lib/language-support"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
@@ -13,7 +14,7 @@ import { fileTypeFromExtension } from "@/lib/workspace"
  * @returns The final view to use
  */
 export function determineView(
-  filePath: string,
+  filePath: AbsolutePath | RelativePath,
   viewFromSearch?: ViewKind
 ): ViewKind {
   const fileType = fileTypeFromExtension(filePath.split(".").pop() || "")

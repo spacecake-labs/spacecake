@@ -12,8 +12,14 @@ import { AlertCircleIcon, CakeSlice } from "lucide-react"
 import { match } from "@/types/adt"
 import type { EditorTab, EditorTabGroup } from "@/types/editor"
 import { EditorLayoutSchema } from "@/types/editor"
+import { AbsolutePath } from "@/types/workspace"
 import { pathExists } from "@/lib/fs"
-import { condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
+import {
+  condensePath,
+  decodeBase64Url,
+  encodeBase64Url,
+  toRelativePath,
+} from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CommandShortcut } from "@/components/ui/command"
 
@@ -73,11 +79,16 @@ export const Route = createFileRoute("/w/$workspaceId/")({
             },
             onRight: (exists) => {
               if (exists) {
+                // Convert absolute path to relative for navigation
+                const fileSegment = toRelativePath(
+                  AbsolutePath(workspacePath),
+                  activeTab.filePath
+                )
                 throw redirect({
                   to: "/w/$workspaceId/f/$filePath",
                   params: {
                     workspaceId: params.workspaceId,
-                    filePath: encodeBase64Url(activeTab.filePath),
+                    filePath: encodeBase64Url(fileSegment),
                   },
                 })
               }
