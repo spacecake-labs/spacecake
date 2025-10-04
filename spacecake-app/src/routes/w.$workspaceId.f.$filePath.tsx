@@ -14,11 +14,11 @@ import { useSetAtom } from "jotai"
 
 import { match } from "@/types/adt"
 import { ViewKindSchema } from "@/types/lexical"
-import { AbsolutePath } from "@/types/workspace"
+import { AbsolutePath, RelativePath } from "@/types/workspace"
 import { editorStateAtom, fileContentAtom } from "@/lib/atoms/atoms"
 import { createEditorConfigFromContent } from "@/lib/editor"
 import { readFile } from "@/lib/fs"
-import { decodeBase64Url } from "@/lib/utils"
+import { decodeBase64Url, toAbsolutePath } from "@/lib/utils"
 import { determineView } from "@/lib/view-preferences"
 import { Editor } from "@/components/editor/editor"
 
@@ -31,13 +31,10 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
     Schema.decodeUnknownSync(fileSearchSchema)(search),
   loaderDeps: ({ search: { view } }) => ({ view }),
   loader: async ({ params, deps: { view } }) => {
-    const workspacePath = decodeBase64Url(params.workspaceId)
-    const filePath = AbsolutePath(decodeBase64Url(params.filePath))
+    const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
+    const fileSegment = RelativePath(decodeBase64Url(params.filePath))
+    const filePath = toAbsolutePath(workspacePath, fileSegment)
 
-    // ensure file belongs to workspace by prefix (best-effort client guard)
-    if (!filePath.startsWith(workspacePath)) {
-      throw new Error("file not in workspace")
-    }
     const finalView = determineView(filePath, view)
     const file = await readFile(filePath)
 
@@ -47,7 +44,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         throw redirect({
           to: "/w/$workspaceId",
           params: { workspaceId: params.workspaceId },
-          search: { notFoundFilePath: filePath },
+          search: { notFoundFilePath: fileSegment },
         })
       },
       onRight: (file) => {
@@ -56,7 +53,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
             path: workspacePath,
             name: workspacePath.split("/").pop() || "spacecake",
           },
-          filePath,
+          filePath: fileSegment,
           file,
           view: finalView,
         }
@@ -75,7 +72,10 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 })
 
 function FileLayout() {
-  const { workspace, filePath, file, view } = Route.useLoaderData()
+  const { workspace, filePath: fileSegment, file, view } = Route.useLoaderData()
+
+  // Convert relative path back to absolute for file operations
+  const filePath = toAbsolutePath(workspace.path, fileSegment)
 
   const setFile = useSetAtom(fileContentAtom)
   const setEditorState = useSetAtom(editorStateAtom)

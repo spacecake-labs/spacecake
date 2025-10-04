@@ -5,11 +5,11 @@ import { useVirtualizer } from "@tanstack/react-virtual"
 import { atom, useAtom, useAtomValue } from "jotai"
 import { File as FileIcon } from "lucide-react"
 
-import type { File, WorkspaceInfo } from "@/types/workspace"
+import { AbsolutePath, File, WorkspaceInfo } from "@/types/workspace"
 import { fileTreeAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
 import { getQuickOpenFileItems } from "@/lib/atoms/file-tree"
 import { createQuickOpenItems } from "@/lib/filter-files"
-import { encodeBase64Url } from "@/lib/utils"
+import { encodeBase64Url, toRelativePath } from "@/lib/utils"
 import {
   CommandDialog,
   CommandEmpty,
@@ -72,13 +72,15 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
     if (!workspace?.path) return
 
     const workspaceIdEncoded = encodeBase64Url(workspace.path)
-    const filePathEncoded = encodeBase64Url(file.path)
+    const fileSegmentEncoded = encodeBase64Url(
+      toRelativePath(AbsolutePath(workspace.path), AbsolutePath(file.path))
+    )
 
     navigate({
       to: "/w/$workspaceId/f/$filePath",
       params: {
         workspaceId: workspaceIdEncoded,
-        filePath: filePathEncoded,
+        filePath: fileSegmentEncoded,
       },
     })
     setIsOpen(false)

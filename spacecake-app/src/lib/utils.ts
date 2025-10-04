@@ -1,6 +1,8 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
+import { AbsolutePath, RelativePath } from "@/types/workspace"
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -129,4 +131,35 @@ export const condensePath = (path: string): string => {
 
   // Join the last two parts with the separator
   return lastTwo.join(separator)
+}
+/*
+ * Path trimming functions borrowed from tanstack router
+ * https://github.com/TanStack/router/blob/main/packages/router-core/src/path.ts
+ */
+function trimPathLeft(path: string) {
+  return path === "/" ? path : path.replace(/^\/{1,}/, "")
+}
+
+function trimPathRight(path: string) {
+  return path === "/" ? path : path.replace(/\/{1,}$/, "")
+}
+
+function trimPath(path: string) {
+  return trimPathRight(trimPathLeft(path))
+}
+
+export function toAbsolutePath(
+  workspacePath: AbsolutePath,
+  filePath: RelativePath
+): AbsolutePath {
+  return AbsolutePath(
+    `${trimPathRight(workspacePath)}/${trimPathLeft(filePath)}`
+  )
+}
+
+export function toRelativePath(
+  workspacePath: AbsolutePath,
+  filePath: AbsolutePath
+): RelativePath {
+  return RelativePath(trimPath(filePath.replace(workspacePath, "")))
 }

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest"
 
-import { condensePath, filename } from "@/lib/utils"
+import { AbsolutePath, RelativePath } from "@/types/workspace"
+import {
+  condensePath,
+  filename,
+  toAbsolutePath,
+  toRelativePath,
+} from "@/lib/utils"
 
 describe("condensePath", () => {
   it("should condense Windows path with backslashes", () => {
@@ -82,4 +88,135 @@ describe("filename", () => {
     const result = filename(path)
     expect(result).toBe("file.py")
   })
+})
+
+describe("toAbsolutePath", () => {
+  it.each([
+    {
+      workspacePath: "/workspace",
+      filePath: "file.txt",
+      expected: "/workspace/file.txt",
+      description: "basic conversion without slashes",
+    },
+    {
+      workspacePath: "/workspace/",
+      filePath: "file.txt",
+      expected: "/workspace/file.txt",
+      description: "workspace with trailing slash, file without leading slash",
+    },
+    {
+      workspacePath: "/workspace",
+      filePath: "/file.txt",
+      expected: "/workspace/file.txt",
+      description: "workspace without trailing slash, file with leading slash",
+    },
+    {
+      workspacePath: "/workspace/",
+      filePath: "/file.txt",
+      expected: "/workspace/file.txt",
+      description: "both workspace and file with slashes",
+    },
+    {
+      workspacePath: "/workspace/",
+      filePath: "/subfolder/file.txt",
+      expected: "/workspace/subfolder/file.txt",
+      description: "nested file path with slashes",
+    },
+    {
+      workspacePath: "/workspace",
+      filePath: "subfolder/file.txt",
+      expected: "/workspace/subfolder/file.txt",
+      description: "nested file path without slashes",
+    },
+    {
+      workspacePath: "workspace",
+      filePath: "file.txt",
+      expected: "workspace/file.txt",
+      description: "relative workspace path",
+    },
+    {
+      workspacePath: "workspace/",
+      filePath: "/file.txt",
+      expected: "workspace/file.txt",
+      description:
+        "relative workspace with trailing slash, file with leading slash",
+    },
+  ])(
+    "should convert relative path to absolute path: $description",
+    ({ workspacePath, filePath, expected }) => {
+      const result = toAbsolutePath(
+        AbsolutePath(workspacePath),
+        RelativePath(filePath)
+      )
+      expect(result).toBe(expected)
+    }
+  )
+})
+
+describe("toRelativePath", () => {
+  it.each([
+    {
+      workspacePath: "/workspace",
+      filePath: "/workspace/file.txt",
+      expected: "file.txt",
+      description: "basic conversion without extra slashes",
+    },
+    {
+      workspacePath: "/workspace/",
+      filePath: "/workspace/file.txt",
+      expected: "file.txt",
+      description: "workspace with trailing slash",
+    },
+    {
+      workspacePath: "/workspace",
+      filePath: "/workspace/file.txt/",
+      expected: "file.txt",
+      description: "file path with trailing slash",
+    },
+    {
+      workspacePath: "/workspace/",
+      filePath: "/workspace/file.txt/",
+      expected: "file.txt",
+      description: "both workspace and file with trailing slashes",
+    },
+    {
+      workspacePath: "/workspace",
+      filePath: "/workspace/subfolder/file.txt",
+      expected: "subfolder/file.txt",
+      description: "nested file path",
+    },
+    {
+      workspacePath: "/workspace/",
+      filePath: "/workspace/subfolder/file.txt",
+      expected: "subfolder/file.txt",
+      description: "nested file path with workspace trailing slash",
+    },
+    {
+      workspacePath: "/workspace",
+      filePath: "/workspace/subfolder/file.txt/",
+      expected: "subfolder/file.txt",
+      description: "nested file path with file trailing slash",
+    },
+    {
+      workspacePath: "workspace",
+      filePath: "workspace/file.txt",
+      expected: "file.txt",
+      description: "relative workspace path",
+    },
+    {
+      workspacePath: "workspace/",
+      filePath: "workspace/file.txt",
+      expected: "file.txt",
+      description: "relative workspace path with trailing slash",
+    },
+  ])(
+    "should convert absolute path to relative path: $description",
+    ({ workspacePath, filePath, expected }) => {
+      const result = toRelativePath(
+        AbsolutePath(workspacePath),
+        AbsolutePath(filePath)
+      )
+      expect(result).toBe(expected)
+    }
+  )
 })
