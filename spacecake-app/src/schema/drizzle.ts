@@ -1,14 +1,20 @@
-import { createInsertSchema, createSelectSchema } from "@/schema/drizzle-effect"
+import {
+  createInsertSchema,
+  createSelectSchema,
+  JsonValue,
+} from "@/schema/drizzle-effect"
 import { sql } from "drizzle-orm"
 import {
   boolean,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core"
+import { Schema } from "effect"
 
 export const systemTable = pgTable("system", {
   version: integer().notNull().default(0),
@@ -56,6 +62,8 @@ export const fileTable = pgTable(
       .defaultNow()
       .notNull(),
     is_open: boolean("is_open").default(false).notNull(),
+    lexical_state:
+      jsonb("lexical_state").$type<Schema.Schema.Type<typeof JsonValue>>(),
   },
   (table) => [uniqueIndex("file_path_idx").on(table.path)]
 )
