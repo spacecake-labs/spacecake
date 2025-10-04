@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 
 import {
+  AbsolutePath,
   ExpandedFolders,
   File,
   FileTree,
@@ -44,13 +45,13 @@ import {
 interface WorkspaceTreeProps {
   children?: FileTree
   item: File | Folder
-  onFileClick: (filePath: string) => void
+  onFileClick: (filePath: AbsolutePath) => void
   onFolderToggle: (folderPath: Folder["path"]) => void
   onStartRename: (item: File | Folder) => void
   onStartDelete: (item: File | Folder) => void
-  onCreateFile: (filePath: string) => void
+  onCreateFile: (filePath: AbsolutePath) => void
   onCreateFolder: (folderPath: string) => void
-  selectedFilePath?: string | null
+  selectedFilePath?: AbsolutePath | null
   expandedFolders: ExpandedFolders
   editingItem: {
     type: "create" | "rename"
@@ -360,7 +361,7 @@ export function WorkspaceTree({
   const handleContextKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       if (isCreatingInContext?.kind === "file") {
-        onCreateFile(isCreatingInContext.parentPath)
+        onCreateFile(AbsolutePath(isCreatingInContext.parentPath))
       } else if (isCreatingInContext?.kind === "folder") {
         onCreateFolder(isCreatingInContext.parentPath)
       }

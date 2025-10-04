@@ -57,8 +57,8 @@ import {
 interface NavMainProps {
   onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
   expandedFolders?: ExpandedFolders
-  onFileClick?: (filePath: string) => void
-  selectedFilePath?: string | null
+  onFileClick?: (filePath: AbsolutePath) => void
+  selectedFilePath?: AbsolutePath | null
   workspace: WorkspaceInfo
 }
 
@@ -90,8 +90,8 @@ export function NavMain({
     isCreatingInContext?.parentPath === workspace?.path
 
   const handleCreateFile = async (parentPath: string) => {
-    const filePath = `${parentPath}/${contextItemName.trim()}`
-    const result = await saveFile(AbsolutePath(filePath), "")
+    const filePath = AbsolutePath(`${parentPath}/${contextItemName.trim()}`)
+    const result = await saveFile(filePath, "")
 
     match(result, {
       onLeft: (error) => {
@@ -107,8 +107,8 @@ export function NavMain({
   }
 
   const handleCreateFolder = async (parentPath: string) => {
-    const folderPath = `${parentPath}/${contextItemName.trim()}`
-    const result = await createFolder(AbsolutePath(folderPath))
+    const folderPath = AbsolutePath(`${parentPath}/${contextItemName.trim()}`)
+    const result = await createFolder(folderPath)
 
     match(result, {
       onLeft: (error) => {
@@ -160,7 +160,7 @@ export function NavMain({
     return null
   }
 
-  const handleFileCreated = (filePath: string) => {
+  const handleFileCreated = (filePath: AbsolutePath) => {
     if (onFileClick) {
       onFileClick(filePath)
     }
@@ -171,7 +171,7 @@ export function NavMain({
     // The file tree will be automatically updated through the atoms
   }
 
-  const handleFileClick = (filePath: string) => {
+  const handleFileClick = (filePath: AbsolutePath) => {
     if (onFileClick) {
       onFileClick(filePath)
     }
@@ -240,7 +240,7 @@ export function NavMain({
       onRight: () => {
         // Update selected file path if it was the renamed file
         if (selectedFilePath === oldPath) {
-          handleFileClick(newPath)
+          handleFileClick(AbsolutePath(newPath))
         }
 
         setEditingItem(null)

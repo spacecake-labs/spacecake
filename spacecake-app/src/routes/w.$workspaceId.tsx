@@ -161,7 +161,7 @@ function LayoutContent() {
   const editorContext = useEditorContext()
   const selectedFilePath = editorContext?.filePath || null
 
-  const handleFileClick = (filePath: string) => {
+  const handleFileClick = (filePath: AbsolutePath) => {
     if (workspace?.path) {
       const workspaceIdEncoded = encodeBase64Url(workspace.path)
       const filePathEncoded = encodeBase64Url(filePath)

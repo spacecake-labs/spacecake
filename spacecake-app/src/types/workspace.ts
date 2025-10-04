@@ -8,6 +8,18 @@ import { ViewKindSchema } from "@/types/lexical"
 import { encodeBase64Url } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
+export type RelativePath = string & Brand.Brand<"RelativePath">
+export const RelativePath = Brand.nominal<RelativePath>()
+export const RelativePathSchema = Schema.String.pipe(
+  Schema.fromBrand(RelativePath)
+)
+
+export type AbsolutePath = string & Brand.Brand<"AbsolutePath">
+export const AbsolutePath = Brand.nominal<AbsolutePath>()
+export const AbsolutePathSchema = Schema.String.pipe(
+  Schema.fromBrand(AbsolutePath)
+)
+
 export const FileTypeSchema = Schema.Union(
   Schema.Literal("markdown"),
   Schema.Literal("plaintext"),
@@ -101,7 +113,7 @@ export const SearchParamsSchema = Schema.Struct({
  */
 export const EditorContextSchema = Schema.Struct({
   workspaceId: Schema.String,
-  filePath: Schema.String,
+  filePath: AbsolutePathSchema,
   viewKind: Schema.String,
   fileType: FileTypeSchema,
 })
@@ -119,15 +131,3 @@ export const EditorContextHelpers = {
     fileTypeFromExtension(ctx.filePath.split(".").pop() || ""),
   workspacePath: (ctx: EditorContext) => encodeBase64Url(ctx.workspaceId),
 }
-
-export type RelativePath = string & Brand.Brand<"RelativePath">
-export const RelativePath = Brand.nominal<RelativePath>()
-export const RelativePathSchema = Schema.String.pipe(
-  Schema.fromBrand(RelativePath)
-)
-
-export type AbsolutePath = string & Brand.Brand<"AbsolutePath">
-export const AbsolutePath = Brand.nominal<AbsolutePath>()
-export const AbsolutePathSchema = Schema.String.pipe(
-  Schema.fromBrand(AbsolutePath)
-)
