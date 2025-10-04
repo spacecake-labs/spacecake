@@ -76,11 +76,6 @@ export function Editor({
             : {}),
         }}
       >
-        {/* <CaptureLexicalPlugin
-          onCapture={(editor) => {
-            editorRef.current = editor
-          }}
-        /> */}
         <Plugins />
 
         <OnChangePlugin
@@ -98,13 +93,3 @@ export function Editor({
     </div>
   )
 }
-
-// const CaptureLexicalPlugin: React.FC<{
-//   onCapture: (ed: LexicalEditor) => void
-// }> = ({ onCapture }) => {
-//   const [editor] = useLexicalComposerContext()
-//   React.useEffect(() => {
-//     onCapture(editor)
-//   }, [editor, onCapture])
-//   return null
-// }

@@ -11,7 +11,7 @@ import {
 import { maybeSingleResult, singleResult } from "@/services/utils"
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
-import { desc, eq } from "drizzle-orm"
+import { desc, eq, getTableColumns } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 import { Data, DateTime, Effect, flow, Option, Schema } from "effect"
 
@@ -133,27 +133,40 @@ export class Database extends Effect.Service<Database>()("Database", {
           )
         ),
 
-      selectLastOpenedFile: query((_) =>
-        _.select()
-          .from(fileTable)
-          .where(eq(fileTable.is_open, true))
-          .orderBy(desc(fileTable.last_accessed_at))
-          .limit(1)
-      ).pipe(
-        singleResult(() => new PgliteError({ cause: "no file found" })),
-        Effect.flatMap(Schema.decode(FileSelectSchema))
-      ),
+      selectLastOpenedFile: (workspacePath: string) =>
+        query((_) =>
+          _.select(getTableColumns(fileTable))
+            .from(fileTable)
+            .innerJoin(
+              workspaceTable,
+              eq(fileTable.workspace_id, workspaceTable.id)
+            )
+            .where(eq(workspaceTable.path, workspacePath))
+            .orderBy(desc(fileTable.last_accessed_at))
+            .limit(1)
+        ).pipe(
+          singleResult(() => new PgliteError({ cause: "no file found" })),
+          Effect.flatMap(Schema.decode(FileSelectSchema))
+        ),
 
-      selectRecentFiles: query((_) =>
-        _.select()
-          .from(fileTable)
-          .orderBy(desc(fileTable.last_accessed_at))
-          .limit(10)
-      ).pipe(
-        Effect.flatMap((files) =>
-          Effect.forEach(files, (file) => Schema.decode(FileSelectSchema)(file))
-        )
-      ),
+      selectRecentFiles: (workspacePath: string) =>
+        query((_) =>
+          _.select(getTableColumns(fileTable))
+            .from(fileTable)
+            .innerJoin(
+              workspaceTable,
+              eq(fileTable.workspace_id, workspaceTable.id)
+            )
+            .where(eq(workspaceTable.path, workspacePath))
+            .orderBy(desc(fileTable.last_accessed_at))
+            .limit(10)
+        ).pipe(
+          Effect.flatMap((files) =>
+            Effect.forEach(files, (file) =>
+              Schema.decode(FileSelectSchema)(file)
+            )
+          )
+        ),
     }
   }),
 }) {}
