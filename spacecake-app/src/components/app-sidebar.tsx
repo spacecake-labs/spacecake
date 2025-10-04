@@ -5,7 +5,12 @@ import { Link } from "@tanstack/react-router"
 import { useAtom } from "jotai"
 import { CakeSlice } from "lucide-react"
 
-import { ExpandedFolders, Folder, WorkspaceInfo } from "@/types/workspace"
+import {
+  AbsolutePath,
+  ExpandedFolders,
+  Folder,
+  WorkspaceInfo,
+} from "@/types/workspace"
 import { expandedFoldersAtom } from "@/lib/atoms/atoms"
 import { encodeBase64Url } from "@/lib/utils"
 import {
@@ -23,9 +28,9 @@ import { NavMain } from "@/components/nav-main"
 // import { NavUser } from "@/components/nav-user"
 
 interface AppSidebarProps {
-  onFileClick?: (filePath: string) => void
+  onFileClick?: (filePath: AbsolutePath) => void
   workspace: WorkspaceInfo
-  selectedFilePath?: string | null
+  selectedFilePath?: AbsolutePath | null
 }
 
 export function AppSidebar({

@@ -2,6 +2,7 @@ import { useParams, useSearch } from "@tanstack/react-router"
 import { Schema } from "effect"
 
 import {
+  AbsolutePath,
   EditorContext,
   RouteParamsSchema,
   SearchParamsSchema,
@@ -25,7 +26,7 @@ export function useEditorContext(): EditorContext | null {
 
     // Check if we're on a file route with valid params
     if (paramsResult.workspaceId && paramsResult.filePath) {
-      const filePath = decodeBase64Url(paramsResult.filePath)
+      const filePath = AbsolutePath(decodeBase64Url(paramsResult.filePath))
 
       // Use centralized view determination logic
       const viewKind = determineView(filePath, searchResult.view)
