@@ -12,7 +12,7 @@ import type {
   FileTree,
   Folder,
 } from "@/types/workspace"
-import { FileType } from "@/types/workspace"
+import { AbsolutePath, FileType } from "@/types/workspace"
 import { serializeEditorToPython, serializeEditorToSource } from "@/lib/editor"
 import { saveFile } from "@/lib/fs"
 import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
@@ -90,7 +90,12 @@ export const themeAtom = atomWithStorage<Theme>("spacecake-theme", "system")
 // An action atom to handle saving the current file
 export const saveFileAtom = atom(
   null,
-  async (get, set, filePath: string | null, lexicalEditor?: LexicalEditor) => {
+  async (
+    get,
+    set,
+    filePath: AbsolutePath | null,
+    lexicalEditor?: LexicalEditor
+  ) => {
     const isSaving = get(isSavingAtom)
     const fileContent = get(fileContentAtom)
 

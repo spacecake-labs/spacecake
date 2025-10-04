@@ -16,6 +16,7 @@ import { useSetAtom } from "jotai"
 import { Check, Copy } from "lucide-react"
 
 import { match } from "@/types/adt"
+import { AbsolutePath } from "@/types/workspace"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { setFileTreeAtom } from "@/lib/atoms/file-tree"
 import { pathExists, readDirectory } from "@/lib/fs"
@@ -41,7 +42,7 @@ import { QuickOpen } from "@/components/quick-open"
 
 export const Route = createFileRoute("/w/$workspaceId")({
   loader: async ({ params, context: { db } }) => {
-    const workspacePath = decodeBase64Url(params.workspaceId)
+    const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
     const exists = await pathExists(workspacePath)
     match(exists, {
       onLeft: (error) => console.error(error),

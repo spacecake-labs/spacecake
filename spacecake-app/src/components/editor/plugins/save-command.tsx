@@ -8,6 +8,7 @@ import {
   LexicalCommand,
 } from "lexical"
 
+import { AbsolutePath } from "@/types/workspace"
 import { saveFileAtom } from "@/lib/atoms/atoms"
 import { useEditorContext } from "@/hooks/use-filepath"
 
@@ -26,7 +27,7 @@ export function SaveCommandPlugin() {
       () => {
         // Only save if we have a valid file path
         if (selectedFilePath) {
-          void saveFile(selectedFilePath, editor)
+          void saveFile(AbsolutePath(selectedFilePath), editor)
         }
         return true // Mark as handled
       },

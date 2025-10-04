@@ -4,7 +4,7 @@ import { assert, describe, expect, test } from "vitest"
 import { left, match, right } from "@/types/adt"
 import type { ElectronAPI } from "@/types/electron"
 import type { FileContent } from "@/types/workspace"
-import { FileType } from "@/types/workspace"
+import { AbsolutePath, FileType } from "@/types/workspace"
 import { openDirectory, readFile, saveFile } from "@/lib/fs"
 
 // Create test implementations of the ElectronAPI interface
@@ -48,7 +48,7 @@ describe("readFile", () => {
       readFile: async () => right(testFile),
     })
 
-    const result = await readFile("/test/test.py", electronAPI)
+    const result = await readFile(AbsolutePath("/test/test.py"), electronAPI)
 
     match(result, {
       onLeft: (error) => {
@@ -67,7 +67,10 @@ describe("readFile", () => {
         left(new FileSystemError({ message: "file not found" })),
     })
 
-    const result = await readFile("/nonexistent/file.py", electronAPI)
+    const result = await readFile(
+      AbsolutePath("/nonexistent/file.py"),
+      electronAPI
+    )
 
     match(result, {
       onLeft: (error) => {
@@ -85,7 +88,10 @@ describe("readFile", () => {
         left(new FileSystemError({ message: "permission denied" })),
     })
 
-    const result = await readFile("/protected/file.py", electronAPI)
+    const result = await readFile(
+      AbsolutePath("/protected/file.py"),
+      electronAPI
+    )
 
     match(result, {
       onLeft: (error) => {
@@ -104,7 +110,7 @@ describe("readFile", () => {
       readFile: async () => right(testFile),
     })
 
-    const result = await readFile("/test/empty.py", electronAPI)
+    const result = await readFile(AbsolutePath("/test/empty.py"), electronAPI)
 
     match(result, {
       onLeft: () => {
@@ -124,7 +130,11 @@ describe("saveFile", () => {
       saveFile: async () => right(undefined),
     })
 
-    const result = await saveFile("/test/test.py", "new content", electronAPI)
+    const result = await saveFile(
+      AbsolutePath("/test/test.py"),
+      "new content",
+      electronAPI
+    )
 
     match(result, {
       onLeft: () => {
@@ -141,7 +151,11 @@ describe("saveFile", () => {
       saveFile: async () => left(new FileSystemError({ message: "disk full" })),
     })
 
-    const result = await saveFile("/test/test.py", "content", electronAPI)
+    const result = await saveFile(
+      AbsolutePath("/test/test.py"),
+      "content",
+      electronAPI
+    )
 
     match(result, {
       onLeft: (error) => {
@@ -159,7 +173,11 @@ describe("saveFile", () => {
         left(new FileSystemError({ message: "permission denied" })),
     })
 
-    const result = await saveFile("/protected/file.py", "content", electronAPI)
+    const result = await saveFile(
+      AbsolutePath("/protected/file.py"),
+      "content",
+      electronAPI
+    )
 
     match(result, {
       onLeft: (error) => {
@@ -176,7 +194,11 @@ describe("saveFile", () => {
       saveFile: async () => right(undefined),
     })
 
-    const result = await saveFile("/test/empty.py", "", electronAPI)
+    const result = await saveFile(
+      AbsolutePath("/test/empty.py"),
+      "",
+      electronAPI
+    )
 
     match(result, {
       onLeft: (error) => {

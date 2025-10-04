@@ -3,7 +3,7 @@ import { Effect } from "effect"
 import { BrowserWindow, dialog, ipcMain } from "electron"
 
 import { left, right, type Either } from "@/types/adt"
-import { FileContent } from "@/types/workspace"
+import { AbsolutePath, FileContent } from "@/types/workspace"
 
 export class Ipc extends Effect.Service<Ipc>()("Ipc", {
   effect: Effect.gen(function* (_) {
@@ -11,7 +11,10 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
 
     ipcMain.handle(
       "read-file",
-      (_, filePath: string): Promise<Either<FileSystemError, FileContent>> =>
+      (
+        _,
+        filePath: AbsolutePath
+      ): Promise<Either<FileSystemError, FileContent>> =>
         Effect.runPromise(
           Effect.match(fs.readTextFile(filePath), {
             onFailure: (error) => left(error),

@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from "react"
 import { useEditor } from "@/contexts/editor-context"
 
 import { match } from "@/types/adt"
-import { WorkspaceInfo } from "@/types/workspace"
+import { AbsolutePath, WorkspaceInfo } from "@/types/workspace"
 import { startWatcher, stopWatcher } from "@/lib/fs"
 import { useFileEventHandler } from "@/hooks/use-file-event-handler"
 
@@ -30,7 +30,7 @@ export function WorkspaceWatcher({ workspace }: WorkspaceWatcherProps) {
 
     let off: (() => void) | undefined
 
-    startWatcher(workspace.path)
+    startWatcher(AbsolutePath(workspace.path))
       .then((result) => {
         match(result, {
           onLeft: (error) => console.error(error),
@@ -55,7 +55,7 @@ export function WorkspaceWatcher({ workspace }: WorkspaceWatcherProps) {
         currentWorkspaceRef.current = null
       }
       // stop watching the workspace when component unmounts
-      stopWatcher(workspace.path)
+      stopWatcher(AbsolutePath(workspace.path))
     }
   }, [workspace?.path])
 
