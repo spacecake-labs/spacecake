@@ -19,6 +19,7 @@ import {
   WorkspaceInfo,
 } from "@/types/workspace"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
+import { mergeExpandedFolders } from "@/lib/auto-reveal"
 import { encodeBase64Url, toRelativePath } from "@/lib/utils"
 import { getNavItemIcon } from "@/lib/workspace"
 import { Button } from "@/components/ui/button"
@@ -53,6 +54,7 @@ interface WorkspaceTreeProps {
   onCreateFolder: (folderPath: string) => void
   selectedFilePath?: AbsolutePath | null
   expandedFolders: ExpandedFolders
+  foldersToExpand?: string[]
   editingItem: {
     type: "create" | "rename"
     path: string
@@ -335,6 +337,7 @@ export function WorkspaceTree({
   onCreateFolder,
   selectedFilePath,
   expandedFolders,
+  foldersToExpand = [],
   editingItem,
   setEditingItem,
   onRename,
@@ -347,7 +350,13 @@ export function WorkspaceTree({
   workspace,
 }: WorkspaceTreeProps) {
   const filePath = item.path
-  const isExpanded = expandedFolders[filePath] ?? false
+
+  // merge user preferences with auto-reveal folders
+  const mergedExpandedFolders = mergeExpandedFolders(
+    expandedFolders,
+    foldersToExpand
+  )
+  const isExpanded = mergedExpandedFolders[filePath] ?? false
   const isSelected = selectedFilePath === filePath
   const isRenaming = editingItem?.path === filePath
 
@@ -476,6 +485,7 @@ export function WorkspaceTree({
                       onCreateFolder={onCreateFolder}
                       selectedFilePath={selectedFilePath}
                       expandedFolders={expandedFolders}
+                      foldersToExpand={foldersToExpand}
                       editingItem={editingItem}
                       setEditingItem={setEditingItem}
                       onRename={onRename}

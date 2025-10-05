@@ -32,6 +32,7 @@ interface AppSidebarProps {
   onFileClick?: (filePath: AbsolutePath) => void
   workspace: WorkspaceInfo
   selectedFilePath?: AbsolutePath | null
+  foldersToExpand?: string[]
   db: Database
 }
 
@@ -39,6 +40,7 @@ export function AppSidebar({
   onFileClick,
   workspace,
   selectedFilePath,
+  foldersToExpand = [],
   db,
 }: AppSidebarProps) {
   const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom)
@@ -98,6 +100,7 @@ export function AppSidebar({
           expandedFolders={expandedFolders}
           onFileClick={onFileClick}
           selectedFilePath={selectedFilePath}
+          foldersToExpand={foldersToExpand}
           workspace={workspace}
           db={db}
         />
