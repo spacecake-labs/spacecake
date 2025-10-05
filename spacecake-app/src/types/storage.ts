@@ -1,14 +1,14 @@
 import { Schema } from "effect"
 
-import { FileTypeSchema } from "@/types/workspace"
+import { AbsolutePathSchema, FileTypeSchema } from "@/types/workspace"
 
 // Recent file schema using existing types
 export const RecentFileSchema = Schema.Struct({
-  path: Schema.String,
+  path: AbsolutePathSchema,
   name: Schema.String,
   fileType: FileTypeSchema,
   lastAccessed: Schema.Number, // timestamp
-  workspacePath: Schema.String, // actual workspace path, not encoded ID
+  workspacePath: AbsolutePathSchema, // actual workspace path, not encoded ID
 })
 export type RecentFile = typeof RecentFileSchema.Type
 
@@ -26,7 +26,7 @@ export type RecentFilesMap = typeof RecentFilesMapSchema.Type
 // Workspace state schema using existing WorkspaceInfo structure
 export const WorkspaceStateSchema = Schema.Struct({
   lastWorkspace: Schema.Struct({
-    path: Schema.String,
+    path: AbsolutePathSchema,
     name: Schema.String,
   }),
 })

@@ -5,7 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { Language, Parser } from "web-tree-sitter"
 
 import { PyBlock } from "@/types/parser"
-import { FileType } from "@/types/workspace"
+import { AbsolutePath, FileType } from "@/types/workspace"
 import type { FileContent } from "@/types/workspace"
 import languages from "@/lib/parser/languages"
 import {
@@ -501,7 +501,7 @@ import pandas as pd
       const content = "# just comments or empty file\n"
       const file: FileContent = {
         name: "test.py",
-        path: "/test.py",
+        path: AbsolutePath("/test.py"),
         kind: "file",
         etag: { mtimeMs: Date.now(), size: content.length },
         fileType: FileType.Python,

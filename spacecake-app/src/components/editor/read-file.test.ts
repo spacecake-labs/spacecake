@@ -2,7 +2,7 @@ import { $getRoot, createEditor, type ElementNode } from "lexical"
 import { describe, expect, it } from "vitest"
 
 import type { PyBlock } from "@/types/parser"
-import { FileType } from "@/types/workspace"
+import { AbsolutePath, FileType } from "@/types/workspace"
 import type { FileContent } from "@/types/workspace"
 import { nodes } from "@/components/editor/nodes"
 import {
@@ -24,7 +24,7 @@ def my_function():
     const editor = createEditor({ nodes })
     const file: FileContent = {
       name: "test.py",
-      path: "/test.py",
+      path: AbsolutePath("/test.py"),
       kind: "file",
       etag: { mtimeMs: Date.now(), size: 50 },
       fileType: FileType.Python,
@@ -75,7 +75,7 @@ import pandas as pd
     const editor = createEditor({ nodes })
     const file: FileContent = {
       name: "test.py",
-      path: "/test.py",
+      path: AbsolutePath("/test.py"),
       kind: "file",
       etag: { mtimeMs: Date.now(), size: 50 },
       fileType: FileType.Python,
@@ -138,7 +138,7 @@ import pandas as pd
     const editor = createEditor({ nodes })
     const file: FileContent = {
       name: "test.py",
-      path: "/test.py",
+      path: AbsolutePath("/test.py"),
       kind: "file",
       etag: { mtimeMs: Date.now(), size: 50 },
       fileType: FileType.Python,
@@ -162,7 +162,7 @@ import pandas as pd
     const editor = createEditor({ nodes })
     const file: FileContent = {
       name: "test.py",
-      path: "/test.py",
+      path: AbsolutePath("/test.py"),
       kind: "file",
       etag: { mtimeMs: Date.now(), size: 50 },
       fileType: FileType.Python,
@@ -205,7 +205,7 @@ def my_function():
 
     const file: FileContent = {
       name: "test.py",
-      path: "/test.py",
+      path: AbsolutePath("/test.py"),
       kind: "file",
       etag: { mtimeMs: Date.now(), size: 50 },
       fileType: FileType.Python,

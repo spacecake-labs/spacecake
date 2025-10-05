@@ -1,4 +1,3 @@
-import { localStorageService, updateRecentFiles } from "@/services/storage"
 import { atom } from "jotai"
 
 import type {
@@ -7,11 +6,12 @@ import type {
   FileTreeEvent,
   Folder,
   QuickOpenFileItem,
+  RelativePath,
   WorkspaceInfo,
 } from "@/types/workspace"
-import { ZERO_HASH } from "@/types/workspace"
+import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms" // Import expandedFoldersAtom
-import { parentFolderName } from "@/lib/utils"
+import { parentFolderName, toRelativePath } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
 // helper function to find and update items in the tree
@@ -111,11 +111,17 @@ export const setFileTreeAtom = atom(null, (get, set, tree: FileTree) => {
 // atom for handling file tree events
 export const fileTreeEventAtom = atom(
   null,
-  (get, set, event: FileTreeEvent, workspace: WorkspaceInfo) => {
+  (
+    get,
+    set,
+    event: FileTreeEvent,
+    workspace: WorkspaceInfo,
+    deleteFile: (filePath: RelativePath) => Promise<void>
+  ) => {
     if (!workspace.path) return
 
     const currentTree = get(fileTreeAtom)
-    const absolutePath = event.path
+    const absolutePath = AbsolutePath(event.path)
 
     if (!absolutePath.startsWith(workspace.path)) {
       return
@@ -193,13 +199,13 @@ export const fileTreeEventAtom = atom(
         const newTree = removeItemFromTree(currentTree, absolutePath)
         set(fileTreeAtom, newTree)
 
-        // also remove from recent files if it's a file
+        const fileSegment = toRelativePath(workspace.path, absolutePath)
+
+        // also remove from database if it's a file
         if (event.kind === "unlinkFile") {
-          updateRecentFiles(localStorageService, {
-            type: "remove",
-            filePath: absolutePath,
-            workspacePath: workspace.path,
-          })
+          ;(async () => {
+            await deleteFile(fileSegment)
+          })()
         }
         break
       }

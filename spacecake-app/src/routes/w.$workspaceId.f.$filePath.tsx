@@ -1,9 +1,6 @@
 import { useEffect, useMemo } from "react"
-import {
-  localStorageService,
-  openFile,
-  updateRecentFiles,
-} from "@/services/storage"
+import { RuntimeClient } from "@/services/runtime-client"
+import { localStorageService, openFile } from "@/services/storage"
 import {
   createFileRoute,
   ErrorComponent,
@@ -30,7 +27,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   validateSearch: (search) =>
     Schema.decodeUnknownSync(fileSearchSchema)(search),
   loaderDeps: ({ search: { view } }) => ({ view }),
-  loader: async ({ params, deps: { view } }) => {
+  loader: async ({ params, deps: { view }, context: { db } }) => {
     const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
     const fileSegment = RelativePath(decodeBase64Url(params.filePath))
     const filePath = toAbsolutePath(workspacePath, fileSegment)
@@ -47,7 +44,15 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           search: { notFoundFilePath: fileSegment },
         })
       },
-      onRight: (file) => {
+      onRight: async (file) => {
+        await RuntimeClient.runPromise(
+          (await db).upsertFile(workspacePath)({
+            path: fileSegment,
+            cid: file.cid,
+            is_open: true,
+          })
+        )
+
         return {
           workspace: {
             path: workspacePath,
@@ -91,13 +96,6 @@ function FileLayout() {
     setFile(file)
 
     if (workspace?.path) {
-      // add to recent files using the new centralized atom
-      updateRecentFiles(localStorageService, {
-        type: "add",
-        file: file,
-        workspacePath: workspace.path,
-      })
-
       // open file in tab layout (handles existing tabs properly)
       openFile(localStorageService, filePath, workspace.path)
     }

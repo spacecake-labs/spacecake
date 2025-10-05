@@ -130,7 +130,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         const tree: FileTree = []
 
         for (const entryName of entries) {
-          const fullPath = path.join(currentPath, entryName)
+          const fullPath = AbsolutePath(path.join(currentPath, entryName))
 
           const shouldIgnore = micromatch.isMatch(
             fullPath,
@@ -184,7 +184,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
       )
     }
 
-    const startWatcher = (path: string) =>
+    const startWatcher = (path: AbsolutePath) =>
       Effect.gen(function* (_) {
         return yield* _(commandQueue.offer({ _tag: "Start", path: path }))
       }).pipe(
@@ -196,7 +196,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         )
       )
 
-    const stopWatcher = (path: string) =>
+    const stopWatcher = (path: AbsolutePath) =>
       Effect.gen(function* (_) {
         return yield* _(commandQueue.offer({ _tag: "Stop", path: path }))
       }).pipe(

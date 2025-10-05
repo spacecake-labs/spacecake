@@ -30,7 +30,7 @@ const createTestFileContent = (
   overrides: Partial<FileContent> = {}
 ): FileContent => ({
   name: "test.py",
-  path: "/test/test.py",
+  path: AbsolutePath("/test/test.py"),
   kind: "file",
   etag: { mtimeMs: 1714732800000, size: 100 },
   content: "print('hello world')",

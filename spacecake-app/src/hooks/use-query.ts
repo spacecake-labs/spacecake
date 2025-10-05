@@ -10,11 +10,9 @@ import {
   type ParseResult,
 } from "effect"
 
-import { useDatabase } from "@/components/editor/hooks/use-database"
+import { useDatabase } from "@/hooks/use-database"
 
-class MissingData extends Data.TaggedError("MissingData")<
-  Record<never, never>
-> {}
+class MissingData extends Data.TaggedError("MissingData") {}
 class InvalidData extends Data.TaggedError("InvalidData")<{
   parseError: ParseResult.ParseError
 }> {}
@@ -52,7 +50,7 @@ export const useQuery = <A, I>(
             data: undefined,
             empty: false as const,
           }),
-          MissingData: () => ({
+          MissingData: (_) => ({
             loading: true as const,
             data: undefined,
             error: undefined,
@@ -83,7 +81,7 @@ export const useQuerySingle = <A, I>(
             data: undefined,
             empty: false as const,
           }),
-          MissingData: () => ({
+          MissingData: (_) => ({
             loading: true as const,
             data: undefined,
             error: undefined,

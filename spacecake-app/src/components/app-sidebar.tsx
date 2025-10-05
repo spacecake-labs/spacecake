@@ -1,6 +1,7 @@
 /*
 AppSidebar handles sidebar UI and folder expansion state.
 */
+import { Database } from "@/services/database"
 import { Link } from "@tanstack/react-router"
 import { useAtom } from "jotai"
 import { CakeSlice } from "lucide-react"
@@ -31,12 +32,14 @@ interface AppSidebarProps {
   onFileClick?: (filePath: AbsolutePath) => void
   workspace: WorkspaceInfo
   selectedFilePath?: AbsolutePath | null
+  db: Database
 }
 
 export function AppSidebar({
   onFileClick,
   workspace,
   selectedFilePath,
+  db,
 }: AppSidebarProps) {
   const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom)
 
@@ -96,6 +99,7 @@ export function AppSidebar({
           onFileClick={onFileClick}
           selectedFilePath={selectedFilePath}
           workspace={workspace}
+          db={db}
         />
         {/* <NavProjects projects={[]} />
         <NavSecondary items={[]} />

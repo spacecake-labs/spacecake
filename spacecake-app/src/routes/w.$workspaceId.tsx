@@ -82,6 +82,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
         path: workspacePath,
         name: workspacePath.split("/").pop() || "spacecake",
       },
+      db: await db,
     }
   },
   pendingComponent: () => (
@@ -158,7 +159,7 @@ function HeaderToolbar() {
 }
 
 function LayoutContent() {
-  const { workspace } = Route.useLoaderData()
+  const { workspace, db } = Route.useLoaderData()
   const { isMobile } = useSidebar()
   const navigate = useNavigate()
 
@@ -188,6 +189,7 @@ function LayoutContent() {
           onFileClick={handleFileClick}
           workspace={workspace}
           selectedFilePath={selectedFilePath}
+          db={db}
         />
         <main className="bg-background relative flex w-full flex-1 flex-col overflow-auto rounded-xl shadow-sm h-full p-2">
           <header className="flex h-16 shrink-0 items-center gap-2 justify-between">
@@ -219,6 +221,7 @@ function LayoutContent() {
           onFileClick={handleFileClick}
           workspace={workspace}
           selectedFilePath={selectedFilePath}
+          db={db}
         />
       </ResizablePanel>
       <ResizableHandle withHandle className="w-0" />
@@ -244,7 +247,7 @@ function LayoutContent() {
 }
 
 function WorkspaceLayout() {
-  const { workspace } = Route.useLoaderData()
+  const { workspace, db } = Route.useLoaderData()
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
 
@@ -276,7 +279,7 @@ function WorkspaceLayout() {
 
   return (
     <>
-      <WorkspaceWatcher workspace={workspace} />
+      <WorkspaceWatcher workspace={workspace} db={db} />
       <div className="flex h-screen">
         <SidebarProvider>
           <LayoutContent />

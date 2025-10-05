@@ -1,15 +1,21 @@
 import * as React from "react"
-import { localStorageService, readRecentFiles } from "@/services/storage"
 import { useNavigate } from "@tanstack/react-router"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { atom, useAtom, useAtomValue } from "jotai"
 import { File as FileIcon } from "lucide-react"
 
-import { AbsolutePath, File, WorkspaceInfo } from "@/types/workspace"
+import {
+  AbsolutePath,
+  File,
+  RelativePath,
+  WorkspaceInfo,
+} from "@/types/workspace"
 import { fileTreeAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
 import { getQuickOpenFileItems } from "@/lib/atoms/file-tree"
 import { createQuickOpenItems } from "@/lib/filter-files"
-import { encodeBase64Url, toRelativePath } from "@/lib/utils"
+import { encodeBase64Url, toAbsolutePath, toRelativePath } from "@/lib/utils"
+import { fileTypeFromFileName } from "@/lib/workspace"
+import { useRecentFiles } from "@/hooks/use-recent-files"
 import {
   CommandDialog,
   CommandEmpty,
@@ -32,7 +38,14 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
   // Get file tree from atom and derive file items
   const fileTree = useAtomValue(fileTreeAtom)
   const allFileItems = getQuickOpenFileItems(workspace, fileTree)
-  const recentFiles = readRecentFiles(localStorageService, workspace.path)
+  const recentFiles = useRecentFiles(workspace.path)
+
+  if (recentFiles.error) {
+    console.error("error getting recent files", recentFiles.error)
+  }
+
+  console.log("workspace", workspace)
+  console.log("recentFiles", recentFiles)
 
   const navigate = useNavigate()
 
@@ -51,15 +64,28 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
   }, [setIsOpen])
 
   const filteredItems = React.useMemo(() => {
-    const items = createQuickOpenItems(
-      allFileItems,
-      recentFiles,
-      search,
-      workspace?.path
-    )
+    if (recentFiles.data) {
+      const recentFilesList = recentFiles.data.map((file) => {
+        const filePath = toAbsolutePath(workspace.path, RelativePath(file.path))
+        const fileName = file.path.split("/").pop() || file.path
+        return {
+          path: filePath,
+          name: fileName,
+          fileType: fileTypeFromFileName(file.path),
+          lastAccessed: new Date(file.last_accessed_at).getTime(),
+          workspacePath: workspace.path,
+        }
+      })
 
-    return items
-  }, [search, allFileItems, recentFiles, workspace?.path])
+      return createQuickOpenItems(
+        allFileItems,
+        recentFilesList,
+        search,
+        workspace.path
+      )
+    }
+    return []
+  }, [search, allFileItems, recentFiles, workspace.path])
 
   const rowVirtualizer = useVirtualizer({
     count: filteredItems.length,

@@ -35,19 +35,25 @@ test.describe("recent files", () => {
     await expect(window.getByRole("button", { name: "core.py" })).toBeVisible()
 
     // 3. Open a few files to make them "recent"
-    await window.getByRole("button", { name: "core.py" }).click()
+    await window.getByRole("button", { name: "core.py" }).click({ delay: 200 })
     await expect(
       window.getByRole("heading", { name: "A file to test block parsing." })
     ).toBeVisible()
 
-    await window.getByRole("button", { name: "_README.md" }).click()
+    await window
+      .getByRole("button", { name: "_README.md" })
+      .click({ delay: 200 })
     await expect(window.getByText("An Example README File")).toBeVisible()
 
-    await window.getByRole("button", { name: "google-doc.py" }).click()
+    await window
+      .getByRole("button", { name: "google-doc.py" })
+      .click({ delay: 200 })
 
     await expect(
       window.getByRole("heading", { name: "A one-line summary of the module" })
     ).toBeVisible()
+
+    await window.waitForTimeout(1000)
 
     // 4. Open Quick Open and check for recent files
     await pressQuickOpen(window)

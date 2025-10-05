@@ -1,5 +1,9 @@
 import type { RecentFile } from "@/types/storage"
-import type { FileType, QuickOpenFileItem } from "@/types/workspace"
+import type {
+  AbsolutePath,
+  FileType,
+  QuickOpenFileItem,
+} from "@/types/workspace"
 import { ZERO_HASH } from "@/types/workspace"
 import { commandScore } from "@/lib/command-score"
 import { parentFolderName } from "@/lib/utils"
@@ -30,13 +34,11 @@ export function createQuickOpenItems(
   allFileItems: QuickOpenFileItem[],
   recentFiles: readonly RecentFile[],
   searchQuery: string,
-  workspacePath?: string
+  workspacePath: AbsolutePath
 ): QuickOpenFileItem[] {
   // If no search, show recent files only (sorted by most recent first)
   if (searchQuery.length === 0) {
-    const sortedRecentFiles = sortFilesByRecency([...recentFiles])
-
-    return sortedRecentFiles.map((recentFile) => ({
+    return recentFiles.map((recentFile) => ({
       file: {
         name: recentFile.name,
         path: recentFile.path,
@@ -45,10 +47,11 @@ export function createQuickOpenItems(
         fileType: recentFile.fileType as FileType,
         cid: ZERO_HASH,
       },
-      displayPath:
-        workspacePath && recentFile.path.includes(workspacePath)
-          ? parentFolderName(recentFile.path, workspacePath, recentFile.name)
-          : recentFile.path.split("/").pop() || recentFile.name,
+      displayPath: parentFolderName(
+        recentFile.path,
+        workspacePath,
+        recentFile.name
+      ),
     }))
   }
 

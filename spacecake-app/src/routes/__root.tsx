@@ -9,7 +9,7 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 
 import { useOpenWorkspace } from "@/lib/open-workspace"
-import { DatabaseContext } from "@/components/editor/hooks/use-database"
+import { DatabaseContext } from "@/hooks/use-database"
 
 export const Route = createRootRouteWithContext<{
   db: Promise<Database>
