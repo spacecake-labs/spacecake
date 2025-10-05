@@ -2,6 +2,7 @@ import v0000 from "@/drizzle/0000_sweet_carnage.sql?raw"
 import v0001 from "@/drizzle/0001_powerful_meltdown.sql?raw"
 import v0002 from "@/drizzle/0002_mysterious_cerebro.sql?raw"
 import v0003 from "@/drizzle/0003_stormy_marten_broadcloak.sql?raw"
+import v0004 from "@/drizzle/0004_careful_sersi.sql?raw"
 import { systemTable } from "@/schema/drizzle"
 import { Database } from "@/services/database"
 import { singleResult } from "@/services/utils"
@@ -30,6 +31,7 @@ export class Migrations extends Effect.Service<Migrations>()("Migrations", {
       migrate(v0001),
       migrate(v0002),
       migrate(v0003),
+      migrate(v0004),
     ] as const
     const latestMigration = migrations.length
 

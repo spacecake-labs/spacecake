@@ -30,7 +30,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         })
       )
     )
-    ipcMain.handle("create-folder", (_, folderPath: string) =>
+    ipcMain.handle("create-folder", (_, folderPath: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.createFolder(folderPath), {
           onFailure: (error) => left(error),
@@ -38,7 +38,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         })
       )
     )
-    ipcMain.handle("remove", (_, path: string, recursive?: boolean) =>
+    ipcMain.handle("remove", (_, path: AbsolutePath, recursive?: boolean) =>
       Effect.runPromise(
         Effect.match(fs.remove(path, recursive), {
           onFailure: (error) => left(error),
@@ -46,7 +46,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         })
       )
     )
-    ipcMain.handle("rename", (_, path: string, newPath: string) =>
+    ipcMain.handle("rename", (_, path: AbsolutePath, newPath: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.rename(path, newPath), {
           onFailure: (error) => left(error),
@@ -54,7 +54,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         })
       )
     )
-    ipcMain.handle("path-exists", (_, path: string) =>
+    ipcMain.handle("path-exists", (_, path: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.pathExists(path), {
           onFailure: (error) => left(error),
@@ -70,7 +70,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         })
       )
     )
-    ipcMain.handle("start-watcher", (_, path: string) =>
+    ipcMain.handle("start-watcher", (_, path: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.startWatcher(path), {
           onFailure: (error) => left(error),
@@ -78,7 +78,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         })
       )
     )
-    ipcMain.handle("stop-watcher", (_, path: string) =>
+    ipcMain.handle("stop-watcher", (_, path: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.stopWatcher(path), {
           onFailure: (error) => left(error),

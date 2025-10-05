@@ -1,16 +1,26 @@
 import { useCallback } from "react"
+import { Database } from "@/services/database"
+import { RuntimeClient } from "@/services/runtime-client"
 import { localStorageService } from "@/services/storage"
 import { useSetAtom, useStore } from "jotai"
 import type { LexicalEditor } from "lexical"
 
 import type { FileTreeEvent, WorkspaceInfo } from "@/types/workspace"
+import { RelativePath } from "@/types/workspace"
 import { fileContentAtom } from "@/lib/atoms/atoms"
 import { fileTreeEventAtom, sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import { handleFileEvent } from "@/lib/file-event-handler"
 
-export const useFileEventHandler = (workspace: WorkspaceInfo) => {
+export const useFileEventHandler = (workspace: WorkspaceInfo, db: Database) => {
   const setFileTreeEvent = useSetAtom(fileTreeEventAtom)
   const store = useStore()
+
+  const deleteFile = useCallback(
+    async (filePath: RelativePath) => {
+      await RuntimeClient.runPromise(db.deleteFile(workspace.path)(filePath))
+    },
+    [db, workspace.path]
+  )
 
   return useCallback(
     (event: FileTreeEvent, currentEditor?: LexicalEditor | null) => {
@@ -33,9 +43,10 @@ export const useFileEventHandler = (workspace: WorkspaceInfo) => {
         setFileTreeEvent,
         currentFileContent,
         workspace,
-        fileTree
+        fileTree,
+        deleteFile
       )
     },
-    [setFileTreeEvent, store, workspace] // Stable dependencies only
+    [setFileTreeEvent, store, workspace, deleteFile] // Stable dependencies only
   )
 }

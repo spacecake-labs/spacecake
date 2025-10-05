@@ -5,13 +5,13 @@ import type { PlatformError } from "@effect/platform/Error"
 import { Effect, Fiber, Match, Option, Queue, Stream } from "effect"
 import { BrowserWindow } from "electron"
 
-import type { ETag, FileTreeEvent } from "@/types/workspace"
+import { AbsolutePath, ETag, FileTreeEvent } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
 import { fileTypeFromFileName } from "@/lib/workspace"
 
 function convertToFileTreeEvent(
   fileEvent: FileSystem.WatchEvent,
-  workspacePath: string
+  workspacePath: AbsolutePath
 ): Effect.Effect<FileTreeEvent | null, never, FileSystem.FileSystem> {
   Effect.log("convertToFileTreeEvent", fileEvent)
   const { path: eventPath } = fileEvent
@@ -33,11 +33,14 @@ function convertToFileTreeEvent(
         const etag: ETag = { mtimeMs: Date.now(), size: 0 }
         return Effect.succeed({
           kind: "addFile" as const,
-          path: event.path,
+          path: AbsolutePath(event.path),
           etag,
         })
       } else {
-        return Effect.succeed({ kind: "addFolder" as const, path: event.path })
+        return Effect.succeed({
+          kind: "addFolder" as const,
+          path: AbsolutePath(event.path),
+        })
       }
     }),
     Match.tag("Update", (event) =>
@@ -57,7 +60,7 @@ function convertToFileTreeEvent(
         }
         return {
           kind: "contentChange" as const,
-          path: event.path,
+          path: AbsolutePath(event.path),
           etag,
           content,
           fileType,
@@ -68,7 +71,7 @@ function convertToFileTreeEvent(
           const etag: ETag = { mtimeMs: Date.now(), size: 0 }
           return Effect.succeed({
             kind: "addFile" as const,
-            path: event.path,
+            path: AbsolutePath(event.path),
             etag,
           })
         })
@@ -77,11 +80,14 @@ function convertToFileTreeEvent(
     Match.tag("Remove", (event) => {
       const ext = path.extname(event.path)
       if (ext) {
-        return Effect.succeed({ kind: "unlinkFile" as const, path: event.path })
+        return Effect.succeed({
+          kind: "unlinkFile" as const,
+          path: AbsolutePath(event.path),
+        })
       } else {
         return Effect.succeed({
           kind: "unlinkFolder" as const,
-          path: event.path,
+          path: AbsolutePath(event.path),
         })
       }
     }),
@@ -94,8 +100,8 @@ function convertToFileTreeEvent(
 // --- Watcher Service Definition ---
 
 export type WatcherCommand =
-  | { readonly _tag: "Start"; readonly path: string }
-  | { readonly _tag: "Stop"; readonly path: string }
+  | { readonly _tag: "Start"; readonly path: AbsolutePath }
+  | { readonly _tag: "Stop"; readonly path: AbsolutePath }
 
 export const commandQueue = Effect.runSync(Queue.unbounded<WatcherCommand>())
 
@@ -103,7 +109,7 @@ export const watcherService = Effect.gen(function* (_) {
   const fs = yield* _(FileSystem.FileSystem)
   Effect.log("watcher service: filesystem", fs)
   const runningWatchers = new Map<
-    string,
+    AbsolutePath,
     Fiber.RuntimeFiber<void, PlatformError>
   >()
 

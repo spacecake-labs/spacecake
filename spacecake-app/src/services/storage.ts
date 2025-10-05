@@ -1,13 +1,7 @@
 import { Option, Schema } from "effect"
 
 import { EditorLayoutSchema, type EditorLayout } from "@/types/editor"
-import { RecentFilesSchema, type RecentFile } from "@/types/storage"
-import {
-  AbsolutePath,
-  WorkspaceInfo,
-  WorkspaceInfoSchema,
-  type FileType,
-} from "@/types/workspace"
+import { AbsolutePath, WorkspaceInfo } from "@/types/workspace"
 
 export interface StorageService {
   get(key: string): string | null
@@ -34,25 +28,10 @@ export function workspaceId(workspacePath: WorkspaceInfo["path"]): string {
   return workspacePath.replace(/[^a-zA-Z0-9]/g, "_")
 }
 
-export function workspaceKey(): string {
-  return "spacecake:workspace"
-}
-
 export function workspaceEditorLayoutKey(
   workspacePath: WorkspaceInfo["path"]
 ): string {
   return `spacecake:editor-layout:${workspaceId(workspacePath)}`
-}
-
-export function getWorkspace(
-  storage: StorageService
-): Option.Option<WorkspaceInfo> {
-  const stored = storage.get(workspaceKey())
-  if (stored) {
-    const parsed = JSON.parse(stored)
-    return Schema.decodeUnknownOption(WorkspaceInfoSchema)(parsed)
-  }
-  return Option.none()
 }
 
 export function editorLayoutFromStorage(
@@ -67,81 +46,9 @@ export function editorLayoutFromStorage(
   return Option.none()
 }
 
-export function getWorkspaceRecentFilesKey(workspacePath: string): string {
-  return `spacecake:recent-files:${workspaceId(workspacePath)}`
-}
-
-export function readRecentFiles(
-  storage: StorageService,
-  workspacePath: string
-): RecentFile[] {
-  const storageKey = getWorkspaceRecentFilesKey(workspacePath)
-  const stored = storage.get(storageKey)
-
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored)
-      const result = Schema.decodeUnknownSync(RecentFilesSchema)(parsed)
-      return [...result] // Convert readonly array to mutable array
-    } catch {
-      return []
-    }
-  }
-  return []
-}
-
-export function updateRecentFiles(
-  storage: StorageService,
-  action:
-    | {
-        type: "add"
-        file: { path: string; name: string; fileType: FileType }
-        workspacePath: string
-      }
-    | { type: "remove"; filePath: string; workspacePath: string }
-): void {
-  const { workspacePath } = action
-  const storageKey = getWorkspaceRecentFilesKey(workspacePath)
-
-  // always read the latest from storage to prevent race conditions
-  const currentFiles = readRecentFiles(storage, workspacePath)
-  let updatedFiles: RecentFile[]
-
-  switch (action.type) {
-    case "add": {
-      const { file } = action
-      if (!file.path.startsWith(workspacePath)) {
-        console.warn("attempted to add file from another workspace")
-        return
-      }
-
-      const recentFile: RecentFile = {
-        path: file.path,
-        name: file.name,
-        fileType: file.fileType,
-        lastAccessed: Date.now(),
-        workspacePath,
-      }
-
-      const filteredFiles = currentFiles.filter((f) => f.path !== file.path)
-      updatedFiles = [recentFile, ...filteredFiles].slice(0, 10)
-      break
-    }
-
-    case "remove": {
-      updatedFiles = currentFiles.filter((f) => f.path !== action.filePath)
-      break
-    }
-  }
-
-  // write the new state back to localStorage
-  const encoded = Schema.encodeSync(RecentFilesSchema)(updatedFiles)
-  storage.set(storageKey, JSON.stringify(encoded))
-}
-
 export function readEditorLayout(
   storage: StorageService,
-  workspacePath: string
+  workspacePath: WorkspaceInfo["path"]
 ): EditorLayout | null {
   const storageKey = workspaceEditorLayoutKey(workspacePath)
   const stored = storage.get(storageKey)
@@ -161,7 +68,7 @@ export function readEditorLayout(
 export function saveEditorLayout(
   storage: StorageService,
   layout: EditorLayout,
-  workspacePath: string
+  workspacePath: WorkspaceInfo["path"]
 ): void {
   const storageKey = workspaceEditorLayoutKey(workspacePath)
   const encoded = Schema.encodeSync(EditorLayoutSchema)(layout)
@@ -171,7 +78,7 @@ export function saveEditorLayout(
 export function openFile(
   storage: StorageService,
   filePath: AbsolutePath,
-  workspacePath: string
+  workspacePath: WorkspaceInfo["path"]
 ): void {
   const currentLayout = readEditorLayout(storage, workspacePath)
 

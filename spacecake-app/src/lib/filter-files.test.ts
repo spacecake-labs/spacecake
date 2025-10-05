@@ -1,15 +1,19 @@
 import { describe, expect, it } from "vitest"
 
 import type { RecentFile } from "@/types/storage"
-import type { File, QuickOpenFileItem } from "@/types/workspace"
-import { FileType } from "@/types/workspace"
+import {
+  AbsolutePath,
+  FileType,
+  type File,
+  type QuickOpenFileItem,
+} from "@/types/workspace"
 import {
   sortFilesByMatchingScore,
   sortFilesByRecency,
 } from "@/lib/filter-files"
 
 describe("sortFilesByMatchingScore", () => {
-  const mockFile = (path: string): File => ({
+  const mockFile = (path: AbsolutePath): File => ({
     path,
     name: path.split("/").pop()!,
     kind: "file",
@@ -20,19 +24,19 @@ describe("sortFilesByMatchingScore", () => {
 
   const mockItems: QuickOpenFileItem[] = [
     {
-      file: mockFile("/user/home/docs/resume.doc"),
+      file: mockFile(AbsolutePath("/user/home/docs/resume.doc")),
       displayPath: "docs",
     },
     {
-      file: mockFile("/user/home/docs/contract.doc"),
+      file: mockFile(AbsolutePath("/user/home/docs/contract.doc")),
       displayPath: "docs",
     },
     {
-      file: mockFile("/user/home/images/photo.jpg"),
+      file: mockFile(AbsolutePath("/user/home/images/photo.jpg")),
       displayPath: "images",
     },
     {
-      file: mockFile("/user/home/readme.md"),
+      file: mockFile(AbsolutePath("/user/home/readme.md")),
       displayPath: "",
     },
   ]
@@ -68,10 +72,10 @@ describe("sortFilesByMatchingScore", () => {
 describe("sortFilesByRecency", () => {
   const mockRecentFile = (name: string, lastAccessed: number): RecentFile => ({
     name,
-    path: `/workspace/${name}`,
+    path: AbsolutePath(`/workspace/${name}`),
     fileType: FileType.Plaintext,
     lastAccessed,
-    workspacePath: "/workspace",
+    workspacePath: AbsolutePath("/workspace"),
   })
 
   it("should sort recent files by most recent first", () => {

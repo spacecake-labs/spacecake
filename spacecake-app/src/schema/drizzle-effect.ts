@@ -294,6 +294,10 @@ function mapColumnToSchema(column: Drizzle.Column): Schema.Schema<any, any> {
           hasMode(column) && column.mode === "string"
             ? Schema.String
             : Schema.DateFromSelf
+      } else if (Drizzle.is(column, DrizzlePg.PgTimestampString)) {
+        // PgTimestampString can return either Date objects or strings depending on query context
+        // Use a union to handle both cases
+        type = Schema.Union(Schema.String, Schema.DateFromSelf)
       } else if (Drizzle.is(column, DrizzlePg.PgDate)) {
         type =
           hasMode(column) && column.mode === "string"

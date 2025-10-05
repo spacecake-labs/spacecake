@@ -3,8 +3,7 @@
  *
  */
 
-import { useEffect } from "react"
-import { localStorageService, updateRecentFiles } from "@/services/storage"
+import { RuntimeClient } from "@/services/runtime-client"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Schema } from "effect"
 import { AlertCircleIcon, CakeSlice } from "lucide-react"
@@ -23,8 +22,6 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CommandShortcut } from "@/components/ui/command"
 
-type LoaderData = { kind: "notFound"; filePath: string } | { kind: "empty" }
-
 export const Route = createFileRoute("/w/$workspaceId/")({
   validateSearch: (
     search: Record<string, unknown>
@@ -36,9 +33,9 @@ export const Route = createFileRoute("/w/$workspaceId/")({
   loaderDeps: ({ search }) => ({
     notFoundFilePath: search.notFoundFilePath,
   }),
-  loader: async ({ params, deps }): Promise<LoaderData> => {
+  loader: async ({ params, deps, context: { db } }) => {
     const { notFoundFilePath } = deps
-    const workspacePath = decodeBase64Url(params.workspaceId)
+    const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
 
     if (notFoundFilePath) {
       return { kind: "notFound", filePath: notFoundFilePath }
@@ -60,7 +57,7 @@ export const Route = createFileRoute("/w/$workspaceId/")({
         )
         const activeTab = activeGroup?.tabs.find(
           (t: EditorTab) => t.id === activeGroup.activeTabId
-        )
+        ) as EditorTab | undefined
 
         if (activeTab) {
           // check if file is within the current workspace
@@ -72,18 +69,16 @@ export const Route = createFileRoute("/w/$workspaceId/")({
 
           const fileExists = await pathExists(activeTab.filePath)
 
+          // Convert absolute path to relative for navigation
+          const fileSegment = toRelativePath(workspacePath, activeTab.filePath)
+
           return match(fileExists, {
             onLeft: (error) => {
               console.error(error)
               return { kind: "notFound", filePath: activeTab.filePath }
             },
-            onRight: (exists) => {
+            onRight: async (exists) => {
               if (exists) {
-                // Convert absolute path to relative for navigation
-                const fileSegment = toRelativePath(
-                  AbsolutePath(workspacePath),
-                  activeTab.filePath
-                )
                 throw redirect({
                   to: "/w/$workspaceId/f/$filePath",
                   params: {
@@ -92,6 +87,10 @@ export const Route = createFileRoute("/w/$workspaceId/")({
                   },
                 })
               }
+              // file not found
+              await RuntimeClient.runPromise(
+                (await db).deleteFile(workspacePath)(fileSegment)
+              )
               return { kind: "notFound", filePath: activeTab.filePath }
             },
           })
@@ -107,18 +106,7 @@ export const Route = createFileRoute("/w/$workspaceId/")({
 function WorkspaceIndex() {
   const { workspaceId } = Route.useParams()
   const data = Route.useLoaderData()
-  const workspacePath = decodeBase64Url(workspaceId)
-
-  // if a file was not found, remove it from recent files
-  useEffect(() => {
-    if (data.kind === "notFound") {
-      updateRecentFiles(localStorageService, {
-        type: "remove",
-        filePath: data.filePath,
-        workspacePath,
-      })
-    }
-  }, [data, workspacePath])
+  const workspacePath = AbsolutePath(decodeBase64Url(workspaceId))
 
   // if we have a not found file path, show the alert
   if (data.kind === "notFound") {

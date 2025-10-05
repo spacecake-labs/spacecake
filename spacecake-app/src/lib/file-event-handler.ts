@@ -8,6 +8,7 @@ import type {
   FileTree,
   FileTreeEvent,
   Folder,
+  RelativePath,
   WorkspaceInfo,
 } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
@@ -35,10 +36,15 @@ export const handleFileEvent = async (
   currentPath: string | null,
   currentEditor: LexicalEditor | null | undefined,
   userViewPreferences: Record<string, ViewKind>,
-  setFileTreeEvent: (event: FileTreeEvent, workspace: WorkspaceInfo) => void,
+  setFileTreeEvent: (
+    event: FileTreeEvent,
+    workspace: WorkspaceInfo,
+    deleteFile: (filePath: RelativePath) => Promise<void>
+  ) => void,
   currentFileContent: FileContent | null,
   workspace: WorkspaceInfo,
-  fileTree: FileTree
+  fileTree: FileTree,
+  deleteFile: (filePath: RelativePath) => Promise<void>
 ) => {
   let processedEvent = event
 
@@ -51,7 +57,7 @@ export const handleFileEvent = async (
         onLeft: (error) => {
           console.error(error)
           // If we can't read the file, we can't treat it as a content change, so we pass it through as an addFile event.
-          setFileTreeEvent(event, workspace)
+          setFileTreeEvent(event, workspace, deleteFile)
         },
         onRight: (file) => {
           processedEvent = {
@@ -91,7 +97,8 @@ export const handleFileEvent = async (
         fileType: processedEvent.fileType,
         cid: processedEvent.cid,
       },
-      workspace
+      workspace,
+      deleteFile
     )
 
     // Then, update editor content if this is the currently open file
@@ -127,6 +134,6 @@ export const handleFileEvent = async (
     }
   } else {
     // Handle other file tree events
-    setFileTreeEvent(processedEvent, workspace)
+    setFileTreeEvent(processedEvent, workspace, deleteFile)
   }
 }

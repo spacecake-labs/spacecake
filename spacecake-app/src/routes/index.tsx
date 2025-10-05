@@ -31,8 +31,8 @@ export const Route = createFileRoute("/")({
       (await db).selectLastOpenedWorkspace
     )
     if (Option.isSome(lastOpenedWorkspace)) {
-      const workspace = lastOpenedWorkspace.value
-      const exists = await pathExists(AbsolutePath(workspace.path))
+      const workspacePath = AbsolutePath(lastOpenedWorkspace.value.path)
+      const exists = await pathExists(workspacePath)
       return match(exists, {
         onLeft: (error) => {
           console.error(error)
@@ -40,13 +40,13 @@ export const Route = createFileRoute("/")({
         },
         onRight: (exists) => {
           if (exists) {
-            const id = encodeBase64Url(AbsolutePath(workspace.path))
+            const id = encodeBase64Url(workspacePath)
             throw redirect({
               to: "/w/$workspaceId",
               params: { workspaceId: id },
             })
           }
-          return { notFoundPath: Option.some(AbsolutePath(workspace.path)) }
+          return { notFoundPath: Option.some(workspacePath) }
         },
       })
     }

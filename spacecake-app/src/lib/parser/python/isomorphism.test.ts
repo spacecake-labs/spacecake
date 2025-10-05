@@ -4,7 +4,7 @@ import { join } from "path"
 import { describe, expect, it } from "vitest"
 
 import type { PyBlock } from "@/types/parser"
-import { FileType } from "@/types/workspace"
+import { AbsolutePath, FileType } from "@/types/workspace"
 import type { FileContent } from "@/types/workspace"
 import {
   parseCodeBlocks,
@@ -125,7 +125,7 @@ describe("Python parser isomorphism", () => {
     // Test that the streaming parser handles this case with fallback
     const file: FileContent = {
       name: "test.py",
-      path: "/test.py",
+      path: AbsolutePath("/test.py"),
       kind: "file",
       etag: { mtimeMs: Date.now(), size: code.length },
       fileType: FileType.Python,

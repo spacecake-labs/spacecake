@@ -9,13 +9,13 @@ export const right = <A, B>(value: B): Either<A, B> => ({
   value,
 })
 
-export const match = <A, B, C>(
+export const match = <A, B, C, D>(
   either: Either<A, B>,
   handlers: {
     onLeft: (a: A) => C
-    onRight: (b: B) => C
+    onRight: (b: B) => D
   }
-): C => {
+): C | D => {
   return either._tag === "Left"
     ? handlers.onLeft(either.value)
     : handlers.onRight(either.value)

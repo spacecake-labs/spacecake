@@ -7,7 +7,7 @@ import {
 } from "lexical"
 import { beforeEach, describe, expect, it } from "vitest"
 
-import { FileType, ZERO_HASH } from "@/types/workspace"
+import { AbsolutePath, FileType, ZERO_HASH } from "@/types/workspace"
 import type { FileContent } from "@/types/workspace"
 import {
   convertToSourceView,
@@ -20,7 +20,7 @@ import { nodes } from "@/components/editor/nodes"
 describe("Editor Integration", () => {
   const mockPythonFile: FileContent = {
     name: "test.py",
-    path: "/test/test.py",
+    path: AbsolutePath("/test/test.py"),
     kind: "file",
     etag: {
       mtimeMs: 1714732800000,
@@ -42,7 +42,7 @@ class Calculator:
 
   const mockMarkdownFile: FileContent = {
     name: "test.md",
-    path: "/test/test.md",
+    path: AbsolutePath("/test/test.md"),
     kind: "file",
     etag: {
       mtimeMs: 1714732800000,
@@ -155,7 +155,7 @@ class Calculator:
     let editor: LexicalEditor
     const mockFile: FileContent = {
       name: "test.js",
-      path: "/test/test.js",
+      path: AbsolutePath("/test/test.js"),
       kind: "file",
       etag: { mtimeMs: 1714732800000, size: 100 },
       content: "console.log('hello');",

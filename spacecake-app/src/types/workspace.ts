@@ -45,14 +45,14 @@ export const FileType = {
 export const ZERO_HASH = "0000000000000000"
 
 export const WorkspaceInfoSchema = Schema.Struct({
-  path: Schema.String,
+  path: AbsolutePathSchema,
   name: Schema.String,
 })
 export type WorkspaceInfo = typeof WorkspaceInfoSchema.Type
 
 export type FileTreeItem = {
   name: string
-  path: string
+  path: AbsolutePath
   cid: string
 }
 
@@ -75,18 +75,18 @@ export type FileTree = (File | Folder)[]
 export type ETag = { mtimeMs: number; size: number }
 
 export type FileTreeEvent =
-  | { kind: "addFile"; path: string; etag: ETag }
-  | { kind: "addFolder"; path: string }
+  | { kind: "addFile"; path: AbsolutePath; etag: ETag }
+  | { kind: "addFolder"; path: AbsolutePath }
   | {
       kind: "contentChange"
-      path: string
+      path: AbsolutePath
       etag: ETag
       content: string
       fileType: FileType
       cid: string
     }
-  | { kind: "unlinkFile"; path: string }
-  | { kind: "unlinkFolder"; path: string }
+  | { kind: "unlinkFile"; path: AbsolutePath }
+  | { kind: "unlinkFolder"; path: AbsolutePath }
 
 export type ExpandedFolders = Record<Folder["path"], boolean>
 
@@ -99,8 +99,8 @@ export type QuickOpenFileItem = {
  * Schemas for route params and search params
  */
 export const RouteParamsSchema = Schema.Struct({
-  workspaceId: Schema.String,
-  filePath: Schema.String,
+  workspaceId: AbsolutePathSchema,
+  filePath: RelativePathSchema,
 })
 
 export const SearchParamsSchema = Schema.Struct({

@@ -11,9 +11,11 @@ import {
 import { maybeSingleResult, singleResult } from "@/services/utils"
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
-import { desc, eq, getTableColumns } from "drizzle-orm"
+import { and, desc, eq, getTableColumns } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 import { Data, DateTime, Effect, flow, Option, Schema } from "effect"
+
+import { AbsolutePath, RelativePath } from "@/types/workspace"
 
 class PgliteError extends Data.TaggedError("PgliteError")<{
   cause: unknown
@@ -37,6 +39,7 @@ export class Database extends Effect.Service<Database>()("Database", {
       try: () =>
         PGlite.create(`idb://spacecake`, {
           extensions: { live },
+          // relaxedDurability: true,
         }),
       catch: (error) => {
         return new PgliteError({ cause: error })
@@ -44,12 +47,23 @@ export class Database extends Effect.Service<Database>()("Database", {
     })
 
     const orm = drizzle({ client, casing: "snake_case" })
+    type Orm = typeof orm
 
-    const query = <R>(execute: (_: typeof orm) => Promise<R>) =>
+    const query = <R>(execute: (_: Orm) => Promise<R>) =>
       Effect.tryPromise({
         try: () => execute(orm),
         catch: (error) => new PgliteError({ cause: error }),
       })
+
+    const selectWorkspace = (workspacePath: AbsolutePath) =>
+      query((_) =>
+        _.select()
+          .from(workspaceTable)
+          .where(eq(workspaceTable.path, workspacePath))
+      ).pipe(
+        singleResult(() => new PgliteError({ cause: "workspace not found" })),
+        Effect.flatMap(Schema.decode(WorkspaceSelectSchema))
+      )
 
     return {
       client,
@@ -100,40 +114,60 @@ export class Database extends Effect.Service<Database>()("Database", {
         )
       ),
 
-      upsertFile: flow(
-        execute(FileInsertSchema, (values: FileInsert) =>
-          Effect.gen(function* () {
-            const now = yield* DateTime.now
-            return yield* query((_) =>
-              _.insert(fileTable)
-                .values(values)
-                .onConflictDoUpdate({
-                  target: [fileTable.path],
-                  set: {
-                    ...values,
-                    last_accessed_at: DateTime.formatIso(now),
-                  },
-                })
-                .returning()
+      upsertFile: (workspacePath: AbsolutePath) =>
+        flow(
+          execute(
+            FileInsertSchema.omit("workspace_id"),
+            (values: Omit<FileInsert, "workspace_id">) =>
+              Effect.gen(function* () {
+                const now = yield* DateTime.now
+
+                const workspace = yield* selectWorkspace(workspacePath)
+
+                return yield* query((_) =>
+                  _.insert(fileTable)
+                    .values({
+                      ...values,
+                      workspace_id: workspace.id,
+                    })
+                    .onConflictDoUpdate({
+                      target: [fileTable.path],
+                      set: {
+                        ...values,
+                        last_accessed_at: DateTime.formatIso(now),
+                      },
+                    })
+                    .returning()
+                )
+              })
+          ),
+          singleResult(() => new PgliteError({ cause: "file not upserted" })),
+          Effect.flatMap(Schema.decode(FileSelectSchema)),
+          Effect.tap((file) => Effect.log("db: upserted file:", file))
+        ),
+
+      deleteFile: (workspacePath: AbsolutePath) => (filePath: RelativePath) =>
+        Effect.gen(function* () {
+          const workspace = yield* selectWorkspace(workspacePath)
+
+          return yield* query((_) =>
+            _.delete(fileTable)
+              .where(
+                and(
+                  eq(fileTable.workspace_id, workspace.id),
+                  eq(fileTable.path, filePath)
+                )
+              )
+              .returning()
+          ).pipe(
+            singleResult(() => new PgliteError({ cause: "file not deleted" })),
+            Effect.tap((deletedFiles) =>
+              Effect.log("db: deleted file:", deletedFiles)
             )
-          })
-        ),
-        singleResult(() => new PgliteError({ cause: "file not upserted" })),
-        Effect.flatMap(Schema.decode(FileSelectSchema)),
-        Effect.tap((file) => Effect.log("db: upserted file:", file))
-      ),
-
-      deleteFile: (filePath: string) =>
-        query((_) =>
-          _.delete(fileTable).where(eq(fileTable.path, filePath)).returning()
-        ).pipe(
-          singleResult(() => new PgliteError({ cause: "file not deleted" })),
-          Effect.tap((deletedFiles) =>
-            Effect.log("db: deleted file:", deletedFiles)
           )
-        ),
+        }),
 
-      selectLastOpenedFile: (workspacePath: string) =>
+      selectLastOpenedFile: (workspacePath: AbsolutePath) =>
         query((_) =>
           _.select(getTableColumns(fileTable))
             .from(fileTable)
@@ -149,24 +183,24 @@ export class Database extends Effect.Service<Database>()("Database", {
           Effect.flatMap(Schema.decode(FileSelectSchema))
         ),
 
-      selectRecentFiles: (workspacePath: string) =>
-        query((_) =>
-          _.select(getTableColumns(fileTable))
-            .from(fileTable)
-            .innerJoin(
-              workspaceTable,
-              eq(fileTable.workspace_id, workspaceTable.id)
-            )
-            .where(eq(workspaceTable.path, workspacePath))
-            .orderBy(desc(fileTable.last_accessed_at))
-            .limit(10)
-        ).pipe(
-          Effect.flatMap((files) =>
-            Effect.forEach(files, (file) =>
-              Schema.decode(FileSelectSchema)(file)
-            )
-          )
-        ),
+      // selectRecentFiles: (workspacePath: AbsolutePath) =>
+      //   query((_) =>
+      //     _.select(getTableColumns(fileTable))
+      //       .from(fileTable)
+      //       .innerJoin(
+      //         workspaceTable,
+      //         eq(fileTable.workspace_id, workspaceTable.id)
+      //       )
+      //       .where(eq(workspaceTable.path, workspacePath))
+      //       .orderBy(desc(fileTable.last_accessed_at))
+      //       .limit(10)
+      //   ).pipe(
+      //     Effect.flatMap((files) =>
+      //       Effect.forEach(files, (file) =>
+      //         Schema.decode(FileSelectSchema)(file)
+      //       )
+      //     )
+      //   ),
     }
   }),
 }) {}

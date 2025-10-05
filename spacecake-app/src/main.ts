@@ -6,7 +6,7 @@ import { watcherService } from "@/main-process/watcher"
 import { Ipc } from "@/services/ipc"
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
 import { Effect, Layer } from "effect"
-import { app, BrowserWindow } from "electron"
+import { app, BrowserWindow, session } from "electron"
 import {
   installExtension,
   REACT_DEVELOPER_TOOLS,
@@ -14,6 +14,24 @@ import {
 import started from "electron-squirrel-startup"
 
 const LEXICAL_DEVELOPER_TOOLS = "kgljmdocanfjckcgfpcpdoklodllfdpc"
+
+// fix for react dev tools service worker issue
+async function launchExtensionBackgroundWorkers(
+  sessionInstance = session.defaultSession
+) {
+  const extensions = sessionInstance.extensions.getAllExtensions()
+  return Promise.all(
+    extensions.map(async (extension) => {
+      const manifest = extension.manifest
+      if (
+        manifest.manifest_version === 3 &&
+        manifest?.background?.service_worker
+      ) {
+        await sessionInstance.serviceWorkers.startWorkerForScope(extension.url)
+      }
+    })
+  )
+}
 
 if (started) {
   app.quit()
@@ -68,6 +86,7 @@ const createWindow = () => {
       .then(([react, lexical]) =>
         console.log(`added extensions: ${react.name}, ${lexical.name}`)
       )
+      .then(async () => await launchExtensionBackgroundWorkers())
       .then(() => mainWindow.webContents.openDevTools())
       .catch((err) => console.log("an error occurred: ", err))
   }
@@ -95,11 +114,16 @@ const program = Effect.gen(function* (_) {
   yield* _(Effect.forkDaemon(watcherService.pipe(Effect.provide(WatcherLive))))
 
   app.on("activate", () => {
+    // On OS X it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }
   })
 
+  // Quit when all windows are closed, except on macOS. There, it's common
+  // for applications and their menu bar to stay active until the user quits
+  // explicitly with Cmd + Q.
   app.on("window-all-closed", () => {
     if (isTest || process.platform !== "darwin") {
       app.quit()

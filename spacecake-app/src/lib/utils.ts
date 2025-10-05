@@ -74,11 +74,11 @@ export function debounce(fn: () => void, waitMs: number) {
 }
 
 export function parentFolderName(
-  filePath: string,
-  workspacePath: string,
+  filePath: AbsolutePath,
+  workspacePath: AbsolutePath,
   fileName: string
 ): string {
-  const relativePath = filePath.replace(`${workspacePath}/`, "")
+  const relativePath = toRelativePath(workspacePath, filePath)
   return relativePath.replace(fileName, "").replace(/\/$/, "")
 }
 

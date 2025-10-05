@@ -1,9 +1,7 @@
 import * as React from "react"
-import {
-  localStorageService,
-  saveEditorLayout,
-  updateRecentFiles,
-} from "@/services/storage"
+import { Database } from "@/services/database"
+import { RuntimeClient } from "@/services/runtime-client"
+import { localStorageService, saveEditorLayout } from "@/services/storage"
 import { useAtom, useAtomValue } from "jotai"
 import { FileWarning, Loader2Icon } from "lucide-react"
 
@@ -31,6 +29,7 @@ import {
   rename,
   saveFile,
 } from "@/lib/fs"
+import { toRelativePath } from "@/lib/utils"
 import { useEditorContext } from "@/hooks/use-filepath"
 import { Button } from "@/components/ui/button"
 import {
@@ -60,6 +59,7 @@ interface NavMainProps {
   onFileClick?: (filePath: AbsolutePath) => void
   selectedFilePath?: AbsolutePath | null
   workspace: WorkspaceInfo
+  db: Database
 }
 
 export function NavMain({
@@ -67,6 +67,7 @@ export function NavMain({
   onFileClick,
   selectedFilePath: initialSelectedFilePath, // renamed to avoid conflict
   workspace,
+  db,
 }: NavMainProps) {
   const [editingItem, setEditingItem] = useAtom(editingItemAtom)
   const [expandedFoldersState] = useAtom(expandedFoldersAtom)
@@ -297,26 +298,24 @@ export function NavMain({
         // Reset deleting state on failure but keep dialog open
         setDeletionState((prev) => ({ ...prev, isDeleting: false }))
       },
-      onRight: () => {
+      onRight: async () => {
         // if the deleted file was the currently selected one, clear the layout
         if (selectedFilePath === itemToDelete.path) {
           const emptyLayout: EditorLayout = {
             tabGroups: [],
             activeTabGroupId: null,
           }
-          saveEditorLayout(
-            localStorageService,
-            emptyLayout,
-            AbsolutePath(workspace.path)
-          )
+          saveEditorLayout(localStorageService, emptyLayout, workspace.path)
         }
 
-        // remove from recent files
-        updateRecentFiles(localStorageService, {
-          type: "remove",
-          filePath: AbsolutePath(itemToDelete.path),
-          workspacePath: AbsolutePath(workspace.path),
-        })
+        const fileSegment = toRelativePath(workspace.path, itemToDelete.path)
+
+        // remove from database
+        if (itemToDelete.kind === "file") {
+          await RuntimeClient.runPromise(
+            db.deleteFile(workspace.path)(fileSegment)
+          ).catch(console.error)
+        }
 
         // Close dialog only after successful deletion
         setDeletionState({
