@@ -44,9 +44,6 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
     console.error("error getting recent files", recentFiles.error)
   }
 
-  console.log("workspace", workspace)
-  console.log("recentFiles", recentFiles)
-
   const navigate = useNavigate()
 
   const [parent, setParent] = useAtom(quickOpenParentAtom)
