@@ -58,6 +58,7 @@ interface NavMainProps {
   expandedFolders?: ExpandedFolders
   onFileClick?: (filePath: AbsolutePath) => void
   selectedFilePath?: AbsolutePath | null
+  foldersToExpand?: string[]
   workspace: WorkspaceInfo
   db: Database
 }
@@ -66,6 +67,7 @@ export function NavMain({
   onExpandFolder,
   onFileClick,
   selectedFilePath: initialSelectedFilePath, // renamed to avoid conflict
+  foldersToExpand = [],
   workspace,
   db,
 }: NavMainProps) {
@@ -373,6 +375,7 @@ export function NavMain({
                 onCreateFolder={handleCreateFolder}
                 selectedFilePath={initialSelectedFilePath} // Use the prop here
                 expandedFolders={expandedFoldersState}
+                foldersToExpand={foldersToExpand}
                 editingItem={editingItem}
                 setEditingItem={setEditingItem}
                 onRename={handleRename}

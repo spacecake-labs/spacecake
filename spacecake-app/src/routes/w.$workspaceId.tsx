@@ -19,6 +19,7 @@ import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { setFileTreeAtom } from "@/lib/atoms/file-tree"
+import { getFoldersToExpand } from "@/lib/auto-reveal"
 import { pathExists, readDirectory } from "@/lib/fs"
 import { store } from "@/lib/store"
 import {
@@ -167,6 +168,11 @@ function LayoutContent() {
   const editorContext = useEditorContext()
   const selectedFilePath = editorContext?.filePath || null
 
+  // compute folders to auto-reveal based on current file
+  const foldersToExpand = selectedFilePath
+    ? getFoldersToExpand(selectedFilePath, workspace.path)
+    : []
+
   const handleFileClick = (filePath: AbsolutePath) => {
     if (workspace?.path) {
       const workspaceIdEncoded = encodeBase64Url(workspace.path)
@@ -189,6 +195,7 @@ function LayoutContent() {
           onFileClick={handleFileClick}
           workspace={workspace}
           selectedFilePath={selectedFilePath}
+          foldersToExpand={foldersToExpand}
           db={db}
         />
         <main className="bg-background relative flex w-full flex-1 flex-col overflow-auto rounded-xl shadow-sm h-full p-2">
@@ -221,6 +228,7 @@ function LayoutContent() {
           onFileClick={handleFileClick}
           workspace={workspace}
           selectedFilePath={selectedFilePath}
+          foldersToExpand={foldersToExpand}
           db={db}
         />
       </ResizablePanel>

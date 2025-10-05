@@ -669,6 +669,79 @@ test.describe("spacecake app", () => {
     await expect(window.getByText("hello persistence")).toBeVisible()
   })
 
+  test("auto-reveal expands folders when opening nested file", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    // 1. Setup: Create a 3-level nested structure with a file at the deepest level
+    const level1Dir = path.join(tempTestDir, "level1")
+    const level2Dir = path.join(level1Dir, "level2")
+    const level3Dir = path.join(level2Dir, "level3")
+
+    fs.mkdirSync(level3Dir, { recursive: true })
+    const nestedFilePath = path.join(level3Dir, "deep-file.txt")
+    fs.writeFileSync(nestedFilePath, "deep file content")
+
+    const window = await electronApp.firstWindow()
+
+    // 2. Open the workspace
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    })
+    await window.getByRole("button", { name: "open folder" }).click()
+
+    // 3. Open the deeply nested folder
+    await window
+      .getByRole("button", { name: "level1" })
+      .locator("svg:first-child") // click the chevron
+      .click({ delay: 100 })
+    await window
+      .getByRole("button", { name: "level2" })
+      .locator("svg:first-child") // click the chevron
+      .click({ delay: 100 })
+    await window
+      .getByRole("button", { name: "level3" })
+      .locator("svg:first-child")
+      .click({ delay: 100 })
+
+    // 4. Open the deeply nested file
+    await window
+      .getByRole("button", { name: "deep-file.txt" })
+      .click({ delay: 100 })
+
+    // 5. Verify the file content is visible
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
+    await expect(window.getByText("deep file content")).toBeVisible()
+
+    // 6. Reload the window
+
+    await window.reload()
+
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    await expect(window.getByText("deep file content")).toBeVisible()
+
+    // 7. Verify all parent folders are auto-expanded using Radix's data-state
+    await expect(
+      window
+        .locator('[data-slot="collapsible"][data-state="open"]')
+        .getByRole("button", { name: "level1" })
+    ).toBeVisible()
+
+    await expect(
+      window
+        .locator('[data-slot="collapsible"][data-state="open"]')
+        .getByRole("button", { name: "level2" })
+    ).toBeVisible()
+
+    await expect(
+      window
+        .locator('[data-slot="collapsible"][data-state="open"]')
+        .getByRole("button", { name: "level3" })
+    ).toBeVisible()
+  })
+
   test("autofocus and type in new file", async ({
     electronApp,
     tempTestDir,
