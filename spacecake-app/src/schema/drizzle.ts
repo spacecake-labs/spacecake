@@ -5,6 +5,7 @@ import {
 } from "@/schema/drizzle-effect"
 import { sql } from "drizzle-orm"
 import {
+  boolean,
   integer,
   jsonb,
   pgTable,
@@ -25,6 +26,9 @@ export const windowTable = pgTable("window", {
     .default(sql`gen_random_uuid()`),
   workspace_id: uuid("workspace_id").references(() => workspaceTable.id),
   created_at: timestamp("created_at", { mode: "string" })
+    .defaultNow()
+    .notNull(),
+  last_accessed_at: timestamp("last_accessed_at", { mode: "string" })
     .defaultNow()
     .notNull(),
 })
@@ -81,7 +85,11 @@ export const viewGroupTable = pgTable("view_group", {
     .references(() => windowTable.id)
     .notNull(),
   index: integer("index").notNull(),
+  is_active: boolean("is_active").notNull().default(false),
   created_at: timestamp("created_at", { mode: "string" })
+    .defaultNow()
+    .notNull(),
+  last_accessed_at: timestamp("last_accessed_at", { mode: "string" })
     .defaultNow()
     .notNull(),
 })
@@ -91,21 +99,32 @@ export type ViewGroupInsert = typeof ViewGroupInsertSchema.Type
 export const ViewGroupSelectSchema = createSelectSchema(viewGroupTable)
 export type ViewGroupSelect = typeof ViewGroupSelectSchema.Type
 
-export const viewTable = pgTable("view", {
-  id: uuid("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  view_group_id: uuid("view_group_id")
-    .references(() => viewGroupTable.id)
-    .notNull(),
-  file_id: uuid("file_id")
-    .references(() => fileTable.id)
-    .notNull(),
-  state: jsonb("state").$type<Schema.Schema.Type<typeof JsonValue>>(),
-  created_at: timestamp("created_at", { mode: "string" })
-    .defaultNow()
-    .notNull(),
-})
+export const viewTable = pgTable(
+  "view",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    view_group_id: uuid("view_group_id")
+      .references(() => viewGroupTable.id)
+      .notNull(),
+    file_id: uuid("file_id")
+      .references(() => fileTable.id)
+      .notNull(),
+    index: integer("index").notNull(),
+    is_active: boolean("is_active").notNull().default(false),
+    state: jsonb("state").$type<Schema.Schema.Type<typeof JsonValue>>(),
+    created_at: timestamp("created_at", { mode: "string" })
+      .defaultNow()
+      .notNull(),
+    last_accessed_at: timestamp("last_accessed_at", { mode: "string" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("view_path_idx").on(table.file_id, table.view_group_id),
+  ]
+)
 
 export const ViewInsertSchema = createInsertSchema(viewTable)
 export type ViewInsert = typeof ViewInsertSchema.Type

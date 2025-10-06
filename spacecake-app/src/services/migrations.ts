@@ -1,4 +1,4 @@
-import v0000 from "@/drizzle/0000_parched_vindicator.sql?raw"
+import v0000 from "@/drizzle/0000_polite_deadpool.sql?raw"
 import { systemTable } from "@/schema/drizzle"
 import { Database } from "@/services/database"
 import { singleResult } from "@/services/utils"
