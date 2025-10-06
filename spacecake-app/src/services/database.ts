@@ -2,12 +2,21 @@ import {
   FileInsertSchema,
   FileSelectSchema,
   fileTable,
-  WorkspaceInsertSchema,
-  WorkspaceSelectSchema,
+  windowTable,
   workspaceTable,
   type FileInsert,
-  type WorkspaceInsert,
 } from "@/schema/drizzle"
+import {
+  WindowInsertSchema,
+  WindowSelectSchema,
+  type WindowInsert,
+} from "@/schema/window"
+import { WindowWorkspaceSelectSchema } from "@/schema/window-workspace"
+import {
+  WorkspaceInsertSchema,
+  WorkspaceSelectSchema,
+  type WorkspaceInsert,
+} from "@/schema/workspace"
 import { maybeSingleResult, singleResult } from "@/services/utils"
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
@@ -70,6 +79,48 @@ export class Database extends Effect.Service<Database>()("Database", {
       orm,
       query,
 
+      selectWindowWorkspace: query((_) =>
+        _.select({
+          windowId: windowTable.id,
+          workspace: { id: workspaceTable.id, path: workspaceTable.path },
+        })
+          .from(windowTable)
+          .leftJoin(
+            workspaceTable,
+            eq(windowTable.workspace_id, workspaceTable.id)
+          )
+          .limit(1)
+      ).pipe(
+        maybeSingleResult(),
+        Effect.flatMap((maybe) =>
+          Option.isNone(maybe)
+            ? Effect.succeed(Option.none())
+            : Schema.decode(WindowWorkspaceSelectSchema)(maybe.value).pipe(
+                Effect.map(Option.some)
+              )
+        )
+      ),
+
+      upsertWindow: flow(
+        execute(WindowInsertSchema, (values: WindowInsert) =>
+          Effect.gen(function* () {
+            return yield* query((_) =>
+              _.insert(windowTable)
+                .values(values)
+                .onConflictDoUpdate({
+                  target: [workspaceTable.path],
+                  set: {
+                    ...values,
+                  },
+                })
+                .returning()
+            )
+          })
+        ),
+        singleResult(() => new PgliteError({ cause: "window not upserted" })),
+        Effect.flatMap(Schema.decode(WindowSelectSchema)),
+        Effect.tap((window) => Effect.log("db: upserted window:", window))
+      ),
       upsertWorkspace: flow(
         execute(WorkspaceInsertSchema, (values: WorkspaceInsert) =>
           Effect.gen(function* () {
@@ -97,22 +148,59 @@ export class Database extends Effect.Service<Database>()("Database", {
         )
       ),
 
-      selectLastOpenedWorkspace: query((_) =>
-        _.select()
-          .from(workspaceTable)
-          .where(eq(workspaceTable.is_open, true))
-          .orderBy(desc(workspaceTable.last_accessed_at))
-          .limit(1)
-      ).pipe(
-        maybeSingleResult(),
-        Effect.flatMap((maybeWorkspace) =>
-          Option.isNone(maybeWorkspace)
-            ? Effect.succeed(Option.none())
-            : Schema.decode(WorkspaceSelectSchema)(maybeWorkspace.value).pipe(
-                Effect.map(Option.some)
-              )
-        )
-      ),
+      upsertWindowWorkspace: (workspacePath: AbsolutePath) =>
+        Effect.gen(function* () {
+          const now = yield* DateTime.now
+
+          return yield* query((_) =>
+            _.transaction(async (tx) => {
+              // upsert workspace
+              const [workspace] = await tx
+                .insert(workspaceTable)
+                .values({ path: workspacePath })
+                .onConflictDoUpdate({
+                  target: [workspaceTable.path],
+                  set: {
+                    last_accessed_at: DateTime.formatIso(now),
+                  },
+                })
+                .returning()
+
+              // then upsert window (only one window can exist)
+              const [existingWindow] = await tx
+                .select()
+                .from(windowTable)
+                .limit(1)
+
+              const [window] = existingWindow
+                ? // update existing window
+                  await tx
+                    .update(windowTable)
+                    .set({ workspace_id: workspace.id })
+                    .where(eq(windowTable.id, existingWindow.id))
+                    .returning()
+                : // insert new window
+                  await tx
+                    .insert(windowTable)
+                    .values({ workspace_id: workspace.id })
+                    .returning()
+
+              return { window, workspace }
+            })
+          )
+        }).pipe(
+          Effect.flatMap((result) =>
+            Schema.decode(
+              Schema.Struct({
+                window: WindowSelectSchema,
+                workspace: WorkspaceSelectSchema,
+              })
+            )(result)
+          ),
+          Effect.tap((result) =>
+            Effect.log("db: upserted window-workspace:", result)
+          )
+        ),
 
       upsertFile: (workspacePath: AbsolutePath) =>
         flow(

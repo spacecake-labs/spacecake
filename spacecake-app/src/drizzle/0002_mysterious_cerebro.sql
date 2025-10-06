@@ -1,1 +1,0 @@
-ALTER TABLE "file" ADD COLUMN "cid" text NOT NULL;

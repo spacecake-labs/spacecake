@@ -49,7 +49,6 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           (await db).upsertFile(workspacePath)({
             path: fileSegment,
             cid: file.cid,
-            is_open: true,
           })
         )
 

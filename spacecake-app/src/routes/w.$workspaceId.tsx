@@ -49,7 +49,9 @@ import { QuickOpen } from "@/components/quick-open"
 export const Route = createFileRoute("/w/$workspaceId")({
   loader: async ({ params, context: { db } }) => {
     const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
+
     const exists = await pathExists(workspacePath)
+
     match(exists, {
       onLeft: (error) => console.error(error),
       onRight: (exists) => {
@@ -64,10 +66,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
     })
 
     await RuntimeClient.runPromise(
-      (await db).upsertWorkspace({
-        path: workspacePath,
-        is_open: true,
-      })
+      (await db).upsertWindowWorkspace(workspacePath)
     )
 
     const result = await readDirectory(workspacePath)
