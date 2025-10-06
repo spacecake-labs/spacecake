@@ -1,1 +1,0 @@
-ALTER TABLE "file" ADD COLUMN "lexical_state" jsonb DEFAULT 'null'::jsonb;

@@ -1,1 +1,0 @@
-ALTER TABLE "file" ALTER COLUMN "lexical_state" DROP DEFAULT;
