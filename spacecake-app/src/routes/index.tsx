@@ -27,41 +27,30 @@ export const Route = createFileRoute("/")({
   validateSearch: NotFoundPathSchema,
   component: Index,
   loader: async ({ context: { db } }) => {
-    const result = await RuntimeClient.runPromise(
-      (await db).selectWindowWorkspace
+    const lastOpenedWorkspace = await RuntimeClient.runPromise(
+      (await db).selectLastOpenedWorkspace
     )
-    return Option.match(result, {
-      onSome: async (result) => {
-        const { workspace } = result
-
-        if (workspace) {
-          const workspacePath = AbsolutePath(workspace.path)
-          const exists = await pathExists(workspacePath)
-
-          return match(exists, {
-            onLeft: (error) => {
-              console.error(error)
-              return { notFoundPath: Option.none() }
-            },
-            onRight: (exists) => {
-              if (exists) {
-                const id = encodeBase64Url(workspacePath)
-
-                throw redirect({
-                  to: "/w/$workspaceId",
-                  params: { workspaceId: id },
-                })
-              }
-              return { notFoundPath: Option.some(workspacePath) }
-            },
-          })
-        }
-        return { notFoundPath: Option.none() }
-      },
-      onNone: () => {
-        return { notFoundPath: Option.none() }
-      },
-    })
+    if (Option.isSome(lastOpenedWorkspace)) {
+      const workspacePath = AbsolutePath(lastOpenedWorkspace.value.path)
+      const exists = await pathExists(workspacePath)
+      return match(exists, {
+        onLeft: (error) => {
+          console.error(error)
+          return { notFoundPath: Option.none() }
+        },
+        onRight: (exists) => {
+          if (exists) {
+            const id = encodeBase64Url(workspacePath)
+            throw redirect({
+              to: "/w/$workspaceId",
+              params: { workspaceId: id },
+            })
+          }
+          return { notFoundPath: Option.some(workspacePath) }
+        },
+      })
+    }
+    return { notFoundPath: Option.none() }
   },
 })
 

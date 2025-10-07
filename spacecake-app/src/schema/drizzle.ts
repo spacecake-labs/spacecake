@@ -20,19 +20,6 @@ export const systemTable = pgTable("system", {
   version: integer().notNull().default(0),
 })
 
-export const windowTable = pgTable("window", {
-  id: uuid("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  workspace_id: uuid("workspace_id").references(() => workspaceTable.id),
-  created_at: timestamp("created_at", { mode: "string" })
-    .defaultNow()
-    .notNull(),
-  last_accessed_at: timestamp("last_accessed_at", { mode: "string" })
-    .defaultNow()
-    .notNull(),
-})
-
 export const workspaceTable = pgTable(
   "workspace",
   {
@@ -40,6 +27,7 @@ export const workspaceTable = pgTable(
       .primaryKey()
       .default(sql`gen_random_uuid()`),
     path: text("path").notNull(),
+    is_open: boolean("is_open").notNull().default(false),
     created_at: timestamp("created_at", { mode: "string" })
       .defaultNow()
       .notNull(),
@@ -61,6 +49,7 @@ export const fileTable = pgTable(
       .notNull(),
     path: text("path").notNull(),
     cid: text("cid").notNull(),
+    state: jsonb("state").$type<Schema.Schema.Type<typeof JsonValue>>(),
     created_at: timestamp("created_at", { mode: "string" })
       .defaultNow()
       .notNull(),
@@ -77,56 +66,37 @@ export type FileInsert = typeof FileInsertSchema.Type
 export const FileSelectSchema = createSelectSchema(fileTable)
 export type FileSelect = typeof FileSelectSchema.Type
 
-export const viewGroupTable = pgTable("view_group", {
+export const paneTable = pgTable("pane", {
   id: uuid("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  window_id: uuid("window_id")
-    .references(() => windowTable.id)
+  workspace_id: uuid("workspace_id")
+    .references(() => workspaceTable.id)
     .notNull(),
-  index: integer("index").notNull(),
+  position: integer("index").notNull(),
   is_active: boolean("is_active").notNull().default(false),
-  created_at: timestamp("created_at", { mode: "string" })
-    .defaultNow()
-    .notNull(),
-  last_accessed_at: timestamp("last_accessed_at", { mode: "string" })
-    .defaultNow()
-    .notNull(),
 })
 
-export const ViewGroupInsertSchema = createInsertSchema(viewGroupTable)
-export type ViewGroupInsert = typeof ViewGroupInsertSchema.Type
-export const ViewGroupSelectSchema = createSelectSchema(viewGroupTable)
-export type ViewGroupSelect = typeof ViewGroupSelectSchema.Type
+export const PaneInsertSchema = createInsertSchema(paneTable)
+export type PaneInsert = typeof PaneInsertSchema.Type
+export const PaneSelectSchema = createSelectSchema(paneTable)
+export type PaneSelect = typeof PaneSelectSchema.Type
 
-export const viewTable = pgTable(
-  "view",
-  {
-    id: uuid("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    view_group_id: uuid("view_group_id")
-      .references(() => viewGroupTable.id)
-      .notNull(),
-    file_id: uuid("file_id")
-      .references(() => fileTable.id)
-      .notNull(),
-    index: integer("index").notNull(),
-    is_active: boolean("is_active").notNull().default(false),
-    state: jsonb("state").$type<Schema.Schema.Type<typeof JsonValue>>(),
-    created_at: timestamp("created_at", { mode: "string" })
-      .defaultNow()
-      .notNull(),
-    last_accessed_at: timestamp("last_accessed_at", { mode: "string" })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex("view_path_idx").on(table.file_id, table.view_group_id),
-  ]
-)
+export const elementTable = pgTable("element", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  pane_id: uuid("pane_id")
+    .references(() => paneTable.id)
+    .notNull(),
+  file_id: uuid("file_id")
+    .references(() => fileTable.id)
+    .notNull(),
+  position: integer("index").notNull(),
+  is_active: boolean("is_active").notNull().default(false),
+})
 
-export const ViewInsertSchema = createInsertSchema(viewTable)
-export type ViewInsert = typeof ViewInsertSchema.Type
-export const ViewSelectSchema = createSelectSchema(viewTable)
-export type ViewSelect = typeof ViewSelectSchema.Type
+export const ElementInsertSchema = createInsertSchema(elementTable)
+export type ElementInsert = typeof ElementInsertSchema.Type
+export const ElementSelectSchema = createSelectSchema(elementTable)
+export type ElementSelect = typeof ElementSelectSchema.Type

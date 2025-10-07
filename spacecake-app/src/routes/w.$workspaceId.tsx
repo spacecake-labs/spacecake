@@ -66,7 +66,10 @@ export const Route = createFileRoute("/w/$workspaceId")({
     })
 
     await RuntimeClient.runPromise(
-      (await db).upsertWindowWorkspace(workspacePath)
+      (await db).upsertWorkspace({
+        path: workspacePath,
+        is_open: true,
+      })
     )
 
     const result = await readDirectory(workspacePath)
