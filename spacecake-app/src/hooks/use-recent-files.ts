@@ -1,4 +1,4 @@
-import { FileSelectSchema, fileTable, workspaceTable } from "@/schema/drizzle"
+import { FileSelectSchema, fileTable, workspaceTable } from "@/schema"
 import { and, desc, eq, getTableColumns } from "drizzle-orm"
 
 import { AbsolutePath } from "@/types/workspace"

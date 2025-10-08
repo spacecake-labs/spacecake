@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react"
+import { fileMachine } from "@/machines/file"
 import { RuntimeClient } from "@/services/runtime-client"
 import { localStorageService, openFile } from "@/services/storage"
 import {
@@ -6,8 +7,10 @@ import {
   ErrorComponent,
   redirect,
 } from "@tanstack/react-router"
+import { useMachine } from "@xstate/react"
 import { Schema } from "effect"
 import { useSetAtom } from "jotai"
+import type { SerializedEditorState } from "lexical"
 
 import { match } from "@/types/adt"
 import { ViewKindSchema } from "@/types/lexical"
@@ -77,6 +80,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 
 function FileLayout() {
   const { workspace, filePath: fileSegment, file, view } = Route.useLoaderData()
+  const [, send] = useMachine(fileMachine)
 
   // Convert relative path back to absolute for file operations
   const filePath = toAbsolutePath(workspace.path, fileSegment)
@@ -106,8 +110,16 @@ function FileLayout() {
         <Editor
           key={`${filePath}-${view}`}
           editorConfig={editorConfig}
-          onSerializedChange={(value) => {
+          onSerializedChange={(value: SerializedEditorState) => {
             setEditorState(value)
+            send({
+              type: "file.update.state",
+              workspacePath: workspace.path,
+              file: {
+                path: fileSegment,
+                state: JSON.stringify(value),
+              },
+            })
           }}
         />
       )}

@@ -101,6 +101,7 @@
     "@tanstack/react-router-devtools": "^1.132.11",
     "@tanstack/react-virtual": "^3.13.12",
     "@uiw/codemirror-theme-github": "^4.25.2",
+    "@xstate/react": "^6.0.0",
     "LexicalTableCellResizer": "link:@lexical/react/LexicalTableCellResizer",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -60,12 +60,6 @@ export const fileTable = pgTable(
   (table) => [uniqueIndex("file_path_idx").on(table.path)]
 )
 
-export const FileInsertSchema = createInsertSchema(fileTable)
-export type FileInsert = typeof FileInsertSchema.Type
-
-export const FileSelectSchema = createSelectSchema(fileTable)
-export type FileSelect = typeof FileSelectSchema.Type
-
 export const paneTable = pgTable("pane", {
   id: uuid("id")
     .primaryKey()
