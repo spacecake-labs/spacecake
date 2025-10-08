@@ -1,10 +1,11 @@
+import { fileTable, workspaceTable } from "@/schema/drizzle"
 import {
   FileInsertSchema,
   FileSelectSchema,
-  fileTable,
-  workspaceTable,
+  FileUpdateState,
+  FileUpdateStateSchema,
   type FileInsert,
-} from "@/schema/drizzle"
+} from "@/schema/file"
 import {
   WorkspaceInsertSchema,
   WorkspaceSelectSchema,
@@ -146,6 +147,27 @@ export class Database extends Effect.Service<Database>()("Database", {
           singleResult(() => new PgliteError({ cause: "file not upserted" })),
           Effect.flatMap(Schema.decode(FileSelectSchema)),
           Effect.tap((file) => Effect.log("db: upserted file:", file))
+        ),
+
+      updateFileState: (workspacePath: AbsolutePath) =>
+        flow(
+          execute(FileUpdateStateSchema, (values: FileUpdateState) =>
+            Effect.gen(function* () {
+              const workspace = yield* selectWorkspace(workspacePath)
+
+              return yield* query((_) =>
+                _.update(fileTable)
+                  .set(values)
+                  .where(
+                    and(
+                      eq(fileTable.workspace_id, workspace.id),
+                      eq(fileTable.path, values.path)
+                    )
+                  )
+              )
+            })
+          ),
+          Effect.tap((file) => Effect.log("db: updated file state:", file))
         ),
 
       deleteFile: (workspacePath: AbsolutePath) => (filePath: RelativePath) =>
