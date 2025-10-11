@@ -1,11 +1,12 @@
 import { readFileSync } from "fs"
 import { join } from "path"
 
+import { FilePrimaryKey } from "@/schema/file"
 import { describe, expect, it } from "vitest"
 
 import type { PyBlock } from "@/types/parser"
 import { AbsolutePath, FileType } from "@/types/workspace"
-import type { FileContent } from "@/types/workspace"
+import type { FileBuffer } from "@/types/workspace"
 import {
   parseCodeBlocks,
   parsePythonContentStreaming,
@@ -123,14 +124,11 @@ describe("Python parser isomorphism", () => {
     expect(serializedCode).toBe("")
 
     // Test that the streaming parser handles this case with fallback
-    const file: FileContent = {
-      name: "test.py",
+    const file: FileBuffer = {
+      id: FilePrimaryKey("test-file-1"),
       path: AbsolutePath("/test.py"),
-      kind: "file",
-      etag: { mtimeMs: Date.now(), size: code.length },
       fileType: FileType.Python,
-      cid: "test-cid",
-      content: code,
+      buffer: code,
     }
     const streamingBlocks: PyBlock[] = []
     for await (const block of parsePythonContentStreaming(file)) {

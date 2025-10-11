@@ -4,20 +4,22 @@
  */
 
 import { RuntimeClient } from "@/services/runtime-client"
-import { createFileRoute, redirect } from "@tanstack/react-router"
-import { Schema } from "effect"
+import {
+  createFileRoute,
+  ErrorComponent,
+  redirect,
+} from "@tanstack/react-router"
+import { Option } from "effect"
 import { AlertCircleIcon, CakeSlice } from "lucide-react"
 
 import { match } from "@/types/adt"
-import type { EditorTab, EditorTabGroup } from "@/types/editor"
-import { EditorLayoutSchema } from "@/types/editor"
-import { AbsolutePath } from "@/types/workspace"
+import { AbsolutePath, RelativePath } from "@/types/workspace"
 import { pathExists } from "@/lib/fs"
 import {
   condensePath,
   decodeBase64Url,
   encodeBase64Url,
-  toRelativePath,
+  toAbsolutePath,
 } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CommandShortcut } from "@/components/ui/command"
@@ -41,65 +43,48 @@ export const Route = createFileRoute("/w/$workspaceId/")({
       return { kind: "notFound", filePath: notFoundFilePath }
     }
 
-    // we need to load the layout synchronously in the loader
-    // since we can't use atoms in the loader, we'll need to read from localStorage directly
-    const workspaceId = workspacePath.replace(/[^a-zA-Z0-9]/g, "_")
-    const storageKey = `spacecake:editor-layout:${workspaceId}`
-    const stored = localStorage.getItem(storageKey)
+    const activeElement = await RuntimeClient.runPromise(
+      (await db).selectLastOpenedElement(workspacePath)
+    )
 
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      const layout = Schema.decodeUnknownSync(EditorLayoutSchema)(parsed)
+    if (Option.isSome(activeElement)) {
+      const { viewKind, filePath } = activeElement.value
+      console.log("activeElement", activeElement.value)
+      const fileSegment = RelativePath(filePath)
+      const absolutePath = toAbsolutePath(workspacePath, fileSegment)
 
-      if (layout.tabGroups && layout.activeTabGroupId) {
-        const activeGroup = layout.tabGroups.find(
-          (g: EditorTabGroup) => g.id === layout.activeTabGroupId
-        )
-        const activeTab = activeGroup?.tabs.find(
-          (t: EditorTab) => t.id === activeGroup.activeTabId
-        ) as EditorTab | undefined
+      const fileExists = await pathExists(absolutePath)
 
-        if (activeTab) {
-          // check if file is within the current workspace
-          if (!activeTab.filePath.startsWith(workspacePath)) {
-            // file is from a different workspace, just show empty state
-            // (user switched workspaces, this is normal)
-            return { kind: "empty" }
+      return match(fileExists, {
+        onLeft: (error) => {
+          console.error(error)
+          return { kind: "notFound", filePath: filePath }
+        },
+        onRight: async (exists) => {
+          if (exists) {
+            throw redirect({
+              to: "/w/$workspaceId/f/$filePath",
+              params: {
+                workspaceId: params.workspaceId,
+                filePath: encodeBase64Url(fileSegment),
+              },
+              search: {
+                view: viewKind,
+              },
+            })
           }
-
-          const fileExists = await pathExists(activeTab.filePath)
-
-          // Convert absolute path to relative for navigation
-          const fileSegment = toRelativePath(workspacePath, activeTab.filePath)
-
-          return match(fileExists, {
-            onLeft: (error) => {
-              console.error(error)
-              return { kind: "notFound", filePath: activeTab.filePath }
-            },
-            onRight: async (exists) => {
-              if (exists) {
-                throw redirect({
-                  to: "/w/$workspaceId/f/$filePath",
-                  params: {
-                    workspaceId: params.workspaceId,
-                    filePath: encodeBase64Url(fileSegment),
-                  },
-                })
-              }
-              // file not found
-              await RuntimeClient.runPromise(
-                (await db).deleteFile(workspacePath)(fileSegment)
-              )
-              return { kind: "notFound", filePath: activeTab.filePath }
-            },
-          })
-        }
-      }
+          // file not found
+          await RuntimeClient.runPromise(
+            (await db).deleteFile(workspacePath)(fileSegment)
+          )
+          return { kind: "notFound", filePath: absolutePath }
+        },
+      })
     }
 
     return { kind: "empty" }
   },
+  errorComponent: ({ error }) => <ErrorComponent error={error} />,
   component: WorkspaceIndex,
 })
 

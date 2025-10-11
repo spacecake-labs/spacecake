@@ -1,3 +1,4 @@
+import { FilePrimaryKey } from "@/schema/file"
 import { $convertToMarkdownString } from "@lexical/markdown"
 import { atom, WritableAtom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
@@ -113,7 +114,7 @@ export const saveFileAtom = atom(
     })()
 
     if (inferredType === FileType.Python) {
-      contentToWrite = serializeEditorToPython(lexicalEditor)
+      contentToWrite = serializeEditorToPython(lexicalEditor.getEditorState())
     } else if (inferredType === FileType.Markdown) {
       // For markdown files, convert Lexical state to markdown
       contentToWrite = lexicalEditor.read(() =>
@@ -126,7 +127,7 @@ export const saveFileAtom = atom(
       inferredType === FileType.JSX
     ) {
       // For TypeScript/JavaScript files, use the source serializer
-      contentToWrite = serializeEditorToSource(lexicalEditor)
+      contentToWrite = serializeEditorToSource(lexicalEditor.getEditorState())
     } else {
       contentToWrite = ""
     }
@@ -148,7 +149,7 @@ export const saveFileAtom = atom(
 
       // Serialize the current editor state
       if (inferredType === FileType.Python) {
-        contentToWrite = serializeEditorToPython(lexicalEditor)
+        contentToWrite = serializeEditorToPython(lexicalEditor.getEditorState())
       } else if (inferredType === FileType.Markdown) {
         contentToWrite = lexicalEditor.read(() =>
           $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
@@ -169,20 +170,16 @@ export const saveFileAtom = atom(
         // Trigger immediate re-parsing for block splitting after successful save
         if (inferredType === FileType.Python && lexicalEditor) {
           // Create a mock FileContent object for re-parsing
-          const mockFileContent = {
+          const mockFileBuffer = {
+            id: FilePrimaryKey(""),
             path: filePath,
             name: filePath.split("/").pop() || "",
-            content: contentToWrite,
+            buffer: contentToWrite,
             fileType: inferredType,
-            size: contentToWrite.length,
-            modified: new Date().toISOString(),
-            etag: { mtimeMs: Date.now(), size: contentToWrite.length },
-            cid: newCid,
-            kind: "file" as const,
           }
 
           // Trigger re-parsing for block splitting
-          convertPythonBlocksToLexical(mockFileContent, lexicalEditor)
+          convertPythonBlocksToLexical(mockFileBuffer, lexicalEditor)
         }
       } else {
         // Rollback CID on failure

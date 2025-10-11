@@ -30,7 +30,7 @@ function convertToFileTreeEvent(
     Match.tag("Create", (event) => {
       const ext = path.extname(event.path)
       if (ext) {
-        const etag: ETag = { mtimeMs: Date.now(), size: 0 }
+        const etag: ETag = { mtime: new Date(), size: 0 }
         return Effect.succeed({
           kind: "addFile" as const,
           path: AbsolutePath(event.path),
@@ -52,10 +52,7 @@ function convertToFileTreeEvent(
         const cid = fnv1a64Hex(content)
         const stats = yield* _(fs.stat(event.path))
         const etag: ETag = {
-          mtimeMs: Option.getOrElse(
-            Option.map(stats.mtime, (d) => (d as Date).getTime()),
-            () => Date.now()
-          ),
+          mtime: Option.getOrElse(stats.mtime, () => new Date()),
           size: Number(stats.size),
         }
         return {
@@ -68,7 +65,7 @@ function convertToFileTreeEvent(
         }
       }).pipe(
         Effect.catchAll(() => {
-          const etag: ETag = { mtimeMs: Date.now(), size: 0 }
+          const etag: ETag = { mtime: new Date(Date.now()), size: 0 }
           return Effect.succeed({
             kind: "addFile" as const,
             path: AbsolutePath(event.path),

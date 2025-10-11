@@ -1,10 +1,22 @@
-import { fileTable, workspaceTable } from "@/schema/drizzle"
+import {
+  ElementInsertSchema,
+  ElementSelectSchema,
+  elementTable,
+  fileTable,
+  PaneInsertSchema,
+  PaneSelectSchema,
+  paneTable,
+  workspaceTable,
+  type ElementInsert,
+  type PaneInsert,
+} from "@/schema/drizzle"
+import { ActiveElementSelectSchema } from "@/schema/element"
 import {
   FileInsertSchema,
   FileSelectSchema,
-  FileUpdateState,
-  FileUpdateStateSchema,
+  FileUpdateBufferSchema,
   type FileInsert,
+  type FileUpdateBuffer,
 } from "@/schema/file"
 import {
   WorkspaceInsertSchema,
@@ -20,7 +32,7 @@ import { Data, DateTime, Effect, flow, Option, Schema } from "effect"
 
 import { AbsolutePath, RelativePath } from "@/types/workspace"
 
-class PgliteError extends Data.TaggedError("PgliteError")<{
+export class PgliteError extends Data.TaggedError("PgliteError")<{
   cause: unknown
 }> {}
 
@@ -55,7 +67,10 @@ export class Database extends Effect.Service<Database>()("Database", {
     const query = <R>(execute: (_: Orm) => Promise<R>) =>
       Effect.tryPromise({
         try: () => execute(orm),
-        catch: (error) => new PgliteError({ cause: error }),
+        catch: (error) => {
+          console.log(error)
+          return new PgliteError({ cause: error })
+        },
       })
 
     const selectWorkspace = (workspacePath: AbsolutePath) =>
@@ -134,7 +149,7 @@ export class Database extends Effect.Service<Database>()("Database", {
                       workspace_id: workspace.id,
                     })
                     .onConflictDoUpdate({
-                      target: [fileTable.path],
+                      target: [fileTable.workspace_id, fileTable.path],
                       set: {
                         ...values,
                         last_accessed_at: DateTime.formatIso(now),
@@ -149,9 +164,70 @@ export class Database extends Effect.Service<Database>()("Database", {
           Effect.tap((file) => Effect.log("db: upserted file:", file))
         ),
 
-      updateFileState: (workspacePath: AbsolutePath) =>
+      upsertPane: flow(
+        execute(PaneInsertSchema, (values: PaneInsert) =>
+          Effect.gen(function* () {
+            // yield* query((_) =>
+            //   _.update(paneTable)
+            //     .set({ is_active: false })
+            //     .where(eq(paneTable.workspace_id, values.workspace_id))
+            // )
+            const now = yield* DateTime.now
+
+            return yield* query((_) =>
+              _.insert(paneTable)
+                .values({ ...values, is_active: true })
+                .onConflictDoUpdate({
+                  target: [paneTable.workspace_id, paneTable.position],
+                  set: {
+                    ...values,
+                    is_active: true,
+                    last_accessed_at: DateTime.formatIso(now),
+                  },
+                })
+                .returning()
+            )
+          })
+        ),
+        singleResult(() => new PgliteError({ cause: "pane not upserted" })),
+        Effect.flatMap(Schema.decode(PaneSelectSchema)),
+        Effect.tap((pane) => Effect.log("db: upserted pane:", pane))
+      ),
+
+      upsertElement: flow(
+        execute(ElementInsertSchema, (values: ElementInsert) =>
+          Effect.gen(function* () {
+            // yield* query((_) =>
+            //   _.update(elementTable)
+            //     .set({ is_active: false })
+            //     .where(eq(elementTable.pane_id, values.pane_id))
+            // )
+
+            const now = yield* DateTime.now
+
+            return yield* query((_) =>
+              _.insert(elementTable)
+                .values(values)
+                .onConflictDoUpdate({
+                  target: [elementTable.pane_id, elementTable.file_id],
+                  set: {
+                    ...values,
+                    is_active: true,
+                    last_accessed_at: DateTime.formatIso(now),
+                  },
+                })
+                .returning()
+            )
+          })
+        ),
+        singleResult(() => new PgliteError({ cause: "element not upserted" })),
+        Effect.flatMap(Schema.decode(ElementSelectSchema)),
+        Effect.tap((element) => Effect.log("db: upserted element:", element))
+      ),
+
+      updateFileBuffer: (workspacePath: AbsolutePath) =>
         flow(
-          execute(FileUpdateStateSchema, (values: FileUpdateState) =>
+          execute(FileUpdateBufferSchema, (values: FileUpdateBuffer) =>
             Effect.gen(function* () {
               const workspace = yield* selectWorkspace(workspacePath)
 
@@ -167,7 +243,7 @@ export class Database extends Effect.Service<Database>()("Database", {
               )
             })
           ),
-          Effect.tap((file) => Effect.log("db: updated file state:", file))
+          Effect.tap((file) => Effect.log("db: updated file buffer:", file))
         ),
 
       deleteFile: (workspacePath: AbsolutePath) => (filePath: RelativePath) =>
@@ -205,6 +281,69 @@ export class Database extends Effect.Service<Database>()("Database", {
         ).pipe(
           singleResult(() => new PgliteError({ cause: "no file found" })),
           Effect.flatMap(Schema.decode(FileSelectSchema))
+        ),
+
+      selectFile: (workspacePath: AbsolutePath, filePath: RelativePath) =>
+        query((_) =>
+          _.select(getTableColumns(fileTable))
+            .from(fileTable)
+            .innerJoin(
+              workspaceTable,
+              eq(fileTable.workspace_id, workspaceTable.id)
+            )
+            .where(
+              and(
+                eq(workspaceTable.path, workspacePath),
+                eq(fileTable.path, filePath)
+              )
+            )
+            .limit(1)
+        ).pipe(
+          maybeSingleResult(),
+          Effect.flatMap((maybe) =>
+            Option.isNone(maybe)
+              ? Effect.succeed(Option.none())
+              : Schema.decode(FileSelectSchema)(maybe.value).pipe(
+                  Effect.map(Option.some)
+                )
+          )
+        ),
+
+      selectLastOpenedElement: (workspacePath: AbsolutePath) =>
+        query((_) =>
+          _.select({
+            id: elementTable.id,
+            viewKind: elementTable.view_kind,
+            workspacePath: workspaceTable.path,
+            filePath: fileTable.path,
+          })
+            .from(elementTable)
+            .innerJoin(
+              fileTable,
+              and(
+                eq(elementTable.file_id, fileTable.id),
+                // filter early for performance
+                eq(elementTable.is_active, true)
+              )
+            )
+            .innerJoin(
+              workspaceTable,
+              and(
+                eq(fileTable.workspace_id, workspaceTable.id),
+                eq(workspaceTable.path, workspacePath)
+              )
+            )
+            .orderBy(desc(elementTable.last_accessed_at))
+            .limit(1)
+        ).pipe(
+          maybeSingleResult(),
+          Effect.flatMap((maybe) =>
+            Option.isNone(maybe)
+              ? Effect.succeed(Option.none())
+              : Schema.decode(ActiveElementSelectSchema)(maybe.value).pipe(
+                  Effect.map(Option.some)
+                )
+          )
         ),
 
       // selectRecentFiles: (workspacePath: AbsolutePath) =>

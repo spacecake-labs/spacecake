@@ -4,7 +4,11 @@
  */
 
 import { RuntimeClient } from "@/services/runtime-client"
-import { createFileRoute, redirect } from "@tanstack/react-router"
+import {
+  createFileRoute,
+  ErrorComponent,
+  redirect,
+} from "@tanstack/react-router"
 import { Option, Schema } from "effect"
 import { AlertCircleIcon, FolderOpen, Loader2Icon } from "lucide-react"
 
@@ -52,6 +56,7 @@ export const Route = createFileRoute("/")({
     }
     return { notFoundPath: Option.none() }
   },
+  errorComponent: ({ error }) => <ErrorComponent error={error} />,
 })
 
 function Index() {

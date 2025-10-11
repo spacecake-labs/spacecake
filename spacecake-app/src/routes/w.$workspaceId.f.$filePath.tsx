@@ -1,25 +1,26 @@
-import { useEffect, useMemo } from "react"
-import { fileMachine } from "@/machines/file"
+import { fileMachine } from "@/machines/manage-file"
+import { FileManager } from "@/services/file-manager"
 import { RuntimeClient } from "@/services/runtime-client"
-import { localStorageService, openFile } from "@/services/storage"
 import {
   createFileRoute,
   ErrorComponent,
   redirect,
 } from "@tanstack/react-router"
 import { useMachine } from "@xstate/react"
-import { Schema } from "effect"
+import { Effect, Schema } from "effect"
 import { useSetAtom } from "jotai"
-import type { SerializedEditorState } from "lexical"
+import { type EditorState } from "lexical"
 
 import { match } from "@/types/adt"
 import { ViewKindSchema } from "@/types/lexical"
 import { AbsolutePath, RelativePath } from "@/types/workspace"
-import { editorStateAtom, fileContentAtom } from "@/lib/atoms/atoms"
-import { createEditorConfigFromContent } from "@/lib/editor"
-import { readFile } from "@/lib/fs"
+import { editorStateAtom } from "@/lib/atoms/atoms"
+import {
+  createEditorConfigFromContent,
+  serializeFileContent,
+} from "@/lib/editor"
 import { decodeBase64Url, toAbsolutePath } from "@/lib/utils"
-import { determineView } from "@/lib/view-preferences"
+import { determineView } from "@/lib/view"
 import { Editor } from "@/components/editor/editor"
 
 const fileSearchSchema = Schema.Struct({
@@ -29,16 +30,45 @@ const fileSearchSchema = Schema.Struct({
 export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   validateSearch: (search) =>
     Schema.decodeUnknownSync(fileSearchSchema)(search),
-  loaderDeps: ({ search: { view } }) => ({ view }),
-  loader: async ({ params, deps: { view }, context: { db } }) => {
+  beforeLoad: async ({ params, search, context }) => {
+    if (search.view) {
+      return
+    }
+
+    const { db } = context
+    const dbInstance = await db
     const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
     const fileSegment = RelativePath(decodeBase64Url(params.filePath))
-    const filePath = toAbsolutePath(workspacePath, fileSegment)
 
-    const finalView = determineView(filePath, view)
-    const file = await readFile(filePath)
+    const viewKind = await determineView(
+      dbInstance.orm,
+      workspacePath,
+      fileSegment,
+      search.view
+    )
 
-    return match(file, {
+    throw redirect({
+      search: {
+        ...search,
+        view: viewKind,
+      },
+      params,
+      replace: true,
+    })
+  },
+  loaderDeps: ({ search: { view } }) => ({ view }),
+  loader: async ({ params, deps: { view }, context }) => {
+    const { db, pane, workspace } = context
+    const fileSegment = RelativePath(decodeBase64Url(params.filePath))
+
+    const fileRecord = await RuntimeClient.runPromise(
+      Effect.gen(function* () {
+        const fm = yield* FileManager
+        return yield* fm.readFile(workspace.path, fileSegment)
+      })
+    )
+
+    return match(fileRecord, {
       onLeft: (error) => {
         console.error("failed to read file:", error)
         throw redirect({
@@ -48,21 +78,27 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         })
       },
       onRight: async (file) => {
-        await RuntimeClient.runPromise(
-          (await db).upsertFile(workspacePath)({
-            path: fileSegment,
-            cid: file.cid,
+        if (!view) {
+          // this should be an impossible state because of the beforeLoad redirect.
+          // we'll throw to make it clear if it ever occurs.
+          throw new Error("invariant: view param should be present in loader")
+        }
+
+        const element = await RuntimeClient.runPromise(
+          (await db).upsertElement({
+            pane_id: pane.id,
+            file_id: file.id,
+            view_kind: view,
+            position: 0, // assuming single element per pane for now
+            is_active: true,
           })
         )
 
         return {
-          workspace: {
-            path: workspacePath,
-            name: workspacePath.split("/").pop() || "spacecake",
-          },
+          workspace,
           filePath: fileSegment,
           file,
-          view: finalView,
+          element,
         }
       },
     })
@@ -79,50 +115,52 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 })
 
 function FileLayout() {
-  const { workspace, filePath: fileSegment, file, view } = Route.useLoaderData()
+  const {
+    workspace,
+    filePath: fileSegment,
+    file,
+    element,
+  } = Route.useLoaderData()
+  const { view_kind: view } = element
+
   const [, send] = useMachine(fileMachine)
 
   // Convert relative path back to absolute for file operations
   const filePath = toAbsolutePath(workspace.path, fileSegment)
 
-  const setFile = useSetAtom(fileContentAtom)
+  // const setFile = useSetAtom(fileContentAtom)
   const setEditorState = useSetAtom(editorStateAtom)
 
-  // Create editor config for this specific file
-  const editorConfig = useMemo(() => {
-    return createEditorConfigFromContent(file, view)
-  }, [file, view])
+  const editorConfig = createEditorConfigFromContent(file, view)
 
   // Set up atoms when component mounts
-  useEffect(() => {
-    // Set atoms for this file
-    setFile(file)
+  // useEffect(() => {
+  //   // Set atoms for this file
+  //   // setFile(file)
 
-    if (workspace?.path) {
-      // open file in tab layout (handles existing tabs properly)
-      openFile(localStorageService, filePath, workspace.path)
-    }
-  }, [workspace, file, filePath, setFile])
+  //   if (workspace?.path) {
+  //     // open file in tab layout (handles existing tabs properly)
+  //     openFile(localStorageService, filePath, workspace.path)
+  //   }
+  // }, [workspace, file, filePath, setFile])
 
   return (
     <>
-      {editorConfig && (
-        <Editor
-          key={`${filePath}-${view}`}
-          editorConfig={editorConfig}
-          onSerializedChange={(value: SerializedEditorState) => {
-            setEditorState(value)
-            send({
-              type: "file.update.state",
-              workspacePath: workspace.path,
-              file: {
-                path: fileSegment,
-                state: JSON.stringify(value),
-              },
-            })
-          }}
-        />
-      )}
+      <Editor
+        key={`${filePath}-${view}`}
+        editorConfig={editorConfig}
+        onChange={(editorState: EditorState) => {
+          setEditorState(editorState.toJSON())
+          send({
+            type: "file.update.buffer",
+            workspacePath: workspace.path,
+            file: {
+              path: fileSegment,
+              buffer: serializeFileContent(editorState, file),
+            },
+          })
+        }}
+      />
     </>
   )
 }

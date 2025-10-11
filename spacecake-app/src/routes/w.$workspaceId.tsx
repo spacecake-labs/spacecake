@@ -47,7 +47,7 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
 
 export const Route = createFileRoute("/w/$workspaceId")({
-  loader: async ({ params, context: { db } }) => {
+  beforeLoad: async ({ params, context: { db } }) => {
     const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
 
     const exists = await pathExists(workspacePath)
@@ -65,14 +65,29 @@ export const Route = createFileRoute("/w/$workspaceId")({
       },
     })
 
-    await RuntimeClient.runPromise(
+    const workspace = await RuntimeClient.runPromise(
       (await db).upsertWorkspace({
         path: workspacePath,
         is_open: true,
       })
     )
 
-    const result = await readDirectory(workspacePath)
+    const pane = await RuntimeClient.runPromise(
+      (await db).upsertPane({ workspace_id: workspace.id, position: 0 })
+    )
+
+    return {
+      workspace: {
+        ...workspace,
+        path: workspacePath,
+        name: workspacePath.split("/").pop() || "spacecake",
+      },
+      pane,
+    }
+  },
+  loader: async ({ context }) => {
+    const { db, workspace } = context
+    const result = await readDirectory(workspace.path)
     match(result, {
       onLeft: (error) => console.error(error),
       onRight: (tree) => {
@@ -82,8 +97,8 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
     return {
       workspace: {
-        path: workspacePath,
-        name: workspacePath.split("/").pop() || "spacecake",
+        path: workspace.path,
+        name: workspace.path.split("/").pop() || "spacecake",
       },
       db: await db,
     }
@@ -257,7 +272,8 @@ function LayoutContent() {
 }
 
 function WorkspaceLayout() {
-  const { workspace, db } = Route.useLoaderData()
+  const { workspace } = Route.useRouteContext()
+  const { db } = Route.useLoaderData()
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
 

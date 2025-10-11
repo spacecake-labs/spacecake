@@ -2,6 +2,7 @@
  * Workspace and file tree types
  */
 
+import { FilePrimaryKey } from "@/schema/file"
 import { Brand, Schema } from "effect"
 
 import { ViewKindSchema } from "@/types/lexical"
@@ -64,6 +65,10 @@ export type File = FileTreeItem & {
 
 export type FileContent = File & { content: string }
 
+export type FileBuffer = { id: FilePrimaryKey; buffer: string } & Pick<
+  File,
+  "path" | "fileType"
+>
 export type Folder = FileTreeItem & {
   kind: "folder"
   children: FileTree
@@ -72,7 +77,7 @@ export type Folder = FileTreeItem & {
 
 export type FileTree = (File | Folder)[]
 
-export type ETag = { mtimeMs: number; size: number }
+export type ETag = { mtime: Date; size: number }
 
 export type FileTreeEvent =
   | { kind: "addFile"; path: AbsolutePath; etag: ETag }
@@ -104,7 +109,7 @@ export const RouteParamsSchema = Schema.Struct({
 })
 
 export const SearchParamsSchema = Schema.Struct({
-  view: Schema.optional(ViewKindSchema),
+  view: ViewKindSchema,
 })
 
 /**

@@ -98,7 +98,7 @@ const WatcherLive = NodeFileSystem.layer.pipe(
 
 // The final composed layer for the whole app.
 // Layer.merge combines independent layers.
-const AppLive = Layer.merge(Ipc.Default, WatcherLive)
+const AppLive = Layer.mergeAll(Ipc.Default, WatcherLive)
 
 // --- Main Program
 const program = Effect.gen(function* (_) {
