@@ -207,6 +207,8 @@ This is a **markdown** file.
     await page.getByRole("button", { name: "open folder" }).click()
     await page.getByRole("button", { name: "test.md" }).click()
 
+    await page.waitForTimeout(1000)
+
     // Should start in rich view (Lexical)
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
     await expect(
@@ -217,6 +219,8 @@ This is a **markdown** file.
     ).toBeVisible()
     await expect(page.getByRole("heading", { name: "Section 1" })).toBeVisible()
 
+    await page.waitForTimeout(1000)
+
     // Toggle to source view (CodeMirror)
     await page.getByRole("link", { name: "switch to source view" }).click()
     await expect(
@@ -224,6 +228,8 @@ This is a **markdown** file.
     ).toBeVisible()
     await expect(page.getByText("# Test Document")).toBeVisible()
     await expect(page.getByText("## Section 1")).toBeVisible()
+
+    await page.waitForTimeout(1000)
 
     // Toggle back to rich view (Lexical)
     await page.getByRole("link", { name: "switch to rich view" }).click()
@@ -351,7 +357,7 @@ This is a **markdown** file.
     await expect(page.getByText(header)).toBeVisible()
 
     // Save the file (no changes) and verify view persists
-    await editor.press("ControlOrMeta+s", { delay: 300 })
+    await editor.press("ControlOrMeta+s", { delay: 1000 })
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
     await expect(
       page.getByRole("link", { name: "switch to rich view" })

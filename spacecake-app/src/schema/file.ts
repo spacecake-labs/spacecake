@@ -2,7 +2,6 @@ import { fileTable } from "@/schema/drizzle"
 import { createInsertSchema, createSelectSchema } from "@/schema/drizzle-effect"
 import { Brand, Schema } from "effect"
 
-
 export type FilePrimaryKey = string & Brand.Brand<"FilePrimaryKey">
 export const FilePrimaryKey = Brand.nominal<FilePrimaryKey>()
 export const FilePrimaryKeySchema = Schema.String.pipe(
@@ -18,5 +17,5 @@ export const FileSelectSchema = Schema.Struct({
 })
 export type FileSelect = typeof FileSelectSchema.Type
 
-export const FileUpdateStateSchema = FileInsertSchema.pick("path", "state")
-export type FileUpdateState = typeof FileUpdateStateSchema.Type
+export const FileUpdateBufferSchema = FileInsertSchema.pick("path", "buffer")
+export type FileUpdateBuffer = typeof FileUpdateBufferSchema.Type

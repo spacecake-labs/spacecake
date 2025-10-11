@@ -43,7 +43,7 @@ export function createQuickOpenItems(
         name: recentFile.name,
         path: recentFile.path,
         kind: "file" as const,
-        etag: { mtimeMs: recentFile.lastAccessed, size: 0 },
+        etag: { mtime: new Date(recentFile.lastAccessed), size: 0 },
         fileType: recentFile.fileType as FileType,
         cid: ZERO_HASH,
       },

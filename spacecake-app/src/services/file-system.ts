@@ -35,10 +35,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
           path: filePath,
           kind: "file" as const,
           etag: {
-            mtimeMs: Option.getOrElse(
-              Option.map(stat.mtime, (d) => d.getTime()),
-              () => Date.now()
-            ),
+            mtime: Option.getOrElse(stat.mtime, () => new Date()),
             size: Number(stat.size),
           },
           content,
@@ -163,10 +160,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
               kind: "file",
               cid: ZERO_HASH, // Initial scan, no content read yet
               etag: {
-                mtimeMs: Option.getOrElse(
-                  Option.map(stats.mtime, (d) => d.getTime()),
-                  () => Date.now()
-                ),
+                mtime: Option.getOrElse(stats.mtime, () => new Date()),
                 size: Number(stats.size),
               },
             }

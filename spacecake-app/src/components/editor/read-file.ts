@@ -11,8 +11,7 @@ import { toast } from "sonner"
 
 import { INITIAL_LOAD_TAG } from "@/types/lexical"
 import type { PyBlock } from "@/types/parser"
-import { FileType } from "@/types/workspace"
-import type { FileContent } from "@/types/workspace"
+import { FileType, type FileBuffer } from "@/types/workspace"
 import { convertToSourceView } from "@/lib/editor"
 import { parsePythonContentStreaming } from "@/lib/parser/python/blocks"
 import { delimitPyBlock } from "@/components/editor/block-utils"
@@ -23,10 +22,10 @@ import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown
  * Converts Python blocks into Lexical nodes with progressive rendering
  */
 export async function convertPythonBlocksToLexical(
-  file: FileContent,
+  file: FileBuffer,
   editor: LexicalEditor,
   streamParser: (
-    file: FileContent
+    file: FileBuffer
   ) => AsyncGenerator<PyBlock> = parsePythonContentStreaming,
   onComplete?: () => void
 ) {
@@ -68,7 +67,7 @@ export async function convertPythonBlocksToLexical(
         const root = $getRoot()
         root.clear()
         const paragraph = $createParagraphNode()
-        paragraph.append($createTextNode(file.content))
+        paragraph.append($createTextNode(file.buffer))
         root.append(paragraph)
       })
     }
@@ -81,7 +80,7 @@ export async function convertPythonBlocksToLexical(
       const root = $getRoot()
       root.clear()
       const paragraph = $createParagraphNode()
-      paragraph.append($createTextNode(file.content))
+      paragraph.append($createTextNode(file.buffer))
       root.append(paragraph)
     })
 
@@ -94,14 +93,14 @@ export async function convertPythonBlocksToLexical(
  * into the editor based on the file type and view preference.
  */
 export function getInitialEditorStateFromContent(
-  file: FileContent,
+  file: FileBuffer,
   viewKind?: "rich" | "source",
   onComplete?: () => void
 ) {
   return (editor: LexicalEditor) => {
     // If viewKind is explicitly provided, use it
     if (viewKind === "source") {
-      convertToSourceView(file.content, file, editor)
+      convertToSourceView(file.buffer, file, editor)
       return
     }
 
@@ -113,8 +112,8 @@ export function getInitialEditorStateFromContent(
       // Markdown defaults to rich view (rendered markdown) when viewKind is "rich" or undefined
       editor.update(() => {
         $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-        if (file.content.trim()) {
-          $convertFromMarkdownString(file.content, MARKDOWN_TRANSFORMERS)
+        if (file.buffer.trim()) {
+          $convertFromMarkdownString(file.buffer, MARKDOWN_TRANSFORMERS)
         } else {
           // Empty markdown file - create empty paragraph
           const root = $getRoot()
@@ -130,14 +129,14 @@ export function getInitialEditorStateFromContent(
         const root = $getRoot()
         root.clear()
         const paragraph = $createParagraphNode()
-        if (file.content.trim()) {
-          paragraph.append($createTextNode(file.content))
+        if (file.buffer.trim()) {
+          paragraph.append($createTextNode(file.buffer))
         }
         root.append(paragraph)
       })
     } else {
       // All other programming languages (JS, TS, JSX, TSX) go to source view
-      convertToSourceView(file.content, file, editor)
+      convertToSourceView(file.buffer, file, editor)
     }
   }
 }

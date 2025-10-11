@@ -1,6 +1,6 @@
 {
-  "id": "25ea3200-bfd7-40d4-a4ee-50da4e3b5eb8",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "90245b78-24a0-43f5-bcc7-8d3c8d5a55a3",
+  "prevId": "25ea3200-bfd7-40d4-a4ee-50da4e3b5eb8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -46,6 +46,20 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_accessed_at": {
+          "name": "last_accessed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
@@ -222,6 +236,20 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_accessed_at": {
+          "name": "last_accessed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {

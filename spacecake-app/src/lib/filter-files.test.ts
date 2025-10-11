@@ -19,7 +19,7 @@ describe("sortFilesByMatchingScore", () => {
     kind: "file",
     fileType: FileType.Plaintext,
     cid: "",
-    etag: { mtimeMs: 0, size: 0 },
+    etag: { mtime: new Date(0), size: 0 },
   })
 
   const mockItems: QuickOpenFileItem[] = [

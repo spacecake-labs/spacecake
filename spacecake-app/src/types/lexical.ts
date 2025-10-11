@@ -10,8 +10,6 @@ export function hasInitialLoadTag(tags: ReadonlySet<string>): boolean {
 }
 
 // view kinds for editor modes
-export const ViewKindSchema = Schema.Union(
-  Schema.Literal("rich"),
-  Schema.Literal("source")
-)
+export const ViewKindSchema = Schema.Literal("rich", "source")
+
 export type ViewKind = typeof ViewKindSchema.Type

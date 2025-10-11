@@ -1,12 +1,13 @@
 import { readFileSync } from "fs"
 import { join } from "path"
 
+import { FilePrimaryKey } from "@/schema/file"
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { Language, Parser } from "web-tree-sitter"
 
 import { PyBlock } from "@/types/parser"
 import { AbsolutePath, FileType } from "@/types/workspace"
-import type { FileContent } from "@/types/workspace"
+import type { FileBuffer } from "@/types/workspace"
 import languages from "@/lib/parser/languages"
 import {
   blockKind,
@@ -499,14 +500,11 @@ import pandas as pd
   describe("fallback block naming", () => {
     it("uses anonymous name when no blocks are parsed", async () => {
       const content = "# just comments or empty file\n"
-      const file: FileContent = {
-        name: "test.py",
+      const file: FileBuffer = {
+        id: FilePrimaryKey("test-file-1"),
         path: AbsolutePath("/test.py"),
-        kind: "file",
-        etag: { mtimeMs: Date.now(), size: content.length },
         fileType: FileType.Python,
-        cid: "test-cid",
-        content,
+        buffer: content,
       }
       const blocks: PyBlock[] = []
       for await (const block of parsePythonContentStreaming(file)) {
