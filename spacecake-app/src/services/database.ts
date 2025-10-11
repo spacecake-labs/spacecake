@@ -1,13 +1,13 @@
 import {
-  ElementInsertSchema,
-  ElementSelectSchema,
-  elementTable,
+  EditorInsertSchema,
+  EditorSelectSchema,
+  editorTable,
   fileTable,
   PaneInsertSchema,
   PaneSelectSchema,
   paneTable,
   workspaceTable,
-  type ElementInsert,
+  type EditorInsert,
   type PaneInsert,
 } from "@/schema/drizzle"
 import { ActiveElementSelectSchema } from "@/schema/element"
@@ -194,22 +194,22 @@ export class Database extends Effect.Service<Database>()("Database", {
         Effect.tap((pane) => Effect.log("db: upserted pane:", pane))
       ),
 
-      upsertElement: flow(
-        execute(ElementInsertSchema, (values: ElementInsert) =>
+      upsertEditor: flow(
+        execute(EditorInsertSchema, (values: EditorInsert) =>
           Effect.gen(function* () {
             // yield* query((_) =>
-            //   _.update(elementTable)
+            //   _.update(editorTable)
             //     .set({ is_active: false })
-            //     .where(eq(elementTable.pane_id, values.pane_id))
+            //     .where(eq(editorTable.pane_id, values.pane_id))
             // )
 
             const now = yield* DateTime.now
 
             return yield* query((_) =>
-              _.insert(elementTable)
+              _.insert(editorTable)
                 .values(values)
                 .onConflictDoUpdate({
-                  target: [elementTable.pane_id, elementTable.file_id],
+                  target: [editorTable.pane_id, editorTable.file_id],
                   set: {
                     ...values,
                     is_active: true,
@@ -221,7 +221,7 @@ export class Database extends Effect.Service<Database>()("Database", {
           })
         ),
         singleResult(() => new PgliteError({ cause: "element not upserted" })),
-        Effect.flatMap(Schema.decode(ElementSelectSchema)),
+        Effect.flatMap(Schema.decode(EditorSelectSchema)),
         Effect.tap((element) => Effect.log("db: upserted element:", element))
       ),
 
@@ -312,18 +312,18 @@ export class Database extends Effect.Service<Database>()("Database", {
       selectLastOpenedElement: (workspacePath: AbsolutePath) =>
         query((_) =>
           _.select({
-            id: elementTable.id,
-            viewKind: elementTable.view_kind,
+            id: editorTable.id,
+            viewKind: editorTable.view_kind,
             workspacePath: workspaceTable.path,
             filePath: fileTable.path,
           })
-            .from(elementTable)
+            .from(editorTable)
             .innerJoin(
               fileTable,
               and(
-                eq(elementTable.file_id, fileTable.id),
+                eq(editorTable.file_id, fileTable.id),
                 // filter early for performance
-                eq(elementTable.is_active, true)
+                eq(editorTable.is_active, true)
               )
             )
             .innerJoin(
@@ -333,7 +333,7 @@ export class Database extends Effect.Service<Database>()("Database", {
                 eq(workspaceTable.path, workspacePath)
               )
             )
-            .orderBy(desc(elementTable.last_accessed_at))
+            .orderBy(desc(editorTable.last_accessed_at))
             .limit(1)
         ).pipe(
           maybeSingleResult(),

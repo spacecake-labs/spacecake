@@ -92,8 +92,8 @@ export type PaneSelect = typeof PaneSelectSchema.Type
 // must be exported for drizzle to recognise it
 export const ViewKindEnum = pgEnum("view_kind", ViewKindSchema.literals)
 
-export const elementTable = pgTable(
-  "element",
+export const editorTable = pgTable(
+  "editor",
   {
     id: uuid("id")
       .primaryKey()
@@ -115,11 +115,11 @@ export const elementTable = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("element_pane_file_idx").on(table.pane_id, table.file_id),
+    uniqueIndex("editor_pane_file_idx").on(table.pane_id, table.file_id),
   ]
 )
 
-export const ElementInsertSchema = createInsertSchema(elementTable)
-export type ElementInsert = typeof ElementInsertSchema.Type
-export const ElementSelectSchema = createSelectSchema(elementTable)
-export type ElementSelect = typeof ElementSelectSchema.Type
+export const EditorInsertSchema = createInsertSchema(editorTable)
+export type EditorInsert = typeof EditorInsertSchema.Type
+export const EditorSelectSchema = createSelectSchema(editorTable)
+export type EditorSelect = typeof EditorSelectSchema.Type

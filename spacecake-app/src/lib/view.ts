@@ -1,4 +1,4 @@
-import { elementTable, fileTable, workspaceTable } from "@/schema"
+import { editorTable, fileTable, workspaceTable } from "@/schema"
 import { Database } from "@/services/database"
 import { and, desc, eq } from "drizzle-orm"
 import { Context } from "effect"
@@ -16,14 +16,14 @@ async function getViewPreference(
   filePath: RelativePath
 ): Promise<ViewKind | null> {
   const result = await orm
-    .select({ viewKind: elementTable.view_kind })
-    .from(elementTable)
-    .innerJoin(fileTable, eq(elementTable.file_id, fileTable.id))
+    .select({ viewKind: editorTable.view_kind })
+    .from(editorTable)
+    .innerJoin(fileTable, eq(editorTable.file_id, fileTable.id))
     .innerJoin(workspaceTable, eq(fileTable.workspace_id, workspaceTable.id))
     .where(
       and(eq(workspaceTable.path, workspacePath), eq(fileTable.path, filePath))
     )
-    .orderBy(desc(elementTable.id)) // Get the latest element for the file
+    .orderBy(desc(editorTable.id)) // Get the latest element for the file
     .limit(1)
 
   if (result.length > 0 && result[0].viewKind) {
