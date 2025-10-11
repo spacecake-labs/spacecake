@@ -1,4 +1,4 @@
-import { elementTable } from "@/schema/drizzle"
+import { editorTable } from "@/schema/drizzle"
 import { createInsertSchema, createSelectSchema } from "@/schema/drizzle-effect"
 import { FileSelectSchema } from "@/schema/file"
 import { WorkspaceSelectSchema } from "@/schema/workspace"
@@ -10,12 +10,12 @@ export const ElementPrimaryKeySchema = Schema.String.pipe(
   Schema.fromBrand(ElementPrimaryKey)
 )
 
-export const ElementInsertSchema = createInsertSchema(elementTable)
+export const ElementInsertSchema = createInsertSchema(editorTable)
 export type ElementInsert = typeof ElementInsertSchema.Type
 
 export const ElementSelectSchema = Schema.Struct({
   id: ElementPrimaryKeySchema,
-  ...createSelectSchema(elementTable).omit("id").fields,
+  ...createSelectSchema(editorTable).omit("id").fields,
 })
 export type ElementSelect = typeof ElementSelectSchema.Type
 

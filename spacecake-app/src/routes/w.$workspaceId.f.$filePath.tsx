@@ -84,12 +84,12 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           throw new Error("invariant: view param should be present in loader")
         }
 
-        const element = await RuntimeClient.runPromise(
-          (await db).upsertElement({
+        const editor = await RuntimeClient.runPromise(
+          (await db).upsertEditor({
             pane_id: pane.id,
             file_id: file.id,
             view_kind: view,
-            position: 0, // assuming single element per pane for now
+            position: 0, // assuming single editor per pane for now
             is_active: true,
           })
         )
@@ -98,7 +98,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           workspace,
           filePath: fileSegment,
           file,
-          element,
+          editor,
         }
       },
     })
@@ -119,9 +119,9 @@ function FileLayout() {
     workspace,
     filePath: fileSegment,
     file,
-    element,
+    editor,
   } = Route.useLoaderData()
-  const { view_kind: view } = element
+  const { view_kind: view } = editor
 
   const [, send] = useMachine(fileMachine)
 
