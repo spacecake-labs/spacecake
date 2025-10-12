@@ -1,5 +1,5 @@
-import { FileSelectSchema, fileTable, workspaceTable } from "@/schema"
-import { and, desc, eq, getTableColumns } from "drizzle-orm"
+import { FileSelectSchema, fileTable } from "@/schema"
+import { desc, getTableColumns, like } from "drizzle-orm"
 
 import { AbsolutePath } from "@/types/workspace"
 import { useQuery } from "@/hooks/use-query"
@@ -10,13 +10,7 @@ export const useRecentFiles = (workspacePath: AbsolutePath) => {
       orm
         .select(getTableColumns(fileTable))
         .from(fileTable)
-        .innerJoin(
-          workspaceTable,
-          and(
-            eq(fileTable.workspace_id, workspaceTable.id),
-            eq(workspaceTable.path, workspacePath)
-          )
-        )
+        .where(like(fileTable.path, `${workspacePath}%`))
         .orderBy(desc(fileTable.last_accessed_at))
         .limit(10)
         .toSQL(),

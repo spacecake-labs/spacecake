@@ -6,7 +6,7 @@ import { useSetAtom, useStore } from "jotai"
 import type { LexicalEditor } from "lexical"
 
 import type { FileTreeEvent, WorkspaceInfo } from "@/types/workspace"
-import { RelativePath } from "@/types/workspace"
+import { AbsolutePath } from "@/types/workspace"
 import { fileContentAtom } from "@/lib/atoms/atoms"
 import { fileTreeEventAtom, sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import { handleFileEvent } from "@/lib/file-event-handler"
@@ -16,8 +16,8 @@ export const useFileEventHandler = (workspace: WorkspaceInfo, db: Database) => {
   const store = useStore()
 
   const deleteFile = useCallback(
-    async (filePath: RelativePath) => {
-      await RuntimeClient.runPromise(db.deleteFile(workspace.path)(filePath))
+    async (filePath: AbsolutePath) => {
+      await RuntimeClient.runPromise(db.deleteFile(filePath))
     },
     [db, workspace.path]
   )

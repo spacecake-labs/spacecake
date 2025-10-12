@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1760066470352,
-      "tag": "0000_medical_cerebro",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1760074610531,
-      "tag": "0001_curly_stephen_strange",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1760178204873,
-      "tag": "0002_uneven_newton_destine",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1760213857052,
-      "tag": "0003_bitter_captain_stacy",
+      "when": 1760226633254,
+      "tag": "0000_freezing_storm",
       "breakpoints": true
     }
   ]

@@ -23,6 +23,7 @@ export const workspaceTable = pgTable(
     id: uuid("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
+    // path: text("path").$type<AbsolutePath>().notNull(),
     path: text("path").notNull(),
     is_open: boolean("is_open").notNull().default(false),
     created_at: timestamp("created_at", { mode: "string" })
@@ -41,9 +42,6 @@ export const fileTable = pgTable(
     id: uuid("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    workspace_id: uuid("workspace_id")
-      .references(() => workspaceTable.id)
-      .notNull(),
     path: text("path").notNull(),
     cid: text("cid").notNull(),
     mtime: timestamp("mtime", { mode: "string" }).notNull(),
@@ -55,7 +53,7 @@ export const fileTable = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => [uniqueIndex("file_path_idx").on(table.workspace_id, table.path)]
+  (table) => [uniqueIndex("file_path_idx").on(table.path)]
 )
 
 export const paneTable = pgTable(

@@ -13,14 +13,9 @@ import { Option } from "effect"
 import { AlertCircleIcon, CakeSlice } from "lucide-react"
 
 import { match } from "@/types/adt"
-import { AbsolutePath, RelativePath } from "@/types/workspace"
+import { AbsolutePath } from "@/types/workspace"
 import { pathExists } from "@/lib/fs"
-import {
-  condensePath,
-  decodeBase64Url,
-  encodeBase64Url,
-  toAbsolutePath,
-} from "@/lib/utils"
+import { condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CommandShortcut } from "@/components/ui/command"
 
@@ -43,15 +38,13 @@ export const Route = createFileRoute("/w/$workspaceId/")({
       return { kind: "notFound", filePath: notFoundFilePath }
     }
 
-    const activeElement = await RuntimeClient.runPromise(
-      (await db).selectLastOpenedElement(workspacePath)
+    const activeEditor = await RuntimeClient.runPromise(
+      (await db).selectLastOpenedEditor(workspacePath)
     )
 
-    if (Option.isSome(activeElement)) {
-      const { viewKind, filePath } = activeElement.value
-      console.log("activeElement", activeElement.value)
-      const fileSegment = RelativePath(filePath)
-      const absolutePath = toAbsolutePath(workspacePath, fileSegment)
+    if (Option.isSome(activeEditor)) {
+      const { viewKind, filePath } = activeEditor.value
+      const absolutePath = AbsolutePath(filePath)
 
       const fileExists = await pathExists(absolutePath)
 
@@ -66,7 +59,7 @@ export const Route = createFileRoute("/w/$workspaceId/")({
               to: "/w/$workspaceId/f/$filePath",
               params: {
                 workspaceId: params.workspaceId,
-                filePath: encodeBase64Url(fileSegment),
+                filePath: encodeBase64Url(absolutePath),
               },
               search: {
                 view: viewKind,
@@ -74,9 +67,7 @@ export const Route = createFileRoute("/w/$workspaceId/")({
             })
           }
           // file not found
-          await RuntimeClient.runPromise(
-            (await db).deleteFile(workspacePath)(fileSegment)
-          )
+          await RuntimeClient.runPromise((await db).deleteFile(absolutePath))
           return { kind: "notFound", filePath: absolutePath }
         },
       })

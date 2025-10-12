@@ -1,11 +1,11 @@
 {
-  "id": "25ea3200-bfd7-40d4-a4ee-50da4e3b5eb8",
+  "id": "51b89392-cba7-4830-8369-79dd493e76ba",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.element": {
-      "name": "element",
+    "public.editor": {
+      "name": "editor",
       "schema": "",
       "columns": {
         "id": {
@@ -46,11 +46,25 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_accessed_at": {
+          "name": "last_accessed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
-        "element_pane_file_idx": {
-          "name": "element_pane_file_idx",
+        "editor_pane_file_idx": {
+          "name": "editor_pane_file_idx",
           "columns": [
             {
               "expression": "pane_id",
@@ -72,22 +86,22 @@
         }
       },
       "foreignKeys": {
-        "element_pane_id_pane_id_fk": {
-          "name": "element_pane_id_pane_id_fk",
-          "tableFrom": "element",
+        "editor_pane_id_pane_id_fk": {
+          "name": "editor_pane_id_pane_id_fk",
+          "tableFrom": "editor",
           "tableTo": "pane",
           "columnsFrom": ["pane_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "element_file_id_file_id_fk": {
-          "name": "element_file_id_file_id_fk",
-          "tableFrom": "element",
+        "editor_file_id_file_id_fk": {
+          "name": "editor_file_id_file_id_fk",
+          "tableFrom": "editor",
           "tableTo": "file",
           "columnsFrom": ["file_id"],
           "columnsTo": ["id"],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -107,12 +121,6 @@
           "primaryKey": true,
           "notNull": true,
           "default": "gen_random_uuid()"
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
         },
         "path": {
           "name": "path",
@@ -158,12 +166,6 @@
           "name": "file_path_idx",
           "columns": [
             {
-              "expression": "workspace_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
               "expression": "path",
               "isExpression": false,
               "asc": true,
@@ -176,17 +178,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "file_workspace_id_workspace_id_fk": {
-          "name": "file_workspace_id_workspace_id_fk",
-          "tableFrom": "file",
-          "tableTo": "workspace",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -222,6 +214,20 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_accessed_at": {
+          "name": "last_accessed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {

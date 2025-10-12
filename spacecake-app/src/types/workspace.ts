@@ -119,7 +119,6 @@ export const SearchParamsSchema = Schema.Struct({
 export const EditorContextSchema = Schema.Struct({
   workspaceId: Schema.String,
   filePath: AbsolutePathSchema,
-  fileSegment: RelativePathSchema,
   viewKind: Schema.String,
   fileType: FileTypeSchema,
 })

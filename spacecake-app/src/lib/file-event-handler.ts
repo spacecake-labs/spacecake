@@ -9,7 +9,6 @@ import type {
   FileTree,
   FileTreeEvent,
   Folder,
-  RelativePath,
   WorkspaceInfo,
 } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
@@ -40,12 +39,12 @@ export const handleFileEvent = async (
   setFileTreeEvent: (
     event: FileTreeEvent,
     workspace: WorkspaceInfo,
-    deleteFile: (filePath: RelativePath) => Promise<void>
+    deleteFile: (filePath: AbsolutePath) => Promise<void>
   ) => void,
   currentFileContent: FileContent | null,
   workspace: WorkspaceInfo,
   fileTree: FileTree,
-  deleteFile: (filePath: RelativePath) => Promise<void>
+  deleteFile: (filePath: AbsolutePath) => Promise<void>
 ) => {
   let processedEvent = event
 

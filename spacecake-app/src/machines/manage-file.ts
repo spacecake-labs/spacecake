@@ -5,19 +5,17 @@ import { RuntimeClient } from "@/services/runtime-client"
 import { Effect } from "effect"
 import { assertEvent, fromPromise, setup, type ActorRefFrom } from "xstate"
 
-import { AbsolutePath, RelativePath } from "@/types/workspace"
+import { AbsolutePath } from "@/types/workspace"
 
 export const fileMachine = setup({
   types: {
     events: {} as
       | {
           type: "file.read"
-          workspacePath: AbsolutePath
-          filePath: RelativePath
+          filePath: AbsolutePath
         }
       | {
           type: "file.update.buffer"
-          workspacePath: AbsolutePath
           file: FileUpdateBuffer
         },
   },
@@ -27,14 +25,13 @@ export const fileMachine = setup({
         input,
       }: {
         input: {
-          workspacePath: AbsolutePath
-          filePath: RelativePath
+          filePath: AbsolutePath
         }
       }) => {
         return await RuntimeClient.runPromise(
           Effect.gen(function* () {
             const fm = yield* FileManager
-            return yield* fm.readFile(input.workspacePath, input.filePath)
+            return yield* fm.readFile(input.filePath)
           })
         )
       }
@@ -44,14 +41,13 @@ export const fileMachine = setup({
         input,
       }: {
         input: {
-          workspacePath: AbsolutePath
           file: FileUpdateBuffer
         }
       }) =>
         RuntimeClient.runPromise(
           Effect.gen(function* () {
             const db = yield* Database
-            yield* db.updateFileBuffer(input.workspacePath)(input.file)
+            yield* db.updateFileBuffer(input.file)
           }).pipe(Effect.tapErrorCause(Effect.logError))
         )
     ),
@@ -76,7 +72,6 @@ export const fileMachine = setup({
         input: ({ event }) => {
           assertEvent(event, "file.read")
           return {
-            workspacePath: event.workspacePath,
             filePath: event.filePath,
           }
         },
@@ -90,7 +85,6 @@ export const fileMachine = setup({
         input: ({ event }) => {
           assertEvent(event, "file.update.buffer")
           return {
-            workspacePath: event.workspacePath,
             file: event.file,
           }
         },

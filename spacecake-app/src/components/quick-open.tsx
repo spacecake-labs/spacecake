@@ -4,16 +4,11 @@ import { useVirtualizer } from "@tanstack/react-virtual"
 import { atom, useAtom, useAtomValue } from "jotai"
 import { File as FileIcon } from "lucide-react"
 
-import {
-  AbsolutePath,
-  File,
-  RelativePath,
-  WorkspaceInfo,
-} from "@/types/workspace"
+import { AbsolutePath, File, WorkspaceInfo } from "@/types/workspace"
 import { fileTreeAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
 import { getQuickOpenFileItems } from "@/lib/atoms/file-tree"
 import { createQuickOpenItems } from "@/lib/filter-files"
-import { encodeBase64Url, toAbsolutePath, toRelativePath } from "@/lib/utils"
+import { encodeBase64Url } from "@/lib/utils"
 import { fileTypeFromFileName } from "@/lib/workspace"
 import { useRecentFiles } from "@/hooks/use-recent-files"
 import {
@@ -63,7 +58,7 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
   const filteredItems = React.useMemo(() => {
     if (recentFiles.data) {
       const recentFilesList = recentFiles.data.map((file) => {
-        const filePath = toAbsolutePath(workspace.path, RelativePath(file.path))
+        const filePath = AbsolutePath(file.path)
         const fileName = file.path.split("/").pop() || file.path
         return {
           path: filePath,
@@ -95,15 +90,13 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
     if (!workspace?.path) return
 
     const workspaceIdEncoded = encodeBase64Url(workspace.path)
-    const fileSegmentEncoded = encodeBase64Url(
-      toRelativePath(AbsolutePath(workspace.path), AbsolutePath(file.path))
-    )
+    const filePathEncoded = encodeBase64Url(AbsolutePath(file.path))
 
     navigate({
       to: "/w/$workspaceId/f/$filePath",
       params: {
         workspaceId: workspaceIdEncoded,
-        filePath: fileSegmentEncoded,
+        filePath: filePathEncoded,
       },
     })
     setIsOpen(false)

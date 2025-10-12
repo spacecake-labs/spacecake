@@ -1,10 +1,10 @@
-import { editorTable, fileTable, workspaceTable } from "@/schema"
+import { editorTable, fileTable, paneTable, workspaceTable } from "@/schema"
 import { Database } from "@/services/database"
 import { and, desc, eq } from "drizzle-orm"
 import { Context } from "effect"
 
 import type { ViewKind } from "@/types/lexical"
-import { AbsolutePath, RelativePath } from "@/types/workspace"
+import { AbsolutePath } from "@/types/workspace"
 import { supportsRichView } from "@/lib/language-support"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
@@ -13,13 +13,14 @@ type Orm = Context.Tag.Service<typeof Database>["orm"]
 async function getViewPreference(
   orm: Orm,
   workspacePath: AbsolutePath,
-  filePath: RelativePath
+  filePath: AbsolutePath
 ): Promise<ViewKind | null> {
   const result = await orm
     .select({ viewKind: editorTable.view_kind })
     .from(editorTable)
     .innerJoin(fileTable, eq(editorTable.file_id, fileTable.id))
-    .innerJoin(workspaceTable, eq(fileTable.workspace_id, workspaceTable.id))
+    .innerJoin(paneTable, eq(editorTable.pane_id, paneTable.id))
+    .innerJoin(workspaceTable, eq(paneTable.workspace_id, workspaceTable.id))
     .where(
       and(eq(workspaceTable.path, workspacePath), eq(fileTable.path, filePath))
     )
@@ -39,14 +40,14 @@ async function getViewPreference(
  *
  * @param orm - The Drizzle ORM instance.
  * @param workspacePath - The absolute path of the current workspace.
- * @param filePath - The relative path of the file.
+ * @param filePath - The absolute path of the file.
  * @param viewFromSearch - Optional view from search params (user explicitly selected).
  * @returns The final view to use.
  */
 export async function determineView(
   orm: Orm,
   workspacePath: AbsolutePath,
-  filePath: RelativePath,
+  filePath: AbsolutePath,
   viewFromSearch?: ViewKind
 ): Promise<ViewKind> {
   const fileType = fileTypeFromExtension(filePath.split(".").pop() || "")
@@ -66,13 +67,13 @@ export async function determineView(
  *
  * @param orm - The Drizzle ORM instance.
  * @param workspacePath - The absolute path of the current workspace.
- * @param filePath - The relative path of the file.
+ * @param filePath - The absolute path of the file.
  * @returns The stored view preference or null if none exists.
  */
 export async function getStoredViewPreference(
   orm: Orm,
   workspacePath: AbsolutePath,
-  filePath: RelativePath
+  filePath: AbsolutePath
 ): Promise<ViewKind | null> {
   return getViewPreference(orm, workspacePath, filePath)
 }

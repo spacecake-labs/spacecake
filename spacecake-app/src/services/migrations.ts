@@ -1,7 +1,4 @@
-import v0000 from "@/drizzle/0000_medical_cerebro.sql?raw"
-import v0001 from "@/drizzle/0001_curly_stephen_strange.sql?raw"
-import v0002 from "@/drizzle/0002_uneven_newton_destine.sql?raw"
-import v0003 from "@/drizzle/0003_bitter_captain_stacy.sql?raw"
+import v0000 from "@/drizzle/0000_freezing_storm.sql?raw"
 import { systemTable } from "@/schema/drizzle"
 import { Database } from "@/services/database"
 import { singleResult } from "@/services/utils"
@@ -25,12 +22,7 @@ export class Migrations extends Effect.Service<Migrations>()("Migrations", {
     const migrate = execute(client)
 
     // add new migrations here
-    const migrations = [
-      migrate(v0000),
-      migrate(v0001),
-      migrate(v0002),
-      migrate(v0003),
-    ] as const
+    const migrations = [migrate(v0000)] as const
     const latestMigration = migrations.length
 
     return {
