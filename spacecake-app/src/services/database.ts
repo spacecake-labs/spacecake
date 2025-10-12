@@ -30,7 +30,7 @@ import { and, desc, eq, getTableColumns } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 import { Data, DateTime, Effect, flow, Option, Schema } from "effect"
 
-import { AbsolutePath, RelativePath } from "@/types/workspace"
+import { AbsolutePath } from "@/types/workspace"
 
 export class PgliteError extends Data.TaggedError("PgliteError")<{
   cause: unknown
@@ -72,16 +72,6 @@ export class Database extends Effect.Service<Database>()("Database", {
           return new PgliteError({ cause: error })
         },
       })
-
-    const selectWorkspace = (workspacePath: AbsolutePath) =>
-      query((_) =>
-        _.select()
-          .from(workspaceTable)
-          .where(eq(workspaceTable.path, workspacePath))
-      ).pipe(
-        singleResult(() => new PgliteError({ cause: "workspace not found" })),
-        Effect.flatMap(Schema.decode(WorkspaceSelectSchema))
-      )
 
     return {
       client,
@@ -132,32 +122,25 @@ export class Database extends Effect.Service<Database>()("Database", {
         )
       ),
 
-      upsertFile: (workspacePath: AbsolutePath) =>
+      upsertFile: () =>
         flow(
-          execute(
-            FileInsertSchema.omit("workspace_id"),
-            (values: Omit<FileInsert, "workspace_id">) =>
-              Effect.gen(function* () {
-                const now = yield* DateTime.now
+          execute(FileInsertSchema, (values: FileInsert) =>
+            Effect.gen(function* () {
+              const now = yield* DateTime.now
 
-                const workspace = yield* selectWorkspace(workspacePath)
-
-                return yield* query((_) =>
-                  _.insert(fileTable)
-                    .values({
+              return yield* query((_) =>
+                _.insert(fileTable)
+                  .values(values)
+                  .onConflictDoUpdate({
+                    target: fileTable.path,
+                    set: {
                       ...values,
-                      workspace_id: workspace.id,
-                    })
-                    .onConflictDoUpdate({
-                      target: [fileTable.workspace_id, fileTable.path],
-                      set: {
-                        ...values,
-                        last_accessed_at: DateTime.formatIso(now),
-                      },
-                    })
-                    .returning()
-                )
-              })
+                      last_accessed_at: DateTime.formatIso(now),
+                    },
+                  })
+                  .returning()
+              )
+            })
           ),
           singleResult(() => new PgliteError({ cause: "file not upserted" })),
           Effect.flatMap(Schema.decode(FileSelectSchema)),
@@ -225,40 +208,23 @@ export class Database extends Effect.Service<Database>()("Database", {
         Effect.tap((element) => Effect.log("db: upserted element:", element))
       ),
 
-      updateFileBuffer: (workspacePath: AbsolutePath) =>
-        flow(
-          execute(FileUpdateBufferSchema, (values: FileUpdateBuffer) =>
-            Effect.gen(function* () {
-              const workspace = yield* selectWorkspace(workspacePath)
-
-              return yield* query((_) =>
-                _.update(fileTable)
-                  .set(values)
-                  .where(
-                    and(
-                      eq(fileTable.workspace_id, workspace.id),
-                      eq(fileTable.path, values.path)
-                    )
-                  )
-              )
-            })
-          ),
-          Effect.tap((file) => Effect.log("db: updated file buffer:", file))
+      updateFileBuffer: flow(
+        execute(FileUpdateBufferSchema, (values: FileUpdateBuffer) =>
+          Effect.gen(function* () {
+            return yield* query((_) =>
+              _.update(fileTable)
+                .set(values)
+                .where(eq(fileTable.path, values.path))
+            )
+          })
         ),
+        Effect.tap((file) => Effect.log("db: updated file buffer:", file))
+      ),
 
-      deleteFile: (workspacePath: AbsolutePath) => (filePath: RelativePath) =>
+      deleteFile: (filePath: AbsolutePath) =>
         Effect.gen(function* () {
-          const workspace = yield* selectWorkspace(workspacePath)
-
           return yield* query((_) =>
-            _.delete(fileTable)
-              .where(
-                and(
-                  eq(fileTable.workspace_id, workspace.id),
-                  eq(fileTable.path, filePath)
-                )
-              )
-              .returning()
+            _.delete(fileTable).where(eq(fileTable.path, filePath)).returning()
           ).pipe(
             singleResult(() => new PgliteError({ cause: "file not deleted" })),
             Effect.tap((deletedFiles) =>
@@ -267,15 +233,10 @@ export class Database extends Effect.Service<Database>()("Database", {
           )
         }),
 
-      selectLastOpenedFile: (workspacePath: AbsolutePath) =>
+      selectLastOpenedFile: () =>
         query((_) =>
           _.select(getTableColumns(fileTable))
             .from(fileTable)
-            .innerJoin(
-              workspaceTable,
-              eq(fileTable.workspace_id, workspaceTable.id)
-            )
-            .where(eq(workspaceTable.path, workspacePath))
             .orderBy(desc(fileTable.last_accessed_at))
             .limit(1)
         ).pipe(
@@ -283,20 +244,11 @@ export class Database extends Effect.Service<Database>()("Database", {
           Effect.flatMap(Schema.decode(FileSelectSchema))
         ),
 
-      selectFile: (workspacePath: AbsolutePath, filePath: RelativePath) =>
+      selectFile: (filePath: AbsolutePath) =>
         query((_) =>
           _.select(getTableColumns(fileTable))
             .from(fileTable)
-            .innerJoin(
-              workspaceTable,
-              eq(fileTable.workspace_id, workspaceTable.id)
-            )
-            .where(
-              and(
-                eq(workspaceTable.path, workspacePath),
-                eq(fileTable.path, filePath)
-              )
-            )
+            .where(eq(fileTable.path, filePath))
             .limit(1)
         ).pipe(
           maybeSingleResult(),
@@ -309,7 +261,7 @@ export class Database extends Effect.Service<Database>()("Database", {
           )
         ),
 
-      selectLastOpenedElement: (workspacePath: AbsolutePath) =>
+      selectLastOpenedEditor: (workspacePath: AbsolutePath) =>
         query((_) =>
           _.select({
             id: editorTable.id,
@@ -326,10 +278,11 @@ export class Database extends Effect.Service<Database>()("Database", {
                 eq(editorTable.is_active, true)
               )
             )
+            .innerJoin(paneTable, eq(editorTable.pane_id, paneTable.id))
             .innerJoin(
               workspaceTable,
               and(
-                eq(fileTable.workspace_id, workspaceTable.id),
+                eq(paneTable.workspace_id, workspaceTable.id),
                 eq(workspaceTable.path, workspacePath)
               )
             )

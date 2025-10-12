@@ -6,12 +6,11 @@ import type {
   FileTreeEvent,
   Folder,
   QuickOpenFileItem,
-  RelativePath,
   WorkspaceInfo,
 } from "@/types/workspace"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms" // Import expandedFoldersAtom
-import { parentFolderName, toRelativePath } from "@/lib/utils"
+import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
 // helper function to find and update items in the tree
@@ -116,7 +115,7 @@ export const fileTreeEventAtom = atom(
     set,
     event: FileTreeEvent,
     workspace: WorkspaceInfo,
-    deleteFile: (filePath: RelativePath) => Promise<void>
+    deleteFile: (filePath: AbsolutePath) => Promise<void>
   ) => {
     if (!workspace.path) return
 
@@ -199,12 +198,10 @@ export const fileTreeEventAtom = atom(
         const newTree = removeItemFromTree(currentTree, absolutePath)
         set(fileTreeAtom, newTree)
 
-        const fileSegment = toRelativePath(workspace.path, absolutePath)
-
         // also remove from database if it's a file
         if (event.kind === "unlinkFile") {
           ;(async () => {
-            await deleteFile(fileSegment)
+            await deleteFile(absolutePath)
           })()
         }
         break

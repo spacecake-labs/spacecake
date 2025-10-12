@@ -22,12 +22,7 @@ import { setFileTreeAtom } from "@/lib/atoms/file-tree"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
 import { pathExists, readDirectory } from "@/lib/fs"
 import { store } from "@/lib/store"
-import {
-  condensePath,
-  decodeBase64Url,
-  encodeBase64Url,
-  toRelativePath,
-} from "@/lib/utils"
+import { condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
 import { useEditorContext } from "@/hooks/use-filepath"
 import { Button } from "@/components/ui/button"
@@ -113,12 +108,12 @@ export const Route = createFileRoute("/w/$workspaceId")({
 // component for the file path part of the header
 function FileHeader() {
   const editorContext = useEditorContext()
-  const selectedFileSegment = editorContext?.fileSegment || null
+  const selectedFilePath = editorContext?.filePath || null
   const [copied, setCopied] = useState(false)
 
-  const handleCopyPath = async (fileSegment: string) => {
+  const handleCopyPath = async (filePath: string) => {
     try {
-      await navigator.clipboard.writeText(fileSegment)
+      await navigator.clipboard.writeText(filePath)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
@@ -126,7 +121,7 @@ function FileHeader() {
     }
   }
 
-  if (!selectedFileSegment) return null
+  if (!selectedFilePath) return null
 
   return (
     <div
@@ -135,13 +130,13 @@ function FileHeader() {
     >
       <div className="min-w-0 flex-1">
         <div className="font-mono text-xs text-muted-foreground/70 truncate">
-          {condensePath(selectedFileSegment)}
+          {condensePath(selectedFilePath)}
         </div>
       </div>
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => handleCopyPath(selectedFileSegment)}
+        onClick={() => handleCopyPath(selectedFilePath)}
         className="h-7 w-7 p-0 cursor-pointer flex-shrink-0"
         aria-label="copy path"
         title="copy path"
@@ -159,9 +154,9 @@ function FileHeader() {
 // component for the right side of the header
 function HeaderToolbar() {
   const editorContext = useEditorContext()
-  const selectedFileSegment = editorContext?.fileSegment || null
+  const selectedFilePath = editorContext?.filePath || null
 
-  if (selectedFileSegment) {
+  if (selectedFilePath) {
     return (
       <div className="flex items-center gap-3 px-4">
         {editorContext && <EditorToolbar editorContext={editorContext} />}
@@ -193,13 +188,12 @@ function LayoutContent() {
   const handleFileClick = (filePath: AbsolutePath) => {
     if (workspace?.path) {
       const workspaceIdEncoded = encodeBase64Url(workspace.path)
-      const fileSegment = toRelativePath(workspace.path, filePath)
-      const fileSegmentEncoded = encodeBase64Url(fileSegment)
+      const filePathEncoded = encodeBase64Url(filePath)
       navigate({
         to: "/w/$workspaceId/f/$filePath",
         params: {
           workspaceId: workspaceIdEncoded,
-          filePath: fileSegmentEncoded,
+          filePath: filePathEncoded,
         },
       })
     }

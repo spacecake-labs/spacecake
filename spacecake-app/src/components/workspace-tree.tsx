@@ -20,7 +20,7 @@ import {
 } from "@/types/workspace"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { mergeExpandedFolders } from "@/lib/auto-reveal"
-import { encodeBase64Url, toRelativePath } from "@/lib/utils"
+import { encodeBase64Url } from "@/lib/utils"
 import { getNavItemIcon } from "@/lib/workspace"
 import { Button } from "@/components/ui/button"
 import {
@@ -381,9 +381,7 @@ export function WorkspaceTree({
   }
 
   if (item.kind === "file") {
-    const fileSegmentEncoded = encodeBase64Url(
-      toRelativePath(AbsolutePath(workspace.path), AbsolutePath(filePath))
-    )
+    const filePathEncoded = encodeBase64Url(AbsolutePath(filePath))
     const workspaceIdEncoded = workspace?.path
       ? encodeBase64Url(workspace.path)
       : ""
@@ -401,7 +399,7 @@ export function WorkspaceTree({
             to="/w/$workspaceId/f/$filePath"
             params={{
               workspaceId: workspaceIdEncoded,
-              filePath: fileSegmentEncoded,
+              filePath: filePathEncoded,
             }}
             // preload="intent"
             className="w-full"

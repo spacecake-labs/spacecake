@@ -1,7 +1,7 @@
 import {
   EditorSelectSchema,
   editorTable,
-  fileTable,
+  paneTable,
   workspaceTable,
 } from "@/schema/drizzle"
 import { and, desc, eq, getTableColumns } from "drizzle-orm"
@@ -15,11 +15,11 @@ export const useActiveEditor = (workspacePath: AbsolutePath) => {
       orm
         .select(getTableColumns(editorTable))
         .from(editorTable)
-        .innerJoin(fileTable, and(eq(editorTable.file_id, fileTable.id)))
+        .innerJoin(paneTable, eq(editorTable.pane_id, paneTable.id))
         .innerJoin(
           workspaceTable,
           and(
-            eq(fileTable.workspace_id, workspaceTable.id),
+            eq(paneTable.workspace_id, workspaceTable.id),
             eq(workspaceTable.path, workspacePath)
           )
         )

@@ -29,7 +29,6 @@ import {
   rename,
   saveFile,
 } from "@/lib/fs"
-import { toRelativePath } from "@/lib/utils"
 import { useEditorContext } from "@/hooks/use-filepath"
 import { Button } from "@/components/ui/button"
 import {
@@ -310,12 +309,10 @@ export function NavMain({
           saveEditorLayout(localStorageService, emptyLayout, workspace.path)
         }
 
-        const fileSegment = toRelativePath(workspace.path, itemToDelete.path)
-
         // remove from database
         if (itemToDelete.kind === "file") {
           await RuntimeClient.runPromise(
-            db.deleteFile(workspace.path)(fileSegment)
+            db.deleteFile(itemToDelete.path)
           ).catch(console.error)
         }
 

@@ -13,13 +13,13 @@ import { type EditorState } from "lexical"
 
 import { match } from "@/types/adt"
 import { ViewKindSchema } from "@/types/lexical"
-import { AbsolutePath, RelativePath } from "@/types/workspace"
+import { AbsolutePath } from "@/types/workspace"
 import { editorStateAtom } from "@/lib/atoms/atoms"
 import {
   createEditorConfigFromContent,
   serializeFileContent,
 } from "@/lib/editor"
-import { decodeBase64Url, toAbsolutePath } from "@/lib/utils"
+import { decodeBase64Url } from "@/lib/utils"
 import { determineView } from "@/lib/view"
 import { Editor } from "@/components/editor/editor"
 
@@ -38,12 +38,12 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
     const { db } = context
     const dbInstance = await db
     const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
-    const fileSegment = RelativePath(decodeBase64Url(params.filePath))
+    const filePath = AbsolutePath(decodeBase64Url(params.filePath))
 
     const viewKind = await determineView(
       dbInstance.orm,
       workspacePath,
-      fileSegment,
+      filePath,
       search.view
     )
 
@@ -59,12 +59,12 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   loaderDeps: ({ search: { view } }) => ({ view }),
   loader: async ({ params, deps: { view }, context }) => {
     const { db, pane, workspace } = context
-    const fileSegment = RelativePath(decodeBase64Url(params.filePath))
-
+    const filePath = AbsolutePath(decodeBase64Url(params.filePath))
+    console.log("filePath", filePath)
     const fileRecord = await RuntimeClient.runPromise(
       Effect.gen(function* () {
         const fm = yield* FileManager
-        return yield* fm.readFile(workspace.path, fileSegment)
+        return yield* fm.readFile(filePath)
       })
     )
 
@@ -74,7 +74,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         throw redirect({
           to: "/w/$workspaceId",
           params: { workspaceId: params.workspaceId },
-          search: { notFoundFilePath: fileSegment },
+          search: { notFoundFilePath: filePath },
         })
       },
       onRight: async (file) => {
@@ -96,7 +96,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 
         return {
           workspace,
-          filePath: fileSegment,
+          filePath,
           file,
           editor,
         }
@@ -115,18 +115,10 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 })
 
 function FileLayout() {
-  const {
-    workspace,
-    filePath: fileSegment,
-    file,
-    editor,
-  } = Route.useLoaderData()
+  const { filePath, file, editor } = Route.useLoaderData()
   const { view_kind: view } = editor
 
   const [, send] = useMachine(fileMachine)
-
-  // Convert relative path back to absolute for file operations
-  const filePath = toAbsolutePath(workspace.path, fileSegment)
 
   // const setFile = useSetAtom(fileContentAtom)
   const setEditorState = useSetAtom(editorStateAtom)
@@ -153,9 +145,8 @@ function FileLayout() {
           setEditorState(editorState.toJSON())
           send({
             type: "file.update.buffer",
-            workspacePath: workspace.path,
             file: {
-              path: fileSegment,
+              path: filePath,
               buffer: serializeFileContent(editorState, file),
             },
           })

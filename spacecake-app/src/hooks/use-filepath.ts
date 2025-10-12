@@ -4,11 +4,10 @@ import { Schema } from "effect"
 import {
   AbsolutePath,
   EditorContext,
-  RelativePath,
   RouteParamsSchema,
   SearchParamsSchema,
 } from "@/types/workspace"
-import { decodeBase64Url, toAbsolutePath } from "@/lib/utils"
+import { decodeBase64Url } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
 /**
@@ -24,16 +23,11 @@ export function useEditorContext(): EditorContext | null {
     const searchResult = Schema.decodeUnknownSync(SearchParamsSchema)(search)
 
     if (paramsResult.workspaceId && paramsResult.filePath) {
-      const workspacePath = AbsolutePath(
-        decodeBase64Url(paramsResult.workspaceId)
-      )
-      const fileSegment = RelativePath(decodeBase64Url(paramsResult.filePath))
-      const filePath = toAbsolutePath(workspacePath, fileSegment)
+      const filePath = AbsolutePath(decodeBase64Url(paramsResult.filePath))
 
       const context: EditorContext = {
         workspaceId: decodeBase64Url(paramsResult.workspaceId),
         filePath,
-        fileSegment,
         viewKind: searchResult.view,
         fileType: fileTypeFromExtension(filePath.split(".").pop() || ""),
       }
