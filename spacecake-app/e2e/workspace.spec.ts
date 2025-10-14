@@ -891,4 +891,48 @@ test.describe("spacecake app", () => {
         "Successfully verified dot files are visible after external creation",
     })
   })
+
+  test("file dirty state indicator appears on edit and disappears on save", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    // 1. Setup: Create a test file in the temp dir
+    const testFilePath = path.join(tempTestDir, "test-dirty.md")
+    fs.writeFileSync(testFilePath, "# Initial content")
+
+    const window = await electronApp.firstWindow()
+
+    // 2. Open the workspace
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    })
+    await window.getByRole("button", { name: "open folder" }).click()
+
+    // 3. Wait for workspace to load and click on the file
+    await window.getByRole("button", { name: "test-dirty.md" }).click()
+
+    // 4. Verify the editor is visible and has the initial content
+    const editor = window.getByTestId("lexical-editor")
+    await expect(editor).toBeVisible()
+    await expect(editor.getByText("Initial content")).toBeVisible()
+
+    // 5. Type some text to make the file dirty
+    await editor.getByText("Initial content").click() // focus editor
+    await window.keyboard.type("... some new text", { delay: 100 })
+
+    // 6. Verify the dirty indicator is visible
+    const dirtyIndicator = window.getByLabel("unsaved changes")
+    await expect(dirtyIndicator).toBeVisible()
+
+    // 7. Save the file
+    await window.keyboard.press("ControlOrMeta+s", { delay: 100 })
+
+    // 8. Verify the dirty indicator is gone
+    await expect(dirtyIndicator).not.toBeVisible()
+
+    // 9. (Optional but good) Verify the content was saved
+    const fileContent = fs.readFileSync(testFilePath, "utf-8")
+    expect(fileContent).toContain("... some new text")
+  })
 })

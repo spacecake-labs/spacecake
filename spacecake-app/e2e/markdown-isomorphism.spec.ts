@@ -88,7 +88,7 @@ test.describe("markdown isomorphism e2e", () => {
     await expect(window.getByRole("link", { name: "readme.so" })).toBeVisible()
 
     // save the file without any changes
-    const saveBtn = window.getByRole("button", { name: "save" })
+    const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()
 
     // verify file modification time has been updated (indicating save occurred)

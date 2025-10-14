@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
 import * as React from "react"
 import { Link } from "@tanstack/react-router"
-import { useAtom, useSetAtom } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
   ChevronRight,
   FileWarning,
@@ -19,6 +19,7 @@ import {
   WorkspaceInfo,
 } from "@/types/workspace"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
+import { fileStateMachineAtomFamily } from "@/lib/atoms/file-tree"
 import { mergeExpandedFolders } from "@/lib/auto-reveal"
 import { encodeBase64Url } from "@/lib/utils"
 import { getNavItemIcon } from "@/lib/workspace"
@@ -302,6 +303,21 @@ function CancelRenameButton({ onCancel }: { onCancel: () => void }) {
   )
 }
 
+function DirtyIndicator({ filePath }: { filePath: AbsolutePath }) {
+  const state = useAtomValue(fileStateMachineAtomFamily(filePath))
+  const isDirty = state.value === "Dirty"
+
+  if (!isDirty) return null
+
+  return (
+    <div
+      className="ml-auto h-2 w-2 rounded-full bg-foreground"
+      aria-label="unsaved changes"
+      title="unsaved changes"
+    />
+  )
+}
+
 function ItemButton({
   item,
   isSelected,
@@ -322,6 +338,7 @@ function ItemButton({
       {showChevron && <ChevronRight className="transition-transform" />}
       {React.createElement(getNavItemIcon(item))}
       <span className="truncate">{item.name}</span>
+      {item.kind === "file" && <DirtyIndicator filePath={item.path} />}
     </SidebarMenuButton>
   )
 }
