@@ -1,32 +1,30 @@
 import {
+  ActiveEditorSelectSchema,
   EditorInsertSchema,
   EditorSelectSchema,
+  EditorStateSelectSchema,
+  EditorStateUpdate,
   editorTable,
+  EditorUpdateStateSchema,
+  FileInsertSchema,
+  FilePrimaryKey,
+  FileSelectSchema,
   fileTable,
   PaneInsertSchema,
   PaneSelectSchema,
   paneTable,
-  workspaceTable,
-  type EditorInsert,
-  type PaneInsert,
-} from "@/schema/drizzle"
-import { ActiveElementSelectSchema } from "@/schema/element"
-import {
-  FileInsertSchema,
-  FileSelectSchema,
-  FileUpdateBufferSchema,
-  type FileInsert,
-  type FileUpdateBuffer,
-} from "@/schema/file"
-import {
   WorkspaceInsertSchema,
   WorkspaceSelectSchema,
+  workspaceTable,
+  type EditorInsert,
+  type FileInsert,
+  type PaneInsert,
   type WorkspaceInsert,
-} from "@/schema/workspace"
+} from "@/schema"
 import { maybeSingleResult, singleResult } from "@/services/utils"
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
-import { and, desc, eq, getTableColumns } from "drizzle-orm"
+import { and, desc, eq, getTableColumns, isNotNull } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 import { Data, DateTime, Effect, flow, Option, Schema } from "effect"
 
@@ -203,22 +201,27 @@ export class Database extends Effect.Service<Database>()("Database", {
             )
           })
         ),
-        singleResult(() => new PgliteError({ cause: "element not upserted" })),
+        singleResult(() => new PgliteError({ cause: "editor not upserted" })),
         Effect.flatMap(Schema.decode(EditorSelectSchema)),
-        Effect.tap((element) => Effect.log("db: upserted element:", element))
+        Effect.tap((editor) => Effect.log("db: upserted editor:", editor))
       ),
 
-      updateFileBuffer: flow(
-        execute(FileUpdateBufferSchema, (values: FileUpdateBuffer) =>
+      updateEditorState: flow(
+        execute(EditorUpdateStateSchema, (values: EditorStateUpdate) =>
           Effect.gen(function* () {
+            const now = yield* DateTime.now
+
             return yield* query((_) =>
-              _.update(fileTable)
-                .set(values)
-                .where(eq(fileTable.path, values.path))
+              _.update(editorTable)
+                .set({
+                  state: values.state,
+                  state_updated_at: DateTime.formatIso(now),
+                })
+                .where(eq(editorTable.id, values.id))
             )
           })
         ),
-        Effect.tap((file) => Effect.log("db: updated file buffer:", file))
+        Effect.tap((editor) => Effect.log("db: updated editor state:", editor))
       ),
 
       deleteFile: (filePath: AbsolutePath) =>
@@ -293,9 +296,35 @@ export class Database extends Effect.Service<Database>()("Database", {
           Effect.flatMap((maybe) =>
             Option.isNone(maybe)
               ? Effect.succeed(Option.none())
-              : Schema.decode(ActiveElementSelectSchema)(maybe.value).pipe(
+              : Schema.decode(ActiveEditorSelectSchema)(maybe.value).pipe(
                   Effect.map(Option.some)
                 )
+          )
+        ),
+
+      selectLatestEditorStateForFile: (fileId: FilePrimaryKey) =>
+        query((_) =>
+          _.select({
+            id: editorTable.id,
+            state: editorTable.state,
+            view_kind: editorTable.view_kind,
+          })
+            .from(editorTable)
+            .where(
+              and(eq(editorTable.file_id, fileId), isNotNull(editorTable.state))
+            )
+            .orderBy(desc(editorTable.state_updated_at))
+            .limit(1)
+        ).pipe(
+          maybeSingleResult(),
+          Effect.flatMap(
+            Option.match({
+              onNone: () => Effect.succeed(Option.none()),
+              onSome: (value) =>
+                Schema.decode(EditorStateSelectSchema)(value).pipe(
+                  Effect.map(Option.some)
+                ),
+            })
           )
         ),
 

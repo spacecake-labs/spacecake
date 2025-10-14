@@ -3,7 +3,7 @@ import {
   editorTable,
   paneTable,
   workspaceTable,
-} from "@/schema/drizzle"
+} from "@/schema"
 import { and, desc, eq, getTableColumns } from "drizzle-orm"
 
 import { AbsolutePath } from "@/types/workspace"

@@ -16,6 +16,3 @@ export const FileSelectSchema = Schema.Struct({
   ...createSelectSchema(fileTable).omit("id").fields,
 })
 export type FileSelect = typeof FileSelectSchema.Type
-
-export const FileUpdateBufferSchema = FileInsertSchema.pick("path", "buffer")
-export type FileUpdateBuffer = typeof FileUpdateBufferSchema.Type

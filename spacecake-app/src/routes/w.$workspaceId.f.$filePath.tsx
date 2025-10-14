@@ -1,5 +1,6 @@
 import { fileMachine } from "@/machines/manage-file"
-import { FileManager } from "@/services/file-manager"
+import { JsonValue } from "@/schema/drizzle-effect"
+import { EditorManager } from "@/services/editor-manager"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
   createFileRoute,
@@ -8,16 +9,14 @@ import {
 } from "@tanstack/react-router"
 import { useMachine } from "@xstate/react"
 import { Effect, Schema } from "effect"
-import { useSetAtom } from "jotai"
 import { type EditorState } from "lexical"
 
 import { match } from "@/types/adt"
 import { ViewKindSchema } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
-import { editorStateAtom } from "@/lib/atoms/atoms"
 import {
   createEditorConfigFromContent,
-  serializeFileContent,
+  createEditorConfigFromState,
 } from "@/lib/editor"
 import { decodeBase64Url } from "@/lib/utils"
 import { determineView } from "@/lib/view"
@@ -58,17 +57,27 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   },
   loaderDeps: ({ search: { view } }) => ({ view }),
   loader: async ({ params, deps: { view }, context }) => {
-    const { db, pane, workspace } = context
+    const { pane, workspace } = context
     const filePath = AbsolutePath(decodeBase64Url(params.filePath))
-    console.log("filePath", filePath)
-    const fileRecord = await RuntimeClient.runPromise(
+
+    if (!view) {
+      // this should be an impossible state because of the beforeLoad redirect.
+      // we'll throw to make it clear if it ever occurs.
+      throw new Error("invariant: view param should be present in loader")
+    }
+
+    const initialState = await RuntimeClient.runPromise(
       Effect.gen(function* () {
-        const fm = yield* FileManager
-        return yield* fm.readFile(filePath)
+        const em = yield* EditorManager
+        return yield* em.readStateOrFile({
+          filePath,
+          paneId: pane.id,
+          targetViewKind: view,
+        })
       })
     )
 
-    return match(fileRecord, {
+    return match(initialState, {
       onLeft: (error) => {
         console.error("failed to read file:", error)
         throw redirect({
@@ -77,28 +86,12 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           search: { notFoundFilePath: filePath },
         })
       },
-      onRight: async (file) => {
-        if (!view) {
-          // this should be an impossible state because of the beforeLoad redirect.
-          // we'll throw to make it clear if it ever occurs.
-          throw new Error("invariant: view param should be present in loader")
-        }
-
-        const editor = await RuntimeClient.runPromise(
-          (await db).upsertEditor({
-            pane_id: pane.id,
-            file_id: file.id,
-            view_kind: view,
-            position: 0, // assuming single editor per pane for now
-            is_active: true,
-          })
-        )
-
+      onRight: async (state) => {
         return {
           workspace,
           filePath,
-          file,
-          editor,
+          state,
+          view,
         }
       },
     })
@@ -115,26 +108,14 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 })
 
 function FileLayout() {
-  const { filePath, file, editor } = Route.useLoaderData()
-  const { view_kind: view } = editor
+  const { filePath, state, view } = Route.useLoaderData()
 
   const [, send] = useMachine(fileMachine)
 
-  // const setFile = useSetAtom(fileContentAtom)
-  const setEditorState = useSetAtom(editorStateAtom)
-
-  const editorConfig = createEditorConfigFromContent(file, view)
-
-  // Set up atoms when component mounts
-  // useEffect(() => {
-  //   // Set atoms for this file
-  //   // setFile(file)
-
-  //   if (workspace?.path) {
-  //     // open file in tab layout (handles existing tabs properly)
-  //     openFile(localStorageService, filePath, workspace.path)
-  //   }
-  // }, [workspace, file, filePath, setFile])
+  const editorConfig =
+    state.kind === "state"
+      ? createEditorConfigFromState(state.data.state)
+      : createEditorConfigFromContent(state.data, view)
 
   return (
     <>
@@ -142,12 +123,11 @@ function FileLayout() {
         key={`${filePath}-${view}`}
         editorConfig={editorConfig}
         onChange={(editorState: EditorState) => {
-          setEditorState(editorState.toJSON())
           send({
-            type: "file.update.buffer",
-            file: {
-              path: filePath,
-              buffer: serializeFileContent(editorState, file),
+            type: "editor.state.update",
+            editorState: {
+              id: state.data.editorId,
+              state: Schema.decodeUnknownSync(JsonValue)(editorState.toJSON()),
             },
           })
         }}

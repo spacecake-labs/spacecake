@@ -1,8 +1,13 @@
-import { createInsertSchema, createSelectSchema } from "@/schema/drizzle-effect"
+import {
+  createInsertSchema,
+  createSelectSchema,
+  type JsonValue,
+} from "@/schema/drizzle-effect"
 import { sql } from "drizzle-orm"
 import {
   boolean,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -45,7 +50,6 @@ export const fileTable = pgTable(
     path: text("path").notNull(),
     cid: text("cid").notNull(),
     mtime: timestamp("mtime", { mode: "string" }).notNull(),
-    buffer: text("buffer"),
     created_at: timestamp("created_at", { mode: "string" })
       .defaultNow()
       .notNull(),
@@ -94,6 +98,7 @@ export const editorTable = pgTable(
   "editor",
   {
     id: uuid("id")
+      // .$type<EditorPrimaryKey>()
       .primaryKey()
       .default(sql`gen_random_uuid()`),
     pane_id: uuid("pane_id")
@@ -105,6 +110,8 @@ export const editorTable = pgTable(
     position: integer("index").notNull(),
     view_kind: ViewKindEnum("view_kind").notNull(),
     is_active: boolean("is_active").notNull().default(false),
+    state: jsonb("state").$type<JsonValue>(),
+    state_updated_at: timestamp("state_updated_at", { mode: "string" }),
     created_at: timestamp("created_at", { mode: "string" })
       .defaultNow()
       .notNull(),
@@ -116,8 +123,3 @@ export const editorTable = pgTable(
     uniqueIndex("editor_pane_file_idx").on(table.pane_id, table.file_id),
   ]
 )
-
-export const EditorInsertSchema = createInsertSchema(editorTable)
-export type EditorInsert = typeof EditorInsertSchema.Type
-export const EditorSelectSchema = createSelectSchema(editorTable)
-export type EditorSelect = typeof EditorSelectSchema.Type

@@ -53,10 +53,10 @@ type ColumnSchema<TColumn extends Drizzle.Column> =
                           : Schema.Schema<any>
 
 // Simplified JSON types to prevent inference explosion
-type JsonPrimitive = string | number | boolean | null
-type JsonObject = { readonly [key: string]: unknown } // Match Schema.Record output
-type JsonArray = readonly unknown[] // Match Schema.Array output
-type JsonValue = JsonPrimitive | JsonObject | JsonArray
+export type JsonPrimitive = string | number | boolean | null
+export type JsonObject = { readonly [key: string]: unknown } // Match Schema.Record output
+export type JsonArray = readonly unknown[] // Match Schema.Array output
+export type JsonValue = JsonPrimitive | JsonObject | JsonArray
 
 // Strict JSON types for full validation
 type StrictJsonObject = { readonly [key: string]: StrictJsonValue }

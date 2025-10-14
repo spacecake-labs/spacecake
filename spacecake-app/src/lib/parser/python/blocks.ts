@@ -8,7 +8,7 @@ import {
   PyBlock,
   PyDecoratedKind,
 } from "@/types/parser"
-import type { FileBuffer } from "@/types/workspace"
+import type { EditorFile } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
 import languages from "@/lib/parser/languages"
 import { filename } from "@/lib/utils"
@@ -425,11 +425,11 @@ export async function* parseCodeBlocks(
  * Returns a generator that yields blocks as they're parsed
  */
 export async function* parsePythonContentStreaming(
-  file: FileBuffer
+  file: EditorFile
 ): AsyncGenerator<PyBlock> {
   try {
     let blockCount = 0
-    for await (const block of parseCodeBlocks(file.buffer, file.path)) {
+    for await (const block of parseCodeBlocks(file.content, file.path)) {
       blockCount++
       yield block
     }
@@ -441,10 +441,10 @@ export async function* parsePythonContentStreaming(
         kind: "module",
         name: moduleName,
         startByte: 0,
-        endByte: file.buffer.length,
-        text: file.buffer,
+        endByte: file.content.length,
+        text: file.content,
         startLine: 1,
-        cid: computeCid("module", moduleName.value, file.buffer),
+        cid: computeCid("module", moduleName.value, file.content),
         cidAlgo: "fnv1a64-norm1",
       }
       yield fallbackBlock
@@ -458,10 +458,10 @@ export async function* parsePythonContentStreaming(
       kind: "module",
       name: moduleName,
       startByte: 0,
-      endByte: file.buffer.length,
-      text: file.buffer,
+      endByte: file.content.length,
+      text: file.content,
       startLine: 1,
-      cid: computeCid("module", moduleName.value, file.buffer),
+      cid: computeCid("module", moduleName.value, file.content),
       cidAlgo: "fnv1a64-norm1",
     }
 

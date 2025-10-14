@@ -1,10 +1,9 @@
-import { FilePrimaryKey } from "@/schema/file"
+import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import { $getRoot, createEditor, type ElementNode } from "lexical"
 import { describe, expect, it } from "vitest"
 
 import type { PyBlock } from "@/types/parser"
-import { AbsolutePath, FileType } from "@/types/workspace"
-import type { FileBuffer } from "@/types/workspace"
+import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
 import { nodes } from "@/components/editor/nodes"
 import {
   convertPythonBlocksToLexical,
@@ -23,14 +22,15 @@ def my_function():
 
     // create editor
     const editor = createEditor({ nodes })
-    const file: FileBuffer = {
-      id: FilePrimaryKey(""),
+    const file: EditorFile = {
+      fileId: FilePrimaryKey(""),
+      editorId: EditorPrimaryKey(""),
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
-      buffer: pythonCode,
+      content: pythonCode,
     }
 
-    expect(file.buffer === pythonCode, "file should have content")
+    expect(file.content === pythonCode, "file should have content")
     expect(file.fileType === FileType.Python, "file should be python type")
 
     await convertPythonBlocksToLexical(file, editor)
@@ -71,14 +71,15 @@ import pandas as pd
 
     // create editor
     const editor = createEditor({ nodes })
-    const file: FileBuffer = {
-      id: FilePrimaryKey(""),
+    const file: EditorFile = {
+      fileId: FilePrimaryKey(""),
+      editorId: EditorPrimaryKey(""),
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
-      buffer: pythonCode,
+      content: pythonCode,
     }
 
-    expect(file.buffer === pythonCode, "file should have content")
+    expect(file.content === pythonCode, "file should have content")
     expect(file.fileType === FileType.Python, "file should be python type")
 
     await convertPythonBlocksToLexical(file, editor)
@@ -131,11 +132,12 @@ import pandas as pd
   it("should create an empty code block if the file is empty", async () => {
     const emptyCode = ``
     const editor = createEditor({ nodes })
-    const file: FileBuffer = {
-      id: FilePrimaryKey(""),
+    const file: EditorFile = {
+      fileId: FilePrimaryKey(""),
+      editorId: EditorPrimaryKey(""),
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
-      buffer: emptyCode,
+      content: emptyCode,
     }
     await convertPythonBlocksToLexical(file, editor)
 
@@ -152,19 +154,20 @@ import pandas as pd
   it("should create an empty paragraph if parsing fails", async () => {
     const emptyCode = ""
     const editor = createEditor({ nodes })
-    const file: FileBuffer = {
-      id: FilePrimaryKey(""),
+    const file: EditorFile = {
+      fileId: FilePrimaryKey(""),
+      editorId: EditorPrimaryKey(""),
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
-      buffer: emptyCode,
+      content: emptyCode,
     }
 
     // create an async generator that throws an error
     const failingParser = async function* (
-      file: FileBuffer
+      file: EditorFile
     ): AsyncGenerator<PyBlock> {
       // this will never execute since we pass empty content, but satisfies the linter
-      if (file.buffer) {
+      if (file.content) {
         yield {} as PyBlock
       }
       throw new Error("parsing failed")
@@ -192,11 +195,12 @@ def my_function():
     return x + y
     `
 
-    const file: FileBuffer = {
-      id: FilePrimaryKey(""),
+    const file: EditorFile = {
+      fileId: FilePrimaryKey(""),
+      editorId: EditorPrimaryKey(""),
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
-      buffer: pythonCode,
+      content: pythonCode,
     }
 
     // Create editor and then apply the initial state

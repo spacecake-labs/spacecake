@@ -1,53 +1,29 @@
-import { type FileUpdateBuffer } from "@/schema/file"
+import { type EditorStateUpdate } from "@/schema/editor"
 import { Database } from "@/services/database"
-import { FileManager } from "@/services/file-manager"
 import { RuntimeClient } from "@/services/runtime-client"
 import { Effect } from "effect"
 import { assertEvent, fromPromise, setup, type ActorRefFrom } from "xstate"
 
-import { AbsolutePath } from "@/types/workspace"
-
 export const fileMachine = setup({
   types: {
-    events: {} as
-      | {
-          type: "file.read"
-          filePath: AbsolutePath
-        }
-      | {
-          type: "file.update.buffer"
-          file: FileUpdateBuffer
-        },
+    events: {} as {
+      type: "editor.state.update"
+      editorState: EditorStateUpdate
+    },
   },
   actors: {
-    readFile: fromPromise(
-      async ({
-        input,
-      }: {
-        input: {
-          filePath: AbsolutePath
-        }
-      }) => {
-        return await RuntimeClient.runPromise(
-          Effect.gen(function* () {
-            const fm = yield* FileManager
-            return yield* fm.readFile(input.filePath)
-          })
-        )
-      }
-    ),
-    updateFileBuffer: fromPromise(
+    updateEditorState: fromPromise(
       ({
         input,
       }: {
         input: {
-          file: FileUpdateBuffer
+          editorState: EditorStateUpdate
         }
       }) =>
         RuntimeClient.runPromise(
           Effect.gen(function* () {
             const db = yield* Database
-            yield* db.updateFileBuffer(input.file)
+            yield* db.updateEditorState(input.editorState)
           }).pipe(Effect.tapErrorCause(Effect.logError))
         )
     ),
@@ -58,34 +34,18 @@ export const fileMachine = setup({
   states: {
     idle: {
       on: {
-        "file.read": {
-          target: "reading",
-        },
-        "file.update.buffer": {
+        "editor.state.update": {
           target: "updatingBuffer",
         },
       },
     },
-    reading: {
-      invoke: {
-        src: "readFile",
-        input: ({ event }) => {
-          assertEvent(event, "file.read")
-          return {
-            filePath: event.filePath,
-          }
-        },
-        onError: { target: "idle" },
-        onDone: { target: "idle" },
-      },
-    },
     updatingBuffer: {
       invoke: {
-        src: "updateFileBuffer",
+        src: "updateEditorState",
         input: ({ event }) => {
-          assertEvent(event, "file.update.buffer")
+          assertEvent(event, "editor.state.update")
           return {
-            file: event.file,
+            editorState: event.editorState,
           }
         },
         onError: { target: "idle" },

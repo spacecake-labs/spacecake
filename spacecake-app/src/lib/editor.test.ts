@@ -1,5 +1,6 @@
-import { FilePrimaryKey } from "@/schema/file"
-import type { LexicalEditor, SerializedEditorState } from "lexical"
+import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
+import { JsonValue } from "@/schema/drizzle-effect"
+import type { LexicalEditor } from "lexical"
 import {
   $createParagraphNode,
   $createTextNode,
@@ -8,8 +9,7 @@ import {
 } from "lexical"
 import { beforeEach, describe, expect, it } from "vitest"
 
-import { AbsolutePath, FileType } from "@/types/workspace"
-import type { FileBuffer } from "@/types/workspace"
+import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
 import {
   convertToSourceView,
   getEditorConfig,
@@ -19,11 +19,12 @@ import {
 import { nodes } from "@/components/editor/nodes"
 
 describe("Editor Integration", () => {
-  const mockPythonFile: FileBuffer = {
-    id: FilePrimaryKey("test-python-file"),
+  const mockPythonFile: EditorFile = {
+    fileId: FilePrimaryKey("test-python-file"),
+    editorId: EditorPrimaryKey("test-python-file"),
     path: AbsolutePath("/test/test.py"),
     fileType: FileType.Python,
-    buffer: `import math
+    content: `import math
 
 def fibonacci(n):
     if n <= 1:
@@ -35,46 +36,37 @@ class Calculator:
         return a + b`,
   }
 
-  const mockMarkdownFile: FileBuffer = {
-    id: FilePrimaryKey("test-markdown-file"),
+  const mockMarkdownFile: EditorFile = {
+    fileId: FilePrimaryKey("test-markdown-file"),
+    editorId: EditorPrimaryKey("test-markdown-file"),
     path: AbsolutePath("/test/test.md"),
     fileType: FileType.Markdown,
-    buffer: "# Hello\n\nThis is markdown",
+    content: "# Hello\n\nThis is markdown",
   }
 
   describe("getEditorConfig", () => {
     it("creates config for Python files", () => {
-      const config = getEditorConfig(
-        null,
-        mockPythonFile,
-        mockPythonFile.path,
-        "rich"
-      )
+      const config = getEditorConfig(null, mockPythonFile, "rich")
 
       expect(config).not.toBeNull()
       expect(config?.editorState).toBeDefined()
     })
 
     it("creates config for Markdown files", () => {
-      const config = getEditorConfig(
-        null,
-        mockMarkdownFile,
-        mockMarkdownFile.path,
-        "rich"
-      )
+      const config = getEditorConfig(null, mockMarkdownFile, "rich")
 
       expect(config).not.toBeNull()
       expect(config?.editorState).toBeDefined()
     })
 
     it("returns null when no file content", () => {
-      const config = getEditorConfig(null, null, null, "rich")
+      const config = getEditorConfig(null, null, "rich")
 
       expect(config).toBeNull()
     })
 
     it("prioritizes editor state over file content", () => {
-      const mockEditorState: SerializedEditorState = {
+      const mockEditorState: JsonValue = {
         root: {
           type: "root",
           version: 1,
@@ -84,12 +76,7 @@ class Calculator:
           indent: 0,
         },
       }
-      const config = getEditorConfig(
-        mockEditorState,
-        mockPythonFile,
-        mockPythonFile.path,
-        "rich"
-      )
+      const config = getEditorConfig(mockEditorState, mockPythonFile, "rich")
 
       expect(config).not.toBeNull()
       expect(config?.editorState).toBe(JSON.stringify(mockEditorState))
@@ -142,11 +129,12 @@ class Calculator:
 
   describe("convertToSourceView", () => {
     let editor: LexicalEditor
-    const mockFile: FileBuffer = {
-      id: FilePrimaryKey("test-js-file"),
+    const mockFile: EditorFile = {
+      fileId: FilePrimaryKey("test-js-file"),
+      editorId: EditorPrimaryKey("test-js-file"),
       path: AbsolutePath("/test/test.js"),
       fileType: FileType.JavaScript,
-      buffer: "console.log('hello');",
+      content: "console.log('hello');",
     }
 
     beforeEach(() => {
