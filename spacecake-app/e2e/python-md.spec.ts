@@ -125,7 +125,7 @@ test.describe("python markdown directives e2e", () => {
     await expect(window.getByText("a header updated").first()).toBeVisible()
 
     // save the file
-    const saveBtn = window.getByRole("button", { name: "save" })
+    const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()
 
     // verify the change persists after save

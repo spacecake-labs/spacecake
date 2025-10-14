@@ -66,7 +66,7 @@ if __name__ == "__main__":
     await expect(window.getByText("misc").first()).toBeVisible()
 
     // save the file without any changes
-    const saveBtn = window.getByRole("button", { name: "save" })
+    const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()
 
     // verify the file was saved with the exact same content
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     await expect(window.getByText("file").first()).toBeVisible()
 
     // save the file
-    const saveBtn = window.getByRole("button", { name: "save" })
+    const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()
 
     // verify content remains empty
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     await expect(window.getByText("another comment").first()).toBeVisible()
 
     // save the file without any changes
-    const saveBtn = window.getByRole("button", { name: "save" })
+    const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()
 
     // verify content remains identical
@@ -211,7 +211,7 @@ if __name__ == "__main__":
     await expect(window.getByText("main").first()).toBeVisible()
 
     // save the file without any changes
-    const saveBtn = window.getByRole("button", { name: "save" })
+    const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
@@ -272,7 +272,7 @@ class AsyncClass:
     ).toBeVisible()
 
     // save the file without any changes
-    const saveBtn = window.getByRole("button", { name: "save" })
+    const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()

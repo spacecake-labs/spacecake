@@ -367,7 +367,7 @@ test.describe("python e2e", () => {
     await importContent.pressSequentially("x = 5", { delay: 100 })
 
     // save from header and wait for rerender: observe button text transition
-    const saveBtn = window.getByRole("button", { name: "save" })
+    const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
     await window.locator(".cm-editor").first().waitFor({ state: "visible" })
