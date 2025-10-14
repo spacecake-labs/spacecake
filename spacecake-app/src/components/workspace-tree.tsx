@@ -311,7 +311,7 @@ function DirtyIndicator({ filePath }: { filePath: AbsolutePath }) {
 
   return (
     <div
-      className="ml-auto h-2 w-2 rounded-full bg-foreground"
+      className="ml-auto size-2 shrink-0 rounded-full bg-foreground"
       aria-label="unsaved changes"
       title="unsaved changes"
     />
