@@ -1,4 +1,7 @@
+import { fileStateMachine } from "@/machines/file-tree"
 import { atom } from "jotai"
+import { atomWithMachine } from "jotai-xstate"
+import { atomFamily } from "jotai/utils"
 
 import type {
   File,
@@ -260,3 +263,14 @@ export const getQuickOpenFileItems = (
     return { file, displayPath }
   })
 }
+
+export const fileStateMachineAtomFamily = atomFamily(
+  // For each filePath, create a new machine atom
+  (filePath: AbsolutePath) =>
+    atomWithMachine(
+      () => fileStateMachine,
+      () => ({ input: { filePath } })
+    ),
+  // Use a simple equality check for the file path strings
+  (a, b) => a === b
+)

@@ -30,16 +30,16 @@ export const fileMachine = setup({
   },
 }).createMachine({
   id: "file",
-  initial: "idle",
+  initial: "Idle",
   states: {
-    idle: {
+    Idle: {
       on: {
         "editor.state.update": {
-          target: "updatingBuffer",
+          target: "UpdatingState",
         },
       },
     },
-    updatingBuffer: {
+    UpdatingState: {
       invoke: {
         src: "updateEditorState",
         input: ({ event }) => {
@@ -48,8 +48,8 @@ export const fileMachine = setup({
             editorState: event.editorState,
           }
         },
-        onError: { target: "idle" },
-        onDone: { target: "idle" },
+        onError: { target: "Idle" },
+        onDone: { target: "Idle" },
       },
     },
   },
