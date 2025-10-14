@@ -490,6 +490,7 @@ test.describe("spacecake app", () => {
       .first()
       .hover()
     await window.getByTestId("more-options-file-to-delete.txt").click()
+
     await window.getByRole("menuitem", { name: "delete" }).click()
 
     // Verify delete confirmation dialog appears
@@ -502,6 +503,7 @@ test.describe("spacecake app", () => {
 
     // Cancel the delete
     await window.getByRole("button", { name: "cancel" }).click()
+
     await expect(
       window.getByRole("dialog", { name: "delete file" })
     ).not.toBeVisible()
@@ -518,9 +520,16 @@ test.describe("spacecake app", () => {
       .hover()
     await window.getByTestId("more-options-file-to-delete.txt").click()
     await window.getByRole("menuitem", { name: "delete" }).click()
+    await expect(
+      window.getByText("are you sure you want to delete 'file-to-delete.txt'?")
+    ).toBeVisible()
 
     // Confirm the delete
     await window.getByRole("button", { name: "delete" }).click()
+
+    await expect(
+      window.getByRole("dialog", { name: "delete file" })
+    ).not.toBeVisible()
 
     // Verify the file is removed from the UI
     await expect(
@@ -547,6 +556,10 @@ test.describe("spacecake app", () => {
 
     // Confirm the delete
     await window.getByRole("button", { name: "delete" }).click()
+
+    await expect(
+      window.getByRole("dialog", { name: "delete folder" })
+    ).not.toBeVisible()
 
     // Verify the folder is removed from the UI
     await expect(
@@ -576,6 +589,10 @@ test.describe("spacecake app", () => {
 
     // Confirm the delete
     await window.getByRole("button", { name: "delete" }).click()
+
+    await expect(
+      window.getByRole("dialog", { name: "delete folder" })
+    ).not.toBeVisible()
 
     // Verify the folder is removed from the UI
     await expect(
