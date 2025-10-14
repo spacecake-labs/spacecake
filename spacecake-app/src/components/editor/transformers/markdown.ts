@@ -15,7 +15,6 @@ import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
 import {
   $createCodeBlockNode,
   $isCodeBlockNode,
-  CodeBlockNode,
 } from "@/components/editor/nodes/code-node"
 import { delimitedNode } from "@/components/editor/nodes/delimited-node"
 import {
@@ -27,7 +26,7 @@ import {
 export function createCodeTransformer(): MultilineElementTransformer {
   return {
     ...CODE,
-    dependencies: [CodeBlockNode],
+    // dependencies: [CodeBlockNode],
     export: (node: LexicalNode) => {
       if (!$isCodeBlockNode(node)) {
         return null

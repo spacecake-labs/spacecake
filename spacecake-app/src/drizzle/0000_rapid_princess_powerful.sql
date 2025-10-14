@@ -6,6 +6,8 @@ CREATE TABLE "editor" (
 	"index" integer NOT NULL,
 	"view_kind" "view_kind" NOT NULL,
 	"is_active" boolean DEFAULT false NOT NULL,
+	"state" jsonb,
+	"state_updated_at" timestamp,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"last_accessed_at" timestamp DEFAULT now() NOT NULL
 );
@@ -15,7 +17,6 @@ CREATE TABLE "file" (
 	"path" text NOT NULL,
 	"cid" text NOT NULL,
 	"mtime" timestamp NOT NULL,
-	"buffer" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"last_accessed_at" timestamp DEFAULT now() NOT NULL
 );

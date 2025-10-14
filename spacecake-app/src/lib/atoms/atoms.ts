@@ -1,4 +1,4 @@
-import { FilePrimaryKey } from "@/schema/file"
+import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import { $convertToMarkdownString } from "@lexical/markdown"
 import { atom, WritableAtom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
@@ -170,16 +170,17 @@ export const saveFileAtom = atom(
         // Trigger immediate re-parsing for block splitting after successful save
         if (inferredType === FileType.Python && lexicalEditor) {
           // Create a mock FileContent object for re-parsing
-          const mockFileBuffer = {
-            id: FilePrimaryKey(""),
+          const mockEditorFile = {
+            fileId: FilePrimaryKey(""),
+            editorId: EditorPrimaryKey(""),
             path: filePath,
             name: filePath.split("/").pop() || "",
-            buffer: contentToWrite,
+            content: contentToWrite,
             fileType: inferredType,
           }
 
           // Trigger re-parsing for block splitting
-          convertPythonBlocksToLexical(mockFileBuffer, lexicalEditor)
+          convertPythonBlocksToLexical(mockEditorFile, lexicalEditor)
         }
       } else {
         // Rollback CID on failure

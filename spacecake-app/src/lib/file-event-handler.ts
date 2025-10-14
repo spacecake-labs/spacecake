@@ -1,4 +1,4 @@
-import { FilePrimaryKey } from "@/schema/file"
+import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import type { LexicalEditor } from "lexical"
 
 import { match } from "@/types/adt"
@@ -107,17 +107,18 @@ export const handleFileEvent = async (
         // Get the current view preference for this file type
         const currentView = userViewPreferences[processedEvent.fileType]
 
-        // Create a mock FileBuffer object for the event
-        const mockFileBuffer = {
-          id: FilePrimaryKey(""),
+        // Create a mock EditorState object for the event
+        const mockEditorFile = {
+          fileId: FilePrimaryKey(""),
+          editorId: EditorPrimaryKey(""),
           path: processedEvent.path,
-          buffer: processedEvent.content,
           fileType: processedEvent.fileType,
+          content: processedEvent.content,
         }
 
         // Use the existing function to ensure consistency
         const updateFunction = getInitialEditorStateFromContent(
-          mockFileBuffer,
+          mockEditorFile,
           currentView
         )
 

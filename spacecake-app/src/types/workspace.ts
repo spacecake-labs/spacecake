@@ -2,10 +2,11 @@
  * Workspace and file tree types
  */
 
-import { FilePrimaryKey } from "@/schema/file"
+import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
+import { JsonValue } from "@/schema/drizzle-effect"
 import { Brand, Schema } from "effect"
 
-import { ViewKindSchema } from "@/types/lexical"
+import { ViewKind, ViewKindSchema } from "@/types/lexical"
 import { encodeBase64Url } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
@@ -65,10 +66,21 @@ export type File = FileTreeItem & {
 
 export type FileContent = File & { content: string }
 
-export type FileBuffer = { id: FilePrimaryKey; buffer: string } & Pick<
-  File,
-  "path" | "fileType"
->
+export type EditorFile = {
+  fileId: FilePrimaryKey
+  editorId: EditorPrimaryKey
+  path: AbsolutePath
+  fileType: FileType
+  content: string
+}
+
+export type EditorCache = {
+  editorId: EditorPrimaryKey
+  state: JsonValue
+  viewKind: ViewKind
+  fileId: FilePrimaryKey
+}
+
 export type Folder = FileTreeItem & {
   kind: "folder"
   children: FileTree

@@ -1,4 +1,4 @@
-import v0000 from "@/drizzle/0000_freezing_storm.sql?raw"
+import v0000 from "@/drizzle/0000_rapid_princess_powerful.sql?raw"
 import { systemTable } from "@/schema/drizzle"
 import { Database } from "@/services/database"
 import { singleResult } from "@/services/utils"

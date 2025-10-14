@@ -1,18 +1,20 @@
+import { JsonValue } from "@/schema/drizzle-effect"
 import { $convertToMarkdownString } from "@lexical/markdown"
 import { InitialConfigType } from "@lexical/react/LexicalComposer"
 import { $isHeadingNode } from "@lexical/rich-text"
 import {
   $getRoot,
   $isParagraphNode,
-  EditorState,
+  createEditor,
   LexicalEditor,
-  SerializedEditorState,
+  type EditorState,
 } from "lexical"
 
-import type { AbsolutePath, FileBuffer } from "@/types/workspace"
+import type { EditorFile, FileType } from "@/types/workspace"
 import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
 import { editorConfig } from "@/components/editor/editor"
 import { nodeToMdBlock } from "@/components/editor/markdown-utils"
+import { nodes } from "@/components/editor/nodes"
 import {
   $createCodeBlockNode,
   $isCodeBlockNode,
@@ -25,7 +27,7 @@ import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown
 
 // Pure function to create editor config from serialized state
 export const createEditorConfigFromState = (
-  serializedState: SerializedEditorState
+  serializedState: JsonValue
 ): InitialConfigType => {
   return {
     ...editorConfig,
@@ -35,7 +37,7 @@ export const createEditorConfigFromState = (
 
 // Pure function to create editor config from file content
 export const createEditorConfigFromContent = (
-  file: FileBuffer,
+  file: EditorFile,
   viewKind?: "rich" | "source"
 ): InitialConfigType => {
   return {
@@ -46,16 +48,15 @@ export const createEditorConfigFromContent = (
 
 // Pure function to determine editor config based on current state
 export const getEditorConfig = (
-  editorState: SerializedEditorState | null,
-  fileBuffer: FileBuffer | null,
-  selectedFilePath: AbsolutePath | null,
+  editorState: JsonValue | null,
+  fileBuffer: EditorFile | null,
   viewKind: "rich" | "source" = "rich"
 ): InitialConfigType | null => {
   if (editorState) {
     return createEditorConfigFromState(editorState)
   }
 
-  if (fileBuffer && selectedFilePath) {
+  if (fileBuffer) {
     return createEditorConfigFromContent(fileBuffer, viewKind)
   }
 
@@ -130,7 +131,7 @@ export function serializeEditorToSource(editorState: EditorState): string {
  */
 export function convertToSourceView(
   content: string,
-  file: FileBuffer,
+  file: EditorFile,
   editor: LexicalEditor
 ) {
   const language = fileTypeToCodeMirrorLanguage(file.fileType)
@@ -164,16 +165,25 @@ export function serializeEditorToMarkdown(editorState: EditorState): string {
  */
 export function serializeFileContent(
   editorState: EditorState,
-  file: FileBuffer
+  fileType: FileType
 ): string {
-  if (file.fileType === "python") {
+  if (fileType === "python") {
     return serializeEditorToPython(editorState)
   }
 
-  if (file.fileType === "markdown") {
+  if (fileType === "markdown") {
     return serializeEditorToMarkdown(editorState)
   }
 
   // For other file types, we assume they are source files.
   return serializeEditorToSource(editorState)
+}
+
+export function serializeFromCache(
+  data: JsonValue,
+  fileType: FileType
+): string {
+  const editor = createEditor({ nodes })
+  const editorState = editor.parseEditorState(JSON.stringify(data))
+  return serializeFileContent(editorState, fileType)
 }
