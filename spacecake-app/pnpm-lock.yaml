@@ -152,6 +152,9 @@ importers:
       jotai-optics:
         specifier: ^0.4.0
         version: 0.4.0(jotai@2.15.0(@babel/core@7.28.4)(@babel/template@7.27.2)(@types/react@19.1.14)(react@19.1.1))(optics-ts@2.4.1)
+      jotai-xstate:
+        specifier: ^0.6.1
+        version: 0.6.1(jotai@2.15.0(@babel/core@7.28.4)(@babel/template@7.27.2)(@types/react@19.1.14)(react@19.1.1))(xstate@5.22.0)
       lexical:
         specifier: ^0.35.0
         version: 0.35.0
@@ -4022,6 +4025,12 @@ packages:
     peerDependencies:
       jotai: '>=2.0.0'
       optics-ts: '>=2.0.0'
+
+  jotai-xstate@0.6.1:
+    resolution: {integrity: sha512-graSDsorui1a4Zt4jCJ40GuOzOkfOY317XcazYnNx0EHS+D/rOr4aLzZRy0NLaPQZsypfcGSMbNCwksfhwkixA==}
+    peerDependencies:
+      jotai: '>=2.0.0'
+      xstate: '>=5.0.0'
 
   jotai@2.15.0:
     resolution: {integrity: sha512-nbp/6jN2Ftxgw0VwoVnOg0m5qYM1rVcfvij+MZx99Z5IK13eGve9FJoCwGv+17JvVthTjhSmNtT5e1coJnr6aw==}
@@ -10182,6 +10191,11 @@ snapshots:
     dependencies:
       jotai: 2.15.0(@babel/core@7.28.4)(@babel/template@7.27.2)(@types/react@19.1.14)(react@19.1.1)
       optics-ts: 2.4.1
+
+  jotai-xstate@0.6.1(jotai@2.15.0(@babel/core@7.28.4)(@babel/template@7.27.2)(@types/react@19.1.14)(react@19.1.1))(xstate@5.22.0):
+    dependencies:
+      jotai: 2.15.0(@babel/core@7.28.4)(@babel/template@7.27.2)(@types/react@19.1.14)(react@19.1.1)
+      xstate: 5.22.0
 
   jotai@2.15.0(@babel/core@7.28.4)(@babel/template@7.27.2)(@types/react@19.1.14)(react@19.1.1):
     optionalDependencies:

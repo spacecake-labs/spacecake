@@ -9,11 +9,13 @@ import {
 } from "@tanstack/react-router"
 import { useMachine } from "@xstate/react"
 import { Effect, Schema } from "effect"
+import { useSetAtom } from "jotai"
 import { type EditorState } from "lexical"
 
 import { match } from "@/types/adt"
 import { ViewKindSchema } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
+import { fileStateMachineAtomFamily } from "@/lib/atoms/file-tree"
 import {
   createEditorConfigFromContent,
   createEditorConfigFromState,
@@ -109,6 +111,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 
 function FileLayout() {
   const { filePath, state, view } = Route.useLoaderData()
+  const setFileState = useSetAtom(fileStateMachineAtomFamily(filePath))
 
   const [, send] = useMachine(fileMachine)
 
@@ -123,6 +126,9 @@ function FileLayout() {
         key={`${filePath}-${view}`}
         editorConfig={editorConfig}
         onChange={(editorState: EditorState) => {
+          // Send edit event to the file state machine
+          setFileState({ type: "file.edit" })
+
           send({
             type: "editor.state.update",
             editorState: {
