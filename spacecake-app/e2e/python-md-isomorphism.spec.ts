@@ -53,7 +53,7 @@ test.describe("python markdown directives isomorphism e2e", () => {
     await expect(window.getByText("import").first()).toBeVisible()
 
     // save the file without any changes
-    const saveBtn = window.getByRole("button", { name: "save" })
+    const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()
 
     // verify the file was saved with the exact same content
@@ -145,7 +145,7 @@ class TestClass:
     ).toBeVisible()
 
     // save the file without any changes
-    const saveBtn = window.getByRole("button", { name: "save" })
+    const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()
 
     // verify the file was saved with the exact same content
@@ -208,7 +208,7 @@ class TestClass:
     await expect(window.getByText("example code block").first()).toBeVisible()
 
     // save the file without any changes
-    const saveBtn = window.getByRole("button", { name: "save" })
+    const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()
 
     // verify the file was saved with the exact same content
@@ -325,7 +325,7 @@ if __name__ == "__main__":
     await expect(window.getByText("main").first()).toBeVisible()
 
     // save the file without any changes
-    const saveBtn = window.getByRole("button", { name: "save" })
+    const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()
 
     // verify the file was saved with the exact same content
@@ -395,7 +395,7 @@ def test():
     await expect(window.getByText("function").first()).toBeVisible()
 
     // save the file without any changes
-    const saveBtn = window.getByRole("button", { name: "save" })
+    const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()
 
     // verify the file was saved with the exact same content (including whitespace)
