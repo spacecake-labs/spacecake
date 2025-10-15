@@ -15,6 +15,12 @@ export const EditorInsertSchema = createInsertSchema(editorTable, {
 })
 export type EditorInsert = Schema.Schema.Encoded<typeof EditorInsertSchema>
 
+export const EditorUpdateSchema = EditorInsertSchema.omit("id").pipe(
+  Schema.partial,
+  Schema.extend(Schema.Struct({ id: EditorPrimaryKeySchema }))
+)
+export type EditorUpdate = Schema.Schema.Encoded<typeof EditorUpdateSchema>
+
 export const EditorSelectSchema = Schema.Struct({
   id: EditorPrimaryKeySchema,
   ...createSelectSchema(editorTable).omit("id").fields,

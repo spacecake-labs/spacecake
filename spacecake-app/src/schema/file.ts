@@ -11,6 +11,12 @@ export const FilePrimaryKeySchema = Schema.String.pipe(
 export const FileInsertSchema = createInsertSchema(fileTable)
 export type FileInsert = typeof FileInsertSchema.Type
 
+export const FileUpdateSchema = FileInsertSchema.omit("id").pipe(
+  Schema.partial,
+  Schema.extend(Schema.Struct({ id: FilePrimaryKeySchema }))
+)
+export type FileUpdate = Schema.Schema.Encoded<typeof FileUpdateSchema>
+
 export const FileSelectSchema = Schema.Struct({
   id: FilePrimaryKeySchema,
   ...createSelectSchema(fileTable).omit("id").fields,

@@ -5,11 +5,13 @@ import {
   EditorStateSelectSchema,
   EditorStateUpdate,
   editorTable,
+  EditorUpdateSchema,
   EditorUpdateStateSchema,
   FileInsertSchema,
   FilePrimaryKey,
   FileSelectSchema,
   fileTable,
+  FileUpdateSchema,
   PaneInsertSchema,
   PaneSelectSchema,
   paneTable,
@@ -17,7 +19,9 @@ import {
   WorkspaceSelectSchema,
   workspaceTable,
   type EditorInsert,
+  type EditorUpdate,
   type FileInsert,
+  type FileUpdate,
   type PaneInsert,
   type WorkspaceInsert,
 } from "@/schema"
@@ -145,6 +149,20 @@ export class Database extends Effect.Service<Database>()("Database", {
           Effect.tap((file) => Effect.log("db: upserted file:", file))
         ),
 
+      updateFileAccessedAt: flow(
+        execute(FileUpdateSchema, (values: FileUpdate) =>
+          Effect.gen(function* () {
+            const now = yield* DateTime.now
+            return yield* query((_) =>
+              _.update(fileTable)
+                .set({ last_accessed_at: DateTime.formatIso(now) })
+                .where(eq(fileTable.id, values.id))
+            )
+          })
+        ),
+        Effect.tap((file) => Effect.log("db: updated file accessed at:", file))
+      ),
+
       upsertPane: flow(
         execute(PaneInsertSchema, (values: PaneInsert) =>
           Effect.gen(function* () {
@@ -204,6 +222,22 @@ export class Database extends Effect.Service<Database>()("Database", {
         singleResult(() => new PgliteError({ cause: "editor not upserted" })),
         Effect.flatMap(Schema.decode(EditorSelectSchema)),
         Effect.tap((editor) => Effect.log("db: upserted editor:", editor))
+      ),
+
+      updateEditorAccessedAt: flow(
+        execute(EditorUpdateSchema, (values: EditorUpdate) =>
+          Effect.gen(function* () {
+            const now = yield* DateTime.now
+            return yield* query((_) =>
+              _.update(editorTable)
+                .set({ last_accessed_at: DateTime.formatIso(now) })
+                .where(eq(editorTable.id, values.id))
+            )
+          })
+        ),
+        Effect.tap((editor) =>
+          Effect.log("db: updated editor accessed at:", editor)
+        )
       ),
 
       updateEditorState: flow(
