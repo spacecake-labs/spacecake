@@ -29,16 +29,25 @@ export class EditorManager extends Effect.Service<EditorManager>()(
           const file = yield* db.selectFile(filePath)
 
           if (Option.isSome(file)) {
+            yield* db.updateFileAccessedAt({
+              id: file.value.id,
+            })
+
             const editor = yield* db.selectLatestEditorStateForFile(
               file.value.id
             )
-            if (Option.isSome(editor) && editor.value.state) {
-              return right<PgliteError, EditorCache>({
-                editorId: editor.value.id,
-                viewKind: editor.value.view_kind,
-                state: editor.value.state,
-                fileId: file.value.id,
+            if (Option.isSome(editor)) {
+              yield* db.updateEditorAccessedAt({
+                id: editor.value.id,
               })
+              if (editor.value.state) {
+                return right<PgliteError, EditorCache>({
+                  editorId: editor.value.id,
+                  viewKind: editor.value.view_kind,
+                  state: editor.value.state,
+                  fileId: file.value.id,
+                })
+              }
             }
           }
           return left<PgliteError, EditorCache>(
