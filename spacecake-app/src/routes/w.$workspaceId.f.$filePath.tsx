@@ -10,10 +10,14 @@ import {
 import { useMachine } from "@xstate/react"
 import { Effect, Schema } from "effect"
 import { useSetAtom } from "jotai"
-import { type EditorState } from "lexical"
+import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 
 import { match } from "@/types/adt"
-import { ViewKindSchema } from "@/types/lexical"
+import {
+  SerializedSelectionSchema,
+  ViewKindSchema,
+  type ChangeType,
+} from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 import { fileStateMachineAtomFamily } from "@/lib/atoms/file-tree"
 import {
@@ -125,16 +129,43 @@ function FileLayout() {
       <Editor
         key={`${filePath}-${view}`}
         editorConfig={editorConfig}
-        onChange={(editorState: EditorState) => {
-          // Send edit event to the file state machine
-          setFileState({ type: "file.edit" })
+        onChange={(editorState: EditorState, changeType: ChangeType) => {
+          editorState.read(() => {
+            const selection = $getSelection()
+            const serializedSelection = $isRangeSelection(selection)
+              ? Schema.decodeUnknownSync(SerializedSelectionSchema)({
+                  anchor: {
+                    key: selection.anchor.key,
+                    offset: selection.anchor.offset,
+                  },
+                  focus: {
+                    key: selection.focus.key,
+                    offset: selection.focus.offset,
+                  },
+                })
+              : null
 
-          send({
-            type: "editor.state.update",
-            editorState: {
-              id: state.data.editorId,
-              state: Schema.decodeUnknownSync(JsonValue)(editorState.toJSON()),
-            },
+            if (changeType === "selection") {
+              send({
+                type: "editor.selection.update",
+                editorSelection: {
+                  id: state.data.editorId,
+                  selection: serializedSelection,
+                },
+              })
+            } else {
+              setFileState({ type: "file.edit" })
+              send({
+                type: "editor.state.update",
+                editorState: {
+                  id: state.data.editorId,
+                  state: Schema.decodeUnknownSync(JsonValue)(
+                    editorState.toJSON()
+                  ),
+                  selection: serializedSelection,
+                },
+              })
+            }
           })
         }}
       />
