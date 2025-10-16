@@ -1,8 +1,4 @@
-import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
-import type { LexicalEditor } from "lexical"
-
 import { match } from "@/types/adt"
-import type { ViewKind } from "@/types/lexical"
 import type {
   File,
   FileContent,
@@ -13,7 +9,6 @@ import type {
 } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
 import { readFile } from "@/lib/fs"
-import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 
 // helper to find an item in the tree.
 const findItemInTree = (tree: FileTree, path: string): File | Folder | null => {
@@ -34,8 +29,6 @@ const findItemInTree = (tree: FileTree, path: string): File | Folder | null => {
 export const handleFileEvent = async (
   event: FileTreeEvent,
   currentPath: string | null,
-  currentEditor: LexicalEditor | null | undefined,
-  userViewPreferences: Record<string, ViewKind>,
   setFileTreeEvent: (
     event: FileTreeEvent,
     workspace: WorkspaceInfo,
@@ -100,34 +93,6 @@ export const handleFileEvent = async (
       workspace,
       deleteFile
     )
-
-    // Then, update editor content if this is the currently open file
-    if (currentPath && currentEditor && processedEvent.path === currentPath) {
-      try {
-        // Get the current view preference for this file type
-        const currentView = userViewPreferences[processedEvent.fileType]
-
-        // Create a mock EditorState object for the event
-        const mockEditorFile = {
-          fileId: FilePrimaryKey(""),
-          editorId: EditorPrimaryKey(""),
-          path: processedEvent.path,
-          fileType: processedEvent.fileType,
-          content: processedEvent.content,
-        }
-
-        // Use the existing function to ensure consistency
-        const updateFunction = getInitialEditorStateFromContent(
-          mockEditorFile,
-          currentView
-        )
-
-        // Apply the update using the existing logic
-        updateFunction(currentEditor)
-      } catch (error) {
-        console.error("error updating editor content:", error)
-      }
-    }
   } else {
     // Handle other file tree events
     setFileTreeEvent(processedEvent, workspace, deleteFile)

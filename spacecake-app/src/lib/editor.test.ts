@@ -143,7 +143,7 @@ class Calculator:
 
     it("handles empty content gracefully", async () => {
       await new Promise<void>((resolve) => {
-        convertToSourceView("", mockFile, editor)
+        convertToSourceView("", mockFile, editor, null)
         editor.registerUpdateListener(() => {
           resolve()
         })
@@ -175,7 +175,7 @@ class Calculator:
       // Then convert to source view
       const content = "new code content"
       await new Promise<void>((resolve) => {
-        convertToSourceView(content, mockFile, editor)
+        convertToSourceView(content, mockFile, editor, null)
         editor.registerUpdateListener(() => {
           resolve()
         })
