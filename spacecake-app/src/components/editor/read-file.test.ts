@@ -33,7 +33,7 @@ def my_function():
     expect(file.content === pythonCode, "file should have content")
     expect(file.fileType === FileType.Python, "file should be python type")
 
-    await convertPythonBlocksToLexical(file, editor)
+    await convertPythonBlocksToLexical(file, editor, null, undefined, () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -82,7 +82,7 @@ import pandas as pd
     expect(file.content === pythonCode, "file should have content")
     expect(file.fileType === FileType.Python, "file should be python type")
 
-    await convertPythonBlocksToLexical(file, editor)
+    await convertPythonBlocksToLexical(file, editor, null, undefined, () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -139,7 +139,7 @@ import pandas as pd
       fileType: FileType.Python,
       content: emptyCode,
     }
-    await convertPythonBlocksToLexical(file, editor)
+    await convertPythonBlocksToLexical(file, editor, null, undefined, () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -173,7 +173,7 @@ import pandas as pd
       throw new Error("parsing failed")
     }
 
-    await convertPythonBlocksToLexical(file, editor, failingParser)
+    await convertPythonBlocksToLexical(file, editor, null, failingParser)
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -210,6 +210,7 @@ def my_function():
     const completionPromise = new Promise<void>((resolve) => {
       const updateFunction = getInitialEditorStateFromContent(
         file,
+        null,
         "rich",
         resolve
       )

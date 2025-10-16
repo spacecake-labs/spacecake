@@ -1,9 +1,7 @@
 import { useCallback } from "react"
 import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
-import { localStorageService } from "@/services/storage"
 import { useSetAtom, useStore } from "jotai"
-import type { LexicalEditor } from "lexical"
 
 import type { FileTreeEvent, WorkspaceInfo } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
@@ -23,11 +21,9 @@ export const useFileEventHandler = (workspace: WorkspaceInfo, db: Database) => {
   )
 
   return useCallback(
-    (event: FileTreeEvent, currentEditor?: LexicalEditor | null) => {
+    (event: FileTreeEvent) => {
       // Get current values at the time of the event using the store
       // This ensures we always get the latest values without causing re-renders
-      const storedPrefs = localStorageService.get("spacecake-view-preferences")
-      const userViewPreferences = storedPrefs ? JSON.parse(storedPrefs) : {}
       const currentFileContent = store.get(fileContentAtom)
       const fileTree = store.get(sortedFileTreeAtom)
 
@@ -38,8 +34,6 @@ export const useFileEventHandler = (workspace: WorkspaceInfo, db: Database) => {
       handleFileEvent(
         event,
         currentPath,
-        currentEditor,
-        userViewPreferences,
         setFileTreeEvent,
         currentFileContent,
         workspace,

@@ -3,13 +3,17 @@ import { $convertToMarkdownString } from "@lexical/markdown"
 import { InitialConfigType } from "@lexical/react/LexicalComposer"
 import { $isHeadingNode } from "@lexical/rich-text"
 import {
+  $createRangeSelection,
+  $getNodeByKey,
   $getRoot,
   $isParagraphNode,
+  $setSelection,
   createEditor,
   LexicalEditor,
   type EditorState,
 } from "lexical"
 
+import type { SerializedSelection } from "@/types/lexical"
 import type { EditorFile, FileType } from "@/types/workspace"
 import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
 import { editorConfig } from "@/components/editor/editor"
@@ -42,7 +46,7 @@ export const createEditorConfigFromContent = (
 ): InitialConfigType => {
   return {
     ...editorConfig,
-    editorState: getInitialEditorStateFromContent(file, viewKind),
+    editorState: getInitialEditorStateFromContent(file, null, viewKind),
   }
 }
 
@@ -132,7 +136,8 @@ export function serializeEditorToSource(editorState: EditorState): string {
 export function convertToSourceView(
   content: string,
   file: EditorFile,
-  editor: LexicalEditor
+  editor: LexicalEditor,
+  selection: SerializedSelection | null
 ) {
   const language = fileTypeToCodeMirrorLanguage(file.fileType)
 
@@ -149,6 +154,7 @@ export function convertToSourceView(
     })
 
     root.append(codeNode)
+    $restoreSelection(selection)
   })
 }
 
@@ -186,4 +192,32 @@ export function serializeFromCache(
   const editor = createEditor({ nodes })
   const editorState = editor.parseEditorState(JSON.stringify(data))
   return serializeFileContent(editorState, fileType)
+}
+
+/**
+ * restores a serialized selection to the editor.
+ * this is useful when loading a file and wanting to restore the cursor position.
+ */
+export function $restoreSelection(selection: SerializedSelection | null) {
+  if (!selection) {
+    return
+  }
+
+  const anchorNode = $getNodeByKey(selection.anchor.key)
+  const focusNode = $getNodeByKey(selection.focus.key)
+
+  if (anchorNode && focusNode) {
+    const rangeSelection = $createRangeSelection()
+    rangeSelection.anchor.set(
+      selection.anchor.key,
+      selection.anchor.offset,
+      "text"
+    )
+    rangeSelection.focus.set(
+      selection.focus.key,
+      selection.focus.offset,
+      "text"
+    )
+    $setSelection(rangeSelection)
+  }
 }
