@@ -4,20 +4,20 @@ import {
   InitialConfigType,
   LexicalComposer,
 } from "@lexical/react/LexicalComposer"
-import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin"
-import type { EditorState, SerializedEditorState } from "lexical"
+import { type EditorState, type SerializedEditorState } from "lexical"
 
-import { hasInitialLoadTag } from "@/types/lexical"
+import { hasInitialLoadTag, type ChangeType } from "@/types/lexical"
 import { debounce } from "@/lib/utils"
 import { nodes } from "@/components/editor/nodes"
 import { Plugins } from "@/components/editor/plugins"
+import { OnChangePlugin } from "@/components/editor/plugins/on-change"
 import { editorTheme } from "@/components/editor/theme"
 
 interface EditorProps {
   editorConfig: InitialConfigType
   editorState?: EditorState
   editorSerializedState?: SerializedEditorState
-  onChange?: (editorState: EditorState) => void
+  onChange: (editorState: EditorState, changeType: ChangeType) => void
 }
 
 export const editorConfig: InitialConfigType = {
@@ -36,25 +36,32 @@ export function Editor({
   onChange,
 }: EditorProps) {
   const { editorRef } = useEditor()
-  const lastEditorStateRef = React.useRef<EditorState | null>(null)
-  const onChangeRef = React.useRef<EditorProps["onChange"]>(onChange)
 
+  const onChangeRef = React.useRef<EditorProps["onChange"]>(onChange)
   React.useEffect(() => {
     onChangeRef.current = onChange
   }, [onChange])
 
-  const debouncedNotifyRef = React.useRef(
+  const lastStateRef = React.useRef<EditorState | null>(null)
+  // if a content change occurs in the debounce window,
+  // subsequent selection changes will not downgrade the change type.
+  const lastChangeTypeRef = React.useRef<ChangeType>("selection")
+
+  const debouncedOnChangeRef = React.useRef(
     debounce(() => {
-      const es = lastEditorStateRef.current
-      if (!es) return
-      onChangeRef.current?.(es)
+      if (lastStateRef.current) {
+        onChangeRef.current(lastStateRef.current, lastChangeTypeRef.current)
+        // reset for the next batch of changes
+        lastStateRef.current = null
+        lastChangeTypeRef.current = "selection"
+      }
     }, 250)
   )
 
   React.useEffect(() => {
     return () => {
-      debouncedNotifyRef.current.flush()
-      debouncedNotifyRef.current.cancel()
+      debouncedOnChangeRef.current.flush()
+      debouncedOnChangeRef.current.cancel()
     }
   }, [])
 
@@ -72,14 +79,20 @@ export function Editor({
         <Plugins />
 
         <OnChangePlugin
-          ignoreSelectionChange={true}
-          onChange={(editorState, editor, tags) => {
+          onChange={(editorState, editor, tags, changeType) => {
+            console.log("onChange", editorState, tags, changeType)
             if (hasInitialLoadTag(tags)) {
               editorRef.current = editor
               return
             }
-            lastEditorStateRef.current = editorState
-            debouncedNotifyRef.current.schedule()
+
+            lastStateRef.current = editorState
+
+            if (changeType === "content") {
+              lastChangeTypeRef.current = "content"
+            }
+
+            debouncedOnChangeRef.current.schedule()
           }}
         />
       </LexicalComposer>

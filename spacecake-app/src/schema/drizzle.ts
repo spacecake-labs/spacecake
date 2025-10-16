@@ -16,7 +16,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 
-import { ViewKindSchema } from "@/types/lexical"
+import { SerializedSelection, ViewKindSchema } from "@/types/lexical"
 
 export const systemTable = pgTable("system", {
   version: integer().notNull().default(0),
@@ -112,6 +112,7 @@ export const editorTable = pgTable(
     is_active: boolean("is_active").notNull().default(false),
     state: jsonb("state").$type<JsonValue>(),
     state_updated_at: timestamp("state_updated_at", { mode: "string" }),
+    selection: jsonb("selection").$type<SerializedSelection>(),
     created_at: timestamp("created_at", { mode: "string" })
       .defaultNow()
       .notNull(),

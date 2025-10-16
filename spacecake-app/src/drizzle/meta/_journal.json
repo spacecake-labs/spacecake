@@ -8,6 +8,13 @@
       "when": 1760327622546,
       "tag": "0000_rapid_princess_powerful",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1760497520426,
+      "tag": "0001_unknown_harpoon",
+      "breakpoints": true
     }
   ]
 }

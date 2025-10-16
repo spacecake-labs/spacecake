@@ -1,11 +1,13 @@
 import {
   ActiveEditorSelectSchema,
   EditorInsertSchema,
+  EditorSelectionUpdate,
   EditorSelectSchema,
   EditorStateSelectSchema,
   EditorStateUpdate,
   editorTable,
   EditorUpdateSchema,
+  EditorUpdateSelectionSchema,
   EditorUpdateStateSchema,
   FileInsertSchema,
   FilePrimaryKey,
@@ -250,12 +252,30 @@ export class Database extends Effect.Service<Database>()("Database", {
                 .set({
                   state: values.state,
                   state_updated_at: DateTime.formatIso(now),
+                  selection: values.selection,
                 })
                 .where(eq(editorTable.id, values.id))
             )
           })
         ),
         Effect.tap((editor) => Effect.log("db: updated editor state:", editor))
+      ),
+
+      updateEditorSelection: flow(
+        execute(EditorUpdateSelectionSchema, (values: EditorSelectionUpdate) =>
+          Effect.gen(function* () {
+            return yield* query((_) =>
+              _.update(editorTable)
+                .set({
+                  selection: values.selection,
+                })
+                .where(eq(editorTable.id, values.id))
+            )
+          })
+        ),
+        Effect.tap((editor) =>
+          Effect.log("db: updated editor selection:", editor)
+        )
       ),
 
       deleteFile: (filePath: AbsolutePath) =>
