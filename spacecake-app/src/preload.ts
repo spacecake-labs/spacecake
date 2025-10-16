@@ -39,5 +39,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("file-event", listener)
     return () => ipcRenderer.removeListener("file-event", listener)
   },
-  pathExists: (path: string) => ipcRenderer.invoke("path-exists", path),
+  exists: (path: string) => ipcRenderer.invoke("path-exists", path),
 })

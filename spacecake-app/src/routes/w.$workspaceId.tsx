@@ -20,7 +20,7 @@ import { AbsolutePath } from "@/types/workspace"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { setFileTreeAtom } from "@/lib/atoms/file-tree"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
-import { pathExists, readDirectory } from "@/lib/fs"
+import { exists, readDirectory } from "@/lib/fs"
 import { store } from "@/lib/store"
 import { condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
@@ -45,12 +45,12 @@ export const Route = createFileRoute("/w/$workspaceId")({
   beforeLoad: async ({ params, context: { db } }) => {
     const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
 
-    const exists = await pathExists(workspacePath)
+    const pathExists = await exists(workspacePath)
 
-    match(exists, {
+    match(pathExists, {
       onLeft: (error) => console.error(error),
-      onRight: (exists) => {
-        if (!exists) {
+      onRight: (pathExists) => {
+        if (!pathExists) {
           // redirect to home with workspace path as search param
           throw redirect({
             to: "/",

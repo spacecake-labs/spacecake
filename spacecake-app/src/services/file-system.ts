@@ -104,9 +104,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         )
       )
 
-    const pathExists = (
-      path: string
-    ): Effect.Effect<boolean, FileSystemError> =>
+    const exists = (path: string): Effect.Effect<boolean, FileSystemError> =>
       Effect.gen(function* () {
         return yield* fs.exists(path)
       }).pipe(
@@ -208,7 +206,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
       createFolder,
       remove,
       rename,
-      pathExists,
+      exists,
       readDirectory,
       startWatcher,
       stopWatcher,

@@ -14,7 +14,7 @@ import { AlertCircleIcon, FolderOpen, Loader2Icon } from "lucide-react"
 
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
-import { pathExists } from "@/lib/fs"
+import { exists } from "@/lib/fs"
 import { useOpenWorkspace } from "@/lib/open-workspace"
 import { encodeBase64Url } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -36,14 +36,14 @@ export const Route = createFileRoute("/")({
     )
     if (Option.isSome(lastOpenedWorkspace)) {
       const workspacePath = AbsolutePath(lastOpenedWorkspace.value.path)
-      const exists = await pathExists(workspacePath)
-      return match(exists, {
+      const pathExists = await exists(workspacePath)
+      return match(pathExists, {
         onLeft: (error) => {
           console.error(error)
           return { notFoundPath: Option.none() }
         },
-        onRight: (exists) => {
-          if (exists) {
+        onRight: (pathExists) => {
+          if (pathExists) {
             const id = encodeBase64Url(workspacePath)
             throw redirect({
               to: "/w/$workspaceId",

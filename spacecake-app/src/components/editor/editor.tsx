@@ -80,7 +80,6 @@ export function Editor({
 
         <OnChangePlugin
           onChange={(editorState, editor, tags, changeType) => {
-            console.log("onChange", editorState, tags, changeType)
             if (hasInitialLoadTag(tags)) {
               editorRef.current = editor
               return

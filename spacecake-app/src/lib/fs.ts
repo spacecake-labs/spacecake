@@ -48,10 +48,10 @@ export const remove = (
   electronAPI: ElectronAPI = window.electronAPI
 ) => electronAPI.remove(filePath, recursive)
 
-export const pathExists = (
+export const exists = (
   path: AbsolutePath,
   electronAPI: ElectronAPI = window.electronAPI
-) => electronAPI.pathExists(path)
+) => electronAPI.exists(path)
 
 export const readDirectory = (
   path: AbsolutePath,

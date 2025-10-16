@@ -43,7 +43,7 @@ export interface ElectronAPI {
   ) => Promise<Either<FileSystemError, undefined>>
   onFileEvent: (handler: (event: FileTreeEvent) => void) => () => void
   platform: string
-  pathExists: (path: AbsolutePath) => Promise<Either<FileSystemError, boolean>>
+  exists: (path: AbsolutePath) => Promise<Either<FileSystemError, boolean>>
 }
 
 declare global {
