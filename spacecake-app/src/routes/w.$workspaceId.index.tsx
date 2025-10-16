@@ -14,7 +14,7 @@ import { AlertCircleIcon, CakeSlice } from "lucide-react"
 
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
-import { pathExists } from "@/lib/fs"
+import { exists } from "@/lib/fs"
 import { condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CommandShortcut } from "@/components/ui/command"
@@ -46,7 +46,7 @@ export const Route = createFileRoute("/w/$workspaceId/")({
       const { viewKind, filePath } = activeEditor.value
       const absolutePath = AbsolutePath(filePath)
 
-      const fileExists = await pathExists(absolutePath)
+      const fileExists = await exists(absolutePath)
 
       return match(fileExists, {
         onLeft: (error) => {

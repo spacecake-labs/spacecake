@@ -42,8 +42,8 @@ export const handleFileEvent = async (
   let processedEvent = event
 
   if (event.kind === "addFile") {
-    const fileExists = findItemInTree(fileTree, event.path)
-    if (fileExists) {
+    const fileInTree = findItemInTree(fileTree, event.path)
+    if (fileInTree) {
       // File exists, so this is an atomic write. read the file and transform the event
       const result = await readFile(AbsolutePath(event.path))
       match(result, {

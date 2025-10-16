@@ -85,8 +85,6 @@ export class EditorManager extends Effect.Service<EditorManager>()(
         targetViewKind: ViewKind
       }) =>
         Effect.gen(function* () {
-          console.log("readStateOrFile", props)
-
           const maybeState = yield* readEditorState(props.filePath)
 
           if (isRight(maybeState)) {

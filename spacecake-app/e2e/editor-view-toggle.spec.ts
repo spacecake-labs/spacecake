@@ -356,8 +356,6 @@ This is a **markdown** file.
     // Verify raw markdown is visible
     await expect(page.getByText(header)).toBeVisible()
 
-    await page.waitForTimeout(1000)
-
     // Save the file (no changes) and verify view persists
     await editor.press("ControlOrMeta+s", { delay: 1000 })
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
@@ -388,8 +386,6 @@ This is a **markdown** file.
     await expect(
       page.getByRole("link", { name: "switch to rich view" })
     ).toBeVisible()
-
-    await page.waitForTimeout(1000)
 
     // Verify we're still in source view (raw markdown, not rendered)
     const newContent = "## New Section Added"

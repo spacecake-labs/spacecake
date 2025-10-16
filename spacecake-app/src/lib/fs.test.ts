@@ -22,7 +22,7 @@ const createTestElectronAPI = (
   stopWatcher: async () => right(undefined),
   onFileEvent: () => () => {},
   platform: "test",
-  pathExists: async () => right(true),
+  exists: async () => right(true),
   ...overrides,
 })
 
