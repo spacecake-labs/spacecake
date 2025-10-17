@@ -52,6 +52,7 @@ export const EditorStateSelectSchema = Schema.Struct({
   id: EditorPrimaryKeySchema,
   state: EditorSelectSchema.fields.state,
   view_kind: EditorSelectSchema.fields.view_kind,
+  selection: EditorSelectSchema.fields.selection,
 })
 export type EditorStateSelect = Schema.Schema.Type<
   typeof EditorStateSelectSchema

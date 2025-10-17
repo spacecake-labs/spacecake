@@ -46,6 +46,7 @@ export class EditorManager extends Effect.Service<EditorManager>()(
                   viewKind: editor.value.view_kind,
                   state: editor.value.state,
                   fileId: file.value.id,
+                  selection: Option.getOrNull(editor.value.selection),
                 })
               }
             }

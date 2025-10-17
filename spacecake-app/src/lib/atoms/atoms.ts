@@ -182,7 +182,7 @@ export const saveFileAtom = atom(
           }
 
           // Trigger re-parsing for block splitting
-          convertPythonBlocksToLexical(mockEditorFile, lexicalEditor, null)
+          convertPythonBlocksToLexical(mockEditorFile, lexicalEditor)
         }
       } else {
         // Rollback CID on failure

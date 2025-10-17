@@ -9,6 +9,7 @@ import {
 } from "lexical"
 import { beforeEach, describe, expect, it } from "vitest"
 
+import type { SerializedSelection } from "@/types/lexical"
 import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
 import {
   convertToSourceView,
@@ -81,6 +82,32 @@ class Calculator:
       expect(config).not.toBeNull()
       expect(config?.editorState).toBe(JSON.stringify(mockEditorState))
     })
+
+    it("returns function when initialSelection is provided", () => {
+      const mockEditorState: JsonValue = {
+        root: {
+          type: "root",
+          version: 1,
+          children: [],
+          direction: "ltr",
+          format: "left",
+          indent: 0,
+        },
+      }
+      const mockSelection: SerializedSelection = {
+        anchor: { key: "1", offset: 0 },
+        focus: { key: "1", offset: 0 },
+      }
+      const config = getEditorConfig(
+        mockEditorState,
+        mockPythonFile,
+        "rich",
+        mockSelection
+      )
+
+      expect(config).not.toBeNull()
+      expect(typeof config?.editorState).toBe("function")
+    })
   })
 
   describe("serializeEditorToPython", () => {
@@ -143,7 +170,7 @@ class Calculator:
 
     it("handles empty content gracefully", async () => {
       await new Promise<void>((resolve) => {
-        convertToSourceView("", mockFile, editor, null)
+        convertToSourceView("", mockFile, editor)
         editor.registerUpdateListener(() => {
           resolve()
         })
@@ -175,7 +202,7 @@ class Calculator:
       // Then convert to source view
       const content = "new code content"
       await new Promise<void>((resolve) => {
-        convertToSourceView(content, mockFile, editor, null)
+        convertToSourceView(content, mockFile, editor)
         editor.registerUpdateListener(() => {
           resolve()
         })

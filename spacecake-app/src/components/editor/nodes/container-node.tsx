@@ -44,17 +44,14 @@ export class ContainerNode extends ElementNode {
   exportJSON(): SerializedElementNode {
     return {
       ...super.exportJSON(),
-      type: "block-container",
+      type: "container",
       version: 1,
     }
   }
 
   static importJSON(serializedNode: SerializedElementNode): ContainerNode {
-    const node = $createContainerNode()
-    node.setFormat(serializedNode.format)
-    node.setIndent(serializedNode.indent)
-    node.setDirection(serializedNode.direction)
-    return node
+    // necessary to keep node state (delimiters)
+    return $createContainerNode().updateFromJSON(serializedNode)
   }
 }
 

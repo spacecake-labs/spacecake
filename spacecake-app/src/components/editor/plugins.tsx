@@ -48,8 +48,8 @@ export const Plugins = React.memo(function Plugins() {
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
-
         <AutoFocusPlugin defaultSelection="rootEnd" />
+
         <ClickableLinkPlugin />
         <CheckListPlugin />
         <HorizontalRulePlugin />
@@ -60,9 +60,7 @@ export const Plugins = React.memo(function Plugins() {
         <HistoryPlugin />
         <NodeNavigationPlugin />
         <BackspacePreventionPlugin />
-
         <MarkdownShortcutPlugin transformers={MARKDOWN_TRANSFORMERS} />
-
         <SaveCommandPlugin />
         <SlashCommandPlugin />
       </div>

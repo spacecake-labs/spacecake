@@ -38,6 +38,5 @@ export const $getDelimiters = (node: LexicalNode): StringDelimiters => {
 export const $getDelimitedString = (node: LexicalNode): string => {
   const delimiters = $getDelimiters(node)
   const content = node.getTextContent()
-
   return `${delimiters.prefix}${content}${delimiters.suffix}`
 }
