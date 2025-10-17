@@ -11,7 +11,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import type { EditorState, LexicalEditor } from "lexical"
 import { HISTORY_MERGE_TAG } from "lexical"
 
-import { type ChangeType } from "@/types/lexical"
+import { INITIAL_LOAD_TAG, type ChangeType } from "@/types/lexical"
 
 // this is not yet exported by lexical
 // https://github.com/facebook/lexical/blob/main/packages/lexical/src/LexicalUpdateTags.ts
@@ -42,6 +42,8 @@ export function OnChangePlugin({
           if (
             tags.has(FOCUS_TAG) ||
             tags.has(HISTORY_MERGE_TAG) ||
+            // custom tag added by file parser
+            tags.has(INITIAL_LOAD_TAG) ||
             prevEditorState.isEmpty()
           ) {
             return
