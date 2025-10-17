@@ -6,7 +6,7 @@ import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import { JsonValue } from "@/schema/drizzle-effect"
 import { Brand, Schema } from "effect"
 
-import { ViewKind, ViewKindSchema } from "@/types/lexical"
+import { SerializedSelection, ViewKind, ViewKindSchema } from "@/types/lexical"
 import { encodeBase64Url } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
@@ -79,6 +79,7 @@ export type EditorCache = {
   state: JsonValue
   viewKind: ViewKind
   fileId: FilePrimaryKey
+  selection: SerializedSelection | null
 }
 
 export type Folder = FileTreeItem & {

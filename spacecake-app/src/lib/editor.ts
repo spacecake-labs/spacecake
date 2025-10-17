@@ -6,19 +6,20 @@ import {
   $createRangeSelection,
   $getNodeByKey,
   $getRoot,
+  $isElementNode,
   $isParagraphNode,
   $setSelection,
   createEditor,
   LexicalEditor,
+  resetRandomKey,
   type EditorState,
 } from "lexical"
 
-import type { SerializedSelection } from "@/types/lexical"
+import { type SerializedSelection } from "@/types/lexical"
 import type { EditorFile, FileType } from "@/types/workspace"
 import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
 import { editorConfig } from "@/components/editor/editor"
 import { nodeToMdBlock } from "@/components/editor/markdown-utils"
-import { nodes } from "@/components/editor/nodes"
 import {
   $createCodeBlockNode,
   $isCodeBlockNode,
@@ -29,10 +30,34 @@ import { $getDelimitedString } from "@/components/editor/nodes/delimited-node"
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 
-// Pure function to create editor config from serialized state
 export const createEditorConfigFromState = (
-  serializedState: JsonValue
+  serializedState: JsonValue,
+  initialSelection: SerializedSelection | null = null
 ): InitialConfigType => {
+  if (initialSelection) {
+    return {
+      ...editorConfig,
+      editorState: (editor: LexicalEditor) => {
+        /*
+        Reset the ID for the first node back to 1.
+        This is a bit of a hack but is necessary for now
+        to ensure that selection is restored correctly.
+        Otherwise the nodeKey values don't align
+        when switching files.
+        */
+        resetRandomKey()
+
+        const parsedEditorState = editor.parseEditorState(
+          JSON.stringify(serializedState),
+          () => {
+            $restoreSelection(initialSelection)
+          }
+        )
+        editor.setEditorState(parsedEditorState)
+      },
+    }
+  }
+
   return {
     ...editorConfig,
     editorState: JSON.stringify(serializedState),
@@ -42,11 +67,11 @@ export const createEditorConfigFromState = (
 // Pure function to create editor config from file content
 export const createEditorConfigFromContent = (
   file: EditorFile,
-  viewKind?: "rich" | "source"
+  viewKind: "rich" | "source"
 ): InitialConfigType => {
   return {
     ...editorConfig,
-    editorState: getInitialEditorStateFromContent(file, null, viewKind),
+    editorState: getInitialEditorStateFromContent(file, viewKind),
   }
 }
 
@@ -54,10 +79,11 @@ export const createEditorConfigFromContent = (
 export const getEditorConfig = (
   editorState: JsonValue | null,
   fileBuffer: EditorFile | null,
-  viewKind: "rich" | "source" = "rich"
+  viewKind: "rich" | "source" = "rich",
+  initialSelection: SerializedSelection | null = null
 ): InitialConfigType | null => {
   if (editorState) {
-    return createEditorConfigFromState(editorState)
+    return createEditorConfigFromState(editorState, initialSelection)
   }
 
   if (fileBuffer) {
@@ -77,7 +103,6 @@ export function serializeEditorToPython(editorState: EditorState): string {
   return editorState.read(() => {
     const root = $getRoot()
     const children = root.getChildren()
-
     return children.reduce((result, child) => {
       // process the node
       if ($isCodeBlockNode(child)) {
@@ -136,8 +161,7 @@ export function serializeEditorToSource(editorState: EditorState): string {
 export function convertToSourceView(
   content: string,
   file: EditorFile,
-  editor: LexicalEditor,
-  selection: SerializedSelection | null
+  editor: LexicalEditor
 ) {
   const language = fileTypeToCodeMirrorLanguage(file.fileType)
 
@@ -154,7 +178,6 @@ export function convertToSourceView(
     })
 
     root.append(codeNode)
-    $restoreSelection(selection)
   })
 }
 
@@ -189,7 +212,11 @@ export function serializeFromCache(
   data: JsonValue,
   fileType: FileType
 ): string {
-  const editor = createEditor({ nodes })
+  const editor = createEditor({
+    namespace: editorConfig.namespace,
+    nodes: editorConfig.nodes,
+    theme: editorConfig.theme,
+  })
   const editorState = editor.parseEditorState(JSON.stringify(data))
   return serializeFileContent(editorState, fileType)
 }
@@ -211,12 +238,12 @@ export function $restoreSelection(selection: SerializedSelection | null) {
     rangeSelection.anchor.set(
       selection.anchor.key,
       selection.anchor.offset,
-      "text"
+      $isElementNode(anchorNode) ? "element" : "text"
     )
     rangeSelection.focus.set(
       selection.focus.key,
       selection.focus.offset,
-      "text"
+      $isElementNode(focusNode) ? "element" : "text"
     )
     $setSelection(rangeSelection)
   }

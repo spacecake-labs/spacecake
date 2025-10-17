@@ -4,9 +4,10 @@ import {
   InitialConfigType,
   LexicalComposer,
 } from "@lexical/react/LexicalComposer"
+import { EditorRefPlugin } from "@lexical/react/LexicalEditorRefPlugin"
 import { type EditorState, type SerializedEditorState } from "lexical"
 
-import { hasInitialLoadTag, type ChangeType } from "@/types/lexical"
+import { type ChangeType } from "@/types/lexical"
 import { debounce } from "@/lib/utils"
 import { nodes } from "@/components/editor/nodes"
 import { Plugins } from "@/components/editor/plugins"
@@ -17,6 +18,7 @@ interface EditorProps {
   editorConfig: InitialConfigType
   editorState?: EditorState
   editorSerializedState?: SerializedEditorState
+
   onChange: (editorState: EditorState, changeType: ChangeType) => void
 }
 
@@ -78,13 +80,10 @@ export function Editor({
       >
         <Plugins />
 
+        <EditorRefPlugin editorRef={editorRef} />
+
         <OnChangePlugin
           onChange={(editorState, editor, tags, changeType) => {
-            if (hasInitialLoadTag(tags)) {
-              editorRef.current = editor
-              return
-            }
-
             lastStateRef.current = editorState
 
             if (changeType === "content") {

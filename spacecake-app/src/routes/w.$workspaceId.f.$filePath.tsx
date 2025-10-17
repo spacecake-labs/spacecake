@@ -121,7 +121,7 @@ function FileLayout() {
 
   const editorConfig =
     state.kind === "state"
-      ? createEditorConfigFromState(state.data.state)
+      ? createEditorConfigFromState(state.data.state, state.data.selection)
       : createEditorConfigFromContent(state.data, view)
 
   return (
@@ -132,6 +132,7 @@ function FileLayout() {
         onChange={(editorState: EditorState, changeType: ChangeType) => {
           editorState.read(() => {
             const selection = $getSelection()
+
             const serializedSelection = $isRangeSelection(selection)
               ? Schema.decodeUnknownSync(SerializedSelectionSchema)({
                   anchor: {

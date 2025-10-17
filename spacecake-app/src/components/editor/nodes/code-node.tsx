@@ -84,13 +84,16 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
   }
 
   static importJSON(serializedNode: SerializedCodeBlockNode): CodeBlockNode {
-    const { code, meta, language, src } = serializedNode
-    return $createCodeBlockNode({
+    const { code, meta, language, src, block } = serializedNode
+    const node = $createCodeBlockNode({
       code,
       language,
       meta,
       src,
+      block,
     })
+    // necessary to keep node state (delimiters)
+    return node.updateFromJSON(serializedNode)
   }
 
   static importDOM(): DOMConversionMap {
@@ -122,10 +125,12 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
 
   exportJSON(): SerializedCodeBlockNode {
     return {
+      ...super.exportJSON(),
       code: this.getCode(),
       language: this.getLanguage(),
       meta: this.getMeta(),
       src: this.getSrc(),
+      block: this.getBlock(),
       type: "codeblock",
       version: 1,
     }

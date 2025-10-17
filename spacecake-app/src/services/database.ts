@@ -362,6 +362,7 @@ export class Database extends Effect.Service<Database>()("Database", {
             id: editorTable.id,
             state: editorTable.state,
             view_kind: editorTable.view_kind,
+            selection: editorTable.selection,
           })
             .from(editorTable)
             .where(
