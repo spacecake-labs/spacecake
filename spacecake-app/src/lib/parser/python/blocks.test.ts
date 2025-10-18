@@ -505,6 +505,7 @@ import pandas as pd
         path: AbsolutePath("/test.py"),
         fileType: FileType.Python,
         content: content,
+        selection: null,
       }
       const blocks: PyBlock[] = []
       for await (const block of parsePythonContentStreaming(file)) {

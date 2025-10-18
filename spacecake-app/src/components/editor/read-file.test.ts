@@ -28,12 +28,13 @@ def my_function():
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
       content: pythonCode,
+      selection: null,
     }
 
     expect(file.content === pythonCode, "file should have content")
     expect(file.fileType === FileType.Python, "file should be python type")
 
-    await convertPythonBlocksToLexical(file, editor, undefined, () => {})
+    await convertPythonBlocksToLexical(file, editor, null, undefined, () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -77,12 +78,13 @@ import pandas as pd
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
       content: pythonCode,
+      selection: null,
     }
 
     expect(file.content === pythonCode, "file should have content")
     expect(file.fileType === FileType.Python, "file should be python type")
 
-    await convertPythonBlocksToLexical(file, editor, undefined, () => {})
+    await convertPythonBlocksToLexical(file, editor, null, undefined, () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -138,8 +140,9 @@ import pandas as pd
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
       content: emptyCode,
+      selection: null,
     }
-    await convertPythonBlocksToLexical(file, editor, undefined, () => {})
+    await convertPythonBlocksToLexical(file, editor, null, undefined, () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -160,6 +163,7 @@ import pandas as pd
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
       content: emptyCode,
+      selection: null,
     }
 
     // create an async generator that throws an error
@@ -173,7 +177,7 @@ import pandas as pd
       throw new Error("parsing failed")
     }
 
-    await convertPythonBlocksToLexical(file, editor, failingParser)
+    await convertPythonBlocksToLexical(file, editor, null, failingParser)
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -201,6 +205,7 @@ def my_function():
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
       content: pythonCode,
+      selection: null,
     }
 
     // Create editor and then apply the initial state
@@ -211,7 +216,8 @@ def my_function():
       const updateFunction = getInitialEditorStateFromContent(
         file,
         "rich",
-        resolve
+        null,
+        () => resolve()
       )
 
       // Apply the update using the existing logic

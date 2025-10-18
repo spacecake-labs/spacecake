@@ -9,10 +9,10 @@ import {
 } from "lexical"
 import { toast } from "sonner"
 
-import { INITIAL_LOAD_TAG } from "@/types/lexical"
+import { INITIAL_LOAD_TAG, SerializedSelection } from "@/types/lexical"
 import type { PyBlock } from "@/types/parser"
 import { EditorFile, FileType } from "@/types/workspace"
-import { convertToSourceView } from "@/lib/editor"
+import { $restoreSelection, convertToSourceView } from "@/lib/editor"
 import { parsePythonContentStreaming } from "@/lib/parser/python/blocks"
 import { delimitPyBlock } from "@/components/editor/block-utils"
 import { mdBlockToNode } from "@/components/editor/markdown-utils"
@@ -24,6 +24,7 @@ import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown
 export async function convertPythonBlocksToLexical(
   file: EditorFile,
   editor: LexicalEditor,
+  selection: SerializedSelection | null = null,
   streamParser: (
     file: EditorFile
   ) => AsyncGenerator<PyBlock> = parsePythonContentStreaming,
@@ -56,6 +57,9 @@ export async function convertPythonBlocksToLexical(
 
           const emptyParagraph = $createParagraphNode()
           root.append(emptyParagraph)
+          if (selection) {
+            $restoreSelection(selection)
+          }
         },
         { tag: INITIAL_LOAD_TAG }
       )
@@ -97,20 +101,29 @@ export async function convertPythonBlocksToLexical(
 export function getInitialEditorStateFromContent(
   file: EditorFile,
   viewKind: "rich" | "source",
+  selection: SerializedSelection | null = null,
   onComplete?: () => void
 ) {
   return (editor: LexicalEditor) => {
     // If viewKind is explicitly provided, use it
     if (viewKind === "source") {
-      convertToSourceView(file.content, file, editor)
+      convertToSourceView(file.content, file, editor, selection)
       return
     }
 
     // Default behavior based on file type
     if (file.fileType === FileType.Python) {
       // Python defaults to rich view if no view specified
-      convertPythonBlocksToLexical(file, editor, undefined, onComplete)
+      convertPythonBlocksToLexical(
+        file,
+        editor,
+        selection,
+        undefined,
+        onComplete
+      )
     } else if (file.fileType === FileType.Markdown) {
+      console.log("reading markdown file")
+      console.log("selection", selection)
       // Markdown defaults to rich view (rendered markdown) when viewKind is "rich" or undefined
       editor.update(() => {
         $addUpdateTag(SKIP_DOM_SELECTION_TAG)
@@ -122,6 +135,9 @@ export function getInitialEditorStateFromContent(
           root.clear()
           const paragraph = $createParagraphNode()
           root.append(paragraph)
+        }
+        if (selection) {
+          $restoreSelection(selection)
         }
       })
     } else if (file.fileType === FileType.Plaintext) {
@@ -135,10 +151,13 @@ export function getInitialEditorStateFromContent(
           paragraph.append($createTextNode(file.content))
         }
         root.append(paragraph)
+        if (selection) {
+          $restoreSelection(selection)
+        }
       })
     } else {
       // All other programming languages (JS, TS, JSX, TSX) go to source view
-      convertToSourceView(file.content, file, editor)
+      convertToSourceView(file.content, file, editor, selection)
     }
   }
 }

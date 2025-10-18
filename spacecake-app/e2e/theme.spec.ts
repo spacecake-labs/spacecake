@@ -1,9 +1,7 @@
-/* */
-
 import { expect, test } from "./fixtures"
 
 test.describe("theme toggle", () => {
-  test("toggles theme and persists selection", async ({ electronApp }) => {
+  test("toggles theme and persists choice", async ({ electronApp }) => {
     const appWindow = await electronApp.firstWindow()
 
     await expect(appWindow.locator("body")).toBeVisible()

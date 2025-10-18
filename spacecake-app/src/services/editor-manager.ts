@@ -5,7 +5,11 @@ import { Data, Effect, Option } from "effect"
 
 import { isLeft, isRight, left, right } from "@/types/adt"
 import { ViewKind } from "@/types/lexical"
-import { AbsolutePath, EditorFile, type EditorCache } from "@/types/workspace"
+import {
+  AbsolutePath,
+  type EditorCache,
+  type EditorFile,
+} from "@/types/workspace"
 import { serializeFromCache } from "@/lib/editor"
 import { fileTypeFromFileName } from "@/lib/workspace"
 
@@ -29,6 +33,7 @@ export class EditorManager extends Effect.Service<EditorManager>()(
           const file = yield* db.selectFile(filePath)
 
           if (Option.isSome(file)) {
+            console.log("file found")
             yield* db.updateFileAccessedAt({
               id: file.value.id,
             })
@@ -37,18 +42,18 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               file.value.id
             )
             if (Option.isSome(editor)) {
+              console.log("editor found")
               yield* db.updateEditorAccessedAt({
                 id: editor.value.id,
               })
-              if (editor.value.state) {
-                return right<PgliteError, EditorCache>({
-                  editorId: editor.value.id,
-                  viewKind: editor.value.view_kind,
-                  state: editor.value.state,
-                  fileId: file.value.id,
-                  selection: Option.getOrNull(editor.value.selection),
-                })
-              }
+
+              return right<PgliteError, EditorCache>({
+                editorId: editor.value.id,
+                viewKind: editor.value.view_kind,
+                state: editor.value.state,
+                fileId: file.value.id,
+                selection: Option.getOrNull(editor.value.selection),
+              })
             }
           }
           return left<PgliteError, EditorCache>(
@@ -86,9 +91,11 @@ export class EditorManager extends Effect.Service<EditorManager>()(
         targetViewKind: ViewKind
       }) =>
         Effect.gen(function* () {
+          console.log("reading state or file")
           const maybeState = yield* readEditorState(props.filePath)
 
-          if (isRight(maybeState)) {
+          if (isRight(maybeState) && maybeState.value.state) {
+            console.log("state found")
             if (maybeState.value.viewKind == props.targetViewKind) {
               return right<
                 PgliteError | FileSystemError | EditorManagerError,
@@ -99,6 +106,9 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               })
             }
             const fileType = fileTypeFromFileName(props.filePath)
+
+            console.log("file type", fileType)
+            console.log("selection", maybeState.value.selection)
 
             return right<
               PgliteError | FileSystemError | EditorManagerError,
@@ -111,9 +121,12 @@ export class EditorManager extends Effect.Service<EditorManager>()(
                 path: props.filePath,
                 fileType: fileType,
                 content: serializeFromCache(maybeState.value.state, fileType),
+                selection: maybeState.value.selection,
               },
             })
           }
+
+          console.log("no state found, reading file")
 
           const maybeFile = yield* readFile(props.filePath)
 
@@ -133,6 +146,7 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               data: {
                 ...maybeFile.value,
                 editorId: editor.id,
+                selection: Option.getOrNull(editor.selection),
               },
             })
           }
