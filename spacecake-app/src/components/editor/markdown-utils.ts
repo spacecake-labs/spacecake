@@ -42,8 +42,6 @@ export function nodeToMdBlock(node: ElementNode) {
 
 export const $getMarkdownDelimitedString = (node: ElementNode): string => {
   const delimiters = $getDelimiters(node)
-
   const content = $convertToMarkdownString(MARKDOWN_TRANSFORMERS, node, true)
-
   return `${delimiters.prefix}${content}${delimiters.suffix}`
 }

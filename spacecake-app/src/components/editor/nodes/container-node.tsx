@@ -26,12 +26,11 @@ export class ContainerNode extends ElementNode {
     return false
   }
 
-  // This is the key - make Lexical treat us like a root for markdown shortcuts
+  // make Lexical treat this node like a root for markdown shortcuts
   isShadowRoot(): boolean {
     return true
   }
 
-  // Allow block elements as children
   canContainText(): boolean {
     return false
   }
@@ -40,7 +39,6 @@ export class ContainerNode extends ElementNode {
     return true
   }
 
-  // Export as markdown
   exportJSON(): SerializedElementNode {
     return {
       ...super.exportJSON(),

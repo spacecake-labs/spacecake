@@ -1,18 +1,21 @@
+import { Option, Schema } from "effect"
 import { $getState, $setState, createState, LexicalNode } from "lexical"
 
-import { DelimitedString, StringDelimiters } from "@/types/parser"
+import {
+  DelimitedString,
+  StringDelimiters,
+  StringDelimitersSchema,
+} from "@/types/parser"
 
-// TODO: use zod/something to parse properly
 const delimitedState = createState("delimited", {
-  parse: (v) => {
-    if (v && typeof v === "object" && "prefix" in v && "suffix" in v) {
-      return {
-        prefix: String(v.prefix),
-        suffix: String(v.suffix),
-      }
-    }
-    return { prefix: "", suffix: "" }
-  },
+  parse: (v: unknown) =>
+    Option.getOrElse(
+      Schema.decodeUnknownOption(StringDelimitersSchema)(v),
+      (): StringDelimiters => ({
+        prefix: "",
+        suffix: "",
+      })
+    ),
 })
 
 export const delimitedNode = <T extends LexicalNode>(
