@@ -51,7 +51,8 @@ export class ContextNode extends ElementNode {
 
   static importJSON(serializedNode: SerializedContextNode): ContextNode {
     const { block, src } = serializedNode
-    return $createContextNode({ block, src })
+    const node = $createContextNode({ block, src })
+    return node.updateFromJSON(serializedNode)
   }
 
   constructor(block: Block<"doc">, src: string, key?: NodeKey) {
