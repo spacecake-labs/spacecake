@@ -36,6 +36,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   validateSearch: (search) =>
     Schema.decodeUnknownSync(fileSearchSchema)(search),
   beforeLoad: async ({ params, search, context }) => {
+    console.log("beforeLoad", search)
     if (search.view) {
       return
     }
@@ -93,6 +94,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         })
       },
       onRight: async (state) => {
+        console.log("onRight", state)
         return {
           workspace,
           filePath,
@@ -122,7 +124,7 @@ function FileLayout() {
   const editorConfig =
     state.kind === "state"
       ? createEditorConfigFromState(state.data.state, state.data.selection)
-      : createEditorConfigFromContent(state.data, view)
+      : createEditorConfigFromContent(state.data, view, state.data.selection)
 
   return (
     <>

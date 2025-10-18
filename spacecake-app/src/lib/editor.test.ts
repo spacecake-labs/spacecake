@@ -35,6 +35,7 @@ def fibonacci(n):
 class Calculator:
     def add(self, a, b):
         return a + b`,
+    selection: null,
   }
 
   const mockMarkdownFile: EditorFile = {
@@ -43,6 +44,7 @@ class Calculator:
     path: AbsolutePath("/test/test.md"),
     fileType: FileType.Markdown,
     content: "# Hello\n\nThis is markdown",
+    selection: null,
   }
 
   describe("getEditorConfig", () => {
@@ -162,6 +164,7 @@ class Calculator:
       path: AbsolutePath("/test/test.js"),
       fileType: FileType.JavaScript,
       content: "console.log('hello');",
+      selection: null,
     }
 
     beforeEach(() => {

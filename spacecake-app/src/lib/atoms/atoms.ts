@@ -179,6 +179,7 @@ export const saveFileAtom = atom(
             name: filePath.split("/").pop() || "",
             content: contentToWrite,
             fileType: inferredType,
+            selection: null,
           }
 
           // Trigger re-parsing for block splitting

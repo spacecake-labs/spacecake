@@ -129,6 +129,7 @@ describe("Python parser isomorphism", () => {
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
       content: code,
+      selection: null,
     }
     const streamingBlocks: PyBlock[] = []
     for await (const block of parsePythonContentStreaming(file)) {

@@ -67,11 +67,12 @@ export const createEditorConfigFromState = (
 // Pure function to create editor config from file content
 export const createEditorConfigFromContent = (
   file: EditorFile,
-  viewKind: "rich" | "source"
+  viewKind: "rich" | "source",
+  selection: SerializedSelection | null = null
 ): InitialConfigType => {
   return {
     ...editorConfig,
-    editorState: getInitialEditorStateFromContent(file, viewKind),
+    editorState: getInitialEditorStateFromContent(file, viewKind, selection),
   }
 }
 
@@ -161,7 +162,8 @@ export function serializeEditorToSource(editorState: EditorState): string {
 export function convertToSourceView(
   content: string,
   file: EditorFile,
-  editor: LexicalEditor
+  editor: LexicalEditor,
+  selection: SerializedSelection | null = null
 ) {
   const language = fileTypeToCodeMirrorLanguage(file.fileType)
 
@@ -178,6 +180,10 @@ export function convertToSourceView(
     })
 
     root.append(codeNode)
+
+    if (selection) {
+      $restoreSelection(selection)
+    }
   })
 }
 
