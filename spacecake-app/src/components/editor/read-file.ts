@@ -122,8 +122,6 @@ export function getInitialEditorStateFromContent(
         onComplete
       )
     } else if (file.fileType === FileType.Markdown) {
-      console.log("reading markdown file")
-      console.log("selection", selection)
       // Markdown defaults to rich view (rendered markdown) when viewKind is "rich" or undefined
       editor.update(() => {
         $addUpdateTag(SKIP_DOM_SELECTION_TAG)

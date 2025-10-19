@@ -505,6 +505,7 @@ import pandas as pd
         path: AbsolutePath("/test.py"),
         fileType: FileType.Python,
         content: content,
+        cid: "test-cid",
         selection: null,
       }
       const blocks: PyBlock[] = []

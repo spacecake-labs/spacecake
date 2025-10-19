@@ -35,6 +35,7 @@ def fibonacci(n):
 class Calculator:
     def add(self, a, b):
         return a + b`,
+    cid: "test-cid",
     selection: null,
   }
 
@@ -44,6 +45,7 @@ class Calculator:
     path: AbsolutePath("/test/test.md"),
     fileType: FileType.Markdown,
     content: "# Hello\n\nThis is markdown",
+    cid: "test-cid",
     selection: null,
   }
 
@@ -164,6 +166,7 @@ class Calculator:
       path: AbsolutePath("/test/test.js"),
       fileType: FileType.JavaScript,
       content: "console.log('hello');",
+      cid: "test-cid",
       selection: null,
     }
 

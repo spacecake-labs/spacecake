@@ -129,6 +129,7 @@ describe("Python parser isomorphism", () => {
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
       content: code,
+      cid: "test-cid",
       selection: null,
     }
     const streamingBlocks: PyBlock[] = []

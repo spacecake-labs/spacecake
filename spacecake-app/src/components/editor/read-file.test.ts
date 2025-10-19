@@ -28,6 +28,7 @@ def my_function():
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
       content: pythonCode,
+      cid: "test-cid",
       selection: null,
     }
 
@@ -78,6 +79,7 @@ import pandas as pd
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
       content: pythonCode,
+      cid: "test-cid",
       selection: null,
     }
 
@@ -140,6 +142,7 @@ import pandas as pd
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
       content: emptyCode,
+      cid: "test-cid",
       selection: null,
     }
     await convertPythonBlocksToLexical(file, editor, null, undefined, () => {})
@@ -163,6 +166,7 @@ import pandas as pd
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
       content: emptyCode,
+      cid: "test-cid",
       selection: null,
     }
 
@@ -205,6 +209,7 @@ def my_function():
       path: AbsolutePath("/test.py"),
       fileType: FileType.Python,
       content: pythonCode,
+      cid: "test-cid",
       selection: null,
     }
 

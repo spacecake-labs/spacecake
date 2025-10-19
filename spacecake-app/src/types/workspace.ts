@@ -72,6 +72,7 @@ export type EditorFile = {
   path: AbsolutePath
   fileType: FileType
   content: string
+  cid: string
   selection: SerializedSelection | null
 }
 

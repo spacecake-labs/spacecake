@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-router"
 import { useMachine } from "@xstate/react"
 import { Effect, Schema } from "effect"
-import { useSetAtom } from "jotai"
+import { useAtom } from "jotai"
 import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 
 import { match } from "@/types/adt"
@@ -18,15 +18,18 @@ import {
   ViewKindSchema,
   type ChangeType,
 } from "@/types/lexical"
-import { AbsolutePath } from "@/types/workspace"
+import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
+import { openedFilesAtom } from "@/lib/atoms/atoms"
 import { fileStateMachineAtomFamily } from "@/lib/atoms/file-tree"
 import {
   createEditorConfigFromContent,
   createEditorConfigFromState,
 } from "@/lib/editor"
+import { store } from "@/lib/store"
 import { decodeBase64Url } from "@/lib/utils"
 import { determineView } from "@/lib/view"
 import { Editor } from "@/components/editor/editor"
+import { FileConflictBanner } from "@/components/editor/file-conflict-banner"
 
 const fileSearchSchema = Schema.Struct({
   view: Schema.optional(ViewKindSchema),
@@ -36,7 +39,6 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   validateSearch: (search) =>
     Schema.decodeUnknownSync(fileSearchSchema)(search),
   beforeLoad: async ({ params, search, context }) => {
-    console.log("beforeLoad", search)
     if (search.view) {
       return
     }
@@ -94,7 +96,11 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         })
       },
       onRight: async (state) => {
-        console.log("onRight", state)
+        // register file as opened
+        store.set(openedFilesAtom, (openedFiles: Set<AbsolutePath>) => {
+          openedFiles.add(filePath)
+          return openedFiles
+        })
         return {
           workspace,
           filePath,
@@ -117,7 +123,10 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 
 function FileLayout() {
   const { filePath, state, view } = Route.useLoaderData()
-  const setFileState = useSetAtom(fileStateMachineAtomFamily(filePath))
+
+  const [fileState, sendFileState] = useAtom(
+    fileStateMachineAtomFamily(filePath)
+  )
 
   const [, send] = useMachine(fileMachine)
 
@@ -126,10 +135,17 @@ function FileLayout() {
       ? createEditorConfigFromState(state.data.state, state.data.selection)
       : createEditorConfigFromContent(state.data, view, state.data.selection)
 
+  // remount the editor when the cid changes
+  // this is needed for reloading after external changes
+  // that don't have conflicts
+  const cid = state.kind === "state" ? ZERO_HASH : state.data.cid
+  const key = `${filePath}-${view}-${cid}`
+
   return (
     <>
+      <FileConflictBanner state={fileState} send={sendFileState} />
       <Editor
-        key={`${filePath}-${view}`}
+        key={key}
         editorConfig={editorConfig}
         onChange={(editorState: EditorState, changeType: ChangeType) => {
           editorState.read(() => {
@@ -157,7 +173,7 @@ function FileLayout() {
                 },
               })
             } else {
-              setFileState({ type: "file.edit" })
+              sendFileState({ type: "file.edit" })
               send({
                 type: "editor.state.update",
                 editorState: {

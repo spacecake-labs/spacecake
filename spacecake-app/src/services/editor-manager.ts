@@ -11,6 +11,7 @@ import {
   type EditorFile,
 } from "@/types/workspace"
 import { serializeFromCache } from "@/lib/editor"
+import { fnv1a64Hex } from "@/lib/hash"
 import { fileTypeFromFileName } from "@/lib/workspace"
 
 // Define a specific error type for this service
@@ -33,7 +34,6 @@ export class EditorManager extends Effect.Service<EditorManager>()(
           const file = yield* db.selectFile(filePath)
 
           if (Option.isSome(file)) {
-            console.log("file found")
             yield* db.updateFileAccessedAt({
               id: file.value.id,
             })
@@ -42,7 +42,6 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               file.value.id
             )
             if (Option.isSome(editor)) {
-              console.log("editor found")
               yield* db.updateEditorAccessedAt({
                 id: editor.value.id,
               })
@@ -82,6 +81,7 @@ export class EditorManager extends Effect.Service<EditorManager>()(
             path: AbsolutePath(updatedRecord.path),
             fileType: fileTypeFromFileName(updatedRecord.path),
             content: fileContent.value.content,
+            cid: fileContent.value.cid,
           } as EditorFile)
         })
 
@@ -91,11 +91,9 @@ export class EditorManager extends Effect.Service<EditorManager>()(
         targetViewKind: ViewKind
       }) =>
         Effect.gen(function* () {
-          console.log("reading state or file")
           const maybeState = yield* readEditorState(props.filePath)
 
           if (isRight(maybeState) && maybeState.value.state) {
-            console.log("state found")
             if (maybeState.value.viewKind == props.targetViewKind) {
               return right<
                 PgliteError | FileSystemError | EditorManagerError,
@@ -107,8 +105,8 @@ export class EditorManager extends Effect.Service<EditorManager>()(
             }
             const fileType = fileTypeFromFileName(props.filePath)
 
-            console.log("file type", fileType)
-            console.log("selection", maybeState.value.selection)
+            const content = serializeFromCache(maybeState.value.state, fileType)
+            const cid = fnv1a64Hex(content)
 
             return right<
               PgliteError | FileSystemError | EditorManagerError,
@@ -120,13 +118,12 @@ export class EditorManager extends Effect.Service<EditorManager>()(
                 editorId: maybeState.value.editorId,
                 path: props.filePath,
                 fileType: fileType,
-                content: serializeFromCache(maybeState.value.state, fileType),
+                content: content,
+                cid: cid,
                 selection: maybeState.value.selection,
               },
             })
           }
-
-          console.log("no state found, reading file")
 
           const maybeFile = yield* readFile(props.filePath)
 
