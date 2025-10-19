@@ -1,5 +1,8 @@
 import { useEffect } from "react"
+// Import the generated route tree
 import { Database } from "@/services/database"
+import { Migrations } from "@/services/migrations"
+import { RuntimeClient } from "@/services/runtime-client"
 import { PGliteProvider } from "@electric-sql/pglite-react"
 import {
   createRootRouteWithContext,
@@ -7,6 +10,7 @@ import {
   Outlet,
 } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
+import { Effect } from "effect"
 
 import { useOpenWorkspace } from "@/lib/open-workspace"
 import { DatabaseContext } from "@/hooks/use-database"
@@ -15,13 +19,22 @@ export const Route = createRootRouteWithContext<{
   db: Promise<Database>
 }>()({
   component: RootComponent,
+  beforeLoad: () => {
+    const db = RuntimeClient.runPromise(
+      Effect.gen(function* () {
+        const migration = yield* Migrations
+        yield* migration.apply
+        return yield* Database
+      })
+    )
+    return { db }
+  },
   loader: async ({ context: { db } }) => await db,
   errorComponent: (error) => <ErrorComponent error={error} />,
 })
 
 function RootComponent() {
   const { client, orm } = Route.useLoaderData()
-
   const { handleOpenWorkspace } = useOpenWorkspace()
 
   // global keyboard shortcut for opening workspace

@@ -1,9 +1,19 @@
-import { ActorRefFrom, assign, setup, spawnChild } from "xstate"
+import { router } from "@/router"
+import { Database } from "@/services/database"
+import { RuntimeClient } from "@/services/runtime-client"
+import { Effect } from "effect"
+import { ActorRefFrom, assign, fromPromise, setup, spawnChild } from "xstate"
 
 import { AbsolutePath } from "@/types/workspace"
 
+type FileStateMachineContext = {
+  filePath: AbsolutePath
+  invalidateRoute: () => Promise<void>
+}
+
 export const fileStateMachine = setup({
   types: {
+    context: {} as FileStateMachineContext,
     events: {} as
       | {
           type: "file.edit"
@@ -15,7 +25,7 @@ export const fileStateMachine = setup({
           type: "file.external.change"
         }
       | {
-          type: "file.resolve.save"
+          type: "file.resolve.overwrite"
         }
       | {
           type: "file.resolve.discard"
@@ -23,36 +33,74 @@ export const fileStateMachine = setup({
       | {
           type: "file.reload"
         },
-    input: { filePath: AbsolutePath },
+    input: {} as FileStateMachineContext,
   },
 
-  actors: {},
+  actors: {
+    clearEditorStatesForFile: fromPromise(
+      ({ input }: { input: { filePath: AbsolutePath } }) =>
+        RuntimeClient.runPromise(
+          Effect.gen(function* () {
+            const db = yield* Database
+            yield* db.clearEditorStatesForFile(input.filePath)
+          }).pipe(Effect.tapErrorCause(Effect.logError))
+        )
+    ),
+    reloadRoute: fromPromise(
+      ({ input }: { input: { invalidateRoute: () => Promise<void> } }) =>
+        input.invalidateRoute()
+    ),
+  },
 }).createMachine({
-  id: "fileStatus",
+  id: "file",
   initial: "Clean",
-  context: ({ input }) => ({
-    filePath: input.filePath,
-  }),
+  context: ({ input }) => {
+    return {
+      filePath: input.filePath,
+      invalidateRoute: router.invalidate,
+    }
+  },
   states: {
     Clean: {
       on: {
         "file.edit": "Dirty",
-        "file.save": "Clean",
-        "file.external.change": "ExternalChange",
+        "file.external.change": "Reloading",
       },
     },
     Dirty: {
       on: {
-        "file.edit": "Dirty",
         "file.save": "Clean",
         "file.external.change": "Conflict",
       },
     },
-    ExternalChange: { on: { "file.reload": "Clean" } },
+    ExternalChange: {
+      on: {
+        "file.reload": "ClearingEditorStates",
+        "file.edit": "Conflict",
+      },
+    },
     Conflict: {
       on: {
-        "file.resolve.save": "Dirty",
-        "file.resolve.discard": "ExternalChange",
+        "file.resolve.overwrite": "Dirty",
+        "file.resolve.discard": "ClearingEditorStates",
+      },
+    },
+    ClearingEditorStates: {
+      invoke: {
+        src: "clearEditorStatesForFile",
+        input: ({ context }) => ({ filePath: context.filePath }),
+        onDone: "Reloading",
+        onError: "Conflict",
+      },
+    },
+    Reloading: {
+      invoke: {
+        src: "reloadRoute",
+        input: ({ context }) => ({
+          invalidateRoute: context.invalidateRoute,
+        }),
+        onDone: "Clean",
+        onError: "Conflict",
       },
     },
   },
@@ -60,6 +108,7 @@ export const fileStateMachine = setup({
 
 type FileActorRef = ActorRefFrom<typeof fileStateMachine>
 
+// not currently used
 export const fileTreeMachine = setup({
   types: {
     events: {} as {

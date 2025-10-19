@@ -3,6 +3,7 @@ import * as React from "react"
 import { Link } from "@tanstack/react-router"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
+  AlertTriangle,
   ChevronRight,
   FileWarning,
   MoreHorizontal,
@@ -18,7 +19,11 @@ import {
   Folder,
   WorkspaceInfo,
 } from "@/types/workspace"
-import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
+import {
+  contextItemNameAtom,
+  isCreatingInContextAtom,
+  openedFilesAtom,
+} from "@/lib/atoms/atoms"
 import { fileStateMachineAtomFamily } from "@/lib/atoms/file-tree"
 import { mergeExpandedFolders } from "@/lib/auto-reveal"
 import { encodeBase64Url } from "@/lib/utils"
@@ -303,19 +308,29 @@ function CancelRenameButton({ onCancel }: { onCancel: () => void }) {
   )
 }
 
-function DirtyIndicator({ filePath }: { filePath: AbsolutePath }) {
+function FileStatusIndicator({ filePath }: { filePath: AbsolutePath }) {
   const state = useAtomValue(fileStateMachineAtomFamily(filePath))
-  const isDirty = state.value === "Dirty"
 
-  if (!isDirty) return null
+  if (state.value === "Conflict" || state.value === "ExternalChange") {
+    return (
+      <AlertTriangle
+        className="ml-auto size-3 shrink-0 text-yellow-500"
+        aria-label="file has conflict or external changes"
+      />
+    )
+  }
 
-  return (
-    <div
-      className="ml-auto size-2 shrink-0 rounded-full bg-foreground"
-      aria-label="unsaved changes"
-      title="unsaved changes"
-    />
-  )
+  if (state.value === "Dirty") {
+    return (
+      <div
+        className="ml-auto size-2 shrink-0 rounded-full bg-foreground"
+        aria-label="unsaved changes"
+        title="unsaved changes"
+      />
+    )
+  }
+
+  return null
 }
 
 function ItemButton({
@@ -329,6 +344,10 @@ function ItemButton({
   onClick: () => void
   showChevron?: boolean
 }) {
+  const openedFiles = useAtomValue(openedFilesAtom)
+
+  const isFileOpened = openedFiles.has(item.path)
+
   return (
     <SidebarMenuButton
       isActive={isSelected}
@@ -338,7 +357,9 @@ function ItemButton({
       {showChevron && <ChevronRight className="transition-transform" />}
       {React.createElement(getNavItemIcon(item))}
       <span className="truncate">{item.name}</span>
-      {item.kind === "file" && <DirtyIndicator filePath={item.path} />}
+      {item.kind === "file" && isFileOpened && (
+        <FileStatusIndicator filePath={item.path} />
+      )}
     </SidebarMenuButton>
   )
 }

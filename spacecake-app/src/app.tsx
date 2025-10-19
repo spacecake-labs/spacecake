@@ -1,48 +1,13 @@
 import { EditorProvider } from "@/contexts/editor-context"
+import { router } from "@/router"
 // Import the generated route tree
-import { routeTree } from "@/routeTree.gen"
-import { Database } from "@/services/database"
-import { Migrations } from "@/services/migrations"
-import { RuntimeClient } from "@/services/runtime-client"
-import {
-  createMemoryHistory,
-  createRouter,
-  RouterProvider,
-} from "@tanstack/react-router"
-import { Effect } from "effect"
+import { RouterProvider } from "@tanstack/react-router"
 import { Provider } from "jotai"
 import { PostHogProvider } from "posthog-js/react"
 import ReactDOM from "react-dom/client"
 
 import { store } from "@/lib/store"
 import { useTheme } from "@/components/theme-provider"
-
-// Create a new router instance with hash routing
-const memoryHistory = createMemoryHistory({
-  initialEntries: ["/"], // Pass your initial url
-})
-
-const db = RuntimeClient.runPromise(
-  Effect.gen(function* () {
-    const migration = yield* Migrations
-    yield* migration.apply
-    return yield* Database
-  })
-)
-
-const router = createRouter({
-  routeTree,
-  history: memoryHistory,
-  context: { db },
-  defaultStructuralSharing: true,
-})
-
-// Register the router instance for type safety
-declare module "@tanstack/react-router" {
-  interface Register {
-    router: typeof router
-  }
-}
 
 // Render the app
 const rootElement = document.getElementById("root")!

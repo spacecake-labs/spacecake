@@ -1,4 +1,5 @@
 import { fileStateMachine } from "@/machines/file-tree"
+// hook to get file state only if it has been opened
 import { atom } from "jotai"
 import { atomWithMachine } from "jotai-xstate"
 import { atomFamily } from "jotai/utils"
@@ -12,7 +13,8 @@ import type {
   WorkspaceInfo,
 } from "@/types/workspace"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
-import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms" // Import expandedFoldersAtom
+import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms"
+// Import expandedFoldersAtom
 import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
 
@@ -193,6 +195,12 @@ export const fileTreeEventAtom = atom(
             : item
         )
         set(fileTreeAtom, newTree)
+
+        // Dispatch external change event to the state machine
+        set(fileStateMachineAtomFamily(absolutePath), {
+          type: "file.external.change",
+        })
+
         break
       }
 
@@ -264,13 +272,13 @@ export const getQuickOpenFileItems = (
   })
 }
 
+const createFileStateMachineAtom = (filePath: AbsolutePath) =>
+  atomWithMachine(
+    () => fileStateMachine,
+    () => ({ input: { filePath } })
+  )
+
 export const fileStateMachineAtomFamily = atomFamily(
-  // For each filePath, create a new machine atom
-  (filePath: AbsolutePath) =>
-    atomWithMachine(
-      () => fileStateMachine,
-      () => ({ input: { filePath } })
-    ),
-  // Use a simple equality check for the file path strings
+  createFileStateMachineAtom,
   (a, b) => a === b
 )

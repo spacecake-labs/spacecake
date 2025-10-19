@@ -73,6 +73,9 @@ export const isCreatingInContextAtom = atom<{
 } | null>(null)
 export const contextItemNameAtom = atom<string>("")
 
+// track which files have been opened (have state machines)
+export const openedFilesAtom = atom<Set<AbsolutePath>>(new Set<AbsolutePath>())
+
 // Deletion state atoms
 export const deletionStateAtom = atom<{
   item: File | Folder | null
@@ -178,6 +181,7 @@ export const saveFileAtom = atom(
             path: filePath,
             name: filePath.split("/").pop() || "",
             content: contentToWrite,
+            cid: newCid,
             fileType: inferredType,
             selection: null,
           }

@@ -384,6 +384,16 @@ export class Database extends Effect.Service<Database>()("Database", {
           )
         ),
 
+      clearEditorStatesForFile: (filePath: AbsolutePath) =>
+        Effect.gen(function* () {
+          return yield* query((_) =>
+            _.update(editorTable)
+              .set({ state: null, state_updated_at: null, selection: null })
+              .from(fileTable)
+              .where(eq(fileTable.path, filePath))
+          )
+        }),
+
       // selectRecentFiles: (workspacePath: AbsolutePath) =>
       //   query((_) =>
       //     _.select(getTableColumns(fileTable))
