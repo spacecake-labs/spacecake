@@ -14,6 +14,7 @@ import { Effect } from "effect"
 
 import { useOpenWorkspace } from "@/lib/open-workspace"
 import { DatabaseContext } from "@/hooks/use-database"
+import { LoadingAnimation } from "@/components/loading-animation"
 
 export const Route = createRootRouteWithContext<{
   db: Promise<Database>
@@ -30,6 +31,7 @@ export const Route = createRootRouteWithContext<{
     return { db }
   },
   loader: async ({ context: { db } }) => await db,
+  pendingComponent: () => <LoadingAnimation />,
   errorComponent: (error) => <ErrorComponent error={error} />,
 })
 

@@ -1,6 +1,6 @@
 /**
  * This route is matched when a workspace is open.
- * If thee workspace path is not valid, it redirects to the home route.
+ * If the workspace path is not valid, it redirects to the home route.
  */
 
 import { useEffect, useState } from "react"
@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { EditorToolbar } from "@/components/editor/toolbar"
+import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
 
@@ -98,9 +99,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
       db: await db,
     }
   },
-  pendingComponent: () => (
-    <div className="p-4 text-sm text-muted-foreground">loading workspace…</div>
-  ),
+  pendingComponent: () => <LoadingAnimation />,
   errorComponent: ({ error }) => <ErrorComponent error={error} />,
   component: WorkspaceLayout,
 })
