@@ -3,13 +3,14 @@
  * If a valid workspace path is found in storage, it redirects to the workspace route.
  */
 
+import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
   createFileRoute,
   ErrorComponent,
   redirect,
 } from "@tanstack/react-router"
-import { Option, Schema } from "effect"
+import { Effect, Option, Schema } from "effect"
 import { AlertCircleIcon, FolderOpen, Loader2Icon } from "lucide-react"
 
 import { match } from "@/types/adt"
@@ -31,9 +32,15 @@ const NotFoundPathSchema = Schema.standardSchemaV1(
 export const Route = createFileRoute("/")({
   validateSearch: NotFoundPathSchema,
   component: Index,
-  loader: async ({ context: { db } }) => {
+  loader: async () => {
+    const db = await RuntimeClient.runPromise(
+      Effect.gen(function* () {
+        return yield* Database
+      })
+    )
+
     const lastOpenedWorkspace = await RuntimeClient.runPromise(
-      (await db).selectLastOpenedWorkspace
+      db.selectLastOpenedWorkspace
     )
     if (Option.isSome(lastOpenedWorkspace)) {
       const workspacePath = AbsolutePath(lastOpenedWorkspace.value.path)

@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from "react"
+import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
   createFileRoute,
@@ -12,6 +13,7 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router"
+import { Effect } from "effect"
 import { useSetAtom } from "jotai"
 import { Check, Copy } from "lucide-react"
 
@@ -43,7 +45,7 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
 
 export const Route = createFileRoute("/w/$workspaceId")({
-  beforeLoad: async ({ params, context: { db } }) => {
+  beforeLoad: async ({ params }) => {
     const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
 
     const pathExists = await exists(workspacePath)
@@ -61,28 +63,29 @@ export const Route = createFileRoute("/w/$workspaceId")({
       },
     })
 
-    const workspace = await RuntimeClient.runPromise(
-      (await db).upsertWorkspace({
-        path: workspacePath,
-        is_open: true,
-      })
-    )
-
     const pane = await RuntimeClient.runPromise(
-      (await db).upsertPane({ workspace_id: workspace.id, position: 0 })
+      Effect.gen(function* () {
+        const db = yield* Database
+
+        const workspace = yield* db.upsertWorkspace({
+          path: workspacePath,
+          is_open: true,
+        })
+
+        return yield* db.upsertPane({ workspace_id: workspace.id, position: 0 })
+      })
     )
 
     return {
       workspace: {
-        ...workspace,
         path: workspacePath,
         name: workspacePath.split("/").pop() || "spacecake",
       },
-      pane,
+      paneId: pane.id,
     }
   },
   loader: async ({ context }) => {
-    const { db, workspace } = context
+    const { workspace } = context
     const result = await readDirectory(workspace.path)
     match(result, {
       onLeft: (error) => console.error(error),
@@ -96,7 +99,6 @@ export const Route = createFileRoute("/w/$workspaceId")({
         path: workspace.path,
         name: workspace.path.split("/").pop() || "spacecake",
       },
-      db: await db,
     }
   },
   pendingComponent: () => <LoadingAnimation />,
@@ -171,7 +173,7 @@ function HeaderToolbar() {
 }
 
 function LayoutContent() {
-  const { workspace, db } = Route.useLoaderData()
+  const { workspace } = Route.useLoaderData()
   const { isMobile } = useSidebar()
   const navigate = useNavigate()
 
@@ -206,7 +208,6 @@ function LayoutContent() {
           workspace={workspace}
           selectedFilePath={selectedFilePath}
           foldersToExpand={foldersToExpand}
-          db={db}
         />
         <main className="bg-background relative flex w-full flex-1 flex-col overflow-auto rounded-xl shadow-sm h-full p-2">
           <header className="flex h-16 shrink-0 items-center gap-2 justify-between">
@@ -239,7 +240,6 @@ function LayoutContent() {
           workspace={workspace}
           selectedFilePath={selectedFilePath}
           foldersToExpand={foldersToExpand}
-          db={db}
         />
       </ResizablePanel>
       <ResizableHandle withHandle className="w-0" />
@@ -266,7 +266,7 @@ function LayoutContent() {
 
 function WorkspaceLayout() {
   const { workspace } = Route.useRouteContext()
-  const { db } = Route.useLoaderData()
+  console.log("workspace layout")
 
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
@@ -299,7 +299,7 @@ function WorkspaceLayout() {
 
   return (
     <>
-      <WorkspaceWatcher workspace={workspace} db={db} />
+      <WorkspaceWatcher workspace={workspace} />
       <div className="flex h-screen">
         <SidebarProvider>
           <LayoutContent />

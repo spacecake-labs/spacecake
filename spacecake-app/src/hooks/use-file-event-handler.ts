@@ -1,6 +1,7 @@
 import { useCallback } from "react"
 import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
+import { Effect } from "effect"
 import { useSetAtom, useStore } from "jotai"
 
 import type { FileTreeEvent, WorkspaceInfo } from "@/types/workspace"
@@ -9,15 +10,20 @@ import { fileContentAtom } from "@/lib/atoms/atoms"
 import { fileTreeEventAtom, sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import { handleFileEvent } from "@/lib/file-event-handler"
 
-export const useFileEventHandler = (workspace: WorkspaceInfo, db: Database) => {
+export const useFileEventHandler = (workspace: WorkspaceInfo) => {
   const setFileTreeEvent = useSetAtom(fileTreeEventAtom)
   const store = useStore()
 
   const deleteFile = useCallback(
     async (filePath: AbsolutePath) => {
-      await RuntimeClient.runPromise(db.deleteFile(filePath))
+      await RuntimeClient.runPromise(
+        Effect.gen(function* () {
+          const db = yield* Database
+          yield* db.deleteFile(filePath)
+        }).pipe(Effect.tapErrorCause(Effect.logError))
+      )
     },
-    [db, workspace.path]
+    [workspace.path]
   )
 
   return useCallback(

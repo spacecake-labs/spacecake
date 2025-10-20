@@ -4,11 +4,7 @@ import { Database } from "@/services/database"
 import { Migrations } from "@/services/migrations"
 import { RuntimeClient } from "@/services/runtime-client"
 import { PGliteProvider } from "@electric-sql/pglite-react"
-import {
-  createRootRouteWithContext,
-  ErrorComponent,
-  Outlet,
-} from "@tanstack/react-router"
+import { createRootRoute, ErrorComponent, Outlet } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import { Effect } from "effect"
 
@@ -16,21 +12,21 @@ import { useOpenWorkspace } from "@/lib/open-workspace"
 import { DatabaseContext } from "@/hooks/use-database"
 import { LoadingAnimation } from "@/components/loading-animation"
 
-export const Route = createRootRouteWithContext<{
-  db: Promise<Database>
-}>()({
+export const Route = createRootRoute({
   component: RootComponent,
-  beforeLoad: () => {
-    const db = RuntimeClient.runPromise(
+  beforeLoad: () =>
+    RuntimeClient.runPromise(
       Effect.gen(function* () {
         const migration = yield* Migrations
         yield* migration.apply
+      })
+    ),
+  loader: () =>
+    RuntimeClient.runPromise(
+      Effect.gen(function* () {
         return yield* Database
       })
-    )
-    return { db }
-  },
-  loader: async ({ context: { db } }) => await db,
+    ),
   pendingComponent: () => <LoadingAnimation />,
   errorComponent: (error) => <ErrorComponent error={error} />,
 })

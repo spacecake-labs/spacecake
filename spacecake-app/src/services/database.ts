@@ -32,7 +32,7 @@ import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
 import { and, desc, eq, getTableColumns } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
-import { Data, DateTime, Effect, flow, Option, Schema } from "effect"
+import { Console, Data, DateTime, Effect, flow, Option, Schema } from "effect"
 
 import { AbsolutePath } from "@/types/workspace"
 
@@ -72,7 +72,7 @@ export class Database extends Effect.Service<Database>()("Database", {
       Effect.tryPromise({
         try: () => execute(orm),
         catch: (error) => {
-          console.log(error)
+          Console.log(error)
           return new PgliteError({ cause: error })
         },
       })
