@@ -17,7 +17,7 @@ export function WorkspaceWatcher({ workspace, db }: WorkspaceWatcherProps) {
   const currentWorkspaceRef = useRef<string | null>(null)
 
   useLayoutEffect(() => {
-    if (!workspace.path || workspace.path === "/") {
+    if (!workspace?.path || workspace.path === "/") {
       return
     }
     // prevent duplicate listeners for the same workspace
