@@ -1,5 +1,4 @@
 import { useLayoutEffect, useRef } from "react"
-import { Database } from "@/services/database"
 
 import { match } from "@/types/adt"
 import { AbsolutePath, WorkspaceInfo } from "@/types/workspace"
@@ -8,11 +7,10 @@ import { useFileEventHandler } from "@/hooks/use-file-event-handler"
 
 interface WorkspaceWatcherProps {
   workspace: WorkspaceInfo
-  db: Database
 }
 
-export function WorkspaceWatcher({ workspace, db }: WorkspaceWatcherProps) {
-  const handleEvent = useFileEventHandler(workspace, db)
+export function WorkspaceWatcher({ workspace }: WorkspaceWatcherProps) {
+  const handleEvent = useFileEventHandler(workspace)
   const isListeningRef = useRef(false)
   const currentWorkspaceRef = useRef<string | null>(null)
 

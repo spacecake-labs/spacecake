@@ -10,7 +10,6 @@ const memoryHistory = createMemoryHistory({
 export const router = createRouter({
   routeTree,
   history: memoryHistory,
-  context: undefined!,
   defaultStructuralSharing: true,
 })
 

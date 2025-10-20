@@ -1,12 +1,8 @@
 import * as React from "react"
-import { Database } from "@/services/database"
-import { RuntimeClient } from "@/services/runtime-client"
-import { localStorageService, saveEditorLayout } from "@/services/storage"
 import { useAtom, useAtomValue } from "jotai"
 import { FileWarning, Loader2Icon } from "lucide-react"
 
 import { match } from "@/types/adt"
-import type { EditorLayout } from "@/types/editor"
 import type {
   ExpandedFolders,
   File,
@@ -22,13 +18,7 @@ import {
   isCreatingInContextAtom,
 } from "@/lib/atoms/atoms"
 import { sortedFileTreeAtom } from "@/lib/atoms/file-tree"
-import {
-  createFolder,
-  remove,
-  // readDirectory,
-  rename,
-  saveFile,
-} from "@/lib/fs"
+import { createFolder, remove, rename, saveFile } from "@/lib/fs"
 import { useRoute } from "@/hooks/use-route"
 import { Button } from "@/components/ui/button"
 import {
@@ -59,7 +49,6 @@ interface NavMainProps {
   selectedFilePath?: AbsolutePath | null
   foldersToExpand?: string[]
   workspace: WorkspaceInfo
-  db: Database
 }
 
 export function NavMain({
@@ -68,7 +57,6 @@ export function NavMain({
   selectedFilePath: initialSelectedFilePath, // renamed to avoid conflict
   foldersToExpand = [],
   workspace,
-  db,
 }: NavMainProps) {
   const [editingItem, setEditingItem] = useAtom(editingItemAtom)
   const [expandedFoldersState] = useAtom(expandedFoldersAtom)
@@ -300,23 +288,7 @@ export function NavMain({
         setDeletionState((prev) => ({ ...prev, isDeleting: false }))
       },
       onRight: async () => {
-        // if the deleted file was the currently selected one, clear the layout
-        if (selectedFilePath === itemToDelete.path) {
-          const emptyLayout: EditorLayout = {
-            tabGroups: [],
-            activeTabGroupId: null,
-          }
-          saveEditorLayout(localStorageService, emptyLayout, workspace.path)
-        }
-
-        // remove from database
-        if (itemToDelete.kind === "file") {
-          await RuntimeClient.runPromise(
-            db.deleteFile(itemToDelete.path)
-          ).catch(console.error)
-        }
-
-        // Close dialog only after successful deletion
+        // close dialog after successful deletion
         setDeletionState({
           item: null,
           isOpen: false,

@@ -1,5 +1,6 @@
 import { fileMachine } from "@/machines/manage-file"
 import { JsonValue } from "@/schema/drizzle-effect"
+import { Database } from "@/services/database"
 import { EditorManager } from "@/services/editor-manager"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
@@ -8,7 +9,7 @@ import {
   redirect,
 } from "@tanstack/react-router"
 import { useMachine } from "@xstate/react"
-import { Effect, Schema } from "effect"
+import { Effect, Option, Schema } from "effect"
 import { useAtom } from "jotai"
 import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 
@@ -25,9 +26,10 @@ import {
   createEditorConfigFromContent,
   createEditorConfigFromState,
 } from "@/lib/editor"
+import { supportsRichView } from "@/lib/language-support"
 import { store } from "@/lib/store"
 import { decodeBase64Url } from "@/lib/utils"
-import { determineView } from "@/lib/view"
+import { fileTypeFromExtension } from "@/lib/workspace"
 import { Editor } from "@/components/editor/editor"
 import { FileConflictBanner } from "@/components/editor/file-conflict-banner"
 import { LoadingAnimation } from "@/components/loading-animation"
@@ -39,22 +41,33 @@ const fileSearchSchema = Schema.Struct({
 export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   validateSearch: (search) =>
     Schema.decodeUnknownSync(fileSearchSchema)(search),
-  beforeLoad: async ({ params, search, context }) => {
+  beforeLoad: async ({ params, search }) => {
     if (search.view) {
       return
     }
 
-    const { db } = context
-    const dbInstance = await db
-    const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
     const filePath = AbsolutePath(decodeBase64Url(params.filePath))
 
-    const viewKind = await determineView(
-      dbInstance.orm,
-      workspacePath,
-      filePath,
-      search.view
+    const storedView = await RuntimeClient.runPromise(
+      Effect.gen(function* () {
+        const db = yield* Database
+        const maybeFile = yield* db.selectFile(filePath)
+        if (Option.isSome(maybeFile)) {
+          const editor = yield* db.selectLatestEditorStateForFile(
+            maybeFile.value.id
+          )
+          if (Option.isSome(editor)) {
+            return editor.value.view_kind
+          }
+        }
+        return null
+      })
     )
+
+    const fileType = fileTypeFromExtension(filePath.split(".").pop() || "")
+    const defaultView = supportsRichView(fileType) ? "rich" : "source"
+
+    const viewKind = storedView ?? defaultView
 
     throw redirect({
       search: {
@@ -67,7 +80,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   },
   loaderDeps: ({ search: { view } }) => ({ view }),
   loader: async ({ params, deps: { view }, context }) => {
-    const { pane, workspace } = context
+    const { paneId, workspace } = context
     const filePath = AbsolutePath(decodeBase64Url(params.filePath))
 
     if (!view) {
@@ -81,7 +94,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         const em = yield* EditorManager
         return yield* em.readStateOrFile({
           filePath,
-          paneId: pane.id,
+          paneId: paneId,
           targetViewKind: view,
         })
       })
@@ -139,6 +152,8 @@ function FileLayout() {
   // that don't have conflicts
   const cid = state.kind === "state" ? ZERO_HASH : state.data.cid
   const key = `${filePath}-${view}-${cid}`
+
+  console.log("view", view)
 
   return (
     <>
