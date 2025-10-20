@@ -129,25 +129,25 @@ export const SearchParamsSchema = Schema.Struct({
 
 /**
  * Editor context - contains the core data needed for the editor
- * Derived/computed properties are available via EditorContextHelpers
+ * Derived/computed properties are available via RouteContextHelpers
  */
-export const EditorContextSchema = Schema.Struct({
+export const RouteContextSchema = Schema.Struct({
   workspaceId: Schema.String,
   filePath: AbsolutePathSchema,
-  viewKind: Schema.String,
+  viewKind: ViewKindSchema,
   fileType: FileTypeSchema,
 })
-export type EditorContext = typeof EditorContextSchema.Type
+export type RouteContext = typeof RouteContextSchema.Type
 
 /**
- * Helper functions for computed properties of EditorContext
+ * Helper functions for computed properties of RouteContext
  */
-export const EditorContextHelpers = {
-  workspaceName: (ctx: EditorContext) =>
+export const RouteContextHelpers = {
+  workspaceName: (ctx: RouteContext) =>
     ctx.workspaceId.split("/").pop() || "spacecake",
-  workspaceId: (ctx: EditorContext) => encodeBase64Url(ctx.workspaceId),
-  fileName: (ctx: EditorContext) => ctx.filePath.split("/").pop() || "",
-  fileType: (ctx: EditorContext) =>
+  workspaceId: (ctx: RouteContext) => encodeBase64Url(ctx.workspaceId),
+  fileName: (ctx: RouteContext) => ctx.filePath.split("/").pop() || "",
+  fileType: (ctx: RouteContext) =>
     fileTypeFromExtension(ctx.filePath.split(".").pop() || ""),
-  workspacePath: (ctx: EditorContext) => encodeBase64Url(ctx.workspaceId),
+  workspacePath: (ctx: RouteContext) => encodeBase64Url(ctx.workspaceId),
 }

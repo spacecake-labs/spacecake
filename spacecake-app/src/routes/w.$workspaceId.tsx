@@ -24,7 +24,7 @@ import { exists, readDirectory } from "@/lib/fs"
 import { store } from "@/lib/store"
 import { condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
-import { useEditorContext } from "@/hooks/use-filepath"
+import { useRoute } from "@/hooks/use-route"
 import { Button } from "@/components/ui/button"
 import {
   ResizableHandle,
@@ -106,8 +106,8 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
 // component for the file path part of the header
 function FileHeader() {
-  const editorContext = useEditorContext()
-  const selectedFilePath = editorContext?.filePath || null
+  const route = useRoute()
+  const selectedFilePath = route?.filePath || null
   const [copied, setCopied] = useState(false)
 
   const handleCopyPath = async (filePath: string) => {
@@ -152,13 +152,13 @@ function FileHeader() {
 
 // component for the right side of the header
 function HeaderToolbar() {
-  const editorContext = useEditorContext()
-  const selectedFilePath = editorContext?.filePath || null
+  const route = useRoute()
+  const selectedFilePath = route?.filePath || null
 
   if (selectedFilePath) {
     return (
       <div className="flex items-center gap-3 px-4">
-        {editorContext && <EditorToolbar editorContext={editorContext} />}
+        {route && <EditorToolbar routeContext={route} />}
         <ModeToggle variant="compact" />
       </div>
     )
@@ -176,8 +176,8 @@ function LayoutContent() {
   const navigate = useNavigate()
 
   // this hook is still needed here because AppSidebar needs the path as a prop
-  const editorContext = useEditorContext()
-  const selectedFilePath = editorContext?.filePath || null
+  const route = useRoute()
+  const selectedFilePath = route?.filePath || null
 
   // compute folders to auto-reveal based on current file
   const foldersToExpand = selectedFilePath

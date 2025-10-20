@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router"
 import { useAtomValue, useSetAtom } from "jotai"
 import { Code, Eye, FileSearch, FolderSearch, Save } from "lucide-react"
 
-import { EditorContext, EditorContextHelpers } from "@/types/workspace"
+import { RouteContext, RouteContextHelpers } from "@/types/workspace"
 import { isSavingAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
 import { supportedViews } from "@/lib/language-support"
 import { useOpenWorkspace } from "@/lib/open-workspace"
@@ -13,19 +13,19 @@ import { CommandShortcut } from "@/components/ui/command"
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 
 interface EditorToolbarProps {
-  editorContext: EditorContext
+  routeContext: RouteContext
 }
 
-export function EditorToolbar({ editorContext }: EditorToolbarProps) {
+export function EditorToolbar({ routeContext }: EditorToolbarProps) {
   const { editorRef } = useEditor()
   const isSaving = useAtomValue(isSavingAtom)
   const openQuickOpen = useSetAtom(quickOpenMenuOpenAtom)
   const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
 
   // Extract values from editor context
-  const { filePath, viewKind } = editorContext
-  const workspaceId = EditorContextHelpers.workspaceId(editorContext)
-  const fileType = EditorContextHelpers.fileType(editorContext)
+  const { filePath, viewKind } = routeContext
+  const workspaceId = RouteContextHelpers.workspaceId(routeContext)
+  const fileType = RouteContextHelpers.fileType(routeContext)
   const canToggleViews = supportedViews(fileType).size > 1
 
   const handleSave = () => {

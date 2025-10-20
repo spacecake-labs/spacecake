@@ -10,7 +10,7 @@ import {
 
 import { AbsolutePath } from "@/types/workspace"
 import { saveFileAtom } from "@/lib/atoms/atoms"
-import { useEditorContext } from "@/hooks/use-filepath"
+import { useRoute } from "@/hooks/use-route"
 
 // Create the save command
 export const SAVE_FILE_COMMAND: LexicalCommand<void> = createCommand()
@@ -18,8 +18,8 @@ export const SAVE_FILE_COMMAND: LexicalCommand<void> = createCommand()
 export function SaveCommandPlugin() {
   const [editor] = useLexicalComposerContext()
   const saveFile = useSetAtom(saveFileAtom)
-  const editorContext = useEditorContext()
-  const selectedFilePath = editorContext?.filePath || null
+  const route = useRoute()
+  const selectedFilePath = route?.filePath || null
 
   useEffect(() => {
     return editor.registerCommand(

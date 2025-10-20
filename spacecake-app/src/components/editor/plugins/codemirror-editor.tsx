@@ -7,7 +7,6 @@ import { EditorView, keymap, lineNumbers } from "@codemirror/view"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github"
 import { basicSetup } from "codemirror"
-import { atom } from "jotai"
 
 import type { Block } from "@/types/parser"
 import { debounce } from "@/lib/utils"
@@ -19,27 +18,6 @@ import {
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { useNavigation } from "@/components/editor/plugins/use-navigation"
 import { useTheme } from "@/components/theme-provider"
-
-// jotai atoms for state management
-export const codeBlockLanguagesAtom = atom<Record<string, string>>({
-  js: "JavaScript",
-  ts: "TypeScript",
-  tsx: "TypeScript (React)",
-  jsx: "JavaScript (React)",
-  //   css: "CSS",
-  //   html: "HTML",
-  //   json: "JSON",
-  //   md: "Markdown",
-  py: "Python",
-  //   java: "Java",
-  //   cpp: "C++",
-  //   c: "C",
-  //   go: "Go",
-  //   rs: "Rust",
-  //   php: "PHP",
-  //   rb: "Ruby",
-  //   sql: "SQL",
-})
 
 interface CodeMirrorEditorProps {
   language: string
