@@ -43,11 +43,11 @@ export interface CreateCodeBlockNodeOptions {
   /**
    * The source file path/name for the code block.
    */
-  src?: string
+  src: string
   /**
    * The parsed block object containing kind, name, and other metadata.
    */
-  block?: Block
+  block: Block
 }
 
 /**
@@ -65,8 +65,8 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
   __code: string
   __meta: string
   __language: string
-  __src?: string
-  __block?: Block
+  __src: string
+  __block: Block
 
   static getType(): string {
     return "codeblock"
@@ -111,8 +111,8 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     code: string,
     language: string,
     meta: string,
-    src?: string,
-    block?: Block,
+    src: string,
+    block: Block,
     key?: NodeKey
   ) {
     super(key)
@@ -165,21 +165,12 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     return this.__language
   }
 
-  getSrc(): string | undefined {
+  getSrc(): string {
     return this.__src
   }
 
   getBlock(): Block {
-    return (
-      this.__block || {
-        kind: "code",
-        name: { kind: "anonymous", value: "anonymous" },
-        startByte: 0,
-        endByte: this.__code.length,
-        text: this.__code,
-        startLine: 1,
-      }
-    )
+    return this.__block
   }
 
   setCode = (code: string) => {
@@ -200,7 +191,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     }
   }
 
-  setSrc = (src: string | undefined) => {
+  setSrc = (src: string) => {
     if (src !== this.__src) {
       this.getWritable().__src = src
     }
@@ -261,7 +252,7 @@ export interface CodeBlockEditorContextValue {
   /**
    * Updates the source file path of the code block.
    */
-  setSrc: (src: string | undefined) => void
+  setSrc: (src: string) => void
   /**
    * The Lexical node that's being edited.
    */
@@ -273,7 +264,7 @@ export interface CodeBlockEditorContextValue {
   /**
    * The source file path for the code block.
    */
-  src?: string
+  src: string
 }
 
 const CodeBlockEditorContext =
@@ -282,7 +273,7 @@ const CodeBlockEditorContext =
 const CodeBlockEditorContextProvider: React.FC<{
   parentEditor: LexicalEditor
   lexicalNode: CodeBlockNode
-  src?: string
+  src: string
   children: React.ReactNode
 }> = ({ parentEditor, lexicalNode, src, children }) => {
   const contextValue = React.useMemo(() => {
@@ -308,7 +299,7 @@ const CodeBlockEditorContextProvider: React.FC<{
           lexicalNode.setMeta(meta)
         })
       },
-      setSrc: (src: string | undefined) => {
+      setSrc: (src: string) => {
         parentEditor.update(() => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           lexicalNode.setSrc(src)
@@ -339,7 +330,7 @@ interface CodeBlockEditorProps {
   code: string
   language: string
   meta: string
-  src?: string
+  src: string
   block: Block
   nodeKey: string
 }
@@ -380,8 +371,15 @@ export function $createCodeBlockNode(
       options.code ?? "",
       options.language ?? "",
       options.meta ?? "",
-      options.src,
-      options.block
+      options.src ?? "",
+      options.block ?? {
+        kind: "code",
+        name: { kind: "anonymous", value: "anonymous" },
+        startByte: 0,
+        endByte: options.code?.length ?? 0,
+        text: options.code ?? "",
+        startLine: 1,
+      }
     )
   )
 }
@@ -407,7 +405,7 @@ export function $convertPreElement(element: Element): DOMConversionOutput {
   const languageMatch = classAttribute.match(/language-(\w+)/)
   const language = languageMatch ? languageMatch[1] : dataLanguageAttribute
   const meta = preElement.getAttribute("data-meta") ?? ""
-  const src = preElement.getAttribute("data-src") ?? undefined
+  const src = preElement.getAttribute("data-src") ?? ""
   return {
     node: $createCodeBlockNode({ code, language, meta, src }),
   }
