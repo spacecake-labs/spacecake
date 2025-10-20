@@ -345,7 +345,6 @@ function ItemButton({
   showChevron?: boolean
 }) {
   const openedFiles = useAtomValue(openedFilesAtom)
-
   const isFileOpened = openedFiles.has(item.path)
 
   return (

@@ -29,7 +29,7 @@ import {
   rename,
   saveFile,
 } from "@/lib/fs"
-import { useEditorContext } from "@/hooks/use-filepath"
+import { useRoute } from "@/hooks/use-route"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -78,8 +78,8 @@ export function NavMain({
   const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom)
   const [deletionState, setDeletionState] = useAtom(deletionStateAtom)
 
-  const editorContext = useEditorContext()
-  const selectedFilePath = editorContext?.filePath || null
+  const route = useRoute()
+  const selectedFilePath = route?.filePath || null
 
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(
