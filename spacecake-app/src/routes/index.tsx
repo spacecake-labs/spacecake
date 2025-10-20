@@ -19,6 +19,7 @@ import { useOpenWorkspace } from "@/lib/open-workspace"
 import { encodeBase64Url } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 
 const NotFoundPathSchema = Schema.standardSchemaV1(
@@ -56,6 +57,7 @@ export const Route = createFileRoute("/")({
     }
     return { notFoundPath: Option.none() }
   },
+  pendingComponent: () => <LoadingAnimation />,
   errorComponent: ({ error }) => <ErrorComponent error={error} />,
 })
 

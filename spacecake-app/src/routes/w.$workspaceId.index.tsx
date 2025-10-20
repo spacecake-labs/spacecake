@@ -18,6 +18,7 @@ import { exists } from "@/lib/fs"
 import { condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CommandShortcut } from "@/components/ui/command"
+import { LoadingAnimation } from "@/components/loading-animation"
 
 export const Route = createFileRoute("/w/$workspaceId/")({
   validateSearch: (
@@ -75,6 +76,7 @@ export const Route = createFileRoute("/w/$workspaceId/")({
 
     return { kind: "empty" }
   },
+  pendingComponent: () => <LoadingAnimation />,
   errorComponent: ({ error }) => <ErrorComponent error={error} />,
   component: WorkspaceIndex,
 })

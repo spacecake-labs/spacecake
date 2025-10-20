@@ -30,6 +30,7 @@ import { decodeBase64Url } from "@/lib/utils"
 import { determineView } from "@/lib/view"
 import { Editor } from "@/components/editor/editor"
 import { FileConflictBanner } from "@/components/editor/file-conflict-banner"
+import { LoadingAnimation } from "@/components/loading-animation"
 
 const fileSearchSchema = Schema.Struct({
   view: Schema.optional(ViewKindSchema),
@@ -110,9 +111,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
       },
     })
   },
-  pendingComponent: () => (
-    <div className="p-2 text-xs text-muted-foreground">loading file…</div>
-  ),
+  pendingComponent: () => <LoadingAnimation />,
   errorComponent: ({ error }) => <ErrorComponent error={error} />,
   component: FileLayout,
   // Do not cache this route's data after it's unloaded
@@ -144,6 +143,7 @@ function FileLayout() {
   return (
     <>
       <FileConflictBanner state={fileState} send={sendFileState} />
+
       <Editor
         key={key}
         editorConfig={editorConfig}
