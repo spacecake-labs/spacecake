@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-router"
 import { useMachine } from "@xstate/react"
 import { Effect, Option, Schema } from "effect"
-import { useAtom } from "jotai"
+import { useSetAtom } from "jotai"
 import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 
 import { match } from "@/types/adt"
@@ -21,7 +21,9 @@ import {
 } from "@/types/lexical"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { openedFilesAtom } from "@/lib/atoms/atoms"
-import { fileStateMachineAtomFamily } from "@/lib/atoms/file-tree"
+import {
+  fileStateMachineAtomFamily,
+} from "@/lib/atoms/file-tree"
 import {
   createEditorConfigFromContent,
   createEditorConfigFromState,
@@ -115,6 +117,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           openedFiles.add(filePath)
           return openedFiles
         })
+        // store.get(fileStateMachineAtomFamily(filePath))
         return {
           workspace,
           filePath,
@@ -136,9 +139,9 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 function FileLayout() {
   const { filePath, state, view } = Route.useLoaderData()
 
-  const [fileState, sendFileState] = useAtom(
-    fileStateMachineAtomFamily(filePath)
-  )
+  // const fileState = { value: "Clean" }
+
+  const sendFileState = useSetAtom(fileStateMachineAtomFamily(filePath))
 
   const [, send] = useMachine(fileMachine)
 
@@ -153,12 +156,9 @@ function FileLayout() {
   const cid = state.kind === "state" ? ZERO_HASH : state.data.cid
   const key = `${filePath}-${view}-${cid}`
 
-  console.log("view", view)
-
   return (
     <>
-      <FileConflictBanner state={fileState} send={sendFileState} />
-
+      <FileConflictBanner filePath={filePath} send={sendFileState} />
       <Editor
         key={key}
         editorConfig={editorConfig}
