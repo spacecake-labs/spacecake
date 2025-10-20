@@ -104,9 +104,17 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               })
             }
             const fileType = fileTypeFromFileName(props.filePath)
-
             const content = serializeFromCache(maybeState.value.state, fileType)
             const cid = fnv1a64Hex(content)
+
+            // update view kind
+            yield* db.upsertEditor({
+              pane_id: props.paneId,
+              file_id: maybeState.value.fileId,
+              view_kind: props.targetViewKind,
+              position: 0, // assuming single editor per pane for now
+              is_active: true,
+            })
 
             return right<
               PgliteError | FileSystemError | EditorManagerError,

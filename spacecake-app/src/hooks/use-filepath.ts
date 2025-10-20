@@ -5,7 +5,6 @@ import {
   AbsolutePath,
   EditorContext,
   RouteParamsSchema,
-  SearchParamsSchema,
 } from "@/types/workspace"
 import { decodeBase64Url } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
@@ -16,11 +15,13 @@ import { fileTypeFromExtension } from "@/lib/workspace"
  */
 export function useEditorContext(): EditorContext | null {
   const params = useParams({ strict: false })
-  const search = useSearch({ strict: false })
+  const view = useSearch({
+    strict: false,
+    select: ({ view }) => view,
+  })
 
   try {
     const paramsResult = Schema.decodeUnknownSync(RouteParamsSchema)(params)
-    const searchResult = Schema.decodeUnknownSync(SearchParamsSchema)(search)
 
     if (paramsResult.workspaceId && paramsResult.filePath) {
       const filePath = AbsolutePath(decodeBase64Url(paramsResult.filePath))
@@ -28,8 +29,8 @@ export function useEditorContext(): EditorContext | null {
       const context: EditorContext = {
         workspaceId: decodeBase64Url(paramsResult.workspaceId),
         filePath,
-        viewKind: searchResult.view,
-        fileType: fileTypeFromExtension(filePath.split(".").pop() || ""),
+        viewKind: view ?? "",
+        fileType: fileTypeFromExtension(filePath.split(".").pop() ?? ""),
       }
       return context
     }

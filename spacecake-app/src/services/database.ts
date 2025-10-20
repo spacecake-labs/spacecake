@@ -198,12 +198,6 @@ export class Database extends Effect.Service<Database>()("Database", {
       upsertEditor: flow(
         execute(EditorInsertSchema, (values: EditorInsert) =>
           Effect.gen(function* () {
-            // yield* query((_) =>
-            //   _.update(editorTable)
-            //     .set({ is_active: false })
-            //     .where(eq(editorTable.pane_id, values.pane_id))
-            // )
-
             const now = yield* DateTime.now
 
             return yield* query((_) =>
