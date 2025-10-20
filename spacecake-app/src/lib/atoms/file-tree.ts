@@ -282,3 +282,7 @@ export const fileStateMachineAtomFamily = atomFamily(
   createFileStateMachineAtom,
   (a, b) => a === b
 )
+
+export const fileStateValue = atomFamily((filePath: AbsolutePath) =>
+  atom((get) => get(fileStateMachineAtomFamily(filePath)).value)
+)
