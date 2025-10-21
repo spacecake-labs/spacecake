@@ -1,13 +1,14 @@
-import { CakeSliceIcon } from "lucide-react"
+// Import the icon as a React component
+import IconSvg from "@assets/icon.svg?react"
 
 import { cn } from "@/lib/utils"
 
 function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
   return (
-    <CakeSliceIcon
+    <IconSvg
       role="status"
       aria-label="Loading"
-      className={cn("size-4 animate-bounce", className)}
+      className={cn("size-4 animate-pulse", className)}
       {...props}
     />
   )
