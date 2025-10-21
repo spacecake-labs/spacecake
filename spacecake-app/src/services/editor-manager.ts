@@ -12,6 +12,7 @@ import {
 } from "@/types/workspace"
 import { serializeFromCache } from "@/lib/editor"
 import { fnv1a64Hex } from "@/lib/hash"
+import { supportsRichView } from "@/lib/language-support"
 import { fileTypeFromFileName } from "@/lib/workspace"
 
 // Define a specific error type for this service
@@ -19,9 +20,12 @@ export class EditorManagerError extends Data.TaggedError("EditorManagerError")<{
   cause: unknown
 }> {}
 
-export type InitialContent =
-  | { kind: "state"; data: EditorCache }
-  | { kind: "file"; data: EditorFile }
+export type InitialContent = {
+  viewKind: ViewKind
+  content:
+    | { kind: "state"; data: EditorCache }
+    | { kind: "file"; data: EditorFile }
+}
 
 export class EditorManager extends Effect.Service<EditorManager>()(
   "EditorManager",
@@ -88,19 +92,36 @@ export class EditorManager extends Effect.Service<EditorManager>()(
       const readStateOrFile = (props: {
         filePath: AbsolutePath
         paneId: PaneSelect["id"]
-        targetViewKind: ViewKind
+        targetViewKind: ViewKind | null
       }) =>
         Effect.gen(function* () {
           const maybeState = yield* readEditorState(props.filePath)
 
           if (isRight(maybeState) && maybeState.value.state) {
-            if (maybeState.value.viewKind == props.targetViewKind) {
+            // if no targetViewKind specified, use the stored viewKind
+            if (!props.targetViewKind) {
               return right<
                 PgliteError | FileSystemError | EditorManagerError,
                 InitialContent
               >({
-                kind: "state",
-                data: maybeState.value,
+                viewKind: maybeState.value.viewKind,
+                content: {
+                  kind: "state",
+                  data: maybeState.value,
+                },
+              })
+            }
+
+            if (maybeState.value.viewKind === props.targetViewKind) {
+              return right<
+                PgliteError | FileSystemError | EditorManagerError,
+                InitialContent
+              >({
+                viewKind: props.targetViewKind,
+                content: {
+                  kind: "state",
+                  data: maybeState.value,
+                },
               })
             }
             const fileType = fileTypeFromFileName(props.filePath)
@@ -120,15 +141,18 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               PgliteError | FileSystemError | EditorManagerError,
               InitialContent
             >({
-              kind: "file",
-              data: {
-                fileId: maybeState.value.fileId,
-                editorId: maybeState.value.editorId,
-                path: props.filePath,
-                fileType: fileType,
-                content: content,
-                cid: cid,
-                selection: maybeState.value.selection,
+              viewKind: props.targetViewKind,
+              content: {
+                kind: "file",
+                data: {
+                  fileId: maybeState.value.fileId,
+                  editorId: maybeState.value.editorId,
+                  path: props.filePath,
+                  fileType: fileType,
+                  content: content,
+                  cid: cid,
+                  selection: maybeState.value.selection,
+                },
               },
             })
           }
@@ -136,10 +160,15 @@ export class EditorManager extends Effect.Service<EditorManager>()(
           const maybeFile = yield* readFile(props.filePath)
 
           if (isRight(maybeFile)) {
+            const fileType = fileTypeFromFileName(props.filePath)
+            const viewKind =
+              props.targetViewKind ??
+              (supportsRichView(fileType) ? "rich" : "source")
+
             const editor = yield* db.upsertEditor({
               pane_id: props.paneId,
               file_id: maybeFile.value.fileId,
-              view_kind: props.targetViewKind,
+              view_kind: viewKind,
               position: 0, // assuming single editor per pane for now
               is_active: true,
             })
@@ -147,11 +176,14 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               PgliteError | FileSystemError | EditorManagerError,
               InitialContent
             >({
-              kind: "file",
-              data: {
-                ...maybeFile.value,
-                editorId: editor.id,
-                selection: Option.getOrNull(editor.selection),
+              viewKind: viewKind,
+              content: {
+                kind: "file",
+                data: {
+                  ...maybeFile.value,
+                  editorId: editor.id,
+                  selection: Option.getOrNull(editor.selection),
+                },
               },
             })
           }
