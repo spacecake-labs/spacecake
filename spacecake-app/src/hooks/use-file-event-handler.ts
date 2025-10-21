@@ -47,6 +47,6 @@ export const useFileEventHandler = (workspace: WorkspaceInfo) => {
         deleteFile
       )
     },
-    [setFileTreeEvent, store, workspace, deleteFile] // Stable dependencies only
+    [setFileTreeEvent, store, workspace?.path, deleteFile]
   )
 }

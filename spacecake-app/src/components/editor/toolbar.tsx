@@ -1,16 +1,14 @@
 import { useEditor } from "@/contexts/editor-context"
-import { Link } from "@tanstack/react-router"
 import { useAtomValue, useSetAtom } from "jotai"
-import { Code, Eye, FileSearch, FolderSearch, Save } from "lucide-react"
+import { FileSearch, FolderSearch, Save } from "lucide-react"
 
-import { RouteContext, RouteContextHelpers } from "@/types/workspace"
+import { RouteContext } from "@/types/workspace"
 import { isSavingAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
-import { supportedViews } from "@/lib/language-support"
 import { useOpenWorkspace } from "@/lib/open-workspace"
-import { encodeBase64Url } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { CommandShortcut } from "@/components/ui/command"
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
+import { ViewToggleButton } from "@/components/editor/view-toggle-button"
 
 interface EditorToolbarProps {
   routeContext: RouteContext
@@ -21,12 +19,6 @@ export function EditorToolbar({ routeContext }: EditorToolbarProps) {
   const isSaving = useAtomValue(isSavingAtom)
   const openQuickOpen = useSetAtom(quickOpenMenuOpenAtom)
   const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
-
-  // Extract values from editor context
-  const { filePath, viewKind } = routeContext
-  const workspaceId = RouteContextHelpers.workspaceId(routeContext)
-  const fileType = RouteContextHelpers.fileType(routeContext)
-  const canToggleViews = supportedViews(fileType).size > 1
 
   const handleSave = () => {
     if (editorRef.current) {
@@ -59,45 +51,7 @@ export function EditorToolbar({ routeContext }: EditorToolbarProps) {
         <FileSearch className="h-3 w-3 mr-1" />
         <CommandShortcut>⌘P</CommandShortcut>
       </Button>
-      {canToggleViews && (
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="h-7 px-2 text-xs cursor-pointer"
-          aria-label={
-            viewKind === "rich"
-              ? "switch to source view"
-              : "switch to rich view"
-          }
-          title={
-            viewKind === "rich"
-              ? "switch to source view"
-              : "switch to rich view"
-          }
-        >
-          <Link
-            to="/w/$workspaceId/f/$filePath"
-            params={{
-              workspaceId,
-              filePath: encodeBase64Url(filePath),
-            }}
-            search={{ view: viewKind === "rich" ? "source" : "rich" }}
-          >
-            {viewKind === "rich" ? (
-              <>
-                <Eye className="h-3 w-3 mr-1" />
-                rich
-              </>
-            ) : (
-              <>
-                <Code className="h-3 w-3 mr-1" />
-                source
-              </>
-            )}
-          </Link>
-        </Button>
-      )}
+      <ViewToggleButton routeContext={routeContext} />
       <Button
         variant="ghost"
         size="sm"
