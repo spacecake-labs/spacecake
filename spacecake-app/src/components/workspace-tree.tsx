@@ -24,7 +24,7 @@ import {
   isCreatingInContextAtom,
   openedFilesAtom,
 } from "@/lib/atoms/atoms"
-import { fileStateMachineAtomFamily } from "@/lib/atoms/file-tree"
+import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { mergeExpandedFolders } from "@/lib/auto-reveal"
 import { encodeBase64Url } from "@/lib/utils"
 import { getNavItemIcon } from "@/lib/workspace"
@@ -309,9 +309,9 @@ function CancelRenameButton({ onCancel }: { onCancel: () => void }) {
 }
 
 function FileStatusIndicator({ filePath }: { filePath: AbsolutePath }) {
-  const state = useAtomValue(fileStateMachineAtomFamily(filePath))
+  const state = useAtomValue(fileStateAtomFamily(filePath)).value
 
-  if (state.value === "Conflict" || state.value === "ExternalChange") {
+  if (state === "Conflict" || state === "ExternalChange") {
     return (
       <AlertTriangle
         className="ml-auto size-3 shrink-0 text-yellow-500"
@@ -320,7 +320,7 @@ function FileStatusIndicator({ filePath }: { filePath: AbsolutePath }) {
     )
   }
 
-  if (state.value === "Dirty") {
+  if (state === "Dirty") {
     return (
       <div
         className="ml-auto size-2 shrink-0 rounded-full bg-foreground"

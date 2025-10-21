@@ -4,7 +4,7 @@ import { FileWarning } from "lucide-react"
 import type { EventFrom } from "xstate"
 
 import { AbsolutePath } from "@/types/workspace"
-import { fileStateValue } from "@/lib/atoms/file-tree"
+import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 
@@ -17,8 +17,9 @@ export function FileConflictBanner({
   filePath,
   send,
 }: FileConflictBannerProps) {
-  const fileState = useAtomValue(fileStateValue(filePath))
-  if (fileState !== "Conflict") return null
+  const state = useAtomValue(fileStateAtomFamily(filePath)).value
+  if (state !== "Conflict") return null
+
   return (
     <Alert className="rounded-lg border border-border bg-muted/50 py-4 px-6">
       <div className="flex items-center w-full gap-8">

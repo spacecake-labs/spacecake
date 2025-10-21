@@ -293,6 +293,7 @@ This is a **markdown** file.
     await expect(
       page.getByRole("link", { name: "switch to rich view" })
     ).toBeVisible()
+    await expect(page.getByTestId("lexical-editor")).toBeVisible()
 
     // Open second file and verify it's in source view
     await page.getByRole("button", { name: "file2.py" }).click()
