@@ -35,29 +35,28 @@ export class EditorManager extends Effect.Service<EditorManager>()(
 
       const readEditorState = (filePath: AbsolutePath) =>
         Effect.gen(function* () {
-          const file = yield* db.selectFile(filePath)
+          const maybeEditor = yield* db.selectLatestEditorStateForFile(filePath)
 
-          if (Option.isSome(file)) {
-            yield* db.updateFileAccessedAt({
-              id: file.value.id,
-            })
-
-            const editor = yield* db.selectLatestEditorStateForFile(
-              file.value.id
+          if (Option.isSome(maybeEditor)) {
+            const editor = maybeEditor.value
+            yield* Effect.forkDaemon(
+              db.updateFileAccessedAt({
+                id: editor.fileId,
+              })
             )
-            if (Option.isSome(editor)) {
-              yield* db.updateEditorAccessedAt({
-                id: editor.value.id,
+            yield* Effect.forkDaemon(
+              db.updateEditorAccessedAt({
+                id: editor.id,
               })
+            )
 
-              return right<PgliteError, EditorCache>({
-                editorId: editor.value.id,
-                viewKind: editor.value.view_kind,
-                state: editor.value.state,
-                fileId: file.value.id,
-                selection: Option.getOrNull(editor.value.selection),
-              })
-            }
+            return right<PgliteError, EditorCache>({
+              editorId: editor.id,
+              viewKind: editor.view_kind,
+              state: editor.state,
+              fileId: editor.fileId,
+              selection: Option.getOrNull(editor.selection),
+            })
           }
           return left<PgliteError, EditorCache>(
             new PgliteError({ cause: "editor state not found" })
@@ -129,13 +128,15 @@ export class EditorManager extends Effect.Service<EditorManager>()(
             const cid = fnv1a64Hex(content)
 
             // update view kind
-            yield* db.upsertEditor({
-              pane_id: props.paneId,
-              file_id: maybeState.value.fileId,
-              view_kind: props.targetViewKind,
-              position: 0, // assuming single editor per pane for now
-              is_active: true,
-            })
+            yield* Effect.forkDaemon(
+              db.upsertEditor({
+                pane_id: props.paneId,
+                file_id: maybeState.value.fileId,
+                view_kind: props.targetViewKind,
+                position: 0, // assuming single editor per pane for now
+                is_active: true,
+              })
+            )
 
             return right<
               PgliteError | FileSystemError | EditorManagerError,

@@ -58,6 +58,14 @@ export type EditorStateSelect = Schema.Schema.Type<
   typeof EditorStateSelectSchema
 >
 
+export const EditorStateWithFileIdSelectSchema = Schema.Struct({
+  id: EditorPrimaryKeySchema,
+  state: EditorSelectSchema.fields.state,
+  view_kind: EditorSelectSchema.fields.view_kind,
+  selection: EditorSelectSchema.fields.selection,
+  fileId: FileSelectSchema.fields.id,
+})
+
 export const EditorUpdateSelectionSchema = Schema.Struct({
   id: EditorPrimaryKeySchema,
   selection: Schema.OptionFromNullOr(SerializedSelectionSchema),
