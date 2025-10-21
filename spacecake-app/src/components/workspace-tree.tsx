@@ -26,6 +26,7 @@ import {
 } from "@/lib/atoms/atoms"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { mergeExpandedFolders } from "@/lib/auto-reveal"
+import { supportedViews } from "@/lib/language-support"
 import { encodeBase64Url } from "@/lib/utils"
 import { getNavItemIcon } from "@/lib/workspace"
 import { Button } from "@/components/ui/button"
@@ -422,6 +423,9 @@ export function WorkspaceTree({
     const workspaceIdEncoded = workspace?.path
       ? encodeBase64Url(workspace.path)
       : ""
+
+    const canToggleViews = supportedViews(item.fileType).size > 1
+
     return (
       <SidebarMenuItem>
         {isRenaming ? (
@@ -439,6 +443,7 @@ export function WorkspaceTree({
               filePath: filePathEncoded,
             }}
             // preload="intent"
+            search={{ view: canToggleViews ? undefined : "source" }}
             className="w-full"
           >
             <ItemButton
