@@ -1,6 +1,5 @@
 import { fileMachine } from "@/machines/manage-file"
 import { JsonValue } from "@/schema/drizzle-effect"
-import { Database } from "@/services/database"
 import { EditorManager } from "@/services/editor-manager"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
@@ -9,7 +8,7 @@ import {
   redirect,
 } from "@tanstack/react-router"
 import { useMachine } from "@xstate/react"
-import { Effect, Option, Schema } from "effect"
+import { Effect, Schema } from "effect"
 import { useSetAtom } from "jotai"
 import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 
@@ -21,17 +20,13 @@ import {
 } from "@/types/lexical"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { openedFilesAtom } from "@/lib/atoms/atoms"
-import {
-  fileStateMachineAtomFamily,
-} from "@/lib/atoms/file-tree"
+import { fileStateMachineAtomFamily } from "@/lib/atoms/file-tree"
 import {
   createEditorConfigFromContent,
   createEditorConfigFromState,
 } from "@/lib/editor"
-import { supportsRichView } from "@/lib/language-support"
 import { store } from "@/lib/store"
 import { decodeBase64Url } from "@/lib/utils"
-import { fileTypeFromExtension } from "@/lib/workspace"
 import { Editor } from "@/components/editor/editor"
 import { FileConflictBanner } from "@/components/editor/file-conflict-banner"
 import { LoadingAnimation } from "@/components/loading-animation"
@@ -43,53 +38,10 @@ const fileSearchSchema = Schema.Struct({
 export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   validateSearch: (search) =>
     Schema.decodeUnknownSync(fileSearchSchema)(search),
-  beforeLoad: async ({ params, search }) => {
-    if (search.view) {
-      return
-    }
-
-    const filePath = AbsolutePath(decodeBase64Url(params.filePath))
-
-    const storedView = await RuntimeClient.runPromise(
-      Effect.gen(function* () {
-        const db = yield* Database
-        const maybeFile = yield* db.selectFile(filePath)
-        if (Option.isSome(maybeFile)) {
-          const editor = yield* db.selectLatestEditorStateForFile(
-            maybeFile.value.id
-          )
-          if (Option.isSome(editor)) {
-            return editor.value.view_kind
-          }
-        }
-        return null
-      })
-    )
-
-    const fileType = fileTypeFromExtension(filePath.split(".").pop() || "")
-    const defaultView = supportsRichView(fileType) ? "rich" : "source"
-
-    const viewKind = storedView ?? defaultView
-
-    throw redirect({
-      search: {
-        ...search,
-        view: viewKind,
-      },
-      params,
-      replace: true,
-    })
-  },
   loaderDeps: ({ search: { view } }) => ({ view }),
   loader: async ({ params, deps: { view }, context }) => {
     const { paneId, workspace } = context
     const filePath = AbsolutePath(decodeBase64Url(params.filePath))
-
-    if (!view) {
-      // this should be an impossible state because of the beforeLoad redirect.
-      // we'll throw to make it clear if it ever occurs.
-      throw new Error("invariant: view param should be present in loader")
-    }
 
     const initialState = await RuntimeClient.runPromise(
       Effect.gen(function* () {
@@ -97,7 +49,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         return yield* em.readStateOrFile({
           filePath,
           paneId: paneId,
-          targetViewKind: view,
+          targetViewKind: view ?? null,
         })
       })
     )
@@ -111,18 +63,27 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           search: { notFoundFilePath: filePath },
         })
       },
-      onRight: async (state) => {
+      onRight: async (result) => {
+        // if no view param, redirect to set it from determined viewKind
+        if (!view) {
+          throw redirect({
+            search: { view: result.viewKind },
+            params,
+            replace: true,
+          })
+        }
+
         // register file as opened
         store.set(openedFilesAtom, (openedFiles: Set<AbsolutePath>) => {
           openedFiles.add(filePath)
           return openedFiles
         })
-        // store.get(fileStateMachineAtomFamily(filePath))
+
         return {
           workspace,
           filePath,
-          state,
-          view,
+          state: result.content,
+          view: result.viewKind,
         }
       },
     })
