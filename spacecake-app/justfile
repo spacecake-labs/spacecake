@@ -25,6 +25,9 @@ e2e filter="":
 e2e-show filter="":
     pnpm run package && pnpm run e2e-show --grep="{{filter}}"
 
+e2e-repeat filter="" times="5":
+    pnpm run package && pnpm run e2e-test --grep="{{filter}}" --repeat-each={{times}}
+
 test:
     just unit && just e2e
 
