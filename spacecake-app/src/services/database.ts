@@ -3,14 +3,13 @@ import {
   EditorInsertSchema,
   EditorSelectionUpdate,
   EditorSelectSchema,
-  EditorStateSelectSchema,
   EditorStateUpdate,
+  EditorStateWithFileIdSelectSchema,
   editorTable,
   EditorUpdateSchema,
   EditorUpdateSelectionSchema,
   EditorUpdateStateSchema,
   FileInsertSchema,
-  FilePrimaryKey,
   FileSelectSchema,
   fileTable,
   FileUpdateSchema,
@@ -350,16 +349,18 @@ export class Database extends Effect.Service<Database>()("Database", {
           )
         ),
 
-      selectLatestEditorStateForFile: (fileId: FilePrimaryKey) =>
+      selectLatestEditorStateForFile: (filePath: AbsolutePath) =>
         query((_) =>
           _.select({
             id: editorTable.id,
             state: editorTable.state,
             view_kind: editorTable.view_kind,
             selection: editorTable.selection,
+            fileId: fileTable.id,
           })
             .from(editorTable)
-            .where(eq(editorTable.file_id, fileId))
+            .innerJoin(fileTable, eq(editorTable.file_id, fileTable.id))
+            .where(eq(fileTable.path, filePath))
             .orderBy(
               desc(editorTable.state_updated_at), // prioritise records with state
               desc(editorTable.last_accessed_at)
@@ -371,7 +372,7 @@ export class Database extends Effect.Service<Database>()("Database", {
             Option.match({
               onNone: () => Effect.succeed(Option.none()),
               onSome: (value) =>
-                Schema.decode(EditorStateSelectSchema)(value).pipe(
+                Schema.decode(EditorStateWithFileIdSelectSchema)(value).pipe(
                   Effect.map(Option.some)
                 ),
             })
