@@ -29,7 +29,7 @@ export function useRoute(): RouteContext | null {
       const context: RouteContext = {
         workspaceId: decodeBase64Url(paramsResult.workspaceId),
         filePath,
-        viewKind: view ?? "source",
+        viewKind: view,
         fileType: fileTypeFromExtension(filePath.split(".").pop() ?? ""),
       }
       return context

@@ -134,7 +134,7 @@ export const SearchParamsSchema = Schema.Struct({
 export const RouteContextSchema = Schema.Struct({
   workspaceId: Schema.String,
   filePath: AbsolutePathSchema,
-  viewKind: ViewKindSchema,
+  viewKind: Schema.optional(ViewKindSchema),
   fileType: FileTypeSchema,
 })
 export type RouteContext = typeof RouteContextSchema.Type

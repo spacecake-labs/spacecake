@@ -265,7 +265,7 @@ function LayoutContent() {
 }
 
 function WorkspaceLayout() {
-  const { workspace } = Route.useRouteContext()
+  const { workspace } = Route.useLoaderData()
 
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)

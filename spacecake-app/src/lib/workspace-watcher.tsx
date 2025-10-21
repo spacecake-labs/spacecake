@@ -15,20 +15,18 @@ export function WorkspaceWatcher({ workspace }: WorkspaceWatcherProps) {
   const currentWorkspaceRef = useRef<string | null>(null)
 
   useLayoutEffect(() => {
-    if (!workspace?.path || workspace.path === "/") {
+    const path = workspace?.path
+    if (!path || path === "/") {
       return
     }
     // prevent duplicate listeners for the same workspace
-    if (
-      isListeningRef.current &&
-      currentWorkspaceRef.current === workspace.path
-    ) {
+    if (isListeningRef.current && currentWorkspaceRef.current === path) {
       return
     }
 
     let off: (() => void) | undefined
 
-    startWatcher(AbsolutePath(workspace.path))
+    startWatcher(AbsolutePath(path))
       .then((result) => {
         match(result, {
           onLeft: (error) => console.error(error),
@@ -38,7 +36,7 @@ export function WorkspaceWatcher({ workspace }: WorkspaceWatcherProps) {
               handleEvent(event)
             })
             isListeningRef.current = true
-            currentWorkspaceRef.current = workspace.path
+            currentWorkspaceRef.current = path
           },
         })
       })
@@ -53,7 +51,7 @@ export function WorkspaceWatcher({ workspace }: WorkspaceWatcherProps) {
         currentWorkspaceRef.current = null
       }
       // stop watching the workspace when component unmounts
-      stopWatcher(AbsolutePath(workspace.path))
+      stopWatcher(AbsolutePath(path))
     }
   }, [workspace?.path])
 
