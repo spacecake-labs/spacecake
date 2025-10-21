@@ -20,7 +20,7 @@ import {
 } from "@/types/lexical"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { openedFilesAtom } from "@/lib/atoms/atoms"
-import { fileStateMachineAtomFamily } from "@/lib/atoms/file-tree"
+import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import {
   createEditorConfigFromContent,
   createEditorConfigFromState,
@@ -49,7 +49,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         return yield* em.readStateOrFile({
           filePath,
           paneId: paneId,
-          targetViewKind: view ?? null,
+          targetViewKind: view,
         })
       })
     )
@@ -73,10 +73,8 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           })
         }
 
-        // register file as opened
         store.set(openedFilesAtom, (openedFiles: Set<AbsolutePath>) => {
-          openedFiles.add(filePath)
-          return openedFiles
+          return new Set([...openedFiles, filePath])
         })
 
         return {
@@ -95,14 +93,13 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   gcTime: 0,
   // Only reload the route when the user navigates to it or when deps change
   shouldReload: false,
+  pendingMs: 0,
 })
 
 function FileLayout() {
   const { filePath, state, view } = Route.useLoaderData()
 
-  // const fileState = { value: "Clean" }
-
-  const sendFileState = useSetAtom(fileStateMachineAtomFamily(filePath))
+  const sendFileState = useSetAtom(fileStateAtomFamily(filePath))
 
   const [, send] = useMachine(fileMachine)
 

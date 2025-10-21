@@ -92,7 +92,7 @@ export class EditorManager extends Effect.Service<EditorManager>()(
       const readStateOrFile = (props: {
         filePath: AbsolutePath
         paneId: PaneSelect["id"]
-        targetViewKind: ViewKind | null
+        targetViewKind?: ViewKind | undefined
       }) =>
         Effect.gen(function* () {
           const maybeState = yield* readEditorState(props.filePath)

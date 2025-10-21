@@ -23,7 +23,7 @@ export const useFileEventHandler = (workspace: WorkspaceInfo) => {
         }).pipe(Effect.tapErrorCause(Effect.logError))
       )
     },
-    [workspace.path]
+    [workspace?.path]
   )
 
   return useCallback(

@@ -14,7 +14,7 @@ import type {
   Folder,
 } from "@/types/workspace"
 import { AbsolutePath, FileType } from "@/types/workspace"
-import { fileStateMachineAtomFamily } from "@/lib/atoms/file-tree"
+import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { serializeEditorToPython, serializeEditorToSource } from "@/lib/editor"
 import { saveFile } from "@/lib/fs"
 import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
@@ -163,7 +163,7 @@ export const saveFileAtom = atom(
       const ok = await saveFile(filePath, contentToWrite)
 
       if (ok) {
-        set(fileStateMachineAtomFamily(filePath), { type: "file.save" })
+        set(fileStateAtomFamily(filePath), { type: "file.save" })
         toast(`saved ${filePath}`)
         // Update content to match what was saved
         set(fileContentAtom, (prev) =>

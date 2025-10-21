@@ -33,7 +33,7 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
   // Get file tree from atom and derive file items
   const fileTree = useAtomValue(fileTreeAtom)
   const allFileItems = getQuickOpenFileItems(workspace, fileTree)
-  const recentFiles = useRecentFiles(workspace.path)
+  const recentFiles = useRecentFiles(workspace?.path)
 
   if (recentFiles.error) {
     console.error("error getting recent files", recentFiles.error)
@@ -65,7 +65,7 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
           name: fileName,
           fileType: fileTypeFromFileName(file.path),
           lastAccessed: new Date(file.last_accessed_at).getTime(),
-          workspacePath: workspace.path,
+          workspacePath: workspace?.path,
         }
       })
 
@@ -73,11 +73,11 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
         allFileItems,
         recentFilesList,
         search,
-        workspace.path
+        workspace?.path
       )
     }
     return []
-  }, [search, allFileItems, recentFiles, workspace.path])
+  }, [search, allFileItems, recentFiles, workspace?.path])
 
   const rowVirtualizer = useVirtualizer({
     count: filteredItems.length,

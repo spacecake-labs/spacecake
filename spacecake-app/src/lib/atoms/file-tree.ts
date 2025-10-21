@@ -197,7 +197,7 @@ export const fileTreeEventAtom = atom(
         set(fileTreeAtom, newTree)
 
         // Dispatch external change event to the state machine
-        set(fileStateMachineAtomFamily(absolutePath), {
+        set(fileStateAtomFamily(absolutePath), {
           type: "file.external.change",
         })
 
@@ -278,11 +278,7 @@ const createFileStateMachineAtom = (filePath: AbsolutePath) =>
     () => ({ input: { filePath } })
   )
 
-export const fileStateMachineAtomFamily = atomFamily(
+export const fileStateAtomFamily = atomFamily(
   createFileStateMachineAtom,
   (a, b) => a === b
-)
-
-export const fileStateValue = atomFamily((filePath: AbsolutePath) =>
-  atom((get) => get(fileStateMachineAtomFamily(filePath)).value)
 )
