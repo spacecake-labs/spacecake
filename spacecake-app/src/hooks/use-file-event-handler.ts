@@ -10,7 +10,7 @@ import { fileContentAtom } from "@/lib/atoms/atoms"
 import { fileTreeEventAtom, sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import { handleFileEvent } from "@/lib/file-event-handler"
 
-export const useFileEventHandler = (workspace: WorkspaceInfo) => {
+export const useFileEventHandler = (workspacePath: WorkspaceInfo["path"]) => {
   const setFileTreeEvent = useSetAtom(fileTreeEventAtom)
   const store = useStore()
 
@@ -23,7 +23,7 @@ export const useFileEventHandler = (workspace: WorkspaceInfo) => {
         }).pipe(Effect.tapErrorCause(Effect.logError))
       )
     },
-    [workspace?.path]
+    [workspacePath]
   )
 
   return useCallback(
@@ -42,11 +42,11 @@ export const useFileEventHandler = (workspace: WorkspaceInfo) => {
         currentPath,
         setFileTreeEvent,
         currentFileContent,
-        workspace,
+        workspacePath,
         fileTree,
         deleteFile
       )
     },
-    [setFileTreeEvent, store, workspace?.path, deleteFile]
+    [setFileTreeEvent, store, workspacePath, deleteFile]
   )
 }

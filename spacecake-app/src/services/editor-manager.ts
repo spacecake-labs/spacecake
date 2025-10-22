@@ -3,10 +3,11 @@ import { Database, PgliteError } from "@/services/database"
 import { FileSystemError } from "@/services/file-system"
 import { Data, Effect, Option } from "effect"
 
-import { isLeft, isRight, left, right } from "@/types/adt"
+import { isLeft, isRight, left, right, type Either } from "@/types/adt"
 import { ViewKind } from "@/types/lexical"
 import {
   AbsolutePath,
+  FileType,
   type EditorCache,
   type EditorFile,
 } from "@/types/workspace"
@@ -27,6 +28,16 @@ export type InitialContent = {
     | { kind: "file"; data: EditorFile }
 }
 
+const determineViewKind = (
+  targetViewKind: ViewKind | undefined,
+  maybeState: Either<PgliteError, EditorCache>,
+  fileType: FileType
+): ViewKind => {
+  if (targetViewKind) return targetViewKind
+  if (isRight(maybeState)) return maybeState.value.viewKind
+  return supportsRichView(fileType) ? "rich" : "source"
+}
+
 export class EditorManager extends Effect.Service<EditorManager>()(
   "EditorManager",
   {
@@ -39,6 +50,7 @@ export class EditorManager extends Effect.Service<EditorManager>()(
 
           if (Option.isSome(maybeEditor)) {
             const editor = maybeEditor.value
+
             yield* Effect.forkDaemon(
               db.updateFileAccessedAt({
                 id: editor.fileId,
@@ -97,8 +109,12 @@ export class EditorManager extends Effect.Service<EditorManager>()(
           const maybeState = yield* readEditorState(props.filePath)
 
           if (isRight(maybeState) && maybeState.value.state) {
-            // if no targetViewKind specified, use the stored viewKind
-            if (!props.targetViewKind) {
+            // if no targetViewKind specified, or it matches the stored viewKind,
+            // return the stored state
+            if (
+              !props.targetViewKind ||
+              props.targetViewKind === maybeState.value.viewKind
+            ) {
               return right<
                 PgliteError | FileSystemError | EditorManagerError,
                 InitialContent
@@ -111,18 +127,7 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               })
             }
 
-            if (maybeState.value.viewKind === props.targetViewKind) {
-              return right<
-                PgliteError | FileSystemError | EditorManagerError,
-                InitialContent
-              >({
-                viewKind: props.targetViewKind,
-                content: {
-                  kind: "state",
-                  data: maybeState.value,
-                },
-              })
-            }
+            // else convert the content to the target view kind
             const fileType = fileTypeFromFileName(props.filePath)
             const content = serializeFromCache(maybeState.value.state, fileType)
             const cid = fnv1a64Hex(content)
@@ -162,9 +167,12 @@ export class EditorManager extends Effect.Service<EditorManager>()(
 
           if (isRight(maybeFile)) {
             const fileType = fileTypeFromFileName(props.filePath)
-            const viewKind =
-              props.targetViewKind ??
-              (supportsRichView(fileType) ? "rich" : "source")
+
+            const viewKind = determineViewKind(
+              props.targetViewKind,
+              maybeState,
+              fileType
+            )
 
             const editor = yield* db.upsertEditor({
               pane_id: props.paneId,

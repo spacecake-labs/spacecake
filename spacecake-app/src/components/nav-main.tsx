@@ -358,7 +358,7 @@ export function NavMain({
               />
             ))}
           {/* Add empty state when workspace has no files/folders */}
-          {workspace?.path && !sortedFileTree.length && (
+          {workspace?.path && !sortedFileTree?.length && (
             <SidebarMenuItem>
               <SidebarMenuButton className="cursor-default">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">

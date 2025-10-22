@@ -31,11 +31,11 @@ export const handleFileEvent = async (
   currentPath: string | null,
   setFileTreeEvent: (
     event: FileTreeEvent,
-    workspace: WorkspaceInfo,
+    workspacePath: WorkspaceInfo["path"],
     deleteFile: (filePath: AbsolutePath) => Promise<void>
   ) => void,
   currentFileContent: FileContent | null,
-  workspace: WorkspaceInfo,
+  workspacePath: WorkspaceInfo["path"],
   fileTree: FileTree,
   deleteFile: (filePath: AbsolutePath) => Promise<void>
 ) => {
@@ -50,7 +50,7 @@ export const handleFileEvent = async (
         onLeft: (error) => {
           console.error(error)
           // If we can't read the file, we can't treat it as a content change, so we pass it through as an addFile event.
-          setFileTreeEvent(event, workspace, deleteFile)
+          setFileTreeEvent(event, workspacePath, deleteFile)
         },
         onRight: (file) => {
           processedEvent = {
@@ -90,11 +90,11 @@ export const handleFileEvent = async (
         fileType: processedEvent.fileType,
         cid: processedEvent.cid,
       },
-      workspace,
+      workspacePath,
       deleteFile
     )
   } else {
     // Handle other file tree events
-    setFileTreeEvent(processedEvent, workspace, deleteFile)
+    setFileTreeEvent(processedEvent, workspacePath, deleteFile)
   }
 }

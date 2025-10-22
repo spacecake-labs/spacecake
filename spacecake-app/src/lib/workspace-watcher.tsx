@@ -1,32 +1,31 @@
 import { useLayoutEffect, useRef } from "react"
 
 import { match } from "@/types/adt"
-import { AbsolutePath, WorkspaceInfo } from "@/types/workspace"
+import { WorkspaceInfo } from "@/types/workspace"
 import { startWatcher, stopWatcher } from "@/lib/fs"
 import { useFileEventHandler } from "@/hooks/use-file-event-handler"
 
 interface WorkspaceWatcherProps {
-  workspace: WorkspaceInfo
+  workspacePath: WorkspaceInfo["path"]
 }
 
-export function WorkspaceWatcher({ workspace }: WorkspaceWatcherProps) {
-  const handleEvent = useFileEventHandler(workspace)
+export function WorkspaceWatcher({ workspacePath }: WorkspaceWatcherProps) {
+  const handleEvent = useFileEventHandler(workspacePath)
   const isListeningRef = useRef(false)
   const currentWorkspaceRef = useRef<string | null>(null)
 
   useLayoutEffect(() => {
-    const path = workspace?.path
-    if (!path || path === "/") {
-      return
-    }
     // prevent duplicate listeners for the same workspace
-    if (isListeningRef.current && currentWorkspaceRef.current === path) {
+    if (
+      isListeningRef.current &&
+      currentWorkspaceRef.current === workspacePath
+    ) {
       return
     }
 
     let off: (() => void) | undefined
 
-    startWatcher(AbsolutePath(path))
+    startWatcher(workspacePath)
       .then((result) => {
         match(result, {
           onLeft: (error) => console.error(error),
@@ -36,7 +35,7 @@ export function WorkspaceWatcher({ workspace }: WorkspaceWatcherProps) {
               handleEvent(event)
             })
             isListeningRef.current = true
-            currentWorkspaceRef.current = path
+            currentWorkspaceRef.current = workspacePath
           },
         })
       })
@@ -51,9 +50,9 @@ export function WorkspaceWatcher({ workspace }: WorkspaceWatcherProps) {
         currentWorkspaceRef.current = null
       }
       // stop watching the workspace when component unmounts
-      stopWatcher(AbsolutePath(path))
+      stopWatcher(workspacePath)
     }
-  }, [workspace?.path])
+  }, [workspacePath])
 
   return null
 }

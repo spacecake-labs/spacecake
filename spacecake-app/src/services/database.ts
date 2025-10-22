@@ -46,7 +46,7 @@ const execute = <A, I, T, E>(
   flow(
     Schema.decode(schema),
     Effect.flatMap(Schema.encode(schema)),
-    Effect.tap((encoded) => Effect.log("db:", encoded)),
+    // Effect.tap((encoded) => Effect.log("db:", encoded)),
     Effect.mapError((error) => new PgliteError({ cause: error })),
     Effect.flatMap(exec)
   )
@@ -57,7 +57,7 @@ export class Database extends Effect.Service<Database>()("Database", {
       try: () =>
         PGlite.create(`idb://spacecake`, {
           extensions: { live },
-          // relaxedDurability: true,
+          relaxedDurability: true,
         }),
       catch: (error) => {
         return new PgliteError({ cause: error })
@@ -119,10 +119,10 @@ export class Database extends Effect.Service<Database>()("Database", {
         singleResult(
           () => new PgliteError({ cause: "workspace not upserted" })
         ),
-        Effect.flatMap(Schema.decode(WorkspaceSelectSchema)),
-        Effect.tap((workspace) =>
-          Effect.log("db: upserted workspace:", workspace)
-        )
+        Effect.flatMap(Schema.decode(WorkspaceSelectSchema))
+        // Effect.tap((workspace) =>
+        //   Effect.log("db: upserted workspace:", workspace)
+        // )
       ),
 
       upsertFile: () =>
@@ -146,8 +146,8 @@ export class Database extends Effect.Service<Database>()("Database", {
             })
           ),
           singleResult(() => new PgliteError({ cause: "file not upserted" })),
-          Effect.flatMap(Schema.decode(FileSelectSchema)),
-          Effect.tap((file) => Effect.log("db: upserted file:", file))
+          Effect.flatMap(Schema.decode(FileSelectSchema))
+          // Effect.tap((file) => Effect.log("db: upserted file:", file))
         ),
 
       updateFileAccessedAt: flow(
@@ -160,8 +160,8 @@ export class Database extends Effect.Service<Database>()("Database", {
                 .where(eq(fileTable.id, values.id))
             )
           })
-        ),
-        Effect.tap((file) => Effect.log("db: updated file accessed at:", file))
+        )
+        // Effect.tap((file) => Effect.log("db: updated file accessed at:", file))
       ),
 
       upsertPane: flow(
@@ -190,8 +190,8 @@ export class Database extends Effect.Service<Database>()("Database", {
           })
         ),
         singleResult(() => new PgliteError({ cause: "pane not upserted" })),
-        Effect.flatMap(Schema.decode(PaneSelectSchema)),
-        Effect.tap((pane) => Effect.log("db: upserted pane:", pane))
+        Effect.flatMap(Schema.decode(PaneSelectSchema))
+        // Effect.tap((pane) => Effect.log("db: upserted pane:", pane))
       ),
 
       upsertEditor: flow(
@@ -215,8 +215,8 @@ export class Database extends Effect.Service<Database>()("Database", {
           })
         ),
         singleResult(() => new PgliteError({ cause: "editor not upserted" })),
-        Effect.flatMap(Schema.decode(EditorSelectSchema)),
-        Effect.tap((editor) => Effect.log("db: upserted editor:", editor))
+        Effect.flatMap(Schema.decode(EditorSelectSchema))
+        // Effect.tap((editor) => Effect.log("db: upserted editor:", editor))
       ),
 
       updateEditorAccessedAt: flow(
@@ -229,10 +229,10 @@ export class Database extends Effect.Service<Database>()("Database", {
                 .where(eq(editorTable.id, values.id))
             )
           })
-        ),
-        Effect.tap((editor) =>
-          Effect.log("db: updated editor accessed at:", editor)
         )
+        // Effect.tap((editor) =>
+        //   Effect.log("db: updated editor accessed at:", editor)
+        // )
       ),
 
       updateEditorState: flow(
@@ -250,8 +250,8 @@ export class Database extends Effect.Service<Database>()("Database", {
                 .where(eq(editorTable.id, values.id))
             )
           })
-        ),
-        Effect.tap((editor) => Effect.log("db: updated editor state:", editor))
+        )
+        // Effect.tap((editor) => Effect.log("db: updated editor state:", editor))
       ),
 
       updateEditorSelection: flow(
@@ -265,10 +265,10 @@ export class Database extends Effect.Service<Database>()("Database", {
                 .where(eq(editorTable.id, values.id))
             )
           })
-        ),
-        Effect.tap((editor) =>
-          Effect.log("db: updated editor selection:", editor)
         )
+        // Effect.tap((editor) =>
+        //   Effect.log("db: updated editor selection:", editor)
+        // )
       ),
 
       deleteFile: (filePath: AbsolutePath) =>
@@ -276,10 +276,10 @@ export class Database extends Effect.Service<Database>()("Database", {
           return yield* query((_) =>
             _.delete(fileTable).where(eq(fileTable.path, filePath)).returning()
           ).pipe(
-            singleResult(() => new PgliteError({ cause: "file not deleted" })),
-            Effect.tap((deletedFiles) =>
-              Effect.log("db: deleted file:", deletedFiles)
-            )
+            singleResult(() => new PgliteError({ cause: "file not deleted" }))
+            // Effect.tap((deletedFiles) =>
+            //   Effect.log("db: deleted file:", deletedFiles)
+            // )
           )
         }),
 

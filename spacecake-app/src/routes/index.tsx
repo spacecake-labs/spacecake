@@ -69,9 +69,10 @@ export const Route = createFileRoute("/")({
 })
 
 function Index() {
+  const loaderData = Route.useLoaderData()
+  const searchData = Route.useSearch()
   const notFoundPath =
-    Option.getOrNull(Route.useLoaderData().notFoundPath) ??
-    Route.useSearch().notFoundPath
+    Option.getOrNull(loaderData.notFoundPath) ?? searchData.notFoundPath
 
   const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
 
