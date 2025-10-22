@@ -50,6 +50,9 @@ test.describe("route not found", () => {
 
     await window.getByRole("button", { name: "open folder" }).click()
 
+    // wait for watcher to be ready
+    await window.waitForTimeout(1000)
+
     // delete the workspace directory
     fs.rmSync(tempTestDir, { recursive: true, force: true, maxRetries: 5 })
 

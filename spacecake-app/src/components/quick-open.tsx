@@ -23,17 +23,17 @@ const quickOpenSearchAtom = atom("")
 const quickOpenParentAtom = atom<HTMLDivElement | null>(null)
 
 interface QuickOpenProps {
-  workspace: WorkspaceInfo
+  workspacePath: WorkspaceInfo["path"]
 }
 
-export function QuickOpen({ workspace }: QuickOpenProps) {
+export function QuickOpen({ workspacePath }: QuickOpenProps) {
   const [isOpen, setIsOpen] = useAtom(quickOpenMenuOpenAtom)
   const [search, setSearch] = useAtom(quickOpenSearchAtom)
 
   // Get file tree from atom and derive file items
   const fileTree = useAtomValue(fileTreeAtom)
-  const allFileItems = getQuickOpenFileItems(workspace, fileTree)
-  const recentFiles = useRecentFiles(workspace?.path)
+  const allFileItems = getQuickOpenFileItems(workspacePath, fileTree)
+  const recentFiles = useRecentFiles(workspacePath)
 
   if (recentFiles.error) {
     console.error("error getting recent files", recentFiles.error)
@@ -65,7 +65,7 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
           name: fileName,
           fileType: fileTypeFromFileName(file.path),
           lastAccessed: new Date(file.last_accessed_at).getTime(),
-          workspacePath: workspace?.path,
+          workspacePath: workspacePath,
         }
       })
 
@@ -73,23 +73,23 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
         allFileItems,
         recentFilesList,
         search,
-        workspace?.path
+        workspacePath
       )
     }
     return []
-  }, [search, allFileItems, recentFiles, workspace?.path])
+  }, [search, allFileItems, recentFiles, workspacePath])
 
   const rowVirtualizer = useVirtualizer({
-    count: filteredItems.length,
+    count: filteredItems?.length ?? 0,
     getScrollElement: () => parent,
     estimateSize: () => 32,
     overscan: 5,
   })
 
   const handleSelectFile = (file: File) => {
-    if (!workspace?.path) return
+    if (!workspacePath) return
 
-    const workspaceIdEncoded = encodeBase64Url(workspace.path)
+    const workspaceIdEncoded = encodeBase64Url(workspacePath)
     const filePathEncoded = encodeBase64Url(AbsolutePath(file.path))
 
     navigate({
@@ -123,7 +123,7 @@ export function QuickOpen({ workspace }: QuickOpenProps) {
         onValueChange={setSearch}
       />
       <CommandList ref={setParent}>
-        {rowVirtualizer.getVirtualItems().length === 0 && search.length > 0 ? (
+        {rowVirtualizer.getVirtualItems().length === 0 && search ? (
           <CommandEmpty>no results found</CommandEmpty>
         ) : null}
         <div

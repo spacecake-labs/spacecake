@@ -635,6 +635,9 @@ test.describe("spacecake app", () => {
       window.getByRole("button", { name: "persistent-file.txt" })
     ).toBeVisible()
 
+    // wait for workspace to be logged in db
+    await window.waitForTimeout(1000)
+
     // 4. Reload the window
     // At some point we should improve this test
     // to simulate a proper restart

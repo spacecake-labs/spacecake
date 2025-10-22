@@ -265,7 +265,7 @@ function LayoutContent() {
 }
 
 function WorkspaceLayout() {
-  const { workspace } = Route.useLoaderData()
+  const { workspace } = Route.useRouteContext()
 
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
@@ -296,15 +296,26 @@ function WorkspaceLayout() {
     }
   }, [workspace?.path, setIsCreatingInContext, setContextItemName])
 
+  if (!workspace?.path) {
+    return (
+      <>
+        <div className="flex h-screen">
+          <SidebarProvider>
+            <LayoutContent />
+          </SidebarProvider>
+        </div>
+      </>
+    )
+  }
   return (
     <>
-      <WorkspaceWatcher workspace={workspace} />
+      <WorkspaceWatcher workspacePath={workspace.path} />
       <div className="flex h-screen">
         <SidebarProvider>
           <LayoutContent />
         </SidebarProvider>
       </div>
-      <QuickOpen workspace={workspace} />
+      <QuickOpen workspacePath={workspace.path} />
     </>
   )
 }

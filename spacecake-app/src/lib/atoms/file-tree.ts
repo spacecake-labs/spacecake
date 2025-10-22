@@ -1,4 +1,5 @@
 import { fileStateMachine } from "@/machines/file-tree"
+import { router } from "@/router"
 // hook to get file state only if it has been opened
 import { atom } from "jotai"
 import { atomWithMachine } from "jotai-xstate"
@@ -119,15 +120,15 @@ export const fileTreeEventAtom = atom(
     get,
     set,
     event: FileTreeEvent,
-    workspace: WorkspaceInfo,
+    workspacePath: WorkspaceInfo["path"],
     deleteFile: (filePath: AbsolutePath) => Promise<void>
   ) => {
-    if (!workspace.path) return
+    if (!workspacePath) return
 
     const currentTree = get(fileTreeAtom)
     const absolutePath = AbsolutePath(event.path)
 
-    if (!absolutePath.startsWith(workspace.path)) {
+    if (!absolutePath.startsWith(workspacePath)) {
       return
     }
 
@@ -164,7 +165,7 @@ export const fileTreeEventAtom = atom(
                 isExpanded: true, // Set to true for auto-expansion
               }
 
-        if (parentPath === null || parentPath === workspace.path) {
+        if (parentPath === null || parentPath === workspacePath) {
           // Add to workspace root level
           if (currentTree.find((i) => i.path === absolutePath)) return
           set(fileTreeAtom, [...currentTree, newItem])
@@ -204,17 +205,28 @@ export const fileTreeEventAtom = atom(
         break
       }
 
-      case "unlinkFile":
-      case "unlinkFolder": {
+      case "unlinkFile": {
         const newTree = removeItemFromTree(currentTree, absolutePath)
         set(fileTreeAtom, newTree)
+        ;(async () => {
+          await deleteFile(absolutePath)
+        })()
 
-        // also remove from database if it's a file
-        if (event.kind === "unlinkFile") {
-          ;(async () => {
-            await deleteFile(absolutePath)
-          })()
+        break
+      }
+      case "unlinkFolder": {
+        if (absolutePath === workspacePath) {
+          router.navigate({
+            to: "/",
+            search: {
+              notFoundPath: workspacePath,
+            },
+            replace: true,
+          })
+          break
         }
+        const newTree = removeItemFromTree(currentTree, absolutePath)
+        set(fileTreeAtom, newTree)
         break
       }
     }
@@ -247,10 +259,10 @@ export const sortedFileTreeAtom = atom((get) => {
 
 // Function to get quick open file items for a specific workspace
 export const getQuickOpenFileItems = (
-  workspace: WorkspaceInfo,
+  workspacePath: WorkspaceInfo["path"],
   fileTree: FileTree
 ): QuickOpenFileItem[] => {
-  if (!workspace?.path) return []
+  if (!workspacePath) return []
 
   // Flatten the file tree to get all files
   const flatten = (items: FileTree): File[] => {
@@ -267,7 +279,7 @@ export const getQuickOpenFileItems = (
 
   const files = flatten(fileTree)
   return files.map((file) => {
-    const displayPath = parentFolderName(file.path, workspace.path, file.name)
+    const displayPath = parentFolderName(file.path, workspacePath, file.name)
     return { file, displayPath }
   })
 }
