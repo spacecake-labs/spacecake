@@ -40,6 +40,9 @@ codegen:
 drizzle:
     pnpm run drizzle
 
+upgrade-lexical:
+    pnpm update --latest lexical "@lexical/*"
+
 print-py-nodes file:
     npx tsx scripts/print-py-nodes.ts {{file}}
 
