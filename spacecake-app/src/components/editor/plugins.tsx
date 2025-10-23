@@ -37,7 +37,7 @@ export const Plugins = React.memo(function Plugins() {
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
-        <AutoFocusPlugin defaultSelection="rootEnd" />
+        <AutoFocusPlugin defaultSelection="rootStart" />
 
         <ClickableLinkPlugin />
         <CheckListPlugin />

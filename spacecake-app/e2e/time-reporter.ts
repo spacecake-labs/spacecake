@@ -8,12 +8,12 @@ import type {
 class TimeReporter implements Reporter {
   onTestEnd(_test: TestCase, result: TestResult) {
     const duration = (result.duration / 1000).toFixed(2)
-    console.log(`\t⏳: \x1b[32m${duration}s\x1b[0m`)
+    console.log(`\t⏳ \x1b[32m${duration}s\x1b[0m`)
   }
 
   onEnd(result: FullResult) {
     const duration = (result.duration / 1000).toFixed(2)
-    console.log(`\t⌛ total: \x1b[32m${duration}s\x1b[0m`)
+    console.log(`\ttotal ⌛ \x1b[32m${duration}s\x1b[0m`)
   }
 }
 
