@@ -19,16 +19,13 @@ import {
   Folder,
   WorkspaceInfo,
 } from "@/types/workspace"
-import {
-  contextItemNameAtom,
-  isCreatingInContextAtom,
-  openedFilesAtom,
-} from "@/lib/atoms/atoms"
+import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { mergeExpandedFolders } from "@/lib/auto-reveal"
 import { supportedViews } from "@/lib/language-support"
 import { encodeBase64Url } from "@/lib/utils"
 import { getNavItemIcon } from "@/lib/workspace"
+import { useWorkspaceCache } from "@/hooks/use-workspace-cache"
 import { Button } from "@/components/ui/button"
 import {
   Collapsible,
@@ -312,21 +309,23 @@ function CancelRenameButton({ onCancel }: { onCancel: () => void }) {
 function FileStatusIndicator({ filePath }: { filePath: AbsolutePath }) {
   const state = useAtomValue(fileStateAtomFamily(filePath)).value
 
-  if (state === "Conflict" || state === "ExternalChange") {
-    return (
-      <AlertTriangle
-        className="ml-auto size-3 shrink-0 text-yellow-500"
-        aria-label="file has conflict or external changes"
-      />
-    )
-  }
-
   if (state === "Dirty") {
+    // Machine state (for opened files being edited) takes precedence
     return (
       <div
         className="ml-auto size-2 shrink-0 rounded-full bg-foreground"
         aria-label="unsaved changes"
         title="unsaved changes"
+      />
+    )
+  }
+
+  // Show conflict/external change from machine state
+  if (state === "Conflict" || state === "ExternalChange") {
+    return (
+      <AlertTriangle
+        className="ml-auto size-3 shrink-0 text-yellow-500"
+        aria-label="file has conflict or external changes"
       />
     )
   }
@@ -339,14 +338,16 @@ function ItemButton({
   isSelected,
   onClick,
   showChevron = false,
+  workspace,
 }: {
   item: File | Folder
-  isSelected?: boolean
+  isSelected: boolean
   onClick: () => void
   showChevron?: boolean
+  workspace: WorkspaceInfo
 }) {
-  const openedFiles = useAtomValue(openedFilesAtom)
-  const isFileOpened = openedFiles.has(item.path)
+  const { cacheMap } = useWorkspaceCache(workspace.path)
+  const cached = cacheMap.has(item.path)
 
   return (
     <SidebarMenuButton
@@ -357,7 +358,7 @@ function ItemButton({
       {showChevron && <ChevronRight className="transition-transform" />}
       {React.createElement(getNavItemIcon(item))}
       <span className="truncate">{item.name}</span>
-      {item.kind === "file" && isFileOpened && (
+      {item.kind === "file" && cached && (
         <FileStatusIndicator filePath={item.path} />
       )}
     </SidebarMenuButton>
@@ -450,6 +451,7 @@ export function WorkspaceTree({
               item={item}
               isSelected={isSelected}
               onClick={() => {}}
+              workspace={workspace}
             />
           </Link>
         )}
@@ -483,8 +485,10 @@ export function WorkspaceTree({
             ) : (
               <ItemButton
                 item={item}
+                isSelected={isSelected}
                 onClick={() => onFolderToggle(filePath)}
                 showChevron={true}
+                workspace={workspace}
               />
             )}
           </CollapsibleTrigger>

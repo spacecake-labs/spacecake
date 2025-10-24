@@ -19,13 +19,11 @@ import {
   type ChangeType,
 } from "@/types/lexical"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
-import { openedFilesAtom } from "@/lib/atoms/atoms"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import {
   createEditorConfigFromContent,
   createEditorConfigFromState,
 } from "@/lib/editor"
-import { store } from "@/lib/store"
 import { decodeBase64Url } from "@/lib/utils"
 import { Editor } from "@/components/editor/editor"
 import { FileConflictBanner } from "@/components/editor/file-conflict-banner"
@@ -72,10 +70,6 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
             replace: true,
           })
         }
-
-        store.set(openedFilesAtom, (openedFiles: Set<AbsolutePath>) => {
-          return new Set([...openedFiles, filePath])
-        })
 
         return {
           workspace,

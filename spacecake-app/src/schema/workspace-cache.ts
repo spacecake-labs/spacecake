@@ -13,7 +13,7 @@ export const WorkspaceCacheRowSchema = Schema.Struct({
   fileId: FilePrimaryKeySchema,
   view_kind: ViewKindSchema,
   has_cached_state: Schema.Boolean,
-  mtime: Schema.String,
+  mtime: Schema.DateFromSelf,
   cid: Schema.String,
 })
 

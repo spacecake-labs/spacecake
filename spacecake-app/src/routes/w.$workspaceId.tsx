@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from "react"
+import { FileStateHydrationEvent } from "@/machines/file-tree"
 import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
@@ -20,7 +21,7 @@ import { Check, Copy } from "lucide-react"
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
-import { setFileTreeAtom } from "@/lib/atoms/file-tree"
+import { fileStateAtomFamily, setFileTreeAtom } from "@/lib/atoms/file-tree"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
 import { exists, readDirectory } from "@/lib/fs"
 import { store } from "@/lib/store"
@@ -89,7 +90,21 @@ export const Route = createFileRoute("/w/$workspaceId")({
     const result = await readDirectory(workspace.path)
     match(result, {
       onLeft: (error) => console.error(error),
-      onRight: (tree) => {
+      onRight: async (tree) => {
+        // hydrate file state machine atoms
+        await RuntimeClient.runPromise(
+          Effect.gen(function* () {
+            const db = yield* Database
+            const cache = yield* db.selectWorkspaceCache(workspace.path)
+            cache.forEach((row) => {
+              const event: FileStateHydrationEvent = {
+                type: row.has_cached_state ? "file.dirty" : "file.clean",
+              }
+              store.set(fileStateAtomFamily(row.filePath), event)
+            })
+          })
+        )
+
         store.set(setFileTreeAtom, tree)
       },
     })

@@ -342,7 +342,7 @@ export function NavMain({
                 onStartDelete={handleStartDelete}
                 onCreateFile={handleCreateFile}
                 onCreateFolder={handleCreateFolder}
-                selectedFilePath={initialSelectedFilePath} // Use the prop here
+                selectedFilePath={initialSelectedFilePath}
                 expandedFolders={expandedFoldersState}
                 foldersToExpand={foldersToExpand}
                 editingItem={editingItem}
