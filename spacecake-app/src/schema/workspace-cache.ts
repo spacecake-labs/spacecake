@@ -1,3 +1,4 @@
+import { EditorPrimaryKeySchema } from "@/schema/editor"
 import { FilePrimaryKeySchema } from "@/schema/file"
 import { Schema } from "effect"
 
@@ -15,6 +16,7 @@ export const WorkspaceCacheRowSchema = Schema.Struct({
   has_cached_state: Schema.Boolean,
   mtime: Schema.DateFromSelf,
   cid: Schema.String,
+  editorId: Schema.NullOr(EditorPrimaryKeySchema),
 })
 
 export type WorkspaceCacheRow = typeof WorkspaceCacheRowSchema.Type

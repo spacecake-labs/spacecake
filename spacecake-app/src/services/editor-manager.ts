@@ -1,4 +1,5 @@
 import { PaneSelect } from "@/schema"
+import { EditorPrimaryKey } from "@/schema/editor"
 import { Database, PgliteError } from "@/services/database"
 import { FileSystemError } from "@/services/file-system"
 import { Data, Effect, Option } from "effect"
@@ -44,9 +45,14 @@ export class EditorManager extends Effect.Service<EditorManager>()(
     effect: Effect.gen(function* () {
       const db = yield* Database
 
-      const readEditorState = (filePath: AbsolutePath) =>
+      const readEditorState = (
+        filePath: AbsolutePath,
+        editorId?: EditorPrimaryKey
+      ) =>
         Effect.gen(function* () {
-          const maybeEditor = yield* db.selectLatestEditorStateForFile(filePath)
+          const maybeEditor = yield* editorId
+            ? db.selectEditorStateById(editorId)
+            : db.selectLatestEditorStateForFile(filePath)
 
           if (Option.isSome(maybeEditor)) {
             const editor = maybeEditor.value
@@ -104,9 +110,13 @@ export class EditorManager extends Effect.Service<EditorManager>()(
         filePath: AbsolutePath
         paneId: PaneSelect["id"]
         targetViewKind?: ViewKind | undefined
+        editorId?: EditorPrimaryKey | undefined
       }) =>
         Effect.gen(function* () {
-          const maybeState = yield* readEditorState(props.filePath)
+          const maybeState = yield* readEditorState(
+            props.filePath,
+            props.editorId
+          )
 
           if (isRight(maybeState) && maybeState.value.state) {
             // if no targetViewKind specified, or it matches the stored viewKind,

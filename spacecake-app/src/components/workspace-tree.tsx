@@ -430,11 +430,12 @@ export function WorkspaceTree({
 
     const canToggleViews = supportedViews(item.fileType).size > 1
 
-    // get the view kind from cache
+    // get the view kind and editorId from cache
     const { cacheMap } = useWorkspaceCache(workspace.path)
     const cacheEntry = cacheMap.get(item.path)
     const view =
       cacheEntry?.view_kind ?? (canToggleViews ? undefined : "source")
+    const editorId = cacheEntry?.editorId ?? undefined
 
     return (
       <SidebarMenuItem>
@@ -453,7 +454,7 @@ export function WorkspaceTree({
               filePath: filePathEncoded,
             }}
             // preload="intent"
-            search={{ view }}
+            search={{ view, editorId }}
             className="w-full"
           >
             <ItemButton
