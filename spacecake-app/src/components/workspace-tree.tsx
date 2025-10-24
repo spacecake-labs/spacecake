@@ -3,9 +3,9 @@ import * as React from "react"
 import { Link } from "@tanstack/react-router"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
-  AlertTriangle,
   ChevronRight,
   FileWarning,
+  Loader2,
   MoreHorizontal,
   Plus,
   X,
@@ -310,7 +310,6 @@ function FileStatusIndicator({ filePath }: { filePath: AbsolutePath }) {
   const state = useAtomValue(fileStateAtomFamily(filePath)).value
 
   if (state === "Dirty") {
-    // Machine state (for opened files being edited) takes precedence
     return (
       <div
         className="ml-auto size-2 shrink-0 rounded-full bg-foreground"
@@ -320,12 +319,16 @@ function FileStatusIndicator({ filePath }: { filePath: AbsolutePath }) {
     )
   }
 
-  // Show conflict/external change from machine state
-  if (state === "Conflict" || state === "ExternalChange") {
+  // show spinner until resolved
+  if (state === "ExternalChange") {
+    return <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+  }
+
+  if (state === "Conflict") {
     return (
-      <AlertTriangle
-        className="ml-auto size-3 shrink-0 text-yellow-500"
-        aria-label="file has conflict or external changes"
+      <FileWarning
+        className="ml-auto size-3 shrink-0"
+        aria-label="file has conflicting changes"
       />
     )
   }
@@ -427,6 +430,12 @@ export function WorkspaceTree({
 
     const canToggleViews = supportedViews(item.fileType).size > 1
 
+    // get the view kind from cache
+    const { cacheMap } = useWorkspaceCache(workspace.path)
+    const cacheEntry = cacheMap.get(item.path)
+    const view =
+      cacheEntry?.view_kind ?? (canToggleViews ? undefined : "source")
+
     return (
       <SidebarMenuItem>
         {isRenaming ? (
@@ -444,7 +453,7 @@ export function WorkspaceTree({
               filePath: filePathEncoded,
             }}
             // preload="intent"
-            search={{ view: canToggleViews ? undefined : "source" }}
+            search={{ view }}
             className="w-full"
           >
             <ItemButton
