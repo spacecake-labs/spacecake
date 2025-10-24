@@ -90,7 +90,6 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   gcTime: 0,
   // Only reload the route when the user navigates to it or when deps change
   shouldReload: false,
-  pendingMs: 0,
 })
 
 function FileLayout() {
