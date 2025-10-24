@@ -2,7 +2,15 @@ import { router } from "@/router"
 import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
 import { Effect } from "effect"
-import { ActorRefFrom, assign, fromPromise, setup, spawnChild } from "xstate"
+import {
+  ActorRefFrom,
+  assign,
+  EventFromLogic,
+  fromPromise,
+  setup,
+  spawnChild,
+  type SnapshotFrom,
+} from "xstate"
 
 import { AbsolutePath } from "@/types/workspace"
 
@@ -11,10 +19,34 @@ type FileStateMachineContext = {
   invalidateRoute: () => Promise<void>
 }
 
+type FILE_STATE_KEYS = {
+  Idle: null
+  Clean: null
+  Dirty: null
+  ExternalChange: null
+  Conflict: null
+  ClearingEditorStates: null
+  Reloading: null
+}
+
+export type FileState = keyof FILE_STATE_KEYS
+
+export type FileStateEvent = EventFromLogic<typeof fileStateMachine>
+export type FileStateHydrationEvent = Extract<
+  FileStateEvent,
+  { type: "file.clean" | "file.dirty" }
+>
+
 export const fileStateMachine = setup({
   types: {
     context: {} as FileStateMachineContext,
     events: {} as
+      | {
+          type: "file.clean"
+        }
+      | {
+          type: "file.dirty"
+        }
       | {
           type: "file.edit"
         }
@@ -53,7 +85,7 @@ export const fileStateMachine = setup({
   },
 }).createMachine({
   id: "file",
-  initial: "Clean",
+  initial: "Idle",
   context: ({ input }) => {
     return {
       filePath: input.filePath,
@@ -61,6 +93,12 @@ export const fileStateMachine = setup({
     }
   },
   states: {
+    Idle: {
+      on: {
+        "file.clean": "Clean",
+        "file.dirty": "Dirty",
+      },
+    },
     Clean: {
       on: {
         "file.edit": "Dirty",
@@ -88,7 +126,9 @@ export const fileStateMachine = setup({
     ClearingEditorStates: {
       invoke: {
         src: "clearEditorStatesForFile",
-        input: ({ context }) => ({ filePath: context.filePath }),
+        input: ({ context }: { context: FileStateMachineContext }) => ({
+          filePath: context.filePath,
+        }),
         onDone: "Reloading",
         onError: "Conflict",
       },
@@ -96,14 +136,14 @@ export const fileStateMachine = setup({
     Reloading: {
       invoke: {
         src: "reloadRoute",
-        input: ({ context }) => ({
+        input: ({ context }: { context: FileStateMachineContext }) => ({
           invalidateRoute: context.invalidateRoute,
         }),
         onDone: "Clean",
         onError: "Conflict",
       },
     },
-  },
+  } as const satisfies Record<FileState, unknown>,
 })
 
 type FileActorRef = ActorRefFrom<typeof fileStateMachine>
@@ -146,3 +186,5 @@ export const fileTreeMachine = setup({
     },
   },
 })
+
+export type T = SnapshotFrom<typeof fileTreeMachine>

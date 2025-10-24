@@ -257,6 +257,21 @@ export const sortedFileTreeAtom = atom((get) => {
   return sortTree(fileTree)
 })
 
+/**
+ * Flattens a FileTree to get all files (excluding folders).
+ */
+export const flattenFiles = (tree: FileTree): File[] => {
+  const files: File[] = []
+  for (const item of tree) {
+    if (item.kind === "file") {
+      files.push(item)
+    } else if (item.kind === "folder") {
+      files.push(...flattenFiles(item.children))
+    }
+  }
+  return files
+}
+
 // Function to get quick open file items for a specific workspace
 export const getQuickOpenFileItems = (
   workspacePath: WorkspaceInfo["path"],
@@ -264,20 +279,7 @@ export const getQuickOpenFileItems = (
 ): QuickOpenFileItem[] => {
   if (!workspacePath) return []
 
-  // Flatten the file tree to get all files
-  const flatten = (items: FileTree): File[] => {
-    let files: File[] = []
-    for (const item of items) {
-      if (item.kind === "file") {
-        files.push(item)
-      } else if (item.kind === "folder") {
-        files = files.concat(flatten(item.children))
-      }
-    }
-    return files
-  }
-
-  const files = flatten(fileTree)
+  const files = flattenFiles(fileTree)
   return files.map((file) => {
     const displayPath = parentFolderName(file.path, workspacePath, file.name)
     return { file, displayPath }
@@ -290,7 +292,4 @@ const createFileStateMachineAtom = (filePath: AbsolutePath) =>
     () => ({ input: { filePath } })
   )
 
-export const fileStateAtomFamily = atomFamily(
-  createFileStateMachineAtom,
-  (a, b) => a === b
-)
+export const fileStateAtomFamily = atomFamily(createFileStateMachineAtom)

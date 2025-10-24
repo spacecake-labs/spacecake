@@ -34,6 +34,7 @@ import { drizzle } from "drizzle-orm/pglite"
 import { Console, Data, DateTime, Effect, flow, Option, Schema } from "effect"
 
 import { AbsolutePath } from "@/types/workspace"
+import { workspaceCacheQuery } from "@/lib/db/queries"
 
 export class PgliteError extends Data.TaggedError("PgliteError")<{
   cause: unknown
@@ -80,6 +81,9 @@ export class Database extends Effect.Service<Database>()("Database", {
       client,
       orm,
       query,
+
+      selectWorkspaceCache: (workspacePath: AbsolutePath) =>
+        query((_) => workspaceCacheQuery(_, workspacePath)),
 
       selectLastOpenedWorkspace: query((_) =>
         _.select()
