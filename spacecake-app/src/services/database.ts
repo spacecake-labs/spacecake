@@ -26,6 +26,7 @@ import {
   type PaneInsert,
   type WorkspaceInsert,
 } from "@/schema"
+import { EditorPrimaryKey } from "@/schema/editor"
 import { maybeSingleResult, singleResult } from "@/services/utils"
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
@@ -392,6 +393,31 @@ export class Database extends Effect.Service<Database>()("Database", {
               .where(eq(fileTable.path, filePath))
           )
         }),
+
+      selectEditorStateById: (editorId: EditorPrimaryKey) =>
+        query((_) =>
+          _.select({
+            id: editorTable.id,
+            state: editorTable.state,
+            view_kind: editorTable.view_kind,
+            selection: editorTable.selection,
+            fileId: editorTable.file_id,
+          })
+            .from(editorTable)
+            .where(eq(editorTable.id, editorId))
+            .limit(1)
+        ).pipe(
+          maybeSingleResult(),
+          Effect.flatMap(
+            Option.match({
+              onNone: () => Effect.succeed(Option.none()),
+              onSome: (value) =>
+                Schema.decode(EditorStateWithFileIdSelectSchema)(value).pipe(
+                  Effect.map(Option.some)
+                ),
+            })
+          )
+        ),
 
       // selectRecentFiles: (workspacePath: AbsolutePath) =>
       //   query((_) =>

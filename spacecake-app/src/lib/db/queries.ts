@@ -1,6 +1,7 @@
 import { editorTable, fileTable } from "@/schema/drizzle"
+import { EditorPrimaryKey } from "@/schema/editor"
 import { FilePrimaryKey } from "@/schema/file"
-import { eq, like, sql } from "drizzle-orm"
+import { desc, eq, like, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 
 import { AbsolutePath } from "@/types/workspace"
@@ -17,10 +18,16 @@ type Orm = ReturnType<typeof drizzle>
  * - has_cached_state: whether an editor state exists for this file
  * - mtime: modification time of the file
  * - cid: content ID hash of the file
+ * - editorId: the primary key of the most recently accessed editor for this file (null if none exists)
+ *
+ * Uses PostgreSQL's DISTINCT ON to efficiently select only the most recently
+ * accessed editor for each file, even when multiple editors exist per file.
+ * A single query with DISTINCT ON (file_id) ordered by descending last_accessed_at
+ * ensures we get the most recent editor per file deterministically.
  */
 export const workspaceCacheQuery = (orm: Orm, workspacePath: AbsolutePath) => {
   return orm
-    .select({
+    .selectDistinctOn([fileTable.id], {
       filePath: sql<AbsolutePath>`${fileTable.path}`.as("filePath"),
       fileId: sql<FilePrimaryKey>`${fileTable.id}`.as("fileId"),
       view_kind: editorTable.view_kind,
@@ -29,8 +36,10 @@ export const workspaceCacheQuery = (orm: Orm, workspacePath: AbsolutePath) => {
       ),
       mtime: fileTable.mtime,
       cid: fileTable.cid,
+      editorId: sql<EditorPrimaryKey>`${editorTable.id}`.as("editorId"),
     })
     .from(fileTable)
-    .innerJoin(editorTable, eq(fileTable.id, editorTable.file_id))
+    .leftJoin(editorTable, eq(fileTable.id, editorTable.file_id))
     .where(like(fileTable.path, `${workspacePath}%`))
+    .orderBy(fileTable.id, desc(editorTable.last_accessed_at))
 }

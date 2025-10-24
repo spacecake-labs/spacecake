@@ -1,5 +1,6 @@
 import { fileMachine } from "@/machines/manage-file"
 import { JsonValue } from "@/schema/drizzle-effect"
+import { EditorPrimaryKeySchema } from "@/schema/editor"
 import { EditorManager } from "@/services/editor-manager"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
@@ -31,13 +32,14 @@ import { LoadingAnimation } from "@/components/loading-animation"
 
 const fileSearchSchema = Schema.Struct({
   view: Schema.optional(ViewKindSchema),
+  editorId: Schema.optional(EditorPrimaryKeySchema),
 })
 
 export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   validateSearch: (search) =>
     Schema.decodeUnknownSync(fileSearchSchema)(search),
-  loaderDeps: ({ search: { view } }) => ({ view }),
-  loader: async ({ params, deps: { view }, context }) => {
+  loaderDeps: ({ search: { view, editorId } }) => ({ view, editorId }),
+  loader: async ({ params, deps: { view, editorId }, context }) => {
     const { paneId, workspace } = context
     const filePath = AbsolutePath(decodeBase64Url(params.filePath))
 
@@ -48,6 +50,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           filePath,
           paneId: paneId,
           targetViewKind: view,
+          editorId,
         })
       })
     )
