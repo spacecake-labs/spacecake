@@ -138,6 +138,7 @@ export function QuickOpen({ workspacePath }: QuickOpenProps) {
             return (
               <CommandItem
                 key={virtualItem.key}
+                className="cursor-pointer"
                 style={{
                   position: "absolute",
                   top: 0,

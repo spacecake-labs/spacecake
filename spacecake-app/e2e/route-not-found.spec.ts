@@ -27,6 +27,14 @@ test.describe("route not found", () => {
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
+    await window.waitForTimeout(1000)
+
+    await expect(
+      window.getByRole("heading", {
+        name: "An Example README File to Test Parsing",
+      })
+    ).toBeVisible()
+
     // delete the file (not the directory)
     fs.unlinkSync(testFilePath)
 

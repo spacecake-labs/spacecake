@@ -359,6 +359,8 @@ This is a **markdown** file.
 
     // Save the file (no changes) and verify view persists
     await editor.press("ControlOrMeta+s", { delay: 1000 })
+    await page.waitForTimeout(1000)
+
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
     await expect(
       page.getByRole("link", { name: "switch to rich view" })

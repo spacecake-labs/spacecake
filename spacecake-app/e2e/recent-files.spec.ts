@@ -139,6 +139,8 @@ test.describe("recent files", () => {
     // 9. Close Quick Open
     await quickOpenInput.press("Escape")
 
+    await window.waitForTimeout(1000)
+
     // 10. Reload the window
     await window.reload()
 

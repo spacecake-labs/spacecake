@@ -64,11 +64,16 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           search: { notFoundFilePath: filePath },
         })
       },
-      onRight: async (result) => {
-        // if no view param, redirect to set it from determined viewKind
+      onRight: (result) => {
+        // add view to search params if it is not present
         if (!view) {
           throw redirect({
-            search: { view: result.viewKind },
+            search: {
+              view: result.viewKind,
+              // could potentially ad editorId in future
+              // but need to validate whether that editorId
+              // corresponds to the returned content
+            },
             params,
             replace: true,
           })

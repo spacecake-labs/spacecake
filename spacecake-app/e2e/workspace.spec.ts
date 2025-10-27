@@ -678,6 +678,8 @@ test.describe("spacecake app", () => {
 
     await expect(window.getByText("hello persistence")).toBeVisible()
 
+    await window.waitForTimeout(1000)
+
     // 4. Reload the window
     // At some point we should improve this test
     // to simulate a proper restart
@@ -734,6 +736,7 @@ test.describe("spacecake app", () => {
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
     await expect(window.getByText("deep file content")).toBeVisible()
 
+    await window.waitForTimeout(1000)
     // 6. Reload the window
 
     await window.reload()
