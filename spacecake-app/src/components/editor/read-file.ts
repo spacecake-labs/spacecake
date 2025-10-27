@@ -32,11 +32,14 @@ export async function convertPythonBlocksToLexical(
 ) {
   try {
     // Start with an empty editor
-    editor.update(() => {
-      $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-      const root = $getRoot()
-      root.clear()
-    })
+    editor.update(
+      () => {
+        $addUpdateTag(SKIP_DOM_SELECTION_TAG)
+        const root = $getRoot()
+        root.clear()
+      },
+      { tag: INITIAL_LOAD_TAG }
+    )
     // Parse blocks progressively, updating per block
     let parsedBlockCount = 0
     for await (const block of streamParser(file)) {
@@ -68,27 +71,33 @@ export async function convertPythonBlocksToLexical(
 
     // If no blocks were parsed, fall back to plaintext
     if (parsedBlockCount === 0) {
-      editor.update(() => {
-        const root = $getRoot()
-        root.clear()
-        const paragraph = $createParagraphNode()
-        paragraph.append($createTextNode(file.content))
-        root.append(paragraph)
-      })
+      editor.update(
+        () => {
+          const root = $getRoot()
+          root.clear()
+          const paragraph = $createParagraphNode()
+          paragraph.append($createTextNode(file.content))
+          root.append(paragraph)
+        },
+        { tag: INITIAL_LOAD_TAG }
+      )
     }
 
     onComplete?.()
   } catch {
     toast("failed to parse python file")
     // Fallback to plaintext
-    editor.update(() => {
-      $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-      const root = $getRoot()
-      root.clear()
-      const paragraph = $createParagraphNode()
-      paragraph.append($createTextNode(file.content))
-      root.append(paragraph)
-    })
+    editor.update(
+      () => {
+        $addUpdateTag(SKIP_DOM_SELECTION_TAG)
+        const root = $getRoot()
+        root.clear()
+        const paragraph = $createParagraphNode()
+        paragraph.append($createTextNode(file.content))
+        root.append(paragraph)
+      },
+      { tag: INITIAL_LOAD_TAG }
+    )
 
     onComplete?.()
   }
@@ -123,36 +132,42 @@ export function getInitialEditorStateFromContent(
       )
     } else if (file.fileType === FileType.Markdown) {
       // Markdown defaults to rich view (rendered markdown) when viewKind is "rich" or undefined
-      editor.update(() => {
-        $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-        if (file.content.trim()) {
-          $convertFromMarkdownString(file.content, MARKDOWN_TRANSFORMERS)
-        } else {
-          // Empty markdown file - create empty paragraph
+      editor.update(
+        () => {
+          $addUpdateTag(SKIP_DOM_SELECTION_TAG)
+          if (file.content.trim()) {
+            $convertFromMarkdownString(file.content, MARKDOWN_TRANSFORMERS)
+          } else {
+            // Empty markdown file - create empty paragraph
+            const root = $getRoot()
+            root.clear()
+            const paragraph = $createParagraphNode()
+            root.append(paragraph)
+          }
+          if (selection) {
+            $restoreSelection(selection)
+          }
+        },
+        { tag: INITIAL_LOAD_TAG }
+      )
+    } else if (file.fileType === FileType.Plaintext) {
+      // Plaintext files go to plaintext view
+      editor.update(
+        () => {
+          $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           const root = $getRoot()
           root.clear()
           const paragraph = $createParagraphNode()
+          if (file.content.trim()) {
+            paragraph.append($createTextNode(file.content))
+          }
           root.append(paragraph)
-        }
-        if (selection) {
-          $restoreSelection(selection)
-        }
-      })
-    } else if (file.fileType === FileType.Plaintext) {
-      // Plaintext files go to plaintext view
-      editor.update(() => {
-        $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-        const root = $getRoot()
-        root.clear()
-        const paragraph = $createParagraphNode()
-        if (file.content.trim()) {
-          paragraph.append($createTextNode(file.content))
-        }
-        root.append(paragraph)
-        if (selection) {
-          $restoreSelection(selection)
-        }
-      })
+          if (selection) {
+            $restoreSelection(selection)
+          }
+        },
+        { tag: INITIAL_LOAD_TAG }
+      )
     } else {
       // All other programming languages (JS, TS, JSX, TSX) go to source view
       convertToSourceView(file.content, file, editor, selection)
