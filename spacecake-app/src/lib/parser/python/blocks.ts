@@ -11,9 +11,11 @@ import {
 import type { EditorFile } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
 import languages from "@/lib/parser/languages"
+import {
+  dedentDocstring,
+  findDocstringNode,
+} from "@/lib/parser/python/docstring"
 import { filename } from "@/lib/utils"
-
-import { dedentDocstring, findDocstringNode } from "./docstring"
 
 const { Python } = await languages
 const parser = new Parser()

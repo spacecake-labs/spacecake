@@ -366,6 +366,8 @@ test.describe("python e2e", () => {
     await importContent.press("Enter", { delay: 100 })
     await importContent.pressSequentially("x = 5", { delay: 100 })
 
+    await window.waitForTimeout(1000)
+
     // save from header and wait for rerender: observe button text transition
     const saveBtn = window.getByRole("button", { name: "save", exact: true })
     await saveBtn.click()

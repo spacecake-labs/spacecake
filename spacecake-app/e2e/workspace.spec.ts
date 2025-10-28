@@ -817,6 +817,8 @@ test.describe("spacecake app", () => {
       window.getByTestId("lexical-editor").getByRole("paragraph")
     ).toContainText("Hello, autofocus!")
 
+    await window.waitForTimeout(1000)
+
     await window.keyboard.press("ControlOrMeta+s", { delay: 100 })
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
