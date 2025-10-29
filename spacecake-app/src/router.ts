@@ -11,6 +11,7 @@ export const router = createRouter({
   routeTree,
   history: memoryHistory,
   defaultStructuralSharing: true,
+  defaultPreload: "intent",
 })
 
 // Register the router instance for type safety

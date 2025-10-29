@@ -1,6 +1,7 @@
 import { fileMachine } from "@/machines/manage-file"
 import { JsonValue } from "@/schema/drizzle-effect"
 import { EditorPrimaryKeySchema } from "@/schema/editor"
+import { Database } from "@/services/database"
 import { EditorManager } from "@/services/editor-manager"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
@@ -70,7 +71,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           throw redirect({
             search: {
               view: result.viewKind,
-              // could potentially ad editorId in future
+              // could potentially add editorId in future
               // but need to validate whether that editorId
               // corresponds to the returned content
             },
@@ -108,6 +109,22 @@ function FileLayout() {
     state.kind === "state"
       ? createEditorConfigFromState(state.data.state, state.data.selection)
       : createEditorConfigFromContent(state.data, view, state.data.selection)
+
+  RuntimeClient.runPromise(
+    Effect.gen(function* () {
+      const db = yield* Database
+      yield* Effect.forkDaemon(
+        db.updateFileAccessedAt({
+          id: state.data.fileId,
+        })
+      )
+      yield* Effect.forkDaemon(
+        db.updateEditorAccessedAt({
+          id: state.data.editorId,
+        })
+      )
+    })
+  )
 
   // remount the editor when the cid changes
   // this is needed for reloading after external changes

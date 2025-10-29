@@ -30,7 +30,7 @@ import { EditorPrimaryKey } from "@/schema/editor"
 import { maybeSingleResult, singleResult } from "@/services/utils"
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
-import { and, desc, eq, getTableColumns } from "drizzle-orm"
+import { and, desc, eq, getTableColumns, isNotNull } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 import { Console, Data, DateTime, Effect, flow, Option, Schema } from "effect"
 
@@ -134,8 +134,6 @@ export class Database extends Effect.Service<Database>()("Database", {
         flow(
           execute(FileInsertSchema, (values: FileInsert) =>
             Effect.gen(function* () {
-              const now = yield* DateTime.now
-
               return yield* query((_) =>
                 _.insert(fileTable)
                   .values(values)
@@ -143,7 +141,6 @@ export class Database extends Effect.Service<Database>()("Database", {
                     target: fileTable.path,
                     set: {
                       ...values,
-                      last_accessed_at: DateTime.formatIso(now),
                     },
                   })
                   .returning()
@@ -202,8 +199,6 @@ export class Database extends Effect.Service<Database>()("Database", {
       upsertEditor: flow(
         execute(EditorInsertSchema, (values: EditorInsert) =>
           Effect.gen(function* () {
-            const now = yield* DateTime.now
-
             return yield* query((_) =>
               _.insert(editorTable)
                 .values(values)
@@ -212,7 +207,6 @@ export class Database extends Effect.Service<Database>()("Database", {
                   set: {
                     ...values,
                     is_active: true,
-                    last_accessed_at: DateTime.formatIso(now),
                   },
                 })
                 .returning()
@@ -292,6 +286,7 @@ export class Database extends Effect.Service<Database>()("Database", {
         query((_) =>
           _.select(getTableColumns(fileTable))
             .from(fileTable)
+            .where(isNotNull(fileTable.last_accessed_at))
             .orderBy(desc(fileTable.last_accessed_at))
             .limit(1)
         ).pipe(
@@ -330,7 +325,8 @@ export class Database extends Effect.Service<Database>()("Database", {
               and(
                 eq(editorTable.file_id, fileTable.id),
                 // filter early for performance
-                eq(editorTable.is_active, true)
+                eq(editorTable.is_active, true),
+                isNotNull(editorTable.last_accessed_at)
               )
             )
             .innerJoin(paneTable, eq(editorTable.pane_id, paneTable.id))
