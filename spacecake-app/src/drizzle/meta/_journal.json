@@ -15,6 +15,13 @@
       "when": 1760497520426,
       "tag": "0001_unknown_harpoon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1761703334320,
+      "tag": "0002_cynical_otto_octavius",
+      "breakpoints": true
     }
   ]
 }

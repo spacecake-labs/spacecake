@@ -64,7 +64,9 @@ export function QuickOpen({ workspacePath }: QuickOpenProps) {
           path: filePath,
           name: fileName,
           fileType: fileTypeFromFileName(file.path),
-          lastAccessed: new Date(file.last_accessed_at).getTime(),
+          lastAccessed: file.last_accessed_at
+            ? new Date(file.last_accessed_at).getTime()
+            : 0,
           workspacePath: workspacePath,
         }
       })

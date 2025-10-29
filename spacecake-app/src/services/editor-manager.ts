@@ -57,17 +57,6 @@ export class EditorManager extends Effect.Service<EditorManager>()(
           if (Option.isSome(maybeEditor)) {
             const editor = maybeEditor.value
 
-            yield* Effect.forkDaemon(
-              db.updateFileAccessedAt({
-                id: editor.fileId,
-              })
-            )
-            yield* Effect.forkDaemon(
-              db.updateEditorAccessedAt({
-                id: editor.id,
-              })
-            )
-
             return right<PgliteError, EditorCache>({
               editorId: editor.id,
               viewKind: editor.view_kind,

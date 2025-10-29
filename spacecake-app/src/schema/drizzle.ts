@@ -53,9 +53,8 @@ export const fileTable = pgTable(
     created_at: timestamp("created_at", { mode: "string" })
       .defaultNow()
       .notNull(),
-    last_accessed_at: timestamp("last_accessed_at", { mode: "string" })
-      .defaultNow()
-      .notNull(),
+    // nullable to allow for preloading
+    last_accessed_at: timestamp("last_accessed_at", { mode: "string" }),
   },
   (table) => [uniqueIndex("file_path_idx").on(table.path)]
 )
@@ -116,9 +115,8 @@ export const editorTable = pgTable(
     created_at: timestamp("created_at", { mode: "string" })
       .defaultNow()
       .notNull(),
-    last_accessed_at: timestamp("last_accessed_at", { mode: "string" })
-      .defaultNow()
-      .notNull(),
+    // nullable to allow for preloading
+    last_accessed_at: timestamp("last_accessed_at", { mode: "string" }),
   },
   (table) => [
     uniqueIndex("editor_pane_file_idx").on(table.pane_id, table.file_id),
