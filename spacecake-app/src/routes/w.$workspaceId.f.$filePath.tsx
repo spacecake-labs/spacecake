@@ -41,7 +41,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
     Schema.decodeUnknownSync(fileSearchSchema)(search),
   loaderDeps: ({ search: { view, editorId } }) => ({ view, editorId }),
   loader: async ({ params, deps: { view, editorId }, context }) => {
-    const { paneId, workspace } = context
+    const { paneId } = context
     const filePath = AbsolutePath(decodeBase64Url(params.filePath))
 
     const initialState = await RuntimeClient.runPromise(
@@ -80,11 +80,28 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           })
         }
 
+        const editorConfig =
+          result.content.kind === "state"
+            ? createEditorConfigFromState(
+                result.content.data.state,
+                result.content.data.selection
+              )
+            : createEditorConfigFromContent(
+                result.content.data,
+                result.viewKind,
+                result.content.data.selection
+              )
+
+        const cid =
+          result.content.kind === "state" ? ZERO_HASH : result.content.data.cid
+        const key = `${filePath}-${result.viewKind}-${cid}`
+
         return {
-          workspace,
           filePath,
-          state: result.content,
-          view: result.viewKind,
+          editorConfig,
+          key,
+          editorId: result.content.data.editorId,
+          fileId: result.content.data.fileId,
         }
       },
     })
@@ -99,38 +116,28 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 })
 
 function FileLayout() {
-  const { filePath, state, view } = Route.useLoaderData()
+  const { filePath, editorConfig, key, editorId, fileId } =
+    Route.useLoaderData()
 
   const sendFileState = useSetAtom(fileStateAtomFamily(filePath))
 
   const [, send] = useMachine(fileMachine)
-
-  const editorConfig =
-    state.kind === "state"
-      ? createEditorConfigFromState(state.data.state, state.data.selection)
-      : createEditorConfigFromContent(state.data, view, state.data.selection)
 
   RuntimeClient.runPromise(
     Effect.gen(function* () {
       const db = yield* Database
       yield* Effect.forkDaemon(
         db.updateFileAccessedAt({
-          id: state.data.fileId,
+          id: fileId,
         })
       )
       yield* Effect.forkDaemon(
         db.updateEditorAccessedAt({
-          id: state.data.editorId,
+          id: editorId,
         })
       )
     })
   )
-
-  // remount the editor when the cid changes
-  // this is needed for reloading after external changes
-  // that don't have conflicts
-  const cid = state.kind === "state" ? ZERO_HASH : state.data.cid
-  const key = `${filePath}-${view}-${cid}`
 
   return (
     <>
@@ -159,7 +166,7 @@ function FileLayout() {
               send({
                 type: "editor.selection.update",
                 editorSelection: {
-                  id: state.data.editorId,
+                  id: editorId,
                   selection: serializedSelection,
                 },
               })
@@ -168,7 +175,7 @@ function FileLayout() {
               send({
                 type: "editor.state.update",
                 editorState: {
-                  id: state.data.editorId,
+                  id: editorId,
                   state: Schema.decodeUnknownSync(JsonValue)(
                     editorState.toJSON()
                   ),
