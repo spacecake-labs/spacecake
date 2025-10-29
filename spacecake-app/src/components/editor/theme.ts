@@ -22,14 +22,19 @@ export const editorTheme: EditorThemeClasses = {
     },
     ul: "my-6 ml-6 list-disc [&>li]:mt-2",
     ol: "my-6 ml-6 list-decimal [&>li]:mt-2",
+    checklist: "relative",
+    listitemChecked:
+      'relative mx-2 px-6 list-none outline-none line-through before:content-[""] before:size-4 before:shrink-0 before:rounded-[4px] before:border before:border-primary before:bg-primary before:top-0.5 before:left-0 before:cursor-pointer before:block before:absolute before:shadow-xs before:flex before:items-center before:justify-center after:content-["✓"] after:absolute after:top-0.5 after:left-0 after:w-4 after:h-4 after:text-primary-foreground after:text-xs after:font-bold after:flex after:items-center after:justify-center after:pointer-events-none',
+    listitemUnchecked:
+      'relative mx-2 px-6 list-none outline-none before:content-[""] before:size-4 before:shrink-0 before:rounded-[4px] before:border before:border-input before:top-0.5 before:left-0 before:cursor-pointer before:block before:absolute before:shadow-xs dark:before:bg-input/30',
   },
   // list: {
   //   checklist: "relative",
   //   listitem: "mx-8",
-  //   listitemChecked:
-  //     'relative mx-2 px-6 list-none outline-none line-through before:content-[""] before:w-4 before:h-4 before:top-0.5 before:left-0 before:cursor-pointer before:block before:bg-cover before:absolute before:border before:border-primary before:rounded before:bg-primary before:bg-no-repeat after:content-[""] after:cursor-pointer after:border-white after:border-solid after:absolute after:block after:top-[6px] after:w-[3px] after:left-[7px] after:right-[7px] after:h-[6px] after:rotate-45 after:border-r-2 after:border-b-2 after:border-l-0 after:border-t-0',
-  //   listitemUnchecked:
-  //     'relative mx-2 px-6 list-none outline-none before:content-[""] before:w-4 before:h-4 before:top-0.5 before:left-0 before:cursor-pointer before:block before:bg-cover before:absolute before:border before:border-primary before:rounded',
+  // listitemChecked:
+  //   'relative mx-2 px-6 list-none outline-none line-through before:content-[""] before:w-4 before:h-4 before:top-0.5 before:left-0 before:cursor-pointer before:block before:bg-cover before:absolute before:border before:border-primary before:rounded before:bg-primary before:bg-no-repeat after:content-[""] after:cursor-pointer after:border-white after:border-solid after:absolute after:block after:top-[6px] after:w-[3px] after:left-[7px] after:right-[7px] after:h-[6px] after:rotate-45 after:border-r-2 after:border-b-2 after:border-l-0 after:border-t-0',
+  // listitemUnchecked:
+  //   'relative mx-2 px-6 list-none outline-none before:content-[""] before:w-4 before:h-4 before:top-0.5 before:left-0 before:cursor-pointer before:block before:bg-cover before:absolute before:border before:border-primary before:rounded',
   //   nested: {
   //     listitem: "list-none before:hidden after:hidden",
   //   },

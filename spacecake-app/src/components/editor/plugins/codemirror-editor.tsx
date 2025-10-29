@@ -69,8 +69,8 @@ const focusedActiveLineTheme = EditorView.theme({
 
 const foldPlaceholderTheme = EditorView.theme({
   ".cm-foldPlaceholder": {
-    backgroundColor: "#6ee7b7",
-    color: "var(--background)",
+    backgroundColor: "var(--primary)",
+    color: "var(--primary-foreground)",
     border: "none",
     padding: "0 1ch",
     margin: "0 1px",
