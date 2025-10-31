@@ -12,6 +12,14 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses"
 Source: https://www.danielcorin.com/posts/2024/challenges-building-an-electron-app/
 */
 
+const getEnv = (key: string): string => {
+  const value = process.env[key]
+  if (!value) {
+    throw new Error(`env var not set: ${key}`)
+  }
+  return value
+}
+
 const config: ForgeConfig = {
   packagerConfig: {
     appBundleId: "ai.spacecake",
@@ -21,6 +29,7 @@ const config: ForgeConfig = {
         "{@parcel/watcher,@parcel/watcher-darwin-arm64,micromatch,braces,fill-range,to-regex-range,is-number,picomatch,detect-libc,is-glob,is-extglob,node-addon-api}",
     },
     icon: "./assets/icon", // no file extension required
+    osxSign: {},
   },
   rebuildConfig: {
     onlyModules: [
@@ -132,5 +141,32 @@ const config: ForgeConfig = {
     },
   },
 }
+
+function notarizeMaybe() {
+  if (process.platform !== "darwin") {
+    return
+  }
+
+  if (!process.env.CI && !process.env.FORCE_NOTARIZATION) {
+    // Not in CI, skipping notarization
+    console.log("Not in CI, skipping notarization")
+    return
+  }
+
+  if (!process.env.APPLE_ID || !process.env.APPLE_ID_PASSWORD) {
+    console.warn(
+      "Should be notarizing, but environment variables APPLE_ID or APPLE_ID_PASSWORD are missing!"
+    )
+    return
+  }
+
+  config.packagerConfig!.osxNotarize = {
+    appleId: getEnv("APPLE_ID"),
+    appleIdPassword: getEnv("APPLE_ID_PASSWORD"),
+    teamId: getEnv("APPLE_TEAM_ID"),
+  }
+}
+
+notarizeMaybe()
 
 export default config
