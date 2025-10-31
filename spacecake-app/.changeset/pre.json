@@ -1,0 +1,8 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "spacecake-app": "1.0.0"
+  },
+  "changesets": ["honest-mice-worry"]
+}
