@@ -43,7 +43,7 @@ jobs:
       - name: Create Release Pull Request or Publish
         uses: changesets/action@v1
         with:
-          cwd: ./spacecake-app
+          cwd: ${{ github.workspace }}/spacecake-app
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
