@@ -27,6 +27,7 @@ jobs:
         with:
           node-version: "20"
           cache: "pnpm"
+          cache-dependency-path: "./spacecake-app/pnpm-lock.yaml"
 
       - name: Install dependencies
         run: pnpm install
