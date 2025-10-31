@@ -1,9 +1,11 @@
+import fs from "node:fs"
 import path from "node:path"
 
 import { buildCSPString } from "@/csp"
 import * as ParcelWatcher from "@/main-process/parcel-watcher"
 import { watcherService } from "@/main-process/watcher"
 import { Ipc } from "@/services/ipc"
+import { setupUpdates } from "@/update"
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
 import { Effect, Layer } from "effect"
 import { app, BrowserWindow, session } from "electron"
@@ -104,9 +106,18 @@ const AppLive = Layer.mergeAll(Ipc.Default, WatcherLive)
 const program = Effect.gen(function* (_) {
   yield* _(Effect.promise(() => app.whenReady()))
 
+  if (!app.isPackaged) {
+    const userDataPath = app.getPath("userData")
+    const devPath = path.join(userDataPath, "dev")
+    fs.mkdirSync(devPath, { recursive: true })
+    app.setPath("userData", devPath)
+  }
+
   if (!app.isPackaged && app.dock) {
     app.dock.setIcon(path.join(process.cwd(), "assets", "icon.png"))
   }
+
+  setupUpdates()
 
   createWindow()
 

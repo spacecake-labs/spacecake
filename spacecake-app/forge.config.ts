@@ -14,6 +14,7 @@ Source: https://www.danielcorin.com/posts/2024/challenges-building-an-electron-a
 
 const config: ForgeConfig = {
   packagerConfig: {
+    appBundleId: "ai.spacecake",
     asar: {
       unpack: "*.{node,dylib}",
       unpackDir:
@@ -44,6 +45,18 @@ const config: ForgeConfig = {
       name: "@electron-forge/maker-dmg",
       config: {
         icon: "./assets/icon.icns",
+      },
+    },
+  ],
+  publishers: [
+    {
+      name: "@electron-forge/publisher-github",
+      config: {
+        repository: {
+          owner: "spacecake-labs",
+          name: "spacecake-releases",
+        },
+        prerelease: true,
       },
     },
   ],
