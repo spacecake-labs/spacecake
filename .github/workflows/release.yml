@@ -2,15 +2,26 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*.*.*"
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+permissions: {}
 
 jobs:
   release:
+    name: Release
     runs-on: macos-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: ./spacecake-app
+
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
 
     steps:
       - name: Check out code
@@ -29,18 +40,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Check code
-        run: just check
-
-      - name: Run tests
-        run: just test
+      - name: Create Release Pull Request or Publish
+        uses: changesets/action@v1
+        with:
+          version: pnpm changeset-version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish release
         env:
           # This token is a Personal Access Token with `repo` scope,
           # stored as a secret. It's used to publish to the public release repository.
           GITHUB_TOKEN: ${{ secrets.PUBLIC_REPO_ACCESS_TOKEN }}
-
           # Credentials for Apple Notarization
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
