@@ -1,1 +1,0 @@
-ALTER TABLE "editor" ADD COLUMN "selection" jsonb;
