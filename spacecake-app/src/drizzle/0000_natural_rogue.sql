@@ -8,8 +8,9 @@ CREATE TABLE "editor" (
 	"is_active" boolean DEFAULT false NOT NULL,
 	"state" jsonb,
 	"state_updated_at" timestamp,
+	"selection" jsonb,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"last_accessed_at" timestamp DEFAULT now() NOT NULL
+	"last_accessed_at" timestamp
 );
 --> statement-breakpoint
 CREATE TABLE "file" (
@@ -18,7 +19,7 @@ CREATE TABLE "file" (
 	"cid" text NOT NULL,
 	"mtime" timestamp NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"last_accessed_at" timestamp DEFAULT now() NOT NULL
+	"last_accessed_at" timestamp
 );
 --> statement-breakpoint
 CREATE TABLE "pane" (
