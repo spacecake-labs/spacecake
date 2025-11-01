@@ -40,10 +40,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # use v1.5.1
+      # https://github.com/changesets/action/issues/501
       - name: Create Release Pull Request or Publish
-        uses: changesets/action@v1
+        uses: changesets/action@v1.5.1
         with:
-          cwd: ${{ github.workspace }}/spacecake-app
+          cwd: ./spacecake-app
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
