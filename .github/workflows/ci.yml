@@ -2,9 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - "**" # run on any branch
+      - "!main" # except `main`
   pull_request:
-    branches: [main]
+    branches:
+      - "**"
+      - "!main"
+  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

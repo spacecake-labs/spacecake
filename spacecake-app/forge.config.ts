@@ -66,6 +66,7 @@ const config: ForgeConfig = {
           name: "spacecake-releases",
         },
         prerelease: true,
+        draft: true,
       },
     },
   ],
@@ -153,16 +154,16 @@ function notarizeMaybe() {
     return
   }
 
-  if (!process.env.APPLE_ID || !process.env.APPLE_ID_PASSWORD) {
+  if (!process.env.APPLE_ID || !process.env.APPLE_PASSWORD) {
     console.warn(
-      "Should be notarizing, but environment variables APPLE_ID or APPLE_ID_PASSWORD are missing!"
+      "Should be notarizing, but environment variables APPLE_ID or APPLE_PASSWORD are missing!"
     )
     return
   }
 
   config.packagerConfig!.osxNotarize = {
     appleId: getEnv("APPLE_ID"),
-    appleIdPassword: getEnv("APPLE_ID_PASSWORD"),
+    appleIdPassword: getEnv("APPLE_PASSWORD"),
     teamId: getEnv("APPLE_TEAM_ID"),
   }
 }
