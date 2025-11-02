@@ -154,9 +154,23 @@ function notarizeMaybe() {
     return
   }
 
-  if (!process.env.APPLE_ID || !process.env.APPLE_PASSWORD) {
+  if (!process.env.APPLE_ID) {
     console.warn(
-      "Should be notarizing, but environment variables APPLE_ID or APPLE_PASSWORD are missing!"
+      "Should be notarizing, but environment variables APPLE_ID is missing!"
+    )
+    return
+  }
+
+  if (!process.env.APPLE_PASSWORD) {
+    console.warn(
+      "Should be notarizing, but environment variables APPLE_PASSWORD is missing!"
+    )
+    return
+  }
+
+  if (!process.env.APPLE_TEAM_ID) {
+    console.warn(
+      "Should be notarizing, but environment variables APPLE_TEAM_ID is missing!"
     )
     return
   }
