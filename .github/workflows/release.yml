@@ -11,6 +11,8 @@ permissions: {}
 
 jobs:
   release:
+    # prevent this action from running on forks
+    if: github.repository == 'code-alexander/spacecake'
     name: Release
     runs-on: macos-latest
     timeout-minutes: 30
@@ -46,19 +48,15 @@ jobs:
         uses: changesets/action@v1.5.1
         with:
           cwd: ./spacecake-app
+          publish: bash scripts/publish-release.sh
         env:
+          # changesets action uses this for PR creation
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish release
-        env:
-          # This token is a Personal Access Token with `repo` scope,
-          # stored as a secret. It's used to publish to the public release repository.
-          GITHUB_TOKEN: ${{ secrets.PUBLIC_REPO_ACCESS_TOKEN }}
+          # wrapper script uses this to override GITHUB_TOKEN for electron-forge
+          PUBLIC_REPO_ACCESS_TOKEN: ${{ secrets.PUBLIC_REPO_ACCESS_TOKEN }}
           # Credentials for Apple Notarization
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-
           # The code signing certificate and password
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-        run: pnpm exec electron-forge publish
