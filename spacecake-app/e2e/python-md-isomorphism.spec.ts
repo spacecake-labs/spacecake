@@ -193,6 +193,9 @@ class TestClass:
     await window.getByRole("button", { name: "only_md.py" }).first().click()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
+    // wait for spacers
+    await window.waitForTimeout(1000)
+
     // verify the file loads with markdown directives rendered
     await expect(
       window.getByRole("heading", { name: "documentation only" })
