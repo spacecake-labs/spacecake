@@ -47,23 +47,6 @@ const config: ForgeConfig = {
       )
     },
   },
-  rebuildConfig: {
-    onlyModules: [
-      "@parcel/watcher",
-      "@parcel/watcher-darwin-arm64",
-      "micromatch",
-      "braces",
-      "fill-range",
-      "to-regex-range",
-      "is-number",
-      "picomatch",
-      "detect-libc",
-      "is-glob",
-      "is-extglob",
-      "node-addon-api",
-    ],
-    force: true,
-  },
   plugins: [
     // new AutoUnpackNativesPlugin({ unpackDir: "{@parcel/watcher}" }),
     new VitePlugin({
