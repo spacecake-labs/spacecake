@@ -29,7 +29,9 @@ const config: ForgeConfig = {
         "{@parcel/watcher,@parcel/watcher-darwin-arm64,micromatch,braces,fill-range,to-regex-range,is-number,picomatch,detect-libc,is-glob,is-extglob,node-addon-api}",
     },
     icon: "./assets/icon", // no file extension required
-    osxSign: {},
+    osxSign: {
+      identity: getEnv("APPLE_SIGN_ID"),
+    },
   },
   rebuildConfig: {
     onlyModules: [
