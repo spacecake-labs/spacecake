@@ -34,16 +34,16 @@ e2e-show filter="":
     just _maybe_package && pnpm run e2e-show --grep="{{filter}}"
 
 e2e-repeat filter="" times="5":
-    pnpm run package && pnpm run e2e-test --grep="{{filter}}" --repeat-each={{times}}
+    just _maybe_package && pnpm run e2e-test --grep="{{filter}}" --repeat-each={{times}}
 
 test:
     just unit && just e2e
 
 coverage:
-    pnpm run package && pnpm run coverage
+    just _maybe_package && pnpm run coverage
 
 codegen:
-    pnpm run package && npx tsx scripts/playwright-codegen.ts
+    just _maybe_package && npx tsx scripts/playwright-codegen.ts
 
 drizzle:
     pnpm run drizzle

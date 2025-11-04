@@ -31,6 +31,9 @@ test.describe("python markdown directives isomorphism e2e", () => {
     await window.getByRole("button", { name: "md.py" }).first().click()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
+    // wait for spacers
+    await window.waitForTimeout(500)
+
     // verify the file loads with markdown directives rendered
     await expect(
       window.getByRole("heading", {
@@ -111,6 +114,9 @@ class TestClass:
     // open the file
     await window.getByRole("button", { name: "test_md.py" }).first().click()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    // wait for spacers
+    await window.waitForTimeout(500)
 
     // verify the file loads with markdown directives rendered
     await expect(
@@ -370,6 +376,9 @@ def test():
     // open the file
     await window.getByRole("button", { name: "formatted.py" }).first().click()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    // wait for spacers
+    await window.waitForTimeout(500)
 
     // verify the file loads with markdown directives rendered
     await expect(
