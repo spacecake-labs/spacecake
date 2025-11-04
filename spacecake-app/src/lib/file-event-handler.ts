@@ -1,7 +1,6 @@
 import { match } from "@/types/adt"
 import type {
   File,
-  FileContent,
   FileTree,
   FileTreeEvent,
   Folder,
@@ -9,6 +8,35 @@ import type {
 } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
 import { readFile } from "@/lib/fs"
+
+// pending saves map: tracks files being saved by the app
+// key: absolute file path, value: content hash (cid)
+const pendingSaves = new Map<AbsolutePath, string>()
+
+/**
+ * adds a file path and its content hash to the pending saves map.
+ * this "arms" the map to catch the resulting file watcher event.
+ */
+export function addPendingSave(filePath: AbsolutePath, cid: string): void {
+  pendingSaves.set(filePath, cid)
+}
+
+/**
+ * checks if a pending save exists for the given file path with a matching cid.
+ * if found, removes the entry from the map and returns true.
+ * otherwise, returns false.
+ */
+function checkAndRemovePendingSave(
+  filePath: AbsolutePath,
+  onDiskCID: string
+): boolean {
+  const pendingCID = pendingSaves.get(filePath)
+  if (pendingCID === onDiskCID) {
+    pendingSaves.delete(filePath)
+    return true
+  }
+  return false
+}
 
 // helper to find an item in the tree.
 const findItemInTree = (tree: FileTree, path: string): File | Folder | null => {
@@ -34,7 +62,6 @@ export const handleFileEvent = async (
     workspacePath: WorkspaceInfo["path"],
     deleteFile: (filePath: AbsolutePath) => Promise<void>
   ) => void,
-  currentFileContent: FileContent | null,
   workspacePath: WorkspaceInfo["path"],
   fileTree: FileTree,
   deleteFile: (filePath: AbsolutePath) => Promise<void>
@@ -68,19 +95,20 @@ export const handleFileEvent = async (
 
   // Handle content change events for editor updates
   if (processedEvent.kind === "contentChange") {
-    // For the currently open file, check if CID has changed to avoid unnecessary updates
-    if (
-      currentPath &&
-      processedEvent.path === currentPath &&
-      currentFileContent
-    ) {
-      if (currentFileContent.cid === processedEvent.cid) {
-        // Skip update - CID hasn't changed (frontend already handled re-parsing)
-        return
-      }
+    // check if this is an app-initiated save or a legit external change
+    const isAppInitiatedSave = checkAndRemovePendingSave(
+      AbsolutePath(processedEvent.path),
+      processedEvent.cid
+    )
+
+    // if it's an app-initiated save, don't dispatch the event
+    // the state machine is already in Saving or Reparsing state
+    // and will handle its own transitions
+    if (isAppInitiatedSave) {
+      return
     }
 
-    // Update file tree metadata (size, modified date, etag, content hash)
+    // this is a legit external change, update file tree
     setFileTreeEvent(
       {
         kind: "contentChange",

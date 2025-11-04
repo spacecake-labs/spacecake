@@ -9,7 +9,7 @@ import {
   ErrorComponent,
   redirect,
 } from "@tanstack/react-router"
-import { useMachine } from "@xstate/react"
+import { useActorRef } from "@xstate/react"
 import { Effect, Schema } from "effect"
 import { useSetAtom } from "jotai"
 import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
@@ -121,7 +121,7 @@ function FileLayout() {
 
   const sendFileState = useSetAtom(fileStateAtomFamily(filePath))
 
-  const [, send] = useMachine(fileMachine)
+  const send = useActorRef(fileMachine).send
 
   RuntimeClient.runPromise(
     Effect.gen(function* () {
@@ -144,6 +144,7 @@ function FileLayout() {
       <FileConflictBanner filePath={filePath} send={sendFileState} />
       <Editor
         key={key}
+        filePath={filePath}
         editorConfig={editorConfig}
         onChange={(editorState: EditorState, changeType: ChangeType) => {
           editorState.read(() => {

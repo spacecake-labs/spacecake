@@ -19,11 +19,19 @@ check:
 unit filter="":
     pnpm run unit-test {{filter}}
 
+@_maybe_package:
+    #!/usr/bin/env bash
+    if [ ! -d "out/" ] || [ -n "$(find src -newer out/ -type f 2>/dev/null | head -1)" ]; then
+        pnpm run package
+    else
+        echo "✓ package cache valid, skipping build"
+    fi
+
 e2e filter="":
-    pnpm run package && pnpm run e2e-test --grep="{{filter}}"
+    just _maybe_package && pnpm run e2e-test --grep="{{filter}}"
 
 e2e-show filter="":
-    pnpm run package && pnpm run e2e-show --grep="{{filter}}"
+    just _maybe_package && pnpm run e2e-show --grep="{{filter}}"
 
 e2e-repeat filter="" times="5":
     pnpm run package && pnpm run e2e-test --grep="{{filter}}" --repeat-each={{times}}

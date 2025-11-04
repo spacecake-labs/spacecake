@@ -134,8 +134,11 @@ class Calculator:
       editor = createEditor({ nodes })
     })
 
-    it("handles empty editor gracefully", () => {
-      const result = serializeEditorToSource(editor.getEditorState())
+    it("handles empty editor gracefully for JavaScript files", () => {
+      const result = serializeEditorToSource(
+        editor.getEditorState(),
+        FileType.JavaScript
+      )
       expect(result).toBe("")
     })
 
@@ -153,7 +156,10 @@ class Calculator:
         })
       })
 
-      const result = serializeEditorToSource(editor.getEditorState())
+      const result = serializeEditorToSource(
+        editor.getEditorState(),
+        FileType.JavaScript
+      )
       expect(result).toBe("some text content")
     })
   })

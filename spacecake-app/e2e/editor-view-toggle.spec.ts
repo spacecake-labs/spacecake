@@ -359,7 +359,6 @@ This is a **markdown** file.
 
     // Save the file (no changes) and verify view persists
     await editor.press("ControlOrMeta+s", { delay: 1000 })
-    await page.waitForTimeout(1000)
 
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
     await expect(
@@ -379,6 +378,8 @@ This is a **markdown** file.
     await editor.press("Enter", { delay: 100 })
 
     await editor.pressSequentially("## New Section Added", { delay: 100 })
+
+    await page.waitForTimeout(250)
 
     // Save the changes
     await editor.press("ControlOrMeta+s", { delay: 1000 })

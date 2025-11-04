@@ -2,8 +2,10 @@ import { router } from "@/router"
 import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
 import { Effect } from "effect"
+import { toast } from "sonner"
 import {
   ActorRefFrom,
+  assertEvent,
   assign,
   EventFromLogic,
   fromPromise,
@@ -12,10 +14,12 @@ import {
   type SnapshotFrom,
 } from "xstate"
 
-import { AbsolutePath } from "@/types/workspace"
+import { AbsolutePath, FileType } from "@/types/workspace"
+import { saveFile } from "@/lib/fs"
 
 type FileStateMachineContext = {
   filePath: AbsolutePath
+  fileType: FileType
   invalidateRoute: () => Promise<void>
 }
 
@@ -23,6 +27,7 @@ type FILE_STATE_KEYS = {
   Idle: null
   Clean: null
   Dirty: null
+  Saving: null
   ExternalChange: null
   Conflict: null
   ClearingEditorStates: null
@@ -31,40 +36,20 @@ type FILE_STATE_KEYS = {
 
 export type FileState = keyof FILE_STATE_KEYS
 
-export type FileStateEvent = EventFromLogic<typeof fileStateMachine>
-export type FileStateHydrationEvent = Extract<
-  FileStateEvent,
-  { type: "file.clean" | "file.dirty" }
->
+type FileStateMachineEvent =
+  | { type: "file.clean" }
+  | { type: "file.dirty" }
+  | { type: "file.edit" }
+  | { type: "file.save"; content: string }
+  | { type: "file.external.change" }
+  | { type: "file.resolve.overwrite" }
+  | { type: "file.resolve.discard" }
+  | { type: "file.reload" }
 
 export const fileStateMachine = setup({
   types: {
     context: {} as FileStateMachineContext,
-    events: {} as
-      | {
-          type: "file.clean"
-        }
-      | {
-          type: "file.dirty"
-        }
-      | {
-          type: "file.edit"
-        }
-      | {
-          type: "file.save"
-        }
-      | {
-          type: "file.external.change"
-        }
-      | {
-          type: "file.resolve.overwrite"
-        }
-      | {
-          type: "file.resolve.discard"
-        }
-      | {
-          type: "file.reload"
-        },
+    events: {} as FileStateMachineEvent,
     input: {} as FileStateMachineContext,
   },
 
@@ -82,6 +67,34 @@ export const fileStateMachine = setup({
       ({ input }: { input: { invalidateRoute: () => Promise<void> } }) =>
         input.invalidateRoute()
     ),
+    saveFile: fromPromise(
+      async ({
+        input: { filePath, fileType, content },
+      }: {
+        input: {
+          filePath: AbsolutePath
+          fileType: FileType
+          content: string
+        }
+      }) => {
+        const ok = await saveFile(filePath, content)
+        if (!ok) {
+          throw new Error("failed to save file")
+        }
+
+        await RuntimeClient.runPromise(
+          Effect.gen(function* () {
+            const db = yield* Database
+            yield* db.clearEditorStatesForFile(filePath)
+          }).pipe(Effect.tapErrorCause(Effect.logError))
+        )
+
+        // if python file, also reparse the blocks
+        if (fileType === FileType.Python) {
+          await router.invalidate()
+        }
+      }
+    ),
   },
 }).createMachine({
   id: "file",
@@ -89,6 +102,7 @@ export const fileStateMachine = setup({
   context: ({ input }) => {
     return {
       filePath: input.filePath,
+      fileType: input.fileType,
       invalidateRoute: router.invalidate,
     }
   },
@@ -101,13 +115,43 @@ export const fileStateMachine = setup({
     },
     Clean: {
       on: {
+        "file.save": "Saving",
         "file.edit": "Dirty",
         "file.external.change": "Reloading",
       },
     },
     Dirty: {
       on: {
-        "file.save": "Clean",
+        "file.save": "Saving",
+        "file.external.change": "Conflict",
+      },
+    },
+    Saving: {
+      invoke: {
+        src: "saveFile",
+        input: ({
+          context,
+          event,
+        }: {
+          context: FileStateMachineContext
+          event: FileStateMachineEvent
+        }) => {
+          assertEvent(event, "file.save")
+          return {
+            filePath: context.filePath,
+            fileType: context.fileType,
+            content: event.content,
+          }
+        },
+        onDone: "Clean",
+        onError: {
+          target: "Dirty",
+          actions: () => {
+            toast("failed to save file")
+          },
+        },
+      },
+      on: {
         "file.external.change": "Conflict",
       },
     },
@@ -145,6 +189,12 @@ export const fileStateMachine = setup({
     },
   } as const satisfies Record<FileState, unknown>,
 })
+
+export type FileStateEvent = EventFromLogic<typeof fileStateMachine>
+export type FileStateHydrationEvent = Extract<
+  FileStateEvent,
+  { type: "file.clean" | "file.dirty" }
+>
 
 type FileActorRef = ActorRefFrom<typeof fileStateMachine>
 
