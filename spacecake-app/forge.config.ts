@@ -13,14 +13,39 @@ Source: https://www.danielcorin.com/posts/2024/challenges-building-an-electron-a
 */
 
 const config: ForgeConfig = {
-  packagerConfig: {
-    appBundleId: "ai.spacecake",
-    asar: {
-      unpack: "*.{node,dylib}",
-      unpackDir:
-        "{@parcel/watcher,@parcel/watcher-darwin-arm64,micromatch,braces,fill-range,to-regex-range,is-number,picomatch,detect-libc,is-glob,is-extglob,node-addon-api}",
+  hooks: {
+    async packageAfterCopy(_forgeConfig, buildPath) {
+      const requiredNativePackages = [
+        "@parcel/watcher",
+        "@parcel/watcher-darwin-arm64",
+        "micromatch",
+        "braces",
+        "fill-range",
+        "to-regex-range",
+        "is-number",
+        "picomatch",
+        "detect-libc",
+        "is-glob",
+        "is-extglob",
+        "node-addon-api",
+      ]
+
+      const sourceNodeModulesPath = path.resolve(__dirname, "node_modules")
+      const destNodeModulesPath = path.resolve(buildPath, "node_modules")
+
+      await Promise.all(
+        requiredNativePackages.map(async (packageName) => {
+          const sourcePath = path.join(sourceNodeModulesPath, packageName)
+          const destPath = path.join(destNodeModulesPath, packageName)
+
+          await mkdir(path.dirname(destPath), { recursive: true })
+          await cp(sourcePath, destPath, {
+            recursive: true,
+            preserveTimestamps: true,
+          })
+        })
+      )
     },
-    icon: "./assets/icon", // no file extension required
   },
   rebuildConfig: {
     onlyModules: [
@@ -39,28 +64,6 @@ const config: ForgeConfig = {
     ],
     force: true,
   },
-  makers: [
-    new MakerZIP({}, ["darwin"]),
-    {
-      name: "@electron-forge/maker-dmg",
-      config: {
-        icon: "./assets/icon.icns",
-      },
-    },
-  ],
-  publishers: [
-    {
-      name: "@electron-forge/publisher-github",
-      config: {
-        repository: {
-          owner: "spacecake-labs",
-          name: "spacecake-releases",
-        },
-        prerelease: true,
-        draft: true,
-      },
-    },
-  ],
   plugins: [
     // new AutoUnpackNativesPlugin({ unpackDir: "{@parcel/watcher}" }),
     new VitePlugin({
@@ -98,40 +101,37 @@ const config: ForgeConfig = {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
-  hooks: {
-    async packageAfterCopy(_forgeConfig, buildPath) {
-      const requiredNativePackages = [
-        "@parcel/watcher",
-        "@parcel/watcher-darwin-arm64",
-        "micromatch",
-        "braces",
-        "fill-range",
-        "to-regex-range",
-        "is-number",
-        "picomatch",
-        "detect-libc",
-        "is-glob",
-        "is-extglob",
-        "node-addon-api",
-      ]
-
-      const sourceNodeModulesPath = path.resolve(__dirname, "node_modules")
-      const destNodeModulesPath = path.resolve(buildPath, "node_modules")
-
-      await Promise.all(
-        requiredNativePackages.map(async (packageName) => {
-          const sourcePath = path.join(sourceNodeModulesPath, packageName)
-          const destPath = path.join(destNodeModulesPath, packageName)
-
-          await mkdir(path.dirname(destPath), { recursive: true })
-          await cp(sourcePath, destPath, {
-            recursive: true,
-            preserveTimestamps: true,
-          })
-        })
-      )
+  packagerConfig: {
+    appBundleId: "ai.spacecake",
+    asar: {
+      unpack: "*.{node,dylib}",
+      unpackDir:
+        "{@parcel/watcher,@parcel/watcher-darwin-arm64,micromatch,braces,fill-range,to-regex-range,is-number,picomatch,detect-libc,is-glob,is-extglob,node-addon-api}",
     },
+    icon: "./assets/icon", // no file extension required
   },
+  makers: [
+    new MakerZIP({}, ["darwin"]),
+    {
+      name: "@electron-forge/maker-dmg",
+      config: {
+        icon: "./assets/icon.icns",
+      },
+    },
+  ],
+  publishers: [
+    {
+      name: "@electron-forge/publisher-github",
+      config: {
+        repository: {
+          owner: "spacecake-labs",
+          name: "spacecake-releases",
+        },
+        prerelease: true,
+        draft: true,
+      },
+    },
+  ],
 }
 
 function maybeMac() {
