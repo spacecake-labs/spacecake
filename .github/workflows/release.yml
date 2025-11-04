@@ -50,6 +50,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Load certificates (macOS)
+        env:
+          MACOS_CERT_P12: ${{ secrets.CSC_LINK }}
+          MACOS_CERT_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: chmod +x scripts/add-macos-cert.sh && . ./scripts/add-macos-cert.sh
+
       # use v1.5.1
       # https://github.com/changesets/action/issues/501
       - name: Create Release Pull Request or Publish
@@ -67,6 +73,3 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_SIGN_ID: ${{ secrets.APPLE_SIGN_ID }}
-          # The code signing certificate and password
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
