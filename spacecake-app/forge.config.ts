@@ -12,14 +12,6 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses"
 Source: https://www.danielcorin.com/posts/2024/challenges-building-an-electron-app/
 */
 
-const getEnv = (key: string): string => {
-  const value = process.env[key]
-  if (!value) {
-    throw new Error(`env var not set: ${key}`)
-  }
-  return value
-}
-
 const config: ForgeConfig = {
   packagerConfig: {
     appBundleId: "ai.spacecake",
@@ -29,9 +21,6 @@ const config: ForgeConfig = {
         "{@parcel/watcher,@parcel/watcher-darwin-arm64,micromatch,braces,fill-range,to-regex-range,is-number,picomatch,detect-libc,is-glob,is-extglob,node-addon-api}",
     },
     icon: "./assets/icon", // no file extension required
-    osxSign: {
-      identity: getEnv("APPLE_SIGN_ID"),
-    },
   },
   rebuildConfig: {
     onlyModules: [
@@ -145,9 +134,20 @@ const config: ForgeConfig = {
   },
 }
 
-function notarizeMaybe() {
+function maybeMac() {
   if (process.platform !== "darwin") {
     return
+  }
+
+  if (!process.env.APPLE_SIGN_ID) {
+    console.warn(
+      "Should be signing, but environment variable APPLE_SIGN_ID is missing!"
+    )
+    return
+  }
+
+  config.packagerConfig!.osxSign = {
+    identity: process.env.APPLE_SIGN_ID,
   }
 
   if (!process.env.CI && !process.env.FORCE_NOTARIZATION) {
@@ -158,32 +158,32 @@ function notarizeMaybe() {
 
   if (!process.env.APPLE_ID) {
     console.warn(
-      "Should be notarizing, but environment variables APPLE_ID is missing!"
+      "Should be notarizing, but environment variable APPLE_ID is missing!"
     )
     return
   }
 
   if (!process.env.APPLE_PASSWORD) {
     console.warn(
-      "Should be notarizing, but environment variables APPLE_PASSWORD is missing!"
+      "Should be notarizing, but environment variable APPLE_PASSWORD is missing!"
     )
     return
   }
 
   if (!process.env.APPLE_TEAM_ID) {
     console.warn(
-      "Should be notarizing, but environment variables APPLE_TEAM_ID is missing!"
+      "Should be notarizing, but environment variable APPLE_TEAM_ID is missing!"
     )
     return
   }
 
   config.packagerConfig!.osxNotarize = {
-    appleId: getEnv("APPLE_ID"),
-    appleIdPassword: getEnv("APPLE_PASSWORD"),
-    teamId: getEnv("APPLE_TEAM_ID"),
+    appleId: process.env.APPLE_ID,
+    appleIdPassword: process.env.APPLE_PASSWORD,
+    teamId: process.env.APPLE_TEAM_ID,
   }
 }
 
-notarizeMaybe()
+maybeMac()
 
 export default config
