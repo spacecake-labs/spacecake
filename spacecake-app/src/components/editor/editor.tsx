@@ -5,9 +5,12 @@ import {
   LexicalComposer,
 } from "@lexical/react/LexicalComposer"
 import { EditorRefPlugin } from "@lexical/react/LexicalEditorRefPlugin"
+import { useAtomValue } from "jotai"
 import { type EditorState, type SerializedEditorState } from "lexical"
 
 import { type ChangeType } from "@/types/lexical"
+import { AbsolutePath } from "@/types/workspace"
+import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { debounce } from "@/lib/utils"
 import { nodes } from "@/components/editor/nodes"
 import { Plugins } from "@/components/editor/plugins"
@@ -18,6 +21,7 @@ interface EditorProps {
   editorConfig: InitialConfigType
   editorState?: EditorState
   editorSerializedState?: SerializedEditorState
+  filePath: AbsolutePath
 
   onChange: (editorState: EditorState, changeType: ChangeType) => void
 }
@@ -35,9 +39,11 @@ export function Editor({
   editorConfig,
   editorState,
   editorSerializedState,
+  filePath,
   onChange,
 }: EditorProps) {
   const { editorRef } = useEditor()
+  const fileState = useAtomValue(fileStateAtomFamily(filePath)).value
 
   const onChangeRef = React.useRef<EditorProps["onChange"]>(onChange)
   React.useEffect(() => {
@@ -58,12 +64,12 @@ export function Editor({
         lastChangeTypeRef.current = "selection"
       }
     }, 250)
-  )
+  ).current
 
   React.useEffect(() => {
     return () => {
-      debouncedOnChangeRef.current.flush()
-      debouncedOnChangeRef.current.cancel()
+      debouncedOnChangeRef.flush()
+      debouncedOnChangeRef.cancel()
     }
   }, [])
 
@@ -90,7 +96,9 @@ export function Editor({
               lastChangeTypeRef.current = "content"
             }
 
-            debouncedOnChangeRef.current.schedule()
+            if (fileState !== "Saving") {
+              debouncedOnChangeRef.schedule()
+            }
           }}
         />
       </LexicalComposer>

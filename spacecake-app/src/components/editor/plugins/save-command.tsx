@@ -9,7 +9,11 @@ import {
 } from "lexical"
 
 import { AbsolutePath } from "@/types/workspace"
-import { saveFileAtom } from "@/lib/atoms/atoms"
+import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { serializeEditorToSource } from "@/lib/editor"
+import { addPendingSave } from "@/lib/file-event-handler"
+import { fnv1a64Hex } from "@/lib/hash"
+import { fileTypeFromFileName } from "@/lib/workspace"
 import { useRoute } from "@/hooks/use-route"
 
 // Create the save command
@@ -17,9 +21,13 @@ export const SAVE_FILE_COMMAND: LexicalCommand<void> = createCommand()
 
 export function SaveCommandPlugin() {
   const [editor] = useLexicalComposerContext()
-  const saveFile = useSetAtom(saveFileAtom)
   const route = useRoute()
   const selectedFilePath = route?.filePath || null
+  const sendFileState = useSetAtom(
+    selectedFilePath
+      ? fileStateAtomFamily(AbsolutePath(selectedFilePath))
+      : fileStateAtomFamily(AbsolutePath(""))
+  )
 
   useEffect(() => {
     return editor.registerCommand(
@@ -27,13 +35,27 @@ export function SaveCommandPlugin() {
       () => {
         // Only save if we have a valid file path
         if (selectedFilePath) {
-          void saveFile(AbsolutePath(selectedFilePath), editor)
+          const filePath = AbsolutePath(selectedFilePath)
+          const editorState = editor.getEditorState()
+          const fileType = fileTypeFromFileName(filePath)
+          const content = serializeEditorToSource(editorState, fileType)
+          const cid = fnv1a64Hex(content)
+
+          // Add to pending saves so file watcher recognizes it as app-initiated
+          addPendingSave(filePath, cid)
+
+          // Send save event to state machine with editor
+          // The state machine will handle re-parsing for Python files
+          sendFileState({
+            type: "file.save",
+            content,
+          })
         }
         return true // Mark as handled
       },
       COMMAND_PRIORITY_EDITOR
     )
-  }, [editor, saveFile, selectedFilePath])
+  }, [editor, sendFileState, selectedFilePath])
 
   // Register keyboard shortcut for Cmd/Ctrl+S
   useEffect(() => {

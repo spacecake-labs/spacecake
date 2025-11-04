@@ -135,7 +135,7 @@ export function serializeEditorToPython(editorState: EditorState): string {
  * Serialize the Lexical editor contents for TypeScript/JavaScript files.
  * For source view files, just get the code from the single code block.
  */
-export function serializeEditorToSource(editorState: EditorState): string {
+function serializeEditorToSourceCode(editorState: EditorState): string {
   return editorState.read(() => {
     const root = $getRoot()
     const children = root.getChildren()
@@ -153,6 +153,33 @@ export function serializeEditorToSource(editorState: EditorState): string {
       }, "")
       .trim()
   })
+}
+
+export function serializeEditorToMarkdown(editorState: EditorState): string {
+  return editorState.read(() => {
+    const root = $getRoot()
+    return $convertToMarkdownString(MARKDOWN_TRANSFORMERS, root, true)
+  })
+}
+
+/**
+ * Serialize the editor state to a string based on the file type.
+ * This is the single entry point for serialization.
+ */
+export function serializeEditorToSource(
+  editorState: EditorState,
+  fileType: FileType
+): string {
+  if (fileType === "python") {
+    return serializeEditorToPython(editorState)
+  }
+
+  if (fileType === "markdown") {
+    return serializeEditorToMarkdown(editorState)
+  }
+
+  // For other file types (TypeScript, JavaScript, JSX, TSX, Plaintext), use source serializer
+  return serializeEditorToSourceCode(editorState)
 }
 
 /**
@@ -187,33 +214,6 @@ export function convertToSourceView(
   })
 }
 
-export function serializeEditorToMarkdown(editorState: EditorState): string {
-  return editorState.read(() => {
-    const root = $getRoot()
-    return $convertToMarkdownString(MARKDOWN_TRANSFORMERS, root, true)
-  })
-}
-
-/**
- * Serialize the editor state to a string based on the file type.
- * This acts as a single entry point for serialization.
- */
-export function serializeFileContent(
-  editorState: EditorState,
-  fileType: FileType
-): string {
-  if (fileType === "python") {
-    return serializeEditorToPython(editorState)
-  }
-
-  if (fileType === "markdown") {
-    return serializeEditorToMarkdown(editorState)
-  }
-
-  // For other file types, we assume they are source files.
-  return serializeEditorToSource(editorState)
-}
-
 export function serializeFromCache(
   data: JsonValue,
   fileType: FileType
@@ -224,7 +224,7 @@ export function serializeFromCache(
     theme: editorConfig.theme,
   })
   const editorState = editor.parseEditorState(JSON.stringify(data))
-  return serializeFileContent(editorState, fileType)
+  return serializeEditorToSource(editorState, fileType)
 }
 
 /**

@@ -127,7 +127,7 @@ test.describe("Python docstring updating", () => {
     // click on the code block to focus it
     await codeSection.getByText("docstring").first().dblclick()
 
-    await codeSection.pressSequentially("test", { delay: 100 })
+    await codeSection.pressSequentially("test", { delay: 250 })
 
     // save the file
     await window.keyboard.press("ControlOrMeta+s", { delay: 300 })

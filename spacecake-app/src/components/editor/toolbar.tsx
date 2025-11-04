@@ -3,7 +3,8 @@ import { useAtomValue, useSetAtom } from "jotai"
 import { FileSearch, FolderSearch, Save } from "lucide-react"
 
 import { RouteContext } from "@/types/workspace"
-import { isSavingAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
+import { quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
+import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { useOpenWorkspace } from "@/lib/open-workspace"
 import { Button } from "@/components/ui/button"
 import { CommandShortcut } from "@/components/ui/command"
@@ -16,7 +17,10 @@ interface EditorToolbarProps {
 
 export function EditorToolbar({ routeContext }: EditorToolbarProps) {
   const { editorRef } = useEditor()
-  const isSaving = useAtomValue(isSavingAtom)
+  const fileState = useAtomValue(
+    fileStateAtomFamily(routeContext.filePath)
+  ).value
+  const isSaving = fileState === "Saving"
   const openQuickOpen = useSetAtom(quickOpenMenuOpenAtom)
   const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
 

@@ -127,10 +127,11 @@ def my_function():
 
     await window.keyboard.press("Enter", { delay: 100 })
 
-    await window.keyboard.type(
-      "class MyClass:\n\ndef __init__(self):\n    pass",
-      { delay: 100 }
-    )
+    await window.keyboard.type("class MyClass:\n\ndef __init__(self):\n    ", {
+      delay: 100,
+    })
+
+    await window.keyboard.type("pass", { delay: 250 })
 
     await expect(window.getByText("class MyClass:")).toBeVisible()
 

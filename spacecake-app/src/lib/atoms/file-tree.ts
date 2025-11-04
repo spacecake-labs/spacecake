@@ -17,7 +17,7 @@ import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms"
 // Import expandedFoldersAtom
 import { parentFolderName } from "@/lib/utils"
-import { fileTypeFromExtension } from "@/lib/workspace"
+import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 
 // helper function to find and update items in the tree
 const updateFileTree = (
@@ -198,6 +198,8 @@ export const fileTreeEventAtom = atom(
         set(fileTreeAtom, newTree)
 
         // Dispatch external change event to the state machine
+        // Note: pending saves are filtered by the file event handler,
+        // so only legit external changes reach here
         set(fileStateAtomFamily(absolutePath), {
           type: "file.external.change",
         })
@@ -289,7 +291,7 @@ export const getQuickOpenFileItems = (
 const createFileStateMachineAtom = (filePath: AbsolutePath) =>
   atomWithMachine(
     () => fileStateMachine,
-    () => ({ input: { filePath } })
+    () => ({ input: { filePath, fileType: fileTypeFromFileName(filePath) } })
   )
 
 export const fileStateAtomFamily = atomFamily(createFileStateMachineAtom)

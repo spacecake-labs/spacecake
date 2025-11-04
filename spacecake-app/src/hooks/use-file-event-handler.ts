@@ -6,9 +6,9 @@ import { useSetAtom, useStore } from "jotai"
 
 import type { FileTreeEvent, WorkspaceInfo } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
-import { fileContentAtom } from "@/lib/atoms/atoms"
 import { fileTreeEventAtom, sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import { handleFileEvent } from "@/lib/file-event-handler"
+import { useRoute } from "@/hooks/use-route"
 
 export const useFileEventHandler = (workspacePath: WorkspaceInfo["path"]) => {
   const setFileTreeEvent = useSetAtom(fileTreeEventAtom)
@@ -26,27 +26,24 @@ export const useFileEventHandler = (workspacePath: WorkspaceInfo["path"]) => {
     [workspacePath]
   )
 
+  const route = useRoute()
+  const currentPath = route?.filePath || null
+
   return useCallback(
     (event: FileTreeEvent) => {
       // Get current values at the time of the event using the store
       // This ensures we always get the latest values without causing re-renders
-      const currentFileContent = store.get(fileContentAtom)
       const fileTree = store.get(sortedFileTreeAtom)
-
-      // Get current path from the store instead of context to avoid dependency issues
-      // We can derive this from the current file content
-      const currentPath = currentFileContent?.path || null
 
       handleFileEvent(
         event,
         currentPath,
         setFileTreeEvent,
-        currentFileContent,
         workspacePath,
         fileTree,
         deleteFile
       )
     },
-    [setFileTreeEvent, store, workspacePath, deleteFile]
+    [setFileTreeEvent, store, workspacePath, deleteFile, currentPath]
   )
 }
