@@ -52,7 +52,7 @@ jobs:
 
       - name: Load certificates (macOS)
         env:
-          MACOS_CERT_P12: ${{ secrets.CSC_LINK }}
+          MACOS_CERT_P12: ${{ secrets.CSC_CONTENT }}
           MACOS_CERT_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
         run: chmod +x scripts/add-macos-cert.sh && . ./scripts/add-macos-cert.sh
 
