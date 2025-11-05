@@ -157,15 +157,6 @@ export const LINKED_IMAGE: TextMatchTransformer = {
   type: "text-match",
 }
 
-// export const PyContextTransformer: TextMatchTransformer = {
-//   dependencies: [ElementNode],
-//   export: (node) => {
-//     if (!$isPyContextNode(node)) {
-//       return null
-//     }
-//   },
-// }
-
 // Filter out conflicting code transformers
 const MULTILINE_ELEMENT_TRANSFORMERS_FILTERED =
   MULTILINE_ELEMENT_TRANSFORMERS.filter((transformer) => {

@@ -61,7 +61,7 @@ describe("auto-reveal", () => {
       })
     })
 
-    it("should override user collapsed folders with auto-reveal", () => {
+    it("should respect user-collapsed folders and not override them with auto-reveal", () => {
       const userExpandedFolders = {
         "/workspace/src": false,
       }
@@ -73,7 +73,7 @@ describe("auto-reveal", () => {
       )
 
       expect(result).toEqual({
-        "/workspace/src": true,
+        "/workspace/src": false,
       })
     })
 
