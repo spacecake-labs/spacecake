@@ -50,12 +50,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # - name: Load certificates (macOS)
-      #   env:
-      #     MACOS_CERT_P12: ${{ secrets.CSC_CONTENT }}
-      #     MACOS_CERT_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-      #   run: chmod +x scripts/add-macos-cert.sh && . ./scripts/add-macos-cert.sh
-
       - name: Load certificates (macOS)
         uses: apple-actions/import-codesign-certs@v3
         with:
