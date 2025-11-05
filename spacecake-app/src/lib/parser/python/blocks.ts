@@ -183,18 +183,16 @@ export async function* parseCodeBlocks(
     return lines + 1
   }
 
-  const emitImportBlock = (): PyBlock => {
+  const emitImportBlock = (nodeEndIndex: number): PyBlock => {
     const firstImport = importNodes[0]
-    const lastImport = importNodes[importNodes.length - 1]
-
     const startByte = prevBlockEndByte
-    const raw = code.slice(startByte, lastImport.endIndex)
+    const raw = code.slice(startByte, nodeEndIndex)
     const name = blockName(firstImport)
     const block: PyBlock = {
       kind: "import",
       name,
       startByte,
-      endByte: lastImport.endIndex,
+      endByte: nodeEndIndex,
       text: raw,
       startLine: countLinesBefore(firstImport.startIndex),
       cid: computeCid("import", name.value, raw),
@@ -204,16 +202,15 @@ export async function* parseCodeBlocks(
     return block
   }
 
-  const emitMiscBlock = (): PyBlock => {
+  const emitMiscBlock = (nodeEndIndex: number): PyBlock => {
     const first = miscNodes[0]
-    const last = miscNodes[miscNodes.length - 1]
     const startByte = prevBlockEndByte
-    const raw = code.slice(startByte, last.endIndex)
+    const raw = code.slice(startByte, nodeEndIndex)
     const block: PyBlock = {
       kind: "misc",
       name: anonymousName(),
       startByte,
-      endByte: last.endIndex,
+      endByte: nodeEndIndex,
       text: raw,
       startLine: countLinesBefore(first.startIndex),
       cid: computeCid("misc", "anonymous", raw),
@@ -223,16 +220,15 @@ export async function* parseCodeBlocks(
     return block
   }
 
-  const emitMdBlock = (): PyBlock => {
+  const emitMdBlock = (nodeEndIndex: number): PyBlock => {
     const first = mdNodes[0]
-    const last = mdNodes[mdNodes.length - 1]
     const startByte = prevBlockEndByte
-    const raw = code.slice(startByte, last.endIndex)
+    const raw = code.slice(startByte, nodeEndIndex)
     const block: PyBlock = {
       kind: "markdown block",
       name: anonymousName(),
       startByte,
-      endByte: last.endIndex,
+      endByte: nodeEndIndex,
       text: raw,
       startLine: countLinesBefore(first.startIndex),
       cid: computeCid("markdown block", "anonymous", raw),
@@ -290,13 +286,15 @@ export async function* parseCodeBlocks(
 
       // This is a misc node, so flush any pending blocks first.
       if (importNodes.length) {
-        const importBlock = emitImportBlock()
+        const importBlock = emitImportBlock(
+          importNodes[importNodes.length - 1].endIndex
+        )
         prevBlockEndByte = importBlock.endByte
         yield importBlock
       }
 
       if (mdNodes.length) {
-        const mdBlock = emitMdBlock()
+        const mdBlock = emitMdBlock(mdNodes[mdNodes.length - 1].endIndex)
         prevBlockEndByte = mdBlock.endByte
         yield mdBlock
       }
@@ -312,13 +310,15 @@ export async function* parseCodeBlocks(
     if (kind === "import") {
       // This is an import node, so flush any pending misc block first.
       if (miscNodes.length) {
-        const miscBlock = emitMiscBlock()
+        const miscBlock = emitMiscBlock(
+          miscNodes[miscNodes.length - 1].endIndex
+        )
         prevBlockEndByte = miscBlock.endByte
         yield miscBlock
       }
 
       if (mdNodes.length) {
-        const mdBlock = emitMdBlock()
+        const mdBlock = emitMdBlock(mdNodes[mdNodes.length - 1].endIndex)
         prevBlockEndByte = mdBlock.endByte
         yield mdBlock
       }
@@ -339,19 +339,21 @@ export async function* parseCodeBlocks(
     // This is a "real" block (e.g., function/class).
     // Flush any pending block, whichever it may be.
     if (importNodes.length) {
-      const importBlock = emitImportBlock()
+      const importBlock = emitImportBlock(
+        importNodes[importNodes.length - 1].endIndex
+      )
       prevBlockEndByte = importBlock.endByte
       yield importBlock
     }
 
     if (miscNodes.length) {
-      const miscBlock = emitMiscBlock()
+      const miscBlock = emitMiscBlock(miscNodes[miscNodes.length - 1].endIndex)
       prevBlockEndByte = miscBlock.endByte
       yield miscBlock
     }
 
     if (mdNodes.length) {
-      const mdBlock = emitMdBlock()
+      const mdBlock = emitMdBlock(mdNodes[mdNodes.length - 1].endIndex)
       prevBlockEndByte = mdBlock.endByte
       yield mdBlock
     }
@@ -406,17 +408,24 @@ export async function* parseCodeBlocks(
   }
 
   if (importNodes.length) {
-    const importBlock = emitImportBlock()
+    const importEndIndex =
+      miscNodes.length || mdNodes.length
+        ? importNodes[importNodes.length - 1].endIndex
+        : code.length
+    const importBlock = emitImportBlock(importEndIndex)
     prevBlockEndByte = importBlock.endByte
     yield importBlock
   }
   if (miscNodes.length) {
-    const miscBlock = emitMiscBlock()
+    const miscEndIndex = mdNodes.length
+      ? miscNodes[miscNodes.length - 1].endIndex
+      : code.length
+    const miscBlock = emitMiscBlock(miscEndIndex)
     prevBlockEndByte = miscBlock.endByte
     yield miscBlock
   }
   if (mdNodes.length) {
-    const mdBlock = emitMdBlock()
+    const mdBlock = emitMdBlock(code.length)
     prevBlockEndByte = mdBlock.endByte
     yield mdBlock
   }

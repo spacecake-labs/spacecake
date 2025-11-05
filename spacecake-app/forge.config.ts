@@ -86,6 +86,7 @@ const config: ForgeConfig = {
   ],
   packagerConfig: {
     appBundleId: "ai.spacecake",
+    executableName: "spacecake",
     asar: {
       unpack: "*.{node,dylib}",
       unpackDir:

@@ -348,7 +348,7 @@ class Person:
       expect(blocks.length).toBe(2)
       expect(blocks[0].kind).toBe("function")
       expect(blocks[1].kind).toBe("misc")
-      expect(blocks[1].text).toBe("\n\nx = 2")
+      expect(blocks[1].text).toBe("\n\nx = 2\n")
       expect(blocks[0].startLine).toBe(1)
       expect(blocks[1].startLine).toBe(4)
     })
