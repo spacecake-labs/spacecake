@@ -4,5 +4,9 @@
   "initialVersions": {
     "spacecake-app": "1.0.0"
   },
-  "changesets": ["honest-mice-worry", "sparkly-hairs-double"]
+  "changesets": [
+    "honest-mice-worry",
+    "sparkly-hairs-double",
+    "sparkly-rooms-study"
+  ]
 }
