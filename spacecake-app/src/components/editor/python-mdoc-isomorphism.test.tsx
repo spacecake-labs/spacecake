@@ -1,0 +1,115 @@
+import * as React from "react"
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
+import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin"
+import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
+import { describe, expect, it, vi } from "vitest"
+
+import { anonymousName, Block } from "@/types/parser"
+import { ContentEditable } from "@/components/editor/content-editable"
+import { editorConfig } from "@/components/editor/editor"
+import {
+  mdBlockToNode,
+  nodeToMdBlock,
+} from "@/components/editor/markdown-utils"
+import { initializeUnitTest } from "@/components/editor/test-utils"
+import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
+
+vi.mock("web-tree-sitter", () => {
+  return {
+    Parser: class {
+      static init = vi.fn()
+      setLanguage = vi.fn()
+      parse = vi.fn(() => ({
+        rootNode: {
+          children: [],
+        },
+      }))
+    },
+  }
+})
+
+vi.mock("@/lib/parser/languages", () => {
+  const mockQuery = {
+    exec: () => [],
+  }
+
+  const mockLanguage = {
+    query: () => mockQuery,
+  }
+
+  return {
+    default: Promise.resolve({
+      Python: mockLanguage,
+    }),
+  }
+})
+
+const Plugins = React.memo(function Plugins() {
+  return (
+    <div className="relative">
+      <div className="relative">
+        <RichTextPlugin
+          contentEditable={
+            <div className="h-full flex flex-1 min-h-0">
+              <div className="h-full flex-1 min-h-0">
+                <ContentEditable
+                  placeholder={""}
+                  className="ContentEditable__root relative block h-full min-h-0 flex-1 overflow-auto px-8 py-4 focus:outline-none"
+                />
+              </div>
+            </div>
+          }
+          ErrorBoundary={LexicalErrorBoundary}
+        />
+
+        <MarkdownShortcutPlugin transformers={MARKDOWN_TRANSFORMERS} />
+      </div>
+    </div>
+  )
+})
+
+describe("Python mdoc isomorphism", () => {
+  initializeUnitTest(
+    (testEnv) => {
+      it("should maintain isomorphism through mdBlockToNode and nodeToMdBlock roundtrip", () => {
+        const text = `#🍰 # section with spaces
+#🍰    this line has leading spaces
+#🍰 
+#🍰 ## subsection
+#🍰 - item 1
+#🍰 - item 2
+#🍰 
+#🍰 \`\`\`python
+#🍰 def example():
+#🍰     return "formatted"
+#🍰 \`\`\``
+
+        const block: Block<"markdown block"> = {
+          kind: "markdown block",
+          text: text,
+          startLine: 0,
+          endByte: 0,
+          startByte: 0,
+          name: anonymousName(),
+          cid: "",
+          cidAlgo: "",
+        }
+
+        let result = ""
+
+        testEnv.editor.update(() => {
+          const node = mdBlockToNode(block)
+          console.log(
+            "node created from mdBlockToNode:",
+            JSON.stringify(node.exportJSON(), null, 2)
+          )
+          result = nodeToMdBlock(node)
+        })
+
+        expect(result).toBe(text)
+      })
+    },
+    editorConfig,
+    <Plugins />
+  )
+})

@@ -121,8 +121,13 @@ export function serializeEditorToPython(editorState: EditorState): string {
         return result + delimitedString
       }
 
-      if ($isParagraphNode(child) || $isContainerNode(child)) {
+      if ($isContainerNode(child)) {
         return result + nodeToMdBlock(child)
+      }
+
+      if ($isParagraphNode(child)) {
+        const delimitedString = $getDelimitedString(child)
+        return result + delimitedString
       }
 
       const textContent = child.getTextContent()

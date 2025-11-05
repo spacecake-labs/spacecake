@@ -46,9 +46,11 @@ export function mergeExpandedFolders(
 ): Record<string, boolean> {
   const merged = { ...userExpandedFolders }
 
-  // Auto-reveal folders are always expanded
   for (const folderPath of foldersToAutoReveal) {
-    merged[folderPath] = true
+    // Only auto-expand if user hasn't explicitly closed it
+    if (userExpandedFolders[folderPath] !== false) {
+      merged[folderPath] = true
+    }
   }
 
   return merged
