@@ -10,18 +10,18 @@ concurrency:
 permissions: {}
 
 jobs:
-  ci:
-    name: CI
-    permissions:
-      contents: read
-    uses: ./.github/workflows/ci.yml
+  # ci:
+  #   name: CI
+  #   permissions:
+  #     contents: read
+  #   uses: ./.github/workflows/ci.yml
 
   release:
     # prevent this action from running on forks
     if: github.repository == 'code-alexander/spacecake'
     name: Release
     runs-on: macos-latest
-    needs: [ci]
+    # needs: [ci]
 
     timeout-minutes: 30
     defaults:
@@ -50,11 +50,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # - name: Load certificates (macOS)
+      #   env:
+      #     MACOS_CERT_P12: ${{ secrets.CSC_CONTENT }}
+      #     MACOS_CERT_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      #   run: chmod +x scripts/add-macos-cert.sh && . ./scripts/add-macos-cert.sh
+
       - name: Load certificates (macOS)
-        env:
-          MACOS_CERT_P12: ${{ secrets.CSC_CONTENT }}
-          MACOS_CERT_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-        run: chmod +x scripts/add-macos-cert.sh && . ./scripts/add-macos-cert.sh
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.CSC_CONTENT }}
+          p12-password: ${{ secrets.CSC_KEY_PASSWORD }}
 
       # use v1.5.1
       # https://github.com/changesets/action/issues/501
