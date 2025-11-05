@@ -23,7 +23,7 @@ jobs:
     runs-on: macos-latest
     # needs: [ci]
 
-    timeout-minutes: 30
+    # timeout-minutes: 30
     defaults:
       run:
         working-directory: ./spacecake-app

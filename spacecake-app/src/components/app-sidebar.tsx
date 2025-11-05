@@ -46,8 +46,9 @@ export function AppSidebar({
     folderPath: Folder["path"], // This is now the actual path, not a URL
     forceExpand?: boolean
   ) => {
-    // Check if folder is currently expanded using the actual path
-    const isCurrentlyExpanded = expandedFolders[folderPath] ?? false
+    // Check if folder is currently expanded/auto-revealed using the actual path
+    const isCurrentlyExpanded =
+      expandedFolders[folderPath] ?? foldersToExpand.includes(folderPath)
 
     // Determine if we should expand the folder
     const shouldExpand =
