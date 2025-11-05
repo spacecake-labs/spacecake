@@ -59,8 +59,8 @@ jobs:
       - name: Load certificates (macOS)
         uses: apple-actions/import-codesign-certs@v3
         with:
-          p12-file-base64: ${{ secrets.CSC_CONTENT }}
-          p12-password: ${{ secrets.CSC_KEY_PASSWORD }}
+          p12-file-base64: ${{ secrets.MACOS_CERT_P12 }}
+          p12-password: ${{ secrets.MACOS_CERT_PASSWORD }}
 
       # use v1.5.1
       # https://github.com/changesets/action/issues/501
