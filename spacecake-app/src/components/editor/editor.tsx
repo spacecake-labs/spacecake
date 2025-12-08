@@ -1,5 +1,9 @@
 import * as React from "react"
-import { useEditor } from "@/contexts/editor-context"
+import {
+  RouteContext,
+  useEditor,
+  type CancelDebounceRef,
+} from "@/contexts/editor-context"
 import {
   InitialConfigType,
   LexicalComposer,
@@ -42,6 +46,7 @@ export function Editor({
   filePath,
   onChange,
 }: EditorProps) {
+  const context = React.useContext(RouteContext)
   const { editorRef } = useEditor()
   const fileState = useAtomValue(fileStateAtomFamily(filePath)).value
 
@@ -65,6 +70,16 @@ export function Editor({
       }
     }, 250)
   ).current
+
+  // Expose the debounce cancel function through context
+  React.useEffect(() => {
+    if (context) {
+      const cancelRef = context.cancelDebounceRef as CancelDebounceRef
+      cancelRef.current = () => {
+        debouncedOnChangeRef.cancel()
+      }
+    }
+  }, [context, debouncedOnChangeRef])
 
   React.useEffect(() => {
     return () => {

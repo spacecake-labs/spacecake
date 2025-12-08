@@ -1,5 +1,12 @@
 # spacecake-app
 
+## 0.1.0-alpha.2
+
+### Patch Changes
+
+- a02b9c4: Fixing folder expansion in sidebar.
+- Fixing a timing issue with the 'unsaved changes' indicator.
+
 ## 0.1.0-alpha.1
 
 ### Patch Changes

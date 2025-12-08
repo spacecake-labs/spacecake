@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { useEditor } from "@/contexts/editor-context"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { useSetAtom } from "jotai"
 import {
@@ -28,6 +29,7 @@ export function SaveCommandPlugin() {
       ? fileStateAtomFamily(AbsolutePath(selectedFilePath))
       : fileStateAtomFamily(AbsolutePath(""))
   )
+  const { cancelDebounce } = useEditor()
 
   useEffect(() => {
     return editor.registerCommand(
@@ -35,6 +37,10 @@ export function SaveCommandPlugin() {
       () => {
         // Only save if we have a valid file path
         if (selectedFilePath) {
+          // cancel the pending debounce to prevent it from marking the file
+          // as dirty after the save completes
+          cancelDebounce()
+
           const filePath = AbsolutePath(selectedFilePath)
           const editorState = editor.getEditorState()
           const fileType = fileTypeFromFileName(filePath)
@@ -55,7 +61,7 @@ export function SaveCommandPlugin() {
       },
       COMMAND_PRIORITY_EDITOR
     )
-  }, [editor, sendFileState, selectedFilePath])
+  }, [editor, sendFileState, selectedFilePath, cancelDebounce])
 
   // Register keyboard shortcut for Cmd/Ctrl+S
   useEffect(() => {
