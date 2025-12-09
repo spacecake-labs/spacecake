@@ -57,7 +57,7 @@ export const test = base.extend<TestFixtures>({
     }
   },
 
-  tempTestDir: async ({ electronApp }, use, testInfo) => {
+  tempTestDir: async ({ electronApp: _electronApp }, use, testInfo) => {
     const testOutputRoot = path.join(process.cwd(), "test-output")
     const workerTempRoot = path.join(
       testOutputRoot,
@@ -72,8 +72,6 @@ export const test = base.extend<TestFixtures>({
     })
 
     await use(tempDir)
-
-    await electronApp.close()
 
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true, maxRetries: 5 })
