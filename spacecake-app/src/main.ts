@@ -117,7 +117,9 @@ const program = Effect.gen(function* (_) {
     app.dock.setIcon(path.join(process.cwd(), "assets", "icon.png"))
   }
 
-  setupUpdates()
+  if (!isTest) {
+    setupUpdates()
+  }
 
   createWindow()
 
@@ -132,11 +134,20 @@ const program = Effect.gen(function* (_) {
     }
   })
 
+  // not sure why this works but it seems to prevent macOS complaining
+  // that the app 'quit unexpectedly' when running Playwright tests.
+  if (isTest) {
+    app.on("before-quit", (e) => {
+      e.preventDefault()
+      app.quit()
+    })
+  }
+
   // Quit when all windows are closed, except on macOS. There, it's common
   // for applications and their menu bar to stay active until the user quits
   // explicitly with Cmd + Q.
   app.on("window-all-closed", () => {
-    if (isTest || process.platform !== "darwin") {
+    if (process.platform !== "darwin") {
       app.quit()
     }
   })
