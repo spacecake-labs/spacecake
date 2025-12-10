@@ -25,9 +25,10 @@ export function mdBlockToNode(block: Block<MdBlockKind>) {
   // top-level markdown shortcuts (element transformers) still work
   const container = $createContainerNode()
   $convertFromMarkdownString(
-    stripPythonMdocPrefixes(block.text),
+    stripPythonMdocPrefixes(delimitedString.between),
     MARKDOWN_TRANSFORMERS,
-    container
+    container,
+    true
   )
   return delimitedNode(() => container, delimitedString)
 }
