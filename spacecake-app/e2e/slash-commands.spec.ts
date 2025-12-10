@@ -108,13 +108,13 @@ test.describe("slash commands e2e", () => {
 
     // expect a new code block node to appear
     await expect(
-      editor.locator('[data-block-id="anonymous-code"]')
+      editor.locator('[data-block-id="anonymous-code"]').first()
     ).toBeVisible()
     // type some code without doing anything else
-    await window.keyboard.type("print('hello world')", { delay: 100 })
+    await window.keyboard.type("print('second code block')", { delay: 100 })
 
     // expect the code to be in the code block
-    await expect(window.getByText("print('hello world')")).toBeVisible()
+    await expect(window.getByText("print('second code block')")).toBeVisible()
   })
 
   test("can insert h1 heading with slash command", async ({
