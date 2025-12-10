@@ -136,7 +136,12 @@ export function getInitialEditorStateFromContent(
         () => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           if (file.content.trim()) {
-            $convertFromMarkdownString(file.content, MARKDOWN_TRANSFORMERS)
+            $convertFromMarkdownString(
+              file.content,
+              MARKDOWN_TRANSFORMERS,
+              undefined,
+              true
+            )
           } else {
             // Empty markdown file - create empty paragraph
             const root = $getRoot()
