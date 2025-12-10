@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.3
+
+### Patch Changes
+
+- 50d4fda: Fixing newline preservation for markdown files.
+
 ## 0.1.0-alpha.2
 
 ### Patch Changes
