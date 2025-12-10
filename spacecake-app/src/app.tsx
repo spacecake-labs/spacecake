@@ -21,13 +21,16 @@ function RootWithTheme() {
   return <RouterProvider router={router} />
 }
 
+const PUBLIC_POSTHOG_KEY = "phc_tie9HcJtBH5SkcTLpsJaUnq7X8adjIpDU4flhefHdWJ"
+const PUBLIC_POSTHOG_HOST = "https://us.i.posthog.com"
+
 root.render(
   // <StrictMode>
   <Provider store={store}>
     <PostHogProvider
-      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+      apiKey={PUBLIC_POSTHOG_KEY}
       options={{
-        api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+        api_host: PUBLIC_POSTHOG_HOST,
         defaults: "2025-05-24",
         capture_exceptions: true,
         cookieless_mode: "always",
