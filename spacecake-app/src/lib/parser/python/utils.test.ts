@@ -193,22 +193,22 @@ describe("addPythonMdocPrefixes", () => {
 
   it("should handle empty string", () => {
     const result = addPythonMdocPrefixes("")
-    expect(result).toBe("")
+    expect(result).toBe("#🍰 ")
   })
 
   it("should handle string with only newlines", () => {
     const result = addPythonMdocPrefixes("\n\n")
-    expect(result).toBe("\n\n")
+    expect(result).toBe("#🍰 \n#🍰 \n#🍰 ")
   })
 
   it("should handle string ending with newline", () => {
     const result = addPythonMdocPrefixes("content\n")
-    expect(result).toBe("#🍰 content\n")
+    expect(result).toBe("#🍰 content\n#🍰 ")
   })
 
   it("should handle string starting with newline", () => {
     const result = addPythonMdocPrefixes("\ncontent")
-    expect(result).toBe("\n#🍰 content")
+    expect(result).toBe("#🍰 \n#🍰 content")
   })
 
   it("should preserve existing content exactly", () => {
