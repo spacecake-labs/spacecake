@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.4
+
+### Patch Changes
+
+- c74166a: Fix wasm sourcemap issue for tree-siter.
+
 ## 0.1.0-alpha.3
 
 ### Patch Changes
