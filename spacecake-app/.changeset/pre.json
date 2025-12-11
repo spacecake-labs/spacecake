@@ -5,6 +5,7 @@
     "spacecake-app": "1.0.0"
   },
   "changesets": [
+    "good-news-jump",
     "honest-mice-worry",
     "slick-beers-turn",
     "sparkly-hairs-double",
