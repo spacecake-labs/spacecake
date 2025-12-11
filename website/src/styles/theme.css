@@ -1,0 +1,46 @@
+/* Dark mode colors. */
+:root {
+    --sl-color-accent-low: oklch(0.80 0.18 152);
+    --sl-color-accent: oklch(0.80 0.18 152);
+    --sl-color-accent-high: oklch(0.80 0.18 152);
+    --sl-color-white: #ffffff;
+    --sl-color-gray-1: #eeeeee;
+    --sl-color-gray-2: #c2c2c2;
+    --sl-color-gray-3: #8b8b8b;
+    --sl-color-gray-4: #585858;
+    --sl-color-gray-5: #383838;
+    --sl-color-gray-6: #272727;
+    --sl-color-black: #181818;
+    /* Page background */
+    --sl-color-bg: oklch(0.145 0 0);
+    /* Sidebar background */
+    --sl-color-bg-sidebar: #1e293b;
+    /* Code block background */
+    --sl-color-bg-code: #1e293b;
+    /* Navigation/header background */
+    --sl-color-bg-nav: oklch(0.205 0 0);
+}
+
+/* Light mode colors. */
+:root[data-theme='light'] {
+    --sl-color-accent-low: oklch(0.80 0.18 152);
+    --sl-color-accent: oklch(0.80 0.18 152);
+    --sl-color-accent-high: oklch(0.80 0.18 152);
+    --sl-color-white: #181818;
+    --sl-color-gray-1: #272727;
+    --sl-color-gray-2: #383838;
+    --sl-color-gray-3: #585858;
+    --sl-color-gray-4: #8b8b8b;
+    --sl-color-gray-5: #c2c2c2;
+    --sl-color-gray-6: #eeeeee;
+    --sl-color-gray-7: #f6f6f6;
+    --sl-color-black: #ffffff;
+    /* Page background */
+    --sl-color-bg: oklch(1 0 0);
+    /* Sidebar background */
+    --sl-color-bg-sidebar: #f8fafc;
+    /* Code block background */
+    --sl-color-bg-code: #f1f5f9;
+    /* Navigation/header background */
+    --sl-color-bg-nav: oklch(1 0 0);
+}
