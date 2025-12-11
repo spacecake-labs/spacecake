@@ -69,10 +69,10 @@ const Plugins = React.memo(function Plugins() {
   )
 })
 
-describe("Markdown mdoc isomorphism", () => {
+describe("Markdown isomorphism", () => {
   initializeUnitTest(
     (testEnv) => {
-      it("markdown file should maintain isomorphism through editor roundtrip", () => {
+      it("markdown file with checklist should have isomorphic parsing & serialization", () => {
         const text = `# [CHECKLIST TYPE] Checklist: [FEATURE NAME]
 
 **Purpose**: [Brief description of what this checklist covers]
@@ -99,6 +99,29 @@ describe("Markdown mdoc isomorphism", () => {
 - Add comments or findings inline
 - Link to relevant resources or documentation
 - Items are numbered sequentially for easy reference`
+
+        testEnv.editor.update(
+          () =>
+            $convertFromMarkdownString(
+              text,
+              MARKDOWN_TRANSFORMERS,
+              undefined,
+              true
+            ),
+          { discrete: true }
+        )
+        const result = serializeEditorToMarkdown(
+          testEnv.editor.getEditorState()
+        )
+        expect(result).toBe(text)
+      })
+
+      it("markdown file with table should have isomorphic parsing & serialization", () => {
+        const text = `|  | Feature | Supported | Notes |
+| --- | --- | --- | --- |
+|  | Tables | ✅ | Full support |
+|  | Task Lists | ✅ | Interactive |
+|  | Strikethrough | ✅ | ~~Like this~~ |`
 
         testEnv.editor.update(
           () =>
