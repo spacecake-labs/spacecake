@@ -2,10 +2,14 @@ name: CI
 
 on:
   push:
+    paths:
+      - "spacecake-app/**"
     branches:
       - "**" # run on any branch
       - "!main" # except `main`
   pull_request:
+    paths:
+      - "spacecake-app/**"
     branches:
       - "**"
       - "!main"
