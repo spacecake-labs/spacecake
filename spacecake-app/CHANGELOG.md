@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.5
+
+### Patch Changes
+
+- 6d1cdc0: Adding support for markdown tables.
+
 ## 0.1.0-alpha.4
 
 ### Patch Changes
