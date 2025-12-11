@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.6
+
+### Patch Changes
+
+- 5cd125c: Adding table resizing.
+
 ## 0.1.0-alpha.5
 
 ### Patch Changes
