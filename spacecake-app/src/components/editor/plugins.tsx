@@ -18,6 +18,7 @@ import { BackspacePreventionPlugin } from "@/components/editor/plugins/backspace
 import { NodeNavigationPlugin } from "@/components/editor/plugins/node-navigation"
 import { SaveCommandPlugin } from "@/components/editor/plugins/save-command"
 import { SlashCommandPlugin } from "@/components/editor/plugins/slash-command"
+import TableCellResizer from "@/components/editor/plugins/table-cell-resizer"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 
 export const Plugins = React.memo(function Plugins() {
@@ -43,6 +44,7 @@ export const Plugins = React.memo(function Plugins() {
         <CheckListPlugin />
         <HorizontalRulePlugin />
         <TablePlugin />
+        <TableCellResizer />
         <ListPlugin />
         <TabIndentationPlugin />
         {/* <HashtagPlugin /> */}
