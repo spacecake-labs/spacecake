@@ -118,3 +118,9 @@
 .context-block .context-block-header-title {
   margin-top: 0 !important;
 }
+
+/* Remove bottom border from last row cells to prevent double border */
+table.border-separate tr:last-child td,
+table.border-separate tr:last-child th {
+  border-bottom: 0;
+}

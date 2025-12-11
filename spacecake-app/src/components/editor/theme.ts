@@ -97,29 +97,27 @@ export const editorTheme: EditorThemeClasses = {
     variable: "EditorTheme__tokenVariable",
   },
   characterLimit: "!bg-destructive/50",
-  table: "EditorTheme__table w-fit overflow-scroll border-collapse",
+  table:
+    "w-full caption-bottom text-sm border-separate border-spacing-0 border border-border rounded-lg overflow-hidden",
   tableCell:
-    'EditorTheme__tableCell w-24 relative border px-4 py-2 text-left [&[align=center]]:text-center [&[align=right]]:text-right"',
+    "relative border-r border-b border-border p-2 text-sm align-middle text-left [&[align=center]]:text-center [&[align=right]]:text-right [&:last-child]:border-r-0",
   tableCellActionButton:
-    "EditorTheme__tableCellActionButton bg-background block border-0 rounded-2xl w-5 h-5 text-foreground cursor-pointer",
-  tableCellActionButtonContainer:
-    "EditorTheme__tableCellActionButtonContainer block right-1 top-1.5 absolute z-10 w-5 h-5",
-  tableCellEditing: "EditorTheme__tableCellEditing rounded-sm shadow-sm",
+    "bg-background block border-0 rounded-2xl w-5 h-5 text-foreground cursor-pointer",
+  tableCellActionButtonContainer: "block right-1 top-1.5 absolute z-10 w-5 h-5",
+  tableCellEditing: "rounded-sm shadow-sm",
   tableCellHeader:
-    "EditorTheme__tableCellHeader bg-muted border px-4 py-2 text-left font-bold [&[align=center]]:text-center [&[align=right]]:text-right",
+    "bg-muted/80 border-r border-b border-border p-2 h-10 text-sm text-foreground text-left align-middle font-medium [&[align=center]]:text-center [&[align=right]]:text-right [&:last-child]:border-r-0",
   tableCellPrimarySelected:
-    "EditorTheme__tableCellPrimarySelected border border-primary border-solid block h-[calc(100%-2px)] w-[calc(100%-2px)] absolute -left-[1px] -top-[1px] z-10 ",
-  tableCellResizer:
-    "EditorTheme__tableCellResizer absolute -right-1 h-full w-2 cursor-ew-resize z-10 top-0",
-  tableCellSelected: "EditorTheme__tableCellSelected bg-muted",
+    "border border-primary border-solid block h-[calc(100%-2px)] w-[calc(100%-2px)] absolute -left-[1px] -top-[1px] z-10",
+  tableCellResizer: "absolute -right-1 h-full w-2 cursor-ew-resize z-10 top-0",
+  tableCellSelected: "bg-muted",
   tableCellSortedIndicator:
-    "EditorTheme__tableCellSortedIndicator block opacity-50 bsolute bottom-0 left-0 w-full h-1 bg-muted",
-  tableResizeRuler:
-    "EditorTheme__tableCellResizeRuler block absolute w-[1px] h-full bg-primary top-0",
+    "block opacity-50 absolute bottom-0 left-0 w-full h-1 bg-muted",
+  tableResizeRuler: "block absolute w-[1px] h-full bg-primary top-0",
   tableRowStriping:
-    "EditorTheme__tableRowStriping m-0 border-t p-0 even:bg-muted",
-  tableSelected: "EditorTheme__tableSelected ring-2 ring-primary ring-offset-2",
-  tableSelection: "EditorTheme__tableSelection bg-transparent",
+    "m-0 p-0 border-b border-border bg-muted/40 hover:bg-muted/50 transition-colors",
+  tableSelected: "ring-2 ring-primary ring-offset-2",
+  tableSelection: "bg-transparent",
   layoutItem: "border border-dashed px-4 py-2",
   layoutContainer: "grid gap-2.5 my-2.5 mx-0",
   autocomplete: "text-muted-foreground",
