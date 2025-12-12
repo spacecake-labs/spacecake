@@ -30,6 +30,10 @@ jobs:
       run:
         working-directory: ./spacecake-app
 
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+
     permissions:
       contents: write
       id-token: write
@@ -75,3 +79,5 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_SIGN_ID: ${{ secrets.APPLE_SIGN_ID }}
+          # Build architecture
+          BUILD_ARCH: ${{ matrix.arch }}
