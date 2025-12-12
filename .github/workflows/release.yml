@@ -21,8 +21,8 @@ jobs:
   release:
     # prevent this action from running on forks
     if: github.repository == 'code-alexander/spacecake'
-    name: Release
-    runs-on: macos-latest
+    name: Release (${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
     # needs: [ci]
 
     # timeout-minutes: 30
@@ -32,7 +32,11 @@ jobs:
 
     strategy:
       matrix:
-        arch: [x64, arm64]
+        include:
+          - os: macos-latest
+            arch: arm64
+          - os: macos-15-intel
+            arch: x64
 
     permissions:
       contents: write
