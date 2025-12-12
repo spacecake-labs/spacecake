@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.7
+
+### Patch Changes
+
+- a9b2077: Adding mac intel build.
+
 ## 0.1.0-alpha.6
 
 ### Patch Changes
