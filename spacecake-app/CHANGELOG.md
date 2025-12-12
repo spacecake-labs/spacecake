@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.8
+
+### Patch Changes
+
+- f17ff4d: Fix mac intel build in workflow.
+
 ## 0.1.0-alpha.7
 
 ### Patch Changes
