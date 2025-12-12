@@ -12,23 +12,59 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses"
 Source: https://www.danielcorin.com/posts/2024/challenges-building-an-electron-app/
 */
 
+function getPlatformArchSpecificPackages(
+  platform: string,
+  arch: string
+): string[] {
+  const universalPackages = [
+    "@parcel/watcher",
+    "micromatch",
+    "braces",
+    "fill-range",
+    "to-regex-range",
+    "is-number",
+    "picomatch",
+    "detect-libc",
+    "is-glob",
+    "is-extglob",
+    "node-addon-api",
+  ]
+
+  const platformArchSpecificPackages: Record<
+    string,
+    Record<string, string[]>
+  > = {
+    darwin: {
+      arm64: ["@parcel/watcher-darwin-arm64"],
+      x64: ["@parcel/watcher-darwin-x64"],
+    },
+    win32: {
+      x64: ["@parcel/watcher-win32-x64"],
+      arm64: ["@parcel/watcher-win32-arm64"],
+    },
+    linux: {
+      x64: ["@parcel/watcher-linux-x64"],
+      arm64: ["@parcel/watcher-linux-arm64"],
+    },
+  }
+
+  const platformSpecific = platformArchSpecificPackages[platform]?.[arch] || []
+  return [...universalPackages, ...platformSpecific]
+}
+
 const config: ForgeConfig = {
   hooks: {
-    async packageAfterCopy(_forgeConfig, buildPath) {
-      const requiredNativePackages = [
-        "@parcel/watcher",
-        "@parcel/watcher-darwin-arm64",
-        "micromatch",
-        "braces",
-        "fill-range",
-        "to-regex-range",
-        "is-number",
-        "picomatch",
-        "detect-libc",
-        "is-glob",
-        "is-extglob",
-        "node-addon-api",
-      ]
+    async packageAfterCopy(
+      _forgeConfig,
+      buildPath,
+      _electronVersion,
+      platform,
+      arch
+    ) {
+      const requiredNativePackages = getPlatformArchSpecificPackages(
+        platform,
+        arch
+      )
 
       const sourceNodeModulesPath = path.resolve(__dirname, "node_modules")
       const destNodeModulesPath = path.resolve(buildPath, "node_modules")
@@ -88,9 +124,9 @@ const config: ForgeConfig = {
     appBundleId: "ai.spacecake",
     executableName: "spacecake",
     asar: {
-      unpack: "*.{node,dylib}",
+      unpack: "*.{node,dylib,dll,so}",
       unpackDir:
-        "{@parcel/watcher,@parcel/watcher-darwin-arm64,micromatch,braces,fill-range,to-regex-range,is-number,picomatch,detect-libc,is-glob,is-extglob,node-addon-api}",
+        "{@parcel/watcher,@parcel/watcher-darwin-arm64,@parcel/watcher-darwin-x64,@parcel/watcher-win32-x64,@parcel/watcher-win32-arm64,@parcel/watcher-linux-x64,@parcel/watcher-linux-arm64,micromatch,braces,fill-range,to-regex-range,is-number,picomatch,detect-libc,is-glob,is-extglob,node-addon-api}",
     },
     icon: "./assets/icon", // no file extension required
   },
