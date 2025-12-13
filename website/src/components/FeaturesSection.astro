@@ -1,0 +1,178 @@
+---
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import codeBlocksImage from "../assets/code-blocks.svg";
+import checklistsImage from "../assets/specs.svg";
+// import contextImage from "../assets/code-blocks.svg";
+// import previewImage from "../assets/code-blocks.svg";
+
+interface Feature {
+  title: string;
+  description: string;
+  image: ImageMetadata;
+}
+
+const features: Feature[] = [
+  {
+    title: "powerful code blocks",
+    description: "enjoy a modern code-editing experience",
+    image: codeBlocksImage,
+  },
+  {
+    title: "checklist plans",
+    description: "save your progress and keep agents on track",
+    image: checklistsImage,
+  },
+  // {
+  //   title: "rich context",
+  //   description: "keep your agents on track with linked markdown files",
+  //   image: contextImage,
+  // },
+  // {
+  //   title: "live preview",
+  //   description: "see your markdown render instantly as you type",
+  //   image: previewImage,
+  // },
+];
+---
+
+<section class="features-section">
+  <div class="container">
+    <h2>markdown features</h2>
+    <div class="features-grid">
+      {
+        features.map((feature) => (
+          <div class="feature-card">
+            <div class="image-container">
+              <Image
+                src={feature.image}
+                alt={feature.title}
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <h3>{feature.title}</h3>
+            <p>{feature.description}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  :global(.sl-markdown-content) .features-section {
+    margin-top: 0 !important;
+  }
+
+  :global(.sl-markdown-content) .features-section > * {
+    margin-top: 0 !important;
+  }
+
+  .features-section {
+    padding: 4rem 1rem;
+    background: linear-gradient(
+      135deg,
+      var(--sl-color-bg-pad) 0%,
+      var(--sl-color-bg) 100%
+    );
+    margin-top: -4rem;
+  }
+
+  .container {
+    max-width: 80rem;
+    margin: 0 auto;
+  }
+
+  .features-section h2 {
+    font-size: var(--sl-text-4xl);
+    font-weight: 700;
+    margin: 0 0 3rem 0;
+    text-align: center;
+    color: var(--sl-color-white);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    align-items: stretch;
+    margin: 0;
+  }
+
+  .feature-card {
+    padding: 2rem;
+    background: var(--sl-color-bg);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    margin-top: 0 !important;
+    min-width: 0;
+    height: 100%;
+  }
+
+  .feature-card:hover {
+    border-color: var(--sl-color-accent);
+    transform: translateY(-2px);
+  }
+
+  .image-container {
+    width: 100%;
+    height: 280px;
+    margin: 0 0 1.5rem 0;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .image-container img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    margin: 0;
+    padding: 0;
+  }
+
+  .feature-card h3 {
+    font-size: var(--sl-text-lg);
+    font-weight: 600;
+    margin: 0 0 0.75rem 0;
+    color: var(--sl-color-white);
+    flex-shrink: 0;
+  }
+
+  .feature-card p {
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .image-container {
+      height: 240px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .features-section {
+      padding: 2rem 1rem;
+    }
+
+    .features-grid {
+      gap: 1.5rem;
+    }
+
+    .features-section h2 {
+      font-size: var(--sl-text-2xl);
+      margin-bottom: 2rem;
+    }
+  }
+</style>
