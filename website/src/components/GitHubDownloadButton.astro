@@ -23,33 +23,43 @@ const { pattern, text } = platformMap[platform];
 let downloadUrl: string | undefined;
 let errorMessage: string | undefined;
 
-try {
-  const response = await fetch(
-    `https://api.github.com/repos/spacecake-labs/spacecake-releases/releases/latest`,
-    {
-      headers: {
-        Accept: "application/vnd.github.v3+json",
-      },
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `GitHub API error: ${response.status} ${response.statusText}`
+// In development, skip the API call to avoid rate limits during refresh
+if (import.meta.env.PROD) {
+  try {
+    const response = await fetch(
+      `https://api.github.com/repos/spacecake-labs/spacecake-releases/releases/latest`,
+      {
+        headers: {
+          Accept: "application/vnd.github.v3+json",
+        },
+      }
     );
-  }
 
-  const data = await response.json();
-  const asset = data.assets?.find((a: any) => a.name.includes(pattern));
+    if (!response.ok) {
+      throw new Error(
+        `GitHub API error: ${response.status} ${response.statusText}`
+      );
+    }
 
-  if (asset) {
-    downloadUrl = asset.browser_download_url;
-  } else {
-    errorMessage = `No matching asset found for "${platform}".`;
+    const data = await response.json();
+    const asset = data.assets?.find((a: any) => a.name.includes(pattern));
+
+    if (asset) {
+      downloadUrl = asset.browser_download_url;
+    } else {
+      errorMessage = `No matching asset found for "${platform}".`;
+    }
+  } catch (error: any) {
+    console.error(
+      `Error fetching latest GitHub release for ${platform}:`,
+      error
+    );
+    errorMessage = `Failed to fetch download URL: ${error.message}`;
   }
-} catch (error: any) {
-  console.error(`Error fetching latest GitHub release for ${platform}:`, error);
-  errorMessage = `Failed to fetch download URL: ${error.message}`;
+} else {
+  // In development, use the releases page directly
+  downloadUrl =
+    "https://github.com/spacecake-labs/spacecake-releases/releases/latest";
 }
 ---
 
