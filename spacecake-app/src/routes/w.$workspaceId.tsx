@@ -5,7 +5,6 @@
 
 import { useEffect, useState } from "react"
 import { FileStateHydrationEvent } from "@/machines/file-tree"
-import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
   createFileRoute,
@@ -14,7 +13,6 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router"
-import { Effect } from "effect"
 import { useSetAtom } from "jotai"
 import { Check, Copy } from "lucide-react"
 
@@ -46,7 +44,8 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
 
 export const Route = createFileRoute("/w/$workspaceId")({
-  beforeLoad: async ({ params }) => {
+  beforeLoad: async ({ params, context }) => {
+    const { db } = context
     const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
 
     const pathExists = await exists(workspacePath)
@@ -64,17 +63,15 @@ export const Route = createFileRoute("/w/$workspaceId")({
       },
     })
 
-    const pane = await RuntimeClient.runPromise(
-      Effect.gen(function* () {
-        const db = yield* Database
-
-        const workspace = yield* db.upsertWorkspace({
-          path: workspacePath,
-          is_open: true,
-        })
-
-        return yield* db.upsertPane({ workspace_id: workspace.id, position: 0 })
+    const workspace = await RuntimeClient.runPromise(
+      db.upsertWorkspace({
+        path: workspacePath,
+        is_open: true,
       })
+    )
+
+    const pane = await RuntimeClient.runPromise(
+      db.upsertPane({ workspace_id: workspace.id, position: 0 })
     )
 
     return {
@@ -86,24 +83,21 @@ export const Route = createFileRoute("/w/$workspaceId")({
     }
   },
   loader: async ({ context }) => {
-    const { workspace } = context
+    const { db, workspace } = context
     const result = await readDirectory(workspace.path)
     match(result, {
       onLeft: (error) => console.error(error),
       onRight: async (tree) => {
         // hydrate file state machine atoms
-        await RuntimeClient.runPromise(
-          Effect.gen(function* () {
-            const db = yield* Database
-            const cache = yield* db.selectWorkspaceCache(workspace.path)
-            cache.forEach((row) => {
-              const event: FileStateHydrationEvent = {
-                type: row.has_cached_state ? "file.dirty" : "file.clean",
-              }
-              store.set(fileStateAtomFamily(row.filePath), event)
-            })
-          })
+        const cache = await RuntimeClient.runPromise(
+          db.selectWorkspaceCache(workspace.path)
         )
+        cache.forEach((row) => {
+          const event: FileStateHydrationEvent = {
+            type: row.has_cached_state ? "file.dirty" : "file.clean",
+          }
+          store.set(fileStateAtomFamily(row.filePath), event)
+        })
 
         store.set(setFileTreeAtom, tree)
       },
