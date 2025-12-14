@@ -1,7 +1,6 @@
 import { fileMachine } from "@/machines/manage-file"
 import { JsonValue } from "@/schema/drizzle-effect"
 import { EditorPrimaryKeySchema } from "@/schema/editor"
-import { Database } from "@/services/database"
 import { EditorManager } from "@/services/editor-manager"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
@@ -118,6 +117,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 function FileLayout() {
   const { filePath, editorConfig, key, editorId, fileId } =
     Route.useLoaderData()
+  const { db } = Route.useRouteContext()
 
   const sendFileState = useSetAtom(fileStateAtomFamily(filePath))
 
@@ -125,7 +125,6 @@ function FileLayout() {
 
   RuntimeClient.runPromise(
     Effect.gen(function* () {
-      const db = yield* Database
       yield* Effect.forkDaemon(
         db.updateFileAccessedAt({
           id: fileId,
