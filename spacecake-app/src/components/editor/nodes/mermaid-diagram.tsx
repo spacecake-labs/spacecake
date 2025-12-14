@@ -38,8 +38,17 @@ export default function MermaidDiagram({
         try {
           if (!containerRef.current) return
 
+          // preserve container width to prevent layout shift during re-render
+          const currentWidth = containerRef.current.offsetWidth
+          const hasContent = currentWidth > 0
+
           // clear previous content
           containerRef.current.innerHTML = ""
+
+          // set minimum width to prevent container resize
+          if (hasContent) {
+            containerRef.current.style.minWidth = `${currentWidth}px`
+          }
 
           // create a unique id for this diagram
           const diagramId = `mermaid-${nodeKey}`
@@ -50,6 +59,9 @@ export default function MermaidDiagram({
 
           // insert the rendered SVG
           containerRef.current.innerHTML = svg
+
+          // reset minWidth to allow natural sizing
+          containerRef.current.style.minWidth = ""
         } catch (error) {
           // show error message if diagram is invalid
           if (!containerRef.current) return
