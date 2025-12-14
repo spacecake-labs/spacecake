@@ -4,6 +4,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { useSetAtom } from "jotai"
 import {
   COMMAND_PRIORITY_EDITOR,
+  COMMAND_PRIORITY_HIGH,
   createCommand,
   KEY_DOWN_COMMAND,
   LexicalCommand,
@@ -80,7 +81,7 @@ export function SaveCommandPlugin() {
 
         return false // Let other handlers process the event
       },
-      COMMAND_PRIORITY_EDITOR
+      COMMAND_PRIORITY_HIGH
     )
   }, [editor])
 
