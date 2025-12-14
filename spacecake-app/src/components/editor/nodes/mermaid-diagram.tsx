@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { NodeKey } from "lexical"
+import { ChevronDown } from "lucide-react"
 import mermaid from "mermaid"
 
 import { useTheme } from "@/components/theme-provider"
@@ -9,6 +10,17 @@ interface MermaidDiagramProps {
   nodeKey: NodeKey
 }
 
+function MermaidLoadingSpinner(): React.ReactElement {
+  return (
+    <div className="flex items-center justify-center gap-2 py-8">
+      <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-foreground" />
+      <span className="text-sm text-muted-foreground">
+        rendering diagram...
+      </span>
+    </div>
+  )
+}
+
 export default function MermaidDiagram({
   diagram,
   nodeKey,
@@ -16,6 +28,9 @@ export default function MermaidDiagram({
   const containerRef = useRef<HTMLDivElement>(null)
   const { theme } = useTheme()
   const renderTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [svgContent, setSvgContent] = useState<string>("")
 
   useEffect(() => {
     if (!containerRef.current || !diagram.trim()) return
@@ -36,10 +51,10 @@ export default function MermaidDiagram({
       // render the diagram
       const renderDiagram = async () => {
         try {
-          if (!containerRef.current) return
+          setIsLoading(true)
+          setError(null)
 
-          // clear previous content
-          containerRef.current.innerHTML = ""
+          if (!containerRef.current) return
 
           // create a unique id for this diagram
           const diagramId = `mermaid-${nodeKey}`
@@ -48,16 +63,15 @@ export default function MermaidDiagram({
           // this returns the SVG string directly without DOM manipulation
           const { svg } = await mermaid.render(diagramId, diagram)
 
-          // insert the rendered SVG
-          containerRef.current.innerHTML = svg
-        } catch (error) {
+          // store the svg content
+          setSvgContent(svg)
+        } catch (err) {
           // show error message if diagram is invalid
-          if (!containerRef.current) return
-          const errorMsg =
-            error instanceof Error ? error.message : "unknown error"
-          containerRef.current.innerHTML = `<div class="text-red-500 text-sm p-4 bg-red-50 rounded border border-red-200 dark:bg-red-950 dark:text-red-200">
-            <strong>mermaid diagram error:</strong> ${errorMsg}
-          </div>`
+          const errorMsg = err instanceof Error ? err.message : "unknown error"
+          setError(errorMsg)
+          setSvgContent("")
+        } finally {
+          setIsLoading(false)
         }
       }
 
@@ -71,11 +85,50 @@ export default function MermaidDiagram({
     }
   }, [diagram, theme, nodeKey])
 
+  // show loading state if rendering and no previous content
+  if (isLoading && !svgContent) {
+    return (
+      <div
+        ref={containerRef}
+        className="mermaid-container my-4 rounded bg-gray-50 p-4 dark:bg-gray-900"
+        data-testid={`mermaid-diagram-${nodeKey}`}
+      >
+        <MermaidLoadingSpinner />
+      </div>
+    )
+  }
+
+  // show error with collapsible diagram code
+  if (error && !svgContent) {
+    return (
+      <div
+        ref={containerRef}
+        className="my-4 rounded border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950"
+        data-testid={`mermaid-diagram-${nodeKey}`}
+      >
+        <p className="text-sm font-medium text-red-900 dark:text-red-200">
+          mermaid diagram error: {error}
+        </p>
+        <details className="mt-3">
+          <summary className="flex cursor-pointer items-center gap-2 text-xs text-red-700 dark:text-red-300">
+            <ChevronDown className="h-3 w-3" />
+            show diagram code
+          </summary>
+          <pre className="mt-2 overflow-x-auto rounded bg-red-100 p-3 text-xs text-red-900 dark:bg-red-900 dark:text-red-100">
+            {diagram}
+          </pre>
+        </details>
+      </div>
+    )
+  }
+
+  // render the SVG
   return (
     <div
       ref={containerRef}
-      className="mermaid-container my-4 rounded bg-gray-50 p-4 dark:bg-gray-900 overflow-auto"
+      className="mermaid-container my-4 overflow-auto rounded bg-gray-50 p-4 dark:bg-gray-900"
       data-testid={`mermaid-diagram-${nodeKey}`}
+      dangerouslySetInnerHTML={{ __html: svgContent }}
     />
   )
 }
