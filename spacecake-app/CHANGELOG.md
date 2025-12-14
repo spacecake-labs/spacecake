@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.9
+
+### Patch Changes
+
+- 8bfc4f1: Reduce load times with database context.
+
 ## 0.1.0-alpha.8
 
 ### Patch Changes
