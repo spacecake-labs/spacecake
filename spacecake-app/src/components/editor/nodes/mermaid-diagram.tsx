@@ -38,17 +38,8 @@ export default function MermaidDiagram({
         try {
           if (!containerRef.current) return
 
-          // preserve container height to prevent layout shift during re-render
-          const currentHeight = containerRef.current.offsetHeight
-          const hasContent = currentHeight > 0
-
           // clear previous content
           containerRef.current.innerHTML = ""
-
-          // set minimum height to prevent container collapse
-          if (hasContent) {
-            containerRef.current.style.minHeight = `${currentHeight}px`
-          }
 
           // create a unique id for this diagram
           const diagramId = `mermaid-${nodeKey}`
@@ -59,9 +50,6 @@ export default function MermaidDiagram({
 
           // insert the rendered SVG
           containerRef.current.innerHTML = svg
-
-          // reset minHeight to allow natural sizing
-          containerRef.current.style.minHeight = ""
         } catch (error) {
           // show error message if diagram is invalid
           if (!containerRef.current) return
