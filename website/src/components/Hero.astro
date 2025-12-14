@@ -52,8 +52,10 @@ if (image) {
   <div class="sl-flex stack">
     <div class="sl-flex copy">
       <h1 id={PAGE_TITLE_ID} data-page-title set:html={title} />
+      <span class="status-badge">public alpha</span>
       {tagline && <div class="tagline" set:html={tagline} />}
     </div>
+
     {
       (
         <div class="sl-flex actions">
@@ -81,7 +83,6 @@ if (image) {
       height: auto;
       margin-inline: auto;
     }
-
     .stack {
       flex-direction: column;
       gap: clamp(1.5rem, calc(1.5rem + 1vw), 2rem);
@@ -96,6 +97,10 @@ if (image) {
 
     .copy > * {
       max-width: 50ch;
+    }
+
+    .stack > .status-badge {
+      align-self: flex-start;
     }
 
     h1 {
@@ -122,6 +127,23 @@ if (image) {
       gap: 1rem 2rem;
       flex-wrap: wrap;
       justify-content: center;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      background: color-mix(in srgb, var(--sl-color-accent) 10%, transparent);
+      border: 1px solid
+        color-mix(in srgb, var(--sl-color-accent) 30%, transparent);
+      border-radius: 999px; /* full pill shape */
+      font-family: "Monaco", "Courier New", monospace;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: var(--sl-color-accent);
+      text-transform: lowercase;
+      white-space: nowrap;
     }
 
     @media (min-width: 50rem) {
