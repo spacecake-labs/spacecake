@@ -2,9 +2,14 @@
 import { routeTree } from "@/routeTree.gen"
 import { createMemoryHistory, createRouter } from "@tanstack/react-router"
 
-// Create a new router instance with hash routing
+import type { DatabaseInstance } from "@/lib/init-database"
+
+export type RouterContext = {
+  db: DatabaseInstance
+}
+
 const memoryHistory = createMemoryHistory({
-  initialEntries: ["/"], // Pass your initial url
+  initialEntries: ["/"],
 })
 
 export const router = createRouter({
@@ -12,6 +17,7 @@ export const router = createRouter({
   history: memoryHistory,
   defaultStructuralSharing: true,
   defaultPreload: "intent",
+  context: undefined!,
 })
 
 // Register the router instance for type safety

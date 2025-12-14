@@ -3,14 +3,13 @@
  *
  */
 
-import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
   createFileRoute,
   ErrorComponent,
   redirect,
 } from "@tanstack/react-router"
-import { Effect, Option } from "effect"
+import { Option } from "effect"
 import { AlertCircleIcon, CakeSlice } from "lucide-react"
 
 import { match } from "@/types/adt"
@@ -32,19 +31,14 @@ export const Route = createFileRoute("/w/$workspaceId/")({
   loaderDeps: ({ search }) => ({
     notFoundFilePath: search.notFoundFilePath,
   }),
-  loader: async ({ params, deps }) => {
+  loader: async ({ params, deps, context }) => {
+    const { db } = context
     const { notFoundFilePath } = deps
     const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
 
     if (notFoundFilePath) {
       return { kind: "notFound", filePath: notFoundFilePath }
     }
-
-    const db = await RuntimeClient.runPromise(
-      Effect.gen(function* () {
-        return yield* Database
-      })
-    )
 
     const activeEditor = await RuntimeClient.runPromise(
       db.selectLastOpenedEditor(workspacePath)
