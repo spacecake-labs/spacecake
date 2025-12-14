@@ -10,17 +10,6 @@ interface MermaidDiagramProps {
   nodeKey: NodeKey
 }
 
-function MermaidLoadingSpinner(): React.ReactElement {
-  return (
-    <div className="flex items-center justify-center gap-2 py-8">
-      <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-foreground" />
-      <span className="text-sm text-muted-foreground">
-        rendering diagram...
-      </span>
-    </div>
-  )
-}
-
 export default function MermaidDiagram({
   diagram,
   nodeKey,
@@ -28,7 +17,6 @@ export default function MermaidDiagram({
   const containerRef = useRef<HTMLDivElement>(null)
   const { theme } = useTheme()
   const renderTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [svgContent, setSvgContent] = useState<string>("")
 
@@ -51,7 +39,6 @@ export default function MermaidDiagram({
       // render the diagram
       const renderDiagram = async () => {
         try {
-          setIsLoading(true)
           setError(null)
 
           if (!containerRef.current) return
@@ -70,8 +57,6 @@ export default function MermaidDiagram({
           const errorMsg = err instanceof Error ? err.message : "unknown error"
           setError(errorMsg)
           setSvgContent("")
-        } finally {
-          setIsLoading(false)
         }
       }
 
@@ -84,19 +69,6 @@ export default function MermaidDiagram({
       }
     }
   }, [diagram, theme, nodeKey])
-
-  // show loading state if rendering and no previous content
-  if (isLoading && !svgContent) {
-    return (
-      <div
-        ref={containerRef}
-        className="mermaid-container my-4 rounded bg-gray-50 p-4 dark:bg-gray-900"
-        data-testid={`mermaid-diagram-${nodeKey}`}
-      >
-        <MermaidLoadingSpinner />
-      </div>
-    )
-  }
 
   // show error with collapsible diagram code
   if (error && !svgContent) {

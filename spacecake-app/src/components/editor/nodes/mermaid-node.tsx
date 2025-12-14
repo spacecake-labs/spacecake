@@ -110,7 +110,7 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
 
   decorate(): JSX.Element {
     return (
-      <React.Suspense fallback={<div>loading diagram...</div>}>
+      <React.Suspense fallback={<div />}>
         <MermaidDiagram diagram={this.__diagram} nodeKey={this.getKey()} />
       </React.Suspense>
     )
