@@ -21,7 +21,14 @@ export default function MermaidDiagram({
   const [svgContent, setSvgContent] = useState<string>("")
 
   useEffect(() => {
-    if (!containerRef.current || !diagram.trim()) return
+    // always return cleanup function to follow React rules of hooks
+    if (!containerRef.current || !diagram.trim()) {
+      return () => {
+        if (renderTimeoutRef.current) {
+          clearTimeout(renderTimeoutRef.current)
+        }
+      }
+    }
 
     // configure mermaid based on theme
     mermaid.initialize({
