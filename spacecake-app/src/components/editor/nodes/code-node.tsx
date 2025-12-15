@@ -13,8 +13,11 @@ import {
   Spread,
 } from "lexical"
 
+import type { LanguageSpec } from "@/types/language"
 import type { Block } from "@/types/parser"
 import { CodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor"
+
+type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
 
 // Focus management interface for CodeMirror integration
 export interface CodeMirrorFocusManager {
@@ -28,25 +31,10 @@ const focusManagerMap = new WeakMap<CodeBlockNode, CodeMirrorFocusManager>()
  * The options necessary to construct a new code block node.
  */
 export interface CreateCodeBlockNodeOptions {
-  /**
-   * The code contents of the block.
-   */
   code: string
-  /**
-   * The language of the code block (i.e. `js`, `jsx`, etc.). This is used for syntax highlighting.
-   */
-  language: string
-  /**
-   * The additional meta data of the block.
-   */
+  language: CodeMirrorLanguage
   meta: string
-  /**
-   * The source file path/name for the code block.
-   */
   src: string
-  /**
-   * The parsed block object containing kind, name, and other metadata.
-   */
   block: Block
 }
 
@@ -64,7 +52,7 @@ export type SerializedCodeBlockNode = Spread<
 export class CodeBlockNode extends DecoratorNode<JSX.Element> {
   __code: string
   __meta: string
-  __language: string
+  __language: CodeMirrorLanguage
   __src: string
   __block: Block
 
@@ -109,7 +97,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
 
   constructor(
     code: string,
-    language: string,
+    language: CodeMirrorLanguage,
     meta: string,
     src: string,
     block: Block,
@@ -161,7 +149,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     return this.__meta
   }
 
-  getLanguage(): string {
+  getLanguage(): CodeMirrorLanguage {
     return this.__language
   }
 
@@ -185,7 +173,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     }
   }
 
-  setLanguage = (language: string) => {
+  setLanguage = (language: CodeMirrorLanguage) => {
     if (language !== this.__language) {
       this.getWritable().__language = language
     }
@@ -237,33 +225,12 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
  * A set of functions that modify the underlying code block node.
  */
 export interface CodeBlockEditorContextValue {
-  /**
-   * Updates the code contents of the code block.
-   */
   setCode: (code: string) => void
-  /**
-   * Updates the language of the code block.
-   */
-  setLanguage: (language: string) => void
-  /**
-   * Updates the meta of the code block.
-   */
+  setLanguage: (language: CodeMirrorLanguage) => void
   setMeta: (meta: string) => void
-  /**
-   * Updates the source file path of the code block.
-   */
   setSrc: (src: string) => void
-  /**
-   * The Lexical node that's being edited.
-   */
   lexicalNode: CodeBlockNode
-  /**
-   * The parent Lexical editor.
-   */
   parentEditor: LexicalEditor
-  /**
-   * The source file path for the code block.
-   */
   src: string
 }
 
@@ -328,7 +295,7 @@ export function useCodeBlockEditorContext() {
 
 interface CodeBlockEditorProps {
   code: string
-  language: string
+  language: CodeMirrorLanguage
   meta: string
   src: string
   block: Block
@@ -366,10 +333,11 @@ const CodeBlockEditorContainer: React.FC<
 export function $createCodeBlockNode(
   options: Partial<CreateCodeBlockNodeOptions>
 ): CodeBlockNode {
+  const language = (options.language ?? "") as CodeMirrorLanguage
   return $applyNodeReplacement(
     new CodeBlockNode(
       options.code ?? "",
-      options.language ?? "",
+      language,
       options.meta ?? "",
       options.src ?? "",
       options.block ?? {

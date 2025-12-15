@@ -23,6 +23,7 @@ export const LanguageSpecSchema = Schema.Struct({
   code: Schema.String,
   extensions: Schema.Set(Schema.String),
   supportedViews: Schema.Set(ViewKindSchema),
+  codemirrorName: Schema.String,
 })
 
 export type LanguageSpec = typeof LanguageSpecSchema.Type
@@ -39,41 +40,48 @@ export const LANGUAGE_SUPPORT: Record<FileType, LanguageSpec> = {
     code: "md",
     extensions: new Set([".md", ".markdown"]),
     supportedViews: new Set(["rich", "source"]),
+    codemirrorName: "markdown",
   },
   [FileType.Python]: {
     name: "Python",
     code: "py",
     extensions: new Set([".py", ".pyw"]),
     supportedViews: new Set(["rich", "source"]),
+    codemirrorName: "python",
   },
   [FileType.JavaScript]: {
     name: "JavaScript",
     code: "js",
     extensions: new Set([".js", ".mjs", ".cjs"]),
     supportedViews: new Set(["source"]),
+    codemirrorName: "javascript",
   },
   [FileType.TypeScript]: {
     name: "TypeScript",
     code: "ts",
     extensions: new Set([".ts", ".mts", ".cts"]),
     supportedViews: new Set(["source"]),
+    codemirrorName: "typescript",
   },
   [FileType.JSX]: {
     name: "JSX",
     code: "jsx",
     extensions: new Set([".jsx"]),
     supportedViews: new Set(["source"]),
+    codemirrorName: "jsx",
   },
   [FileType.TSX]: {
     name: "TSX",
     code: "tsx",
     extensions: new Set([".tsx"]),
     supportedViews: new Set(["source"]),
+    codemirrorName: "tsx",
   },
   [FileType.Plaintext]: {
     name: "Plaintext",
     code: "plaintext",
     extensions: new Set([".txt", ".text"]),
     supportedViews: new Set(["source"]),
+    codemirrorName: "",
   },
 }
