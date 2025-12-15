@@ -70,7 +70,7 @@ export function CodeBlock({
   const availableLanguages = Object.entries(LANGUAGE_SUPPORT).map(
     ([_, spec]) => ({
       value: spec.codemirrorName,
-      label: spec.name,
+      label: spec.name.toLowerCase(),
     })
   )
 
