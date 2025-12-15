@@ -1,41 +1,50 @@
-/**
- * A component that displays a block of content.
- * Used for code blocks and doc/context blocks.
- */
-
-// import { useState } from "react"
+import React from "react"
 import { Code } from "lucide-react"
 
+import type { LanguageSpec } from "@/types/language"
+import { LANGUAGE_SUPPORT } from "@/types/language"
 import type { Block } from "@/types/parser"
 import { blockId } from "@/lib/parser/block-id"
 import { delimitPythonDocString } from "@/lib/parser/python/utils"
 import { cn } from "@/lib/utils"
 import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import type { CodeBlockEditorContextValue } from "@/components/editor/nodes/code-node"
 import { TypographyH3, TypographyP } from "@/components/typography"
+
+type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
 
 interface CodeBlockProps {
   block: Block
-  language?: string
+  language?: CodeMirrorLanguage
   editable?: boolean
   theme?: "light" | "dark" | "auto"
   className?: string
   onCodeChange?: (code: string) => void
   onRun?: () => void
   children?: React.ReactNode
+  codeBlockContext?: CodeBlockEditorContextValue
 }
 
 export function CodeBlock({
   block,
-  language = "javascript",
+  language = "plaintext" as CodeMirrorLanguage,
   editable = false,
   className,
   // onRun,
   children,
+  codeBlockContext,
 }: CodeBlockProps) {
-  // const [copied, setCopied] = useState(false)
+  // this means it's a code block in a markdown file
+  const canChangeLanguage = block.kind === "code"
 
-  // derive properties from block
   const code = block.text
   const blockName = block.name.value
   const title = blockName
@@ -45,17 +54,6 @@ export function CodeBlock({
       ? delimitPythonDocString(block.doc?.text)
       : null
 
-  // const copyToClipboard = async () => {
-  //   try {
-  //     await navigator.clipboard.writeText(code)
-  //     setCopied(true)
-  //     setTimeout(() => setCopied(false), 2000)
-  //   } catch (err) {
-  //     console.error("failed to copy code:", err)
-  //   }
-  // }
-
-  // split docstring at first linebreak
   const firstLineBreak = doc?.between.indexOf("\n") ?? -1
   const docHeader =
     firstLineBreak === -1
@@ -65,6 +63,13 @@ export function CodeBlock({
     firstLineBreak === -1
       ? null
       : doc?.between.substring(firstLineBreak + 1).trimStart()
+
+  const availableLanguages = Object.entries(LANGUAGE_SUPPORT).map(
+    ([_, spec]) => ({
+      value: spec.codemirrorName,
+      label: spec.name.toLowerCase(),
+    })
+  )
 
   return (
     <div
@@ -96,6 +101,25 @@ export function CodeBlock({
             {block.kind}
           </Badge>
         </div>
+
+        {codeBlockContext && editable && (
+          <Select
+            value={language}
+            onValueChange={codeBlockContext.setLanguage}
+            disabled={!canChangeLanguage}
+          >
+            <SelectTrigger size="sm" className="w-auto">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {availableLanguages.map(({ value, label }) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         {/* <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {onRun && (

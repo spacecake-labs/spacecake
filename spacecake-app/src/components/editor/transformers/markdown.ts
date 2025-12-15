@@ -65,9 +65,10 @@ export function createCodeTransformer(): MultilineElementTransformer {
       if (language === "markdown") {
         return textContent
       }
+      const languageForMarkdown = language === "plaintext" ? "" : language
       return (
         "```" +
-        (language || "") +
+        (languageForMarkdown || "") +
         (textContent ? "\n" + textContent : "") +
         "\n" +
         "```"
@@ -129,7 +130,7 @@ export function createCodeTransformer(): MultilineElementTransformer {
         (text: string) =>
           $createCodeBlockNode({
             code: text,
-            language: language,
+            language: language || "plaintext",
             // meta: "",
             // src: "",
             // block: node.getBlock(),

@@ -19,24 +19,6 @@ export function supportedViews(fileType: FileType): Set<ViewKind> {
   return LANGUAGE_SUPPORT[fileType].supportedViews
 }
 
-// map FileType to CodeMirror language string
-export function fileTypeToCodeMirrorLanguage(
-  fileType: FileType
-): string | null {
-  switch (fileType) {
-    case FileType.Python:
-      return "python"
-    case FileType.JavaScript:
-      return "javascript"
-    case FileType.TypeScript:
-      return "typescript"
-    case FileType.JSX:
-      return "jsx"
-    case FileType.TSX:
-      return "tsx"
-    case FileType.Markdown:
-      return "markdown"
-    case FileType.Plaintext:
-      return null // No syntax highlighting
-  }
+export function fileTypeToCodeMirrorLanguage(fileType: FileType): string {
+  return LANGUAGE_SUPPORT[fileType].codemirrorName
 }
