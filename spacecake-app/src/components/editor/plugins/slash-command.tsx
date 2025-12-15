@@ -19,7 +19,7 @@ export function SlashCommandPlugin(): React.JSX.Element {
   const [editor] = useLexicalComposerContext()
   const route = useRoute()
   const language = route?.fileType
-    ? (fileTypeToCodeMirrorLanguage(route.fileType) ?? "")
+    ? fileTypeToCodeMirrorLanguage(route.fileType)
     : ""
   // const [, showModal] = useModal()
   const [queryString, setQueryString] = useState<string | null>(null)
