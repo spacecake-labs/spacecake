@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.10
+
+### Patch Changes
+
+- ea87aa7: Adding support for mermaid diagrams in markdown files.
+
 ## 0.1.0-alpha.9
 
 ### Patch Changes
