@@ -3,7 +3,7 @@ import { Image } from "astro:assets";
 import type { ImageMetadata } from "astro";
 import codeBlocksImage from "../assets/code-blocks.svg";
 import checklistsImage from "../assets/specs.svg";
-// import contextImage from "../assets/code-blocks.svg";
+import diagramImage from "../assets/mermaid.svg";
 // import previewImage from "../assets/code-blocks.svg";
 
 interface Feature {
@@ -23,11 +23,11 @@ const features: Feature[] = [
     description: "save your progress and keep agents on track",
     image: checklistsImage,
   },
-  // {
-  //   title: "rich context",
-  //   description: "keep your agents on track with linked markdown files",
-  //   image: contextImage,
-  // },
+  {
+    title: "diagrams",
+    description: "render diagrams with mermaid",
+    image: diagramImage,
+  },
   // {
   //   title: "live preview",
   //   description: "see your markdown render instantly as you type",
