@@ -130,7 +130,7 @@ export function createCodeTransformer(): MultilineElementTransformer {
         (text: string) =>
           $createCodeBlockNode({
             code: text,
-            language: language,
+            language: language || "plaintext",
             // meta: "",
             // src: "",
             // block: node.getBlock(),

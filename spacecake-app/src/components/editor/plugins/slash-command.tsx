@@ -20,7 +20,7 @@ export function SlashCommandPlugin(): React.JSX.Element {
   const route = useRoute()
   const language = route?.fileType
     ? fileTypeToCodeMirrorLanguage(route.fileType)
-    : ""
+    : "plaintext"
   // const [, showModal] = useModal()
   const [queryString, setQueryString] = useState<string | null>(null)
 
