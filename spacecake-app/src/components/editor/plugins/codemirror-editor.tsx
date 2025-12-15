@@ -8,6 +8,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github"
 import { basicSetup } from "codemirror"
 
+import type { LanguageSpec } from "@/types/language"
 import type { Block } from "@/types/parser"
 import { debounce } from "@/lib/utils"
 import { CodeBlock } from "@/components/code-block"
@@ -19,8 +20,10 @@ import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { useNavigation } from "@/components/editor/plugins/use-navigation"
 import { useTheme } from "@/components/theme-provider"
 
+type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
+
 interface CodeMirrorEditorProps {
-  language: string
+  language: CodeMirrorLanguage
   nodeKey: string
   code: string
   block: Block
@@ -294,6 +297,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   //   }
   // }, [code]);
 
+  const codeBlockContext = useCodeBlockEditorContext()
+
   return (
     <CodeBlock
       block={block}
@@ -303,6 +308,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       onCodeChange={(newCode) => {
         setCodeRef.current(newCode)
       }}
+      codeBlockContext={codeBlockContext}
     >
       <div ref={elRef} />
     </CodeBlock>
