@@ -23,5 +23,5 @@ export function fileTypeToCodeMirrorLanguage(
   fileType: FileType
 ): string | null {
   const name = LANGUAGE_SUPPORT[fileType].codemirrorName
-  return name || null
+  return fileType === FileType.Plaintext ? null : name
 }
