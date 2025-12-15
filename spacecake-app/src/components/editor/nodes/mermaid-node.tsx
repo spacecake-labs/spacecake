@@ -12,9 +12,7 @@ import {
   Spread,
 } from "lexical"
 
-const MermaidDiagram = React.lazy(
-  () => import("@/components/editor/nodes/mermaid-diagram")
-)
+import MermaidDiagram from "@/components/editor/nodes/mermaid-diagram"
 
 export interface CreateMermaidNodeOptions {
   diagram: string
