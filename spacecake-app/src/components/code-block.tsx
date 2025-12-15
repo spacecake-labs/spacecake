@@ -4,10 +4,12 @@ import { Code } from "lucide-react"
 import type { LanguageSpec } from "@/types/language"
 import { LANGUAGE_SUPPORT } from "@/types/language"
 import type { Block } from "@/types/parser"
+import { FileType } from "@/types/workspace"
 import { blockId } from "@/lib/parser/block-id"
 import { delimitPythonDocString } from "@/lib/parser/python/utils"
 import { cn } from "@/lib/utils"
 import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace"
+import { useRoute } from "@/hooks/use-route"
 import { Badge } from "@/components/ui/badge"
 import {
   Select,
@@ -42,6 +44,10 @@ export function CodeBlock({
   children,
   codeBlockContext,
 }: CodeBlockProps) {
+  const route = useRoute()
+  const isMarkdownFile = route?.fileType === FileType.Markdown
+  const canChangeLanguage = isMarkdownFile
+
   const code = block.text
   const blockName = block.name.value
   const title = blockName
@@ -100,7 +106,11 @@ export function CodeBlock({
         </div>
 
         {codeBlockContext && editable && (
-          <Select value={language} onValueChange={codeBlockContext.setLanguage}>
+          <Select
+            value={language}
+            onValueChange={codeBlockContext.setLanguage}
+            disabled={!canChangeLanguage}
+          >
             <SelectTrigger size="sm" className="w-auto">
               <SelectValue />
             </SelectTrigger>
