@@ -35,7 +35,7 @@ interface CodeBlockProps {
 
 export function CodeBlock({
   block,
-  language = "javascript" as CodeMirrorLanguage,
+  language = "" as CodeMirrorLanguage,
   editable = false,
   className,
   // onRun,
@@ -63,7 +63,7 @@ export function CodeBlock({
 
   const availableLanguages = Object.entries(LANGUAGE_SUPPORT).map(
     ([_, spec]) => ({
-      value: spec.codemirrorName,
+      value: spec.codemirrorName || "none",
       label: spec.name,
     })
   )
@@ -101,8 +101,10 @@ export function CodeBlock({
 
         {codeBlockContext && editable && (
           <Select
-            value={language || "javascript"}
-            onValueChange={codeBlockContext.setLanguage}
+            value={language || "none"}
+            onValueChange={(value) =>
+              codeBlockContext.setLanguage(value === "none" ? "" : value)
+            }
           >
             <SelectTrigger size="sm" className="w-auto">
               <SelectValue />

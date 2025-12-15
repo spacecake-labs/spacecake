@@ -82,6 +82,6 @@ export const LANGUAGE_SUPPORT: Record<FileType, LanguageSpec> = {
     code: "plaintext",
     extensions: new Set([".txt", ".text"]),
     supportedViews: new Set(["source"]),
-    codemirrorName: "plaintext",
+    codemirrorName: "",
   },
 }

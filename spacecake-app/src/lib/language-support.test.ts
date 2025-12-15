@@ -89,8 +89,8 @@ describe("language support", () => {
       )
     })
 
-    it("maps plaintext to null", () => {
-      expect(fileTypeToCodeMirrorLanguage(FileType.Plaintext)).toBe(null)
+    it("maps plaintext to empty string", () => {
+      expect(fileTypeToCodeMirrorLanguage(FileType.Plaintext)).toBe("")
     })
   })
 })
