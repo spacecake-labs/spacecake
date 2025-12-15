@@ -15,6 +15,7 @@ import { TablePlugin } from "@lexical/react/LexicalTablePlugin"
 
 import { ContentEditable } from "@/components/editor/content-editable"
 import { BackspacePreventionPlugin } from "@/components/editor/plugins/backspace-prevention"
+import { MermaidDiagramPlugin } from "@/components/editor/plugins/mermaid-diagram"
 import { NodeNavigationPlugin } from "@/components/editor/plugins/node-navigation"
 import { SaveCommandPlugin } from "@/components/editor/plugins/save-command"
 import { SlashCommandPlugin } from "@/components/editor/plugins/slash-command"
@@ -51,6 +52,7 @@ export const Plugins = React.memo(function Plugins() {
         <HistoryPlugin />
         <NodeNavigationPlugin />
         <BackspacePreventionPlugin />
+        <MermaidDiagramPlugin />
         <MarkdownShortcutPlugin transformers={MARKDOWN_TRANSFORMERS} />
         <SaveCommandPlugin />
         <SlashCommandPlugin />

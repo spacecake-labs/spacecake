@@ -29,6 +29,10 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@assets": path.resolve(__dirname, "./assets"),
+      mermaid: path.join(
+        __dirname,
+        "node_modules/mermaid/dist/mermaid.esm.min.mjs"
+      ),
     },
   },
   assetsInclude: ["./src/drizzle/*.sql"],
