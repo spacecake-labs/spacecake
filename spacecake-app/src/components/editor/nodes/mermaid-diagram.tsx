@@ -1,9 +1,28 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { NodeKey } from "lexical"
 import { ChevronDown } from "lucide-react"
-import mermaid from "mermaid"
+import type { MermaidConfig } from "mermaid"
 
 import { useTheme } from "@/components/theme-provider"
+
+const initializeMermaid = async (customConfig?: MermaidConfig) => {
+  const defaultConfig: MermaidConfig = {
+    startOnLoad: false,
+    theme: "default",
+    securityLevel: "strict",
+    fontFamily: "monospace",
+    suppressErrorRendering: true,
+  } as MermaidConfig
+
+  const config = { ...defaultConfig, ...customConfig }
+
+  const mermaidModule = await import("mermaid")
+  const mermaid = mermaidModule.default
+
+  mermaid.initialize(config)
+
+  return mermaid
+}
 
 interface MermaidDiagramProps {
   diagram: string
@@ -14,74 +33,41 @@ export default function MermaidDiagram({
   diagram,
   nodeKey,
 }: MermaidDiagramProps): React.ReactElement {
-  const containerRef = useRef<HTMLDivElement>(null)
   const { theme } = useTheme()
-  const renderTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [svgContent, setSvgContent] = useState<string>("")
 
   useEffect(() => {
-    // always return cleanup function to follow React rules of hooks
-    if (!containerRef.current || !diagram.trim()) {
-      return () => {
-        if (renderTimeoutRef.current) {
-          clearTimeout(renderTimeoutRef.current)
-        }
+    if (!diagram.trim()) {
+      return
+    }
+
+    const renderDiagram = async () => {
+      try {
+        setError(null)
+
+        const mermaid = await initializeMermaid({
+          theme: theme === "dark" ? "dark" : "default",
+          securityLevel: "strict",
+        })
+
+        const diagramId = `mermaid-${nodeKey}`
+        const { svg } = await mermaid.render(diagramId, diagram)
+
+        setSvgContent(svg)
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : "unknown error"
+        setError(errorMsg)
+        setSvgContent("")
       }
     }
 
-    // configure mermaid based on theme
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: theme === "dark" ? "dark" : "default",
-      securityLevel: "loose",
-    })
-
-    // debounce rendering to avoid excessive re-renders during typing
-    if (renderTimeoutRef.current) {
-      clearTimeout(renderTimeoutRef.current)
-    }
-
-    renderTimeoutRef.current = setTimeout(() => {
-      // render the diagram
-      const renderDiagram = async () => {
-        try {
-          setError(null)
-
-          if (!containerRef.current) return
-
-          // create a unique id for this diagram
-          const diagramId = `mermaid-${nodeKey}`
-
-          // render the diagram using mermaid.render
-          // this returns the SVG string directly without DOM manipulation
-          const { svg } = await mermaid.render(diagramId, diagram)
-
-          // store the svg content
-          setSvgContent(svg)
-        } catch (err) {
-          // show error message if diagram is invalid
-          const errorMsg = err instanceof Error ? err.message : "unknown error"
-          setError(errorMsg)
-          setSvgContent("")
-        }
-      }
-
-      void renderDiagram()
-    }, 300)
-
-    return () => {
-      if (renderTimeoutRef.current) {
-        clearTimeout(renderTimeoutRef.current)
-      }
-    }
+    void renderDiagram()
   }, [diagram, theme, nodeKey])
 
-  // show error with collapsible diagram code
   if (error && !svgContent) {
     return (
       <div
-        ref={containerRef}
         className="my-4 rounded border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950"
         data-testid={`mermaid-diagram-${nodeKey}`}
       >
@@ -101,10 +87,8 @@ export default function MermaidDiagram({
     )
   }
 
-  // render the SVG
   return (
     <div
-      ref={containerRef}
       className="mermaid-container my-4 overflow-auto rounded bg-gray-50 p-4 dark:bg-gray-900"
       data-testid={`mermaid-diagram-${nodeKey}`}
       dangerouslySetInnerHTML={{ __html: svgContent }}
