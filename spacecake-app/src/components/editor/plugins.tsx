@@ -20,6 +20,7 @@ import { NodeNavigationPlugin } from "@/components/editor/plugins/node-navigatio
 import { SaveCommandPlugin } from "@/components/editor/plugins/save-command"
 import { SlashCommandPlugin } from "@/components/editor/plugins/slash-command"
 import TableCellResizer from "@/components/editor/plugins/table-cell-resizer"
+import { TrailingParagraphPlugin } from "@/components/editor/plugins/trailing-paragraph"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 
 export const Plugins = React.memo(function Plugins() {
@@ -53,6 +54,7 @@ export const Plugins = React.memo(function Plugins() {
         <NodeNavigationPlugin />
         <BackspacePreventionPlugin />
         <MermaidDiagramPlugin />
+        <TrailingParagraphPlugin />
         <MarkdownShortcutPlugin transformers={MARKDOWN_TRANSFORMERS} />
         <SaveCommandPlugin />
         <SlashCommandPlugin />
