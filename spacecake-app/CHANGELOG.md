@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.11
+
+### Patch Changes
+
+- 8dbd1f9: Adding language switcher for markdown code blocks.
+
 ## 0.1.0-alpha.10
 
 ### Patch Changes
