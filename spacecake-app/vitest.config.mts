@@ -20,5 +20,6 @@ export default defineConfig({
         ...coverageConfigDefaults.exclude,
       ],
     },
+    clearMocks: true,
   },
 })

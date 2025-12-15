@@ -43,12 +43,19 @@ import {
   $isImageNode,
   ImageNode,
 } from "@/components/editor/nodes/image-node"
+import {
+  $createMermaidNode,
+  $isMermaidNode,
+} from "@/components/editor/nodes/mermaid-node"
 
 export function createCodeTransformer(): MultilineElementTransformer {
   return {
     ...CODE,
     // dependencies: [CodeBlockNode],
     export: (node: LexicalNode) => {
+      if ($isMermaidNode(node)) {
+        return "```mermaid\n" + node.getDiagram() + "\n```"
+      }
       if (!$isCodeBlockNode(node)) {
         return null
       }
@@ -67,6 +74,8 @@ export function createCodeTransformer(): MultilineElementTransformer {
       )
     },
     replace: (rootNode, _children, startMatch, endMatch, linesInBetween) => {
+      const language = startMatch[1] ?? ""
+
       if (linesInBetween) {
         if (linesInBetween?.[0]?.trim().length === 0) {
           // Filter out all start and end lines that are length 0 until we find the first line with content
@@ -89,10 +98,32 @@ export function createCodeTransformer(): MultilineElementTransformer {
         }
       }
 
-      const language = startMatch[1] ?? ""
-      const code = linesInBetween?.join("\n") ?? ""
+      const content = linesInBetween?.join("\n") ?? ""
 
-      const delimitedString = delimitWithSpaceConsumer("\n" + code)
+      // Create mermaid node for mermaid blocks
+      if (language === "mermaid") {
+        const mermaidNode = $createMermaidNode({ diagram: content })
+
+        if (!rootNode.getParent()) {
+          rootNode.append(mermaidNode)
+        } else {
+          rootNode.replace(mermaidNode)
+        }
+
+        const nodeSelection = $createNodeSelection()
+        nodeSelection.add(mermaidNode.getKey())
+        $setSelection(nodeSelection)
+
+        // if no ending backticks, user has just created the mermaid block
+        if (!endMatch) {
+          // refocus after replacement
+          mermaidNode.selectStart()
+        }
+        return
+      }
+
+      // Create code block for other language blocks
+      const delimitedString = delimitWithSpaceConsumer("\n" + content)
 
       const codeNode = delimitedNode(
         (text: string) =>

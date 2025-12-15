@@ -18,6 +18,7 @@ import { ContainerNode } from "@/components/editor/nodes/container-node"
 import { ContextNode } from "@/components/editor/nodes/context-node"
 import { ImageNode } from "@/components/editor/nodes/image-node"
 import { InlineImageNode } from "@/components/editor/nodes/inline-image-node"
+import { MermaidNode } from "@/components/editor/nodes/mermaid-node"
 
 export const nodes: ReadonlyArray<Klass<LexicalNode> | LexicalNodeReplacement> =
   [
@@ -41,4 +42,5 @@ export const nodes: ReadonlyArray<Klass<LexicalNode> | LexicalNodeReplacement> =
     ImageNode,
     InlineImageNode,
     ContainerNode,
+    MermaidNode,
   ]
