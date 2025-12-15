@@ -35,7 +35,7 @@ interface CodeBlockProps {
 
 export function CodeBlock({
   block,
-  language = "" as CodeMirrorLanguage,
+  language = "plaintext" as CodeMirrorLanguage,
   editable = false,
   className,
   // onRun,
@@ -106,7 +106,7 @@ export function CodeBlock({
             </SelectTrigger>
             <SelectContent>
               {availableLanguages.map(({ value, label }) => (
-                <SelectItem key={value || "plaintext"} value={value}>
+                <SelectItem key={value} value={value}>
                   {label}
                 </SelectItem>
               ))}

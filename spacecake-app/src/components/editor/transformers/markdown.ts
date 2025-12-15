@@ -65,9 +65,10 @@ export function createCodeTransformer(): MultilineElementTransformer {
       if (language === "markdown") {
         return textContent
       }
+      const languageForMarkdown = language === "plaintext" ? "" : language
       return (
         "```" +
-        (language || "") +
+        (languageForMarkdown || "") +
         (textContent ? "\n" + textContent : "") +
         "\n" +
         "```"
