@@ -100,9 +100,12 @@ export function CodeBlock({
         </div>
 
         {codeBlockContext && editable && (
-          <Select value={language} onValueChange={codeBlockContext.setLanguage}>
+          <Select
+            value={language || "javascript"}
+            onValueChange={codeBlockContext.setLanguage}
+          >
             <SelectTrigger size="sm" className="w-auto">
-              <SelectValue placeholder="select language" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {availableLanguages.map(({ value, label }) => (
