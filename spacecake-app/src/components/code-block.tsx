@@ -63,7 +63,7 @@ export function CodeBlock({
 
   const availableLanguages = Object.entries(LANGUAGE_SUPPORT).map(
     ([_, spec]) => ({
-      value: spec.codemirrorName || "none",
+      value: spec.codemirrorName,
       label: spec.name,
     })
   )
@@ -100,18 +100,13 @@ export function CodeBlock({
         </div>
 
         {codeBlockContext && editable && (
-          <Select
-            value={language || "none"}
-            onValueChange={(value) =>
-              codeBlockContext.setLanguage(value === "none" ? "" : value)
-            }
-          >
+          <Select value={language} onValueChange={codeBlockContext.setLanguage}>
             <SelectTrigger size="sm" className="w-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {availableLanguages.map(({ value, label }) => (
-                <SelectItem key={value} value={value}>
+                <SelectItem key={value || "plaintext"} value={value}>
                   {label}
                 </SelectItem>
               ))}

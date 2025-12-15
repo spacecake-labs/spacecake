@@ -19,8 +19,6 @@ export function supportedViews(fileType: FileType): Set<ViewKind> {
   return LANGUAGE_SUPPORT[fileType].supportedViews
 }
 
-export function fileTypeToCodeMirrorLanguage(
-  fileType: FileType
-): string {
+export function fileTypeToCodeMirrorLanguage(fileType: FileType): string {
   return LANGUAGE_SUPPORT[fileType].codemirrorName
 }
