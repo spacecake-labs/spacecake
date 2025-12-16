@@ -102,7 +102,7 @@ describe("Python mdoc isomorphism", () => {
         let result = ""
 
         testEnv.editor.update(() => {
-          const node = mdBlockToNode(block)
+          const node = mdBlockToNode(block.text)
           result = nodeToMdBlock(node)
         })
 

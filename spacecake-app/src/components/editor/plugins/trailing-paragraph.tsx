@@ -1,13 +1,10 @@
 import { useEffect } from "react"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
-import {
-  $createParagraphNode,
-  $getRoot,
-  $isParagraphNode,
-  DecoratorNode,
-} from "lexical"
+import { $getRoot, $isParagraphNode, DecoratorNode } from "lexical"
 
 import { INITIAL_LOAD_TAG } from "@/types/lexical"
+import { emptyMdNode } from "@/components/editor/markdown-utils"
+import { $isContainerNode } from "@/components/editor/nodes/container-node"
 
 /**
  * Ensures there's always an empty paragraph node at the end of the editor
@@ -38,10 +35,14 @@ export function TrailingParagraphPlugin(): null {
           // (but only if there isn't already a paragraph node after it)
           if (lastChild instanceof DecoratorNode) {
             const nextSibling = lastChild.getNextSibling()
-            if (!nextSibling || !$isParagraphNode(nextSibling)) {
+            if (
+              !nextSibling ||
+              !$isParagraphNode(nextSibling) ||
+              !$isContainerNode(nextSibling)
+            ) {
               editor.update(
                 () => {
-                  lastChild.insertAfter($createParagraphNode())
+                  lastChild.insertAfter(emptyMdNode())
                 },
                 { discrete: true }
               )

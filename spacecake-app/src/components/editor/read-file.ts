@@ -15,7 +15,7 @@ import { EditorFile, FileType } from "@/types/workspace"
 import { $restoreSelection, convertToSourceView } from "@/lib/editor"
 import { parsePythonContentStreaming } from "@/lib/parser/python/blocks"
 import { delimitPyBlock } from "@/components/editor/block-utils"
-import { mdBlockToNode } from "@/components/editor/markdown-utils"
+import { emptyMdNode, mdBlockToNode } from "@/components/editor/markdown-utils"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 
 /**
@@ -52,14 +52,13 @@ export async function convertPythonBlocksToLexical(
             block.kind === "markdown inline" ||
             block.kind === "markdown block"
           ) {
-            root.append(mdBlockToNode(block))
+            root.append(mdBlockToNode(block.text))
           } else {
             const delimitedNode = delimitPyBlock(block, file.path)
             root.append(delimitedNode)
           }
 
-          const emptyParagraph = $createParagraphNode()
-          root.append(emptyParagraph)
+          root.append(emptyMdNode())
           if (selection) {
             $restoreSelection(selection)
           }

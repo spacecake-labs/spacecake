@@ -4,8 +4,6 @@ import {
 } from "@lexical/markdown"
 import { ElementNode } from "lexical"
 
-import type { MdBlockKind } from "@/types/parser"
-import { Block } from "@/types/parser"
 import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
 import {
   addPythonMdocPrefixes,
@@ -18,8 +16,8 @@ import {
 } from "@/components/editor/nodes/delimited-node"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 
-export function mdBlockToNode(block: Block<MdBlockKind>) {
-  const delimitedString = delimitWithSpaceConsumer(block.text)
+export function mdBlockToNode(text: string) {
+  const delimitedString = delimitWithSpaceConsumer(text)
 
   // container node has isShadowRoot set so that
   // top-level markdown shortcuts (element transformers) still work
@@ -31,6 +29,11 @@ export function mdBlockToNode(block: Block<MdBlockKind>) {
     true
   )
   return delimitedNode(() => container, delimitedString)
+}
+
+export function emptyMdNode() {
+  // two newlines to separate the block from the previous block
+  return mdBlockToNode("\n\n")
 }
 
 export function nodeToMdBlock(node: ElementNode) {
