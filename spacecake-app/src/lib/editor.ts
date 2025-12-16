@@ -1,4 +1,5 @@
 import { JsonValue } from "@/schema/drizzle-effect"
+import { $isListNode } from "@lexical/list"
 import { $convertToMarkdownString } from "@lexical/markdown"
 import { InitialConfigType } from "@lexical/react/LexicalComposer"
 import { $isHeadingNode } from "@lexical/rich-text"
@@ -111,21 +112,16 @@ export function serializeEditorToPython(editorState: EditorState): string {
         return result + delimitedString
       }
 
-      if ($isHeadingNode(child)) {
-        const delimitedString = $getDelimitedString(child)
-        return result + delimitedString
-      }
-
-      if ($isContextNode(child)) {
-        const delimitedString = $getDelimitedString(child)
-        return result + delimitedString
-      }
-
-      if ($isContainerNode(child)) {
+      if ($isContainerNode(child) && child.getTextContent()) {
         return result + nodeToMdBlock(child)
       }
 
-      if ($isParagraphNode(child)) {
+      if (
+        $isHeadingNode(child) ||
+        $isParagraphNode(child) ||
+        $isListNode(child) ||
+        $isContextNode(child)
+      ) {
         const delimitedString = $getDelimitedString(child)
         return result + delimitedString
       }
