@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.12
+
+### Patch Changes
+
+- 8d11352: Fixing Python markdown blocks bug.
+
 ## 0.1.0-alpha.11
 
 ### Patch Changes
