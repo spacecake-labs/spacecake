@@ -46,9 +46,12 @@ def my_function():
       expect(children[0].getType()).toBe("codeblock")
       expect(children[0].getTextContent()).toBe("import os")
 
-      // second child: empty paragraph
-      expect(children[1].getType()).toBe("paragraph")
-      expect(children[1].getTextContent()).toBe("")
+      // second child: empty paragraph wrapped in a container node
+      expect(children[1].getType()).toBe("container")
+      const paragraphChildren = (children[1] as ElementNode).getChildren()
+      expect(paragraphChildren).toHaveLength(1)
+      expect(paragraphChildren[0].getType()).toBe("paragraph")
+      expect(paragraphChildren[0].getTextContent()).toBe("")
 
       // third child: function definition
       expect(children[2].getType()).toBe("codeblock")
@@ -57,8 +60,11 @@ def my_function():
       )
 
       // fourth child: empty paragraph
-      expect(children[3].getType()).toBe("paragraph")
-      expect(children[3].getTextContent()).toBe("")
+      expect(children[3].getType()).toBe("container")
+      const paragraphChildren2 = (children[3] as ElementNode).getChildren()
+      expect(paragraphChildren).toHaveLength(1)
+      expect(paragraphChildren[0].getType()).toBe("paragraph")
+      expect(paragraphChildren2[0].getTextContent()).toBe("")
     })
   })
   it("should convert python code to lexical nodes with markdown", async () => {
@@ -100,15 +106,21 @@ import pandas as pd
       )
 
       // second child: empty paragraph
-      expect(children[1].getType()).toBe("paragraph")
-      expect(children[1].getTextContent()).toBe("")
+      expect(children[1].getType()).toBe("container")
+      const paragraphChildren1 = (children[1] as ElementNode).getChildren()
+      expect(paragraphChildren1).toHaveLength(1)
+      expect(paragraphChildren1[0].getType()).toBe("paragraph")
+      expect(paragraphChildren1[0].getTextContent()).toBe("")
 
       // third child: codeblock
       expect(children[2].getType()).toBe("codeblock")
       expect(children[2].getTextContent()).toBe("import pandas as pd")
 
       // fourth child: empty paragraph
-      expect(children[3].getType()).toBe("paragraph")
+      expect(children[3].getType()).toBe("container")
+      const paragraphChildren2 = (children[3] as ElementNode).getChildren()
+      expect(paragraphChildren2).toHaveLength(1)
+      expect(paragraphChildren2[0].getType()).toBe("paragraph")
       expect(children[3].getTextContent()).toBe("")
 
       // fifth child: paragraph with markdown content
@@ -129,7 +141,10 @@ import pandas as pd
       expect(paragraphChildren[2].getTextContent()).toBe("a paragraph")
 
       // sixth child: empty paragraph
-      expect(children[5].getType()).toBe("paragraph")
+      expect(children[5].getType()).toBe("container")
+      const paragraphChildren3 = (children[5] as ElementNode).getChildren()
+      expect(paragraphChildren3).toHaveLength(1)
+      expect(paragraphChildren3[0].getType()).toBe("paragraph")
       expect(children[5].getTextContent()).toBe("")
     })
   })
@@ -153,7 +168,10 @@ import pandas as pd
       expect(children).toHaveLength(2)
       expect(children[0].getType()).toBe("codeblock")
       expect(children[0].getTextContent()).toBe("")
-      expect(children[1].getType()).toBe("paragraph")
+      expect(children[1].getType()).toBe("container")
+      const paragraphChildren = (children[1] as ElementNode).getChildren()
+      expect(paragraphChildren).toHaveLength(1)
+      expect(paragraphChildren[0].getType()).toBe("paragraph")
       expect(children[1].getTextContent()).toBe("")
     })
   })
@@ -243,7 +261,10 @@ def my_function():
       expect(children[0].getTextContent()).toBe("import os")
 
       // second child: empty paragraph
-      expect(children[1].getType()).toBe("paragraph")
+      expect(children[1].getType()).toBe("container")
+      const paragraphChildren = (children[1] as ElementNode).getChildren()
+      expect(paragraphChildren).toHaveLength(1)
+      expect(paragraphChildren[0].getType()).toBe("paragraph")
       expect(children[1].getTextContent()).toBe("")
 
       // third child: function definition
@@ -253,7 +274,10 @@ def my_function():
       )
 
       // fourth child: empty paragraph
-      expect(children[3].getType()).toBe("paragraph")
+      expect(children[3].getType()).toBe("container")
+      const paragraphChildren2 = (children[3] as ElementNode).getChildren()
+      expect(paragraphChildren2).toHaveLength(1)
+      expect(paragraphChildren2[0].getType()).toBe("paragraph")
       expect(children[3].getTextContent()).toBe("")
     })
   })
