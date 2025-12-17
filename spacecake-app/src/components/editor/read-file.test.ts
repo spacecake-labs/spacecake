@@ -35,7 +35,14 @@ def my_function():
     expect(file.content === pythonCode, "file should have content")
     expect(file.fileType === FileType.Python, "file should be python type")
 
-    await convertPythonBlocksToLexical(file, editor, null, undefined, () => {})
+    await convertPythonBlocksToLexical(
+      file,
+      editor,
+      null,
+      undefined,
+      undefined,
+      () => {}
+    )
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -92,7 +99,14 @@ import pandas as pd
     expect(file.content === pythonCode, "file should have content")
     expect(file.fileType === FileType.Python, "file should be python type")
 
-    await convertPythonBlocksToLexical(file, editor, null, undefined, () => {})
+    await convertPythonBlocksToLexical(
+      file,
+      editor,
+      null,
+      undefined,
+      undefined,
+      () => {}
+    )
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -160,7 +174,14 @@ import pandas as pd
       cid: "test-cid",
       selection: null,
     }
-    await convertPythonBlocksToLexical(file, editor, null, undefined, () => {})
+    await convertPythonBlocksToLexical(
+      file,
+      editor,
+      null,
+      undefined,
+      undefined,
+      () => {}
+    )
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -199,7 +220,14 @@ import pandas as pd
       throw new Error("parsing failed")
     }
 
-    await convertPythonBlocksToLexical(file, editor, null, failingParser)
+    await convertPythonBlocksToLexical(
+      file,
+      editor,
+      null,
+      undefined,
+      failingParser,
+      () => {}
+    )
 
     editor.getEditorState().read(() => {
       const root = $getRoot()

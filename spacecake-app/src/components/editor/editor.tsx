@@ -50,6 +50,9 @@ export function Editor({
   const { editorRef } = useEditor()
   const fileState = useAtomValue(fileStateAtomFamily(filePath)).value
 
+  const isSavingOrReparsing =
+    fileState === "Saving" || fileState === "Reparsing"
+
   const onChangeRef = React.useRef<EditorProps["onChange"]>(onChange)
   React.useEffect(() => {
     onChangeRef.current = onChange
@@ -89,7 +92,7 @@ export function Editor({
   }, [])
 
   return (
-    <div data-testid="lexical-editor">
+    <div data-testid="lexical-editor" className="relative">
       <LexicalComposer
         initialConfig={{
           ...editorConfig,
@@ -111,12 +114,38 @@ export function Editor({
               lastChangeTypeRef.current = "content"
             }
 
-            if (fileState !== "Saving") {
+            // Don't debounce while saving or reparsing (editor is frozen anyway)
+            if (fileState !== "Saving" && fileState !== "Reparsing") {
               debouncedOnChangeRef.schedule()
             }
           }}
         />
       </LexicalComposer>
+
+      {/* Animated indicator line while saving or reparsing */}
+      {isSavingOrReparsing && (
+        <div className="absolute top-0 left-0 right-0 h-0.5 w-full bg-muted overflow-hidden z-50">
+          <div
+            className="h-full w-1/3 bg-primary"
+            style={{
+              animation: "slideShimmer 1.5s ease-in-out infinite",
+            }}
+          />
+        </div>
+      )}
+      <style>{`
+        @keyframes slideShimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          50% {
+            transform: translateX(300%);
+          }
+          100% {
+            transform: translateX(300%);
+          }
+        }
+      `}</style>
     </div>
   )
 }

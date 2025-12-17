@@ -14,6 +14,7 @@ import {
   type SnapshotFrom,
 } from "xstate"
 
+import { type ViewKind } from "@/types/lexical"
 import { AbsolutePath, FileType } from "@/types/workspace"
 import { saveFile } from "@/lib/fs"
 
@@ -28,6 +29,7 @@ type FILE_STATE_KEYS = {
   Clean: null
   Dirty: null
   Saving: null
+  Reparsing: null
   ExternalChange: null
   Conflict: null
   ClearingEditorStates: null
@@ -40,7 +42,9 @@ type FileStateMachineEvent =
   | { type: "file.clean" }
   | { type: "file.dirty" }
   | { type: "file.edit" }
-  | { type: "file.save"; content: string }
+  | { type: "file.save"; content: string; viewKind: ViewKind }
+  | { type: "file.reparse.complete" }
+  | { type: "file.reparse.error" }
   | { type: "file.external.change" }
   | { type: "file.resolve.overwrite" }
   | { type: "file.resolve.discard" }
@@ -69,12 +73,13 @@ export const fileStateMachine = setup({
     ),
     saveFile: fromPromise(
       async ({
-        input: { filePath, fileType, content },
+        input: { filePath, fileType, content, viewKind },
       }: {
         input: {
           filePath: AbsolutePath
           fileType: FileType
           content: string
+          viewKind: ViewKind
         }
       }) => {
         const ok = await saveFile(filePath, content)
@@ -89,9 +94,12 @@ export const fileStateMachine = setup({
           }).pipe(Effect.tapErrorCause(Effect.logError))
         )
 
-        // if python file, also reparse the blocks
-        if (fileType === FileType.Python) {
-          await router.invalidate()
+        // Return info including viewKind for transition decision
+        return {
+          filePath,
+          fileType,
+          content,
+          viewKind,
         }
       }
     ),
@@ -141,9 +149,38 @@ export const fileStateMachine = setup({
             filePath: context.filePath,
             fileType: context.fileType,
             content: event.content,
+            viewKind: event.viewKind,
           }
         },
-        onDone: "Clean",
+        onDone: [
+          {
+            // Only reparse if Python file in rich view
+            target: "Reparsing",
+            guard: ({
+              context,
+              event,
+            }: {
+              context: FileStateMachineContext
+              event: {
+                output: {
+                  filePath: AbsolutePath
+                  fileType: FileType
+                  content: string
+                  viewKind: ViewKind
+                }
+              }
+            }) => {
+              return (
+                context.fileType === FileType.Python &&
+                event.output.viewKind === "rich"
+              )
+            },
+          },
+          {
+            // All other cases skip reparse and go straight to Clean
+            target: "Clean",
+          },
+        ],
         onError: {
           target: "Dirty",
           actions: () => {
@@ -153,6 +190,17 @@ export const fileStateMachine = setup({
       },
       on: {
         "file.external.change": "Conflict",
+      },
+    },
+    Reparsing: {
+      on: {
+        "file.reparse.complete": "Clean",
+        "file.reparse.error": {
+          target: "Dirty",
+          actions: () => {
+            toast("failed to reparse file")
+          },
+        },
       },
     },
     ExternalChange: {

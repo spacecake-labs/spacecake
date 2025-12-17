@@ -8,10 +8,12 @@ import {
   $getNodeByKey,
   $getRoot,
   $isElementNode,
+  $isNodeSelection,
   $isParagraphNode,
   $setSelection,
   createEditor,
   LexicalEditor,
+  NodeSelection,
   resetRandomKey,
   type EditorState,
 } from "lexical"
@@ -253,5 +255,12 @@ export function $restoreSelection(selection: SerializedSelection | null) {
       $isElementNode(focusNode) ? "element" : "text"
     )
     $setSelection(rangeSelection)
+  }
+}
+
+export function $restoreNodeSelection(selection: NodeSelection) {
+  if ($isNodeSelection(selection)) {
+    $setSelection(selection.clone())
+    return
   }
 }
