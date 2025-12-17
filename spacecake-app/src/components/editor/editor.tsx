@@ -16,7 +16,6 @@ import { type ChangeType } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { debounce } from "@/lib/utils"
-import { Spinner } from "@/components/ui/spinner"
 import { nodes } from "@/components/editor/nodes"
 import { Plugins } from "@/components/editor/plugins"
 import { OnChangePlugin } from "@/components/editor/plugins/on-change"
@@ -123,17 +122,28 @@ export function Editor({
         />
       </LexicalComposer>
 
-      {/* Visual feedback overlay while saving or reparsing */}
+      {/* Animated indicator line while saving or reparsing */}
       {isSavingOrReparsing && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/5 rounded-lg backdrop-blur-sm z-50 pointer-events-none">
-          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-lg">
-            <Spinner className="w-4 h-4" />
-            <span className="text-sm font-medium text-muted-foreground">
-              {fileState === "Saving" ? "saving..." : "updating..."}
-            </span>
-          </div>
-        </div>
+        <div
+          className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 z-50"
+          style={{
+            animation: "pulse-width 1.5s ease-in-out infinite",
+          }}
+        />
       )}
+      <style>{`
+        @keyframes pulse-width {
+          0% {
+            box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.5);
+          }
+          50% {
+            box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.8);
+          }
+          100% {
+            box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.5);
+          }
+        }
+      `}</style>
     </div>
   )
 }
