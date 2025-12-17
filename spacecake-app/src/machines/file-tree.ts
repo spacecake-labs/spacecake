@@ -28,6 +28,7 @@ type FILE_STATE_KEYS = {
   Clean: null
   Dirty: null
   Saving: null
+  Reparsing: null
   ExternalChange: null
   Conflict: null
   ClearingEditorStates: null
@@ -41,6 +42,8 @@ type FileStateMachineEvent =
   | { type: "file.dirty" }
   | { type: "file.edit" }
   | { type: "file.save"; content: string }
+  | { type: "file.reparse.complete" }
+  | { type: "file.reparse.error" }
   | { type: "file.external.change" }
   | { type: "file.resolve.overwrite" }
   | { type: "file.resolve.discard" }
@@ -89,9 +92,11 @@ export const fileStateMachine = setup({
           }).pipe(Effect.tapErrorCause(Effect.logError))
         )
 
-        // if python file, also reparse the blocks
-        if (fileType === FileType.Python) {
-          await router.invalidate()
+        // Return info for ReparsePlugin
+        return {
+          filePath,
+          fileType,
+          content,
         }
       }
     ),
@@ -143,7 +148,7 @@ export const fileStateMachine = setup({
             content: event.content,
           }
         },
-        onDone: "Clean",
+        onDone: "Reparsing",
         onError: {
           target: "Dirty",
           actions: () => {
@@ -153,6 +158,17 @@ export const fileStateMachine = setup({
       },
       on: {
         "file.external.change": "Conflict",
+      },
+    },
+    Reparsing: {
+      on: {
+        "file.reparse.complete": "Clean",
+        "file.reparse.error": {
+          target: "Dirty",
+          actions: () => {
+            toast("failed to reparse file")
+          },
+        },
       },
     },
     ExternalChange: {
