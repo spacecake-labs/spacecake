@@ -35,15 +35,16 @@ export function ReparsePlugin() {
   const sendFileState = useSetAtom(fileStateAtomFamily(filePath))
 
   useEffect(() => {
-    // Only trigger reparse when:
-    // 1. State machine is in Reparsing state
-    // 2. File is Python
-    // 3. View is rich (not source)
+    // Only trigger reparse when state machine is in Reparsing state
     if (fileState?.value !== "Reparsing") return
-    if (route?.fileType !== FileType.Python) return
-    if (route?.viewKind !== "rich") return
 
     let isMounted = true
+
+    // For source view or non-Python files, skip reparse and go straight to clean
+    if (route?.viewKind !== "rich" || route?.fileType !== FileType.Python) {
+      sendFileState({ type: "file.reparse.complete" })
+      return
+    }
 
     async function performReparse() {
       try {
