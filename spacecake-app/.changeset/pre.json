@@ -5,6 +5,7 @@
     "spacecake-app": "1.0.0"
   },
   "changesets": [
+    "dark-clouds-sip",
     "fine-pans-sleep",
     "four-sloths-shine",
     "good-news-jump",
