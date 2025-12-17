@@ -124,26 +124,10 @@ export function Editor({
 
       {/* Animated indicator line while saving or reparsing */}
       {isSavingOrReparsing && (
-        <div
-          className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 z-50"
-          style={{
-            animation: "pulse-width 1.5s ease-in-out infinite",
-          }}
-        />
+        <div className="absolute top-0 left-0 right-0 h-0.5 w-full bg-muted overflow-hidden z-50">
+          <div className="h-full w-1/3 bg-primary animate-[shimmer_1s_ease-in-out_infinite]" />
+        </div>
       )}
-      <style>{`
-        @keyframes pulse-width {
-          0% {
-            box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.5);
-          }
-          50% {
-            box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.8);
-          }
-          100% {
-            box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.5);
-          }
-        }
-      `}</style>
     </div>
   )
 }
