@@ -40,6 +40,29 @@ export function ReparsePlugin() {
           selection = $getSelection()
         })
 
+        console.log("selection from $getSelection:", selection)
+
+        // Try to get node selections using useLexicalNodeSelection approach
+        // This helps debug decorator node selection issues
+        editor.getEditorState().read(() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const allNodes = (editor as any)._editorState._nodeMap
+          console.log("all nodes in editor:", allNodes)
+
+          // Check for decorator nodes specifically
+          const decoratorNodes = Array.from(allNodes.values()).filter(
+            (node: unknown) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              return (node as any).__type === "decorator"
+            }
+          )
+          console.log(
+            "decorator nodes found:",
+            decoratorNodes.length,
+            decoratorNodes
+          )
+        })
+
         // Get current editor content (what was just saved to disk)
         const editorState = editor.getEditorState()
         const content = serializeEditorToSource(editorState, FileType.Python)
