@@ -1,7 +1,11 @@
 import React, { JSX } from "react"
+import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
+import { mergeRegister } from "@lexical/utils"
 import {
   $addUpdateTag,
   $applyNodeReplacement,
+  CLICK_COMMAND,
+  COMMAND_PRIORITY_LOW,
   DecoratorNode,
   DOMConversionMap,
   DOMConversionOutput,
@@ -310,6 +314,42 @@ const CodeBlockEditorContainer: React.FC<
     codeBlockNode: CodeBlockNode
   } & CodeBlockEditorProps
 > = (props) => {
+  const [isNodeSelected, setNodeSelected, clearNodeSelection] =
+    useLexicalNodeSelection(props.nodeKey)
+
+  React.useEffect(() => {
+    return mergeRegister(
+      props.parentEditor.registerCommand(
+        CLICK_COMMAND,
+        (event: MouseEvent) => {
+          const cmElem = props.parentEditor.getElementByKey(props.nodeKey)
+
+          // the event target references a specific line in the code block
+          // so we need to check if the element contains the target
+          // instead of being equal to the target
+          if (cmElem && cmElem.contains(event.target as Node)) {
+            if (!event.shiftKey) {
+              clearNodeSelection()
+            }
+            // this creates a NodeSelection in the editor
+            // without this, decorator nodes don't always create selections
+            setNodeSelected(!isNodeSelected)
+            return true
+          }
+
+          return false
+        },
+        COMMAND_PRIORITY_LOW
+      )
+    )
+  }, [
+    clearNodeSelection,
+    props.parentEditor,
+    setNodeSelected,
+    props.nodeKey,
+    setNodeSelected,
+  ])
+
   return (
     <CodeBlockEditorContextProvider
       parentEditor={props.parentEditor}

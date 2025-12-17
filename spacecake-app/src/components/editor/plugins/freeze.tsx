@@ -22,9 +22,13 @@ export function FreezePlugin() {
   useEffect(() => {
     if (!editor || !fileState) return
 
-    // Freeze editor when Saving or Reparsing
-    const shouldFreeze =
-      fileState.value === "Saving" || fileState.value === "Reparsing"
+    // in future we could freeze when saving or reparsing.
+    // this might need extra selection restoration logic
+    // as setting editable to false seems to steal focus and selection
+    // from lexical nodes (non-decorator)
+
+    // Freeze editor when Reparsing
+    const shouldFreeze = fileState.value === "Reparsing"
 
     editor.setEditable(!shouldFreeze)
   }, [editor, fileState?.value])

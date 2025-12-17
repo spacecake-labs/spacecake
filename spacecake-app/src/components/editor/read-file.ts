@@ -5,6 +5,8 @@ import {
   $createTextNode,
   $getRoot,
   LexicalEditor,
+  NodeSelection,
+  resetRandomKey,
   SKIP_DOM_SELECTION_TAG,
 } from "lexical"
 import { toast } from "sonner"
@@ -12,7 +14,11 @@ import { toast } from "sonner"
 import { INITIAL_LOAD_TAG, SerializedSelection } from "@/types/lexical"
 import type { PyBlock } from "@/types/parser"
 import { EditorFile, FileType } from "@/types/workspace"
-import { $restoreSelection, convertToSourceView } from "@/lib/editor"
+import {
+  $restoreNodeSelection,
+  $restoreSelection,
+  convertToSourceView,
+} from "@/lib/editor"
 import { parsePythonContentStreaming } from "@/lib/parser/python/blocks"
 import { delimitPyBlock } from "@/components/editor/block-utils"
 import { emptyMdNode, mdBlockToNode } from "@/components/editor/markdown-utils"
@@ -25,6 +31,7 @@ export async function convertPythonBlocksToLexical(
   file: EditorFile,
   editor: LexicalEditor,
   selection: SerializedSelection | null = null,
+  nodeSelection: NodeSelection | null = null,
   streamParser: (
     file: EditorFile
   ) => AsyncGenerator<PyBlock> = parsePythonContentStreaming,
@@ -37,6 +44,8 @@ export async function convertPythonBlocksToLexical(
         $addUpdateTag(SKIP_DOM_SELECTION_TAG)
         const root = $getRoot()
         root.clear()
+        // nodes start again from zero
+        resetRandomKey()
       },
       { tag: INITIAL_LOAD_TAG }
     )
@@ -61,6 +70,9 @@ export async function convertPythonBlocksToLexical(
           root.append(emptyMdNode())
           if (selection) {
             $restoreSelection(selection)
+          }
+          if (nodeSelection) {
+            $restoreNodeSelection(nodeSelection)
           }
         },
         { tag: INITIAL_LOAD_TAG }
@@ -127,6 +139,8 @@ export function getInitialEditorStateFromContent(
         editor,
         selection,
         undefined,
+        undefined,
+
         onComplete
       )
     } else if (file.fileType === FileType.Markdown) {
