@@ -51,11 +51,13 @@ export function SaveCommandPlugin() {
           // Add to pending saves so file watcher recognizes it as app-initiated
           addPendingSave(filePath, cid)
 
-          // Send save event to state machine with editor
-          // The state machine will handle re-parsing for Python files
+          // Send save event to state machine with viewKind
+          // The state machine will decide whether to reparse based on file type + view
+          const viewKind = route?.viewKind || "rich"
           sendFileState({
             type: "file.save",
             content,
+            viewKind,
           })
         }
         return true // Mark as handled

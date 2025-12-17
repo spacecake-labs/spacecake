@@ -36,15 +36,10 @@ export function ReparsePlugin() {
 
   useEffect(() => {
     // Only trigger reparse when state machine is in Reparsing state
+    // (state machine ensures we only reach here for Python files in rich view)
     if (fileState?.value !== "Reparsing") return
 
     let isMounted = true
-
-    // For source view or non-Python files, skip reparse and go straight to clean
-    if (route?.viewKind !== "rich" || route?.fileType !== FileType.Python) {
-      sendFileState({ type: "file.reparse.complete" })
-      return
-    }
 
     async function performReparse() {
       try {
