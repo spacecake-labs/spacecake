@@ -2,7 +2,7 @@ import { useEffect } from "react"
 import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { useAtomValue, useSetAtom } from "jotai"
-import { $getSelection } from "lexical"
+import { $getSelection, $isNodeSelection, NodeSelection } from "lexical"
 
 import { AbsolutePath, FileType } from "@/types/workspace"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
@@ -35,12 +35,13 @@ export function ReparsePlugin() {
     async function performReparse() {
       try {
         // Capture current selection before reparse
-        let selection = null
+        let nodeSelection: NodeSelection | null = null
         editor.getEditorState().read(() => {
-          selection = $getSelection()
+          const selection = $getSelection()
+          if ($isNodeSelection(selection)) {
+            nodeSelection = selection
+          }
         })
-
-        console.log("useLexicalNodeSelection test:", { selection })
 
         // Get current editor content (what was just saved to disk)
         const editorState = editor.getEditorState()
@@ -59,10 +60,11 @@ export function ReparsePlugin() {
               fileType: FileType.Python,
               content,
               cid: "",
-              selection,
+              selection: null, // serializedSelection,
             },
             editor,
-            selection,
+            null, // serializedSelection
+            nodeSelection,
             undefined,
             () => {
               if (isMounted) {
