@@ -16,6 +16,7 @@ import { type ChangeType } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { debounce } from "@/lib/utils"
+import { Spinner } from "@/components/ui/spinner"
 import { nodes } from "@/components/editor/nodes"
 import { Plugins } from "@/components/editor/plugins"
 import { OnChangePlugin } from "@/components/editor/plugins/on-change"
@@ -49,6 +50,9 @@ export function Editor({
   const context = React.useContext(RouteContext)
   const { editorRef } = useEditor()
   const fileState = useAtomValue(fileStateAtomFamily(filePath)).value
+
+  const isSavingOrReparsing =
+    fileState === "Saving" || fileState === "Reparsing"
 
   const onChangeRef = React.useRef<EditorProps["onChange"]>(onChange)
   React.useEffect(() => {
@@ -89,7 +93,7 @@ export function Editor({
   }, [])
 
   return (
-    <div data-testid="lexical-editor">
+    <div data-testid="lexical-editor" className="relative">
       <LexicalComposer
         initialConfig={{
           ...editorConfig,
@@ -111,12 +115,25 @@ export function Editor({
               lastChangeTypeRef.current = "content"
             }
 
-            if (fileState !== "Saving") {
+            // Don't debounce while saving or reparsing (editor is frozen anyway)
+            if (fileState !== "Saving" && fileState !== "Reparsing") {
               debouncedOnChangeRef.schedule()
             }
           }}
         />
       </LexicalComposer>
+
+      {/* Visual feedback overlay while saving or reparsing */}
+      {isSavingOrReparsing && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/5 rounded-lg backdrop-blur-sm z-50 pointer-events-none">
+          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-lg">
+            <Spinner className="w-4 h-4" />
+            <span className="text-sm font-medium text-muted-foreground">
+              {fileState === "Saving" ? "saving..." : "updating..."}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
