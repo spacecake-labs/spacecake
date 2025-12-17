@@ -125,9 +125,27 @@ export function Editor({
       {/* Animated indicator line while saving or reparsing */}
       {isSavingOrReparsing && (
         <div className="absolute top-0 left-0 right-0 h-0.5 w-full bg-muted overflow-hidden z-50">
-          <div className="h-full w-1/3 bg-primary animate-[shimmer_1s_ease-in-out_infinite]" />
+          <div
+            className="h-full w-1/3 bg-primary"
+            style={{
+              animation: "slideShimmer 1.5s ease-in-out infinite",
+            }}
+          />
         </div>
       )}
+      <style>{`
+        @keyframes slideShimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          50% {
+            transform: translateX(300%);
+          }
+          100% {
+            transform: translateX(300%);
+          }
+        }
+      `}</style>
     </div>
   )
 }
