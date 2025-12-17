@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.13
+
+### Patch Changes
+
+- 54e81c2: Improvements to saving, reparsing, and selection restoration.
+
 ## 0.1.0-alpha.12
 
 ### Patch Changes
