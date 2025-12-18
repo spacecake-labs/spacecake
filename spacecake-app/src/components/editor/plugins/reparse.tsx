@@ -1,9 +1,7 @@
 import { useEffect } from "react"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { useAtomValue, useSetAtom } from "jotai"
-import {
-  $getRoot,
-} from "lexical"
+import { $getRoot } from "lexical"
 
 import { AbsolutePath } from "@/types/workspace"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
