@@ -1,5 +1,7 @@
 import {
   $addUpdateTag,
+  $createNodeSelection,
+  $setSelection,
   LexicalEditor,
   LexicalNode,
   SKIP_DOM_SELECTION_TAG,
@@ -12,22 +14,44 @@ import { CodeBlockNode } from "@/components/editor/nodes/code-node"
 export async function maybeSplitBlock(
   editor: LexicalEditor,
   node: CodeBlockNode,
-  blocks: PyBlock[]
+  blocks: PyBlock[],
+  selectLastBlock = false
 ) {
-  if (blocks.length > 1) {
-    editor.update(() => {
-      $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-      let currentNode: LexicalNode = node
+  let lastNode: LexicalNode | null = null
 
-      blocks.forEach((block, index) => {
-        const newNode = delimitPyBlock(block, node.getSrc() ?? "")
-        if (index === 0) {
-          currentNode.replace(newNode)
-        } else {
-          currentNode.insertAfter(newNode)
-        }
-        currentNode = newNode
-      })
-    })
+  if (blocks.length > 1) {
+    editor.update(
+      () => {
+        $addUpdateTag(SKIP_DOM_SELECTION_TAG)
+        let currentNode: LexicalNode = node
+
+        blocks.forEach((block, index) => {
+          const newNode = delimitPyBlock(block, node.getSrc() ?? "")
+          if (index === 0) {
+            currentNode.replace(newNode)
+          } else {
+            currentNode.insertAfter(newNode)
+          }
+
+          currentNode = newNode
+        })
+
+        lastNode = currentNode
+      },
+      { discrete: true }
+    )
+
+    // apply selection to the last block if requested
+    if (selectLastBlock && lastNode) {
+      editor.update(
+        () => {
+          const selection = $createNodeSelection()
+          selection.add(lastNode!.getKey())
+          $setSelection(selection)
+          ;(lastNode as unknown as { select: () => void }).select()
+        },
+        { discrete: true }
+      )
+    }
   }
 }
