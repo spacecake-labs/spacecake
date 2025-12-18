@@ -1,18 +1,19 @@
 import { useEffect } from "react"
-import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { useAtomValue, useSetAtom } from "jotai"
-import { $getSelection, $isNodeSelection, NodeSelection } from "lexical"
+import {
+  $getRoot,
+} from "lexical"
 
-import { AbsolutePath, FileType } from "@/types/workspace"
+import { AbsolutePath } from "@/types/workspace"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
-import { serializeEditorToSource } from "@/lib/editor"
 import { useRoute } from "@/hooks/use-route"
-import { convertPythonBlocksToLexical } from "@/components/editor/read-file"
+import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
+import { maybeUpdateBlockAndDocstring } from "@/components/editor/plugins/block-utils"
 
 /**
  * Listens for when file state machine enters Reparsing state.
- * Performs full file reparse of Python files while editor is frozen.
+ * Traverses all code block nodes in the editor and updates them.
  * Emits reparse.complete or reparse.error events when done.
  */
 export function ReparsePlugin() {
@@ -34,44 +35,24 @@ export function ReparsePlugin() {
 
     async function performReparse() {
       try {
-        // Capture current selection before reparse
-        let nodeSelection: NodeSelection | null = null
+        // Collect all code block node keys
+        const codeBlockKeys: string[] = []
         editor.getEditorState().read(() => {
-          const selection = $getSelection()
-          if ($isNodeSelection(selection)) {
-            nodeSelection = selection
+          const root = $getRoot()
+          const children = root.getChildren()
+          for (const child of children) {
+            if ($isCodeBlockNode(child)) {
+              codeBlockKeys.push(child.getKey())
+            }
           }
         })
 
-        // Get current editor content (what was just saved to disk)
-        const editorState = editor.getEditorState()
-        const content = serializeEditorToSource(editorState, FileType.Python)
-
-        // Reuse the existing conversion function which handles:
-        // - Progressive rendering
-        // - Selection restoration
-        // - Error handling
+        // Update each code block node
         if (isMounted) {
-          await convertPythonBlocksToLexical(
-            {
-              fileId: FilePrimaryKey(""),
-              editorId: EditorPrimaryKey(""),
-              path: filePath,
-              fileType: FileType.Python,
-              content,
-              cid: "",
-              selection: null, // serializedSelection,
-            },
-            editor,
-            null, // serializedSelection
-            nodeSelection,
-            undefined,
-            () => {
-              if (isMounted) {
-                sendFileState({ type: "file.reparse.complete" })
-              }
-            }
-          )
+          for (const nodeKey of codeBlockKeys) {
+            await maybeUpdateBlockAndDocstring(editor, nodeKey, true)
+          }
+          sendFileState({ type: "file.reparse.complete" })
         }
       } catch (error) {
         console.error("reparse error:", error)
