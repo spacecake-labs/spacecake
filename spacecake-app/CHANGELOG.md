@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.15
+
+### Patch Changes
+
+- 98b2a6e: UI improvements for code blocks.
+
 ## 0.1.0-alpha.14
 
 ### Patch Changes
