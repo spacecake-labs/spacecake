@@ -112,7 +112,7 @@ export function CodeBlock({
             onValueChange={codeBlockContext.setLanguage}
             disabled={!canChangeLanguage}
           >
-            <SelectTrigger size="sm" className="w-auto">
+            <SelectTrigger size="sm" className="w-auto px-2 py-0.5 h-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
