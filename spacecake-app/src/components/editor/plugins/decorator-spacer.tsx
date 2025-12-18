@@ -1,6 +1,12 @@
 import { useEffect } from "react"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
-import { $getRoot, DecoratorNode } from "lexical"
+import {
+  $addUpdateTag,
+  $getNodeByKey,
+  $getRoot,
+  DecoratorNode,
+  SKIP_DOM_SELECTION_TAG,
+} from "lexical"
 
 import { INITIAL_LOAD_TAG } from "@/types/lexical"
 import { emptyMdNode } from "@/components/editor/markdown-utils"
@@ -9,6 +15,9 @@ import { emptyMdNode } from "@/components/editor/markdown-utils"
  * Inserts empty markdown nodes between consecutive decorator nodes.
  * Decorator nodes (code blocks, mermaid diagrams, images, etc) should be separated
  * to give users a natural place to add content between them.
+ *
+ * Uses two passes for safety: first collects node keys where spacers are needed,
+ * then inserts them in a single transaction to avoid tree mutation issues.
  */
 export function DecoratorSpacerPlugin(): null {
   const [editor] = useLexicalComposerContext()
@@ -30,36 +39,28 @@ export function DecoratorSpacerPlugin(): null {
           const root = $getRoot()
           const children = root.getChildren()
 
-          // collect nodes to insert spacers after
+          // collect consecutive decorator node pairs in a single pass
           const nodesToSpacerAfter: string[] = []
           for (let i = 0; i < children.length - 1; i++) {
-            const current = children[i]
-            const next = children[i + 1]
-
-            // if both current and next are decorator nodes, we need a spacer between them
             if (
-              current instanceof DecoratorNode &&
-              next instanceof DecoratorNode
+              children[i] instanceof DecoratorNode &&
+              children[i + 1] instanceof DecoratorNode
             ) {
-              nodesToSpacerAfter.push(current.getKey())
+              nodesToSpacerAfter.push(children[i].getKey())
             }
           }
 
-          // insert spacers after collected nodes
+          // insert spacers in a single update transaction
           if (nodesToSpacerAfter.length > 0) {
-            editor.update(
-              () => {
-                for (const nodeKey of nodesToSpacerAfter) {
-                  const node = root.getChildAtIndex(
-                    children.findIndex((n) => n.getKey() === nodeKey)
-                  )
-                  if (node instanceof DecoratorNode) {
-                    node.insertAfter(emptyMdNode())
-                  }
+            editor.update(() => {
+              $addUpdateTag(SKIP_DOM_SELECTION_TAG)
+              for (const nodeKey of nodesToSpacerAfter) {
+                const node = $getNodeByKey(nodeKey)
+                if (node instanceof DecoratorNode) {
+                  node.insertAfter(emptyMdNode())
                 }
-              },
-              { discrete: true }
-            )
+              }
+            })
           }
         })
       }
