@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.14
+
+### Patch Changes
+
+- dbb11be: Simplifying reparsing in rich mode to improve performance & reliability.
+
 ## 0.1.0-alpha.13
 
 ### Patch Changes
