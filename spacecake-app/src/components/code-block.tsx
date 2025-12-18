@@ -52,6 +52,11 @@ export function CodeBlock({
   const code = block.text
   const blockName = block.name.value
   const title = blockName
+  const badgeValue =
+    route?.viewKind === "source"
+      ? (route?.filePath?.split("/").pop() ?? block.kind)
+      : block.kind
+
   const dataBlockId = blockId(block)
   const doc =
     language === "python" && block.doc
@@ -102,7 +107,7 @@ export function CodeBlock({
             </h3>
           )}
           <Badge variant="secondary" className="text-xs font-mono">
-            {block.kind}
+            {badgeValue}
           </Badge>
         </div>
 
@@ -112,7 +117,10 @@ export function CodeBlock({
             onValueChange={codeBlockContext.setLanguage}
             disabled={!canChangeLanguage}
           >
-            <SelectTrigger size="sm" className="w-auto">
+            <SelectTrigger
+              size="sm"
+              className="w-auto !px-2 !py-0.5 !h-auto !text-xs"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
