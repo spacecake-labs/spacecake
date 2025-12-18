@@ -4,6 +4,7 @@ import { mergeRegister } from "@lexical/utils"
 import {
   $addUpdateTag,
   $applyNodeReplacement,
+  $getNodeByKey,
   CLICK_COMMAND,
   COMMAND_PRIORITY_LOW,
   DecoratorNode,
@@ -248,6 +249,7 @@ const CodeBlockEditorContextProvider: React.FC<{
   children: React.ReactNode
 }> = ({ parentEditor, lexicalNode, src, children }) => {
   const contextValue = React.useMemo(() => {
+    const nodeKey = lexicalNode.getKey()
     return {
       lexicalNode,
       parentEditor,
@@ -255,25 +257,37 @@ const CodeBlockEditorContextProvider: React.FC<{
       setCode: (code: string) => {
         parentEditor.update(() => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-          lexicalNode.setCode(code)
+          const node = $getNodeByKey(nodeKey)
+          if (node && $isCodeBlockNode(node)) {
+            node.setCode(code)
+          }
         })
       },
       setLanguage: (language: string) => {
         parentEditor.update(() => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-          lexicalNode.setLanguage(language)
+          const node = $getNodeByKey(nodeKey)
+          if (node && $isCodeBlockNode(node)) {
+            node.setLanguage(language)
+          }
         })
       },
       setMeta: (meta: string) => {
         parentEditor.update(() => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-          lexicalNode.setMeta(meta)
+          const node = $getNodeByKey(nodeKey)
+          if (node && $isCodeBlockNode(node)) {
+            node.setMeta(meta)
+          }
         })
       },
       setSrc: (src: string) => {
         parentEditor.update(() => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
-          lexicalNode.setSrc(src)
+          const node = $getNodeByKey(nodeKey)
+          if (node && $isCodeBlockNode(node)) {
+            node.setSrc(src)
+          }
         })
       },
     }

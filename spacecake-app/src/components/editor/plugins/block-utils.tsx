@@ -24,7 +24,8 @@ export async function getBlocks(code: string): Promise<PyBlock[]> {
  */
 export async function maybeUpdateBlockAndDocstring(
   editor: LexicalEditor,
-  nodeKey: string
+  nodeKey: string,
+  selectLastBlockOnSplit = false
 ) {
   // get the node first, outside of editor.update
   const node = editor.getEditorState().read(() => $getNodeByKey(nodeKey))
@@ -37,7 +38,7 @@ export async function maybeUpdateBlockAndDocstring(
 
   // call both functions with the same parsed blocks
   await Promise.all([
-    maybeSplitBlock(editor, node, blocks),
+    maybeSplitBlock(editor, node, blocks, selectLastBlockOnSplit),
     maybeUpdateDocstring(editor, node, blocks),
   ])
 }
