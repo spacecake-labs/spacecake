@@ -26,7 +26,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { CodeBlock } from "@/components/code-block"
 import {
   CodeBlockEditorContext,
   type CodeBlockEditorContextValue,
@@ -233,17 +232,15 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
           <div className="overflow-hidden rounded-b-lg">
             {viewMode === "code" ? (
               <CodeBlockEditorContext.Provider value={contextValue}>
-                <CodeBlock block={mockBlock} language="mermaid" editable>
-                  <CodeMirrorEditor
-                    language="mermaid"
-                    nodeKey={nodeKey}
-                    code={diagram}
-                    block={mockBlock}
-                    codeBlockNode={dummyCodeBlockNode}
-                    enableLanguageSwitching={false}
-                    showLineNumbers={true}
-                  />
-                </CodeBlock>
+                <CodeMirrorEditor
+                  language="mermaid"
+                  nodeKey={nodeKey}
+                  code={diagram}
+                  block={mockBlock}
+                  codeBlockNode={dummyCodeBlockNode}
+                  enableLanguageSwitching={false}
+                  showLineNumbers={true}
+                />
               </CodeBlockEditorContext.Provider>
             ) : (
               <MermaidDiagram diagram={diagram} nodeKey={nodeKey} />
