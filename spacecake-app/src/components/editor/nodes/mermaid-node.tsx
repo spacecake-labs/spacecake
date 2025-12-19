@@ -17,6 +17,7 @@ import MermaidDiagram from "@/components/editor/nodes/mermaid-diagram"
 export interface CreateMermaidNodeOptions {
   diagram: string
   key?: NodeKey
+  viewMode?: "diagram" | "code"
 }
 
 export type SerializedMermaidNode = Spread<
@@ -24,6 +25,7 @@ export type SerializedMermaidNode = Spread<
     diagram: string
     type: "mermaid"
     version: 1
+    viewMode: "diagram" | "code"
   },
   SerializedLexicalNode
 >
@@ -40,18 +42,19 @@ function $convertMermaidElement(domNode: Node): null | DOMConversionOutput {
 
 export class MermaidNode extends DecoratorNode<JSX.Element> {
   __diagram: string
+  __viewMode: "diagram" | "code"
 
   static getType(): string {
     return "mermaid"
   }
 
   static clone(node: MermaidNode): MermaidNode {
-    return new MermaidNode(node.__diagram, node.__key)
+    return new MermaidNode(node.__diagram, node.__key, node.__viewMode)
   }
 
   static importJSON(serializedNode: SerializedMermaidNode): MermaidNode {
-    const { diagram } = serializedNode
-    return $createMermaidNode({ diagram })
+    const { diagram, viewMode } = serializedNode
+    return $createMermaidNode({ diagram, viewMode: viewMode ?? "diagram" })
   }
 
   static importDOM(): DOMConversionMap {
@@ -63,9 +66,14 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
     }
   }
 
-  constructor(diagram: string, key?: NodeKey) {
+  constructor(
+    diagram: string,
+    key?: NodeKey,
+    viewMode: "diagram" | "code" = "diagram"
+  ) {
     super(key)
     this.__diagram = diagram
+    this.__viewMode = viewMode
   }
 
   exportJSON(): SerializedMermaidNode {
@@ -74,6 +82,7 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
       diagram: this.__diagram,
       type: "mermaid",
       version: 1,
+      viewMode: this.__viewMode,
     }
   }
 
@@ -106,10 +115,26 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
     writable.__diagram = diagram
   }
 
+  getViewMode(): "diagram" | "code" {
+    return this.__viewMode
+  }
+
+  setViewMode(viewMode: "diagram" | "code"): void {
+    const writable = this.getWritable()
+    writable.__viewMode = viewMode
+  }
+
   decorate(): JSX.Element {
     return (
       <React.Suspense fallback={<div />}>
-        <MermaidDiagram diagram={this.__diagram} nodeKey={this.getKey()} />
+        <MermaidDiagram
+          diagram={this.__diagram}
+          nodeKey={this.getKey()}
+          viewMode={this.__viewMode}
+          onViewModeChange={(newViewMode) => {
+            this.setViewMode(newViewMode)
+          }}
+        />
       </React.Suspense>
     )
   }
@@ -118,8 +143,9 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
 export function $createMermaidNode({
   diagram,
   key,
+  viewMode = "diagram",
 }: CreateMermaidNodeOptions): MermaidNode {
-  return $applyNodeReplacement(new MermaidNode(diagram, key))
+  return $applyNodeReplacement(new MermaidNode(diagram, key, viewMode))
 }
 
 export function $isMermaidNode(

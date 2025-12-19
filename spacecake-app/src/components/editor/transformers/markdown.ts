@@ -103,7 +103,10 @@ export function createCodeTransformer(): MultilineElementTransformer {
 
       // Create mermaid node for mermaid blocks
       if (language === "mermaid") {
-        const mermaidNode = $createMermaidNode({ diagram: content })
+        const mermaidNode = $createMermaidNode({
+          diagram: content,
+          viewMode: "code",
+        })
 
         if (!rootNode.getParent()) {
           rootNode.append(mermaidNode)
