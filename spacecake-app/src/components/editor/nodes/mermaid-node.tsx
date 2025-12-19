@@ -33,9 +33,13 @@ import { BlockHeader } from "@/components/editor/block-header"
 import {
   CodeBlockEditorContext,
   type CodeBlockEditorContextValue,
+  type CodeMirrorFocusManager,
 } from "@/components/editor/nodes/code-node"
 import MermaidDiagram from "@/components/editor/nodes/mermaid-diagram"
 import { BaseCodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor"
+
+// WeakMap to store focus managers for mermaid block nodes
+const focusManagerMap = new WeakMap<MermaidNode, CodeMirrorFocusManager>()
 
 export interface CreateMermaidNodeOptions {
   diagram: string
@@ -152,6 +156,16 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
   setViewMode(viewMode: "diagram" | "code"): void {
     const writable = this.getWritable()
     writable.__viewMode = viewMode
+  }
+
+  select = () => {
+    // focus the CodeMirror editor directly
+    const focusManager = focusManagerMap.get(this)
+    focusManager?.focus()
+  }
+
+  setFocusManager = (focusManager: CodeMirrorFocusManager) => {
+    focusManagerMap.set(this, focusManager)
   }
 
   decorate(editor: LexicalEditor): JSX.Element {
@@ -280,6 +294,7 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
             size="sm"
             onClick={handleToggleViewMode}
             className="h-7 w-7 p-0 cursor-pointer"
+            data-testid="mermaid-toggle-view-mode"
           >
             {viewMode === "diagram" ? (
               <Code2 className="h-4 w-4" />
@@ -301,6 +316,7 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
         "group relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
         "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
       )}
+      data-testid="mermaid-node"
     >
       <BlockHeader
         title="anonymous"
@@ -310,19 +326,23 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
       />
 
       {/* Content area */}
-      <div className="overflow-hidden rounded-b-lg">
+      <div
+        className="overflow-hidden rounded-b-lg"
+        data-testid="mermaid-node-content"
+      >
         {viewMode === "code" ? (
           <MermaidEditorContextProvider
             parentEditor={parentEditor}
             nodeKey={nodeKey}
           >
-            <div className="min-h-[200px]">
+            <div className="min-h-[60px]" data-testid="mermaid-code-editor">
               <BaseCodeMirrorEditor
                 language={mermaidLanguageExtension}
                 code={diagram}
                 nodeKey={nodeKey}
                 onCodeChange={handleCodeChange}
                 showLineNumbers={true}
+                mermaidNode={mermaidNode}
               />
             </div>
           </MermaidEditorContextProvider>

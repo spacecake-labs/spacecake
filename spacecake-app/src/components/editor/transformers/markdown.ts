@@ -121,10 +121,13 @@ export function createCodeTransformer(): MultilineElementTransformer {
         nodeSelection.add(mermaidNode.getKey())
         $setSelection(nodeSelection)
 
-        // if no ending backticks, user has just created the mermaid block
-        if (!endMatch) {
+        if (isUserCreated) {
           // refocus after replacement
-          mermaidNode.selectStart()
+          Promise.resolve(
+            setTimeout(() => {
+              mermaidNode.select()
+            }, 0)
+          )
         }
         return
       }

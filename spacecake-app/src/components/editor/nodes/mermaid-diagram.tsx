@@ -87,6 +87,7 @@ export default function MermaidDiagram({
   return (
     <div
       className="w-full overflow-auto rounded bg-gray-50 p-4 dark:bg-gray-900"
+      data-testid="mermaid-diagram"
       dangerouslySetInnerHTML={{ __html: svgContent }}
     />
   )
