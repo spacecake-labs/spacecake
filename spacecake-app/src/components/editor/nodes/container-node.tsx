@@ -16,7 +16,7 @@ export class ContainerNode extends ElementNode {
 
   createDOM(): HTMLElement {
     const div = document.createElement("div")
-    div.className = "container"
+    div.className = "w-full"
     return div
   }
 

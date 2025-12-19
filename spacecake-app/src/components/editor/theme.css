@@ -130,10 +130,6 @@ table.border-separate tr:last-child th {
   touch-action: none;
 }
 
-.container {
-  width: 100%;
-}
-
 @media (pointer: coarse) {
   .TableCellResizer__resizer {
     background-color: #adf;

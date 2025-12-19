@@ -14,7 +14,6 @@ import {
   DecoratorNode,
   DOMConversionMap,
   DOMConversionOutput,
-  EditorConfig,
   LexicalEditor,
   LexicalNode,
   NodeKey,
@@ -123,7 +122,7 @@ const MermaidCodeEditor = React.forwardRef<
     })
   }, [theme])
 
-  return <div ref={elRef} className="w-full min-h-[200px]" />
+  return <div ref={elRef} className="min-h-[200px]" />
 })
 MermaidCodeEditor.displayName = "MermaidCodeEditor"
 
@@ -180,16 +179,18 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
     return { element }
   }
 
-  createDOM(config: EditorConfig): HTMLElement {
-    const span = document.createElement("span")
-    const theme = config.theme
-    if (theme.mermaid !== undefined) {
-      span.className = theme.mermaid
-    }
-    return span
+  createDOM(): HTMLElement {
+    const div = document.createElement("div")
+    // padding between blocks, consistent with CodeBlockNode
+    div.className = "mt-2"
+    return div
   }
 
   updateDOM(): false {
+    return false
+  }
+
+  isInline(): boolean {
     return false
   }
 
@@ -255,7 +256,7 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
               variant="ghost"
               size="sm"
               onClick={handleToggleViewMode}
-              className="h-7 w-7 p-0"
+              className="h-7 w-7 p-0 cursor-pointer"
             >
               {viewMode === "diagram" ? (
                 <Code2 className="h-4 w-4" />
@@ -272,33 +273,35 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
     )
 
     return (
-      <React.Suspense fallback={<div />}>
-        <div
-          className={cn(
-            "my-4 w-full group relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
-            "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
-          )}
-        >
-          <BlockHeader title="mermaid diagram" rightActions={toggleButton} />
+      <div
+        className={cn(
+          "group relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
+          "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+        )}
+      >
+        <BlockHeader
+          title="mermaid diagram"
+          emoji="📊"
+          rightActions={toggleButton}
+        />
 
-          {/* Content area */}
-          <div className="w-full overflow-hidden rounded-b-lg">
-            {viewMode === "code" ? (
-              <CodeBlockEditorContext.Provider value={contextValue}>
-                <MermaidCodeEditor
-                  code={diagram}
-                  nodeKey={nodeKey}
-                  onCodeChange={(code) => {
-                    contextValue.setCode(code)
-                  }}
-                />
-              </CodeBlockEditorContext.Provider>
-            ) : (
-              <MermaidDiagram diagram={diagram} nodeKey={nodeKey} />
-            )}
-          </div>
+        {/* Content area */}
+        <div className="overflow-hidden rounded-b-lg">
+          {viewMode === "code" ? (
+            <CodeBlockEditorContext.Provider value={contextValue}>
+              <MermaidCodeEditor
+                code={diagram}
+                nodeKey={nodeKey}
+                onCodeChange={(code) => {
+                  contextValue.setCode(code)
+                }}
+              />
+            </CodeBlockEditorContext.Provider>
+          ) : (
+            <MermaidDiagram diagram={diagram} nodeKey={nodeKey} />
+          )}
         </div>
-      </React.Suspense>
+      </div>
     )
   }
 }
