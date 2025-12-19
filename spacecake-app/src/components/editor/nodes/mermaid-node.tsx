@@ -6,6 +6,7 @@ import {
   DOMConversionMap,
   DOMConversionOutput,
   EditorConfig,
+  LexicalEditor,
   LexicalNode,
   NodeKey,
   SerializedLexicalNode,
@@ -124,7 +125,7 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
     writable.__viewMode = viewMode
   }
 
-  decorate(): JSX.Element {
+  decorate(editor: LexicalEditor): JSX.Element {
     return (
       <React.Suspense fallback={<div />}>
         <MermaidDiagram
@@ -132,7 +133,10 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
           nodeKey={this.getKey()}
           viewMode={this.__viewMode}
           onViewModeChange={(newViewMode) => {
-            this.setViewMode(newViewMode)
+            editor.update(() => {
+              const node = this.getLatest()
+              node.setViewMode(newViewMode)
+            })
           }}
         />
       </React.Suspense>
