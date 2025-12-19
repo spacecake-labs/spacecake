@@ -28,6 +28,8 @@ interface CodeMirrorEditorProps {
   code: string
   block: Block
   codeBlockNode: CodeBlockNode
+  enableLanguageSwitching?: boolean
+  showLineNumbers?: boolean
 }
 
 const EMPTY_VALUE = "__EMPTY_VALUE__"
@@ -111,6 +113,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   code,
   block,
   codeBlockNode,
+  enableLanguageSwitching = true,
+  showLineNumbers = true,
 }) => {
   const [editor] = useLexicalComposerContext()
   const { setCode } = useCodeBlockEditorContext()
@@ -182,9 +186,13 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         ...codeMirrorExtensions,
         navigationKeymap,
         basicSetup,
-        lineNumbers({
-          formatNumber: (lineNo) => String(lineNo + startLine - 1),
-        }),
+        ...(showLineNumbers
+          ? [
+              lineNumbers({
+                formatNumber: (lineNo) => String(lineNo + startLine - 1),
+              }),
+            ]
+          : []),
         keymap.of([indentWithTab]),
         EditorView.lineWrapping,
         themeCompartment.current.of(
@@ -308,7 +316,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       onCodeChange={(newCode) => {
         setCodeRef.current(newCode)
       }}
-      codeBlockContext={codeBlockContext}
+      codeBlockContext={enableLanguageSwitching ? codeBlockContext : undefined}
     >
       <div ref={elRef} />
     </CodeBlock>

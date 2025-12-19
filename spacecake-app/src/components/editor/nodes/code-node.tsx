@@ -239,7 +239,7 @@ export interface CodeBlockEditorContextValue {
   src: string
 }
 
-const CodeBlockEditorContext =
+export const CodeBlockEditorContext =
   React.createContext<CodeBlockEditorContextValue | null>(null)
 
 const CodeBlockEditorContextProvider: React.FC<{
