@@ -123,7 +123,12 @@ const MermaidCodeEditor = React.forwardRef<
     })
   }, [theme])
 
-  return <div ref={elRef} className="w-full min-h-[200px]" />
+  return (
+    <div
+      ref={elRef}
+      className="w-full min-h-[200px] box-border overflow-auto"
+    />
+  )
 })
 MermaidCodeEditor.displayName = "MermaidCodeEditor"
 
@@ -282,7 +287,7 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
           <BlockHeader title="mermaid diagram" rightActions={toggleButton} />
 
           {/* Content area */}
-          <div className="w-full overflow-hidden rounded-b-lg">
+          <div className="w-full overflow-hidden rounded-b-lg box-border">
             {viewMode === "code" ? (
               <CodeBlockEditorContext.Provider value={contextValue}>
                 <MermaidCodeEditor
