@@ -1,5 +1,12 @@
 import type { JSX } from "react"
 import * as React from "react"
+import { useEffect } from "react"
+import { indentWithTab } from "@codemirror/commands"
+import { languages } from "@codemirror/language-data"
+import { Compartment, EditorState, Extension } from "@codemirror/state"
+import { EditorView, keymap, lineNumbers } from "@codemirror/view"
+import { githubDark, githubLight } from "@uiw/codemirror-theme-github"
+import { basicSetup } from "codemirror"
 import {
   $addUpdateTag,
   $applyNodeReplacement,
@@ -17,8 +24,6 @@ import {
 } from "lexical"
 import { Code2, Eye } from "lucide-react"
 
-import { anonymousName } from "@/types/parser"
-import type { Block } from "@/types/parser"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -31,7 +36,7 @@ import {
   type CodeBlockEditorContextValue,
 } from "@/components/editor/nodes/code-node"
 import MermaidDiagram from "@/components/editor/nodes/mermaid-diagram"
-import { CodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor"
+import { useTheme } from "@/components/theme-provider"
 
 export interface CreateMermaidNodeOptions {
   diagram: string
@@ -58,6 +63,87 @@ function $convertMermaidElement(domNode: Node): null | DOMConversionOutput {
   const node = $createMermaidNode({ diagram })
   return { node }
 }
+
+// Simple CodeMirror editor for mermaid without CodeBlock wrapper
+interface MermaidCodeEditorProps {
+  code: string
+  nodeKey: NodeKey
+  onCodeChange: (code: string) => void
+}
+
+const MermaidCodeEditor = React.forwardRef<
+  HTMLDivElement,
+  MermaidCodeEditorProps
+>(({ code, onCodeChange }, elRef) => {
+  const editorViewRef = React.useRef<EditorView | null>(null)
+  const { theme } = useTheme()
+  const themeCompartment = React.useRef(new Compartment())
+
+  useEffect(() => {
+    const el = (elRef as React.MutableRefObject<HTMLDivElement | null>).current!
+    void (async () => {
+      // Try to load mermaid language support
+      let languageSupport: Extension | null = null
+      try {
+        const mermaidData = languages.find(
+          (l) =>
+            l.name === "mermaid" ||
+            l.alias.includes("mermaid") ||
+            l.extensions.includes(".mmd")
+        )
+        if (mermaidData) {
+          languageSupport = (await mermaidData.load()).extension
+        }
+      } catch {
+        // mermaid language not available, continue without it
+      }
+
+      const extensions: Extension[] = [
+        basicSetup,
+        lineNumbers(),
+        keymap.of([indentWithTab]),
+        EditorView.lineWrapping,
+        themeCompartment.current.of(
+          theme === "dark" ? githubDark : githubLight
+        ),
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged) {
+            onCodeChange(update.state.doc.toString())
+          }
+        }),
+      ]
+
+      if (languageSupport) {
+        extensions.push(languageSupport)
+      }
+
+      el.innerHTML = ""
+      editorViewRef.current = new EditorView({
+        parent: el,
+        state: EditorState.create({ doc: code, extensions }),
+      })
+    })()
+
+    return () => {
+      editorViewRef.current?.destroy()
+      editorViewRef.current = null
+    }
+  }, [code, onCodeChange, theme, elRef])
+
+  // Handle theme changes
+  useEffect(() => {
+    const view = editorViewRef.current
+    if (!view) return
+
+    const newTheme = theme === "dark" ? githubDark : githubLight
+    view.dispatch({
+      effects: themeCompartment.current.reconfigure(newTheme),
+    })
+  }, [theme])
+
+  return <div ref={elRef} className="min-h-[200px]" />
+})
+MermaidCodeEditor.displayName = "MermaidCodeEditor"
 
 export class MermaidNode extends DecoratorNode<JSX.Element> {
   __diagram: string
@@ -148,15 +234,6 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
     const viewMode = this.__viewMode
     const diagram = this.__diagram
 
-    const mockBlock: Block = {
-      startByte: 0,
-      endByte: diagram.length,
-      startLine: 1,
-      text: diagram,
-      kind: "mermaid",
-      name: anonymousName(),
-    }
-
     const contextValue: CodeBlockEditorContextValue = {
       lexicalNode: null as never,
       parentEditor: editor,
@@ -180,14 +257,6 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
         // no-op for mermaid
       },
     }
-
-    const dummyCodeBlockNode = {
-      getKey: () => nodeKey,
-      isSelected: () => false,
-      setFocusManager: () => {
-        // no-op
-      },
-    } as never
 
     const handleToggleViewMode = () => {
       editor.update(() => {
@@ -232,14 +301,12 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
           <div className="overflow-hidden rounded-b-lg">
             {viewMode === "code" ? (
               <CodeBlockEditorContext.Provider value={contextValue}>
-                <CodeMirrorEditor
-                  language="mermaid"
-                  nodeKey={nodeKey}
+                <MermaidCodeEditor
                   code={diagram}
-                  block={mockBlock}
-                  codeBlockNode={dummyCodeBlockNode}
-                  enableLanguageSwitching={false}
-                  showLineNumbers={true}
+                  nodeKey={nodeKey}
+                  onCodeChange={(code) => {
+                    contextValue.setCode(code)
+                  }}
                 />
               </CodeBlockEditorContext.Provider>
             ) : (
