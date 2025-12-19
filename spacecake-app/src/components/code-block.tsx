@@ -1,5 +1,4 @@
 import React from "react"
-import { Code } from "lucide-react"
 
 import type { LanguageSpec } from "@/types/language"
 import { LANGUAGE_SUPPORT } from "@/types/language"
@@ -10,7 +9,6 @@ import { delimitPythonDocString } from "@/lib/parser/python/utils"
 import { cn } from "@/lib/utils"
 import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace"
 import { useRoute } from "@/hooks/use-route"
-import { Badge } from "@/components/ui/badge"
 import {
   Select,
   SelectContent,
@@ -81,13 +79,6 @@ export function CodeBlock({
     })
   )
 
-  const titleElement =
-    title === "anonymous" ? (
-      <Code className="inline-block h-[1em] w-[1em] align-middle text-foreground" />
-    ) : (
-      title
-    )
-
   const languageSelector = codeBlockContext && editable && (
     <Select
       value={language}
@@ -121,12 +112,8 @@ export function CodeBlock({
     >
       <BlockHeader
         emoji={language && fileTypeEmoji(fileTypeFromLanguage(language))}
-        title={titleElement}
-        badge={
-          <Badge variant="secondary" className="text-xs font-mono">
-            {badgeValue}
-          </Badge>
-        }
+        title={title}
+        badge={badgeValue}
         rightActions={languageSelector}
       />
 
