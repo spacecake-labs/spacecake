@@ -138,6 +138,35 @@ describe("Markdown isomorphism", () => {
         )
         expect(result).toBe(text)
       })
+
+      it("markdown file with mermaid diagram should have isomorphic parsing & serialization", () => {
+        const text = `# Architecture Diagram
+
+\`\`\`mermaid
+graph TD;
+    A[User Interface] -->|sends request| B[API Server]
+    B -->|queries| C[Database]
+    C -->|returns data| B
+    B -->|returns response| A
+\`\`\`
+
+Here's a simple flow showing how data moves through the system.`
+
+        testEnv.editor.update(
+          () =>
+            $convertFromMarkdownString(
+              text,
+              MARKDOWN_TRANSFORMERS,
+              undefined,
+              true
+            ),
+          { discrete: true }
+        )
+        const result = serializeEditorToMarkdown(
+          testEnv.editor.getEditorState()
+        )
+        expect(result).toBe(text)
+      })
     },
     editorConfig,
     <Plugins />

@@ -22,6 +22,10 @@ import { useTheme } from "@/components/theme-provider"
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
 
+interface NodeWithFocusManager {
+  setFocusManager: (manager: { focus: () => void }) => void
+}
+
 export interface BaseCodeMirrorEditorProps {
   language: CodeMirrorLanguage | Extension
   nodeKey: string
@@ -31,6 +35,7 @@ export interface BaseCodeMirrorEditorProps {
   readOnly?: boolean
   blockStartLine?: number
   additionalExtensions?: Extension[]
+  mermaidNode?: NodeWithFocusManager
 }
 
 interface CodeMirrorEditorProps {
@@ -132,6 +137,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<
       readOnly = false,
       blockStartLine = 1,
       additionalExtensions,
+      mermaidNode,
     },
     ref
   ) => {
@@ -165,6 +171,23 @@ export const BaseCodeMirrorEditor = React.forwardRef<
     }, [])
 
     React.useImperativeHandle(ref, () => elRef.current!)
+
+    // Set up focus manager for mermaid node if provided
+    React.useEffect(() => {
+      if (!mermaidNode) return
+
+      const focusManager = {
+        focus: () => {
+          const view = editorViewRef.current
+          if (view) {
+            view.focus()
+          }
+        },
+      }
+
+      // Use the setFocusManager method which uses WeakMap internally
+      mermaidNode.setFocusManager(focusManager)
+    }, [mermaidNode])
 
     React.useEffect(() => {
       const el = elRef.current
