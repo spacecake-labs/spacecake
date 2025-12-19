@@ -74,13 +74,15 @@ interface MermaidCodeEditorProps {
 const MermaidCodeEditor = React.forwardRef<
   HTMLDivElement,
   MermaidCodeEditorProps
->(({ code, onCodeChange }, elRef) => {
+>(({ code, onCodeChange }, _ref) => {
+  const elRef = React.useRef<HTMLDivElement | null>(null)
   const editorViewRef = React.useRef<EditorView | null>(null)
   const { theme } = useTheme()
   const themeCompartment = React.useRef(new Compartment())
 
   useEffect(() => {
-    const el = (elRef as React.MutableRefObject<HTMLDivElement | null>).current!
+    if (!elRef.current) return
+    const el = elRef.current
     void (async () => {
       // Try to load mermaid language support
       let languageSupport: Extension | null = null
@@ -128,7 +130,7 @@ const MermaidCodeEditor = React.forwardRef<
       editorViewRef.current?.destroy()
       editorViewRef.current = null
     }
-  }, [code, onCodeChange, theme, elRef])
+  }, [code, onCodeChange, theme])
 
   // Handle theme changes
   useEffect(() => {
