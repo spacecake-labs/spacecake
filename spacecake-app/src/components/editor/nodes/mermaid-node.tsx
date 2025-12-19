@@ -2,11 +2,11 @@ import type { JSX } from "react"
 import * as React from "react"
 import { useEffect } from "react"
 import { indentWithTab } from "@codemirror/commands"
-import { languages } from "@codemirror/language-data"
 import { Compartment, EditorState, Extension } from "@codemirror/state"
 import { EditorView, keymap, lineNumbers } from "@codemirror/view"
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github"
 import { basicSetup } from "codemirror"
+import { mermaid } from "codemirror-lang-mermaid"
 import {
   $addUpdateTag,
   $applyNodeReplacement,
@@ -24,6 +24,7 @@ import {
 } from "lexical"
 import { Code2, Eye } from "lucide-react"
 
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -31,6 +32,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { BlockHeader } from "@/components/editor/block-header"
 import {
   CodeBlockEditorContext,
   type CodeBlockEditorContextValue,
@@ -83,48 +85,26 @@ const MermaidCodeEditor = React.forwardRef<
   useEffect(() => {
     if (!elRef.current) return
     const el = elRef.current
-    void (async () => {
-      // Try to load mermaid language support
-      let languageSupport: Extension | null = null
-      try {
-        const mermaidData = languages.find(
-          (l) =>
-            l.name === "mermaid" ||
-            l.alias.includes("mermaid") ||
-            l.extensions.includes(".mmd")
-        )
-        if (mermaidData) {
-          languageSupport = (await mermaidData.load()).extension
+
+    const extensions: Extension[] = [
+      basicSetup,
+      mermaid(),
+      lineNumbers(),
+      keymap.of([indentWithTab]),
+      EditorView.lineWrapping,
+      themeCompartment.current.of(theme === "dark" ? githubDark : githubLight),
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          onCodeChange(update.state.doc.toString())
         }
-      } catch {
-        // mermaid language not available, continue without it
-      }
+      }),
+    ]
 
-      const extensions: Extension[] = [
-        basicSetup,
-        lineNumbers(),
-        keymap.of([indentWithTab]),
-        EditorView.lineWrapping,
-        themeCompartment.current.of(
-          theme === "dark" ? githubDark : githubLight
-        ),
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            onCodeChange(update.state.doc.toString())
-          }
-        }),
-      ]
-
-      if (languageSupport) {
-        extensions.push(languageSupport)
-      }
-
-      el.innerHTML = ""
-      editorViewRef.current = new EditorView({
-        parent: el,
-        state: EditorState.create({ doc: code, extensions }),
-      })
-    })()
+    el.innerHTML = ""
+    editorViewRef.current = new EditorView({
+      parent: el,
+      state: EditorState.create({ doc: code, extensions }),
+    })
 
     return () => {
       editorViewRef.current?.destroy()
@@ -267,37 +247,39 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
       })
     }
 
+    const toggleButton = (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggleViewMode}
+              className="h-7 w-7 p-0"
+            >
+              {viewMode === "diagram" ? (
+                <Code2 className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {viewMode === "diagram" ? "edit code" : "view diagram"}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )
+
     return (
       <React.Suspense fallback={<div />}>
-        <div className="my-4 rounded border bg-card text-card-foreground shadow-sm">
-          {/* Unified header */}
-          <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2 rounded-t-lg">
-            <h3 className="font-semibold text-foreground text-sm leading-tight">
-              mermaid diagram
-            </h3>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleToggleViewMode}
-                    className="h-7 w-7 p-0"
-                  >
-                    {viewMode === "diagram" ? (
-                      <Code2 className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  {viewMode === "diagram" ? "edit code" : "view diagram"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+        <div
+          className={cn(
+            "group relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
+            "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+          )}
+        >
+          <BlockHeader title="mermaid diagram" rightActions={toggleButton} />
 
           {/* Content area */}
           <div className="overflow-hidden rounded-b-lg">
