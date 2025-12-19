@@ -239,7 +239,7 @@ export interface CodeBlockEditorContextValue {
   src: string
 }
 
-const CodeBlockEditorContext =
+export const CodeBlockEditorContext =
   React.createContext<CodeBlockEditorContextValue | null>(null)
 
 const CodeBlockEditorContextProvider: React.FC<{
@@ -356,13 +356,7 @@ const CodeBlockEditorContainer: React.FC<
         COMMAND_PRIORITY_LOW
       )
     )
-  }, [
-    clearNodeSelection,
-    props.parentEditor,
-    setNodeSelected,
-    props.nodeKey,
-    setNodeSelected,
-  ])
+  }, [clearNodeSelection, props.parentEditor, setNodeSelected, props.nodeKey])
 
   return (
     <CodeBlockEditorContextProvider
