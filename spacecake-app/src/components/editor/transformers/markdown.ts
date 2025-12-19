@@ -101,11 +101,14 @@ export function createCodeTransformer(): MultilineElementTransformer {
 
       const content = linesInBetween?.join("\n") ?? ""
 
+      // if no ending backticks, user has just created the block
+      const isUserCreated = !endMatch
+
       // Create mermaid node for mermaid blocks
       if (language === "mermaid") {
         const mermaidNode = $createMermaidNode({
           diagram: content,
-          viewMode: "code",
+          viewMode: isUserCreated ? "code" : "diagram",
         })
 
         if (!rootNode.getParent()) {
@@ -151,8 +154,7 @@ export function createCodeTransformer(): MultilineElementTransformer {
       nodeSelection.add(codeNode.getKey())
       $setSelection(nodeSelection)
 
-      // if no ending backticks, user has just created the code block
-      if (!endMatch) {
+      if (isUserCreated) {
         // refocus after replacement
         codeNode.select()
       }

@@ -1,16 +1,14 @@
 import type { JSX } from "react"
 import * as React from "react"
-import { useEffect } from "react"
-import { indentWithTab } from "@codemirror/commands"
-import { Compartment, EditorState, Extension } from "@codemirror/state"
-import { EditorView, keymap, lineNumbers } from "@codemirror/view"
-import { githubDark, githubLight } from "@uiw/codemirror-theme-github"
-import { basicSetup } from "codemirror"
+import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
+import { mergeRegister } from "@lexical/utils"
 import { mermaid } from "codemirror-lang-mermaid"
 import {
   $addUpdateTag,
   $applyNodeReplacement,
   $getNodeByKey,
+  CLICK_COMMAND,
+  COMMAND_PRIORITY_LOW,
   DecoratorNode,
   DOMConversionMap,
   DOMConversionOutput,
@@ -37,7 +35,7 @@ import {
   type CodeBlockEditorContextValue,
 } from "@/components/editor/nodes/code-node"
 import MermaidDiagram from "@/components/editor/nodes/mermaid-diagram"
-import { useTheme } from "@/components/theme-provider"
+import { BaseCodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor"
 
 export interface CreateMermaidNodeOptions {
   diagram: string
@@ -64,67 +62,6 @@ function $convertMermaidElement(domNode: Node): null | DOMConversionOutput {
   const node = $createMermaidNode({ diagram })
   return { node }
 }
-
-// Simple CodeMirror editor for mermaid without CodeBlock wrapper
-interface MermaidCodeEditorProps {
-  code: string
-  nodeKey: NodeKey
-  onCodeChange: (code: string) => void
-}
-
-const MermaidCodeEditor = React.forwardRef<
-  HTMLDivElement,
-  MermaidCodeEditorProps
->(({ code, onCodeChange }, _ref) => {
-  const elRef = React.useRef<HTMLDivElement | null>(null)
-  const editorViewRef = React.useRef<EditorView | null>(null)
-  const { theme } = useTheme()
-  const themeCompartment = React.useRef(new Compartment())
-
-  useEffect(() => {
-    if (!elRef.current) return
-    const el = elRef.current
-
-    const extensions: Extension[] = [
-      basicSetup,
-      mermaid(),
-      lineNumbers(),
-      keymap.of([indentWithTab]),
-      EditorView.lineWrapping,
-      themeCompartment.current.of(theme === "dark" ? githubDark : githubLight),
-      EditorView.updateListener.of((update) => {
-        if (update.docChanged) {
-          onCodeChange(update.state.doc.toString())
-        }
-      }),
-    ]
-
-    el.innerHTML = ""
-    editorViewRef.current = new EditorView({
-      parent: el,
-      state: EditorState.create({ doc: code, extensions }),
-    })
-
-    return () => {
-      editorViewRef.current?.destroy()
-      editorViewRef.current = null
-    }
-  }, [code, onCodeChange, theme])
-
-  // Handle theme changes
-  useEffect(() => {
-    const view = editorViewRef.current
-    if (!view) return
-
-    const newTheme = theme === "dark" ? githubDark : githubLight
-    view.dispatch({
-      effects: themeCompartment.current.reconfigure(newTheme),
-    })
-  }, [theme])
-
-  return <div ref={elRef} className="min-h-[200px]" />
-})
-MermaidCodeEditor.displayName = "MermaidCodeEditor"
 
 export class MermaidNode extends DecoratorNode<JSX.Element> {
   __diagram: string
@@ -213,16 +150,38 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
   }
 
   decorate(editor: LexicalEditor): JSX.Element {
-    const nodeKey = this.getKey()
-    const viewMode = this.__viewMode
-    const diagram = this.__diagram
+    return (
+      <MermaidNodeEditorContainer
+        parentEditor={editor}
+        mermaidNode={this}
+        nodeKey={this.getKey()}
+      />
+    )
+  }
+}
 
-    const contextValue: CodeBlockEditorContextValue = {
+interface MermaidNodeEditorContainerProps {
+  parentEditor: LexicalEditor
+  mermaidNode: MermaidNode
+  nodeKey: NodeKey
+}
+
+interface MermaidEditorContextProviderProps {
+  parentEditor: LexicalEditor
+  nodeKey: NodeKey
+  children: React.ReactNode
+}
+
+const MermaidEditorContextProvider: React.FC<
+  MermaidEditorContextProviderProps
+> = ({ parentEditor, nodeKey, children }) => {
+  const contextValue = React.useMemo(() => {
+    return {
       lexicalNode: null as never,
-      parentEditor: editor,
+      parentEditor,
       src: "",
       setCode: (code: string) => {
-        editor.update(() => {
+        parentEditor.update(() => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           const node = $getNodeByKey(nodeKey)
           if (node && $isMermaidNode(node)) {
@@ -239,72 +198,132 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
       setSrc: () => {
         // no-op for mermaid
       },
-    }
+    } as CodeBlockEditorContextValue
+  }, [parentEditor, nodeKey])
 
-    const handleToggleViewMode = () => {
-      editor.update(() => {
-        const node = this.getLatest()
-        node.setViewMode(viewMode === "diagram" ? "code" : "diagram")
-      })
-    }
+  return (
+    <CodeBlockEditorContext.Provider value={contextValue}>
+      {children}
+    </CodeBlockEditorContext.Provider>
+  )
+}
 
-    const toggleButton = (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleToggleViewMode}
-              className="h-7 w-7 p-0 cursor-pointer"
-            >
-              {viewMode === "diagram" ? (
-                <Code2 className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            {viewMode === "diagram" ? "edit code" : "view diagram"}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
+  parentEditor,
+  mermaidNode,
+  nodeKey,
+}) => {
+  const [isNodeSelected, setNodeSelected, clearNodeSelection] =
+    useLexicalNodeSelection(nodeKey)
+
+  const viewMode = mermaidNode.__viewMode
+  const diagram = mermaidNode.__diagram
+
+  React.useEffect(() => {
+    return mergeRegister(
+      parentEditor.registerCommand(
+        CLICK_COMMAND,
+        (event: MouseEvent) => {
+          const mermaidElem = parentEditor.getElementByKey(nodeKey)
+
+          if (mermaidElem && mermaidElem.contains(event.target as Node)) {
+            if (!event.shiftKey) {
+              clearNodeSelection()
+            }
+            setNodeSelected(!isNodeSelected)
+            return true
+          }
+
+          return false
+        },
+        COMMAND_PRIORITY_LOW
+      )
     )
+  }, [clearNodeSelection, parentEditor, setNodeSelected, nodeKey])
 
-    return (
-      <div
-        className={cn(
-          "group relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
-          "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
-        )}
-      >
-        <BlockHeader
-          title="anonymous"
-          emoji="📊"
-          badge="diagram"
-          rightActions={toggleButton}
-        />
+  const handleCodeChange = React.useCallback(
+    (code: string) => {
+      parentEditor.update(() => {
+        $addUpdateTag(SKIP_DOM_SELECTION_TAG)
+        const node = $getNodeByKey(nodeKey)
+        if (node && $isMermaidNode(node)) {
+          ;(node as MermaidNode).setDiagram(code)
+        }
+      })
+    },
+    [parentEditor, nodeKey]
+  )
 
-        {/* Content area */}
-        <div className="overflow-hidden rounded-b-lg">
-          {viewMode === "code" ? (
-            <CodeBlockEditorContext.Provider value={contextValue}>
-              <MermaidCodeEditor
+  const handleToggleViewMode = React.useCallback(() => {
+    parentEditor.update(() => {
+      const node = $getNodeByKey(nodeKey)
+      if (node && $isMermaidNode(node)) {
+        node.setViewMode(viewMode === "diagram" ? "code" : "diagram")
+      }
+    })
+  }, [parentEditor, nodeKey, viewMode])
+
+  const toggleButton = (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleToggleViewMode}
+            className="h-7 w-7 p-0 cursor-pointer"
+          >
+            {viewMode === "diagram" ? (
+              <Code2 className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {viewMode === "diagram" ? "edit code" : "view diagram"}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+
+  return (
+    <div
+      className={cn(
+        "group relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
+        "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+      )}
+    >
+      <BlockHeader
+        title="anonymous"
+        emoji="📊"
+        badge="diagram"
+        rightActions={toggleButton}
+      />
+
+      {/* Content area */}
+      <div className="overflow-hidden rounded-b-lg">
+        {viewMode === "code" ? (
+          <MermaidEditorContextProvider
+            parentEditor={parentEditor}
+            nodeKey={nodeKey}
+          >
+            <div className="min-h-[200px]">
+              <BaseCodeMirrorEditor
+                language={mermaid()}
                 code={diagram}
                 nodeKey={nodeKey}
-                onCodeChange={(code) => {
-                  contextValue.setCode(code)
-                }}
+                onCodeChange={handleCodeChange}
+                showLineNumbers={true}
               />
-            </CodeBlockEditorContext.Provider>
-          ) : (
-            <MermaidDiagram diagram={diagram} nodeKey={nodeKey} />
-          )}
-        </div>
+            </div>
+          </MermaidEditorContextProvider>
+        ) : (
+          <MermaidDiagram diagram={diagram} nodeKey={nodeKey} />
+        )}
       </div>
-    )
-  }
+    </div>
+  )
 }
 
 export function $createMermaidNode({
