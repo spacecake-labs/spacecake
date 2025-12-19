@@ -282,7 +282,7 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
         <BlockHeader
           title="anonymous"
           emoji="📊"
-          badge="mermaid diagram"
+          badge="diagram"
           rightActions={toggleButton}
         />
 
