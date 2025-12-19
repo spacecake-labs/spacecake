@@ -135,6 +135,11 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
     return this.__diagram
   }
 
+  // This is called by Lexica's `$convertToMarkdownString` function
+  getTextContent(): string {
+    return this.__diagram
+  }
+
   setDiagram(diagram: string): void {
     const writable = this.getWritable()
     writable.__diagram = diagram
@@ -263,6 +268,9 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
     })
   }, [parentEditor, nodeKey, viewMode])
 
+  // memoize the mermaid language extension to avoid recreating it on every render
+  const mermaidLanguageExtension = React.useMemo(() => mermaid(), [])
+
   const toggleButton = (
     <TooltipProvider>
       <Tooltip>
@@ -310,7 +318,7 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
           >
             <div className="min-h-[200px]">
               <BaseCodeMirrorEditor
-                language={mermaid()}
+                language={mermaidLanguageExtension}
                 code={diagram}
                 nodeKey={nodeKey}
                 onCodeChange={handleCodeChange}

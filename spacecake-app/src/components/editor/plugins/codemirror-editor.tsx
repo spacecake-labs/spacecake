@@ -131,7 +131,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<
       showLineNumbers = true,
       readOnly = false,
       blockStartLine = 1,
-      additionalExtensions = [],
+      additionalExtensions,
     },
     ref
   ) => {
@@ -139,6 +139,12 @@ export const BaseCodeMirrorEditor = React.forwardRef<
     const elRef = React.useRef<HTMLDivElement | null>(null)
     const onCodeChangeRef = React.useRef(onCodeChange)
     onCodeChangeRef.current = onCodeChange
+
+    // use empty array as default, but stable across renders
+    const stableAdditionalExtensions = React.useMemo(
+      () => additionalExtensions ?? [],
+      [additionalExtensions]
+    )
 
     const { theme } = useTheme()
     const themeCompartment = React.useRef(new Compartment())
@@ -190,7 +196,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<
           ),
           focusedActiveLineTheme,
           foldPlaceholderTheme,
-          ...additionalExtensions,
+          ...stableAdditionalExtensions,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               debouncedCommitRef.current.schedule()
@@ -223,7 +229,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<
       blockStartLine,
       showLineNumbers,
       readOnly,
-      additionalExtensions,
+      stableAdditionalExtensions,
       flushPending,
       theme,
     ])
