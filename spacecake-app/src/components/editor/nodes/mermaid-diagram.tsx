@@ -67,10 +67,7 @@ export default function MermaidDiagram({
 
   if (error && !svgContent) {
     return (
-      <div
-        className="my-4 rounded border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950"
-        data-testid={`mermaid-diagram-${nodeKey}`}
-      >
+      <div className="rounded border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950">
         <p className="text-sm font-medium text-red-900 dark:text-red-200">
           mermaid diagram error: {error}
         </p>
@@ -89,8 +86,8 @@ export default function MermaidDiagram({
 
   return (
     <div
-      className="mermaid-container my-4 overflow-auto rounded bg-gray-50 p-4 dark:bg-gray-900"
-      data-testid={`mermaid-diagram-${nodeKey}`}
+      className="w-full overflow-auto rounded bg-gray-50 p-4 dark:bg-gray-900"
+      data-testid="mermaid-diagram"
       dangerouslySetInnerHTML={{ __html: svgContent }}
     />
   )

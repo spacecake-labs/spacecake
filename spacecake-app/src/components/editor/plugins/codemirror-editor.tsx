@@ -22,12 +22,30 @@ import { useTheme } from "@/components/theme-provider"
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
 
+interface NodeWithFocusManager {
+  setFocusManager: (manager: { focus: () => void }) => void
+}
+
+export interface BaseCodeMirrorEditorProps {
+  language: CodeMirrorLanguage | Extension
+  nodeKey: string
+  code: string
+  onCodeChange: (code: string) => void
+  showLineNumbers?: boolean
+  readOnly?: boolean
+  blockStartLine?: number
+  additionalExtensions?: Extension[]
+  mermaidNode?: NodeWithFocusManager
+}
+
 interface CodeMirrorEditorProps {
   language: CodeMirrorLanguage
   nodeKey: string
   code: string
   block: Block
   codeBlockNode: CodeBlockNode
+  enableLanguageSwitching?: boolean
+  showLineNumbers?: boolean
 }
 
 const EMPTY_VALUE = "__EMPTY_VALUE__"
@@ -105,17 +123,167 @@ const foldDocstrings = (view: EditorView, block: Block) => {
   }
 }
 
+// Base editor component for reuse by code and mermaid nodes
+export const BaseCodeMirrorEditor = React.forwardRef<
+  HTMLDivElement,
+  BaseCodeMirrorEditorProps
+>(
+  (
+    {
+      language,
+      code,
+      onCodeChange,
+      showLineNumbers = true,
+      readOnly = false,
+      blockStartLine = 1,
+      additionalExtensions,
+      mermaidNode,
+    },
+    ref
+  ) => {
+    const editorViewRef = React.useRef<EditorView | null>(null)
+    const elRef = React.useRef<HTMLDivElement | null>(null)
+    const onCodeChangeRef = React.useRef(onCodeChange)
+    onCodeChangeRef.current = onCodeChange
+
+    // use empty array as default, but stable across renders
+    const stableAdditionalExtensions = React.useMemo(
+      () => additionalExtensions ?? [],
+      [additionalExtensions]
+    )
+
+    const { theme } = useTheme()
+    const themeCompartment = React.useRef(new Compartment())
+
+    const debounceMs = 250
+    const debouncedCommitRef = React.useRef(
+      debounce(() => {
+        const view = editorViewRef.current
+        if (view) {
+          const latest = view.state.doc.toString()
+          onCodeChangeRef.current(latest)
+        }
+      }, debounceMs)
+    )
+
+    const flushPending = React.useCallback(() => {
+      debouncedCommitRef.current.flush()
+    }, [])
+
+    React.useImperativeHandle(ref, () => elRef.current!)
+
+    // Set up focus manager for mermaid node if provided
+    React.useEffect(() => {
+      if (!mermaidNode) return
+
+      const focusManager = {
+        focus: () => {
+          const view = editorViewRef.current
+          if (view) {
+            view.focus()
+          }
+        },
+      }
+
+      // Use the setFocusManager method which uses WeakMap internally
+      mermaidNode.setFocusManager(focusManager)
+    }, [mermaidNode])
+
+    React.useEffect(() => {
+      const el = elRef.current
+      if (!el) return
+
+      void (async () => {
+        // Load language support if language is a string
+        let languageExtension: Extension | null = null
+        if (typeof language === "string" && language !== "") {
+          languageExtension = await getLanguageSupport(language)
+        } else if (typeof language !== "string") {
+          // language is already an Extension
+          languageExtension = language
+        }
+
+        const extensions: Extension[] = [
+          basicSetup,
+          ...(showLineNumbers
+            ? [
+                lineNumbers({
+                  formatNumber: (lineNo) => String(lineNo + blockStartLine - 1),
+                }),
+              ]
+            : []),
+          keymap.of([indentWithTab]),
+          EditorView.lineWrapping,
+          themeCompartment.current.of(
+            theme === "dark" ? githubDark : githubLight
+          ),
+          focusedActiveLineTheme,
+          foldPlaceholderTheme,
+          ...stableAdditionalExtensions,
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+              debouncedCommitRef.current.schedule()
+            }
+          }),
+        ]
+
+        if (languageExtension) {
+          extensions.push(languageExtension)
+        }
+
+        if (readOnly) {
+          extensions.push(EditorState.readOnly.of(true))
+        }
+
+        el.innerHTML = ""
+        editorViewRef.current = new EditorView({
+          parent: el,
+          state: EditorState.create({ doc: code, extensions }),
+        })
+      })()
+
+      return () => {
+        flushPending()
+        editorViewRef.current?.destroy()
+        editorViewRef.current = null
+      }
+    }, [
+      language,
+      blockStartLine,
+      showLineNumbers,
+      readOnly,
+      stableAdditionalExtensions,
+      flushPending,
+      theme,
+    ])
+
+    // Handle theme changes
+    React.useEffect(() => {
+      const view = editorViewRef.current
+      if (!view) return
+
+      const newTheme = theme === "dark" ? githubDark : githubLight
+      view.dispatch({
+        effects: themeCompartment.current.reconfigure(newTheme),
+      })
+    }, [theme])
+
+    return <div ref={elRef} />
+  }
+)
+BaseCodeMirrorEditor.displayName = "BaseCodeMirrorEditor"
+
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   language,
   nodeKey,
   code,
   block,
   codeBlockNode,
+  enableLanguageSwitching = true,
+  showLineNumbers = true,
 }) => {
   const [editor] = useLexicalComposerContext()
   const { setCode } = useCodeBlockEditorContext()
-
-  // Use block info for context
 
   // Use hardcoded values instead of atoms to avoid re-renders
   const readOnly = false
@@ -182,9 +350,13 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         ...codeMirrorExtensions,
         navigationKeymap,
         basicSetup,
-        lineNumbers({
-          formatNumber: (lineNo) => String(lineNo + startLine - 1),
-        }),
+        ...(showLineNumbers
+          ? [
+              lineNumbers({
+                formatNumber: (lineNo) => String(lineNo + startLine - 1),
+              }),
+            ]
+          : []),
         keymap.of([indentWithTab]),
         EditorView.lineWrapping,
         themeCompartment.current.of(
@@ -308,7 +480,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       onCodeChange={(newCode) => {
         setCodeRef.current(newCode)
       }}
-      codeBlockContext={codeBlockContext}
+      codeBlockContext={enableLanguageSwitching ? codeBlockContext : undefined}
     >
       <div ref={elRef} />
     </CodeBlock>

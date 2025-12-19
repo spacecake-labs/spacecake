@@ -86,6 +86,15 @@ describe("Python mdoc isomorphism", () => {
 #🍰 \`\`\`python
 #🍰 def example():
 #🍰     return "formatted"
+#🍰 \`\`\`
+#🍰 
+#🍰 ## diagram
+#🍰 
+#🍰 \`\`\`mermaid
+#🍰 graph LR
+#🍰     A[Start] --> B{Decision}
+#🍰     B -->|Yes| C[Process]
+#🍰     B -->|No| D[End]
 #🍰 \`\`\``
 
         const block: Block<"markdown block"> = {

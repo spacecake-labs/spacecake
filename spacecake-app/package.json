@@ -125,6 +125,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "codemirror": "^6.0.2",
+    "codemirror-lang-mermaid": "^0.5.0",
     "drizzle-orm": "^0.44.6",
     "effect": "^3.17.14",
     "electron-squirrel-startup": "^1.0.1",
