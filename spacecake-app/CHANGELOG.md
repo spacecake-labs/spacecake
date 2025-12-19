@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.16
+
+### Patch Changes
+
+- 8c54571: Enhanced mermaid diagram node with 'code' and 'diagram' modes.
+
 ## 0.1.0-alpha.15
 
 ### Patch Changes
