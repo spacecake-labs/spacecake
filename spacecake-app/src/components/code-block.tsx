@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { BlockHeader } from "@/components/editor/block-header"
 import type { CodeBlockEditorContextValue } from "@/components/editor/nodes/code-node"
 import { TypographyH3, TypographyP } from "@/components/typography"
 
@@ -80,6 +81,35 @@ export function CodeBlock({
     })
   )
 
+  const titleElement =
+    title === "anonymous" ? (
+      <Code className="inline-block h-[1em] w-[1em] align-middle text-foreground" />
+    ) : (
+      title
+    )
+
+  const languageSelector = codeBlockContext && editable && (
+    <Select
+      value={language}
+      onValueChange={codeBlockContext.setLanguage}
+      disabled={!canChangeLanguage}
+    >
+      <SelectTrigger
+        size="sm"
+        className="w-auto !px-2 !py-0.5 !h-auto !text-xs"
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {availableLanguages.map(({ value, label }) => (
+          <SelectItem key={value} value={value}>
+            {label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+
   return (
     <div
       className={cn(
@@ -89,98 +119,16 @@ export function CodeBlock({
       )}
       data-block-id={dataBlockId}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2 rounded-t-lg">
-        <div className="flex items-center gap-2 flex-wrap">
-          {language && (
-            <span className="text-sm mr-2">
-              {fileTypeEmoji(fileTypeFromLanguage(language))}
-            </span>
-          )}
-          {title === "anonymous" ? (
-            <h3 className="font-semibold text-foreground text-sm leading-tight">
-              <Code className="inline-block h-[1em] w-[1em] align-middle text-foreground" />
-            </h3>
-          ) : (
-            <h3 className="font-semibold text-foreground text-sm leading-tight">
-              {title}
-            </h3>
-          )}
+      <BlockHeader
+        emoji={language && fileTypeEmoji(fileTypeFromLanguage(language))}
+        title={titleElement}
+        badge={
           <Badge variant="secondary" className="text-xs font-mono">
             {badgeValue}
           </Badge>
-        </div>
-
-        {codeBlockContext && editable && (
-          <Select
-            value={language}
-            onValueChange={codeBlockContext.setLanguage}
-            disabled={!canChangeLanguage}
-          >
-            <SelectTrigger
-              size="sm"
-              className="w-auto !px-2 !py-0.5 !h-auto !text-xs"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {availableLanguages.map(({ value, label }) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
-        {/* <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {onRun && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onRun}
-              className="h-7 w-7 p-0 cursor-pointer"
-            >
-              <Play className="h-3 w-3" />
-              <span className="sr-only">run code</span>
-            </Button>
-          )}
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={copyToClipboard}
-            className="h-7 w-7 p-0 cursor-pointer"
-          >
-            {copied ? (
-              <Check className="h-3 w-3 text-green-500" />
-            ) : (
-              <Copy className="h-3 w-3" />
-            )}
-            <span className="sr-only">copy code</span>
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 cursor-pointer"
-              >
-                <MoreHorizontal className="h-3 w-3" />
-                <span className="sr-only">more options</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={copyToClipboard}>
-                copy code
-              </DropdownMenuItem>
-              <DropdownMenuItem>download</DropdownMenuItem>
-              <DropdownMenuItem>share</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div> */}
-      </div>
+        }
+        rightActions={languageSelector}
+      />
 
       {/* doc section */}
       {doc && (
