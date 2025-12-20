@@ -335,7 +335,7 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
             parentEditor={parentEditor}
             nodeKey={nodeKey}
           >
-            <div className="min-h-[60px]" data-testid="mermaid-code-editor">
+            <div data-testid="mermaid-code-editor">
               <BaseCodeMirrorEditor
                 language={mermaidLanguageExtension}
                 code={diagram}
