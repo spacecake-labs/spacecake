@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.17
+
+### Patch Changes
+
+- 2349f05: Fixing decorator node spacing plugins.
+
 ## 0.1.0-alpha.16
 
 ### Patch Changes
