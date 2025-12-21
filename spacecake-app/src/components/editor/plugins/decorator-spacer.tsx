@@ -4,12 +4,12 @@ import {
   $addUpdateTag,
   $getNodeByKey,
   $getRoot,
-  DecoratorNode,
   SKIP_DOM_SELECTION_TAG,
 } from "lexical"
 
 import { INITIAL_LOAD_TAG } from "@/types/lexical"
 import { emptyMdNode } from "@/components/editor/markdown-utils"
+import { needsSpacer } from "@/components/editor/plugins/utils"
 
 /**
  * Inserts empty markdown nodes between consecutive decorator nodes.
@@ -42,12 +42,15 @@ export function DecoratorSpacerPlugin(): null {
           // collect consecutive decorator node pairs in a single pass
           const nodesToSpacerAfter: string[] = []
           for (let i = 0; i < children.length - 1; i++) {
-            if (
-              children[i] instanceof DecoratorNode &&
-              children[i + 1] instanceof DecoratorNode
-            ) {
+            if (needsSpacer(children[i]) && needsSpacer(children[i + 1])) {
               nodesToSpacerAfter.push(children[i].getKey())
             }
+          }
+
+          // also check if the last node is a decorator node
+          const lastChild = root.getLastChild()
+          if (lastChild && needsSpacer(lastChild)) {
+            nodesToSpacerAfter.push(lastChild.getKey())
           }
 
           // insert spacers in a single update transaction
@@ -56,7 +59,7 @@ export function DecoratorSpacerPlugin(): null {
               $addUpdateTag(SKIP_DOM_SELECTION_TAG)
               for (const nodeKey of nodesToSpacerAfter) {
                 const node = $getNodeByKey(nodeKey)
-                if (node instanceof DecoratorNode) {
+                if (node && needsSpacer(node)) {
                   node.insertAfter(emptyMdNode())
                 }
               }
