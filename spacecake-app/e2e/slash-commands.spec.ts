@@ -262,6 +262,7 @@ test.describe("slash commands e2e", () => {
     // navigate to a new paragraph and type slash
     await window.keyboard.press("ControlOrMeta+ArrowRight", { delay: 100 })
     await window.keyboard.press("ArrowDown", { delay: 100 })
+
     await window.keyboard.press("/", { delay: 200 })
 
     await window.getByRole("option", { name: "code" }).click({ delay: 100 })

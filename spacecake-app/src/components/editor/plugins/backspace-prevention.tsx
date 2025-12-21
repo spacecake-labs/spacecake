@@ -8,8 +8,7 @@ import {
   KEY_BACKSPACE_COMMAND,
 } from "lexical"
 
-import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
-import { $isContextNode } from "@/components/editor/nodes/context-node"
+import { needsSpacer } from "@/components/editor/plugins/utils"
 
 /**
  * Plugin that prevents backspace deletion of empty paragraphs between code/context nodes.
@@ -46,12 +45,8 @@ export function BackspacePreventionPlugin(): null {
         const prevSibling = paragraph.getPreviousSibling()
         const nextSibling = paragraph.getNextSibling()
 
-        const isBetweenCodeNodes =
-          (prevSibling && $isCodeBlockNode(prevSibling)) ||
-          (prevSibling && $isContextNode(prevSibling))
-        const isBetweenContextNodes =
-          (nextSibling && $isCodeBlockNode(nextSibling)) ||
-          (nextSibling && $isContextNode(nextSibling))
+        const isBetweenCodeNodes = prevSibling && needsSpacer(prevSibling)
+        const isBetweenContextNodes = nextSibling && needsSpacer(nextSibling)
 
         // prevent backspace if this empty paragraph is between parsed blocks
         if (isBetweenCodeNodes || isBetweenContextNodes) {

@@ -26,6 +26,7 @@ import {
   Type,
 } from "lucide-react"
 
+import { insertBlockNode } from "@/lib/editor/insert-block-node"
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node"
 
 export class SlashCommandOption extends MenuOption {
@@ -87,11 +88,17 @@ export function slashCommandOptions(
                 // src: filePath,
                 // block: block,
               })
-              selection.insertNodes([codeNode])
+              insertBlockNode(codeNode, selection)
 
               const nodeSelection = $createNodeSelection()
               nodeSelection.add(codeNode.getKey())
               $setSelection(nodeSelection)
+
+              Promise.resolve(
+                setTimeout(() => {
+                  codeNode.select()
+                }, 0)
+              )
             } else {
               // Will this ever happen?
               const textContent = selection.getTextContent()
@@ -102,7 +109,7 @@ export function slashCommandOptions(
                 // src: filePath,
                 // block: block,
               })
-              selection.insertNodes([codeNode])
+              insertBlockNode(codeNode, selection)
               selection.insertRawText(textContent)
             }
           }
