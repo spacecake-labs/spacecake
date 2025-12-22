@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.18
+
+### Patch Changes
+
+- 23d58ea: Fixing bug with cut command in code nodes.
+
 ## 0.1.0-alpha.17
 
 ### Patch Changes
