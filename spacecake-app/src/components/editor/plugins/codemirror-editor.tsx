@@ -414,6 +414,11 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         }
       }
 
+      const onCut = (ev: ClipboardEvent) => {
+        // prevent lexical from handling cut events while in codemirror
+        ev.stopPropagation()
+      }
+
       const onPaste = (ev: ClipboardEvent) => {
         // prevent lexical from handling paste events while in codemirror
         ev.stopPropagation()
@@ -425,6 +430,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       }
 
       view.contentDOM.addEventListener("keydown", onKeyDown, false)
+      view.contentDOM.addEventListener("cut", onCut, false)
       view.contentDOM.addEventListener("paste", onPaste, false)
       view.contentDOM.addEventListener("blur", onBlur, false)
     })()
