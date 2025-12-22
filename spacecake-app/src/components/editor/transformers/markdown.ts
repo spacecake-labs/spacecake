@@ -159,7 +159,11 @@ export function createCodeTransformer(): MultilineElementTransformer {
 
       if (isUserCreated) {
         // refocus after replacement
-        codeNode.select()
+        Promise.resolve(
+          setTimeout(() => {
+            codeNode.select()
+          }, 0)
+        )
       }
     },
   }
