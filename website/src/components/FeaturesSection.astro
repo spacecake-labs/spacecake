@@ -4,7 +4,7 @@ import type { ImageMetadata } from "astro";
 import codeBlocksImage from "../assets/code-blocks.svg";
 import checklistsImage from "../assets/specs.svg";
 import diagramImage from "../assets/mermaid.svg";
-// import previewImage from "../assets/code-blocks.svg";
+import fileTreeImage from "../assets/file-tree.svg";
 
 interface Feature {
   title: string;
@@ -14,31 +14,31 @@ interface Feature {
 
 const features: Feature[] = [
   {
-    title: "powerful code blocks",
-    description: "enjoy a modern code-editing experience",
+    title: "your code, your shortcuts",
+    description: "codeblocks with the power of a modern editor",
     image: codeBlocksImage,
   },
   {
-    title: "checklist plans",
-    description: "save your progress and keep agents on track",
+    title: "navigate your codebase",
+    description: "switch between specs and implementation with ease",
+    image: fileTreeImage,
+  },
+  {
+    title: "keep agents on track",
+    description: "divide features into actionable steps and monitor progress",
     image: checklistsImage,
   },
   {
-    title: "diagrams",
-    description: "render diagrams with mermaid",
+    title: "specs and code, together",
+    description: "everything you need to ship faster with LLMs",
     image: diagramImage,
   },
-  // {
-  //   title: "live preview",
-  //   description: "see your markdown render instantly as you type",
-  //   image: previewImage,
-  // },
 ];
 ---
 
 <section class="features-section">
   <div class="container">
-    <h2>markdown features</h2>
+    <h2>features</h2>
     <div class="features-grid">
       {
         features.map((feature) => (
