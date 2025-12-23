@@ -7,6 +7,11 @@ const PAGE_TITLE_ID = "_top";
 
 const { data } = Astro.locals.starlightRoute.entry;
 const { title = data.title, tagline } = data.hero || {};
+
+// only autoplay and loop in prod
+// to reduce mux usage
+const autoplay = import.meta.env.PROD ? "muted" : false;
+const loop = import.meta.env.PROD ? true : false;
 ---
 
 <div class="hero">
@@ -18,8 +23,8 @@ const { title = data.title, tagline } = data.hero || {};
           metadata={{
             video_title: "spacecake",
           }}
-          autoplay="muted"
-          loop={true}
+          autoplay={autoplay}
+          loop={loop}
           style={{
             display: "block",
             aspectRatio: "16/9",
