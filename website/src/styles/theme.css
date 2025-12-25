@@ -14,7 +14,7 @@
     /* Page background */
     --sl-color-bg: oklch(0.145 0 0);
     /* Sidebar background */
-    --sl-color-bg-sidebar: #1e293b;
+    --sl-color-bg-sidebar: oklch(0.145 0 0);
     /* Code block background */
     --sl-color-bg-code: #1e293b;
     /* Navigation/header background */
@@ -38,9 +38,15 @@
     /* Page background */
     --sl-color-bg: oklch(1 0 0);
     /* Sidebar background */
-    --sl-color-bg-sidebar: #f8fafc;
+    --sl-color-bg-sidebar: oklch(1 0 0);
     /* Code block background */
     --sl-color-bg-code: #f1f5f9;
     /* Navigation/header background */
     --sl-color-bg-nav: oklch(1 0 0);
+}
+
+/* Sidebar link highlight styling */
+[data-theme='dark'] a[aria-current='page'] {
+    background-color: color-mix(in srgb, var(--sl-color-accent) 15%, transparent);
+    color: var(--sl-color-accent);
 }
