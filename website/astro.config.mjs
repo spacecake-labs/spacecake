@@ -15,19 +15,12 @@ export default defineConfig({
         },
       ],
       pagefind: false,
-      //   sidebar: [
-      //     {
-      //       label: "Guides",
-      //       items: [
-      //         // Each item here is one entry in the navigation menu.
-      //         { label: "Example Guide", slug: "guides/example" },
-      //       ],
-      //     },
-      //     {
-      //       label: "Reference",
-      //       autogenerate: { directory: "reference" },
-      //     },
-      //   ],
+      sidebar: [
+        {
+          label: "📖",
+          items: [{ label: "getting started", slug: "getting-started" }],
+        },
+      ],
       components: {
         Hero: "./src/components/Hero.astro",
       },
