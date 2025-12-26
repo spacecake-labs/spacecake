@@ -6,22 +6,29 @@ export const editorTheme: EditorThemeClasses = {
   ltr: "text-left",
   rtl: "text-right",
   heading: {
-    h1: "my-2 font-semibold text-3xl",
-    h2: "my-2 font-semibold text-2xl",
-    h3: "my-2 font-semibold text-xl",
-    h4: "my-2 font-semibold text-lg",
-    h5: "my-2 font-semibold text-base",
-    h6: "my-2 font-semibold text-sm",
+    h1: "text-block mt-6 mb-2 font-semibold text-3xl",
+    h2: "text-block mt-6 mb-2 font-semibold text-2xl",
+    h3: "text-block mt-6 mb-2 font-semibold text-xl",
+    h4: "text-block mt-6 mb-2 font-semibold text-lg",
+    h5: "text-block mt-6 mb-2 font-semibold text-base",
+    h6: "text-block mt-6 mb-2 font-semibold text-sm",
   },
-  // paragraph: "leading-7 mt-2",
+  // Hide empty paragraphs unless they are focused or starting a new section.
+  // Logic breakdown:
+  // 1. [.text-block+&...]: Target this paragraph (&) ONLY if it immediately follows another .text-block element (sibling selector).
+  // 2. :not(.focused-node): ...AND it is NOT currently focused (class managed by FocusedNodePlugin).
+  // 3. :has-[>br:only-child]: ...AND it is effectively empty (contains only a <br> tag).
+  // 4. :hidden: Apply display:none if all above match.
+  paragraph:
+    "text-block leading-7 mt-2 [.text-block+&:not(.focused-node)]:has-[>br:only-child]:hidden",
   quote: "mt-6 border-l-2 pl-6 italic",
   link: "text-blue-600 hover:underline hover:cursor-pointer",
   list: {
     nested: {
       listitem: "list-none before:hidden after:hidden",
     },
-    ul: "my-2 ml-6 list-disc [&>li]:mt-2",
-    ol: "my-2 ml-6 list-decimal [&>li]:mt-2",
+    ul: "text-block my-2 ml-6 list-disc [&>li]:mt-2",
+    ol: "text-block my-2 ml-6 list-decimal [&>li]:mt-2",
     checklist: "relative",
     listitemChecked:
       'relative mx-2 px-6 list-none outline-none text-muted-foreground before:content-[""] before:size-4 before:shrink-0 before:rounded-[4px] before:border before:border-primary before:bg-primary before:top-0.5 before:left-0 before:cursor-pointer before:block before:absolute before:shadow-xs before:flex before:items-center before:justify-center after:content-["✓"] after:absolute after:top-0.5 after:left-0 after:w-4 after:h-4 after:text-primary-foreground after:text-xs after:font-bold after:flex after:items-center after:justify-center after:pointer-events-none',

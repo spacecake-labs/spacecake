@@ -1,5 +1,6 @@
 ---
 import GitHubDownloadButton from "./GitHubDownloadButton.astro";
+import { LinkButton } from "@astrojs/starlight/components";
 import { MuxPlayer } from "@mux/mux-player-astro";
 
 // https://github.com/withastro/starlight/blob/main/packages/starlight/constants.ts
@@ -56,6 +57,12 @@ const loop = import.meta.env.PROD ? true : false;
         </div>
       )
     }
+
+    <div class="cta-container">
+      <LinkButton href="/getting-started" variant="secondary">
+        get started
+      </LinkButton>
+    </div>
   </div>
 </div>
 
@@ -143,6 +150,10 @@ const loop = import.meta.env.PROD ? true : false;
       color: var(--sl-color-accent);
       text-transform: lowercase;
       white-space: nowrap;
+    }
+
+    .cta-container {
+      margin-top: 1rem;
     }
 
     @media (min-width: 50rem) {
