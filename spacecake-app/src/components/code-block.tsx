@@ -45,8 +45,9 @@ export function CodeBlock({
 }: CodeBlockProps) {
   const route = useRoute()
 
-  // can change language only if the file is markdown; disabled for code files
-  const canChangeLanguage = route?.fileType === FileType.Markdown
+  // can change language only if the file is markdown and in rich view
+  const canChangeLanguage =
+    route?.fileType === FileType.Markdown && route?.viewKind === "rich"
 
   const code = block.text
   const blockName = block.name.value
