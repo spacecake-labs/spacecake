@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.19
+
+### Patch Changes
+
+- f7cc94e: Hiding empty paragraph nodes for markdown compatibility.
+
 ## 0.1.0-alpha.18
 
 ### Patch Changes
