@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.20
+
+### Patch Changes
+
+- 6d32743: Disabling language selector in markdown source view.
+
 ## 0.1.0-alpha.19
 
 ### Patch Changes
