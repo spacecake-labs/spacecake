@@ -90,5 +90,17 @@ test.describe("markdown e2e", () => {
       window.getByRole("link", { name: "@spacecake-labs" })
     ).toBeVisible()
     await expect(window.getByRole("link", { name: "readme.so" })).toBeVisible()
+
+    // test deleting a code block
+    const codeBlockToDelete = window
+      .locator(".cm-editor")
+      .getByText('print("Hello, world!")')
+      .first()
+
+    // click the delete button
+    await window.getByTestId("block-delete-button").first().click()
+
+    // verify the code block is gone
+    await expect(codeBlockToDelete).not.toBeVisible()
   })
 })

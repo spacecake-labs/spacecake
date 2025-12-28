@@ -67,4 +67,42 @@ test.describe("python markdown directives e2e", () => {
     // verify the change persists after save
     await expect(window.getByText("a header updated").first()).toBeVisible()
   })
+
+  test("delete a code block from a python markdown file", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    const window = await electronApp.firstWindow()
+
+    // copy md.py fixture into the temp workspace
+    const fixturePath = path.join(process.cwd(), "tests/fixtures/md.py")
+    const destPath = path.join(tempTestDir, "md.py")
+    fs.copyFileSync(fixturePath, destPath)
+
+    await stubDialog(electronApp, "showOpenDialog", {
+      filePaths: [tempTestDir],
+      canceled: false,
+    })
+
+    await window.getByRole("button", { name: "open folder" }).click()
+
+    await expect(
+      window.getByRole("button", { name: "create file or folder" })
+    ).toBeVisible()
+
+    // open the file
+    await window.getByRole("button", { name: "md.py" }).first().click()
+
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    // find the import code block
+    const importBlock = window.locator('[data-block-id="anonymous-import"]')
+    await expect(importBlock).toBeVisible()
+
+    // click the delete button within this specific block
+    await importBlock.getByTestId("block-delete-button").click()
+
+    // verify the import block is gone
+    await expect(importBlock).not.toBeVisible()
+  })
 })
