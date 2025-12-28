@@ -135,5 +135,14 @@ test.describe("mermaid e2e", () => {
     await expect(codeEditorAfter.locator(".cm-editor")).toContainText(
       "graph TD;\n    A-->B;\n    B-->C;"
     )
+
+    // test deleting the mermaid node
+    const mermaidNode = window.getByTestId("mermaid-node")
+
+    // click the delete button
+    await window.getByTestId("block-delete-button").click()
+
+    // verify the mermaid node is gone
+    await expect(mermaidNode).not.toBeVisible()
   })
 })

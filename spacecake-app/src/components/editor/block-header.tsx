@@ -1,14 +1,22 @@
 import React from "react"
-import { Code } from "lucide-react"
+import { Code, Trash2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface BlockHeaderProps {
   title: string | React.ReactNode
   emoji?: React.ReactNode
   badge?: string | React.ReactNode
   rightActions?: React.ReactNode
+  onDelete?: () => void
   className?: string
 }
 
@@ -17,6 +25,7 @@ export function BlockHeader({
   emoji,
   badge,
   rightActions,
+  onDelete,
   className,
 }: BlockHeaderProps) {
   const titleElement =
@@ -35,6 +44,25 @@ export function BlockHeader({
       badge
     )
 
+  const deleteButton = onDelete && (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onDelete}
+            className="h-6 w-6 cursor-pointer"
+            data-testid="block-delete-button"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">delete</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+
   return (
     <div
       className={cn(
@@ -49,7 +77,10 @@ export function BlockHeader({
         </h3>
         {badgeElement}
       </div>
-      {rightActions}
+      <div className="flex items-center gap-2">
+        {rightActions}
+        {deleteButton}
+      </div>
     </div>
   )
 }
