@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.21
+
+### Patch Changes
+
+- c44d58b: Adding support for more languages & debian build config.
+
 ## 0.1.0-alpha.20
 
 ### Patch Changes
