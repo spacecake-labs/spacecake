@@ -30,6 +30,8 @@ export function fileTypeFromExtension(extension: string): FileType {
       return FileType.JSX
     case "tsx":
       return FileType.TSX
+    case "rs":
+      return FileType.Rust
     default:
       return FileType.Plaintext
   }
@@ -60,6 +62,8 @@ export function fileTypeFromLanguage(language: string): FileType {
       return FileType.JSX
     case "tsx":
       return FileType.TSX
+    case "rust":
+      return FileType.Rust
     default:
       return FileType.Plaintext
   }
@@ -79,6 +83,7 @@ export function fileTypeIcon(fileType: FileType): LucideIcon {
     case FileType.TypeScript:
     case FileType.JSX:
     case FileType.TSX:
+    case FileType.Rust:
       return Code
     case FileType.Plaintext:
     default:
@@ -103,6 +108,8 @@ export function fileTypeEmoji(fileType: FileType): string {
     case FileType.TypeScript:
     case FileType.TSX:
       return "🔵"
+    case FileType.Rust:
+      return "🦀"
     case FileType.Plaintext:
     default:
       return "📄"

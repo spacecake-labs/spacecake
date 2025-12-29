@@ -52,7 +52,7 @@ interface CodeMirrorEditorProps {
 const EMPTY_VALUE = "__EMPTY_VALUE__"
 
 // Function to get language support extension dynamically
-const getLanguageSupport = async (
+export const getLanguageSupport = async (
   language: string
 ): Promise<Extension | null> => {
   if (!language || language === EMPTY_VALUE) return null

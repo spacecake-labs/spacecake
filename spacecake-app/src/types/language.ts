@@ -9,7 +9,8 @@ export const LanguageSchema = Schema.Union(
   Schema.Literal(FileType.JavaScript),
   Schema.Literal(FileType.TypeScript),
   Schema.Literal(FileType.JSX),
-  Schema.Literal(FileType.TSX)
+  Schema.Literal(FileType.TSX),
+  Schema.Literal(FileType.Rust)
 )
 export type Language = typeof LanguageSchema.Type
 
@@ -76,6 +77,13 @@ export const LANGUAGE_SUPPORT: Record<FileType, LanguageSpec> = {
     extensions: new Set([".tsx"]),
     supportedViews: new Set(["source"]),
     codemirrorName: "tsx",
+  },
+  [FileType.Rust]: {
+    name: "Rust",
+    code: "rs",
+    extensions: new Set([".rs"]),
+    supportedViews: new Set(["source"]),
+    codemirrorName: "rust",
   },
   [FileType.Plaintext]: {
     name: "Plaintext",
