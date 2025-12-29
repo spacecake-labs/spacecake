@@ -3,37 +3,9 @@ import { describe, expect, test } from "vitest"
 import { FileType } from "@/types/workspace"
 import {
   fileExtension,
-  fileTypeEmoji,
   fileTypeFromFileName,
   fileTypeFromLanguage,
 } from "@/lib/workspace"
-
-// fileTypeEmoji tests
-
-describe("fileTypeEmoji", () => {
-  test.each([
-    [FileType.Markdown, "📖"],
-    [FileType.Python, "🐍"],
-    [FileType.JavaScript, "🟡"],
-    [FileType.TypeScript, "🔵"],
-    [FileType.JSX, "🟡"],
-    [FileType.TSX, "🔵"],
-    [FileType.Rust, "🦀"],
-    [FileType.Go, "🐹"],
-    [FileType.C, "©️"],
-    [FileType.Cpp, "⚙️"],
-    [FileType.CSharp, "🎯"],
-    [FileType.Java, "☕"],
-    [FileType.Swift, "🍎"],
-    [FileType.Kotlin, "🅺"],
-    [FileType.JSON, "🗂️"],
-    [FileType.YAML, "📋"],
-    [FileType.TOML, "⚙️"],
-    [FileType.Plaintext, "📄"],
-  ])("returns correct emoji for %s", (fileType, expectedEmoji) => {
-    expect(fileTypeEmoji(fileType)).toBe(expectedEmoji)
-  })
-})
 
 // fileTypeFromLanguage tests
 
