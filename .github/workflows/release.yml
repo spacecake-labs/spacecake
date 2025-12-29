@@ -37,6 +37,8 @@ jobs:
             arch: arm64
           - os: macos-15-intel
             arch: x64
+          - os: ubuntu-latest
+            arch: x64
 
     permissions:
       contents: write
@@ -61,6 +63,7 @@ jobs:
         run: pnpm install
 
       - name: Load certificates (macOS)
+        if: runner.os == 'macOS'
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.MACOS_CERT_P12 }}
