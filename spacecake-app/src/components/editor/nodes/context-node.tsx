@@ -1,3 +1,8 @@
+/**
+ * This file is not used in the editor.
+ * It is kept here for future reference.
+ */
+
 import { addClassNamesToElement } from "@lexical/utils"
 import {
   $applyNodeReplacement,

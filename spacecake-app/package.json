@@ -37,6 +37,7 @@
   "devDependencies": {
     "@changesets/cli": "^2.29.7",
     "@electron-forge/cli": "^7.9.0",
+    "@electron-forge/maker-deb": "^7.9.0",
     "@electron-forge/maker-dmg": "^7.9.0",
     "@electron-forge/maker-zip": "^7.9.0",
     "@electron-forge/plugin-auto-unpack-natives": "^7.9.0",
@@ -131,7 +132,6 @@
     "electron-squirrel-startup": "^1.0.1",
     "jotai": "^2.15.0",
     "jotai-effect": "^2.1.2",
-    "jotai-optics": "^0.4.0",
     "jotai-xstate": "^0.6.1",
     "lexical": "^0.39.0",
     "live": "link:@electric-sql/pglite/live",
@@ -139,7 +139,6 @@
     "mermaid": "^11.4.0",
     "micromatch": "^4.0.8",
     "next-themes": "^0.4.6",
-    "optics-ts": "^2.4.1",
     "posthog-js": "^1.268.6",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

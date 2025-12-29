@@ -14,7 +14,6 @@ import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin
 import { TablePlugin } from "@lexical/react/LexicalTablePlugin"
 
 import { ContentEditable } from "@/components/editor/content-editable"
-import { BackspacePreventionPlugin } from "@/components/editor/plugins/backspace-prevention"
 import { DecoratorSpacerPlugin } from "@/components/editor/plugins/decorator-spacer"
 import { FocusedNodePlugin } from "@/components/editor/plugins/focused-node"
 import { MermaidDiagramPlugin } from "@/components/editor/plugins/mermaid-diagram"
@@ -54,7 +53,6 @@ export const Plugins = React.memo(function Plugins() {
         {/* <HashtagPlugin /> */}
         <HistoryPlugin />
         <NodeNavigationPlugin />
-        <BackspacePreventionPlugin />
         <FocusedNodePlugin />
         <MermaidDiagramPlugin />
         <DecoratorSpacerPlugin />

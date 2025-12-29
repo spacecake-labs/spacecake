@@ -28,7 +28,6 @@ import {
   $isCodeBlockNode,
 } from "@/components/editor/nodes/code-node"
 import { $isContainerNode } from "@/components/editor/nodes/container-node"
-import { $isContextNode } from "@/components/editor/nodes/context-node"
 import { $getDelimitedString } from "@/components/editor/nodes/delimited-node"
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
@@ -121,8 +120,8 @@ export function serializeEditorToPython(editorState: EditorState): string {
       if (
         $isHeadingNode(child) ||
         $isParagraphNode(child) ||
-        $isListNode(child) ||
-        $isContextNode(child)
+        $isListNode(child)
+        // add $isContextNode(child) here if used in future
       ) {
         const delimitedString = $getDelimitedString(child)
         return result + delimitedString

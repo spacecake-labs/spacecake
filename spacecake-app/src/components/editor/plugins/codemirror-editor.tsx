@@ -7,6 +7,7 @@ import { EditorView, keymap, lineNumbers } from "@codemirror/view"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github"
 import { basicSetup } from "codemirror"
+import { $addUpdateTag, SKIP_DOM_SELECTION_TAG } from "lexical"
 
 import type { LanguageSpec } from "@/types/language"
 import type { Block } from "@/types/parser"
@@ -51,7 +52,7 @@ interface CodeMirrorEditorProps {
 const EMPTY_VALUE = "__EMPTY_VALUE__"
 
 // Function to get language support extension dynamically
-const getLanguageSupport = async (
+export const getLanguageSupport = async (
   language: string
 ): Promise<Extension | null> => {
   if (!language || language === EMPTY_VALUE) return null
@@ -477,6 +478,13 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   const codeBlockContext = useCodeBlockEditorContext()
 
+  const handleDelete = React.useCallback(() => {
+    editor.update(() => {
+      $addUpdateTag(SKIP_DOM_SELECTION_TAG)
+      codeBlockNode.remove()
+    })
+  }, [editor, codeBlockNode])
+
   return (
     <CodeBlock
       block={block}
@@ -487,6 +495,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         setCodeRef.current(newCode)
       }}
       codeBlockContext={enableLanguageSwitching ? codeBlockContext : undefined}
+      onDelete={handleDelete}
     >
       <div ref={elRef} />
     </CodeBlock>

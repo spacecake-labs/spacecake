@@ -282,6 +282,16 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
     })
   }, [parentEditor, nodeKey, viewMode])
 
+  const handleDelete = React.useCallback(() => {
+    parentEditor.update(() => {
+      $addUpdateTag(SKIP_DOM_SELECTION_TAG)
+      const node = $getNodeByKey(nodeKey)
+      if (node) {
+        node.remove()
+      }
+    })
+  }, [parentEditor, nodeKey])
+
   // memoize the mermaid language extension to avoid recreating it on every render
   const mermaidLanguageExtension = React.useMemo(() => mermaid(), [])
 
@@ -323,6 +333,7 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
         emoji="📊"
         badge="diagram"
         rightActions={toggleButton}
+        onDelete={handleDelete}
       />
 
       {/* Content area */}

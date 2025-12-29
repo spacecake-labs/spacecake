@@ -30,6 +30,7 @@ interface CodeBlockProps {
   className?: string
   onCodeChange?: (code: string) => void
   onRun?: () => void
+  onDelete?: () => void
   children?: React.ReactNode
   codeBlockContext?: CodeBlockEditorContextValue
 }
@@ -42,6 +43,7 @@ export function CodeBlock({
   // onRun,
   children,
   codeBlockContext,
+  onDelete,
 }: CodeBlockProps) {
   const route = useRoute()
 
@@ -116,6 +118,7 @@ export function CodeBlock({
         title={title}
         badge={badgeValue}
         rightActions={languageSelector}
+        onDelete={onDelete}
       />
 
       {/* doc section */}

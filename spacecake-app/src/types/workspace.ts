@@ -29,7 +29,18 @@ export const FileTypeSchema = Schema.Union(
   Schema.Literal("javascript"),
   Schema.Literal("typescript"),
   Schema.Literal("jsx"),
-  Schema.Literal("tsx")
+  Schema.Literal("tsx"),
+  Schema.Literal("rust"),
+  Schema.Literal("go"),
+  Schema.Literal("c"),
+  Schema.Literal("cpp"),
+  Schema.Literal("csharp"),
+  Schema.Literal("java"),
+  Schema.Literal("swift"),
+  Schema.Literal("kotlin"),
+  Schema.Literal("json"),
+  Schema.Literal("yaml"),
+  Schema.Literal("toml")
 )
 export type FileType = typeof FileTypeSchema.Type
 
@@ -42,6 +53,17 @@ export const FileType = {
   TypeScript: "typescript" as const,
   JSX: "jsx" as const,
   TSX: "tsx" as const,
+  Rust: "rust" as const,
+  Go: "go" as const,
+  C: "c" as const,
+  Cpp: "cpp" as const,
+  CSharp: "csharp" as const,
+  Java: "java" as const,
+  Swift: "swift" as const,
+  Kotlin: "kotlin" as const,
+  JSON: "json" as const,
+  YAML: "yaml" as const,
+  TOML: "toml" as const,
 } as const
 
 export const ZERO_HASH = "0000000000000000"
