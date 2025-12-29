@@ -37,6 +37,7 @@
   "devDependencies": {
     "@changesets/cli": "^2.29.7",
     "@electron-forge/cli": "^7.9.0",
+    "@electron-forge/maker-deb": "^7.9.0",
     "@electron-forge/maker-dmg": "^7.9.0",
     "@electron-forge/maker-zip": "^7.9.0",
     "@electron-forge/plugin-auto-unpack-natives": "^7.9.0",
