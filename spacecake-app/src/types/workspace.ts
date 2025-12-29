@@ -29,7 +29,8 @@ export const FileTypeSchema = Schema.Union(
   Schema.Literal("javascript"),
   Schema.Literal("typescript"),
   Schema.Literal("jsx"),
-  Schema.Literal("tsx")
+  Schema.Literal("tsx"),
+  Schema.Literal("rust")
 )
 export type FileType = typeof FileTypeSchema.Type
 
@@ -42,6 +43,7 @@ export const FileType = {
   TypeScript: "typescript" as const,
   JSX: "jsx" as const,
   TSX: "tsx" as const,
+  Rust: "rust" as const,
 } as const
 
 export const ZERO_HASH = "0000000000000000"

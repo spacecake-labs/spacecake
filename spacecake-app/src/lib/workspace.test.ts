@@ -18,6 +18,7 @@ describe("fileTypeEmoji", () => {
     [FileType.TypeScript, "🔵"],
     [FileType.JSX, "🟡"],
     [FileType.TSX, "🔵"],
+    [FileType.Rust, "🦀"],
     [FileType.Plaintext, "📄"],
   ])("returns correct emoji for %s", (fileType, expectedEmoji) => {
     expect(fileTypeEmoji(fileType)).toBe(expectedEmoji)
@@ -37,6 +38,8 @@ describe("fileTypeFromLanguage", () => {
     ["TypeScript", FileType.TypeScript],
     ["markdown", FileType.Markdown],
     ["Markdown", FileType.Markdown],
+    ["rust", FileType.Rust],
+    ["Rust", FileType.Rust],
   ])("returns correct FileType for language: %s", (language, expectedType) => {
     expect(fileTypeFromLanguage(language)).toBe(expectedType)
   })
@@ -64,6 +67,7 @@ describe("fileExtension", () => {
     ["test.ts", "ts"],
     ["test.jsx", "jsx"],
     ["test.tsx", "tsx"],
+    ["test.rs", "rs"],
     ["test", null],
   ])(
     "returns correct extension for file: %s",
@@ -83,6 +87,7 @@ describe("fileTypeFromFileName", () => {
     ["test.ts", FileType.TypeScript],
     ["test.jsx", FileType.JSX],
     ["test.tsx", FileType.TSX],
+    ["test.rs", FileType.Rust],
     ["test", FileType.Plaintext],
   ])("returns correct FileType for file: %s", (fileName, expectedType) => {
     expect(fileTypeFromFileName(fileName)).toBe(expectedType)
