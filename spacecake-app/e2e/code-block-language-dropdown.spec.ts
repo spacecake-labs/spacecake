@@ -165,7 +165,7 @@ test.describe("code block language dropdown e2e", () => {
     >) {
       const optionName = languageSpec.name.toLowerCase()
       await expect(
-        window.getByRole("option", { name: optionName }),
+        window.getByRole("option", { name: optionName, exact: true }),
         `language option "${optionName}" should be visible in dropdown`
       ).toBeVisible()
     }

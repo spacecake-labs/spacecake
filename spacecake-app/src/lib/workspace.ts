@@ -32,6 +32,32 @@ export function fileTypeFromExtension(extension: string): FileType {
       return FileType.TSX
     case "rs":
       return FileType.Rust
+    case "go":
+      return FileType.Go
+    case "c":
+    case "h":
+      return FileType.C
+    case "cpp":
+    case "cc":
+    case "cxx":
+    case "hpp":
+      return FileType.Cpp
+    case "cs":
+      return FileType.CSharp
+    case "java":
+      return FileType.Java
+    case "swift":
+      return FileType.Swift
+    case "kt":
+    case "kts":
+      return FileType.Kotlin
+    case "json":
+      return FileType.JSON
+    case "yaml":
+    case "yml":
+      return FileType.YAML
+    case "toml":
+      return FileType.TOML
     default:
       return FileType.Plaintext
   }
@@ -64,6 +90,28 @@ export function fileTypeFromLanguage(language: string): FileType {
       return FileType.TSX
     case "rust":
       return FileType.Rust
+    case "go":
+      return FileType.Go
+    case "c":
+      return FileType.C
+    case "cpp":
+    case "c++":
+      return FileType.Cpp
+    case "csharp":
+    case "c#":
+      return FileType.CSharp
+    case "java":
+      return FileType.Java
+    case "swift":
+      return FileType.Swift
+    case "kotlin":
+      return FileType.Kotlin
+    case "json":
+      return FileType.JSON
+    case "yaml":
+      return FileType.YAML
+    case "toml":
+      return FileType.TOML
     default:
       return FileType.Plaintext
   }
@@ -110,6 +158,26 @@ export function fileTypeEmoji(fileType: FileType): string {
       return "🔵"
     case FileType.Rust:
       return "🦀"
+    case FileType.Go:
+      return "🐹"
+    case FileType.C:
+      return "🧱"
+    case FileType.Cpp:
+      return "➕"
+    case FileType.CSharp:
+      return "#️⃣"
+    case FileType.Java:
+      return "☕"
+    case FileType.Swift:
+      return "🍎"
+    case FileType.Kotlin:
+      return "🅺"
+    case FileType.JSON:
+      return "🧾"
+    case FileType.YAML:
+      return "⚙️"
+    case FileType.TOML:
+      return "⚙️"
     case FileType.Plaintext:
     default:
       return "📄"
