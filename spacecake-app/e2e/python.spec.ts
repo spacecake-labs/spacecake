@@ -230,6 +230,18 @@ test.describe("python e2e", () => {
     await window.keyboard.press("ArrowDown", { delay: 100 }) // into next code block (fibonacci function)
     // ensure text persists
     await expect(window.getByText(keepText).first()).toBeVisible()
+
+    // test deleting the import code block
+    const importBlockToDelete = window.locator(
+      '[data-block-id="anonymous-import"]'
+    )
+    await expect(importBlockToDelete).toBeVisible()
+
+    // click the delete button within this specific block
+    await importBlockToDelete.getByTestId("block-delete-button").click()
+
+    // verify the import block is gone
+    await expect(importBlockToDelete).not.toBeVisible()
   })
 
   test("switching between core.py and empty.py updates editor", async ({

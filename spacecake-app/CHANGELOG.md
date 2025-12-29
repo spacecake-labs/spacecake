@@ -71,6 +71,7 @@
 ### Patch Changes
 
 - 8bfc4f1: Reduce load times with database context.
+- Added support for Linux x64 .deb package builds.
 
 ## 0.1.0-alpha.8
 

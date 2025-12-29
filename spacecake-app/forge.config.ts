@@ -1,6 +1,7 @@
 import { cp, mkdir } from "node:fs/promises"
 import path from "path"
 
+import { MakerDeb } from "@electron-forge/maker-deb"
 import { MakerZIP } from "@electron-forge/maker-zip"
 // import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives"
 import { FusesPlugin } from "@electron-forge/plugin-fuses"
@@ -138,6 +139,12 @@ const config: ForgeConfig = {
         icon: "./assets/icon.icns",
       },
     },
+    new MakerDeb({
+      options: {
+        categories: ["Development"],
+        homepage: "https://spacecake.ai",
+      },
+    }),
   ],
   publishers: [
     {

@@ -1,66 +1,25 @@
 ---
 // src/components/GitHubDownloadButton.astro
 import { LinkButton } from "@astrojs/starlight/components";
+import { getDownloadUrl } from "../lib/github-releases";
 
 interface Props {
-  platform: "macos-arm64" | "macos-x64" | "windows-x64" | "linux-x64";
+  platform: "macos-arm64" | "macos-x64";
 }
 
 const { platform } = Astro.props;
 
 const platformMap = {
   "macos-arm64": {
-    pattern: "arm64.dmg",
     text: "download (apple silicon)",
   },
-  "macos-x64": { pattern: "x64.dmg", text: "download (mac intel)" },
-  "windows-x64": { pattern: "x64.msi", text: "download for windows (x64)" },
-  "linux-x64": { pattern: "amd64.deb", text: "download for linux (x64)" },
+  "macos-x64": {
+    text: "download (mac intel)",
+  },
 };
 
-const { pattern, text } = platformMap[platform];
-
-let downloadUrl: string | undefined;
-let errorMessage: string | undefined;
-
-// In development, skip the API call to avoid rate limits during refresh
-if (import.meta.env.PROD) {
-  try {
-    const response = await fetch(
-      `https://api.github.com/repos/spacecake-labs/spacecake-releases/releases/latest`,
-      {
-        headers: {
-          Accept: "application/vnd.github.v3+json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `GitHub API error: ${response.status} ${response.statusText}`
-      );
-    }
-
-    const data = await response.json();
-    const asset = data.assets?.find((a: any) => a.name.includes(pattern));
-
-    if (asset) {
-      downloadUrl = asset.browser_download_url;
-    } else {
-      errorMessage = `No matching asset found for "${platform}".`;
-    }
-  } catch (error: any) {
-    console.error(
-      `Error fetching latest GitHub release for ${platform}:`,
-      error
-    );
-    errorMessage = `Failed to fetch download URL: ${error.message}`;
-  }
-} else {
-  // In development, use the releases page directly
-  downloadUrl =
-    "https://github.com/spacecake-labs/spacecake-releases/releases/latest";
-}
+const { text } = platformMap[platform];
+const { downloadUrl, errorMessage } = await getDownloadUrl(platform);
 ---
 
 {
