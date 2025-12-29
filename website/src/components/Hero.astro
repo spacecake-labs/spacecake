@@ -1,5 +1,6 @@
 ---
 import GitHubDownloadButton from "./GitHubDownloadButton.astro";
+import PlatformDownloads from "./PlatformDownloads.astro";
 import { LinkButton } from "@astrojs/starlight/components";
 import { MuxPlayer } from "@mux/mux-player-astro";
 
@@ -57,6 +58,8 @@ const loop = import.meta.env.PROD ? true : false;
         </div>
       )
     }
+
+    <PlatformDownloads />
 
     <div class="cta-container">
       <LinkButton href="/getting-started" variant="secondary">

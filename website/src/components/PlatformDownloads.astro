@@ -1,0 +1,221 @@
+---
+import { getDownloadUrl } from "../lib/github-releases";
+
+interface DownloadRow {
+  platform: string;
+  architecture: string;
+  githubPlatform: "macos-arm64" | "macos-x64" | "linux-x64";
+}
+
+const downloadRows: DownloadRow[] = [
+  {
+    platform: "macOS",
+    architecture: "Apple Silicon",
+    githubPlatform: "macos-arm64",
+  },
+  {
+    platform: "macOS",
+    architecture: "Intel",
+    githubPlatform: "macos-x64",
+  },
+  {
+    platform: "Linux",
+    architecture: "Debian",
+    githubPlatform: "linux-x64",
+  },
+];
+
+const downloads = await Promise.all(
+  downloadRows.map(async (row) => ({
+    ...row,
+    ...(await getDownloadUrl(row.githubPlatform)),
+  }))
+);
+---
+
+<details class="platform-downloads">
+  <summary class="trigger">
+    <span>other platforms</span>
+    <svg
+      class="chevron"
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </summary>
+
+  <div class="content">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>platform</th>
+            <th>architecture</th>
+            <th>download</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            downloads.map((row) => (
+              <tr>
+                <td>{row.platform}</td>
+                <td class="monospace">{row.architecture}</td>
+                <td class="download-cell">
+                  {row.downloadUrl ? (
+                    <a
+                      href={row.downloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="download-link"
+                    >
+                      download
+                    </a>
+                  ) : (
+                    <span class="error">
+                      {row.errorMessage || "unavailable"}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</details>
+
+<style>
+  .platform-downloads {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--sl-color-gray-3);
+    cursor: pointer;
+    font-size: var(--sl-text-sm);
+    font-weight: 500;
+    transition: color 0.2s;
+    list-style: none;
+  }
+
+  .trigger:hover {
+    color: var(--sl-color-white);
+  }
+
+  .trigger::-webkit-details-marker {
+    display: none;
+  }
+
+  .chevron {
+    transition: transform 0.2s;
+  }
+
+  .platform-downloads[open] .chevron {
+    transform: rotate(180deg);
+  }
+
+  .content {
+    margin-top: 1rem;
+  }
+
+  .table-wrapper {
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead {
+    background-color: color-mix(
+      in srgb,
+      var(--sl-color-gray-5) 50%,
+      transparent
+    );
+    border-bottom: 1px solid var(--sl-color-gray-5);
+  }
+
+  th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-size: var(--sl-text-sm);
+    font-weight: 500;
+    color: var(--sl-color-white);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--sl-color-gray-5);
+    transition: background-color 0.2s;
+  }
+
+  tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  tbody tr:hover {
+    background-color: color-mix(
+      in srgb,
+      var(--sl-color-gray-5) 30%,
+      transparent
+    );
+  }
+
+  td {
+    padding: 0.75rem 1rem;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+
+  td.monospace {
+    font-family: "Monaco", "Courier New", monospace;
+  }
+
+  .download-cell {
+    padding: 0.75rem 1rem;
+  }
+
+  .download-link {
+    color: var(--sl-color-accent);
+    text-decoration: underline;
+    transition: opacity 0.2s;
+  }
+
+  .download-link:hover {
+    opacity: 0.8;
+  }
+
+  .error {
+    color: var(--sl-color-gray-3);
+    font-size: 0.875rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chevron {
+      transition: none;
+    }
+
+    tbody tr {
+      transition: none;
+    }
+  }
+</style>
