@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react"
-import { FitAddon, init, Terminal } from "ghostty-web"
+import { FitAddon, init, ITheme, Terminal } from "ghostty-web"
 
 import { isLeft } from "@/types/adt"
 import {
@@ -9,10 +9,26 @@ import {
   resizeTerminal,
   writeTerminal,
 } from "@/lib/terminal"
+import { useTheme } from "@/components/theme-provider"
 
 interface GhosttyTerminalProps {
   id: string
   onReady?: (api: { fit: () => void }) => void
+}
+
+const terminalTheme: Record<"light" | "dark", ITheme> = {
+  light: {
+    background: "#fafafa",
+    foreground: "#1a1a1a",
+    cursor: "#1a1a1a",
+    selectionBackground: "#d0d0d0",
+  },
+  dark: {
+    background: "#0a0a0a",
+    foreground: "#fafafa",
+    cursor: "#fafafa",
+    selectionBackground: "#404040",
+  },
 }
 
 export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
@@ -22,6 +38,14 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   const terminalRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<Terminal | null>(null)
   const addonRef = useRef<FitAddon | null>(null)
+
+  const { theme } = useTheme()
+
+  // can't currently change the terminal theme at runtime
+  // so we use a ref to keep it consistent until the user reloads
+  const activeTheme = useRef(
+    theme === "dark" ? terminalTheme.dark : terminalTheme.light
+  )
 
   useEffect(() => {
     const initialize = async () => {
@@ -33,11 +57,7 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
       const term = new Terminal({
         fontSize: 14,
         fontFamily: "JetBrains Mono, monospace",
-        // cursorBlink: true,
-        theme: {
-          background: "#0a0a0a",
-          foreground: "#ffffff",
-        },
+        theme: activeTheme.current,
       })
 
       const fitAddon = new FitAddon()
@@ -108,7 +128,8 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   return (
     <div
       ref={terminalRef}
-      className="w-full h-full bg-[#0a0a0a] overflow-hidden pl-2 pt-2"
+      className="w-full h-full overflow-hidden pl-2 pt-2"
+      style={{ backgroundColor: activeTheme.current.background }}
     />
   )
 }
