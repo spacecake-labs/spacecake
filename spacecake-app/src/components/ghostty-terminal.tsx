@@ -18,9 +18,9 @@ interface GhosttyTerminalProps {
 
 const terminalTheme: Record<"light" | "dark", ITheme> = {
   light: {
-    background: "#fafafa",
-    foreground: "#1a1a1a",
-    cursor: "#1a1a1a",
+    background: "#ffffff",
+    foreground: "#0a0a0a",
+    cursor: "#0a0a0a",
     selectionBackground: "#d0d0d0",
   },
   dark: {
@@ -62,7 +62,7 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         const term = new Terminal({
           fontSize: 14,
           fontFamily: "JetBrains Mono, monospace",
-          cursorBlink: true,
+          cursorBlink: false,
           theme: activeTheme.current,
           scrollback: 10000,
         })
@@ -175,8 +175,9 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   }, [id])
 
   return (
-    <div className="relative w-full h-full pl-2 pt-2 bg-transparent">
+    <div className="relative w-full h-full pl-2 pt-2">
       <div
+        data-testid="ghostty-terminal"
         ref={terminalRef}
         className="w-full h-full overflow-hidden [&_textarea]:!caret-transparent [&_textarea]:!outline-none"
         style={{ backgroundColor: activeTheme.current.background }}
