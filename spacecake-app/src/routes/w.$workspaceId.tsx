@@ -332,9 +332,7 @@ function LayoutContent() {
                     onClick={() => setIsTerminalCollapsed(!isTerminalCollapsed)}
                     className="text-muted-foreground hover:text-foreground transition-colors"
                     aria-label={
-                      isTerminalCollapsed
-                        ? "expand terminal"
-                        : "collapse terminal"
+                      isTerminalCollapsed ? "show terminal" : "hide terminal"
                     }
                   >
                     {isTerminalCollapsed ? (
