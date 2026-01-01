@@ -9,7 +9,7 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "postinstall": "cp node_modules/web-tree-sitter/tree-sitter.wasm public && cp node_modules/tree-sitter-python/tree-sitter-python.wasm public",
+    "postinstall": "cp node_modules/web-tree-sitter/tree-sitter.wasm public && cp node_modules/tree-sitter-python/tree-sitter-python.wasm public && cp node_modules/ghostty-web/ghostty-vt.wasm public",
     "drizzle": "pnpm drizzle-kit generate",
     "lint": "eslint --fix --ext .ts,.tsx .",
     "typecheck": "tsc --noEmit",
@@ -104,6 +104,7 @@
     "@lexical/rich-text": "^0.39.0",
     "@lexical/table": "^0.39.0",
     "@lezer/lr": "^1.4.2",
+    "@lydell/node-pty": "1.1.0",
     "@parcel/watcher": "^2.5.1",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-collapsible": "^1.1.12",
@@ -130,6 +131,7 @@
     "drizzle-orm": "^0.44.6",
     "effect": "^3.17.14",
     "electron-squirrel-startup": "^1.0.1",
+    "ghostty-web": "^0.4.0",
     "jotai": "^2.15.0",
     "jotai-effect": "^2.1.2",
     "jotai-xstate": "^0.6.1",
@@ -153,5 +155,10 @@
     "web-tree-sitter": "^0.25.10",
     "write-file-atomic": "^6.0.0",
     "xstate": "^5.22.0"
+  },
+  "optionalDependencies": {
+    "@lydell/node-pty-darwin-arm64": "1.1.0",
+    "@lydell/node-pty-darwin-x64": "1.1.0",
+    "@lydell/node-pty-linux-x64": "1.1.0"
   }
 }

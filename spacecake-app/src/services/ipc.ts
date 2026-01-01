@@ -1,4 +1,5 @@
 import { FileSystem, type FileSystemError } from "@/services/file-system"
+import { Terminal } from "@/services/terminal"
 import { Effect } from "effect"
 import { BrowserWindow, dialog, ipcMain } from "electron"
 
@@ -8,6 +9,7 @@ import { AbsolutePath, FileContent } from "@/types/workspace"
 export class Ipc extends Effect.Service<Ipc>()("Ipc", {
   effect: Effect.gen(function* (_) {
     const fs = yield* FileSystem
+    const terminal = yield* Terminal
 
     ipcMain.handle(
       "read-file",
@@ -95,7 +97,48 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       }
     })
 
+    // Terminal IPC handlers
+    ipcMain.handle(
+      "terminal:create",
+      (_, id: string, cols: number, rows: number, cwd?: string) =>
+        Effect.runPromise(
+          Effect.match(terminal.create(id, cols, rows, cwd), {
+            onFailure: (error) => left(error),
+            onSuccess: () => right(undefined),
+          })
+        )
+    )
+
+    ipcMain.handle(
+      "terminal:resize",
+      (_, id: string, cols: number, rows: number) =>
+        Effect.runPromise(
+          Effect.match(terminal.resize(id, cols, rows), {
+            onFailure: (error) => left(error),
+            onSuccess: () => right(undefined),
+          })
+        )
+    )
+
+    ipcMain.handle("terminal:write", (_, id: string, data: string) =>
+      Effect.runPromise(
+        Effect.match(terminal.write(id, data), {
+          onFailure: (error) => left(error),
+          onSuccess: () => right(undefined),
+        })
+      )
+    )
+
+    ipcMain.handle("terminal:kill", (_, id: string) =>
+      Effect.runPromise(
+        Effect.match(terminal.kill(id), {
+          onFailure: (error) => left(error),
+          onSuccess: () => right(undefined),
+        })
+      )
+    )
+
     return {}
   }),
-  dependencies: [FileSystem.Default],
+  dependencies: [FileSystem.Default, Terminal.Default],
 }) {}
