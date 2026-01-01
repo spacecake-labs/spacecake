@@ -9,6 +9,7 @@ import {
   resizeTerminal,
   writeTerminal,
 } from "@/lib/terminal"
+import { debounce } from "@/lib/utils"
 import { useTheme } from "@/components/theme-provider"
 
 interface GhosttyTerminalProps {
@@ -48,6 +49,14 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   )
 
   useEffect(() => {
+    let observer: ResizeObserver | null = null
+    const resizeDebouncer = debounce(() => {
+      if (engineRef.current) {
+        const { cols, rows } = engineRef.current
+        resizeTerminal(id, cols, rows)
+      }
+    }, 300)
+
     const initialize = async () => {
       if (!terminalRef.current) return
 
@@ -69,8 +78,11 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
       // Calculate initial size
       fitAddon.fit()
 
-      // Auto-resize
-      fitAddon.observeResize()
+      // Explicit ResizeObserver for better control
+      observer = new ResizeObserver(() => {
+        fitAddon.fit()
+      })
+      observer.observe(terminalRef.current)
 
       engineRef.current = term
       addonRef.current = fitAddon
@@ -93,9 +105,9 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         return
       }
 
-      // Handle Resize
-      term.onResize((size: { cols: number; rows: number }) => {
-        resizeTerminal(id, size.cols, size.rows)
+      // Handle Resize (Debounced)
+      term.onResize(() => {
+        resizeDebouncer.schedule()
       })
 
       // Outgoing: User types in Ghostty -> Send to Host
@@ -109,6 +121,8 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
     return () => {
       killTerminal(id)
       engineRef.current?.dispose()
+      observer?.disconnect()
+      resizeDebouncer.cancel()
     }
   }, [id])
 
@@ -126,10 +140,12 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   }, [id])
 
   return (
-    <div
-      ref={terminalRef}
-      className="w-full h-full overflow-hidden pl-2 pt-2"
-      style={{ backgroundColor: activeTheme.current.background }}
-    />
+    <div className="w-full h-full pl-2 pt-2 bg-transparent">
+      <div
+        ref={terminalRef}
+        className="w-full h-full overflow-hidden"
+        style={{ backgroundColor: activeTheme.current.background }}
+      />
+    </div>
   )
 }
