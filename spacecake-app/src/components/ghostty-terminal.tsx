@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { FitAddon, init, ITheme, Terminal } from "ghostty-web"
 
 import { isLeft } from "@/types/adt"
@@ -9,7 +9,6 @@ import {
   resizeTerminal,
   writeTerminal,
 } from "@/lib/terminal"
-import { debounce } from "@/lib/utils"
 import { useTheme } from "@/components/theme-provider"
 
 interface GhosttyTerminalProps {
@@ -39,6 +38,10 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   const terminalRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<Terminal | null>(null)
   const addonRef = useRef<FitAddon | null>(null)
+  const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingResizeRef = useRef<{ cols: number; rows: number } | null>(null)
+
+  const [error, setError] = useState<string | null>(null)
 
   const { theme } = useTheme()
 
@@ -49,88 +52,120 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   )
 
   useEffect(() => {
-    let observer: ResizeObserver | null = null
-    const resizeDebouncer = debounce(() => {
-      if (engineRef.current) {
-        const { cols, rows } = engineRef.current
-        resizeTerminal(id, cols, rows)
-      }
-    }, 300)
-
     const initialize = async () => {
       if (!terminalRef.current) return
 
-      // Initialize WASM
-      await init()
+      try {
+        // initialize WASM
+        await init()
 
-      const term = new Terminal({
-        fontSize: 14,
-        fontFamily: "JetBrains Mono, monospace",
-        theme: activeTheme.current,
-      })
-
-      const fitAddon = new FitAddon()
-      term.loadAddon(fitAddon)
-
-      // Attach to DOM
-      term.open(terminalRef.current)
-
-      // Calculate initial size
-      fitAddon.fit()
-
-      // Explicit ResizeObserver for better control
-      observer = new ResizeObserver(() => {
-        fitAddon.fit()
-      })
-      observer.observe(terminalRef.current)
-
-      engineRef.current = term
-      addonRef.current = fitAddon
-
-      // Notify parent that terminal is ready
-      if (onReady) {
-        onReady({
-          fit: () => fitAddon.fit(),
+        const term = new Terminal({
+          fontSize: 14,
+          fontFamily: "JetBrains Mono, monospace",
+          cursorBlink: true,
+          theme: activeTheme.current,
+          scrollback: 10000,
         })
+
+        const fitAddon = new FitAddon()
+        term.loadAddon(fitAddon)
+
+        // attach to DOM
+        term.open(terminalRef.current)
+
+        // calculate initial size
+        fitAddon.fit()
+
+        // use built-in resize observation (handles ResizeObserver + window resize internally)
+        fitAddon.observeResize()
+
+        engineRef.current = term
+        addonRef.current = fitAddon
+
+        // get initial dimensions
+        const cols = term.cols || 80
+        const rows = term.rows || 24
+
+        // create terminal on backend
+        const result = await createTerminal(id, cols, rows)
+        if (isLeft(result)) {
+          console.error("failed to create terminal:", result.value)
+          setError("failed to create terminal session")
+          return
+        }
+
+        // listen to terminal resize events (fired by FitAddon when dimensions change)
+        // debounce PTY resize to prevent vim corruption
+        term.onResize(({ cols, rows }) => {
+          pendingResizeRef.current = { cols, rows }
+
+          if (resizeTimeoutRef.current !== null) {
+            clearTimeout(resizeTimeoutRef.current)
+          }
+
+          resizeTimeoutRef.current = setTimeout(() => {
+            if (pendingResizeRef.current) {
+              // double requestAnimationFrame to ensure vim is ready
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  if (pendingResizeRef.current) {
+                    resizeTerminal(
+                      id,
+                      pendingResizeRef.current.cols,
+                      pendingResizeRef.current.rows
+                    )
+                    pendingResizeRef.current = null
+                  }
+                })
+              })
+            }
+            resizeTimeoutRef.current = null
+          }, 300) // 300ms debounce - enough time for vim to stabilise
+        })
+
+        // outgoing: user types in Ghostty -> send to host
+        term.onData((input: string) => {
+          writeTerminal(id, input)
+        })
+
+        // notify parent that terminal is ready
+        if (onReady) {
+          onReady({
+            fit: () => fitAddon.fit(),
+          })
+        }
+      } catch (err) {
+        console.error("failed to initialize terminal:", err)
+        setError(
+          err instanceof Error ? err.message : "failed to initialize terminal"
+        )
       }
-
-      // Get initial dimensions
-      const cols = term.cols || 80
-      const rows = term.rows || 24
-
-      // Create terminal on backend
-      const result = await createTerminal(id, cols, rows)
-      if (isLeft(result)) {
-        console.error("failed to create terminal:", result.value)
-        return
-      }
-
-      // Handle Resize (Debounced)
-      term.onResize(() => {
-        resizeDebouncer.schedule()
-      })
-
-      // Outgoing: User types in Ghostty -> Send to Host
-      term.onData((input: string) => {
-        writeTerminal(id, input)
-      })
     }
 
     initialize()
 
     return () => {
+      if (resizeTimeoutRef.current !== null) {
+        clearTimeout(resizeTimeoutRef.current)
+      }
       killTerminal(id)
+      // nullify refs before state changes
       engineRef.current?.dispose()
-      observer?.disconnect()
-      resizeDebouncer.cancel()
+      engineRef.current = null
+      addonRef.current = null
+      setError(null)
     }
   }, [id])
 
-  // Incoming: Host sends PTY data -> Write to Ghostty
+  // incoming: host sends PTY data -> write to ghostty
   useEffect(() => {
     const removeListener = onTerminalOutput((termId, data) => {
       if (termId === id && engineRef.current) {
-        engineRef.current.write(data)
+        try {
+          engineRef.current.write(data)
+        } catch (err) {
+          console.error("error writing to terminal:", err)
+        }
       }
     })
 
@@ -140,12 +175,17 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   }, [id])
 
   return (
-    <div className="w-full h-full pl-2 pt-2 bg-transparent">
+    <div className="relative w-full h-full pl-2 pt-2 bg-transparent">
       <div
         ref={terminalRef}
-        className="w-full h-full overflow-hidden"
+        className="w-full h-full overflow-hidden [&_textarea]:!caret-transparent [&_textarea]:!outline-none"
         style={{ backgroundColor: activeTheme.current.background }}
       />
+      {error && (
+        <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-100 px-4 py-2 text-sm font-mono">
+          {error}
+        </div>
+      )}
     </div>
   )
 }
