@@ -350,6 +350,7 @@ function LayoutContent() {
                 >
                   <GhosttyTerminal
                     id="main-terminal"
+                    autoFocus={false}
                     onReady={(api) => {
                       terminalApiRef.current = api
                     }}
