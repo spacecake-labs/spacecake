@@ -1,9 +1,9 @@
 import React from "react"
-import { Code, Trash2 } from "lucide-react"
+import { Code } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { DeleteButton } from "@/components/delete-button"
 
 interface BlockHeaderProps {
   title: string | React.ReactNode
@@ -38,19 +38,6 @@ export function BlockHeader({
       badge
     )
 
-  const deleteButton = onDelete && (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={onDelete}
-      className="h-6 w-6 cursor-pointer text-muted-foreground hover:text-destructive transition-colors"
-      data-testid="block-delete-button"
-      title="delete block"
-    >
-      <Trash2 className="h-4 w-4" />
-    </Button>
-  )
-
   return (
     <div
       className={cn(
@@ -67,7 +54,11 @@ export function BlockHeader({
       </div>
       <div className="flex items-center gap-2">
         {rightActions}
-        {deleteButton}
+        <DeleteButton
+          onDelete={onDelete}
+          data-testid="block-delete-button"
+          title="delete block"
+        />
       </div>
     </div>
   )

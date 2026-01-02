@@ -11,6 +11,7 @@ import {
   resizeTerminal,
   writeTerminal,
 } from "@/lib/terminal"
+import { DeleteButton } from "@/components/delete-button"
 import { useTheme } from "@/components/theme-provider"
 
 export interface TerminalAPI {
@@ -25,6 +26,8 @@ interface GhosttyTerminalProps {
   id: string
   onReady?: (api: TerminalAPI) => void
   autoFocus?: boolean
+  cwd?: string
+  onDelete?: () => void
 }
 
 const terminalTheme: Record<"light" | "dark", ITheme> = {
@@ -46,6 +49,8 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   id,
   onReady,
   autoFocus = false,
+  cwd,
+  onDelete,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<Terminal | null>(null)
@@ -112,7 +117,7 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         const rows = term.rows || 24
 
         // create terminal on backend
-        const result = await createTerminal(id, cols, rows)
+        const result = await createTerminal(id, cols, rows, cwd)
         if (isLeft(result)) {
           console.error("failed to create terminal:", result.value)
           setError("failed to create terminal session")
@@ -198,9 +203,12 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
       killTerminal(id)
       delete window.__terminalAPI
       // nullify refs before state changes
-      engineRef.current?.dispose()
-      engineRef.current = null
-      addonRef.current = null
+      if (engineRef.current) {
+        // clear the terminal buffer, otherwise it briefly shows the previous terminal state
+        engineRef.current.clear()
+        engineRef.current.dispose()
+        engineRef.current = null
+      }
       setError(null)
     }
   }, [id])
@@ -239,11 +247,17 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
       />
       {profileLoaded && (
         <div
-          className="absolute top-2 right-2 w-2 h-2 rounded-full bg-green-500"
+          className="absolute top-3 right-10 w-2 h-2 rounded-full bg-green-500"
           aria-label="shell profile loaded"
           role="status"
         />
       )}
+      <DeleteButton
+        onDelete={onDelete}
+        className="absolute top-1 right-2 z-10"
+        data-testid="terminal-delete-button"
+        title="delete terminal"
+      />
       {error && (
         <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-100 px-4 py-2 text-sm font-mono">
           {error}

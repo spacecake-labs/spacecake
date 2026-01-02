@@ -6,7 +6,7 @@ import { stubDialog } from "electron-playwright-helpers"
 import { expect, test } from "./fixtures"
 
 test.describe("ghostty terminal", () => {
-  test("toggle terminal visibility and interact with terminal", async ({
+  test("toggle terminal visibility, interact with terminal, and verify session management", async ({
     electronApp,
     tempTestDir,
   }) => {
@@ -36,48 +36,75 @@ test.describe("ghostty terminal", () => {
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     // Verify the terminal is initially visible (not collapsed)
-    await expect(window.getByTestId("ghostty-terminal")).toBeVisible()
-
-    // Test: Hide the terminal
-    const hideButton = window.getByRole("button", { name: "hide terminal" })
-    await expect(hideButton).toBeVisible()
-    await hideButton.click()
-
-    // Verify the terminal is now hidden
-    await expect(window.getByTestId("ghostty-terminal")).not.toBeVisible()
-
-    // Test: Show the terminal again
-    const showButton = window.getByRole("button", { name: "show terminal" })
-    await expect(showButton).toBeVisible()
-    await showButton.click()
-
     const terminalElement = window.getByTestId("ghostty-terminal")
-
-    // verify the terminal is now visible
     await expect(terminalElement).toBeVisible()
-    // wait for shell profile to be loaded (shell integration complete)
+
+    // Wait for shell profile to be loaded (shell integration complete)
     await expect(
       window.getByRole("status", { name: "shell profile loaded" })
     ).toBeVisible()
 
-    // Test: Click into the terminal and type echo command
+    const hideButton = window.getByRole("button", { name: "hide terminal" })
+    const showButton = window.getByRole("button", { name: "show terminal" })
+    const deleteButton = window.getByTestId("terminal-delete-button")
 
+    // Test: Hide and show terminal (toggle visibility)
+    await hideButton.click()
+    await expect(terminalElement).not.toBeVisible()
+    await showButton.click()
+    await expect(terminalElement).toBeVisible()
+
+    // Test: Interact with terminal - set a variable and verify CWD
     await terminalElement.click()
-
-    // Type echo command to test terminal interaction
-    const testText = "hello spacecake"
-    await window.keyboard.type(`echo ${testText}`, { delay: 50 })
+    await window.keyboard.type("export TEST_VAR=123 && pwd", { delay: 50 })
     await window.keyboard.press("Enter")
 
-    // Wait a bit for the command to execute and output to appear
-    await window.waitForTimeout(500)
-
-    // Check if our test text appears in the terminal output using the terminal API
-    const terminalContent = await window.evaluate(() => {
+    let terminalContent = await window.evaluate(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const api = (globalThis as any).__terminalAPI
       return api?.getAllLines().join("\n") as string | undefined
     })
-    expect(terminalContent).toContain(testText)
+    // Verify both CWD and command executed
+    expect(terminalContent).toContain(path.basename(tempTestDir))
+
+    // Test: Hide (collapse) and show again -> should be SAME session
+    await hideButton.click()
+    await expect(terminalElement).not.toBeVisible()
+    await showButton.click()
+    await expect(terminalElement).toBeVisible()
+
+    // Verify variable still exists (same session)
+    await terminalElement.click()
+    await window.keyboard.type("echo $TEST_VAR", { delay: 50 })
+    await window.keyboard.press("Enter")
+
+    terminalContent = await window.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const api = (globalThis as any).__terminalAPI
+      return api?.getAllLines().join("\n") as string | undefined
+    })
+    expect(terminalContent).toContain("123")
+
+    // Test: Delete terminal -> creates new session, variable is gone
+    await deleteButton.click()
+    await expect(terminalElement).not.toBeVisible()
+
+    await showButton.click()
+    await expect(terminalElement).toBeVisible()
+    await expect(
+      window.getByRole("status", { name: "shell profile loaded" })
+    ).toBeVisible()
+
+    // Verify it's a new session (variable is gone)
+    await terminalElement.click()
+    await window.keyboard.type("echo $TEST_VAR", { delay: 50 })
+    await window.keyboard.press("Enter")
+
+    terminalContent = await window.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const api = (globalThis as any).__terminalAPI
+      return api?.getAllLines().join("\n") as string | undefined
+    })
+    expect(terminalContent).not.toContain("123")
   })
 })
