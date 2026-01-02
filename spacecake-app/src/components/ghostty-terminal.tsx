@@ -86,18 +86,23 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         term.loadAddon(fitAddon)
 
         // attach to DOM
-        term.open(terminalRef.current)
+        // HACK: ghostty-web automatically calls focus() at the end of open().
+        // If autoFocus is false, we temporarily override the focus method to a no-op
+        // during open() to prevent it from stealing focus from the rest of the app.
+        if (!autoFocus) {
+          const originalFocus = term.focus.bind(term)
+          term.focus = () => {}
+          term.open(terminalRef.current)
+          term.focus = originalFocus
+        } else {
+          term.open(terminalRef.current)
+        }
 
         // calculate initial size
         fitAddon.fit()
 
         // use built-in resize observation (handles ResizeObserver + window resize internally)
         fitAddon.observeResize()
-
-        // blur terminal if autoFocus is disabled to allow global keybindings to work
-        if (!autoFocus) {
-          term.blur()
-        }
 
         engineRef.current = term
         addonRef.current = fitAddon
