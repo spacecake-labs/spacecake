@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.22
+
+### Patch Changes
+
+- 8ac4ad0: Adding integrated terminal (Ghostty).
+
 ## 0.1.0-alpha.21
 
 ### Patch Changes
