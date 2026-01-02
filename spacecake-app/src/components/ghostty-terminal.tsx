@@ -24,6 +24,7 @@ export interface TerminalAPI {
 interface GhosttyTerminalProps {
   id: string
   onReady?: (api: TerminalAPI) => void
+  autoFocus?: boolean
 }
 
 const terminalTheme: Record<"light" | "dark", ITheme> = {
@@ -44,6 +45,7 @@ const terminalTheme: Record<"light" | "dark", ITheme> = {
 export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   id,
   onReady,
+  autoFocus = false,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<Terminal | null>(null)
@@ -91,6 +93,11 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
 
         // use built-in resize observation (handles ResizeObserver + window resize internally)
         fitAddon.observeResize()
+
+        // blur terminal if autoFocus is disabled to allow global keybindings to work
+        if (!autoFocus) {
+          term.blur()
+        }
 
         engineRef.current = term
         addonRef.current = fitAddon
