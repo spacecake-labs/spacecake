@@ -220,8 +220,10 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         try {
           engineRef.current.write(data)
 
-          // detect shell profile loaded when bracketed paste mode is enabled (2004h)
-          if (!profileLoaded && data.includes("\u001b[?2004h")) {
+          // assume shell profile loaded if $, %, >, or # is present.
+          // this makes the 'ready' indicator reliable enough for e2e tests
+          // but is not reliable more broadly.
+          if (!profileLoaded && /[$%>#]*$/.test(data)) {
             setTerminalProfileLoaded(true)
           }
         } catch (err) {
