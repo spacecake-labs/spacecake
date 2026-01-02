@@ -216,12 +216,14 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   }, [id])
 
   return (
-    <div className="relative w-full h-full pl-2 pt-2">
+    <div
+      className="relative w-full h-full pl-2 pt-2"
+      style={{ backgroundColor: activeTheme.current.background }}
+    >
       <div
         data-testid="ghostty-terminal"
         ref={terminalRef}
         className="w-full h-full overflow-hidden [&_textarea]:!caret-transparent [&_textarea]:!outline-none"
-        style={{ backgroundColor: activeTheme.current.background }}
       />
       {profileLoaded && (
         <div
