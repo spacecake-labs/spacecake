@@ -57,6 +57,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Install Playwright browsers and dependencies
+        run: npx playwright install --with-deps
+
       - name: Install just
         uses: extractions/setup-just@v2
 
