@@ -203,6 +203,7 @@ function LayoutContent() {
   const [isTerminalCollapsed, setIsTerminalCollapsed] = useAtom(
     isTerminalCollapsedAtom
   )
+  const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
 
   // reset terminal panel size when toggling collapse state
   useEffect(() => {
@@ -329,7 +330,12 @@ function LayoutContent() {
                     <span>terminal</span>
                   </div>
                   <button
-                    onClick={() => setIsTerminalCollapsed(!isTerminalCollapsed)}
+                    onClick={() => {
+                      if (isTerminalCollapsed && !isTerminalSessionActive) {
+                        setIsTerminalSessionActive(true)
+                      }
+                      setIsTerminalCollapsed(!isTerminalCollapsed)
+                    }}
                     className="text-muted-foreground hover:text-foreground transition-colors"
                     aria-label={
                       isTerminalCollapsed ? "show terminal" : "hide terminal"
@@ -348,13 +354,20 @@ function LayoutContent() {
                     isTerminalCollapsed && "hidden"
                   )}
                 >
-                  <GhosttyTerminal
-                    id="main-terminal"
-                    autoFocus={false}
-                    onReady={(api) => {
-                      terminalApiRef.current = api
-                    }}
-                  />
+                  {isTerminalSessionActive && (
+                    <GhosttyTerminal
+                      id="main-terminal"
+                      autoFocus={false}
+                      cwd={workspace.path}
+                      onDelete={() => {
+                        setIsTerminalSessionActive(false)
+                        setIsTerminalCollapsed(true)
+                      }}
+                      onReady={(api) => {
+                        terminalApiRef.current = api
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             </ResizablePanel>

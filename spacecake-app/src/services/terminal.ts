@@ -44,7 +44,7 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           terminals.set(id, ptyProcess)
         },
         catch: (error) =>
-          new TerminalError({ message: `Failed to create terminal: ${error}` }),
+          new TerminalError({ message: `failed to create terminal: ${error}` }),
       })
 
     const resize = (id: string, cols: number, rows: number) =>
@@ -54,7 +54,7 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           if (term) term.resize(cols, rows)
         },
         catch: (error) =>
-          new TerminalError({ message: `Failed to resize terminal: ${error}` }),
+          new TerminalError({ message: `failed to resize terminal: ${error}` }),
       })
 
     const write = (id: string, data: string) =>
@@ -65,7 +65,7 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
         },
         catch: (error) =>
           new TerminalError({
-            message: `Failed to write to terminal: ${error}`,
+            message: `failed to write to terminal: ${error}`,
           }),
       })
 
@@ -79,7 +79,7 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           }
         },
         catch: (error) =>
-          new TerminalError({ message: `Failed to kill terminal: ${error}` }),
+          new TerminalError({ message: `failed to kill terminal: ${error}` }),
       })
 
     return { create, resize, write, kill }
