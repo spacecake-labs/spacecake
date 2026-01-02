@@ -60,6 +60,10 @@ jobs:
       - name: Install just
         uses: extractions/setup-just@v2
 
+      - name: Disable AppImage sandbox restrictions (Ubuntu only)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
       - name: Run checks
         run: just check
 
