@@ -1,6 +1,7 @@
 import { FileSystemError } from "@/services/file-system"
 
 import { type Either } from "@/types/adt"
+import { TerminalError } from "@/types/terminal"
 import type {
   AbsolutePath,
   FileContent,
@@ -44,10 +45,29 @@ export interface ElectronAPI {
   onFileEvent: (handler: (event: FileTreeEvent) => void) => () => void
   platform: string
   exists: (path: AbsolutePath) => Promise<Either<FileSystemError, boolean>>
+
+  createTerminal: (
+    id: string,
+    cols: number,
+    rows: number,
+    cwd?: string
+  ) => Promise<Either<TerminalError, void>>
+  resizeTerminal: (
+    id: string,
+    cols: number,
+    rows: number
+  ) => Promise<Either<TerminalError, void>>
+  writeTerminal: (
+    id: string,
+    data: string
+  ) => Promise<Either<TerminalError, void>>
+  killTerminal: (id: string) => Promise<Either<TerminalError, void>>
+  onTerminalOutput: (handler: (id: string, data: string) => void) => () => void
 }
 
 declare global {
   interface Window {
     electronAPI: ElectronAPI
+    __terminalAPI?: import("@/components/ghostty-terminal").TerminalAPI
   }
 }

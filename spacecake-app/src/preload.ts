@@ -40,4 +40,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => ipcRenderer.removeListener("file-event", listener)
   },
   exists: (path: string) => ipcRenderer.invoke("path-exists", path),
+  createTerminal: (id: string, cols: number, rows: number, cwd?: string) =>
+    ipcRenderer.invoke("terminal:create", id, cols, rows, cwd),
+  resizeTerminal: (id: string, cols: number, rows: number) =>
+    ipcRenderer.invoke("terminal:resize", id, cols, rows),
+  writeTerminal: (id: string, data: string) =>
+    ipcRenderer.invoke("terminal:write", id, data),
+  killTerminal: (id: string) => ipcRenderer.invoke("terminal:kill", id),
+  onTerminalOutput: (handler: (id: string, data: string) => void) => {
+    const listener = (
+      _e: Electron.IpcRendererEvent,
+      payload: { id: string; data: string }
+    ) => {
+      handler(payload.id, payload.data)
+    }
+    ipcRenderer.on("terminal:output", listener)
+    return () => ipcRenderer.removeListener("terminal:output", listener)
+  },
 })

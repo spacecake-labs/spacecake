@@ -23,6 +23,11 @@ const createTestElectronAPI = (
   onFileEvent: () => () => {},
   platform: "test",
   exists: async () => right(true),
+  createTerminal: async () => right(undefined),
+  resizeTerminal: async () => right(undefined),
+  writeTerminal: async () => right(undefined),
+  killTerminal: async () => right(undefined),
+  onTerminalOutput: () => () => {},
   ...overrides,
 })
 
