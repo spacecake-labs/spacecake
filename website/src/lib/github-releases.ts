@@ -6,7 +6,7 @@ interface DownloadResult {
 const platformPatterns: Record<string, string> = {
   "macos-arm64": "arm64.dmg",
   "macos-x64": "x64.dmg",
-  "linux-x64": "linux-x64.deb",
+  "debian-x64": "amd64.deb",
 };
 
 async function fetchLatestRelease() {
@@ -27,19 +27,19 @@ async function fetchLatestRelease() {
     }
 
     return await response.json();
-  } catch (error: any) {
-    console.error("Error fetching latest GitHub release:", error);
+  } catch (error) {
+    console.error("error fetching latest github release:", error);
     return null;
   }
 }
 
 export async function getDownloadUrl(
-  platform: "macos-arm64" | "macos-x64" | "linux-x64"
+  platform: "macos-arm64" | "macos-x64" | "debian-x64"
 ): Promise<DownloadResult> {
   const pattern = platformPatterns[platform];
 
   // In development, skip the API call to avoid rate limits during refresh
-  if (!import.meta.env.PROD) {
+  if (false) {
     return {
       downloadUrl:
         "https://github.com/spacecake-labs/spacecake-releases/releases/latest",
@@ -56,7 +56,9 @@ export async function getDownloadUrl(
     };
   }
 
-  const asset = releaseData.assets?.find((a: any) => a.name.includes(pattern));
+  const asset = releaseData.assets?.find((a: { name: string }) =>
+    a.name.includes(pattern)
+  );
 
   if (asset) {
     return {
