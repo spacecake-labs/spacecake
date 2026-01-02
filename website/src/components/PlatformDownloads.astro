@@ -4,24 +4,24 @@ import { getDownloadUrl } from "../lib/github-releases";
 interface DownloadRow {
   platform: string;
   architecture: string;
-  githubPlatform: "macos-arm64" | "macos-x64" | "linux-x64";
+  githubPlatform: "macos-arm64" | "macos-x64" | "debian-x64";
 }
 
 const downloadRows: DownloadRow[] = [
   {
     platform: "macOS",
-    architecture: "Apple Silicon",
+    architecture: "apple silicon",
     githubPlatform: "macos-arm64",
   },
   {
     platform: "macOS",
-    architecture: "Intel",
+    architecture: "intel",
     githubPlatform: "macos-x64",
   },
   {
-    platform: "Linux",
-    architecture: "Debian",
-    githubPlatform: "linux-x64",
+    platform: "debian",
+    architecture: "x86-64",
+    githubPlatform: "debian-x64",
   },
 ];
 
