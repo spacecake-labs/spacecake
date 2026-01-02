@@ -24,7 +24,16 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            arch: arm64
+          - os: macos-15-intel
+            arch: x64
+          - os: ubuntu-latest
+            arch: x64
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: ./spacecake-app
@@ -36,7 +45,7 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 10
+          version: 8
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -50,6 +59,10 @@ jobs:
 
       - name: Install just
         uses: extractions/setup-just@v2
+
+      - name: Disable AppImage sandbox restrictions (Ubuntu only)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Run checks
         run: just check
