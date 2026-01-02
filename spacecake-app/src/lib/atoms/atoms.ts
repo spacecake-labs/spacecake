@@ -62,3 +62,6 @@ export type Theme = "light" | "dark" | "system"
 
 // theme state (persisted)
 export const themeAtom = atomWithStorage<Theme>("spacecake-theme", "system")
+
+// terminal shell profile loaded (initialized when bracketed paste mode is enabled)
+export const terminalProfileLoadedAtom = atom<boolean>(false)

@@ -51,11 +51,17 @@ test.describe("ghostty terminal", () => {
     await expect(showButton).toBeVisible()
     await showButton.click()
 
-    // Verify the terminal is now visible
-    await expect(window.getByTestId("ghostty-terminal")).toBeVisible()
+    const terminalElement = window.getByTestId("ghostty-terminal")
+
+    // verify the terminal is now visible
+    await expect(terminalElement).toBeVisible()
+    // wait for shell profile to be loaded (shell integration complete)
+    await expect(
+      window.getByRole("status", { name: "shell profile loaded" })
+    ).toBeVisible()
 
     // Test: Click into the terminal and type echo command
-    const terminalElement = window.getByTestId("ghostty-terminal")
+
     await terminalElement.click()
 
     // Type echo command to test terminal interaction
@@ -66,9 +72,12 @@ test.describe("ghostty terminal", () => {
     // Wait a bit for the command to execute and output to appear
     await window.waitForTimeout(500)
 
-    // Check if our test text appears in the terminal output
-    // This is a best-effort check - we look for the echoed text
-    const terminalContent = await terminalElement.textContent()
+    // Check if our test text appears in the terminal output using the terminal API
+    const terminalContent = await window.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const api = (globalThis as any).__terminalAPI
+      return api?.getAllLines().join("\n") as string | undefined
+    })
     expect(terminalContent).toContain(testText)
   })
 })
