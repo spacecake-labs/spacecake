@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { EditorToolbar } from "@/components/editor/toolbar"
-import { GhosttyTerminal } from "@/components/ghostty-terminal"
+import { GhosttyTerminal, TerminalAPI } from "@/components/ghostty-terminal"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
@@ -193,8 +193,8 @@ function LayoutContent() {
   const { isMobile } = useSidebar()
   const navigate = useNavigate()
   const verticalPanelGroupRef =
-    useRef<React.ElementRef<typeof ResizablePanelGroup>>(null)
-  const terminalApiRef = useRef<{ fit: () => void } | null>(null)
+    useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
+  const terminalApiRef = useRef<TerminalAPI | null>(null)
 
   // this hook is still needed here because AppSidebar needs the path as a prop
   const route = useRoute()

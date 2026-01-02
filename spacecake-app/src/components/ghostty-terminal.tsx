@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react"
 import { FitAddon, init, ITheme, Terminal } from "ghostty-web"
+import { useAtom } from "jotai"
 
 import { isLeft } from "@/types/adt"
+import { terminalProfileLoadedAtom } from "@/lib/atoms/atoms"
 import {
   createTerminal,
   killTerminal,
@@ -11,9 +13,17 @@ import {
 } from "@/lib/terminal"
 import { useTheme } from "@/components/theme-provider"
 
+export interface TerminalAPI {
+  fit: () => void
+  getLine: (y: number) => string | null
+  getAllLines: () => string[]
+  rows: number
+  cols: number
+}
+
 interface GhosttyTerminalProps {
   id: string
-  onReady?: (api: { fit: () => void }) => void
+  onReady?: (api: TerminalAPI) => void
 }
 
 const terminalTheme: Record<"light" | "dark", ITheme> = {
@@ -42,6 +52,9 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   const pendingResizeRef = useRef<{ cols: number; rows: number } | null>(null)
 
   const [error, setError] = useState<string | null>(null)
+  const [profileLoaded, setTerminalProfileLoaded] = useAtom(
+    terminalProfileLoadedAtom
+  )
 
   const { theme } = useTheme()
 
@@ -129,11 +142,33 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         })
 
         // notify parent that terminal is ready
-        if (onReady) {
-          onReady({
-            fit: () => fitAddon.fit(),
-          })
+        const api: TerminalAPI = {
+          fit: () => fitAddon.fit(),
+          getLine: (y: number) =>
+            term.buffer.active.getLine(y)?.translateToString(true) ?? null,
+          getAllLines: () => {
+            const lines: string[] = []
+            for (let y = 0; y < term.rows; y++) {
+              lines.push(
+                term.buffer.active.getLine(y)?.translateToString(true) ?? ""
+              )
+            }
+            return lines
+          },
+          get rows() {
+            return term.rows
+          },
+          get cols() {
+            return term.cols
+          },
         }
+
+        if (onReady) {
+          onReady(api)
+        }
+
+        // expose for programmatic access (e.g. playwright)
+        window.__terminalAPI = api
       } catch (err) {
         console.error("failed to initialize terminal:", err)
         setError(
@@ -149,6 +184,7 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         clearTimeout(resizeTimeoutRef.current)
       }
       killTerminal(id)
+      delete window.__terminalAPI
       // nullify refs before state changes
       engineRef.current?.dispose()
       engineRef.current = null
@@ -163,6 +199,11 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
       if (termId === id && engineRef.current) {
         try {
           engineRef.current.write(data)
+
+          // detect shell profile loaded when bracketed paste mode is enabled (2004h)
+          if (!profileLoaded && data.includes("\u001b[?2004h")) {
+            setTerminalProfileLoaded(true)
+          }
         } catch (err) {
           console.error("error writing to terminal:", err)
         }
@@ -182,6 +223,13 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         className="w-full h-full overflow-hidden [&_textarea]:!caret-transparent [&_textarea]:!outline-none"
         style={{ backgroundColor: activeTheme.current.background }}
       />
+      {profileLoaded && (
+        <div
+          className="absolute top-2 right-2 w-2 h-2 rounded-full bg-green-500"
+          aria-label="shell profile loaded"
+          role="status"
+        />
+      )}
       {error && (
         <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-100 px-4 py-2 text-sm font-mono">
           {error}
