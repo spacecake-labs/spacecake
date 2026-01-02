@@ -3,7 +3,7 @@
  * If the workspace path is not valid, it redirects to the home route.
  */
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { FileStateHydrationEvent } from "@/machines/file-tree"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
@@ -13,17 +13,21 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router"
-import { useSetAtom } from "jotai"
-import { Check, Copy } from "lucide-react"
+import { useAtom, useSetAtom } from "jotai"
+import { Check, ChevronDown, ChevronUp, Copy, Terminal } from "lucide-react"
 
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
-import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
+import {
+  atomWithToggle,
+  contextItemNameAtom,
+  isCreatingInContextAtom,
+} from "@/lib/atoms/atoms"
 import { fileStateAtomFamily, setFileTreeAtom } from "@/lib/atoms/file-tree"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
 import { exists, readDirectory } from "@/lib/fs"
 import { store } from "@/lib/store"
-import { condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
+import { cn, condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
 import { useRoute } from "@/hooks/use-route"
 import { Button } from "@/components/ui/button"
@@ -39,9 +43,12 @@ import {
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { EditorToolbar } from "@/components/editor/toolbar"
+import { GhosttyTerminal, TerminalAPI } from "@/components/ghostty-terminal"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
+
+const isTerminalCollapsedAtom = atomWithToggle(false)
 
 export const Route = createFileRoute("/w/$workspaceId")({
   beforeLoad: async ({ params, context }) => {
@@ -185,10 +192,35 @@ function LayoutContent() {
   const { workspace } = Route.useLoaderData()
   const { isMobile } = useSidebar()
   const navigate = useNavigate()
+  const verticalPanelGroupRef =
+    useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
+  const terminalApiRef = useRef<TerminalAPI | null>(null)
 
   // this hook is still needed here because AppSidebar needs the path as a prop
   const route = useRoute()
   const selectedFilePath = route?.filePath || null
+
+  const [isTerminalCollapsed, setIsTerminalCollapsed] = useAtom(
+    isTerminalCollapsedAtom
+  )
+  const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
+
+  // reset terminal panel size when toggling collapse state
+  useEffect(() => {
+    if (verticalPanelGroupRef.current) {
+      // reset to default layout: 70% for editor, 30% for terminal
+      verticalPanelGroupRef.current.setLayout(
+        isTerminalCollapsed ? [100, 0] : [70, 30]
+      )
+      // when expanding, fit the terminal to the new size
+      if (!isTerminalCollapsed && terminalApiRef.current) {
+        // use requestAnimationFrame to ensure layout has settled
+        requestAnimationFrame(() => {
+          terminalApiRef.current?.fit()
+        })
+      }
+    }
+  }, [isTerminalCollapsed])
 
   // compute folders to auto-reveal based on current file
   const foldersToExpand = selectedFilePath
@@ -253,21 +285,94 @@ function LayoutContent() {
       </ResizablePanel>
       <ResizableHandle withHandle className="w-0" />
       <ResizablePanel defaultSize={85} className="p-2">
-        <main className="bg-background relative flex w-full flex-1 flex-col overflow-auto rounded-xl shadow-sm h-full">
-          <header className="flex h-16 shrink-0 items-center gap-2 justify-between">
-            <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger
-                aria-label="toggle sidebar"
-                className="-ml-1 cursor-pointer"
-              />
-              <FileHeader />
-            </div>
-            <HeaderToolbar />
-          </header>
-          <div className="h-full flex flex-1 flex-col gap-4 p-4 pt-0">
-            <Outlet />
-          </div>
-        </main>
+        <div className="h-full flex flex-col bg-background rounded-xl shadow-sm overflow-hidden">
+          <ResizablePanelGroup direction="vertical" ref={verticalPanelGroupRef}>
+            <ResizablePanel defaultSize={70} minSize={30}>
+              <main className="relative flex w-full flex-1 flex-col overflow-auto h-full">
+                <header className="flex h-16 shrink-0 items-center gap-2 justify-between">
+                  <div className="flex items-center gap-2 px-4">
+                    <SidebarTrigger
+                      aria-label="toggle sidebar"
+                      className="-ml-1 cursor-pointer"
+                    />
+                    <FileHeader />
+                  </div>
+                  <HeaderToolbar />
+                </header>
+                <div className="h-full flex flex-1 flex-col gap-4 p-4 pt-0">
+                  <Outlet />
+                </div>
+              </main>
+            </ResizablePanel>
+            <ResizableHandle
+              withHandle
+              className={isTerminalCollapsed ? "invisible" : ""}
+            />
+            <ResizablePanel
+              defaultSize={isTerminalCollapsed ? 0 : 30}
+              minSize={isTerminalCollapsed ? 0 : 10}
+              maxSize={isTerminalCollapsed ? 0 : 70}
+              className={
+                isTerminalCollapsed
+                  ? "!flex-grow-0 !flex-shrink-0 !basis-auto"
+                  : ""
+              }
+            >
+              <div className="flex flex-col h-full w-full border-t">
+                <div
+                  className={cn(
+                    "h-10 w-full bg-background/50 flex items-center justify-between px-4",
+                    !isTerminalCollapsed && "border-b"
+                  )}
+                >
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Terminal className="h-4 w-4" />
+                    <span>terminal</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (isTerminalCollapsed && !isTerminalSessionActive) {
+                        setIsTerminalSessionActive(true)
+                      }
+                      setIsTerminalCollapsed(!isTerminalCollapsed)
+                    }}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={
+                      isTerminalCollapsed ? "show terminal" : "hide terminal"
+                    }
+                  >
+                    {isTerminalCollapsed ? (
+                      <ChevronUp className="cursor-pointer h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="cursor-pointer h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                <div
+                  className={cn(
+                    "flex-1 overflow-hidden",
+                    isTerminalCollapsed && "hidden"
+                  )}
+                >
+                  {isTerminalSessionActive && (
+                    <GhosttyTerminal
+                      id="main-terminal"
+                      autoFocus={false}
+                      cwd={workspace.path}
+                      onDelete={() => {
+                        setIsTerminalSessionActive(false)
+                        setIsTerminalCollapsed(true)
+                      }}
+                      onReady={(api) => {
+                        terminalApiRef.current = api
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
       </ResizablePanel>
     </ResizablePanelGroup>
   )
