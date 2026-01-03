@@ -80,6 +80,7 @@ const config: ForgeConfig = {
           await cp(sourcePath, destPath, {
             recursive: true,
             preserveTimestamps: true,
+            filter: (src) => !src.includes(path.join("node_modules", ".bin")),
           })
         })
       )
@@ -130,9 +131,6 @@ const config: ForgeConfig = {
       unpackDir: "**/node_modules/{@parcel/watcher*,@lydell/node-pty*}",
     },
     icon: "./assets/icon", // no file extension required
-  },
-  rebuildConfig: {
-    onlyModules: [],
   },
   makers: [
     new MakerZIP({}, ["darwin"]),
