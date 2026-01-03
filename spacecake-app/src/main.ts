@@ -56,6 +56,7 @@ const createWindow = () => {
       webSecurity: true,
       allowRunningInsecureContent: false,
       devTools: true,
+      webgl: true,
     },
   })
 
