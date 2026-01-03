@@ -1,5 +1,5 @@
 ---
-"spacecake-app": patch
+"spacecake": patch
 ---
 
 Adding table resizing.
