@@ -96,8 +96,10 @@ test.describe("ghostty terminal", () => {
     ).toBeVisible()
 
     // Verify it's a new session (variable is gone)
+    // Use a marker command to distinguish the output - echo the variable with a prefix
+    // If the variable is unset, we'll see just the prefix; if set, we'll see prefix+value
     await terminalElement.click()
-    await window.keyboard.type("echo $TEST_VAR", { delay: 50 })
+    await window.keyboard.type("echo MARKER:$TEST_VAR:END", { delay: 50 })
     await window.keyboard.press("Enter")
 
     terminalContent = await window.evaluate(() => {
@@ -105,6 +107,8 @@ test.describe("ghostty terminal", () => {
       const api = (globalThis as any).__terminalAPI
       return api?.getAllLines().join("\n") as string | undefined
     })
-    expect(terminalContent).not.toContain("123")
+    // In a new session, the variable should be empty, so we expect MARKER::END
+    // We're explicitly checking for MARKER::END which proves the variable is not set
+    expect(terminalContent).toContain("MARKER::END")
   })
 })
