@@ -134,6 +134,7 @@
     "ghostty-web": "^0.4.0",
     "jotai": "^2.15.0",
     "jotai-effect": "^2.1.2",
+    "jotai-family": "^1.0.1",
     "jotai-xstate": "^0.6.1",
     "lexical": "^0.39.0",
     "live": "link:@electric-sql/pglite/live",
@@ -159,6 +160,7 @@
   "optionalDependencies": {
     "@lydell/node-pty-darwin-arm64": "1.1.0",
     "@lydell/node-pty-darwin-x64": "1.1.0",
-    "@lydell/node-pty-linux-x64": "1.1.0"
+    "@lydell/node-pty-linux-x64": "1.1.0",
+    "@lydell/node-pty-linux-arm64": "1.1.0"
   }
 }

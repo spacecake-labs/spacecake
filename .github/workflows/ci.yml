@@ -31,8 +31,8 @@ jobs:
             arch: arm64
           - os: macos-15-intel
             arch: x64
-          - os: ubuntu-latest
-            arch: x64
+          # - os: ubuntu-latest
+          #   arch: x64
     runs-on: ${{ matrix.os }}
     defaults:
       run:

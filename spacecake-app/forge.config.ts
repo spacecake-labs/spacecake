@@ -127,10 +127,12 @@ const config: ForgeConfig = {
     executableName: "spacecake",
     asar: {
       unpack: "*.{node,dylib,dll,so}",
-      unpackDir:
-        "{@parcel/watcher,@parcel/watcher-darwin-arm64,@parcel/watcher-darwin-x64,@parcel/watcher-win32-x64,@parcel/watcher-win32-arm64,@parcel/watcher-linux-x64-glibc,@parcel/watcher-linux-arm64-glibc,@lydell/node-pty,@lydell/node-pty-darwin-arm64,@lydell/node-pty-darwin-x64,@lydell/node-pty-linux-x64,micromatch,braces,fill-range,to-regex-range,is-number,picomatch,detect-libc,is-glob,is-extglob,node-addon-api}",
+      unpackDir: "**/node_modules/{@parcel/watcher*,@lydell/node-pty*}",
     },
     icon: "./assets/icon", // no file extension required
+  },
+  rebuildConfig: {
+    onlyModules: [],
   },
   makers: [
     new MakerZIP({}, ["darwin"]),
