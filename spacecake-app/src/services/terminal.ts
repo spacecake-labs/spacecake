@@ -1,22 +1,42 @@
-import * as pty from "@lydell/node-pty"
 import { Effect } from "effect"
 import { BrowserWindow } from "electron"
 
 import { TerminalError } from "@/types/terminal"
 
+type PtyModule = typeof import("@lydell/node-pty")
+type IPty = Awaited<ReturnType<PtyModule["spawn"]>>
+
+let ptyModule: PtyModule | null = null
+let ptyLoadError: Error | null = null
+
+const loadPtyModule = async (): Promise<PtyModule> => {
+  if (ptyModule) return ptyModule
+  if (ptyLoadError) throw ptyLoadError
+
+  try {
+    ptyModule = await import("@lydell/node-pty")
+    return ptyModule
+  } catch (error) {
+    ptyLoadError = error instanceof Error ? error : new Error(String(error))
+    throw ptyLoadError
+  }
+}
+
 export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
   effect: Effect.gen(function* () {
     yield* Effect.void
-    const terminals = new Map<string, pty.IPty>()
+    const terminals = new Map<string, IPty>()
 
     const create = (
       id: string,
       cols: number,
       rows: number,
-      cwd: string = process.env.HOME || ""
+      cwd: string = process.env.HOME || process.env.USERPROFILE || ""
     ) =>
-      Effect.try({
-        try: () => {
+      Effect.tryPromise({
+        try: async () => {
+          const pty = await loadPtyModule()
+
           // If terminal already exists, kill it first (or just return?)
           // For now, let's kill existing if any to avoid leaks on reload
           if (terminals.has(id)) {
@@ -44,7 +64,9 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           terminals.set(id, ptyProcess)
         },
         catch: (error) =>
-          new TerminalError({ message: `failed to create terminal: ${error}` }),
+          new TerminalError({
+            message: `failed to create terminal: ${error instanceof Error ? error.message : String(error)}`,
+          }),
       })
 
     const resize = (id: string, cols: number, rows: number) =>

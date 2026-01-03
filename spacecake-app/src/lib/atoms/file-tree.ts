@@ -2,8 +2,8 @@ import { fileStateMachine } from "@/machines/file-tree"
 import { router } from "@/router"
 // hook to get file state only if it has been opened
 import { atom } from "jotai"
+import { atomFamily } from "jotai-family"
 import { atomWithMachine } from "jotai-xstate"
-import { atomFamily } from "jotai/utils"
 
 import type {
   File,
