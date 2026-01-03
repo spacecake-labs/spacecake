@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.23
+
+### Patch Changes
+
+- 5ce8d3d: Fixing parcel/watcher & node-pty compatibility issue.
+
 ## 0.1.0-alpha.22
 
 ### Patch Changes
