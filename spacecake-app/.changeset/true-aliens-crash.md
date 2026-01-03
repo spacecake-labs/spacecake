@@ -1,5 +1,5 @@
 ---
-"spacecake-app": patch
+"spacecake": patch
 ---
 
 Fixing newline preservation for markdown files.

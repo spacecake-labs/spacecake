@@ -1,5 +1,5 @@
 ---
-"spacecake-app": minor
+"spacecake": minor
 ---
 
 Initial public alpha release.

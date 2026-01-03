@@ -1,5 +1,5 @@
 ---
-"spacecake-app": patch
+"spacecake": patch
 ---
 
 Adding support for markdown tables.

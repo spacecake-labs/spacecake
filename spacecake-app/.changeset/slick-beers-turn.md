@@ -1,5 +1,5 @@
 ---
-"spacecake-app": patch
+"spacecake": patch
 ---
 
 Fix wasm sourcemap issue for tree-siter.

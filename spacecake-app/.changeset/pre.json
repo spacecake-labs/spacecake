@@ -2,7 +2,7 @@
   "mode": "pre",
   "tag": "alpha",
   "initialVersions": {
-    "spacecake-app": "1.0.0"
+    "spacecake": "1.0.0"
   },
   "changesets": [
     "common-ears-notice",
