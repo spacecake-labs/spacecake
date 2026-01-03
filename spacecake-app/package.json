@@ -1,7 +1,7 @@
 {
   "name": "spacecake",
   "productName": "spacecake",
-  "version": "0.1.0-alpha.22",
+  "version": "0.1.0-alpha.23",
   "description": "spacecake",
   "main": ".vite/build/main.js",
   "scripts": {
