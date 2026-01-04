@@ -1,3 +1,8 @@
+/**
+ * This file is not used in the editor.
+ * It is kept here for future reference.
+ */
+
 import { createEditor, LexicalEditor } from "lexical"
 import { beforeEach, describe, expect, it } from "vitest"
 
