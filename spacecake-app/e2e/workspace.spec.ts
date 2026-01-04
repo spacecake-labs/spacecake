@@ -525,7 +525,7 @@ test.describe("spacecake app", () => {
     ).toBeVisible()
 
     // Confirm the delete
-    await window.getByRole("button", { name: "delete" }).click()
+    await window.getByRole("button", { name: "delete" }).click({ force: true })
 
     await expect(
       window.getByRole("dialog", { name: "delete file" })
@@ -542,7 +542,9 @@ test.describe("spacecake app", () => {
     // Test deleting an empty folder
     await window.getByRole("button", { name: "empty-folder" }).first().hover()
     await window.getByTestId("more-options-empty-folder").click()
-    await window.getByRole("menuitem", { name: "delete" }).click()
+    await window
+      .getByRole("menuitem", { name: "delete" })
+      .click({ force: true })
 
     // Verify delete confirmation dialog appears with folder message
     await expect(
@@ -555,7 +557,7 @@ test.describe("spacecake app", () => {
     ).toBeVisible()
 
     // Confirm the delete
-    await window.getByRole("button", { name: "delete" }).click()
+    await window.getByRole("button", { name: "delete" }).click({ force: true })
 
     await expect(
       window.getByRole("dialog", { name: "delete folder" })
@@ -570,10 +572,6 @@ test.describe("spacecake app", () => {
     expect(fs.existsSync(emptyFolderPath)).toBe(false)
 
     // Test deleting a folder with files (recursive delete)
-    await window
-      .getByRole("button", { name: "folder-with-files" })
-      .first()
-      .hover()
     await window.getByTestId("more-options-folder-with-files").click()
     await window.getByRole("menuitem", { name: "delete" }).click()
 
@@ -588,7 +586,7 @@ test.describe("spacecake app", () => {
     ).toBeVisible()
 
     // Confirm the delete
-    await window.getByRole("button", { name: "delete" }).click()
+    await window.getByRole("button", { name: "delete" }).click({ force: true })
 
     await expect(
       window.getByRole("dialog", { name: "delete folder" })

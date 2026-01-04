@@ -40,8 +40,26 @@ export const test = base.extend<TestFixtures>({
       await page.evaluate(() => {
         localStorage.clear()
       })
+
+      // disable animations and force-hide closed radix components to prevent
+      // race conditions where playwright checks visibility before the unmount
+      // animation finishes.
+      await page.addStyleTag({
+        content: `
+        *, *::before, *::after {
+          animation-duration: 0s !important;
+          transition-duration: 0s !important;
+        }
+        [data-slot="dialog-content"][data-state="closed"],
+        [data-slot="dialog-overlay"][data-state="closed"],
+        [data-slot="dropdown-menu-content"][data-state="closed"],
+        [data-slot="dropdown-menu-sub-content"][data-state="closed"] {
+          display: none !important;
+        }
+      `,
+      })
     } catch (error) {
-      console.warn("could not clear localStorage:", error)
+      console.warn("could not clear localStorage or disable animations:", error)
     }
 
     await use(app)
