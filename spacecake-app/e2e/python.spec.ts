@@ -168,7 +168,7 @@ test.describe("python e2e", () => {
       .click()
     // Click on "Person" puts us in the Person dataclass block
     // From here, Cmd+Up should go to start of block, then ArrowUp creates spacer above
-    await thirdContent.press("Meta+ArrowUp", { delay: 100 })
+    await thirdContent.press("ControlOrMeta+ArrowUp", { delay: 100 })
     await thirdContent.press("ArrowUp", { delay: 100 }) // create spacer above
 
     const spacerText1 = "PARA-TEXT-ONE"
@@ -188,7 +188,7 @@ test.describe("python e2e", () => {
     await expect(fibonacciBlock.locator(".cm-editor").first()).toHaveClass(
       /focused/
     )
-    await window.keyboard.press("Meta+ArrowUp", { delay: 100 })
+    await window.keyboard.press("ControlOrMeta+ArrowUp", { delay: 100 })
     await fibonacciBlock.press("ArrowUp", { delay: 100 }) // to spacer above
 
     const spacerText2 = "PARA-TEXT-TWO"
@@ -203,7 +203,7 @@ test.describe("python e2e", () => {
       .first()
       .click()
 
-    await thirdContent.press("Meta+ArrowUp", { delay: 100 })
+    await thirdContent.press("ControlOrMeta+ArrowUp", { delay: 100 })
     await thirdContent.press("ArrowLeft", { delay: 100 }) // to spacer above
     // type into spacer above and verify it appears
     const spacerText3 = "PARA-TEXT-THREE"
@@ -220,7 +220,7 @@ test.describe("python e2e", () => {
       .first()
       .click()
 
-    await thirdContent.press("Meta+ArrowDown", { delay: 100 })
+    await thirdContent.press("ControlOrMeta+ArrowDown", { delay: 100 })
     await thirdContent.press("ArrowDown", { delay: 100 }) // create spacer below second block
     const keepText = "KEEP-PARA"
     await window
