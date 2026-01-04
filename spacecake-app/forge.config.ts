@@ -153,7 +153,7 @@ const config: ForgeConfig = {
       config: {
         repository: {
           owner: "spacecake-labs",
-          name: "spacecake-releases",
+          name: "spacecake",
         },
         prerelease: true,
         draft: true,

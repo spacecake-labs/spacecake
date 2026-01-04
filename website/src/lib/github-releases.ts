@@ -12,7 +12,7 @@ const platformPatterns: Record<string, string> = {
 async function fetchLatestRelease() {
   try {
     const response = await fetch(
-      `https://api.github.com/repos/spacecake-labs/spacecake-releases/releases/latest`,
+      `https://api.github.com/repos/spacecake-labs/spacecake/releases/latest`,
       {
         headers: {
           Accept: "application/vnd.github.v3+json",
@@ -42,7 +42,7 @@ export async function getDownloadUrl(
   if (false) {
     return {
       downloadUrl:
-        "https://github.com/spacecake-labs/spacecake-releases/releases/latest",
+        "https://github.com/spacecake-labs/spacecake/releases/latest",
       errorMessage: undefined,
     };
   }

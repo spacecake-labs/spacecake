@@ -3,6 +3,7 @@
   "productName": "spacecake",
   "version": "0.1.0-alpha.24",
   "description": "spacecake",
+  "repository": "https://github.com/spacecake-labs/spacecake",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",

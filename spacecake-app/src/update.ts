@@ -8,7 +8,7 @@ export async function setupUpdates() {
     const { updateElectronApp } = await import("update-electron-app")
 
     updateElectronApp({
-      repo: "spacecake-labs/spacecake-releases",
+      repo: "spacecake-labs/spacecake",
       updateInterval: "1 hour",
     })
   }, 10000)

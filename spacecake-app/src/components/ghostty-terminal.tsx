@@ -209,6 +209,7 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         engineRef.current.dispose()
         engineRef.current = null
       }
+      setTerminalProfileLoaded(false)
       setError(null)
     }
   }, [id])
