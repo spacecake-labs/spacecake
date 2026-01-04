@@ -64,6 +64,10 @@ test.describe("route not found", () => {
     // delete the workspace directory
     fs.rmSync(tempTestDir, { recursive: true, force: true, maxRetries: 5 })
 
+    // isn't necessary for mac (FSEvents)
+    // but may be necessary for some of the watcher backends
+    await window.reload()
+
     await expect(
       window.getByText(`workspace not found:\n${tempTestDir}`)
     ).toBeVisible()

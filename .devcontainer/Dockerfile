@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     unzip \ 
     build-essential \ 
     python3 \ 
+    watchman \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
