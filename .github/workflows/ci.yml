@@ -68,9 +68,19 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
-      - name: Increase inotify max user watches (Ubuntu only)
-        if: startsWith(matrix.os, 'ubuntu')
-        run: sudo sysctl -w fs.inotify.max_user_watches=1048576
+      - name: Install Watchman (Ubuntu)
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          wget https://github.com/facebook/watchman/releases/download/v2024.01.22.00/watchman-v2024.01.22.00-linux.zip
+          unzip watchman-*-linux.zip
+          cd watchman-v2024.01.22.00-linux
+          sudo mkdir -p /usr/local/{bin,lib} /usr/local/var/run/watchman
+          sudo cp bin/* /usr/local/bin
+          sudo cp lib/* /usr/local/lib
+          sudo chmod 755 /usr/local/bin/watchman
+          sudo chmod 2777 /usr/local/var/run/watchman
+          sudo apt-get update && sudo apt-get install -y libssl1.1 || true
+          watchman -v
 
       - name: Run checks
         run: just check
