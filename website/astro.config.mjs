@@ -11,7 +11,7 @@ export default defineConfig({
         {
           icon: "github",
           label: "GitHub",
-          href: "https://github.com/spacecake-labs/spacecake-releases",
+          href: "https://github.com/spacecake-labs/spacecake",
         },
       ],
       pagefind: false,
