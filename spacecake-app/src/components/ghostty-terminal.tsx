@@ -246,7 +246,7 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
       <div
         data-testid="ghostty-terminal"
         ref={terminalRef}
-        className="w-full h-full overflow-hidden [&_textarea]:!caret-transparent [&_textarea]:!outline-none"
+        className="w-full h-full overflow-hidden [&_textarea]:caret-transparent! [&_textarea]:outline-none!"
       />
       {profileLoaded && (
         <div
