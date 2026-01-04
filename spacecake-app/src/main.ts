@@ -137,7 +137,7 @@ const program = Effect.gen(function* (_) {
 
   // not sure why this works but it seems to prevent macOS complaining
   // that the app 'quit unexpectedly' when running Playwright tests.
-  if (isTest) {
+  if (isTest && process.platform === "darwin") {
     app.on("before-quit", (e) => {
       e.preventDefault()
       app.quit()
