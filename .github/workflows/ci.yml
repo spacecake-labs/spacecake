@@ -67,6 +67,10 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
+      - name: Increase inotify max user watches (Ubuntu only)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo sysctl -w fs.inotify.max_user_watches=1048576
+
       - name: Run checks
         run: just check
 
