@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.24
+
+### Patch Changes
+
+- 83d5c9f: Cleanup watcher before app quits.
+
 ## 0.1.0-alpha.23
 
 ### Patch Changes
