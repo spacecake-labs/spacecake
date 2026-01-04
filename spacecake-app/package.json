@@ -33,7 +33,7 @@
     "name": "code-alexander",
     "email": "152750039+code-alexander@users.noreply.github.com"
   },
-  "license": "Apache-2.0",
+  "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "@changesets/cli": "^2.29.7",
     "@electron-forge/cli": "^7.9.0",
