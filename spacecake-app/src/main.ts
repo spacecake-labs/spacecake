@@ -125,7 +125,7 @@ const program = Effect.gen(function* (_) {
   createWindow()
 
   // The watcher service still needs its specific layer context
-  yield* _(Effect.forkDaemon(watcherService.pipe(Effect.provide(WatcherLive))))
+  yield* _(Effect.fork(watcherService))
 
   app.on("activate", () => {
     // On OS X it's common to re-create a window in the app when the
@@ -153,7 +153,11 @@ const program = Effect.gen(function* (_) {
     }
   })
 
-  yield* _(Effect.never)
+  yield* _(
+    Effect.async<void>((resume) => {
+      app.on("will-quit", () => resume(Effect.void))
+    })
+  )
 })
 
 // --- Main Execution
