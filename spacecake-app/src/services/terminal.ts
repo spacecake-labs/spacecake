@@ -45,7 +45,7 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             terminals.delete(id)
           }
 
-          const ptyProcess = pty.spawn(defaultShell, [], {
+          const ptyProcess = pty.spawn(process.env.SHELL || defaultShell, [], {
             name: "xterm-256color",
             cols,
             rows,
