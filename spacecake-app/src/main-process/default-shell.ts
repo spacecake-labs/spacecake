@@ -13,7 +13,9 @@ export const detectDefaultShell = () => {
     if (shell) {
       return shell
     }
-  } catch {}
+  } catch {
+    // ignore errors from userInfo
+  }
 
   if (process.platform === "darwin") {
     return env.SHELL || "/bin/zsh"
