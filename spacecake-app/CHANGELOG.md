@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.25
+
+### Patch Changes
+
+- 335cfb2: Adding gitignore capability for watcher service.
+
 ## 0.1.0-alpha.24
 
 ### Patch Changes
