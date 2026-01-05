@@ -20,7 +20,7 @@ jobs:
 
   release:
     # prevent this action from running on forks
-    if: github.repository == 'code-alexander/spacecake'
+    if: github.repository == 'spacecake-labs/spacecake'
     name: Release (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     # needs: [ci]
@@ -75,16 +75,12 @@ jobs:
         uses: changesets/action@v1.5.1
         with:
           cwd: ./spacecake-app
-          publish: bash scripts/publish-release.sh
+          publish: pnpm run publish -- --arch=${{ matrix.arch }}
         env:
           # changesets action uses this for PR creation
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # wrapper script uses this to override GITHUB_TOKEN for electron-forge
-          PUBLIC_REPO_ACCESS_TOKEN: ${{ secrets.PUBLIC_REPO_ACCESS_TOKEN }}
           # Credentials for Apple Notarization
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_SIGN_ID: ${{ secrets.APPLE_SIGN_ID }}
-          # Build architecture
-          BUILD_ARCH: ${{ matrix.arch }}
