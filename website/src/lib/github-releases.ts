@@ -39,7 +39,7 @@ export async function getDownloadUrl(
   const pattern = platformPatterns[platform];
 
   // In development, skip the API call to avoid rate limits during refresh
-  if (false) {
+  if (!import.meta.env.PROD) {
     return {
       downloadUrl:
         "https://github.com/spacecake-labs/spacecake/releases/latest",
