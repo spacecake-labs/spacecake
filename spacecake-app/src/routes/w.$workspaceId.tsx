@@ -313,21 +313,19 @@ function LayoutContent() {
               minSize={isTerminalCollapsed ? 0 : 10}
               maxSize={isTerminalCollapsed ? 0 : 70}
               className={
-                isTerminalCollapsed
-                  ? "!flex-grow-0 !flex-shrink-0 !basis-auto"
-                  : ""
+                isTerminalCollapsed ? "grow-0! shrink-0! basis-auto!" : ""
               }
             >
               <div className="flex flex-col h-full w-full border-t">
                 <div
                   className={cn(
-                    "h-10 w-full bg-background/50 flex items-center justify-between px-4",
+                    "h-8 w-full bg-background/50 flex items-center justify-between px-4",
                     !isTerminalCollapsed && "border-b"
                   )}
                 >
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Terminal className="h-4 w-4" />
-                    <span>terminal</span>
+                    <span className="font-mono">terminal</span>
                   </div>
                   <button
                     onClick={() => {
