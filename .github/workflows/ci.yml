@@ -83,6 +83,4 @@ jobs:
 
       - name: Run tests (headful mac)
         if: startsWith(matrix.os, 'macos')
-        env:
-          SHELL: /bin/zsh
         run: just test
