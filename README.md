@@ -9,7 +9,7 @@ With `Python` and `TypeScript` support baked in, you can navigate your codebase 
 
 ### 🚀 getting started
 
-Download an installer for your platform from the [latest release](https://github.com/spacecake-labs/spacecake-releases/releases):
+Download an installer for your platform from the [latest release](https://github.com/spacecake-labs/spacecake/releases):
 
 - **macOS**: Download the `.dmg` file (arm64 for Apple Silicon, x64 for Intel)
 - **Linux**: Download the `.deb` file (for Debian-based distributions like Ubuntu)
