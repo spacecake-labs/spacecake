@@ -55,9 +55,10 @@ test.describe("ghostty terminal", () => {
     await expect(terminalElement).toBeVisible()
 
     // Test: Interact with terminal - set a variable and verify CWD
-    await terminalElement.click({ delay: 100 })
-    await window.keyboard.type("export TEST_VAR=123 && pwd", { delay: 100 })
-    await window.keyboard.press("Enter", { delay: 100 })
+    await terminalElement.click()
+    await window.waitForTimeout(100)
+    await window.keyboard.type("export TEST_VAR=123 && pwd", { delay: 50 })
+    await window.keyboard.press("Enter")
 
     let terminalContent = await window.evaluate(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -74,9 +75,10 @@ test.describe("ghostty terminal", () => {
     await expect(terminalElement).toBeVisible()
 
     // Verify variable still exists (same session)
-    await terminalElement.click({ delay: 100 })
-    await window.keyboard.type("echo $TEST_VAR", { delay: 100 })
-    await window.keyboard.press("Enter", { delay: 100 })
+    await terminalElement.click()
+    await window.waitForTimeout(100)
+    await window.keyboard.type("echo $TEST_VAR", { delay: 50 })
+    await window.keyboard.press("Enter")
 
     terminalContent = await window.evaluate(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -98,9 +100,10 @@ test.describe("ghostty terminal", () => {
     // Verify it's a new session (variable is gone)
     // Use a marker command to distinguish the output - echo the variable with a prefix
     // If the variable is unset, we'll see just the prefix; if set, we'll see prefix+value
-    await terminalElement.click({ delay: 100 })
-    await window.keyboard.type("echo MARKER:$TEST_VAR:END", { delay: 100 })
-    await window.keyboard.press("Enter", { delay: 100 })
+    await terminalElement.click()
+    await window.waitForTimeout(100)
+    await window.keyboard.type("echo MARKER:$TEST_VAR:END", { delay: 50 })
+    await window.keyboard.press("Enter")
 
     terminalContent = await window.evaluate(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
