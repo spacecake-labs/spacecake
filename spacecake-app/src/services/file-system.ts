@@ -1,16 +1,15 @@
 import path from "path"
 
 import { commandQueue } from "@/main-process/watcher"
+import { GitIgnore, GitIgnoreLive } from "@/services/git-ignore-parser"
 import { FileSystem as EffectFileSystem } from "@effect/platform"
 import { NodeFileSystem } from "@effect/platform-node"
 import { Data, Effect, Option } from "effect"
-import micromatch from "micromatch"
 import writeFileAtomic from "write-file-atomic"
 
 import type { File, FileContent, FileTree, Folder } from "@/types/workspace"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
-import { DEFAULT_FILE_EXCLUDES } from "@/lib/ignore-patterns"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 
 export class FileSystemError extends Data.TaggedError("FileSystemError")<{
@@ -21,6 +20,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
   // define how to create the service
   effect: Effect.gen(function* () {
     const fs = yield* EffectFileSystem.FileSystem
+    const gitIgnore = yield* GitIgnore
 
     const readTextFile = (
       filePath: AbsolutePath
@@ -127,10 +127,9 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         for (const entryName of entries) {
           const fullPath = AbsolutePath(path.join(currentPath, entryName))
 
-          const shouldIgnore = micromatch.isMatch(
-            fullPath,
-            DEFAULT_FILE_EXCLUDES,
-            { cwd: workspacePath, dot: true }
+          const shouldIgnore = yield* gitIgnore.isIgnored(
+            workspacePath,
+            fullPath
           )
 
           if (shouldIgnore) {
@@ -213,5 +212,5 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
     } as const
   }),
 
-  dependencies: [NodeFileSystem.layer],
+  dependencies: [NodeFileSystem.layer, GitIgnoreLive],
 }) {}
