@@ -45,12 +45,17 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             terminals.delete(id)
           }
 
-          const ptyProcess = pty.spawn(process.env.SHELL || defaultShell, [], {
+          const env = {
+            ...(process.env as Record<string, string>),
+            BASH_SILENCE_DEPRECATION_WARNING: "1",
+          }
+
+          const ptyProcess = pty.spawn(defaultShell, [], {
             name: "xterm-256color",
             cols,
             rows,
             cwd,
-            env: process.env as Record<string, string>,
+            env,
           })
           ptyProcess.onData((data) => {
             BrowserWindow.getAllWindows().forEach((win) => {
