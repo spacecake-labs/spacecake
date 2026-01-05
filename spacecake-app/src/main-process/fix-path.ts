@@ -20,6 +20,6 @@ export async function fixPath() {
         process.env.PATH,
       ].join(":")
   } catch (e) {
-    console.error("Failed to fix path:", e)
+    console.error("failed to fix path:", e)
   }
 }
