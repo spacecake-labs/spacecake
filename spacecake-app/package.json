@@ -133,6 +133,7 @@
     "effect": "^3.17.14",
     "electron-squirrel-startup": "^1.0.1",
     "ghostty-web": "^0.4.0",
+    "ignore": "^7.0.5",
     "jotai": "^2.15.0",
     "jotai-effect": "^2.1.2",
     "jotai-family": "^1.0.1",

@@ -152,6 +152,9 @@ importers:
       ghostty-web:
         specifier: ^0.4.0
         version: 0.4.0
+      ignore:
+        specifier: ^7.0.5
+        version: 7.0.5
       jotai:
         specifier: ^2.15.0
         version: 2.16.1(@babel/core@7.28.5)(@babel/template@7.27.2)(@types/react@19.2.7)(react@19.2.3)
