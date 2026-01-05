@@ -74,6 +74,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y watchman
 
+      - name: Set SHELL to zsh (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: echo "SHELL=/bin/zsh" >> $GITHUB_ENV
+
       - name: Run checks
         run: just check
 
@@ -83,5 +87,4 @@ jobs:
 
       - name: Run tests (headful mac)
         if: startsWith(matrix.os, 'macos')
-        shell: zsh {0}
         run: just test
