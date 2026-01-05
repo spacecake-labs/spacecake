@@ -68,6 +68,16 @@ export const COMMON_DIRECTORY_EXCLUDES: string[] = [
   "**/build/**",
   "**/coverage/**",
   "**/__pycache__/**",
+  "**/.pnpm-store/**",
+  // Package managers & Caches
+  "**/.yarn/cache/**",
+  "**/.yarn/unplugged/**",
+  "**/.gradle/**",
+  "**/.cache/**",
+  "**/tmp/**",
+  // Compiled output
+  "**/target/**", // Rust, Maven
+  "**/out/**", // Common build output
 ]
 
 /**
