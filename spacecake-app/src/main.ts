@@ -107,10 +107,7 @@ const AppLive = Layer.mergeAll(Ipc.Default, WatcherLive)
 // --- Main Program
 const program = Effect.gen(function* (_) {
   yield* _(Effect.promise(() => app.whenReady()))
-
-  if (app.isPackaged) {
-    yield* _(Effect.promise(() => fixPath()))
-  }
+  yield* _(Effect.promise(() => fixPath()))
 
   if (!app.isPackaged) {
     const userDataPath = app.getPath("userData")
