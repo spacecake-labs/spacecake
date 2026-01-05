@@ -60,13 +60,15 @@ test.describe("ghostty terminal", () => {
     await window.keyboard.type("export TEST_VAR=123 && pwd", { delay: 50 })
     await window.keyboard.press("Enter")
 
-    let terminalContent = await window.evaluate(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const api = (globalThis as any).__terminalAPI
-      return api?.getAllLines().join("\n") as string | undefined
-    })
-    // Verify both CWD and command executed
-    expect(terminalContent).toContain(path.basename(tempTestDir))
+    await expect
+      .poll(async () => {
+        return await window.evaluate(() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const api = (globalThis as any).__terminalAPI
+          return api?.getAllLines().join("\n") as string | undefined
+        })
+      })
+      .toContain(path.basename(tempTestDir))
 
     // Test: Hide (collapse) and show again -> should be SAME session
     await hideButton.click()
@@ -80,12 +82,15 @@ test.describe("ghostty terminal", () => {
     await window.keyboard.type("echo $TEST_VAR", { delay: 50 })
     await window.keyboard.press("Enter")
 
-    terminalContent = await window.evaluate(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const api = (globalThis as any).__terminalAPI
-      return api?.getAllLines().join("\n") as string | undefined
-    })
-    expect(terminalContent).toContain("123")
+    await expect
+      .poll(async () => {
+        return await window.evaluate(() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const api = (globalThis as any).__terminalAPI
+          return api?.getAllLines().join("\n") as string | undefined
+        })
+      })
+      .toContain("123")
 
     // Test: Delete terminal -> creates new session, variable is gone
     await deleteButton.click()
@@ -105,13 +110,14 @@ test.describe("ghostty terminal", () => {
     await window.keyboard.type("echo MARKER:$TEST_VAR:END", { delay: 50 })
     await window.keyboard.press("Enter")
 
-    terminalContent = await window.evaluate(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const api = (globalThis as any).__terminalAPI
-      return api?.getAllLines().join("\n") as string | undefined
-    })
-    // In a new session, the variable should be empty, so we expect MARKER::END
-    // We're explicitly checking for MARKER::END which proves the variable is not set
-    expect(terminalContent).toContain("MARKER::END")
+    await expect
+      .poll(async () => {
+        return await window.evaluate(() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const api = (globalThis as any).__terminalAPI
+          return api?.getAllLines().join("\n") as string | undefined
+        })
+      })
+      .toContain("MARKER::END")
   })
 })
