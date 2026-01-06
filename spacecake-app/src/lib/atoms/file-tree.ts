@@ -261,16 +261,22 @@ export const sortedFileTreeAtom = atom((get) => {
 
 /**
  * Flattens a FileTree to get all files (excluding folders).
+ * Optimized to avoid intermediate array creation and spreading.
  */
 export const flattenFiles = (tree: FileTree): File[] => {
   const files: File[] = []
-  for (const item of tree) {
-    if (item.kind === "file") {
-      files.push(item)
-    } else if (item.kind === "folder") {
-      files.push(...flattenFiles(item.children))
+
+  function traverse(items: FileTree) {
+    for (const item of items) {
+      if (item.kind === "file") {
+        files.push(item)
+      } else if (item.kind === "folder") {
+        traverse(item.children)
+      }
     }
   }
+
+  traverse(tree)
   return files
 }
 
@@ -295,3 +301,67 @@ const createFileStateMachineAtom = (filePath: AbsolutePath) =>
   )
 
 export const fileStateAtomFamily = atomFamily(createFileStateMachineAtom)
+
+/**
+ * Represents a flattened tree item for virtualized rendering.
+ */
+export interface FlatTreeItem {
+  item: File | Folder
+  depth: number
+  isExpanded: boolean
+  hasChildren: boolean
+}
+
+/**
+ * Flattens a file tree into a list of visible items based on expanded folders.
+ * Only includes items whose parent folders are expanded.
+ * Optimized to avoid intermediate array creation and spreading.
+ */
+export function flattenVisibleTree(
+  tree: FileTree,
+  expandedFolders: Record<string, boolean>
+): FlatTreeItem[] {
+  const result: FlatTreeItem[] = []
+
+  function flatten(items: FileTree, depth: number) {
+    for (const item of items) {
+      if (item.kind === "folder") {
+        const isExpanded = expandedFolders[item.path] ?? false
+        const hasChildren = item.children.length > 0
+
+        result.push({
+          item,
+          depth,
+          isExpanded,
+          hasChildren,
+        })
+
+        // Only include children if folder is expanded
+        if (isExpanded && hasChildren) {
+          flatten(item.children, depth + 1)
+        }
+      } else {
+        result.push({
+          item,
+          depth,
+          isExpanded: false,
+          hasChildren: false,
+        })
+      }
+    }
+  }
+
+  flatten(tree, 0)
+  return result
+}
+
+/**
+ * Atom that provides a flattened list of visible tree items for virtualized rendering.
+ * Merges user-expanded folders with auto-reveal folders.
+ */
+export const flatVisibleTreeAtom = atom((get) => {
+  const tree = get(sortedFileTreeAtom)
+  const expandedFolders = get(expandedFoldersAtom)
+
+  return flattenVisibleTree(tree, expandedFolders)
+})

@@ -20,10 +20,9 @@ export const quickOpenMenuOpenAtom = atomWithToggle(false)
 
 export const fileTreeAtom = atom<FileTree>([])
 
-// Expanded folders state (keyed by folder path)
 export const expandedFoldersAtom = atom<ExpandedFolders>({})
 
-// Loading folders state (array of folder urls currently loading)
+// Atom for loading state of folders (when fetching children)
 export const loadingFoldersAtom = atom<string[]>([])
 
 // Editor state
