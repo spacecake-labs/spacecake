@@ -4,12 +4,13 @@ import { commandQueue } from "@/main-process/watcher"
 import { GitIgnore, GitIgnoreLive } from "@/services/git-ignore-parser"
 import { FileSystem as EffectFileSystem } from "@effect/platform"
 import { NodeFileSystem } from "@effect/platform-node"
-import { Data, Effect, Option } from "effect"
+import { Data, Effect, Either, Option } from "effect"
 import writeFileAtomic from "write-file-atomic"
 
 import type { File, FileContent, FileTree, Folder } from "@/types/workspace"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
+import { SKIP_DIRECTORIES } from "@/lib/ignore-patterns"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 
 export class FileSystemError extends Data.TaggedError("FileSystemError")<{
@@ -125,28 +126,52 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         const tree: FileTree = []
 
         for (const entryName of entries) {
+          // Skip directories that shouldn't be traversed (performance)
+          if (SKIP_DIRECTORIES.has(entryName)) {
+            continue
+          }
+
+          // Skip .asar archives - Electron fakes fs.stat for these and causes issues
+          if (entryName.endsWith(".asar")) {
+            continue
+          }
+
           const fullPath = AbsolutePath(path.join(currentPath, entryName))
 
-          const shouldIgnore = yield* gitIgnore.isIgnored(
+          // Try to stat the entry - skip if it fails (broken symlink, permission denied, etc.)
+          const statsResult = yield* _(fs.stat(fullPath).pipe(Effect.either))
+
+          if (Either.isLeft(statsResult)) {
+            // Skip entries we can't stat (broken symlinks, permission issues, etc.)
+            continue
+          }
+
+          const stats = statsResult.right
+
+          const isGitIgnored = yield* gitIgnore.isIgnored(
             workspacePath,
             fullPath
           )
 
-          if (shouldIgnore) {
-            continue
-          }
-
-          const stats = yield* _(fs.stat(fullPath))
-
           if (stats.type === "Directory") {
-            const children = yield* _(readDirectory(workspacePath, fullPath))
+            // Try to read directory children - skip if it fails
+            const childrenResult = yield* _(
+              readDirectory(workspacePath, fullPath).pipe(Effect.either)
+            )
+
+            if (Either.isLeft(childrenResult)) {
+              // Skip directories we can't read
+              continue
+            }
+
             const folder: Folder = {
               name: entryName,
               path: fullPath,
-              children,
+              children: childrenResult.right,
               kind: "folder",
               cid: ZERO_HASH,
               isExpanded: false,
+              isGitIgnored,
             }
             tree.push(folder)
           } else if (stats.type === "File") {
@@ -160,6 +185,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
                 mtime: Option.getOrElse(stats.mtime, () => new Date()),
                 size: Number(stats.size),
               },
+              isGitIgnored,
             }
             tree.push(file)
           }

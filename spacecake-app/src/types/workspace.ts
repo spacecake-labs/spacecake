@@ -84,6 +84,7 @@ export type File = FileTreeItem & {
   kind: "file"
   etag: ETag
   fileType: FileType
+  isGitIgnored?: boolean
 }
 
 export type FileContent = File & { content: string }
@@ -110,6 +111,7 @@ export type Folder = FileTreeItem & {
   kind: "folder"
   children: FileTree
   isExpanded: boolean
+  isGitIgnored?: boolean
 }
 
 export type FileTree = (File | Folder)[]

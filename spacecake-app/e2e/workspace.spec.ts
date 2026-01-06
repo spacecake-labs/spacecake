@@ -743,24 +743,11 @@ test.describe("spacecake app", () => {
 
     await expect(window.getByText("deep file content")).toBeVisible()
 
-    // 7. Verify all parent folders are auto-expanded using Radix's data-state
-    await expect(
-      window
-        .locator('[data-slot="collapsible"][data-state="open"]')
-        .getByRole("button", { name: "level1" })
-    ).toBeVisible()
-
-    await expect(
-      window
-        .locator('[data-slot="collapsible"][data-state="open"]')
-        .getByRole("button", { name: "level2" })
-    ).toBeVisible()
-
-    await expect(
-      window
-        .locator('[data-slot="collapsible"][data-state="open"]')
-        .getByRole("button", { name: "level3" })
-    ).toBeVisible()
+    // 7. Verify all parent folders are auto-expanded by checking that the nested structure is visible
+    // In the virtualized list, children are only rendered if parents are expanded.
+    await expect(window.getByRole("button", { name: "level1" })).toBeVisible()
+    await expect(window.getByRole("button", { name: "level2" })).toBeVisible()
+    await expect(window.getByRole("button", { name: "level3" })).toBeVisible()
   })
 
   test("autofocus and type in new file", async ({

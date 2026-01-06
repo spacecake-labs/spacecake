@@ -1,4 +1,3 @@
-import { GitIgnore, GitIgnoreLive } from "@/services/git-ignore-parser"
 import * as Error from "@effect/platform/Error"
 import * as FileSystem from "@effect/platform/FileSystem"
 import * as ParcelWatcher from "@parcel/watcher"
@@ -8,76 +7,72 @@ import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Stream from "effect/Stream"
 
-const makeBackend = Effect.gen(function* () {
-  const gitIgnore = yield* GitIgnore
+import { WATCHER_IGNORE_PATTERNS } from "@/lib/ignore-patterns"
 
+const makeBackend = Effect.sync(() => {
   const watchParcel = (path: string) =>
     Stream.unwrap(
-      Effect.gen(function* () {
-        const patterns = yield* gitIgnore
-          .retrieveIgnorePatterns(path)
-          .pipe(Effect.catchAll(() => Effect.succeed([] as string[])))
-        return Stream.asyncScoped<FileSystem.WatchEvent, Error.PlatformError>(
-          (emit) =>
-            Effect.acquireRelease(
-              Effect.tryPromise({
-                try: () =>
-                  ParcelWatcher.subscribe(
-                    path,
-                    (cause, events) => {
-                      if (cause) {
-                        emit.fail(
-                          new Error.SystemError({
-                            reason: "Unknown",
-                            module: "FileSystem",
-                            method: "watch",
-                            pathOrDescriptor: path,
-                            cause,
+      Effect.succeed(
+        Stream.asyncScoped<FileSystem.WatchEvent, Error.PlatformError>((emit) =>
+          Effect.acquireRelease(
+            Effect.tryPromise({
+              try: () =>
+                ParcelWatcher.subscribe(
+                  path,
+                  (cause, events) => {
+                    if (cause) {
+                      emit.fail(
+                        new Error.SystemError({
+                          reason: "Unknown",
+                          module: "FileSystem",
+                          method: "watch",
+                          pathOrDescriptor: path,
+                          cause,
+                        })
+                      )
+                    } else {
+                      emit.chunk(
+                        Chunk.unsafeFromArray(
+                          events.map((event) => {
+                            switch (event.type) {
+                              case "create": {
+                                return FileSystem.WatchEventCreate({
+                                  path: event.path,
+                                })
+                              }
+                              case "update": {
+                                return FileSystem.WatchEventUpdate({
+                                  path: event.path,
+                                })
+                              }
+                              case "delete": {
+                                return FileSystem.WatchEventRemove({
+                                  path: event.path,
+                                })
+                              }
+                            }
                           })
                         )
-                      } else {
-                        emit.chunk(
-                          Chunk.unsafeFromArray(
-                            events.map((event) => {
-                              switch (event.type) {
-                                case "create": {
-                                  return FileSystem.WatchEventCreate({
-                                    path: event.path,
-                                  })
-                                }
-                                case "update": {
-                                  return FileSystem.WatchEventUpdate({
-                                    path: event.path,
-                                  })
-                                }
-                                case "delete": {
-                                  return FileSystem.WatchEventRemove({
-                                    path: event.path,
-                                  })
-                                }
-                              }
-                            })
-                          )
-                        )
-                      }
-                    },
-                    {
-                      ignore: patterns,
+                      )
                     }
-                  ),
-                catch: (cause) =>
-                  new Error.SystemError({
-                    reason: "Unknown",
-                    module: "FileSystem",
-                    method: "watch",
-                    pathOrDescriptor: path,
-                    cause,
-                  }),
-              }),
-              (sub) => Effect.promise(() => sub.unsubscribe())
-            )
+                  },
+                  {
+                    ignore: WATCHER_IGNORE_PATTERNS,
+                  }
+                ),
+              catch: (cause) =>
+                new Error.SystemError({
+                  reason: "Unknown",
+                  module: "FileSystem",
+                  method: "watch",
+                  pathOrDescriptor: path,
+                  cause,
+                }),
+            }),
+            (sub) => Effect.promise(() => sub.unsubscribe())
+          )
         )
-      })
+      )
     )
 
   return FileSystem.WatchBackend.of({
@@ -90,6 +85,4 @@ const makeBackend = Effect.gen(function* () {
   })
 })
 
-export const layer = Layer.effect(FileSystem.WatchBackend, makeBackend).pipe(
-  Layer.provide(GitIgnoreLive)
-)
+export const layer = Layer.effect(FileSystem.WatchBackend, makeBackend)
