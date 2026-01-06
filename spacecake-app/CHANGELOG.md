@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.26
+
+### Patch Changes
+
+- 4016443: Load shell profile.
+
 ## 0.1.0-alpha.25
 
 ### Patch Changes
