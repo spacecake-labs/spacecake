@@ -261,16 +261,22 @@ export const sortedFileTreeAtom = atom((get) => {
 
 /**
  * Flattens a FileTree to get all files (excluding folders).
+ * Optimized to avoid intermediate array creation and spreading.
  */
 export const flattenFiles = (tree: FileTree): File[] => {
   const files: File[] = []
-  for (const item of tree) {
-    if (item.kind === "file") {
-      files.push(item)
-    } else if (item.kind === "folder") {
-      files.push(...flattenFiles(item.children))
+
+  function traverse(items: FileTree) {
+    for (const item of items) {
+      if (item.kind === "file") {
+        files.push(item)
+      } else if (item.kind === "folder") {
+        traverse(item.children)
+      }
     }
   }
+
+  traverse(tree)
   return files
 }
 
@@ -309,42 +315,43 @@ export interface FlatTreeItem {
 /**
  * Flattens a file tree into a list of visible items based on expanded folders.
  * Only includes items whose parent folders are expanded.
+ * Optimized to avoid intermediate array creation and spreading.
  */
 export function flattenVisibleTree(
   tree: FileTree,
-  expandedFolders: Record<string, boolean>,
-  depth = 0
+  expandedFolders: Record<string, boolean>
 ): FlatTreeItem[] {
   const result: FlatTreeItem[] = []
 
-  for (const item of tree) {
-    if (item.kind === "folder") {
-      const isExpanded = expandedFolders[item.path] ?? false
-      const hasChildren = item.children.length > 0
+  function flatten(items: FileTree, depth: number) {
+    for (const item of items) {
+      if (item.kind === "folder") {
+        const isExpanded = expandedFolders[item.path] ?? false
+        const hasChildren = item.children.length > 0
 
-      result.push({
-        item,
-        depth,
-        isExpanded,
-        hasChildren,
-      })
+        result.push({
+          item,
+          depth,
+          isExpanded,
+          hasChildren,
+        })
 
-      // Only include children if folder is expanded
-      if (isExpanded && hasChildren) {
-        result.push(
-          ...flattenVisibleTree(item.children, expandedFolders, depth + 1)
-        )
+        // Only include children if folder is expanded
+        if (isExpanded && hasChildren) {
+          flatten(item.children, depth + 1)
+        }
+      } else {
+        result.push({
+          item,
+          depth,
+          isExpanded: false,
+          hasChildren: false,
+        })
       }
-    } else {
-      result.push({
-        item,
-        depth,
-        isExpanded: false,
-        hasChildren: false,
-      })
     }
   }
 
+  flatten(tree, 0)
   return result
 }
 
