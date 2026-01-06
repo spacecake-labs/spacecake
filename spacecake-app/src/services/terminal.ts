@@ -1,3 +1,4 @@
+import defaultShell from "@/main-process/default-shell"
 import { Effect } from "effect"
 import { BrowserWindow } from "electron"
 
@@ -44,16 +45,17 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             terminals.delete(id)
           }
 
-          const shell =
-            process.env.SHELL ||
-            (process.platform === "win32" ? "powershell.exe" : "bash")
+          const env = {
+            ...(process.env as Record<string, string>),
+            BASH_SILENCE_DEPRECATION_WARNING: "1",
+          }
 
-          const ptyProcess = pty.spawn(shell, [], {
+          const ptyProcess = pty.spawn(defaultShell, [], {
             name: "xterm-256color",
             cols,
             rows,
             cwd,
-            env: process.env as Record<string, string>,
+            env,
           })
           ptyProcess.onData((data) => {
             BrowserWindow.getAllWindows().forEach((win) => {

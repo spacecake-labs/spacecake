@@ -240,7 +240,7 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
 
   return (
     <div
-      className="relative w-full h-full pl-2 pt-2"
+      className="relative w-full h-full p-4"
       style={{ backgroundColor: activeTheme.current.background }}
     >
       <div
