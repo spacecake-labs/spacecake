@@ -95,6 +95,39 @@ export const SYSTEM_FILE_EXCLUDES: string[] = ["**/.DS_Store", "**/.env"]
 export const ELECTRON_EXCLUDES: string[] = ["**/*.asar/**"]
 
 /**
+ * Minimal ignore patterns for file watcher.
+ * Only includes patterns that would cause performance issues or have no value.
+ * Gitignored files are watched so they can appear in the UI (with dimmed styling).
+ */
+export const WATCHER_IGNORE_PATTERNS: string[] = [
+  "**/node_modules/**",
+  "**/.git/**",
+  "**/.DS_Store",
+  "**/Thumbs.db",
+  "**/*.swp",
+  "**/*.swo",
+  ...ELECTRON_EXCLUDES,
+]
+
+/**
+ * Directories that should never be traversed during file tree building.
+ * These can cause errors (broken symlinks), be extremely large, or have no value.
+ * Note: Uses simple name matching for performance.
+ */
+export const SKIP_DIRECTORIES = new Set([
+  "node_modules",
+  ".git",
+  ".pnpm-store",
+  ".yarn",
+  ".gradle",
+  "__pycache__",
+  ".cache",
+  "bower_components",
+  ".svn",
+  ".hg",
+])
+
+/**
  * Comprehensive file exclusion patterns combining all common ignore patterns.
  * These patterns are compatible with glob ignore patterns.
  * Note: Media files (PDF, images) are not excluded here as they need special handling in read-many-files.

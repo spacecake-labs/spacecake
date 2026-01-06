@@ -11,27 +11,15 @@ import {
   X,
 } from "lucide-react"
 
-import {
-  AbsolutePath,
-  ExpandedFolders,
-  File,
-  FileTree,
-  Folder,
-  WorkspaceInfo,
-} from "@/types/workspace"
+import { AbsolutePath, File, Folder, WorkspaceInfo } from "@/types/workspace"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
+import type { FlatTreeItem } from "@/lib/atoms/file-tree"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
-import { mergeExpandedFolders } from "@/lib/auto-reveal"
 import { supportedViews } from "@/lib/language-support"
 import { encodeBase64Url } from "@/lib/utils"
 import { getNavItemIcon } from "@/lib/workspace"
-import { useWorkspaceCache } from "@/hooks/use-workspace-cache"
+import type { WorkspaceCache } from "@/hooks/use-workspace-cache"
 import { Button } from "@/components/ui/button"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,44 +32,7 @@ import {
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
 } from "@/components/ui/sidebar"
-
-interface WorkspaceTreeProps {
-  children?: FileTree
-  item: File | Folder
-  onFileClick: (filePath: AbsolutePath) => void
-  onFolderToggle: (folderPath: Folder["path"]) => void
-  onStartRename: (item: File | Folder) => void
-  onStartDelete: (item: File | Folder) => void
-  onCreateFile: (filePath: AbsolutePath) => void
-  onCreateFolder: (folderPath: string) => void
-  selectedFilePath?: AbsolutePath | null
-  expandedFolders: ExpandedFolders
-  foldersToExpand?: string[]
-  editingItem: {
-    type: "create" | "rename"
-    path: string
-    value: string
-    originalValue?: string
-  } | null
-  setEditingItem: (
-    item: {
-      type: "create" | "rename"
-      path: string
-      value: string
-      originalValue?: string
-    } | null
-  ) => void
-  onRename: () => void
-  onRenameKeyDown: (e: React.KeyboardEvent) => void
-  onCancelRename: () => void
-  onRenameInputChange: (value: string) => void
-  validationError?: string | null
-  onFilesUpdated?: () => void
-  onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
-  workspace: WorkspaceInfo
-}
 
 // Component for the rename input field
 function RenameInput({
@@ -132,6 +83,45 @@ function RenameInput({
   )
 }
 
+function CreationInput({
+  kind,
+  onCreateFile,
+  onCreateFolder,
+  onCancel,
+}: {
+  kind: "file" | "folder"
+  onCreateFile: (path: string) => void
+  onCreateFolder: (path: string) => void
+  onCancel: () => void
+}) {
+  const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom)
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (kind === "file") {
+        onCreateFile(contextItemName)
+      } else {
+        onCreateFolder(contextItemName)
+      }
+    } else if (e.key === "Escape") {
+      onCancel()
+    }
+  }
+
+  return (
+    <SidebarMenuButton className="cursor-default">
+      <Input
+        placeholder={kind === "file" ? "filename.txt" : "folder name"}
+        value={contextItemName}
+        onChange={(e) => setContextItemName(e.target.value)}
+        onKeyDown={handleKeyDown}
+        className="h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+        autoFocus
+      />
+    </SidebarMenuButton>
+  )
+}
+
 // Component for the dropdown menu (for files and folders)
 function ItemDropdownMenu({
   item,
@@ -163,7 +153,6 @@ function ItemDropdownMenu({
 
     // Auto-expand the parent folder so the input field is visible
     if (isItemFolder && onExpandFolder) {
-      // Remove the # prefix - use the actual path directly
       onExpandFolder(itemPath, true)
     }
   }
@@ -174,7 +163,6 @@ function ItemDropdownMenu({
 
     // Auto-expand the parent folder so the input field is visible
     if (isItemFolder && onExpandFolder) {
-      // Remove the # prefix - use the actual path directly
       onExpandFolder(itemPath, true)
     }
   }
@@ -336,91 +324,86 @@ function FileStatusIndicator({ filePath }: { filePath: AbsolutePath }) {
   return null
 }
 
-function ItemButton({
-  item,
-  isSelected,
-  onClick,
-  showChevron = false,
-  workspace,
-}: {
-  item: File | Folder
-  isSelected: boolean
-  onClick: () => void
-  showChevron?: boolean
+export interface TreeRowProps {
+  flatItem: FlatTreeItem
+  onFileClick: (filePath: AbsolutePath) => void
+  onFolderToggle: (folderPath: Folder["path"]) => void
+  onStartRename: (item: File | Folder) => void
+  onStartDelete: (item: File | Folder) => void
+  onCreateFile: (name: string) => void
+  onCreateFolder: (name: string) => void
+  selectedFilePath?: AbsolutePath | null
+  editingItem: {
+    type: "create" | "rename"
+    path: string
+    value: string
+    originalValue?: string
+  } | null
+  setEditingItem: (
+    item: {
+      type: "create" | "rename"
+      path: string
+      value: string
+      originalValue?: string
+    } | null
+  ) => void
+  onRename: () => void
+  onRenameKeyDown: (e: React.KeyboardEvent) => void
+  onCancelRename: () => void
+  onRenameInputChange: (value: string) => void
+  validationError?: string | null
+  onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
   workspace: WorkspaceInfo
-}) {
-  const { cacheMap } = useWorkspaceCache(workspace.path)
-  const cached = cacheMap.has(item.path)
-
-  return (
-    <SidebarMenuButton
-      isActive={isSelected}
-      onClick={onClick}
-      className="cursor-pointer"
-    >
-      {showChevron && <ChevronRight className="transition-transform" />}
-      {React.createElement(getNavItemIcon(item))}
-      <span className="truncate">{item.name}</span>
-      {item.kind === "file" && cached && (
-        <FileStatusIndicator filePath={item.path} />
-      )}
-    </SidebarMenuButton>
-  )
+  cacheMap: WorkspaceCache
+  style?: React.CSSProperties
 }
 
-export function WorkspaceTree({
-  item,
-  children,
-  onFileClick,
+/**
+ * TreeRow renders a single item in the virtualized file tree.
+ * Handles both files and folders with proper indentation based on depth.
+ */
+export const TreeRow = React.memo(function TreeRow({
+  flatItem,
+  onFileClick: _onFileClick,
   onFolderToggle,
   onStartRename,
   onStartDelete,
   onCreateFile,
   onCreateFolder,
   selectedFilePath,
-  expandedFolders,
-  foldersToExpand = [],
   editingItem,
-  setEditingItem,
-  onRename,
+  setEditingItem: _setEditingItem,
+  onRename: _onRename,
   onRenameKeyDown,
   onCancelRename,
   onRenameInputChange,
   validationError,
-  onFilesUpdated,
   onExpandFolder,
   workspace,
-}: WorkspaceTreeProps) {
+  cacheMap,
+  style,
+}: TreeRowProps) {
+  const { item, depth, isExpanded, hasChildren: _hasChildren } = flatItem
   const filePath = item.path
 
-  // merge user preferences with auto-reveal folders
-  const mergedExpandedFolders = mergeExpandedFolders(
-    expandedFolders,
-    foldersToExpand
-  )
-  const isExpanded = mergedExpandedFolders[filePath] ?? false
   const isSelected = selectedFilePath === filePath
   const isRenaming = editingItem?.path === filePath
+  const isGitIgnored = item.isGitIgnored
 
   const [isCreatingInContext, setIsCreatingInContext] = useAtom(
     isCreatingInContextAtom
   )
-  const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom)
+  const setContextItemName = useSetAtom(contextItemNameAtom)
 
   const isCreatingInThisContext = isCreatingInContext?.parentPath === filePath
 
-  const handleContextKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      if (isCreatingInContext?.kind === "file") {
-        onCreateFile(AbsolutePath(isCreatingInContext.parentPath))
-      } else if (isCreatingInContext?.kind === "folder") {
-        onCreateFolder(isCreatingInContext.parentPath)
-      }
-    } else if (e.key === "Escape") {
-      setIsCreatingInContext(null)
-      setContextItemName("")
-    }
+  const handleCancelCreation = () => {
+    setIsCreatingInContext(null)
+    setContextItemName("")
   }
+
+  // Base indentation per level (in pixels)
+  const indentPx = depth * 12
 
   if (item.kind === "file") {
     const filePathEncoded = encodeBase64Url(AbsolutePath(filePath))
@@ -429,16 +412,20 @@ export function WorkspaceTree({
       : ""
 
     const canToggleViews = supportedViews(item.fileType).size > 1
-
-    // get the view kind and editorId from cache
-    const { cacheMap } = useWorkspaceCache(workspace.path)
     const cacheEntry = cacheMap.get(item.path)
     const view =
       cacheEntry?.view_kind ?? (canToggleViews ? undefined : "source")
     const editorId = cacheEntry?.editorId ?? undefined
+    const cached = cacheMap.has(item.path)
 
     return (
-      <SidebarMenuItem>
+      <SidebarMenuItem
+        style={{
+          ...style,
+          paddingLeft: `${indentPx}px`,
+        }}
+        className={isGitIgnored ? "opacity-50" : undefined}
+      >
         {isRenaming ? (
           <RenameInput
             value={editingItem.value}
@@ -453,16 +440,18 @@ export function WorkspaceTree({
               workspaceId: workspaceIdEncoded,
               filePath: filePathEncoded,
             }}
-            // preload="intent"
             search={{ view, editorId }}
             className="w-full"
           >
-            <ItemButton
-              item={item}
-              isSelected={isSelected}
+            <SidebarMenuButton
+              isActive={isSelected}
               onClick={() => {}}
-              workspace={workspace}
-            />
+              className="cursor-pointer"
+            >
+              {React.createElement(getNavItemIcon(item))}
+              <span className="truncate">{item.name}</span>
+              {cached && <FileStatusIndicator filePath={item.path} />}
+            </SidebarMenuButton>
           </Link>
         )}
         <ItemDropdownMenu
@@ -477,91 +466,36 @@ export function WorkspaceTree({
     )
   }
 
-  if (item.kind === "folder") {
-    return (
-      <SidebarMenuItem>
-        <Collapsible
-          className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90"
-          open={isExpanded}
-        >
-          <CollapsibleTrigger asChild>
-            {isRenaming ? (
-              <RenameInput
-                value={editingItem.value}
-                onChange={onRenameInputChange}
-                onKeyDown={onRenameKeyDown}
-                validationError={validationError}
-              />
-            ) : (
-              <ItemButton
-                item={item}
-                isSelected={isSelected}
-                onClick={() => onFolderToggle(filePath)}
-                showChevron={true}
-                workspace={workspace}
-              />
-            )}
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <SidebarMenuSub>
-              {isCreatingInThisContext && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton className="cursor-default">
-                    <Input
-                      placeholder={
-                        isCreatingInContext.kind === "file"
-                          ? "filename.txt"
-                          : "folder name"
-                      }
-                      value={contextItemName}
-                      onChange={(e) => setContextItemName(e.target.value)}
-                      onKeyDown={handleContextKeyDown}
-                      className="h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                      autoFocus
-                    />
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-              {children?.length ? (
-                children.map((subItem) => {
-                  return (
-                    <WorkspaceTree
-                      key={subItem.path}
-                      children={
-                        subItem.kind === "folder" ? subItem.children : undefined
-                      }
-                      item={subItem}
-                      onFileClick={onFileClick}
-                      onFolderToggle={onFolderToggle}
-                      onStartRename={onStartRename}
-                      onStartDelete={onStartDelete}
-                      onCreateFile={onCreateFile}
-                      onCreateFolder={onCreateFolder}
-                      selectedFilePath={selectedFilePath}
-                      expandedFolders={expandedFolders}
-                      foldersToExpand={foldersToExpand}
-                      editingItem={editingItem}
-                      setEditingItem={setEditingItem}
-                      onRename={onRename}
-                      onRenameKeyDown={onRenameKeyDown}
-                      onCancelRename={onCancelRename}
-                      onRenameInputChange={onRenameInputChange}
-                      validationError={validationError}
-                      onFilesUpdated={onFilesUpdated}
-                      onExpandFolder={onExpandFolder}
-                      workspace={workspace}
-                    />
-                  )
-                })
-              ) : (
-                <div className="pl-6 py-2 text-xs text-muted-foreground flex items-center gap-2">
-                  <FileWarning className="h-3 w-3" />
-                  <span>empty</span>
-                </div>
-              )}
-            </SidebarMenuSub>
-          </CollapsibleContent>
-        </Collapsible>
+  // Folder
+  return (
+    <>
+      <SidebarMenuItem
+        style={{
+          ...style,
+          paddingLeft: `${indentPx}px`,
+        }}
+        className={isGitIgnored ? "opacity-50" : undefined}
+      >
+        {isRenaming ? (
+          <RenameInput
+            value={editingItem.value}
+            onChange={onRenameInputChange}
+            onKeyDown={onRenameKeyDown}
+            validationError={validationError}
+          />
+        ) : (
+          <SidebarMenuButton
+            isActive={isSelected}
+            onClick={() => onFolderToggle(filePath)}
+            className="cursor-pointer"
+          >
+            <ChevronRight
+              className={`transition-transform ${isExpanded ? "rotate-90" : ""}`}
+            />
+            {React.createElement(getNavItemIcon(item))}
+            <span className="truncate">{item.name}</span>
+          </SidebarMenuButton>
+        )}
         <ItemDropdownMenu
           item={item}
           onStartRename={onStartRename}
@@ -571,6 +505,22 @@ export function WorkspaceTree({
         />
         {isRenaming && <CancelRenameButton onCancel={onCancelRename} />}
       </SidebarMenuItem>
-    )
-  }
-}
+
+      {/* Inline creation input - shown after the folder item when creating inside it */}
+      {isCreatingInThisContext && (
+        <SidebarMenuItem
+          style={{
+            paddingLeft: `${indentPx + 12}px`,
+          }}
+        >
+          <CreationInput
+            kind={isCreatingInContext.kind}
+            onCreateFile={onCreateFile}
+            onCreateFolder={onCreateFolder}
+            onCancel={handleCancelCreation}
+          />
+        </SidebarMenuItem>
+      )}
+    </>
+  )
+})
