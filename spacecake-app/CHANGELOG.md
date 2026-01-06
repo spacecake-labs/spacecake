@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.27
+
+### Patch Changes
+
+- 3574907: Improve file tree performance with virtualisation.
+
 ## 0.1.0-alpha.26
 
 ### Patch Changes
