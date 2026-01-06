@@ -18,7 +18,7 @@ import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { supportedViews } from "@/lib/language-support"
 import { encodeBase64Url } from "@/lib/utils"
 import { getNavItemIcon } from "@/lib/workspace"
-import { useWorkspaceCache } from "@/hooks/use-workspace-cache"
+import type { WorkspaceCache } from "@/hooks/use-workspace-cache"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -315,6 +315,7 @@ export interface TreeRowProps {
   validationError?: string | null
   onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
   workspace: WorkspaceInfo
+  cacheMap: WorkspaceCache
   style?: React.CSSProperties
 }
 
@@ -340,6 +341,7 @@ export function TreeRow({
   validationError,
   onExpandFolder,
   workspace,
+  cacheMap,
   style,
 }: TreeRowProps) {
   const { item, depth, isExpanded, hasChildren: _hasChildren } = flatItem
@@ -371,8 +373,6 @@ export function TreeRow({
 
   // Base indentation per level (in pixels)
   const indentPx = depth * 12
-
-  const { cacheMap } = useWorkspaceCache(workspace.path)
 
   if (item.kind === "file") {
     const filePathEncoded = encodeBase64Url(AbsolutePath(filePath))

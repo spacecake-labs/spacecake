@@ -15,6 +15,7 @@ import {
 import { flatVisibleTreeAtom, sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import { createFolder, remove, rename, saveFile } from "@/lib/fs"
 import { useRoute } from "@/hooks/use-route"
+import { useWorkspaceCache } from "@/hooks/use-workspace-cache"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -75,6 +76,8 @@ export function NavMain({
     estimateSize: () => 28, // Estimated row height
     overscan: 10,
   })
+
+  const { cacheMap } = useWorkspaceCache(workspace.path)
 
   const isCreatingInWorkspace =
     isCreatingInContext?.parentPath === workspace?.path
@@ -371,6 +374,7 @@ export function NavMain({
                         validationError={validationError}
                         onExpandFolder={onExpandFolder}
                         workspace={workspace}
+                        cacheMap={cacheMap}
                       />
                     </div>
                   )
