@@ -83,6 +83,45 @@ function RenameInput({
   )
 }
 
+function CreationInput({
+  kind,
+  onCreateFile,
+  onCreateFolder,
+  onCancel,
+}: {
+  kind: "file" | "folder"
+  onCreateFile: (path: string) => void
+  onCreateFolder: (path: string) => void
+  onCancel: () => void
+}) {
+  const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom)
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (kind === "file") {
+        onCreateFile(contextItemName)
+      } else {
+        onCreateFolder(contextItemName)
+      }
+    } else if (e.key === "Escape") {
+      onCancel()
+    }
+  }
+
+  return (
+    <SidebarMenuButton className="cursor-default">
+      <Input
+        placeholder={kind === "file" ? "filename.txt" : "folder name"}
+        value={contextItemName}
+        onChange={(e) => setContextItemName(e.target.value)}
+        onKeyDown={handleKeyDown}
+        className="h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+        autoFocus
+      />
+    </SidebarMenuButton>
+  )
+}
+
 // Component for the dropdown menu (for files and folders)
 function ItemDropdownMenu({
   item,
@@ -291,8 +330,8 @@ export interface TreeRowProps {
   onFolderToggle: (folderPath: Folder["path"]) => void
   onStartRename: (item: File | Folder) => void
   onStartDelete: (item: File | Folder) => void
-  onCreateFile: (filePath: AbsolutePath) => void
-  onCreateFolder: (folderPath: string) => void
+  onCreateFile: (name: string) => void
+  onCreateFolder: (name: string) => void
   selectedFilePath?: AbsolutePath | null
   editingItem: {
     type: "create" | "rename"
@@ -323,7 +362,7 @@ export interface TreeRowProps {
  * TreeRow renders a single item in the virtualized file tree.
  * Handles both files and folders with proper indentation based on depth.
  */
-export function TreeRow({
+export const TreeRow = React.memo(function TreeRow({
   flatItem,
   onFileClick: _onFileClick,
   onFolderToggle,
@@ -354,21 +393,13 @@ export function TreeRow({
   const [isCreatingInContext, setIsCreatingInContext] = useAtom(
     isCreatingInContextAtom
   )
-  const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom)
+  const setContextItemName = useSetAtom(contextItemNameAtom)
 
   const isCreatingInThisContext = isCreatingInContext?.parentPath === filePath
 
-  const handleContextKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      if (isCreatingInContext?.kind === "file") {
-        onCreateFile(AbsolutePath(isCreatingInContext.parentPath))
-      } else if (isCreatingInContext?.kind === "folder") {
-        onCreateFolder(isCreatingInContext.parentPath)
-      }
-    } else if (e.key === "Escape") {
-      setIsCreatingInContext(null)
-      setContextItemName("")
-    }
+  const handleCancelCreation = () => {
+    setIsCreatingInContext(null)
+    setContextItemName("")
   }
 
   // Base indentation per level (in pixels)
@@ -482,22 +513,14 @@ export function TreeRow({
             paddingLeft: `${indentPx + 12}px`,
           }}
         >
-          <SidebarMenuButton className="cursor-default">
-            <Input
-              placeholder={
-                isCreatingInContext.kind === "file"
-                  ? "filename.txt"
-                  : "folder name"
-              }
-              value={contextItemName}
-              onChange={(e) => setContextItemName(e.target.value)}
-              onKeyDown={handleContextKeyDown}
-              className="h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-              autoFocus
-            />
-          </SidebarMenuButton>
+          <CreationInput
+            kind={isCreatingInContext.kind}
+            onCreateFile={onCreateFile}
+            onCreateFolder={onCreateFolder}
+            onCancel={handleCancelCreation}
+          />
         </SidebarMenuItem>
       )}
     </>
   )
-}
+})

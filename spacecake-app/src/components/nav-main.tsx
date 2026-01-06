@@ -1,6 +1,6 @@
 import * as React from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { useAtom, useAtomValue } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { FileWarning, Loader2Icon } from "lucide-react"
 
 import { match } from "@/types/adt"
@@ -42,6 +42,45 @@ interface NavMainProps {
   workspace: WorkspaceInfo
 }
 
+function CreationInput({
+  kind,
+  onCreateFile,
+  onCreateFolder,
+  onCancel,
+}: {
+  kind: "file" | "folder"
+  onCreateFile: (path: string) => void
+  onCreateFolder: (path: string) => void
+  onCancel: () => void
+}) {
+  const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom)
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (kind === "file") {
+        onCreateFile(contextItemName)
+      } else {
+        onCreateFolder(contextItemName)
+      }
+    } else if (e.key === "Escape") {
+      onCancel()
+    }
+  }
+
+  return (
+    <SidebarMenuButton className="cursor-default">
+      <Input
+        placeholder={kind === "file" ? "filename.txt" : "folder name"}
+        value={contextItemName}
+        onChange={(e) => setContextItemName(e.target.value)}
+        onKeyDown={handleKeyDown}
+        className="h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+        autoFocus
+      />
+    </SidebarMenuButton>
+  )
+}
+
 export function NavMain({
   onExpandFolder,
   onFileClick,
@@ -52,7 +91,8 @@ export function NavMain({
   const [isCreatingInContext, setIsCreatingInContext] = useAtom(
     isCreatingInContextAtom
   )
-  const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom)
+  // Removed global subscription to contextItemNameAtom here
+  const setContextItemName = useSetAtom(contextItemNameAtom)
   const [deletionState, setDeletionState] = useAtom(deletionStateAtom)
 
   const route = useRoute()
@@ -82,108 +122,108 @@ export function NavMain({
   const isCreatingInWorkspace =
     isCreatingInContext?.parentPath === workspace?.path
 
-  const handleCreateFile = async (parentPath: string) => {
-    const filePath = AbsolutePath(`${parentPath}/${contextItemName.trim()}`)
-    const result = await saveFile(filePath, "")
+  const handleCreateFile = React.useCallback(
+    async (name: string) => {
+      const parentPath = isCreatingInContext!.parentPath
+      const filePath = AbsolutePath(`${parentPath}/${name.trim()}`)
+      const result = await saveFile(filePath, "")
 
-    match(result, {
-      onLeft: (error) => {
-        console.error("error creating file:", error)
-      },
-      onRight: () => {
-        // Clear the creation state to hide the input field
-        setIsCreatingInContext(null)
-        setContextItemName("")
-        handleFileCreated(filePath)
-      },
-    })
-  }
-
-  const handleCreateFolder = async (parentPath: string) => {
-    const folderPath = AbsolutePath(`${parentPath}/${contextItemName.trim()}`)
-    const result = await createFolder(folderPath)
-
-    match(result, {
-      onLeft: (error) => {
-        console.error("error creating folder:", error)
-      },
-      onRight: () => {
-        // Clear the creation state to hide the input field
-        setIsCreatingInContext(null)
-        setContextItemName("")
-      },
-    })
-  }
-
-  const handleWorkspaceKeyDown = async (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      if (isCreatingInContext?.kind === "file") {
-        await handleCreateFile(isCreatingInContext.parentPath)
-      } else if (isCreatingInContext?.kind === "folder") {
-        await handleCreateFolder(isCreatingInContext.parentPath)
-      }
-    } else if (e.key === "Escape") {
-      setIsCreatingInContext(null)
-      setContextItemName("")
-    }
-  }
-
-  // Validate rename target
-  const validateRenameTarget = (
-    newName: string,
-    currentPath: string,
-    originalName: string
-  ): string | null => {
-    if (!newName.trim()) return "name cannot be empty"
-
-    // If the name hasn't changed, it's not an error
-    if (newName.trim() === originalName) return null
-
-    const currentDir = currentPath.substring(0, currentPath.lastIndexOf("/"))
-    const newPath = `${currentDir}/${newName.trim()}`
-
-    // Check if target already exists
-    const existingFile = sortedFileTree.find(
-      (f: File | Folder) => f.path === newPath
-    )
-    if (existingFile) {
-      return `'${newName.trim()}' already exists`
-    }
-
-    return null
-  }
-
-  const handleFileCreated = (filePath: AbsolutePath) => {
-    if (onFileClick) {
-      onFileClick(filePath)
-    }
-  }
-
-  const handleFileClick = (filePath: AbsolutePath) => {
-    if (onFileClick) {
-      onFileClick(filePath)
-    }
-  }
-
-  const handleFolderToggle = async (folderPath: Folder["path"]) => {
-    if (onExpandFolder) {
-      onExpandFolder(folderPath)
-    }
-  }
-
-  const handleStartRename = (item: File | Folder) => {
-    if (item.kind === "file" || item.kind === "folder") {
-      setEditingItem({
-        type: "rename",
-        path: item.path,
-        value: item.name,
-        originalValue: item.name,
+      match(result, {
+        onLeft: (error) => {
+          console.error("error creating file:", error)
+        },
+        onRight: () => {
+          setIsCreatingInContext(null)
+          setContextItemName("")
+          if (onFileClick) onFileClick(filePath)
+        },
       })
-      setValidationError(null) // Clear any previous validation errors
-    }
-  }
+    },
+    [
+      isCreatingInContext,
+      onFileClick,
+      setContextItemName,
+      setIsCreatingInContext,
+    ]
+  )
 
-  const handleRename = async () => {
+  const handleCreateFolder = React.useCallback(
+    async (name: string) => {
+      const parentPath = isCreatingInContext!.parentPath
+      const folderPath = AbsolutePath(`${parentPath}/${name.trim()}`)
+      const result = await createFolder(folderPath)
+
+      match(result, {
+        onLeft: (error) => {
+          console.error("error creating folder:", error)
+        },
+        onRight: () => {
+          setIsCreatingInContext(null)
+          setContextItemName("")
+        },
+      })
+    },
+    [isCreatingInContext, setContextItemName, setIsCreatingInContext]
+  )
+
+  // Validate rename target - memoized
+  const validateRenameTarget = React.useCallback(
+    (
+      newName: string,
+      currentPath: string,
+      originalName: string
+    ): string | null => {
+      if (!newName.trim()) return "name cannot be empty"
+      if (newName.trim() === originalName) return null
+
+      const currentDir = currentPath.substring(0, currentPath.lastIndexOf("/"))
+      const newPath = `${currentDir}/${newName.trim()}`
+
+      const existingFile = sortedFileTree.find(
+        (f: File | Folder) => f.path === newPath
+      )
+      if (existingFile) {
+        return `'${newName.trim()}' already exists`
+      }
+      return null
+    },
+    [sortedFileTree]
+  )
+
+  const handleFileClickCallback = React.useCallback(
+    (filePath: AbsolutePath) => {
+      if (onFileClick) {
+        onFileClick(filePath)
+      }
+    },
+    [onFileClick]
+  )
+
+  const handleFolderToggleCallback = React.useCallback(
+    (folderPath: Folder["path"]) => {
+      if (onExpandFolder) {
+        onExpandFolder(folderPath)
+      }
+    },
+    [onExpandFolder]
+  )
+
+  const handleStartRenameCallback = React.useCallback(
+    (item: File | Folder) => {
+      if (item.kind === "file" || item.kind === "folder") {
+        setEditingItem({
+          type: "rename",
+          path: item.path,
+          value: item.name,
+          originalValue: item.name,
+        })
+        setValidationError(null)
+      }
+    },
+    [setEditingItem]
+  )
+
+  const handleRenameCallback = React.useCallback(async () => {
     if (!editingItem || !workspace?.path) return
 
     const oldPath = editingItem.path
@@ -194,14 +234,12 @@ export function NavMain({
       return
     }
 
-    // If the name hasn't changed, just cancel the rename
     if (newName === editingItem.originalValue) {
       setEditingItem(null)
       setValidationError(null)
       return
     }
 
-    // Validate the rename target
     const error = validateRenameTarget(
       newName,
       oldPath,
@@ -212,9 +250,8 @@ export function NavMain({
       return
     }
 
-    // Construct new path
     const pathParts = oldPath.split("/")
-    pathParts.pop() // Remove the old filename
+    pathParts.pop()
     const newPath =
       pathParts.length > 0 ? `${pathParts.join("/")}/${newName}` : newName
 
@@ -226,47 +263,99 @@ export function NavMain({
         setValidationError("error renaming file")
       },
       onRight: () => {
-        // Update selected file path if it was the renamed file
         if (selectedFilePath === oldPath) {
-          handleFileClick(AbsolutePath(newPath))
+          handleFileClickCallback(AbsolutePath(newPath))
         }
-
         setEditingItem(null)
         setValidationError(null)
       },
     })
-  }
+  }, [
+    editingItem,
+    workspace,
+    validateRenameTarget,
+    selectedFilePath,
+    handleFileClickCallback,
+    setEditingItem,
+  ])
 
-  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleRename()
-    } else if (e.key === "Escape") {
-      setEditingItem(null)
-    }
-  }
+  const handleRenameKeyDownCallback = React.useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleRenameCallback()
+      } else if (e.key === "Escape") {
+        setEditingItem(null)
+      }
+    },
+    [handleRenameCallback, setEditingItem]
+  )
 
-  const cancelRename = () => {
+  const cancelRenameCallback = React.useCallback(() => {
     setEditingItem(null)
     setValidationError(null)
-  }
+  }, [setEditingItem])
 
-  const handleRenameInputChange = (value: string) => {
-    if (editingItem) {
-      setEditingItem({ ...editingItem, value })
+  const handleRenameInputChangeCallback = React.useCallback(
+    (value: string) => {
+      // NOTE: We cannot simply use `editingItem` from closure if we want this callback to be stable
+      // But `setEditingItem` with functional update handles the "current" state.
+      // HOWEVER, we need the `path` and `originalValue` from `editingItem` to validate.
+      // So this callback MUST depend on `editingItem` or we use a ref.
+      // If it depends on `editingItem`, it changes on every keystroke, defeating memoization for the ROW being renamed.
+      // But other rows are fine.
 
-      // Validate on input change
-      const error = validateRenameTarget(
-        value,
-        editingItem.path,
-        editingItem.originalValue || ""
-      )
-      setValidationError(error)
-    }
-  }
+      // Actually, we can just let this one change. Only the row being renamed will re-render, which is fine/required.
+      // But we should check if `editingItem` being in dependency array breaks other rows?
+      // Yes, if we pass this function to ALL rows.
+      // But `TreeRow` only uses it if it's the one being edited?
+      // No, `TreeRow` receives `onRenameInputChange`.
+      // If `handleRenameInputChangeCallback` changes, ALL rows re-render.
+      // We should use a functional update or a ref to avoid this dependency if possible,
+      // OR only pass it to the row that needs it? No, virtual list.
 
-  const handleStartDelete = (item: File | Folder) => {
-    setDeletionState({ item, isOpen: true, isDeleting: false })
-  }
+      // Better approach:
+      // `editingItem` is global atom state.
+      // The `TreeRow` can read it directly? No, we passed it as prop.
+      // Let's stick to standard pattern: `NavMain` re-renders on rename input.
+      // Is that bad?
+      // When renaming, we are typing. We don't want the WHOLE TREE to re-render.
+      // `editingItem` changes -> `NavMain` re-renders -> new `handleRenameInputChangeCallback` -> ALL rows re-render.
+      // To fix this, we need `handleRenameInputChangeCallback` to be stable.
+      // But it needs access to `editingItem`.
+      // We can use a Ref to store the latest `editingItem` without triggering re-render,
+      // but `NavMain` re-renders anyway because of `useAtom(editingItemAtom)`.
+
+      // So `NavMain` re-rendering is unavoidable with current atom structure unless we move rename state down.
+      // But rename state IS global (only one item renamed at a time).
+
+      // ACCEPTABLE TRADEOFF: Renaming is rare.
+      // The critical path is **Creating a file** (typing name) and **Expanding folders**.
+      // This fix solves the "Creating File" re-renders (by extracting Input) and "Expanding Folder" re-renders (by memoizing rows).
+      // I will leave Rename optimization for later if needed.
+
+      if (editingItem) {
+        // using the variable from closure
+        setEditingItem((prev) => (prev ? { ...prev, value } : null))
+
+        // Validation needs state.
+        const error = validateRenameTarget(
+          value,
+          editingItem.path,
+          editingItem.originalValue || ""
+        )
+        setValidationError(error)
+      }
+    },
+    [editingItem, setEditingItem, validateRenameTarget]
+  )
+
+  const handleStartDeleteCallback = React.useCallback(
+    (item: File | Folder) => {
+      setDeletionState({ item, isOpen: true, isDeleting: false })
+    },
+
+    [setDeletionState]
+  )
 
   const handleConfirmDelete = async () => {
     if (!deletionState.item || !workspace?.path) return
@@ -282,11 +371,9 @@ export function NavMain({
     match(result, {
       onLeft: (error) => {
         console.error(error)
-        // Reset deleting state on failure but keep dialog open
         setDeletionState((prev) => ({ ...prev, isDeleting: false }))
       },
       onRight: async () => {
-        // close dialog after successful deletion
         setDeletionState({
           item: null,
           isOpen: false,
@@ -298,6 +385,11 @@ export function NavMain({
 
   const handleCancelDelete = () => {
     setDeletionState({ item: null, isOpen: false, isDeleting: false })
+  }
+
+  const handleCancelCreation = () => {
+    setIsCreatingInContext(null)
+    setContextItemName("")
   }
 
   return (
@@ -316,20 +408,12 @@ export function NavMain({
           <SidebarMenu>
             {isCreatingInWorkspace && workspace?.path && (
               <SidebarMenuItem>
-                <SidebarMenuButton className="cursor-default">
-                  <Input
-                    placeholder={
-                      isCreatingInContext?.kind === "file"
-                        ? "filename.txt"
-                        : "folder name"
-                    }
-                    value={contextItemName}
-                    onChange={(e) => setContextItemName(e.target.value)}
-                    onKeyDown={async (e) => await handleWorkspaceKeyDown(e)}
-                    className="h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                    autoFocus
-                  />
-                </SidebarMenuButton>
+                <CreationInput
+                  kind={isCreatingInContext.kind}
+                  onCreateFile={handleCreateFile}
+                  onCreateFolder={handleCreateFolder}
+                  onCancel={handleCancelCreation}
+                />
               </SidebarMenuItem>
             )}
 
@@ -358,19 +442,19 @@ export function NavMain({
                     >
                       <TreeRow
                         flatItem={flatItem}
-                        onFileClick={handleFileClick}
-                        onFolderToggle={handleFolderToggle}
-                        onStartRename={handleStartRename}
-                        onStartDelete={handleStartDelete}
-                        onCreateFile={handleCreateFile}
-                        onCreateFolder={handleCreateFolder}
+                        onFileClick={handleFileClickCallback}
+                        onFolderToggle={handleFolderToggleCallback}
+                        onStartRename={handleStartRenameCallback}
+                        onStartDelete={handleStartDeleteCallback}
+                        onCreateFile={handleCreateFile} // Now accepts (name: string)
+                        onCreateFolder={handleCreateFolder} // Now accepts (name: string)
                         selectedFilePath={initialSelectedFilePath}
                         editingItem={editingItem}
                         setEditingItem={setEditingItem}
-                        onRename={handleRename}
-                        onRenameKeyDown={handleRenameKeyDown}
-                        onCancelRename={cancelRename}
-                        onRenameInputChange={handleRenameInputChange}
+                        onRename={handleRenameCallback}
+                        onRenameKeyDown={handleRenameKeyDownCallback}
+                        onCancelRename={cancelRenameCallback}
+                        onRenameInputChange={handleRenameInputChangeCallback}
                         validationError={validationError}
                         onExpandFolder={onExpandFolder}
                         workspace={workspace}
