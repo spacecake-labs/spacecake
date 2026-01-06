@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 
 import { buildCSPString } from "@/csp"
+import { fixPath } from "@/main-process/fix-path"
 import * as ParcelWatcher from "@/main-process/parcel-watcher"
 import { watcherService } from "@/main-process/watcher"
 import { Ipc } from "@/services/ipc"
@@ -106,6 +107,7 @@ const AppLive = Layer.mergeAll(Ipc.Default, WatcherLive)
 // --- Main Program
 const program = Effect.gen(function* (_) {
   yield* _(Effect.promise(() => app.whenReady()))
+  yield* _(Effect.promise(() => fixPath()))
 
   if (!app.isPackaged) {
     const userDataPath = app.getPath("userData")

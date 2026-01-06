@@ -56,6 +56,7 @@ test.describe("ghostty terminal", () => {
 
     // Test: Interact with terminal - set a variable and verify CWD
     await terminalElement.click()
+    await window.waitForTimeout(100)
     await window.keyboard.type("export TEST_VAR=123 && pwd", { delay: 50 })
     await window.keyboard.press("Enter")
 
@@ -75,6 +76,7 @@ test.describe("ghostty terminal", () => {
 
     // Verify variable still exists (same session)
     await terminalElement.click()
+    await window.waitForTimeout(100)
     await window.keyboard.type("echo $TEST_VAR", { delay: 50 })
     await window.keyboard.press("Enter")
 
@@ -99,6 +101,7 @@ test.describe("ghostty terminal", () => {
     // Use a marker command to distinguish the output - echo the variable with a prefix
     // If the variable is unset, we'll see just the prefix; if set, we'll see prefix+value
     await terminalElement.click()
+    await window.waitForTimeout(100)
     await window.keyboard.type("echo MARKER:$TEST_VAR:END", { delay: 50 })
     await window.keyboard.press("Enter")
 
