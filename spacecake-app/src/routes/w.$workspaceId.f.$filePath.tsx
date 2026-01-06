@@ -20,11 +20,14 @@ import {
   type ChangeType,
 } from "@/types/lexical"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
+import { expandedFoldersAtom } from "@/lib/atoms/atoms"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { getFoldersToExpand } from "@/lib/auto-reveal"
 import {
   createEditorConfigFromContent,
   createEditorConfigFromState,
 } from "@/lib/editor"
+import { store } from "@/lib/store"
 import { decodeBase64Url } from "@/lib/utils"
 import { Editor } from "@/components/editor/editor"
 import { FileConflictBanner } from "@/components/editor/file-conflict-banner"
@@ -40,8 +43,19 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
     Schema.decodeUnknownSync(fileSearchSchema)(search),
   loaderDeps: ({ search: { view, editorId } }) => ({ view, editorId }),
   loader: async ({ params, deps: { view, editorId }, context }) => {
-    const { paneId } = context
+    const { paneId, workspace } = context
     const filePath = AbsolutePath(decodeBase64Url(params.filePath))
+
+    // Auto-reveal: expand parent folders to show the file in the tree
+    const foldersToExpand = getFoldersToExpand(filePath, workspace.path)
+
+    store.set(expandedFoldersAtom, (prev) => {
+      const next = { ...prev }
+      foldersToExpand.forEach((folder) => {
+        next[folder] = true
+      })
+      return next
+    })
 
     const initialState = await RuntimeClient.runPromise(
       Effect.gen(function* () {

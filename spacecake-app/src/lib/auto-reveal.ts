@@ -12,7 +12,7 @@ import { toRelativePath } from "@/lib/utils"
 export function getFoldersToExpand(
   filePath: AbsolutePath,
   workspacePath: AbsolutePath
-): string[] {
+): AbsolutePath[] {
   // Convert to relative path and split into segments
   const relativePath = toRelativePath(workspacePath, filePath)
   const pathSegments = relativePath.split("/")
@@ -21,7 +21,7 @@ export function getFoldersToExpand(
   pathSegments.pop()
 
   // Build folder paths progressively
-  const foldersToExpand: string[] = []
+  const foldersToExpand: AbsolutePath[] = []
   let currentPath = workspacePath
 
   for (const segment of pathSegments) {

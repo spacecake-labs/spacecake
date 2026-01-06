@@ -1,23 +1,18 @@
 import * as React from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import { useAtom, useAtomValue } from "jotai"
 import { FileWarning, Loader2Icon } from "lucide-react"
 
 import { match } from "@/types/adt"
-import type {
-  ExpandedFolders,
-  File,
-  Folder,
-  WorkspaceInfo,
-} from "@/types/workspace"
+import type { File, Folder, WorkspaceInfo } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
 import {
   contextItemNameAtom,
   deletionStateAtom,
   editingItemAtom,
-  expandedFoldersAtom,
   isCreatingInContextAtom,
 } from "@/lib/atoms/atoms"
-import { sortedFileTreeAtom } from "@/lib/atoms/file-tree"
+import { flatVisibleTreeAtom, sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import { createFolder, remove, rename, saveFile } from "@/lib/fs"
 import { useRoute } from "@/hooks/use-route"
 import { Button } from "@/components/ui/button"
@@ -37,29 +32,22 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import {
-  WorkspaceDropdownMenu,
-  WorkspaceTree,
-} from "@/components/workspace-tree"
+import { TreeRow, WorkspaceDropdownMenu } from "@/components/workspace-tree"
 
 interface NavMainProps {
   onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
-  expandedFolders?: ExpandedFolders
   onFileClick?: (filePath: AbsolutePath) => void
   selectedFilePath?: AbsolutePath | null
-  foldersToExpand?: string[]
   workspace: WorkspaceInfo
 }
 
 export function NavMain({
   onExpandFolder,
   onFileClick,
-  selectedFilePath: initialSelectedFilePath, // renamed to avoid conflict
-  foldersToExpand = [],
+  selectedFilePath: initialSelectedFilePath,
   workspace,
 }: NavMainProps) {
   const [editingItem, setEditingItem] = useAtom(editingItemAtom)
-  const [expandedFoldersState] = useAtom(expandedFoldersAtom)
   const [isCreatingInContext, setIsCreatingInContext] = useAtom(
     isCreatingInContextAtom
   )
@@ -75,6 +63,18 @@ export function NavMain({
   )
 
   const sortedFileTree = useAtomValue(sortedFileTreeAtom)
+  const flatVisibleTree = useAtomValue(flatVisibleTreeAtom)
+
+  // Ref for the scrollable container
+  const parentRef = React.useRef<HTMLDivElement>(null)
+
+  // Virtualizer for the flattened tree
+  const rowVirtualizer = useVirtualizer({
+    count: flatVisibleTree.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 28, // Estimated row height
+    overscan: 10,
+  })
 
   const isCreatingInWorkspace =
     isCreatingInContext?.parentPath === workspace?.path
@@ -154,11 +154,6 @@ export function NavMain({
     if (onFileClick) {
       onFileClick(filePath)
     }
-  }
-
-  const handleFilesUpdated = () => {
-    // This will be called when files are updated through context-aware creation
-    // The file tree will be automatically updated through the atoms
   }
 
   const handleFileClick = (filePath: AbsolutePath) => {
@@ -304,71 +299,98 @@ export function NavMain({
 
   return (
     <>
-      <SidebarGroup>
-        <SidebarGroupLabel className="flex items-center justify-between">
+      <SidebarGroup className="flex flex-col h-full overflow-hidden">
+        <SidebarGroupLabel className="flex items-center justify-between shrink-0">
           {<span>{workspace?.path.split("/").pop() ?? "workspace"}</span>}
           {workspace?.path && <WorkspaceDropdownMenu workspace={workspace} />}
         </SidebarGroupLabel>
 
-        <SidebarMenu>
-          {isCreatingInWorkspace && workspace?.path && (
-            <SidebarMenuItem>
-              <SidebarMenuButton className="cursor-default">
-                <Input
-                  placeholder={
-                    isCreatingInContext?.kind === "file"
-                      ? "filename.txt"
-                      : "folder name"
-                  }
-                  value={contextItemName}
-                  onChange={(e) => setContextItemName(e.target.value)}
-                  onKeyDown={async (e) => await handleWorkspaceKeyDown(e)}
-                  className="h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                  autoFocus
-                />
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
-          {workspace?.path &&
-            sortedFileTree &&
-            sortedFileTree.map((item) => (
-              <WorkspaceTree
-                key={item.path}
-                children={item.kind === "folder" ? item.children : undefined}
-                item={item}
-                onFileClick={handleFileClick}
-                onFolderToggle={handleFolderToggle}
-                onStartRename={handleStartRename}
-                onStartDelete={handleStartDelete}
-                onCreateFile={handleCreateFile}
-                onCreateFolder={handleCreateFolder}
-                selectedFilePath={initialSelectedFilePath}
-                expandedFolders={expandedFoldersState}
-                foldersToExpand={foldersToExpand}
-                editingItem={editingItem}
-                setEditingItem={setEditingItem}
-                onRename={handleRename}
-                onRenameKeyDown={handleRenameKeyDown}
-                onCancelRename={cancelRename}
-                onRenameInputChange={handleRenameInputChange}
-                validationError={validationError}
-                onFilesUpdated={handleFilesUpdated}
-                onExpandFolder={onExpandFolder}
-                workspace={workspace}
-              />
-            ))}
-          {/* Add empty state when workspace has no files/folders */}
-          {workspace?.path && !sortedFileTree?.length && (
-            <SidebarMenuItem>
-              <SidebarMenuButton className="cursor-default">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <FileWarning className="h-3 w-3" />
-                  <span>empty</span>
-                </div>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
-        </SidebarMenu>
+        <div
+          ref={parentRef}
+          className="flex-1 overflow-auto"
+          style={{ contain: "strict" }}
+        >
+          <SidebarMenu>
+            {isCreatingInWorkspace && workspace?.path && (
+              <SidebarMenuItem>
+                <SidebarMenuButton className="cursor-default">
+                  <Input
+                    placeholder={
+                      isCreatingInContext?.kind === "file"
+                        ? "filename.txt"
+                        : "folder name"
+                    }
+                    value={contextItemName}
+                    onChange={(e) => setContextItemName(e.target.value)}
+                    onKeyDown={async (e) => await handleWorkspaceKeyDown(e)}
+                    className="h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                    autoFocus
+                  />
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+
+            {/* Virtualized tree rendering */}
+            {workspace?.path && flatVisibleTree.length > 0 && (
+              <div
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                  const flatItem = flatVisibleTree[virtualItem.index]
+                  return (
+                    <div
+                      key={flatItem.item.path}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: `${virtualItem.size}px`,
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                    >
+                      <TreeRow
+                        flatItem={flatItem}
+                        onFileClick={handleFileClick}
+                        onFolderToggle={handleFolderToggle}
+                        onStartRename={handleStartRename}
+                        onStartDelete={handleStartDelete}
+                        onCreateFile={handleCreateFile}
+                        onCreateFolder={handleCreateFolder}
+                        selectedFilePath={initialSelectedFilePath}
+                        editingItem={editingItem}
+                        setEditingItem={setEditingItem}
+                        onRename={handleRename}
+                        onRenameKeyDown={handleRenameKeyDown}
+                        onCancelRename={cancelRename}
+                        onRenameInputChange={handleRenameInputChange}
+                        validationError={validationError}
+                        onExpandFolder={onExpandFolder}
+                        workspace={workspace}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Empty state when workspace has no files/folders */}
+            {workspace?.path && !flatVisibleTree.length && (
+              <SidebarMenuItem>
+                <SidebarMenuButton className="cursor-default">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <FileWarning className="h-3 w-3" />
+                    <span>empty</span>
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+          </SidebarMenu>
+        </div>
       </SidebarGroup>
 
       {/* Delete Confirmation Dialog */}

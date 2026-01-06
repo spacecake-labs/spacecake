@@ -24,7 +24,6 @@ import {
   isCreatingInContextAtom,
 } from "@/lib/atoms/atoms"
 import { fileStateAtomFamily, setFileTreeAtom } from "@/lib/atoms/file-tree"
-import { getFoldersToExpand } from "@/lib/auto-reveal"
 import { exists, readDirectory } from "@/lib/fs"
 import { store } from "@/lib/store"
 import { cn, condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
@@ -222,11 +221,6 @@ function LayoutContent() {
     }
   }, [isTerminalCollapsed])
 
-  // compute folders to auto-reveal based on current file
-  const foldersToExpand = selectedFilePath
-    ? getFoldersToExpand(selectedFilePath, workspace.path)
-    : []
-
   const handleFileClick = (filePath: AbsolutePath) => {
     if (workspace?.path) {
       const workspaceIdEncoded = encodeBase64Url(workspace.path)
@@ -248,7 +242,6 @@ function LayoutContent() {
           onFileClick={handleFileClick}
           workspace={workspace}
           selectedFilePath={selectedFilePath}
-          foldersToExpand={foldersToExpand}
         />
         <main className="bg-background relative flex w-full flex-1 flex-col overflow-auto rounded-xl shadow-sm h-full p-2">
           <header className="flex h-16 shrink-0 items-center gap-2 justify-between">
@@ -280,7 +273,6 @@ function LayoutContent() {
           onFileClick={handleFileClick}
           workspace={workspace}
           selectedFilePath={selectedFilePath}
-          foldersToExpand={foldersToExpand}
         />
       </ResizablePanel>
       <ResizableHandle withHandle className="w-0" />

@@ -31,24 +31,21 @@ interface AppSidebarProps {
   onFileClick?: (filePath: AbsolutePath) => void
   workspace: WorkspaceInfo
   selectedFilePath?: AbsolutePath | null
-  foldersToExpand?: string[]
 }
 
 export function AppSidebar({
   onFileClick,
   workspace,
   selectedFilePath,
-  foldersToExpand = [],
 }: AppSidebarProps) {
   const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom)
 
   const handleExpandFolder = async (
-    folderPath: Folder["path"], // This is now the actual path, not a URL
+    folderPath: Folder["path"],
     forceExpand?: boolean
   ) => {
-    // Check if folder is currently expanded/auto-revealed using the actual path
-    const isCurrentlyExpanded =
-      expandedFolders[folderPath] ?? foldersToExpand.includes(folderPath)
+    // Check if folder is currently expanded
+    const isCurrentlyExpanded = !!expandedFolders[folderPath]
 
     // Determine if we should expand the folder
     const shouldExpand =
@@ -95,10 +92,8 @@ export function AppSidebar({
       <SidebarContent>
         <NavMain
           onExpandFolder={handleExpandFolder}
-          expandedFolders={expandedFolders}
           onFileClick={onFileClick}
           selectedFilePath={selectedFilePath}
-          foldersToExpand={foldersToExpand}
           workspace={workspace}
         />
         {/* <NavProjects projects={[]} />
