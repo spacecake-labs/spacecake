@@ -4,8 +4,6 @@ import * as Path from "node:path"
 import { Context, Effect, Layer } from "effect"
 import ignore from "ignore"
 
-import { DEFAULT_FILE_EXCLUDES } from "@/lib/ignore-patterns"
-
 export interface GitIgnoreConfig {
   readonly extraPatterns: readonly string[]
 }
@@ -196,7 +194,7 @@ export class GitIgnore extends Effect.Service<GitIgnore>()("GitIgnore", {
           }
         }
 
-        // Apply extra patterns (e.g. DEFAULT_FILE_EXCLUDES)
+        // Apply extra patterns
         if (processedExtraPatterns.length > 0) {
           ig.add(processedExtraPatterns)
         }
@@ -242,5 +240,5 @@ export class GitIgnore extends Effect.Service<GitIgnore>()("GitIgnore", {
 
 export const GitIgnoreLive = Layer.provide(
   GitIgnore.Default,
-  Layer.succeed(GitIgnoreConfig, { extraPatterns: DEFAULT_FILE_EXCLUDES })
+  Layer.succeed(GitIgnoreConfig, { extraPatterns: [] })
 )
