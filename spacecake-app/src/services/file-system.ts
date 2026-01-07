@@ -10,7 +10,7 @@ import writeFileAtomic from "write-file-atomic"
 import type { File, FileContent, FileTree, Folder } from "@/types/workspace"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
-import { SKIP_DIRECTORIES } from "@/lib/ignore-patterns"
+import { EXCLUDED_ENTRIES } from "@/lib/ignore-patterns"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 
 export class FileSystemError extends Data.TaggedError("FileSystemError")<{
@@ -126,11 +126,6 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         const tree: FileTree = []
 
         for (const entryName of entries) {
-          // Skip directories that shouldn't be traversed (performance)
-          if (SKIP_DIRECTORIES.has(entryName)) {
-            continue
-          }
-
           // Skip .asar archives - Electron fakes fs.stat for these and causes issues
           if (entryName.endsWith(".asar")) {
             continue
@@ -147,6 +142,11 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
           }
 
           const stats = statsResult.right
+
+          // Skip excluded entries (files and directories)
+          if (EXCLUDED_ENTRIES.has(entryName)) {
+            continue
+          }
 
           const isGitIgnored = yield* gitIgnore.isIgnored(
             workspacePath,
