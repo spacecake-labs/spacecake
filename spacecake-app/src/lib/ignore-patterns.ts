@@ -1,142 +1,77 @@
 /**
- * https://github.com/google-gemini/gemini-cli/blob/main/packages/core/src/utils/ignorePatterns.ts
+ * Ignore patterns for spacecake.
+ *
+ * - WATCHER_IGNORE_PATTERNS: Files/dirs that should not trigger file watcher events
+ * - EXCLUDED_ENTRIES: Entry names (files and dirs) to skip during file tree traversal (performance/stability)
  */
 
 /**
- * Common ignore patterns used across multiple tools for basic exclusions.
- * These are the most commonly ignored directories in development projects.
- */
-export const COMMON_IGNORE_PATTERNS: string[] = [
-  "**/node_modules/**",
-  "**/.git/**",
-  "**/bower_components/**",
-  "**/.svn/**",
-  "**/.hg/**",
-]
-
-/**
- * Binary file extension patterns that are typically excluded from text processing.
- */
-export const BINARY_FILE_PATTERNS: string[] = [
-  "**/*.bin",
-  "**/*.exe",
-  "**/*.dll",
-  "**/*.so",
-  "**/*.dylib",
-  "**/*.class",
-  "**/*.jar",
-  "**/*.war",
-  "**/*.zip",
-  "**/*.tar",
-  "**/*.gz",
-  "**/*.bz2",
-  "**/*.rar",
-  "**/*.7z",
-  "**/*.doc",
-  "**/*.docx",
-  "**/*.xls",
-  "**/*.xlsx",
-  "**/*.ppt",
-  "**/*.pptx",
-  "**/*.odt",
-  "**/*.ods",
-  "**/*.odp",
-]
-
-/**
- * Media file patterns that require special handling in tools like read-many-files.
- * These files can be processed as inlineData when explicitly requested.
- */
-export const MEDIA_FILE_PATTERNS: string[] = [
-  "**/*.pdf",
-  "**/*.png",
-  "**/*.jpg",
-  "**/*.jpeg",
-  "**/*.gif",
-  "**/*.webp",
-  "**/*.bmp",
-  "**/*.svg",
-]
-
-/**
- * Common directory patterns that are typically ignored in development projects.
- */
-export const COMMON_DIRECTORY_EXCLUDES: string[] = [
-  "**/.vscode/**",
-  "**/.idea/**",
-  "**/dist/**",
-  "**/build/**",
-  "**/coverage/**",
-  "**/__pycache__/**",
-  "**/.pnpm-store/**",
-  // Package managers & Caches
-  "**/.yarn/cache/**",
-  "**/.yarn/unplugged/**",
-  "**/.gradle/**",
-  "**/.cache/**",
-  "**/tmp/**",
-  // Compiled output
-  "**/target/**", // Rust, Maven
-  "**/out/**", // Common build output
-]
-
-/**
- * Python-specific patterns.
- */
-export const PYTHON_EXCLUDES: string[] = ["**/*.pyc", "**/*.pyo"]
-
-/**
- * System and environment file patterns.
- */
-export const SYSTEM_FILE_EXCLUDES: string[] = ["**/.DS_Store", "**/.env"]
-
-// Stat information is fake for `asar` archives:
-// https://www.electronjs.org/docs/latest/tutorial/asar-archives#fake-stat-information-of-fsstat
-export const ELECTRON_EXCLUDES: string[] = ["**/*.asar/**"]
-
-/**
- * Minimal ignore patterns for file watcher.
- * Only includes patterns that would cause performance issues or have no value.
- * Gitignored files are watched so they can appear in the UI (with dimmed styling).
+ * Patterns for the file watcher (parcel).
+ * These prevent unnecessary file events from being generated.
+ * Includes common development tool directories and system files.
  */
 export const WATCHER_IGNORE_PATTERNS: string[] = [
-  "**/node_modules/**",
+  // Version control
   "**/.git/**",
+  "**/.svn/**",
+  "**/.hg/**",
+  "**/.jj/**",
+
+  // Package managers & dependencies
+  "**/node_modules/**",
+
+  // Build outputs
+  "**/dist/**",
+  "**/build/**",
+  "**/out/**",
+  "**/target/**",
+
+  // IDE/editor caches
+  "**/.vscode/**",
+  "**/.idea/**",
+  "**/.zed/**",
+
+  // System files
   "**/.DS_Store",
   "**/Thumbs.db",
+
+  // Temporary files
   "**/*.swp",
   "**/*.swo",
-  ...ELECTRON_EXCLUDES,
+
+  // Electron asar archives (fake fs.stat)
+  "**/*.asar/**",
 ]
 
 /**
- * Directories that should never be traversed during file tree building.
- * These can cause errors (broken symlinks), be extremely large, or have no value.
- * Note: Uses simple name matching for performance.
+ * Entry names (files and directories) that should be excluded during file tree traversal.
+ * Uses simple name matching for performance during directory walk.
+ * These entries either cause issues (broken symlinks), are extremely large,
+ * or have no value to display in the UI.
+ *
+ * Aligns with VSCode and Zed exclusion patterns for consistency.
  */
-export const SKIP_DIRECTORIES = new Set([
-  "node_modules",
+export const EXCLUDED_ENTRIES = new Set([
+  // Directories
   ".git",
+  ".svn",
+  ".hg",
+  ".jj",
+  "node_modules",
+  ".vscode",
+  ".idea",
+  ".zed",
+  "dist",
+  "build",
+  "out",
+  "target",
+  ".cache",
   ".pnpm-store",
   ".yarn",
   ".gradle",
   "__pycache__",
-  ".cache",
   "bower_components",
-  ".svn",
-  ".hg",
+  // Files
+  ".DS_Store",
+  "Thumbs.db",
 ])
-
-/**
- * Comprehensive file exclusion patterns combining all common ignore patterns.
- * These patterns are compatible with glob ignore patterns.
- * Note: Media files (PDF, images) are not excluded here as they need special handling in read-many-files.
- */
-export const DEFAULT_FILE_EXCLUDES: string[] = [
-  ...COMMON_IGNORE_PATTERNS,
-  ...COMMON_DIRECTORY_EXCLUDES,
-  ...BINARY_FILE_PATTERNS,
-  ...PYTHON_EXCLUDES,
-  ...SYSTEM_FILE_EXCLUDES,
-  ...ELECTRON_EXCLUDES,
-]
