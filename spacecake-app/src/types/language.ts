@@ -20,7 +20,9 @@ export const LanguageSchema = Schema.Union(
   Schema.Literal(FileType.Kotlin),
   Schema.Literal(FileType.JSON),
   Schema.Literal(FileType.YAML),
-  Schema.Literal(FileType.TOML)
+  Schema.Literal(FileType.TOML),
+  Schema.Literal(FileType.CSS),
+  Schema.Literal(FileType.Shell)
 )
 export type Language = typeof LanguageSchema.Type
 
@@ -171,5 +173,19 @@ export const LANGUAGE_SUPPORT: Record<FileType, LanguageSpec> = {
     extensions: new Set([".txt", ".text"]),
     supportedViews: new Set(["source"]),
     codemirrorName: "plaintext",
+  },
+  [FileType.CSS]: {
+    name: "CSS",
+    code: "css",
+    extensions: new Set([".css"]),
+    supportedViews: new Set(["source"]),
+    codemirrorName: "css",
+  },
+  [FileType.Shell]: {
+    name: "Shell",
+    code: "sh",
+    extensions: new Set([".sh", ".bash", ".ksh"]),
+    supportedViews: new Set(["source"]),
+    codemirrorName: "shell",
   },
 }

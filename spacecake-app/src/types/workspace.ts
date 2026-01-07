@@ -40,7 +40,9 @@ export const FileTypeSchema = Schema.Union(
   Schema.Literal("kotlin"),
   Schema.Literal("json"),
   Schema.Literal("yaml"),
-  Schema.Literal("toml")
+  Schema.Literal("toml"),
+  Schema.Literal("css"),
+  Schema.Literal("shell")
 )
 export type FileType = typeof FileTypeSchema.Type
 
@@ -64,6 +66,8 @@ export const FileType = {
   JSON: "json" as const,
   YAML: "yaml" as const,
   TOML: "toml" as const,
+  CSS: "css" as const,
+  Shell: "shell" as const,
 } as const
 
 export const ZERO_HASH = "0000000000000000"
