@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.28
+
+### Patch Changes
+
+- 9fed83d: Improving file ignore patterns and fixing key commands in code blocks.
+
 ## 0.1.0-alpha.27
 
 ### Patch Changes
