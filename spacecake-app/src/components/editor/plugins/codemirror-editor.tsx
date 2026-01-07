@@ -402,6 +402,15 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       }
 
       const onKeyDown = (ev: KeyboardEvent) => {
+        // allow cmd+O (open workspace) and cmd+P (quick open) to propagate to document handlers
+        const isOpenWorkspaceKey = (ev.metaKey || ev.ctrlKey) && ev.key === "o"
+        const isQuickOpenKey = (ev.metaKey || ev.ctrlKey) && ev.key === "p"
+
+        if (isOpenWorkspaceKey || isQuickOpenKey) {
+          ev.preventDefault()
+          return
+        }
+
         // prevent lexical from handling keystrokes while in codemirror
         ev.stopPropagation()
 
