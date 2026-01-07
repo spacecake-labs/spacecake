@@ -58,6 +58,12 @@ export function fileTypeFromExtension(extension: string): FileType {
       return FileType.YAML
     case "toml":
       return FileType.TOML
+    case "css":
+      return FileType.CSS
+    case "sh":
+    case "bash":
+    case "ksh":
+      return FileType.Shell
     default:
       return FileType.Plaintext
   }
@@ -112,6 +118,13 @@ export function fileTypeFromLanguage(language: string): FileType {
       return FileType.YAML
     case "toml":
       return FileType.TOML
+    case "css":
+      return FileType.CSS
+    case "shell":
+    case "bash":
+    case "sh":
+    case "zsh":
+      return FileType.Shell
     default:
       return FileType.Plaintext
   }
@@ -178,6 +191,10 @@ export function fileTypeEmoji(fileType: FileType): string {
       return "⚙️"
     case FileType.TOML:
       return "⚙️"
+    case FileType.CSS:
+      return "🎨"
+    case FileType.Shell:
+      return "🐚"
     case FileType.Plaintext:
     default:
       return "📄"
