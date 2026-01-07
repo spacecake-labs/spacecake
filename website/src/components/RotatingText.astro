@@ -1,0 +1,110 @@
+---
+interface Props {
+  items: string[]
+}
+
+const { items } = Astro.props
+---
+
+<div class="rotating-text-container">
+  <div class="rotating-text-inner">
+    {items.map((item, i) => (
+      <div class="rotating-text-item" data-index={i}>
+        <span class="rotating-text-gradient">{item}</span>
+      </div>
+    ))}
+  </div>
+  <span class="rotating-text-placeholder">{items[0]}</span>
+</div>
+
+<style>
+  .rotating-text-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 1.2em;
+    overflow: hidden;
+    font-size: clamp(var(--sl-text-3xl, 1.875rem), calc(0.25rem + 5vw), var(--sl-text-6xl, 3.75rem));
+    line-height: var(--sl-line-height-headings, 1.6);
+    font-weight: 600;
+  }
+
+  .rotating-text-inner {
+    position: absolute;
+    inset: 0;
+  }
+
+  .rotating-text-item {
+    position: absolute;
+    inset: 0;
+    transition: all 700ms ease-in-out;
+    opacity: 0;
+    transform: translateY(100%) scale(0.8);
+  }
+
+  .rotating-text-item[data-state="active"] {
+    opacity: 1;
+    transform: translateY(0%) scale(1);
+  }
+
+  .rotating-text-item[data-state="exited"] {
+    opacity: 0;
+    transform: translateY(-100%) scale(0.8);
+  }
+
+  .rotating-text-gradient {
+    background: linear-gradient(to right, rgb(52, 211, 153), rgb(34, 211, 238), rgb(59, 130, 246));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    font-weight: 600;
+    display: block;
+  }
+
+  .rotating-text-placeholder {
+    visibility: hidden;
+    font-weight: 600;
+  }
+</style>
+
+<script>
+  function initRotatingText() {
+    const containers = document.querySelectorAll('.rotating-text-container');
+
+    containers.forEach(container => {
+      const items = container.querySelectorAll('.rotating-text-item');
+      const itemCount = items.length;
+      let index = 0;
+
+      // Set initial state
+      items[0].setAttribute('data-state', 'active');
+
+      setInterval(() => {
+        const prevIndex = index;
+        index = (index + 1) % itemCount;
+
+        // Previous item exits up
+        items[prevIndex].setAttribute('data-state', 'exited');
+
+        // New item enters from below
+        items[index].setAttribute('data-state', 'active');
+
+        // Reset exited items to below position after transition
+        setTimeout(() => {
+          items.forEach((item, i) => {
+            if (i !== index) {
+              item.removeAttribute('data-state');
+            }
+          });
+        }, 700);
+      }, 3000);
+    });
+  }
+
+  // Run on initial load
+  initRotatingText();
+
+  // Re-run after Astro page transitions
+  document.addEventListener('astro:after-swap', initRotatingText);
+</script>
+
