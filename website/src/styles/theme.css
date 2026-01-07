@@ -1,8 +1,8 @@
 /* Dark mode colors. */
 :root {
-    --sl-color-accent-low: #C4A38A;
-    --sl-color-accent: #C4A38A;
-    --sl-color-accent-high: #C4A38A;
+    --sl-color-accent-low: #D69F8B;
+    --sl-color-accent: #D69F8B;
+    --sl-color-accent-high: #D69F8B;
     --sl-color-white: #ffffff;
     --sl-color-gray-1: #eeeeee;
     --sl-color-gray-2: #c2c2c2;
@@ -69,18 +69,19 @@
     height: 2.25rem;
 }
 
-/* Primary variant (download buttons) - solid background - dark mode */
+/* Primary variant (download buttons) - solid background */
 a[class*="button"][class*="primary"],
 button[class*="primary"] {
-    background-color: #ffffff;
-    color: #181818;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    background-color: var(--sl-color-bg);
+    color: #ffffff;
+    border: 1px solid transparent;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15), 0 4px 12px rgba(255, 255, 255, 0.1);
 }
 
 a[class*="button"][class*="primary"]:hover,
 button[class*="primary"]:hover {
-    background-color: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    background-color: color-mix(in srgb, var(--sl-color-bg) 80%, #ffffff);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 8px 16px rgba(255, 255, 255, 0.15);
 }
 
 /* Secondary variant (get started button) - outline style */
