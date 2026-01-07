@@ -1,8 +1,17 @@
+/* Geist font from Fontsource */
+@import url('https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5/index.min.css');
+@import url('https://cdn.jsdelivr.net/npm/@fontsource/geist-mono@5/index.min.css');
+
 /* Dark mode colors. */
 :root {
-    --sl-color-accent-low: #D69F8B;
-    --sl-color-accent: #D69F8B;
-    --sl-color-accent-high: #D69F8B;
+    /* Font */
+    --sl-font: 'Geist Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    --sl-font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    --sl-color-accent-low: #ffffff;
+    --sl-color-accent: #ffffff;
+    /* --sl-color-accent-high: #C4A38A; */
+    --sl-color-accent-high: #ffffff;
     --sl-color-white: #ffffff;
     --sl-color-gray-1: #eeeeee;
     --sl-color-gray-2: #c2c2c2;
@@ -17,15 +26,19 @@
     --sl-color-bg-sidebar: oklch(0.145 0 0);
     /* Code block background */
     --sl-color-bg-code: #1e293b;
-    /* Navigation/header background */
-    --sl-color-bg-nav: oklch(0.205 0 0);
+    /* Navigation/header background - completely black in dark mode */
+    --sl-color-bg-nav: #000000;
+
+    /* Wider content for homepage */
+    --sl-nav-pad-x: 2rem;
 }
 
 /* Light mode colors. */
 :root[data-theme='light'] {
-    --sl-color-accent-low: #A87C6C;
-    --sl-color-accent: #A87C6C;
-    --sl-color-accent-high: #A87C6C;
+    --sl-color-accent-low: #181818;
+    --sl-color-accent: #181818;
+    /* --sl-color-accent-high: #A87C6C; */
+    --sl-color-accent-high: #181818;
     --sl-color-white: #181818;
     --sl-color-gray-1: #272727;
     --sl-color-gray-2: #383838;
@@ -122,4 +135,23 @@ button[class*="secondary"]:hover {
 :root[data-theme='light'] a[class*="button"][class*="secondary"]:hover,
 :root[data-theme='light'] button[class*="secondary"]:hover {
     background-color: color-mix(in srgb, var(--sl-color-accent) 10%, transparent);
+}
+
+/* Wider content layout for splash/homepage */
+[data-has-hero] main {
+    --sl-content-width: 100%;
+    max-width: 100%;
+    padding-inline: 4rem;
+}
+
+@media (min-width: 50rem) {
+    [data-has-hero] main {
+        padding-inline: 6rem;
+    }
+}
+
+@media (min-width: 72rem) {
+    [data-has-hero] main {
+        padding-inline: 8rem;
+    }
 }
