@@ -5,6 +5,7 @@ import { buildCSPString } from "@/csp"
 import { fixPath } from "@/main-process/fix-path"
 import * as ParcelWatcher from "@/main-process/parcel-watcher"
 import { watcherService } from "@/main-process/watcher"
+import { ClaudeCodeServer } from "@/services/claude-code-server"
 import { Ipc } from "@/services/ipc"
 import { setupUpdates } from "@/update"
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
@@ -102,7 +103,11 @@ const WatcherLive = NodeFileSystem.layer.pipe(
 
 // The final composed layer for the whole app.
 // Layer.merge combines independent layers.
-const AppLive = Layer.mergeAll(Ipc.Default, WatcherLive)
+const AppLive = Layer.mergeAll(
+  Ipc.Default,
+  WatcherLive,
+  ClaudeCodeServer.Default
+)
 
 // --- Main Program
 const program = Effect.gen(function* (_) {
@@ -164,8 +169,9 @@ const program = Effect.gen(function* (_) {
 
 // --- Main Execution
 // A separate effect that provides the services and handles errors
-const main = Effect.scoped(program).pipe(
+const main = program.pipe(
   Effect.provide(AppLive),
+  Effect.scoped,
   Effect.catchAll(Effect.logError)
 )
 

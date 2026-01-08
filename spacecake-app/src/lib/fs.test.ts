@@ -11,6 +11,10 @@ import { openDirectory, readFile, saveFile } from "@/lib/fs"
 const createTestElectronAPI = (
   overrides: Partial<ElectronAPI> = {}
 ): ElectronAPI => ({
+  claude: {
+    notifySelectionChanged: async () => {},
+    notifyAtMentioned: async () => {},
+  },
   showOpenDialog: async () => ({ canceled: false, filePaths: ["/test/path"] }),
   readFile: async () => right(createTestFileContent()),
   saveFile: async () => right(undefined),
