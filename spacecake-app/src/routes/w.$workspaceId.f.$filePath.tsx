@@ -14,6 +14,7 @@ import { useSetAtom } from "jotai"
 import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 
 import { match } from "@/types/adt"
+import { type SelectionChangedPayload } from "@/types/claude-code"
 import {
   SerializedSelectionSchema,
   ViewKindSchema,
@@ -133,10 +134,69 @@ function FileLayout() {
   const { filePath, editorConfig, key, editorId, fileId } =
     Route.useLoaderData()
   const { db } = Route.useRouteContext()
+  const { view: viewKind } = Route.useSearch()
 
   const sendFileState = useSetAtom(fileStateAtomFamily(filePath))
 
   const send = useActorRef(fileMachine).send
+
+  // Helper to extract selected text from Lexical editor state
+  const getSelectedTextFromLexical = (editorState: EditorState): string => {
+    let text = ""
+    editorState.read(() => {
+      const selection = $getSelection()
+      if ($isRangeSelection(selection)) {
+        text = selection.getTextContent()
+      }
+    })
+    return text
+  }
+
+  // Helper to notify Claude Code of selection changes
+  const notifyClaudeCodeSelection = (
+    selectedText: string,
+    isEmpty: boolean,
+    selectionInfo?: {
+      startLine?: number
+      startChar?: number
+      endLine?: number
+      endChar?: number
+    }
+  ) => {
+    if (!window.electronAPI?.claude?.notifySelectionChanged) {
+      return
+    }
+
+    // In source view, use actual line/character from CodeMirror
+    // In rich view, use text-based positions since line numbers don't correspond to file
+    const selection =
+      viewKind === "source" && selectionInfo
+        ? {
+            start: {
+              line: selectionInfo.startLine ?? 0,
+              character: selectionInfo.startChar ?? 0,
+            },
+            end: {
+              line: selectionInfo.endLine ?? 0,
+              character: selectionInfo.endChar ?? selectedText.length,
+            },
+            isEmpty: isEmpty,
+          }
+        : {
+            start: { line: 0, character: 0 },
+            end: { line: 0, character: selectedText.length },
+            isEmpty: isEmpty,
+          }
+
+    const payload: SelectionChangedPayload = {
+      text: selectedText,
+      filePath: filePath,
+      fileUrl: `file://${filePath}`,
+      selection,
+    }
+
+    window.electronAPI.claude.notifySelectionChanged(payload)
+  }
 
   RuntimeClient.runPromise(
     Effect.gen(function* () {
@@ -185,6 +245,13 @@ function FileLayout() {
                   selection: serializedSelection,
                 },
               })
+
+              // Notify Claude Code of selection change
+              const selectedText = getSelectedTextFromLexical(editorState)
+              notifyClaudeCodeSelection(
+                selectedText,
+                !selectedText || selectedText.length === 0
+              )
             } else {
               sendFileState({ type: "file.edit" })
               send({
@@ -208,6 +275,11 @@ function FileLayout() {
               selection,
             },
           })
+
+          // TODO: Pass selected text and line/character info from CodeMirror editor
+          // For now, notify with empty text and no line/character
+          // When Editor component is updated to provide this data, extract and pass selectionInfo
+          notifyClaudeCodeSelection("", !selection)
         }}
       />
     </>

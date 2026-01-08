@@ -8,9 +8,16 @@ import { ipcMain } from "electron"
 import { WebSocket, WebSocketServer } from "ws"
 
 import { AbsolutePath } from "@/types/workspace"
+import { claudeCodeReadyAtom } from "@/lib/atoms/atoms"
+import { store } from "@/lib/store"
 
 export interface ClaudeCodeServerService {
   readonly broadcast: (method: string, params: unknown) => void
+}
+
+interface JsonRpcMessage {
+  readonly method: string
+  readonly id?: number | string
 }
 
 const PORT_RANGE_START = 10000
@@ -78,9 +85,36 @@ export class ClaudeCodeServer extends Effect.Service<ClaudeCodeServer>()(
 
         ws.on("message", (message) => {
           try {
-            const data = JSON.parse(message.toString()) as unknown
-            // Handle incoming messages if any (e.g. tools/call)
-            // For now, we mainly listen.
+            const data = JSON.parse(message.toString()) as JsonRpcMessage
+
+            // Handle initialize request
+            if (data.method === "initialize" && data.id !== undefined) {
+              ws.send(
+                JSON.stringify({
+                  jsonrpc: "2.0",
+                  id: data.id,
+                  result: {
+                    protocolVersion: "2025-11-25",
+                    capabilities: {
+                      tools: {
+                        listChanged: true,
+                      },
+                      resources: {},
+                    },
+                    serverInfo: { name: "spacecake", version: "1.0" },
+                  },
+                })
+              )
+              return
+            }
+
+            // Track when Claude Code IDE connects (ready to receive context)
+            if (data.method === "ide_connected") {
+              store.set(claudeCodeReadyAtom, true)
+              console.log("Claude Code Server: IDE connected and ready")
+              return
+            }
+
             console.log("Claude Code Server: Received message", data)
           } catch (err) {
             console.error("Claude Code Server: Error parsing message", err)
@@ -136,6 +170,7 @@ export class ClaudeCodeServer extends Effect.Service<ClaudeCodeServer>()(
         Effect.addFinalizer(() =>
           Effect.gen(function* (_) {
             console.log("Claude Code Server: Stopping...")
+            store.set(claudeCodeReadyAtom, false)
             wss.close()
             const exists = yield* _(fsService.exists(lockFilePath))
             if (exists) {
