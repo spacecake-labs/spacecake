@@ -18,6 +18,7 @@ import {
   SerializedSelectionSchema,
   ViewKindSchema,
   type ChangeType,
+  type SerializedSelection,
 } from "@/types/lexical"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { expandedFoldersAtom } from "@/lib/atoms/atoms"
@@ -197,6 +198,15 @@ function FileLayout() {
                 },
               })
             }
+          })
+        }}
+        onCodeMirrorSelection={(selection: SerializedSelection) => {
+          send({
+            type: "editor.selection.update",
+            editorSelection: {
+              id: editorId,
+              selection,
+            },
           })
         }}
       />

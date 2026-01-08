@@ -1,5 +1,9 @@
 import { contextBridge, ipcRenderer } from "electron"
 
+import {
+  AtMentionedPayload,
+  SelectionChangedPayload,
+} from "@/types/claude-code"
 import type { FileContent, FileTreeEvent } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
 
@@ -9,6 +13,12 @@ import { AbsolutePath } from "@/types/workspace"
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld("electronAPI", {
+  claude: {
+    notifySelectionChanged: (payload: SelectionChangedPayload) =>
+      ipcRenderer.invoke("claude:selection-changed", payload),
+    notifyAtMentioned: (payload: AtMentionedPayload) =>
+      ipcRenderer.invoke("claude:at-mentioned", payload),
+  },
   showOpenDialog: (options: unknown) =>
     ipcRenderer.invoke("show-open-dialog", options),
   readDirectory: (dirPath: string) => {

@@ -8,16 +8,25 @@ import {
   InitialConfigType,
   LexicalComposer,
 } from "@lexical/react/LexicalComposer"
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { EditorRefPlugin } from "@lexical/react/LexicalEditorRefPlugin"
 import { useAtomValue } from "jotai"
-import { type EditorState, type SerializedEditorState } from "lexical"
+import {
+  COMMAND_PRIORITY_NORMAL,
+  type EditorState,
+  type SerializedEditorState,
+} from "lexical"
 
-import { type ChangeType } from "@/types/lexical"
+import { type ChangeType, type SerializedSelection } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { debounce } from "@/lib/utils"
 import { nodes } from "@/components/editor/nodes"
 import { Plugins } from "@/components/editor/plugins"
+import {
+  CODEMIRROR_SELECTION_COMMAND,
+  type CodeMirrorSelectionPayload,
+} from "@/components/editor/plugins/codemirror-editor"
 import { OnChangePlugin } from "@/components/editor/plugins/on-change"
 import { editorTheme } from "@/components/editor/theme"
 
@@ -28,6 +37,35 @@ interface EditorProps {
   filePath: AbsolutePath
 
   onChange: (editorState: EditorState, changeType: ChangeType) => void
+  onCodeMirrorSelection?: (selection: SerializedSelection) => void
+}
+
+// Plugin to listen for CodeMirror selection changes and forward them
+function CodeMirrorSelectionPlugin({
+  onSelection,
+}: {
+  onSelection?: (selection: SerializedSelection) => void
+}) {
+  const [editor] = useLexicalComposerContext()
+
+  React.useEffect(() => {
+    if (!onSelection) return
+
+    return editor.registerCommand<CodeMirrorSelectionPayload>(
+      CODEMIRROR_SELECTION_COMMAND,
+      (payload) => {
+        const serializedSelection: SerializedSelection = {
+          anchor: { key: payload.nodeKey, offset: payload.anchor },
+          focus: { key: payload.nodeKey, offset: payload.head },
+        }
+        onSelection(serializedSelection)
+        return true
+      },
+      COMMAND_PRIORITY_NORMAL
+    )
+  }, [editor, onSelection])
+
+  return null
 }
 
 export const editorConfig: InitialConfigType = {
@@ -45,6 +83,7 @@ export function Editor({
   editorSerializedState,
   filePath,
   onChange,
+  onCodeMirrorSelection,
 }: EditorProps) {
   const context = React.useContext(RouteContext)
   const { editorRef } = useEditor()
@@ -106,8 +145,10 @@ export function Editor({
 
         <EditorRefPlugin editorRef={editorRef} />
 
+        <CodeMirrorSelectionPlugin onSelection={onCodeMirrorSelection} />
+
         <OnChangePlugin
-          onChange={(editorState, editor, tags, changeType) => {
+          onChange={(editorState, _editor, _tags, changeType) => {
             lastStateRef.current = editorState
 
             if (changeType === "content") {

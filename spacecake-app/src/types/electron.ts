@@ -1,6 +1,10 @@
 import { FileSystemError } from "@/services/file-system"
 
 import { type Either } from "@/types/adt"
+import {
+  AtMentionedPayload,
+  SelectionChangedPayload,
+} from "@/types/claude-code"
 import { TerminalError } from "@/types/terminal"
 import type {
   AbsolutePath,
@@ -10,6 +14,10 @@ import type {
 } from "@/types/workspace"
 
 export interface ElectronAPI {
+  claude: {
+    notifySelectionChanged: (payload: SelectionChangedPayload) => Promise<void>
+    notifyAtMentioned: (payload: AtMentionedPayload) => Promise<void>
+  }
   showOpenDialog: (options: unknown) => Promise<{
     canceled: boolean
     filePaths: string[]
