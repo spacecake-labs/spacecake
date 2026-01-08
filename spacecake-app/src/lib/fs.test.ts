@@ -14,6 +14,7 @@ const createTestElectronAPI = (
   claude: {
     notifySelectionChanged: async () => {},
     notifyAtMentioned: async () => {},
+    onStatusChange: () => () => {},
   },
   showOpenDialog: async () => ({ canceled: false, filePaths: ["/test/path"] }),
   readFile: async () => right(createTestFileContent()),
