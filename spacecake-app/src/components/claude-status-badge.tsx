@@ -9,6 +9,7 @@ interface ClaudeStatusBadgeProps {
 
 export function ClaudeStatusBadge({ className }: ClaudeStatusBadgeProps) {
   const status = useAtomValue(claudeCodeStatusAtom)
+
   const statusConfig = {
     connected: {
       dotColor: "bg-emerald-500",
