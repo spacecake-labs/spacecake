@@ -41,6 +41,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
+import { ClaudeStatusBadge } from "@/components/claude-status-badge"
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { GhosttyTerminal, TerminalAPI } from "@/components/ghostty-terminal"
 import { LoadingAnimation } from "@/components/loading-animation"
@@ -319,24 +320,27 @@ function LayoutContent() {
                     <Terminal className="h-4 w-4" />
                     <span className="font-mono">terminal</span>
                   </div>
-                  <button
-                    onClick={() => {
-                      if (isTerminalCollapsed && !isTerminalSessionActive) {
-                        setIsTerminalSessionActive(true)
+                  <div className="flex items-center gap-3">
+                    <ClaudeStatusBadge className="text-xs" />
+                    <button
+                      onClick={() => {
+                        if (isTerminalCollapsed && !isTerminalSessionActive) {
+                          setIsTerminalSessionActive(true)
+                        }
+                        setIsTerminalCollapsed(!isTerminalCollapsed)
+                      }}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={
+                        isTerminalCollapsed ? "show terminal" : "hide terminal"
                       }
-                      setIsTerminalCollapsed(!isTerminalCollapsed)
-                    }}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label={
-                      isTerminalCollapsed ? "show terminal" : "hide terminal"
-                    }
-                  >
-                    {isTerminalCollapsed ? (
-                      <ChevronUp className="cursor-pointer h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="cursor-pointer h-4 w-4" />
-                    )}
-                  </button>
+                    >
+                      {isTerminalCollapsed ? (
+                        <ChevronUp className="cursor-pointer h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="cursor-pointer h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div
                   className={cn(

@@ -3,13 +3,18 @@ import os from "node:os"
 import path from "node:path"
 
 import { FileSystem } from "@/services/file-system"
-import { Effect } from "effect"
-import { ipcMain } from "electron"
+import { Console, Effect } from "effect"
+import { BrowserWindow, ipcMain } from "electron"
 import { WebSocket, WebSocketServer } from "ws"
 
+import type { ClaudeCodeStatus } from "@/types/claude-code"
 import { AbsolutePath } from "@/types/workspace"
-import { claudeCodeReadyAtom } from "@/lib/atoms/atoms"
-import { store } from "@/lib/store"
+
+function broadcastClaudeCodeStatus(status: ClaudeCodeStatus) {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    win.webContents.send("claude-code-status", status)
+  })
+}
 
 export interface ClaudeCodeServerService {
   readonly broadcast: (method: string, params: unknown) => void
@@ -37,6 +42,8 @@ export class ClaudeCodeServer extends Effect.Service<ClaudeCodeServer>()(
       const fsService = yield* _(FileSystem)
 
       const startServer = Effect.gen(function* (_) {
+        broadcastClaudeCodeStatus("connecting")
+
         const port = getRandomPort()
         const wss = yield* _(
           Effect.async<WebSocketServer, Error>((resume) => {
@@ -76,12 +83,12 @@ export class ClaudeCodeServer extends Effect.Service<ClaudeCodeServer>()(
       wss.on("connection", (ws, req) => {
         const authHeader = req.headers["x-claude-code-ide-authorization"]
         if (authHeader !== authToken) {
-          console.warn("Claude Code Server: Unauthorized connection attempt")
+          Console.warn("Claude Code Server: Unauthorized connection attempt")
           ws.close(1008, "Unauthorized")
           return
         }
 
-        console.log("Claude Code Server: Client connected")
+        Console.log("Claude Code Server: Client connected")
 
         ws.on("message", (message) => {
           try {
@@ -110,14 +117,14 @@ export class ClaudeCodeServer extends Effect.Service<ClaudeCodeServer>()(
 
             // Track when Claude Code IDE connects (ready to receive context)
             if (data.method === "ide_connected") {
-              store.set(claudeCodeReadyAtom, true)
-              console.log("Claude Code Server: IDE connected and ready")
+              broadcastClaudeCodeStatus("connected")
+              Console.log("Claude Code Server: IDE connected and ready")
               return
             }
 
-            console.log("Claude Code Server: Received message", data)
+            Console.log("Claude Code Server: Received message", data)
           } catch (err) {
-            console.error("Claude Code Server: Error parsing message", err)
+            Console.error("Claude Code Server: Error parsing message", err)
           }
         })
       })
@@ -134,11 +141,11 @@ export class ClaudeCodeServer extends Effect.Service<ClaudeCodeServer>()(
         yield* _(
           fsService.writeTextFile(lockFilePath, JSON.stringify(lockData))
         )
-        console.log(
+        Console.log(
           `Claude Code Server listening on port ${port}, lock file: ${lockFilePath}`
         )
       } catch (error) {
-        console.error("Failed to write lock file", error)
+        Console.error("Failed to write lock file", error)
       }
 
       const broadcast = (method: string, params: unknown) => {
@@ -169,8 +176,8 @@ export class ClaudeCodeServer extends Effect.Service<ClaudeCodeServer>()(
       yield* _(
         Effect.addFinalizer(() =>
           Effect.gen(function* (_) {
-            console.log("Claude Code Server: Stopping...")
-            store.set(claudeCodeReadyAtom, false)
+            Console.log("Claude Code Server: Stopping...")
+            broadcastClaudeCodeStatus("disconnected")
             wss.close()
             const exists = yield* _(fsService.exists(lockFilePath))
             if (exists) {

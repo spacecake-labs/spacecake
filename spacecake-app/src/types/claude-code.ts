@@ -14,3 +14,5 @@ export interface AtMentionedPayload {
   lineStart: number
   lineEnd: number
 }
+
+export type ClaudeCodeStatus = "connected" | "connecting" | "disconnected"
