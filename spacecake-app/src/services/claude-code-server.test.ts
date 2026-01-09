@@ -1,19 +1,15 @@
 import path from "path"
 
+import { makeClaudeCodeServer } from "@/services/claude-code-server"
+import { FileSystem } from "@/services/file-system"
 import { Effect, Layer } from "effect"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import WebSocket from "ws"
 
-import { makeClaudeCodeServer } from "./claude-code-server"
-import { FileSystem } from "./file-system"
+import { SelectionChangedPayload } from "@/types/claude-code"
 
 interface IpcEvent {
   readonly sender?: unknown
-}
-
-interface SelectionChangedPayload {
-  readonly file: string
-  readonly range: { readonly start: number; readonly end: number }
 }
 
 const mocks = vi.hoisted(() => ({
@@ -214,7 +210,15 @@ describe("ClaudeCodeServer", () => {
           const handler = mocks.ipcHandlers.get("claude:selection-changed")
           if (!handler) throw new Error("Handler not registered")
 
-          const payload = { file: "test.ts", range: { start: 0, end: 10 } }
+          const payload: SelectionChangedPayload = {
+            text: "const x = 1",
+            filePath: "/path/to/test.ts",
+            selection: {
+              start: { line: 0, character: 0 },
+              end: { line: 0, character: 11 },
+              isEmpty: false,
+            },
+          }
           // Trigger the handler. First arg is event (mocked as {}), second is payload
           handler({}, payload)
 
