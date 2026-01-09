@@ -1,65 +1,95 @@
-import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
+import type { EditorState } from "@codemirror/state"
 
-import { type SelectionChangedPayload } from "@/types/claude-code"
+import { type ClaudeSelection } from "@/types/claude-code"
 
 /**
- * Helper to extract selected text from Lexical editor state
+ * Result of extracting selection info from CodeMirror state.
+ * Contains both the selected text and the ClaudeSelection format.
  */
-export const getSelectedTextFromLexical = (
-  editorState: EditorState
-): string => {
-  let text = ""
-  editorState.read(() => {
-    const selection = $getSelection()
-    if ($isRangeSelection(selection)) {
-      text = selection.getTextContent()
-    }
-  })
-  return text
+export interface CodeMirrorSelectionInfo {
+  selectedText: string
+  claudeSelection: ClaudeSelection
 }
 
 /**
- * Helper to construct the Claude Code selection payload
+ * Extract selection info from CodeMirror EditorState for sending to Claude.
+ * This is the same logic used in production in codemirror-editor.tsx.
+ *
+ * @param state - CodeMirror EditorState
+ * @param anchor - Selection anchor position (can be before or after head)
+ * @param head - Selection head position (can be before or after anchor)
+ * @returns Selected text and ClaudeSelection with 0-based line numbers
  */
-export const createClaudeSelectionPayload = (params: {
-  filePath: string
-  viewKind?: string | null
-  selectedText: string
-  isEmpty: boolean
-  selectionInfo?: {
-    startLine?: number
-    startChar?: number
-    endLine?: number
-    endChar?: number
-  }
-}): SelectionChangedPayload => {
-  const { filePath, viewKind, selectedText, isEmpty, selectionInfo } = params
+export const extractCodeMirrorSelectionInfo = (
+  state: EditorState,
+  anchor: number,
+  head: number
+): CodeMirrorSelectionInfo => {
+  const from = Math.min(anchor, head)
+  const to = Math.max(anchor, head)
+  const selectedText = state.sliceDoc(from, to)
 
-  // In source view, use actual line/character from CodeMirror
-  // In rich view, use text-based positions since line numbers don't correspond to file
-  const selection =
-    viewKind === "source" && selectionInfo
-      ? {
-          start: {
-            line: selectionInfo.startLine ?? 0,
-            character: selectionInfo.startChar ?? 0,
-          },
-          end: {
-            line: selectionInfo.endLine ?? 0,
-            character: selectionInfo.endChar ?? selectedText.length,
-          },
-          isEmpty: isEmpty,
-        }
-      : {
-          start: { line: 0, character: 0 },
-          end: { line: 0, character: selectedText.length },
-          isEmpty: isEmpty,
-        }
+  const startLine = state.doc.lineAt(from)
+  const endLine = state.doc.lineAt(to)
+
+  const claudeSelection = createSourceViewClaudeSelection({
+    startLineNumber: startLine.number,
+    startLineStartOffset: startLine.from,
+    endLineNumber: endLine.number,
+    endLineStartOffset: endLine.from,
+    selectionFrom: from,
+    selectionTo: to,
+  })
+
+  return { selectedText, claudeSelection }
+}
+
+/**
+ * Pure function to create a ClaudeSelection for Rich View.
+ * Since Rich View doesn't map 1:1 to source lines, we treat it as a single block
+ * from (0, 0) to (0, length).
+ */
+export const createRichViewClaudeSelection = (
+  text: string
+): ClaudeSelection => {
+  const length = text.length
+  return {
+    start: { line: 0, character: 0 },
+    end: { line: 0, character: length },
+    isEmpty: !text || length === 0,
+  }
+}
+
+/**
+ * Pure function to create a ClaudeSelection for Source View (CodeMirror).
+ * Handles the conversion from CodeMirror's 1-based line numbers to 0-based.
+ */
+export const createSourceViewClaudeSelection = (params: {
+  startLineNumber: number // 1-based
+  startLineStartOffset: number
+  endLineNumber: number // 1-based
+  endLineStartOffset: number
+  selectionFrom: number
+  selectionTo: number
+}): ClaudeSelection => {
+  const {
+    startLineNumber,
+    startLineStartOffset,
+    endLineNumber,
+    endLineStartOffset,
+    selectionFrom,
+    selectionTo,
+  } = params
 
   return {
-    text: selectedText,
-    filePath: filePath,
-    fileUrl: `file://${filePath}`,
-    selection,
+    start: {
+      line: startLineNumber - 1,
+      character: selectionFrom - startLineStartOffset,
+    },
+    end: {
+      line: endLineNumber - 1,
+      character: selectionTo - endLineStartOffset,
+    },
+    isEmpty: selectionFrom === selectionTo,
   }
 }

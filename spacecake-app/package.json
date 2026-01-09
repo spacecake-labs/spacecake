@@ -14,7 +14,7 @@
     "drizzle": "pnpm drizzle-kit generate",
     "lint": "eslint --fix --ext .ts,.tsx .",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write .",
+    "format": "prettier --log-level warn --write .",
     "unit-test": "vitest run",
     "coverage": "vitest run --coverage",
     "e2e-test": "cross-env IS_PLAYWRIGHT=true playwright test",

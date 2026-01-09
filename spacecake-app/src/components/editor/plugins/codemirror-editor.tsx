@@ -19,8 +19,10 @@ import {
   SKIP_DOM_SELECTION_TAG,
 } from "lexical"
 
+import type { ClaudeSelection } from "@/types/claude-code"
 import type { LanguageSpec } from "@/types/language"
 import type { Block } from "@/types/parser"
+import { extractCodeMirrorSelectionInfo } from "@/lib/selection-utils"
 import { debounce } from "@/lib/utils"
 import { CodeBlock } from "@/components/code-block"
 import {
@@ -38,6 +40,8 @@ export interface CodeMirrorSelectionPayload {
   nodeKey: string
   anchor: number
   head: number
+  selectedText: string
+  claudeSelection: ClaudeSelection
 }
 
 export const CODEMIRROR_SELECTION_COMMAND: LexicalCommand<CodeMirrorSelectionPayload> =
@@ -414,11 +418,17 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   const debouncedSelectionRef = React.useRef(
     debounce(() => {
       const sel = pendingSelectionRef.current
-      if (sel) {
+      const view = editorViewRef.current
+      if (sel && view) {
+        const { selectedText, claudeSelection } =
+          extractCodeMirrorSelectionInfo(view.state, sel.anchor, sel.head)
+
         editor.dispatchCommand(CODEMIRROR_SELECTION_COMMAND, {
           nodeKey,
           anchor: sel.anchor,
           head: sel.head,
+          selectedText,
+          claudeSelection,
         })
       }
     }, debounceMs)
