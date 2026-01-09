@@ -97,7 +97,7 @@ export function slashCommandOptions(
               Promise.resolve(
                 setTimeout(() => {
                   codeNode.select()
-                }, 100)
+                }, 0)
               )
             } else {
               // Will this ever happen?
