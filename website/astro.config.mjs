@@ -23,6 +23,7 @@ export default defineConfig({
       ],
       components: {
         Hero: "./src/components/Hero.astro",
+        Head: "./src/components/PostHog.astro",
       },
       customCss: ["./src/styles/theme.css"],
     }),
