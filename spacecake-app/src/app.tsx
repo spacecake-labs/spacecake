@@ -6,6 +6,7 @@ import { PostHogProvider } from "posthog-js/react"
 import ReactDOM from "react-dom/client"
 
 import { initializeDatabase } from "@/lib/init-database"
+import posthog from "@/lib/posthog-client"
 import { store } from "@/lib/store"
 import { useTheme } from "@/components/theme-provider"
 
@@ -24,21 +25,9 @@ function RootWithTheme() {
   return <RouterProvider router={router} context={{ db }} />
 }
 
-const PUBLIC_POSTHOG_KEY = "phc_tie9HcJtBH5SkcTLpsJaUnq7X8adjIpDU4flhefHdWJ"
-const PUBLIC_POSTHOG_HOST = "https://us.i.posthog.com"
-
 root.render(
   <Provider store={store}>
-    <PostHogProvider
-      apiKey={PUBLIC_POSTHOG_KEY}
-      options={{
-        api_host: PUBLIC_POSTHOG_HOST,
-        defaults: "2025-05-24",
-        capture_exceptions: true,
-        cookieless_mode: "always",
-        person_profiles: "identified_only",
-      }}
-    >
+    <PostHogProvider client={posthog}>
       <EditorProvider>
         <RootWithTheme />
       </EditorProvider>
