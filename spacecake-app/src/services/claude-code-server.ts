@@ -3,11 +3,16 @@ import os from "node:os"
 import path from "node:path"
 
 import { FileSystem } from "@/services/file-system"
-import { Console, Effect } from "effect"
+import { Console, Effect, Either, Schema } from "effect"
 import { BrowserWindow, ipcMain } from "electron"
 import { WebSocket, WebSocketServer } from "ws"
 
 import type { ClaudeCodeStatus } from "@/types/claude-code"
+import {
+  AtMentionedPayloadSchema,
+  SelectionChangedPayloadSchema,
+} from "@/types/claude-code"
+import { JsonRpcMessageSchema, type JsonRpcResponse } from "@/types/rpc"
 import { AbsolutePath } from "@/types/workspace"
 
 function broadcastClaudeCodeStatus(status: ClaudeCodeStatus) {
@@ -18,11 +23,6 @@ function broadcastClaudeCodeStatus(status: ClaudeCodeStatus) {
 
 export interface ClaudeCodeServerService {
   readonly broadcast: (method: string, params: unknown) => void
-}
-
-interface JsonRpcMessage {
-  readonly method: string
-  readonly id?: number | string
 }
 
 const PORT_RANGE_START = 10000
@@ -88,40 +88,56 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
     Console.log("Claude Code Server: Client connected")
 
     ws.on("message", (message) => {
+      let parsed: unknown
       try {
-        const data = JSON.parse(message.toString()) as JsonRpcMessage
-
-        // Handle initialize request
-        if (data.method === "initialize" && data.id !== undefined) {
-          ws.send(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              id: data.id,
-              result: {
-                protocolVersion: "2025-11-25",
-                capabilities: {
-                  tools: {
-                    listChanged: true,
-                  },
-                  resources: {},
-                },
-                serverInfo: { name: "spacecake", version: "1.0" },
-              },
-            })
-          )
-          return
-        }
-
-        // Track when Claude Code IDE connects (ready to receive context)
-        if (data.method === "ide_connected") {
-          broadcastClaudeCodeStatus("connected")
-          Console.log("Claude Code Server: IDE connected and ready")
-          return
-        }
-        Console.log("Claude Code Server: Received message", data)
+        parsed = JSON.parse(message.toString())
       } catch (err) {
-        Console.error("Claude Code Server: Error parsing message", err)
+        Console.error("claude code server: failed to parse json", err)
+        return
       }
+
+      const decoded = Schema.decodeUnknownEither(JsonRpcMessageSchema)(parsed)
+      if (Either.isLeft(decoded)) {
+        Console.error(
+          "claude code server: invalid json-rpc message",
+          decoded.left
+        )
+        return
+      }
+
+      const data = decoded.right
+
+      // Handle initialize request
+      if (
+        data.method === "initialize" &&
+        data.id !== null &&
+        data.id !== undefined
+      ) {
+        const initResponse = {
+          jsonrpc: "2.0",
+          id: data.id,
+          result: {
+            protocolVersion: "2025-11-25",
+            capabilities: {
+              tools: {
+                listChanged: true,
+              },
+              resources: {},
+            },
+            serverInfo: { name: "spacecake", version: "1.0" },
+          },
+        } satisfies JsonRpcResponse
+        ws.send(JSON.stringify(initResponse))
+        return
+      }
+
+      // Track when Claude Code IDE connects (ready to receive context)
+      if (data.method === "ide_connected") {
+        broadcastClaudeCodeStatus("connected")
+        Console.log("claude code server: ide connected and ready")
+        return
+      }
+      Console.log("claude code server: received message", data)
     })
   })
 
@@ -157,11 +173,31 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
 
   // Register IPC handlers
   ipcMain.handle("claude:selection-changed", (_, payload) => {
-    broadcast("selection_changed", payload)
+    const decoded = Schema.decodeUnknownEither(SelectionChangedPayloadSchema)(
+      payload
+    )
+    if (Either.isLeft(decoded)) {
+      Console.error(
+        "claude code server: invalid selection changed payload",
+        decoded.left
+      )
+      return
+    }
+    broadcast("selection_changed", decoded.right)
   })
 
   ipcMain.handle("claude:at-mentioned", (_, payload) => {
-    broadcast("at_mentioned", payload)
+    const decoded = Schema.decodeUnknownEither(AtMentionedPayloadSchema)(
+      payload
+    )
+    if (Either.isLeft(decoded)) {
+      Console.error(
+        "claude code server: invalid at-mentioned payload",
+        decoded.left
+      )
+      return
+    }
+    broadcast("at_mentioned", decoded.right)
   })
 
   process.env.CLAUDE_CODE_SSE_PORT = port.toString()
