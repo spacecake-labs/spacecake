@@ -14,7 +14,6 @@ import { useSetAtom } from "jotai"
 import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 
 import { match } from "@/types/adt"
-import { type SelectionChangedPayload } from "@/types/claude-code"
 import {
   SerializedSelectionSchema,
   ViewKindSchema,
@@ -29,6 +28,10 @@ import {
   createEditorConfigFromContent,
   createEditorConfigFromState,
 } from "@/lib/editor"
+import {
+  createClaudeSelectionPayload,
+  getSelectedTextFromLexical,
+} from "@/lib/selection-utils"
 import { store } from "@/lib/store"
 import { decodeBase64Url } from "@/lib/utils"
 import { Editor } from "@/components/editor/editor"
@@ -140,18 +143,6 @@ function FileLayout() {
 
   const send = useActorRef(fileMachine).send
 
-  // Helper to extract selected text from Lexical editor state
-  const getSelectedTextFromLexical = (editorState: EditorState): string => {
-    let text = ""
-    editorState.read(() => {
-      const selection = $getSelection()
-      if ($isRangeSelection(selection)) {
-        text = selection.getTextContent()
-      }
-    })
-    return text
-  }
-
   // Helper to notify Claude Code of selection changes
   const notifyClaudeCodeSelection = (
     selectedText: string,
@@ -167,33 +158,13 @@ function FileLayout() {
       return
     }
 
-    // In source view, use actual line/character from CodeMirror
-    // In rich view, use text-based positions since line numbers don't correspond to file
-    const selection =
-      viewKind === "source" && selectionInfo
-        ? {
-            start: {
-              line: selectionInfo.startLine ?? 0,
-              character: selectionInfo.startChar ?? 0,
-            },
-            end: {
-              line: selectionInfo.endLine ?? 0,
-              character: selectionInfo.endChar ?? selectedText.length,
-            },
-            isEmpty: isEmpty,
-          }
-        : {
-            start: { line: 0, character: 0 },
-            end: { line: 0, character: selectedText.length },
-            isEmpty: isEmpty,
-          }
-
-    const payload: SelectionChangedPayload = {
-      text: selectedText,
-      filePath: filePath,
-      fileUrl: `file://${filePath}`,
-      selection,
-    }
+    const payload = createClaudeSelectionPayload({
+      filePath,
+      viewKind,
+      selectedText,
+      isEmpty,
+      selectionInfo,
+    })
 
     window.electronAPI.claude.notifySelectionChanged(payload)
   }
