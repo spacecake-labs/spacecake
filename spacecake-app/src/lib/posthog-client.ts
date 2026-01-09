@@ -14,6 +14,9 @@ if (typeof window !== "undefined" && !posthog.__loaded) {
     advanced_disable_feature_flags: false,
     debug: false,
   })
+  posthog.register_once({
+    app: "spacecake-desktop",
+  })
 }
 
 export default posthog
