@@ -15,10 +15,14 @@ import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 
 import { match } from "@/types/adt"
 import {
+  type ClaudeSelection,
+  type EditorExtendedSelection,
+  type SelectionChangedPayload,
+} from "@/types/claude-code"
+import {
   SerializedSelectionSchema,
   ViewKindSchema,
   type ChangeType,
-  type SerializedSelection,
 } from "@/types/lexical"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { expandedFoldersAtom } from "@/lib/atoms/atoms"
@@ -28,10 +32,7 @@ import {
   createEditorConfigFromContent,
   createEditorConfigFromState,
 } from "@/lib/editor"
-import {
-  createClaudeSelectionPayload,
-  getSelectedTextFromLexical,
-} from "@/lib/selection-utils"
+import { createRichViewClaudeSelection } from "@/lib/selection-utils"
 import { store } from "@/lib/store"
 import { decodeBase64Url } from "@/lib/utils"
 import { Editor } from "@/components/editor/editor"
@@ -146,25 +147,18 @@ function FileLayout() {
   // Helper to notify Claude Code of selection changes
   const notifyClaudeCodeSelection = (
     selectedText: string,
-    isEmpty: boolean,
-    selectionInfo?: {
-      startLine?: number
-      startChar?: number
-      endLine?: number
-      endChar?: number
-    }
+    selection: ClaudeSelection
   ) => {
     if (!window.electronAPI?.claude?.notifySelectionChanged) {
       return
     }
 
-    const payload = createClaudeSelectionPayload({
+    const payload: SelectionChangedPayload = {
+      text: selectedText,
       filePath,
-      viewKind,
-      selectedText,
-      isEmpty,
-      selectionInfo,
-    })
+      fileUrl: `file://${filePath}`,
+      selection,
+    }
 
     window.electronAPI.claude.notifySelectionChanged(payload)
   }
@@ -218,11 +212,15 @@ function FileLayout() {
               })
 
               // Notify Claude Code of selection change
-              const selectedText = getSelectedTextFromLexical(editorState)
-              notifyClaudeCodeSelection(
-                selectedText,
-                !selectedText || selectedText.length === 0
-              )
+
+              const selectedText = $isRangeSelection(selection)
+                ? selection.getTextContent()
+                : ""
+
+              const claudeSelection =
+                createRichViewClaudeSelection(selectedText)
+
+              notifyClaudeCodeSelection(selectedText, claudeSelection)
             } else {
               sendFileState({ type: "file.edit" })
               send({
@@ -238,19 +236,24 @@ function FileLayout() {
             }
           })
         }}
-        onCodeMirrorSelection={(selection: SerializedSelection) => {
+        onCodeMirrorSelection={(extendedSelection: EditorExtendedSelection) => {
           send({
             type: "editor.selection.update",
             editorSelection: {
               id: editorId,
-              selection,
+              selection: extendedSelection.selection,
             },
           })
 
-          // TODO: Pass selected text and line/character info from CodeMirror editor
-          // For now, notify with empty text and no line/character
-          // When Editor component is updated to provide this data, extract and pass selectionInfo
-          notifyClaudeCodeSelection("", !selection)
+          const claudeSelection =
+            viewKind === "source"
+              ? extendedSelection.claudeSelection
+              : createRichViewClaudeSelection(extendedSelection.selectedText)
+
+          notifyClaudeCodeSelection(
+            extendedSelection.selectedText,
+            claudeSelection
+          )
         }}
       />
     </>

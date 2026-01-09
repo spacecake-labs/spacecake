@@ -17,6 +17,7 @@ import {
   type SerializedEditorState,
 } from "lexical"
 
+import { type EditorExtendedSelection } from "@/types/claude-code"
 import { type ChangeType, type SerializedSelection } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
@@ -37,14 +38,14 @@ interface EditorProps {
   filePath: AbsolutePath
 
   onChange: (editorState: EditorState, changeType: ChangeType) => void
-  onCodeMirrorSelection?: (selection: SerializedSelection) => void
+  onCodeMirrorSelection?: (selection: EditorExtendedSelection) => void
 }
 
 // Plugin to listen for CodeMirror selection changes and forward them
 function CodeMirrorSelectionPlugin({
   onSelection,
 }: {
-  onSelection?: (selection: SerializedSelection) => void
+  onSelection?: (selection: EditorExtendedSelection) => void
 }) {
   const [editor] = useLexicalComposerContext()
 
@@ -58,7 +59,12 @@ function CodeMirrorSelectionPlugin({
           anchor: { key: payload.nodeKey, offset: payload.anchor },
           focus: { key: payload.nodeKey, offset: payload.head },
         }
-        onSelection(serializedSelection)
+
+        onSelection({
+          selection: serializedSelection,
+          selectedText: payload.selectedText,
+          claudeSelection: payload.claudeSelection,
+        })
         return true
       },
       COMMAND_PRIORITY_NORMAL
