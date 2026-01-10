@@ -14,7 +14,7 @@ import {
   useNavigate,
 } from "@tanstack/react-router"
 import { useAtom, useSetAtom } from "jotai"
-import { Check, ChevronDown, ChevronUp, Copy, Terminal } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
 
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
@@ -47,6 +47,7 @@ import { GhosttyTerminal, TerminalAPI } from "@/components/ghostty-terminal"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
+import { TerminalStatusBadge } from "@/components/terminal-status-badge"
 
 const isTerminalCollapsedAtom = atomWithToggle(false)
 
@@ -316,10 +317,7 @@ function LayoutContent() {
                     !isTerminalCollapsed && "border-b"
                   )}
                 >
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Terminal className="h-4 w-4" />
-                    <span className="font-mono">terminal</span>
-                  </div>
+                  <TerminalStatusBadge />
                   <div className="flex items-center gap-3">
                     <ClaudeStatusBadge className="text-xs" />
                     <button

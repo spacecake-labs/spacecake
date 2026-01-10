@@ -20,8 +20,9 @@ import { ClaudeStatusBadge } from "@/components/claude-status-badge"
 // 1. Mock window.electronAPI (Renderer side)
 type StatusChangeCallback = (status: string) => void
 const rendererListeners = new Set<StatusChangeCallback>()
-vi.stubGlobal("window", {
-  electronAPI: {
+Object.defineProperty(window, "electronAPI", {
+  writable: true,
+  value: {
     claude: {
       onStatusChange: (callback: StatusChangeCallback) => {
         rendererListeners.add(callback)

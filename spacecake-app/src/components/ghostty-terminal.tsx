@@ -248,13 +248,6 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         ref={terminalRef}
         className="w-full h-full overflow-hidden [&_textarea]:caret-transparent! [&_textarea]:outline-none!"
       />
-      {profileLoaded && (
-        <div
-          className="absolute top-5 right-10 w-2 h-2 rounded-full bg-green-500"
-          aria-label="shell profile loaded"
-          role="status"
-        />
-      )}
       <DeleteButton
         onDelete={onDelete}
         className="absolute top-3 right-2 z-10"
