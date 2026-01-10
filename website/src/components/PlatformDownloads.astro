@@ -1,10 +1,10 @@
 ---
-import { getDownloadUrl } from "../lib/github-releases";
+import { getDownloadUrl } from "../lib/github-releases"
 
 interface DownloadRow {
-  platform: string;
-  architecture: string;
-  githubPlatform: "macos-arm64" | "macos-x64" | "debian-x64";
+  platform: string
+  architecture: string
+  githubPlatform: "macos-arm64" | "macos-x64" | "debian-x64"
 }
 
 const downloadRows: DownloadRow[] = [
@@ -23,14 +23,14 @@ const downloadRows: DownloadRow[] = [
     architecture: "x86-64",
     githubPlatform: "debian-x64",
   },
-];
+]
 
 const downloads = await Promise.all(
   downloadRows.map(async (row) => ({
     ...row,
     ...(await getDownloadUrl(row.githubPlatform)),
   }))
-);
+)
 ---
 
 <details class="platform-downloads">
@@ -93,11 +93,61 @@ const downloads = await Promise.all(
   </div>
 </details>
 
+<a
+  href="https://github.com/spacecake-labs/spacecake/releases"
+  target="_blank"
+  rel="noopener noreferrer"
+  class="mobile-platform-link"
+>
+  other platforms
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+    <polyline points="15 3 21 3 21 9"></polyline>
+    <line x1="10" y1="14" x2="21" y2="3"></line>
+  </svg>
+</a>
+
 <style>
   .platform-downloads {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+  }
+
+  .mobile-platform-link {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-sm);
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .mobile-platform-link:hover {
+    color: var(--sl-color-white);
+  }
+
+  @media (max-width: 50rem) {
+    .platform-downloads {
+      display: none;
+    }
+
+    .mobile-platform-link {
+      display: flex;
+      justify-content: center;
+    }
   }
 
   .trigger {
@@ -139,10 +189,11 @@ const downloads = await Promise.all(
     border: 1px solid var(--sl-color-gray-5);
     border-radius: 0.5rem;
     overflow: hidden;
+    max-width: fit-content;
   }
 
   table {
-    width: 100%;
+    width: auto;
     border-collapse: collapse;
   }
 

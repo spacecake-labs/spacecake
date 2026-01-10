@@ -10,8 +10,6 @@ if (typeof window !== "undefined" && !posthog.__loaded) {
     capture_exceptions: true,
     cookieless_mode: "always",
     person_profiles: "identified_only",
-    disable_surveys: false,
-    advanced_disable_feature_flags: false,
     debug: false,
   })
   posthog.register_once({

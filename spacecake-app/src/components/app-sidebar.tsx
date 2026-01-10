@@ -89,7 +89,7 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="pb-20">
         <NavMain
           onExpandFolder={handleExpandFolder}
           onFileClick={onFileClick}

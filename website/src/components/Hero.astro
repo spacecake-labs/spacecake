@@ -1,56 +1,29 @@
 ---
-import GitHubDownloadButton from "./GitHubDownloadButton.astro";
-import PlatformDownloads from "./PlatformDownloads.astro";
-import RotatingText from "./RotatingText.astro";
-import { LinkButton } from "@astrojs/starlight/components";
-import { MuxPlayer } from "@mux/mux-player-astro";
+import { LinkButton } from "@astrojs/starlight/components"
+
+import EditorPreview from "./EditorPreview.astro"
+import GitHubDownloadButton from "./GitHubDownloadButton.astro"
+import PlatformDownloads from "./PlatformDownloads.astro"
+import RotatingText from "./RotatingText.astro"
 
 // https://github.com/withastro/starlight/blob/main/packages/starlight/constants.ts
-const PAGE_TITLE_ID = "_top";
+const PAGE_TITLE_ID = "_top"
 
-const { data } = Astro.locals.starlightRoute.entry;
-const { title = data.title, tagline } = data.hero || {};
+const { data } = Astro.locals.starlightRoute.entry
+const { title = data.title, tagline } = data.hero || {}
 
 // only autoplay and loop in prod
 // to reduce mux usage
-const autoplay = import.meta.env.PROD ? "muted" : false;
-const loop = import.meta.env.PROD ? true : false;
+// const autoplay = import.meta.env.PROD ? "muted" : false
+// const loop = import.meta.env.PROD ? true : false
 ---
 
 <div class="hero">
-  {
-    (
-      <div class="video-container">
-        <MuxPlayer
-          playbackId="jIW02Mgmcvf01vEiMZQqFfI9cXZ29NIag0000WVUWBOB2cI"
-          metadata={{
-            video_title: "spacecake",
-          }}
-          autoplay={autoplay}
-          loop={loop}
-          style={{
-            display: "block",
-            aspectRatio: "16/9",
-            backgroundColor: "#000",
-            width: "100%",
-            height: "100%",
-          }}
-          primaryColor="#ffffff"
-          secondaryColor="#181818"
-          accentColor="var(--sl-color-accent)"
-          defaultShowRemainingTime={true}
-        />
-      </div>
-    )
-  }
-
   <div class="sl-flex stack">
     <div class="sl-flex copy">
       <h1 id={PAGE_TITLE_ID} data-page-title set:html={title} />
       <div class="rotating-text-wrapper">
-        <RotatingText
-          items={["Claude Code", "Codex", "Gemini CLI", "OpenCode"]}
-        />
+        <RotatingText items={["Claude Code"]} />
       </div>
       <div class="badges-container">
         <a
@@ -86,6 +59,10 @@ const loop = import.meta.env.PROD ? true : false;
       </LinkButton>
     </div>
   </div>
+
+  <div class="editor-preview">
+    <EditorPreview />
+  </div>
 </div>
 
 <style>
@@ -95,22 +72,19 @@ const loop = import.meta.env.PROD ? true : false;
       align-items: center;
       gap: 1rem;
       padding-bottom: 1rem;
+      max-width: 80rem;
+      margin-inline: auto;
     }
 
     .hero > img,
     .hero > .hero-html,
-    .hero > .video-container {
+    .hero > .editor-preview {
       object-fit: contain;
       width: 100%;
       height: auto;
       margin-inline: auto;
     }
 
-    .video-container {
-      border-radius: 8px;
-      overflow: hidden;
-      aspect-ratio: 16 / 9;
-    }
     .stack {
       flex-direction: column;
       gap: clamp(1.5rem, calc(1.5rem + 1vw), 2rem);
@@ -190,7 +164,7 @@ const loop = import.meta.env.PROD ? true : false;
       align-self: flex-start;
     }
 
-    h1 {
+    .copy h1 {
       font-size: clamp(
         var(--sl-text-3xl),
         calc(0.25rem + 5vw),
@@ -199,6 +173,8 @@ const loop = import.meta.env.PROD ? true : false;
       line-height: var(--sl-line-height-headings);
       font-weight: 600;
       color: var(--sl-color-white);
+      max-width: 15ch;
+      text-wrap: balance;
     }
 
     .tagline {
@@ -247,14 +223,16 @@ const loop = import.meta.env.PROD ? true : false;
 
       .hero > img,
       .hero > .hero-html,
-      .hero > .video-container {
-        order: 2;
+      .hero > .editor-preview {
         width: 100%;
         align-self: start;
       }
 
       .stack {
         text-align: start;
+        width: 100%;
+        max-width: 38rem;
+        margin-inline: auto;
       }
 
       .copy {
