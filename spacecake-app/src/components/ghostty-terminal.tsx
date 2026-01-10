@@ -250,14 +250,14 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
       />
       {profileLoaded && (
         <div
-          className="absolute top-3 right-10 w-2 h-2 rounded-full bg-green-500"
+          className="absolute top-5 right-10 w-2 h-2 rounded-full bg-green-500"
           aria-label="shell profile loaded"
           role="status"
         />
       )}
       <DeleteButton
         onDelete={onDelete}
-        className="absolute top-1 right-2 z-10"
+        className="absolute top-3 right-2 z-10"
         data-testid="terminal-delete-button"
         title="delete terminal"
       />
