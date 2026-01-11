@@ -1,5 +1,5 @@
 import { FileSystemError } from "@/services/file-system"
-import { assert, describe, expect, test } from "vitest"
+import { assert, describe, expect, test, vi } from "vitest"
 
 import { left, match, right } from "@/types/adt"
 import type { ElectronAPI } from "@/types/electron"
@@ -11,6 +11,12 @@ import { openDirectory, readFile, saveFile } from "@/lib/fs"
 const createTestElectronAPI = (
   overrides: Partial<ElectronAPI> = {}
 ): ElectronAPI => ({
+  claude: {
+    notifySelectionChanged: async () => {},
+    notifyAtMentioned: async () => {},
+    onStatusChange: () => () => {},
+    ensureServer: async () => {},
+  },
   showOpenDialog: async () => ({ canceled: false, filePaths: ["/test/path"] }),
   readFile: async () => right(createTestFileContent()),
   saveFile: async () => right(undefined),
@@ -241,6 +247,10 @@ describe("openDirectory", () => {
   })
 
   test("returns null when dialog throws error", async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {})
+
     const electronAPI = createTestElectronAPI({
       showOpenDialog: async () => {
         throw new Error("dialog failed")
@@ -250,6 +260,7 @@ describe("openDirectory", () => {
     const result = await openDirectory(electronAPI)
 
     expect(result).toBeNull()
+    consoleErrorSpy.mockRestore()
   })
 
   test("returns first path when multiple paths selected", async () => {

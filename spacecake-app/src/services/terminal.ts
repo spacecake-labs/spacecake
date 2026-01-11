@@ -25,8 +25,25 @@ const loadPtyModule = async (): Promise<PtyModule> => {
 
 export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
   effect: Effect.gen(function* () {
-    yield* Effect.void
     const terminals = new Map<string, IPty>()
+
+    // Finalizer to kill all pty processes on shutdown
+    yield* Effect.addFinalizer(() =>
+      Effect.sync(() => {
+        console.log(
+          `Terminal service: cleaning up ${terminals.size} terminals...`
+        )
+        for (const [id, term] of terminals) {
+          try {
+            term.kill()
+            console.log(`Terminal service: killed terminal ${id}`)
+          } catch (e) {
+            console.error(`Terminal service: failed to kill terminal ${id}`, e)
+          }
+        }
+        terminals.clear()
+      })
+    )
 
     const create = (
       id: string,

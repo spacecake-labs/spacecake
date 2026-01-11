@@ -232,6 +232,7 @@ export function serializeFromCache(
 /**
  * restores a serialized selection to the editor.
  * this is useful when loading a file and wanting to restore the cursor position.
+ * supports both lexical range selections (text/element nodes) and codemirror selections.
  */
 export function $restoreSelection(selection: SerializedSelection | null) {
   if (!selection) {
@@ -241,20 +242,32 @@ export function $restoreSelection(selection: SerializedSelection | null) {
   const anchorNode = $getNodeByKey(selection.anchor.key)
   const focusNode = $getNodeByKey(selection.focus.key)
 
-  if (anchorNode && focusNode) {
-    const rangeSelection = $createRangeSelection()
-    rangeSelection.anchor.set(
-      selection.anchor.key,
-      selection.anchor.offset,
-      $isElementNode(anchorNode) ? "element" : "text"
-    )
-    rangeSelection.focus.set(
-      selection.focus.key,
-      selection.focus.offset,
-      $isElementNode(focusNode) ? "element" : "text"
-    )
-    $setSelection(rangeSelection)
+  if (!anchorNode || !focusNode) {
+    return
   }
+
+  // CodeMirror case: both anchor and focus point to the same CodeBlockNode
+  if ($isCodeBlockNode(anchorNode) && anchorNode === focusNode) {
+    anchorNode.restoreSelection({
+      anchor: selection.anchor.offset,
+      head: selection.focus.offset,
+    })
+    return
+  }
+
+  // Standard Lexical range selection for text/element nodes
+  const rangeSelection = $createRangeSelection()
+  rangeSelection.anchor.set(
+    selection.anchor.key,
+    selection.anchor.offset,
+    $isElementNode(anchorNode) ? "element" : "text"
+  )
+  rangeSelection.focus.set(
+    selection.focus.key,
+    selection.focus.offset,
+    $isElementNode(focusNode) ? "element" : "text"
+  )
+  $setSelection(rangeSelection)
 }
 
 export function $restoreNodeSelection(selection: NodeSelection) {

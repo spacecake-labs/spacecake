@@ -4,7 +4,10 @@ import type { LexicalEditor } from "lexical"
 import {
   $createParagraphNode,
   $createTextNode,
+  $getNodeByKey,
   $getRoot,
+  $getSelection,
+  $isRangeSelection,
   createEditor,
 } from "lexical"
 import { beforeEach, describe, expect, it } from "vitest"
@@ -12,12 +15,18 @@ import { beforeEach, describe, expect, it } from "vitest"
 import type { SerializedSelection } from "@/types/lexical"
 import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
 import {
+  $restoreSelection,
   convertToSourceView,
   getEditorConfig,
   serializeEditorToPython,
   serializeEditorToSource,
 } from "@/lib/editor"
 import { nodes } from "@/components/editor/nodes"
+import {
+  $createCodeBlockNode,
+  $isCodeBlockNode,
+  type CodeMirrorSelection,
+} from "@/components/editor/nodes/code-node"
 
 describe("Editor Integration", () => {
   const mockPythonFile: EditorFile = {
@@ -225,6 +234,158 @@ class Calculator:
         const children = root.getChildren()
         expect(children).toHaveLength(1)
         expect(children[0].getType()).toBe("codeblock")
+      })
+    })
+  })
+
+  describe("$restoreSelection", () => {
+    let editor: LexicalEditor
+
+    beforeEach(() => {
+      editor = createEditor({ nodes })
+    })
+
+    it("restores selection for text nodes using RangeSelection", async () => {
+      // Set up editor with a paragraph containing text
+      let textNodeKey: string
+
+      await new Promise<void>((resolve) => {
+        editor.update(
+          () => {
+            const root = $getRoot()
+            const paragraph = $createParagraphNode()
+            const textNode = $createTextNode("hello world")
+            paragraph.append(textNode)
+            root.append(paragraph)
+            textNodeKey = textNode.getKey()
+          },
+          { onUpdate: resolve }
+        )
+      })
+
+      // Restore selection and verify
+      await new Promise<void>((resolve) => {
+        editor.update(
+          () => {
+            $restoreSelection({
+              anchor: { key: textNodeKey, offset: 0 },
+              focus: { key: textNodeKey, offset: 5 },
+            })
+
+            const selection = $getSelection()
+            expect($isRangeSelection(selection)).toBe(true)
+            if ($isRangeSelection(selection)) {
+              expect(selection.anchor.offset).toBe(0)
+              expect(selection.focus.offset).toBe(5)
+            }
+          },
+          { onUpdate: resolve }
+        )
+      })
+    })
+
+    it("restores selection for CodeBlockNode", async () => {
+      let codeBlockKey: string
+      let storedSelection: CodeMirrorSelection | null = null
+
+      // Create code block with in-memory focus manager
+      await new Promise<void>((resolve) => {
+        editor.update(
+          () => {
+            const root = $getRoot()
+            const codeBlock = $createCodeBlockNode({
+              code: "const x = 1",
+              language: "javascript",
+            })
+            root.append(codeBlock)
+            codeBlockKey = codeBlock.getKey()
+
+            // Provide in-memory focus manager
+            codeBlock.setFocusManager({
+              focus: () => {},
+              restoreSelection: (sel) => {
+                storedSelection = sel
+              },
+              getSelection: () => storedSelection,
+            })
+          },
+          { onUpdate: resolve }
+        )
+      })
+
+      // Restore selection and verify via getSelection
+      await new Promise<void>((resolve) => {
+        editor.update(
+          () => {
+            $restoreSelection({
+              anchor: { key: codeBlockKey, offset: 6 }, // "const |x = 1"
+              focus: { key: codeBlockKey, offset: 11 }, // "const x = 1|"
+            })
+
+            const node = $getNodeByKey(codeBlockKey)
+            if ($isCodeBlockNode(node)) {
+              const sel = node.getSelection()
+              expect(sel?.anchor).toBe(6)
+              expect(sel?.head).toBe(11)
+            }
+          },
+          { onUpdate: resolve }
+        )
+      })
+    })
+
+    it("handles missing focus manager gracefully", async () => {
+      // Set up code block WITHOUT setting focus manager
+      let codeBlockKey: string
+
+      await new Promise<void>((resolve) => {
+        editor.update(
+          () => {
+            const root = $getRoot()
+            const codeBlock = $createCodeBlockNode({ code: "test" })
+            root.append(codeBlock)
+            codeBlockKey = codeBlock.getKey()
+          },
+          { onUpdate: resolve }
+        )
+      })
+
+      // Should not throw when focus manager is missing
+      await expect(
+        new Promise<void>((resolve, reject) => {
+          try {
+            editor.update(
+              () => {
+                $restoreSelection({
+                  anchor: { key: codeBlockKey, offset: 0 },
+                  focus: { key: codeBlockKey, offset: 2 },
+                })
+              },
+              { onUpdate: resolve }
+            )
+          } catch (e) {
+            reject(e)
+          }
+        })
+      ).resolves.toBeUndefined()
+    })
+
+    it("handles null selection gracefully", () => {
+      editor.update(() => {
+        // Should not throw
+        expect(() => $restoreSelection(null)).not.toThrow()
+      })
+    })
+
+    it("handles missing nodes gracefully", () => {
+      editor.update(() => {
+        // Should not throw when nodes don't exist
+        expect(() =>
+          $restoreSelection({
+            anchor: { key: "nonexistent", offset: 0 },
+            focus: { key: "nonexistent", offset: 0 },
+          })
+        ).not.toThrow()
       })
     })
   })

@@ -17,6 +17,9 @@ importers:
       '@codemirror/language-data':
         specifier: ^6.5.1
         version: 6.5.2
+      '@codemirror/merge':
+        specifier: ^6.11.2
+        version: 6.11.2
       '@codemirror/theme-one-dark':
         specifier: ^6.1.3
         version: 6.1.3
@@ -186,8 +189,8 @@ importers:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       posthog-js:
-        specifier: ^1.268.6
-        version: 1.315.0
+        specifier: ^1.316.0
+        version: 1.316.0
       react:
         specifier: ^19.1.1
         version: 19.2.3
@@ -230,6 +233,9 @@ importers:
       write-file-atomic:
         specifier: ^6.0.0
         version: 6.0.0
+      ws:
+        specifier: ^8.19.0
+        version: 8.19.0
       xstate:
         specifier: ^5.22.0
         version: 5.25.0
@@ -300,6 +306,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.1.9
         version: 19.2.3(@types/react@19.2.7)
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.44.1
         version: 8.52.0(@typescript-eslint/parser@8.52.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.8.3))(eslint@9.39.2(jiti@2.6.1))(typescript@5.8.3)
@@ -666,6 +675,9 @@ packages:
 
   '@codemirror/lint@6.9.2':
     resolution: {integrity: sha512-sv3DylBiIyi+xKwRCJAAsBZZZWo82shJ/RTMymLabAdtbkV5cSKwWDeCgtUq3v8flTaXS2y1kKkICuRYtUswyQ==}
+
+  '@codemirror/merge@6.11.2':
+    resolution: {integrity: sha512-NO5EJd2rLRbwVWLgMdhIntDIhfDtMOKYEZgqV5WnkNUS2oXOCVWLPjG/kgl/Jth2fGiOuG947bteqxP9nBXmMg==}
 
   '@codemirror/search@6.5.11':
     resolution: {integrity: sha512-KmWepDE6jUdL6n8cAAqIpRmLPBZ5ZKnicE8oGU/s3QrAVID+0VhLFrzUucVKHG5035/BSykhExDL/Xm7dHthiA==}
@@ -2028,11 +2040,11 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  '@posthog/core@1.9.0':
-    resolution: {integrity: sha512-j7KSWxJTUtNyKynLt/p0hfip/3I46dWU2dk+pt7dKRoz2l5CYueHuHK4EO7Wlgno5yo1HO4sc4s30MXMTICHJw==}
+  '@posthog/core@1.9.1':
+    resolution: {integrity: sha512-kRb1ch2dhQjsAapZmu6V66551IF2LnCbc1rnrQqnR7ArooVyJN9KOPXre16AJ3ObJz2eTfuP7x25BMyS2Y5Exw==}
 
-  '@posthog/types@1.315.0':
-    resolution: {integrity: sha512-A3HcvYC93OLNSKlpelzI5sCCMsRaq4nREgJUJq09UEKngsexa3mQU4UdeR8TMisO4BLrQPPlqUBbs+C4OlMX7g==}
+  '@posthog/types@1.316.0':
+    resolution: {integrity: sha512-2CS2wecsv9Eafa8euXePr6ba1/eV9k7BLAREKd2SqCsTd6bYRFILvVDlkrvPCSpdZ6qOq/b6IA//HMC1Z0fN8w==}
 
   '@preact/signals-core@1.12.1':
     resolution: {integrity: sha512-BwbTXpj+9QutoZLQvbttRg5x3l5468qaV2kufh+51yha1c53ep5dY4kTuZR35+3pAZxpfQerGJiQqg34ZNZ6uA==}
@@ -3208,6 +3220,9 @@ packages:
 
   '@types/wrap-ansi@3.0.0':
     resolution: {integrity: sha512-ltIpx+kM7g/MLRZfkbL7EsCEjfzCcScLpkg37eXEtx5kmrAKBkTJwd1GIAjDSL8wTpM6Hzn5YO4pSb91BEwu1g==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -6220,8 +6235,8 @@ packages:
     resolution: {integrity: sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==}
     engines: {node: ^10 || ^12 || >=14}
 
-  posthog-js@1.315.0:
-    resolution: {integrity: sha512-mdL0hCp/8xOQUB41d6JKROZxtgJvReT3gc9XuQIcfBbmzK2ZrNCxW2t+QV3Uj6JM1BNxbX5NE/cRCBdtaiCxrA==}
+  posthog-js@1.316.0:
+    resolution: {integrity: sha512-Y8JKqv61HQKHB4savYnbp1+zUhfkSLSE4famJONaPuBq9lX+F8j9uNENvIWioe2roJa7FU3g5Ji/CjwwRh+/kA==}
 
   postject@1.0.0-alpha.6:
     resolution: {integrity: sha512-b9Eb8h2eVqNE8edvKdwqkrY6O7kAwmI8kcnBv1NScolYJbo59XUF0noFq+lxbC1yN20bmC0WBEbDC5H/7ASb0A==}
@@ -8119,6 +8134,14 @@ snapshots:
       '@codemirror/view': 6.39.9
       crelt: 1.0.6
 
+  '@codemirror/merge@6.11.2':
+    dependencies:
+      '@codemirror/language': 6.12.1
+      '@codemirror/state': 6.5.3
+      '@codemirror/view': 6.39.9
+      '@lezer/highlight': 1.2.3
+      style-mod: 4.1.3
+
   '@codemirror/search@6.5.11':
     dependencies:
       '@codemirror/state': 6.5.3
@@ -9711,11 +9734,11 @@ snapshots:
     dependencies:
       playwright: 1.57.0
 
-  '@posthog/core@1.9.0':
+  '@posthog/core@1.9.1':
     dependencies:
       cross-spawn: 7.0.6
 
-  '@posthog/types@1.315.0': {}
+  '@posthog/types@1.316.0': {}
 
   '@preact/signals-core@1.12.1': {}
 
@@ -10856,6 +10879,10 @@ snapshots:
   '@types/whatwg-mimetype@3.0.2': {}
 
   '@types/wrap-ansi@3.0.0': {}
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 24.10.4
 
   '@types/yargs-parser@21.0.3': {}
 
@@ -14226,10 +14253,10 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  posthog-js@1.315.0:
+  posthog-js@1.316.0:
     dependencies:
-      '@posthog/core': 1.9.0
-      '@posthog/types': 1.315.0
+      '@posthog/core': 1.9.1
+      '@posthog/types': 1.316.0
       core-js: 3.47.0
       fflate: 0.4.8
       preact: 10.28.2

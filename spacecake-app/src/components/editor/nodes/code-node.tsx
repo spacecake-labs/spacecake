@@ -24,9 +24,17 @@ import { CodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor"
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
 
+// Selection restoration interface for CodeMirror integration
+export interface CodeMirrorSelection {
+  anchor: number
+  head: number
+}
+
 // Focus management interface for CodeMirror integration
 export interface CodeMirrorFocusManager {
   focus: () => void
+  restoreSelection: (selection: CodeMirrorSelection) => void
+  getSelection: () => CodeMirrorSelection | null
 }
 
 // WeakMap to store focus managers for code block nodes
@@ -200,6 +208,16 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     // focus the CodeMirror editor directly
     const focusManager = focusManagerMap.get(this)
     focusManager?.focus()
+  }
+
+  restoreSelection = (selection: CodeMirrorSelection) => {
+    const focusManager = focusManagerMap.get(this)
+    focusManager?.restoreSelection(selection)
+  }
+
+  getSelection = (): CodeMirrorSelection | null => {
+    const focusManager = focusManagerMap.get(this)
+    return focusManager?.getSelection() ?? null
   }
 
   setFocusManager = (focusManager: CodeMirrorFocusManager) => {

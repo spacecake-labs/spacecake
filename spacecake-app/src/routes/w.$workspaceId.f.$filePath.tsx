@@ -15,6 +15,11 @@ import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 
 import { match } from "@/types/adt"
 import {
+  type ClaudeSelection,
+  type EditorExtendedSelection,
+  type SelectionChangedPayload,
+} from "@/types/claude-code"
+import {
   SerializedSelectionSchema,
   ViewKindSchema,
   type ChangeType,
@@ -27,6 +32,7 @@ import {
   createEditorConfigFromContent,
   createEditorConfigFromState,
 } from "@/lib/editor"
+import { createRichViewClaudeSelection } from "@/lib/selection-utils"
 import { store } from "@/lib/store"
 import { decodeBase64Url } from "@/lib/utils"
 import { Editor } from "@/components/editor/editor"
@@ -132,10 +138,30 @@ function FileLayout() {
   const { filePath, editorConfig, key, editorId, fileId } =
     Route.useLoaderData()
   const { db } = Route.useRouteContext()
+  const { view: viewKind } = Route.useSearch()
 
   const sendFileState = useSetAtom(fileStateAtomFamily(filePath))
 
   const send = useActorRef(fileMachine).send
+
+  // Helper to notify Claude Code of selection changes
+  const notifyClaudeCodeSelection = (
+    selectedText: string,
+    selection: ClaudeSelection
+  ) => {
+    if (!window.electronAPI?.claude?.notifySelectionChanged) {
+      return
+    }
+
+    const payload: SelectionChangedPayload = {
+      text: selectedText,
+      filePath,
+      fileUrl: `file://${filePath}`,
+      selection,
+    }
+
+    window.electronAPI.claude.notifySelectionChanged(payload)
+  }
 
   RuntimeClient.runPromise(
     Effect.gen(function* () {
@@ -184,6 +210,17 @@ function FileLayout() {
                   selection: serializedSelection,
                 },
               })
+
+              // Notify Claude Code of selection change
+
+              const selectedText = $isRangeSelection(selection)
+                ? selection.getTextContent()
+                : ""
+
+              const claudeSelection =
+                createRichViewClaudeSelection(selectedText)
+
+              notifyClaudeCodeSelection(selectedText, claudeSelection)
             } else {
               sendFileState({ type: "file.edit" })
               send({
@@ -198,6 +235,25 @@ function FileLayout() {
               })
             }
           })
+        }}
+        onCodeMirrorSelection={(extendedSelection: EditorExtendedSelection) => {
+          send({
+            type: "editor.selection.update",
+            editorSelection: {
+              id: editorId,
+              selection: extendedSelection.selection,
+            },
+          })
+
+          const claudeSelection =
+            viewKind === "source"
+              ? extendedSelection.claudeSelection
+              : createRichViewClaudeSelection(extendedSelection.selectedText)
+
+          notifyClaudeCodeSelection(
+            extendedSelection.selectedText,
+            claudeSelection
+          )
         }}
       />
     </>

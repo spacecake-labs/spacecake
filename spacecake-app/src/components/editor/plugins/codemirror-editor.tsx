@@ -2,15 +2,27 @@ import React from "react"
 import { indentWithTab } from "@codemirror/commands"
 import { foldEffect } from "@codemirror/language"
 import { languages } from "@codemirror/language-data"
-import { Compartment, EditorState, Extension } from "@codemirror/state"
+import {
+  Compartment,
+  EditorSelection,
+  EditorState,
+  Extension,
+} from "@codemirror/state"
 import { EditorView, keymap, lineNumbers } from "@codemirror/view"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github"
 import { basicSetup } from "codemirror"
-import { $addUpdateTag, SKIP_DOM_SELECTION_TAG } from "lexical"
+import {
+  $addUpdateTag,
+  createCommand,
+  LexicalCommand,
+  SKIP_DOM_SELECTION_TAG,
+} from "lexical"
 
+import type { ClaudeSelection } from "@/types/claude-code"
 import type { LanguageSpec } from "@/types/language"
 import type { Block } from "@/types/parser"
+import { extractCodeMirrorSelectionInfo } from "@/lib/selection-utils"
 import { debounce } from "@/lib/utils"
 import { CodeBlock } from "@/components/code-block"
 import {
@@ -23,8 +35,24 @@ import { useTheme } from "@/components/theme-provider"
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
 
+// Command dispatched when CodeMirror selection changes
+export interface CodeMirrorSelectionPayload {
+  nodeKey: string
+  anchor: number
+  head: number
+  selectedText: string
+  claudeSelection: ClaudeSelection
+}
+
+export const CODEMIRROR_SELECTION_COMMAND: LexicalCommand<CodeMirrorSelectionPayload> =
+  createCommand("CODEMIRROR_SELECTION_COMMAND")
+
 interface NodeWithFocusManager {
-  setFocusManager: (manager: { focus: () => void }) => void
+  setFocusManager: (manager: {
+    focus: () => void
+    restoreSelection: (selection: { anchor: number; head: number }) => void
+    getSelection: () => { anchor: number; head: number } | null
+  }) => void
 }
 
 export interface BaseCodeMirrorEditorProps {
@@ -184,6 +212,29 @@ export const BaseCodeMirrorEditor = React.forwardRef<
             view.focus()
           }
         },
+        restoreSelection: (selection: { anchor: number; head: number }) => {
+          const view = editorViewRef.current
+          if (view) {
+            const docLength = view.state.doc.length
+            // Clamp selection to valid range
+            const anchor = Math.min(selection.anchor, docLength)
+            const head = Math.min(selection.head, docLength)
+            view.dispatch({
+              selection: EditorSelection.create([
+                EditorSelection.range(anchor, head),
+              ]),
+            })
+            view.focus()
+          }
+        },
+        getSelection: () => {
+          const view = editorViewRef.current
+          if (view) {
+            const sel = view.state.selection.main
+            return { anchor: sel.anchor, head: sel.head }
+          }
+          return null
+        },
       }
 
       // Use the setFocusManager method which uses WeakMap internally
@@ -306,8 +357,33 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       focus: () => {
         const view = editorViewRef.current
         if (view) {
+          Promise.resolve().then(() => {
+            view.focus()
+          })
+        }
+      },
+      restoreSelection: (selection: { anchor: number; head: number }) => {
+        const view = editorViewRef.current
+        if (view) {
+          const docLength = view.state.doc.length
+          // Clamp selection to valid range
+          const anchor = Math.min(selection.anchor, docLength)
+          const head = Math.min(selection.head, docLength)
+          view.dispatch({
+            selection: EditorSelection.create([
+              EditorSelection.range(anchor, head),
+            ]),
+          })
           view.focus()
         }
+      },
+      getSelection: () => {
+        const view = editorViewRef.current
+        if (view) {
+          const sel = view.state.selection.main
+          return { anchor: sel.anchor, head: sel.head }
+        }
+        return null
       },
     }
 
@@ -332,8 +408,35 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     }, debounceMs)
   )
 
+  // Store latest selection for debounced dispatch
+  const pendingSelectionRef = React.useRef<{
+    anchor: number
+    head: number
+  } | null>(null)
+
+  // Debounced selection dispatch - fires less frequently than every keystroke
+  const debouncedSelectionRef = React.useRef(
+    debounce(() => {
+      const sel = pendingSelectionRef.current
+      const view = editorViewRef.current
+      if (sel && view) {
+        const { selectedText, claudeSelection } =
+          extractCodeMirrorSelectionInfo(view.state, sel.anchor, sel.head)
+
+        editor.dispatchCommand(CODEMIRROR_SELECTION_COMMAND, {
+          nodeKey,
+          anchor: sel.anchor,
+          head: sel.head,
+          selectedText,
+          claudeSelection,
+        })
+      }
+    }, debounceMs)
+  )
+
   const flushPending = React.useCallback(() => {
     debouncedCommitRef.current.flush()
+    debouncedSelectionRef.current.flush()
   }, [])
 
   React.useEffect(() => {
@@ -368,6 +471,15 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             debouncedCommitRef.current.schedule()
+          }
+          // Dispatch selection changes to Lexical
+          if (update.selectionSet || update.docChanged) {
+            const sel = update.state.selection.main
+            pendingSelectionRef.current = {
+              anchor: sel.anchor,
+              head: sel.head,
+            }
+            debouncedSelectionRef.current.schedule()
           }
         }),
       ]

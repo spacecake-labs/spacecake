@@ -12,6 +12,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+.gemini*
 
 # environment variables
 .env

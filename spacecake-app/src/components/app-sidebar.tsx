@@ -1,9 +1,9 @@
 /*
 AppSidebar handles sidebar UI and folder expansion state.
 */
+import iconSvg from "@/images/icon.svg"
 import { Link } from "@tanstack/react-router"
 import { useAtom } from "jotai"
-import { CakeSlice } from "lucide-react"
 
 import {
   AbsolutePath,
@@ -75,8 +75,8 @@ export function AppSidebar({
                 }
                 // preload="intent"
               >
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <CakeSlice className="size-4" />
+                <div className="bg-transparent text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <img src={iconSvg} alt="spacecake" className="size-8" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">spacecake</span>
@@ -89,7 +89,7 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="pb-20">
         <NavMain
           onExpandFolder={handleExpandFolder}
           onFileClick={onFileClick}

@@ -1,6 +1,6 @@
 import { useEditor } from "@/contexts/editor-context"
 import { useAtomValue, useSetAtom } from "jotai"
-import { FileSearch, FolderSearch, Save } from "lucide-react"
+import { FileSearch, FolderSearch, Loader2, Save } from "lucide-react"
 
 import { RouteContext } from "@/types/workspace"
 import { quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
@@ -64,8 +64,12 @@ export function EditorToolbar({ routeContext }: EditorToolbarProps) {
         disabled={isSaving}
         aria-label="save"
       >
-        <Save className="h-3 w-3 mr-1" />
-        {isSaving ? "saving…" : "save"}
+        {isSaving ? (
+          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+        ) : (
+          <Save className="h-3 w-3 mr-1" />
+        )}
+        save
       </Button>
     </div>
   )

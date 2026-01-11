@@ -491,7 +491,9 @@ test.describe("spacecake app", () => {
       .hover()
     await window.getByTestId("more-options-file-to-delete.txt").click()
 
-    await window.getByRole("menuitem", { name: "delete" }).click()
+    await window
+      .getByRole("menuitem", { name: "delete" })
+      .click({ force: true })
 
     // Verify delete confirmation dialog appears
     await expect(
@@ -519,7 +521,9 @@ test.describe("spacecake app", () => {
       .first()
       .hover()
     await window.getByTestId("more-options-file-to-delete.txt").click()
-    await window.getByRole("menuitem", { name: "delete" }).click()
+    await window
+      .getByRole("menuitem", { name: "delete" })
+      .click({ force: true })
     await expect(
       window.getByText("are you sure you want to delete 'file-to-delete.txt'?")
     ).toBeVisible()
@@ -573,7 +577,9 @@ test.describe("spacecake app", () => {
 
     // Test deleting a folder with files (recursive delete)
     await window.getByTestId("more-options-folder-with-files").click()
-    await window.getByRole("menuitem", { name: "delete" }).click()
+    await window
+      .getByRole("menuitem", { name: "delete" })
+      .click({ force: true })
 
     // Verify delete confirmation dialog appears with folder message
     await expect(

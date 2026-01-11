@@ -65,10 +65,11 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
       })
 
     const createFolder = (
-      folderPath: string
+      folderPath: string,
+      options?: EffectFileSystem.MakeDirectoryOptions
     ): Effect.Effect<void, FileSystemError> =>
       Effect.gen(function* () {
-        return yield* fs.makeDirectory(folderPath)
+        return yield* fs.makeDirectory(folderPath, options)
       }).pipe(
         Effect.mapError(
           (error) =>

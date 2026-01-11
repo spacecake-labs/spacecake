@@ -5,8 +5,10 @@ import {
   createRootRouteWithContext,
   ErrorComponent,
   Outlet,
+  useLocation,
 } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
+import { usePostHog } from "posthog-js/react"
 
 import { useOpenWorkspace } from "@/lib/open-workspace"
 import { DatabaseContext } from "@/hooks/use-database"
@@ -19,6 +21,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function RootComponent() {
   const { db } = Route.useRouteContext()
   const { handleOpenWorkspace } = useOpenWorkspace()
+  const posthog = usePostHog()
+  const location = useLocation()
 
   // global keyboard shortcut for opening workspace
   useEffect(() => {
@@ -32,6 +36,14 @@ function RootComponent() {
     document.addEventListener("keydown", down)
     return () => document.removeEventListener("keydown", down)
   }, [handleOpenWorkspace])
+
+  useEffect(() => {
+    if (posthog) {
+      posthog.capture("$pageview", {
+        $current_url: window.location.origin + location.href,
+      })
+    }
+  }, [location.href, posthog])
 
   return (
     <PGliteProvider db={db.client}>
