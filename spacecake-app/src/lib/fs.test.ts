@@ -15,6 +15,7 @@ const createTestElectronAPI = (
     notifySelectionChanged: async () => {},
     notifyAtMentioned: async () => {},
     onStatusChange: () => () => {},
+    ensureServer: async () => {},
   },
   showOpenDialog: async () => ({ canceled: false, filePaths: ["/test/path"] }),
   readFile: async () => right(createTestFileContent()),

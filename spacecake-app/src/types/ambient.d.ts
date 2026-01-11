@@ -21,3 +21,8 @@ declare module "*.svg?react" {
   const content: FC<SVGProps<SVGElement>>
   export default content
 }
+
+interface Window {
+  $crisp: unknown[]
+  CRISP_WEBSITE_ID: string
+}

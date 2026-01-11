@@ -15,6 +15,8 @@ import { AbsolutePath } from "@/types/workspace"
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld("electronAPI", {
   claude: {
+    ensureServer: (workspaceFolders: string[]) =>
+      ipcRenderer.invoke("claude:ensure-server", workspaceFolders),
     notifySelectionChanged: (payload: SelectionChangedPayload) =>
       ipcRenderer.invoke("claude:selection-changed", payload),
     notifyAtMentioned: (payload: AtMentionedPayload) =>

@@ -22,7 +22,9 @@ function broadcastClaudeCodeStatus(status: ClaudeCodeStatus) {
 }
 
 export interface ClaudeCodeServerService {
+  readonly ensureStarted: (workspaceFolders: string[]) => Promise<void>
   readonly broadcast: (method: string, params: unknown) => void
+  readonly isStarted: () => boolean
 }
 
 const PORT_RANGE_START = 10000
@@ -38,9 +40,17 @@ function getRandomPort(): number {
 export const makeClaudeCodeServer = Effect.gen(function* (_) {
   const fsService = yield* _(FileSystem)
 
-  const startServer = Effect.gen(function* (_) {
-    broadcastClaudeCodeStatus("connecting")
+  // Lazy state - server is not started until ensureStarted() is called
+  let serverState: {
+    wss: WebSocketServer
+    port: number
+    lockFilePath: AbsolutePath
+    authToken: string
+  } | null = null
 
+  let startPromise: Promise<void> | null = null
+
+  const startServerEffect = Effect.gen(function* (_) {
     const port = getRandomPort()
     const wss = yield* _(
       Effect.async<WebSocketServer, Error>((resume) => {
@@ -68,111 +78,153 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
     })
   )
 
-  const { wss, port } = yield* _(startServer)
-  const authToken = crypto.randomUUID()
+  const doStart = async (workspaceFolders: string[]): Promise<void> => {
+    const { wss, port } = await Effect.runPromise(startServerEffect)
+    const authToken = crypto.randomUUID()
 
-  const homeDir = os.homedir()
-  const claudeDir = path.join(homeDir, ".claude", "ide")
-  // recursive: true means it doesn't fail if the folder already exists
-  yield* _(fsService.createFolder(claudeDir, { recursive: true }))
-  const lockFilePath = AbsolutePath(path.join(claudeDir, `${port}.lock`))
+    const homeDir = os.homedir()
+    const claudeDir = path.join(homeDir, ".claude", "ide")
+    await Effect.runPromise(
+      fsService.createFolder(claudeDir, { recursive: true })
+    )
+    const lockFilePath = AbsolutePath(path.join(claudeDir, `${port}.lock`))
 
-  wss.on("connection", (ws, req) => {
-    const authHeader = req.headers["x-claude-code-ide-authorization"]
-    if (authHeader !== authToken) {
-      Console.warn("Claude Code Server: Unauthorized connection attempt")
-      ws.close(1008, "Unauthorized")
-      return
+    wss.on("connection", (ws, req) => {
+      const authHeader = req.headers["x-claude-code-ide-authorization"]
+      if (authHeader !== authToken) {
+        Console.warn("Claude Code Server: Unauthorized connection attempt")
+        ws.close(1008, "Unauthorized")
+        return
+      }
+
+      Console.log("Claude Code Server: Client connected")
+
+      ws.on("close", () => {
+        broadcastClaudeCodeStatus("disconnected")
+        Console.log("Claude Code Server: Client disconnected")
+      })
+
+      ws.on("message", (message) => {
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(message.toString())
+        } catch (err) {
+          Console.error("claude code server: failed to parse json", err)
+          return
+        }
+
+        const decoded = Schema.decodeUnknownEither(JsonRpcMessageSchema)(parsed)
+        if (Either.isLeft(decoded)) {
+          Console.error(
+            "claude code server: invalid json-rpc message",
+            decoded.left
+          )
+          return
+        }
+
+        const data = decoded.right
+        // Handle initialize request - broadcast "connecting" status
+        if (
+          data.method === "initialize" &&
+          data.id !== null &&
+          data.id !== undefined
+        ) {
+          broadcastClaudeCodeStatus("connecting")
+          const initResponse = {
+            jsonrpc: "2.0",
+            id: data.id,
+            result: {
+              protocolVersion: "2025-11-25",
+              capabilities: {
+                tools: {
+                  listChanged: true,
+                },
+                resources: {},
+              },
+              serverInfo: { name: "spacecake", version: "1.0" },
+            },
+          } satisfies JsonRpcResponse
+          ws.send(JSON.stringify(initResponse))
+          return
+        }
+
+        // Track when Claude Code IDE is fully connected
+        if (data.method === "ide_connected") {
+          broadcastClaudeCodeStatus("connected")
+          Console.log("claude code server: ide connected and ready")
+          return
+        }
+        Console.log("claude code server: received message", data)
+      })
+    })
+
+    const lockData = {
+      pid: process.pid,
+      workspaceFolders,
+      ideName: "spacecake",
+      transport: "ws",
+      authToken: authToken,
     }
 
-    Console.log("Claude Code Server: Client connected")
+    try {
+      await Effect.runPromise(
+        fsService.writeTextFile(lockFilePath, JSON.stringify(lockData))
+      )
+      Console.log(
+        `Claude Code Server listening on port ${port}, lock file: ${lockFilePath}`
+      )
+    } catch (error) {
+      Console.error("Failed to write lock file", error)
+    }
 
-    ws.on("message", (message) => {
-      let parsed: unknown
-      try {
-        parsed = JSON.parse(message.toString())
-      } catch (err) {
-        Console.error("claude code server: failed to parse json", err)
-        return
-      }
+    // Store state for cleanup and broadcast
+    serverState = { wss, port, lockFilePath, authToken }
 
-      const decoded = Schema.decodeUnknownEither(JsonRpcMessageSchema)(parsed)
-      if (Either.isLeft(decoded)) {
-        Console.error(
-          "claude code server: invalid json-rpc message",
-          decoded.left
-        )
-        return
-      }
-
-      const data = decoded.right
-
-      // Handle initialize request
-      if (
-        data.method === "initialize" &&
-        data.id !== null &&
-        data.id !== undefined
-      ) {
-        const initResponse = {
-          jsonrpc: "2.0",
-          id: data.id,
-          result: {
-            protocolVersion: "2025-11-25",
-            capabilities: {
-              tools: {
-                listChanged: true,
-              },
-              resources: {},
-            },
-            serverInfo: { name: "spacecake", version: "1.0" },
-          },
-        } satisfies JsonRpcResponse
-        ws.send(JSON.stringify(initResponse))
-        return
-      }
-
-      // Track when Claude Code IDE connects (ready to receive context)
-      if (data.method === "ide_connected") {
-        broadcastClaudeCodeStatus("connected")
-        Console.log("claude code server: ide connected and ready")
-        return
-      }
-      Console.log("claude code server: received message", data)
-    })
-  })
-
-  const lockData = {
-    pid: process.pid,
-    workspaceFolders: [], // We can update this dynamically or fetch from somewhere
-    ideName: "spacecake",
-    transport: "ws",
-    authToken: authToken,
+    process.env.CLAUDE_CODE_SSE_PORT = port.toString()
+    process.env.ENABLE_IDE_INTEGRATION = "true"
   }
 
-  try {
-    yield* _(fsService.writeTextFile(lockFilePath, JSON.stringify(lockData)))
-    Console.log(
-      `Claude Code Server listening on port ${port}, lock file: ${lockFilePath}`
-    )
-  } catch (error) {
-    Console.error("Failed to write lock file", error)
+  const ensureStarted = async (workspaceFolders: string[]): Promise<void> => {
+    if (serverState) return // Already started
+    if (startPromise) return startPromise // Currently starting
+
+    startPromise = doStart(workspaceFolders).catch((err) => {
+      // If server fails to start, reset to disconnected state
+      broadcastClaudeCodeStatus("disconnected")
+      startPromise = null // Allow retry
+      throw err
+    })
+    await startPromise
   }
 
   const broadcast = (method: string, params: unknown) => {
+    if (!serverState) return // Server not started, no-op
+
     const message = JSON.stringify({
       jsonrpc: "2.0",
       method,
       params,
     })
-    wss.clients.forEach((client) => {
+    serverState.wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(message)
       }
     })
   }
 
-  // Register IPC handlers
+  const isStarted = () => serverState !== null
+
+  // Register IPC handlers - these work whether server is started or not
+  // They just no-op if server isn't running
+  ipcMain.handle(
+    "claude:ensure-server",
+    async (_, workspaceFolders: string[]) => {
+      await ensureStarted(workspaceFolders)
+    }
+  )
+
   ipcMain.handle("claude:selection-changed", (_, payload) => {
+    if (!serverState) return
     const decoded = Schema.decodeUnknownEither(SelectionChangedPayloadSchema)(
       payload
     )
@@ -187,6 +239,7 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
   })
 
   ipcMain.handle("claude:at-mentioned", (_, payload) => {
+    if (!serverState) return
     const decoded = Schema.decodeUnknownEither(AtMentionedPayloadSchema)(
       payload
     )
@@ -200,25 +253,31 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
     broadcast("at_mentioned", decoded.right)
   })
 
-  process.env.CLAUDE_CODE_SSE_PORT = port.toString()
-  process.env.ENABLE_IDE_INTEGRATION = "true"
-
+  // Finalizer only cleans up if server was actually started
   yield* _(
     Effect.addFinalizer(() =>
       Effect.gen(function* (_) {
+        if (!serverState) {
+          Console.log("Claude Code Server: Never started, nothing to clean up")
+          return
+        }
+
         Console.log("Claude Code Server: Stopping...")
         broadcastClaudeCodeStatus("disconnected")
-        wss.close()
-        const exists = yield* _(fsService.exists(lockFilePath))
+        serverState.wss.close()
+
+        const exists = yield* _(fsService.exists(serverState.lockFilePath))
         if (exists) {
-          yield* _(fsService.remove(lockFilePath))
+          yield* _(fsService.remove(serverState.lockFilePath))
         }
       }).pipe(Effect.catchAll(() => Effect.void))
     )
   )
 
   return {
+    ensureStarted,
     broadcast,
+    isStarted,
   }
 })
 

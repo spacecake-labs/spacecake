@@ -8,7 +8,7 @@ import { watcherService } from "@/main-process/watcher"
 import { ClaudeCodeServer } from "@/services/claude-code-server"
 import { Ipc } from "@/services/ipc"
 import { setupUpdates } from "@/update"
-import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
+import { NodeFileSystem } from "@effect/platform-node"
 import { Effect, Layer } from "effect"
 import { app, BrowserWindow, session } from "electron"
 import {
@@ -44,6 +44,9 @@ if (started) {
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
 const isTest = process.env.IS_PLAYWRIGHT === "true"
 const showWindow = process.env.SHOW_WINDOW === "true"
+
+// Track shutdown state for graceful cleanup coordination
+let isShuttingDown = false
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
@@ -142,27 +145,28 @@ const program = Effect.gen(function* (_) {
     }
   })
 
-  // not sure why this works but it seems to prevent macOS complaining
-  // that the app 'quit unexpectedly' when running Playwright tests.
-  if (isTest && process.platform === "darwin") {
-    app.on("before-quit", (e) => {
-      e.preventDefault()
-      app.quit()
-    })
-  }
-
   // Quit when all windows are closed, except on macOS. There, it's common
   // for applications and their menu bar to stay active until the user quits
   // explicitly with Cmd + Q.
   app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") {
+    if (process.platform !== "darwin" || isTest) {
       app.quit()
     }
   })
 
+  // Wait for quit signal, preventing immediate quit to allow cleanup
   yield* _(
     Effect.async<void>((resume) => {
-      app.on("will-quit", () => resume(Effect.void))
+      app.on("will-quit", (e) => {
+        if (!isShuttingDown) {
+          // First quit attempt - prevent default and start cleanup
+          e.preventDefault()
+          isShuttingDown = true
+          console.log("Graceful shutdown initiated, running cleanup...")
+          resume(Effect.void)
+        }
+        // Second quit (after cleanup) - let it through
+      })
     })
   )
 })
@@ -175,4 +179,9 @@ const main = program.pipe(
   Effect.catchAll(Effect.logError)
 )
 
-NodeRuntime.runMain(main)
+// Run and coordinate graceful shutdown - after all Effect finalizers complete,
+// actually quit the app
+Effect.runPromise(main).finally(() => {
+  console.log("Effect cleanup complete, quitting app...")
+  app.quit()
+})

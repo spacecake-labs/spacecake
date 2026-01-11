@@ -35,17 +35,19 @@ test.describe("ghostty terminal", () => {
     // Wait for the editor to be visible
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // Verify the terminal is initially visible (not collapsed)
     const terminalElement = window.getByTestId("ghostty-terminal")
+    const hideButton = window.getByRole("button", { name: "hide terminal" })
+    const showButton = window.getByRole("button", { name: "show terminal" })
+
+    // Terminal starts collapsed - expand it first
+    await expect(terminalElement).not.toBeVisible()
+    await showButton.click()
     await expect(terminalElement).toBeVisible()
 
     // Wait for shell profile to be loaded (shell integration complete)
     await expect(
       window.getByRole("status", { name: "shell profile loaded" })
     ).toBeVisible()
-
-    const hideButton = window.getByRole("button", { name: "hide terminal" })
-    const showButton = window.getByRole("button", { name: "show terminal" })
     const deleteButton = window.getByTestId("terminal-delete-button")
 
     // Test: Hide and show terminal (toggle visibility)
