@@ -76,14 +76,17 @@ describe("ClaudeCodeServer", () => {
   const runTestServer = () => {
     return Effect.gen(function* (_) {
       const scope = yield* _(Effect.scope)
-      const serverFiber = yield* _(
-        makeClaudeCodeServer.pipe(
-          Effect.provide(createTestLayer()),
-          Effect.forkIn(scope)
-        )
+      const server = yield* _(
+        makeClaudeCodeServer.pipe(Effect.provide(createTestLayer()))
       )
 
-      // Wait for server to start
+      // Actually start the server (it's lazy now)
+      yield* _(Effect.promise(() => server.ensureStarted(["/test/workspace"])))
+
+      // Fork to keep the server alive in the scope
+      const serverFiber = yield* _(Effect.never.pipe(Effect.forkIn(scope)))
+
+      // Wait for server to be ready (lock file written)
       yield* _(
         Effect.promise(async () => {
           let attempts = 0
@@ -236,19 +239,12 @@ describe("ClaudeCodeServer", () => {
     )
   })
 
-  it("should broadcast 'connected' status when ide_connected message is received", async () => {
+  it("should broadcast 'connecting' on initialize and 'connected' on ide_connected", async () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* (_) {
           const { lockFileData, port } = yield* _(runTestServer())
           const expectedToken = lockFileData.authToken
-
-          // Expect "connecting" to have been broadcast on startup
-          expect(mocks.webContentsSend).toHaveBeenCalledWith(
-            "claude-code-status",
-            "connecting"
-          )
-          mocks.webContentsSend.mockClear()
 
           const ws = new WebSocket(`ws://localhost:${port}`, {
             headers: {
@@ -264,12 +260,49 @@ describe("ClaudeCodeServer", () => {
             })
           )
 
-          const message = {
+          // Send initialize message - should trigger "connecting" status
+          const initMessage = {
+            method: "initialize",
+            params: {
+              protocolVersion: "2025-11-25",
+              capabilities: { roots: {} },
+              clientInfo: { name: "claude-code", version: "1.0.0" },
+            },
+            jsonrpc: "2.0",
+            id: 0,
+          }
+          ws.send(JSON.stringify(initMessage))
+
+          // Wait for "connecting" broadcast
+          yield* _(
+            Effect.promise(async () => {
+              let attempts = 0
+              while (
+                !mocks.webContentsSend.mock.calls.some(
+                  (args: readonly unknown[]) =>
+                    args[0] === "claude-code-status" && args[1] === "connecting"
+                ) &&
+                attempts < 20
+              ) {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+                attempts++
+              }
+            })
+          )
+
+          expect(mocks.webContentsSend).toHaveBeenCalledWith(
+            "claude-code-status",
+            "connecting"
+          )
+          mocks.webContentsSend.mockClear()
+
+          // Send ide_connected message - should trigger "connected" status
+          const connectedMessage = {
             method: "ide_connected",
             params: { pid: 66484 },
             jsonrpc: "2.0",
           }
-          ws.send(JSON.stringify(message))
+          ws.send(JSON.stringify(connectedMessage))
 
           // Wait for broadcast to happen
           yield* _(

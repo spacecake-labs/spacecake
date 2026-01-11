@@ -64,7 +64,29 @@ export const test = base.extend<TestFixtures>({
 
     await use(app)
 
-    await app.close()
+    // On Linux, graceful close can hang due to WebSocket cleanup issues.
+    // Use a timeout with force-kill fallback. Shorter timeout on CI since
+    // speed matters more than graceful cleanup there.
+    const closeTimeout = process.env.CI ? 1000 : 5000
+    let timeoutId: NodeJS.Timeout | null = null
+    const closePromise = app.close().finally(() => {
+      if (timeoutId) clearTimeout(timeoutId)
+    })
+    const timeoutPromise = new Promise<void>((resolve) => {
+      timeoutId = setTimeout(() => {
+        console.warn("app.close() timed out, force killing process")
+        try {
+          const proc = app.process()
+          if (proc && !proc.killed) {
+            proc.kill("SIGKILL")
+          }
+        } catch {
+          // app already closed, ignore
+        }
+        resolve()
+      }, closeTimeout)
+    })
+    await Promise.race([closePromise, timeoutPromise])
 
     if (fs.existsSync(dataDir)) {
       fs.rmSync(dataDir, { recursive: true, force: true, maxRetries: 5 })

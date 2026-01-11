@@ -113,6 +113,9 @@ describe("ClaudeStatusBadge Integration", () => {
           Effect.scoped(
             makeClaudeCodeServer.pipe(
               Effect.provide(FileSystemTestLayer),
+              Effect.tap((server) =>
+                Effect.promise(() => server.ensureStarted(["/test/workspace"]))
+              ),
               Effect.flatMap(() => Effect.never)
             )
           ).pipe(Effect.fork)
@@ -160,7 +163,34 @@ describe("ClaudeStatusBadge Integration", () => {
           })
         )
 
-        // 5. Send 'ide_connected' message -> Expect 'connected'
+        // 5. Send 'initialize' message -> Expect 'connecting' (yellow)
+        const initMessage = {
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-11-25",
+            capabilities: { roots: {} },
+            clientInfo: { name: "claude-code", version: "1.0.0" },
+          },
+          jsonrpc: "2.0",
+          id: 0,
+        }
+        ws.send(JSON.stringify(initMessage))
+
+        yield* _(
+          Effect.promise(async () => {
+            await vi.waitFor(
+              () => {
+                const badge = container?.querySelector(
+                  "div[title='connecting to claude code']"
+                )
+                expect(badge).toBeTruthy()
+              },
+              { timeout: 2000 }
+            )
+          })
+        )
+
+        // 6. Send 'ide_connected' message -> Expect 'connected' (green)
         const connectedMessage = {
           method: "ide_connected",
           params: { pid: 12345 },
@@ -182,7 +212,7 @@ describe("ClaudeStatusBadge Integration", () => {
           })
         )
 
-        // 6. Interrupt the server fiber -> Expect 'disconnected'
+        // 7. Interrupt the server fiber -> Expect 'disconnected'
         // Interrupting closes the scoped effect, triggering the finalizer
         yield* _(Fiber.interrupt(serverFiber))
 

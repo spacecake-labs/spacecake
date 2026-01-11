@@ -49,7 +49,7 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
 
-const isTerminalCollapsedAtom = atomWithToggle(false)
+const isTerminalCollapsedAtom = atomWithToggle(true)
 
 export const Route = createFileRoute("/w/$workspaceId")({
   beforeLoad: async ({ params, context }) => {
@@ -205,6 +205,7 @@ function LayoutContent() {
     isTerminalCollapsedAtom
   )
   const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
+  const claudeServerStarted = useRef(false)
 
   // reset terminal panel size when toggling collapse state
   useEffect(() => {
@@ -222,6 +223,20 @@ function LayoutContent() {
       }
     }
   }, [isTerminalCollapsed])
+
+  // lazily start the Claude Code server when the terminal is first expanded
+  useEffect(() => {
+    if (
+      !isTerminalCollapsed &&
+      !claudeServerStarted.current &&
+      workspace?.path
+    ) {
+      claudeServerStarted.current = true
+      window.electronAPI.claude.ensureServer([workspace.path]).catch((err) => {
+        console.error("Failed to start Claude Code server:", err)
+      })
+    }
+  }, [isTerminalCollapsed, workspace?.path])
 
   const handleFileClick = (filePath: AbsolutePath) => {
     if (workspace?.path) {

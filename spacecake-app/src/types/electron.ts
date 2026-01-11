@@ -16,6 +16,7 @@ import type {
 
 export interface ElectronAPI {
   claude: {
+    ensureServer: (workspaceFolders: string[]) => Promise<void>
     notifySelectionChanged: (payload: SelectionChangedPayload) => Promise<void>
     notifyAtMentioned: (payload: AtMentionedPayload) => Promise<void>
     onStatusChange: (handler: (status: ClaudeCodeStatus) => void) => () => void
