@@ -150,21 +150,25 @@ button[class*="secondary"]:hover {
   background-color: color-mix(in srgb, var(--sl-color-accent) 10%, transparent);
 }
 
-/* Wider content layout for splash/homepage */
-[data-has-hero] main {
-  --sl-content-width: 100%;
-  max-width: 100%;
-  padding-inline: 4rem;
-}
-
-@media (min-width: 50rem) {
-  [data-has-hero] main {
-    padding-inline: 6rem;
+/* Mobile layout fixes */
+@media (max-width: 50rem) {
+  html,
+  body {
+    overflow-x: hidden;
   }
-}
 
-@media (min-width: 72rem) {
-  [data-has-hero] main {
-    padding-inline: 8rem;
+  /* Prevent flex items from overflowing viewport */
+  .hero,
+  .hero .stack,
+  .hero .editor-preview,
+  .hero .editor-preview > div {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Stack download buttons vertically */
+  .hero .actions {
+    flex-direction: column;
+    align-items: center;
   }
 }
