@@ -7,12 +7,33 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "lint": "eslint --fix --ext .ts,.tsx,.astro .",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --log-level warn --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
+    "@types/node": "^24.5.2",
+    "@typescript-eslint/eslint-plugin": "^8.44.1",
+    "@typescript-eslint/parser": "^8.44.1",
+    "eslint": "^9.36.0",
+    "eslint-plugin-astro": "^1.5.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-unused-imports": "^4.2.0",
+    "prettier": "^3.6.2",
+    "prettier-plugin-astro": "^0.14.1",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.44.1"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.37.1",
     "@mux/mux-player-astro": "^3.10.2",
+    "@tailwindcss/vite": "^4.1.18",
     "astro": "^5.6.1",
-    "sharp": "^0.34.5"
+    "posthog-js": "^1.318.0",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4.1.18"
   }
 }

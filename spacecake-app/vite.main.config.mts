@@ -22,6 +22,8 @@ export default defineConfig({
         "tree-sitter-typescript",
         "@parcel/watcher",
         "@lydell/node-pty",
+        "bufferutil",
+        "utf-8-validate",
       ],
     },
     sourcemap: buildSourcemap ? "inline" : false,

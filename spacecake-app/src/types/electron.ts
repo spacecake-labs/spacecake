@@ -1,6 +1,11 @@
 import { FileSystemError } from "@/services/file-system"
 
 import { type Either } from "@/types/adt"
+import {
+  AtMentionedPayload,
+  ClaudeCodeStatus,
+  SelectionChangedPayload,
+} from "@/types/claude-code"
 import { TerminalError } from "@/types/terminal"
 import type {
   AbsolutePath,
@@ -10,6 +15,12 @@ import type {
 } from "@/types/workspace"
 
 export interface ElectronAPI {
+  claude: {
+    ensureServer: (workspaceFolders: string[]) => Promise<void>
+    notifySelectionChanged: (payload: SelectionChangedPayload) => Promise<void>
+    notifyAtMentioned: (payload: AtMentionedPayload) => Promise<void>
+    onStatusChange: (handler: (status: ClaudeCodeStatus) => void) => () => void
+  }
   showOpenDialog: (options: unknown) => Promise<{
     canceled: boolean
     filePaths: string[]

@@ -14,7 +14,7 @@ import {
   useNavigate,
 } from "@tanstack/react-router"
 import { useAtom, useSetAtom } from "jotai"
-import { Check, ChevronDown, ChevronUp, Copy, Terminal } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
 
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
@@ -41,13 +41,15 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
+import { ClaudeStatusBadge } from "@/components/claude-status-badge"
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { GhosttyTerminal, TerminalAPI } from "@/components/ghostty-terminal"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
+import { TerminalStatusBadge } from "@/components/terminal-status-badge"
 
-const isTerminalCollapsedAtom = atomWithToggle(false)
+const isTerminalCollapsedAtom = atomWithToggle(true)
 
 export const Route = createFileRoute("/w/$workspaceId")({
   beforeLoad: async ({ params, context }) => {
@@ -203,6 +205,7 @@ function LayoutContent() {
     isTerminalCollapsedAtom
   )
   const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
+  const claudeServerStarted = useRef(false)
 
   // reset terminal panel size when toggling collapse state
   useEffect(() => {
@@ -220,6 +223,20 @@ function LayoutContent() {
       }
     }
   }, [isTerminalCollapsed])
+
+  // lazily start the Claude Code server when the terminal is first expanded
+  useEffect(() => {
+    if (
+      !isTerminalCollapsed &&
+      !claudeServerStarted.current &&
+      workspace?.path
+    ) {
+      claudeServerStarted.current = true
+      window.electronAPI.claude.ensureServer([workspace.path]).catch((err) => {
+        console.error("Failed to start Claude Code server:", err)
+      })
+    }
+  }, [isTerminalCollapsed, workspace?.path])
 
   const handleFileClick = (filePath: AbsolutePath) => {
     if (workspace?.path) {
@@ -315,28 +332,28 @@ function LayoutContent() {
                     !isTerminalCollapsed && "border-b"
                   )}
                 >
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Terminal className="h-4 w-4" />
-                    <span className="font-mono">terminal</span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (isTerminalCollapsed && !isTerminalSessionActive) {
-                        setIsTerminalSessionActive(true)
+                  <TerminalStatusBadge />
+                  <div className="flex items-center gap-3">
+                    <ClaudeStatusBadge className="text-xs" />
+                    <button
+                      onClick={() => {
+                        if (isTerminalCollapsed && !isTerminalSessionActive) {
+                          setIsTerminalSessionActive(true)
+                        }
+                        setIsTerminalCollapsed(!isTerminalCollapsed)
+                      }}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={
+                        isTerminalCollapsed ? "show terminal" : "hide terminal"
                       }
-                      setIsTerminalCollapsed(!isTerminalCollapsed)
-                    }}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label={
-                      isTerminalCollapsed ? "show terminal" : "hide terminal"
-                    }
-                  >
-                    {isTerminalCollapsed ? (
-                      <ChevronUp className="cursor-pointer h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="cursor-pointer h-4 w-4" />
-                    )}
-                  </button>
+                    >
+                      {isTerminalCollapsed ? (
+                        <ChevronUp className="cursor-pointer h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="cursor-pointer h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div
                   className={cn(

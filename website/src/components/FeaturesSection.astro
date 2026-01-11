@@ -1,15 +1,16 @@
 ---
-import { Image } from "astro:assets";
-import type { ImageMetadata } from "astro";
-import codeBlocksImage from "../assets/code-blocks.svg";
-import checklistsImage from "../assets/specs.svg";
-import diagramImage from "../assets/mermaid.svg";
-import fileTreeImage from "../assets/file-tree.svg";
+import type { ImageMetadata } from "astro"
+import { Image } from "astro:assets"
+
+import codeBlocksImage from "../assets/code-blocks.svg"
+import fileTreeImage from "../assets/file-tree.svg"
+import diagramImage from "../assets/mermaid.svg"
+import checklistsImage from "../assets/specs.svg"
 
 interface Feature {
-  title: string;
-  description: string;
-  image: ImageMetadata;
+  title: string
+  description: string
+  image: ImageMetadata
 }
 
 const features: Feature[] = [
@@ -34,7 +35,7 @@ const features: Feature[] = [
       "split features into actionable steps and monitor their progress",
     image: checklistsImage,
   },
-];
+]
 ---
 
 <section class="features-section">

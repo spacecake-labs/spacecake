@@ -44,6 +44,12 @@ describe("fileTypeFromLanguage", () => {
     ["YAML", FileType.YAML],
     ["toml", FileType.TOML],
     ["TOML", FileType.TOML],
+    ["css", FileType.CSS],
+    ["CSS", FileType.CSS],
+    ["shell", FileType.Shell],
+    ["bash", FileType.Shell],
+    ["sh", FileType.Shell],
+    ["zsh", FileType.Shell],
   ])("returns correct FileType for language: %s", (language, expectedType) => {
     expect(fileTypeFromLanguage(language)).toBe(expectedType)
   })
@@ -86,6 +92,10 @@ describe("fileExtension", () => {
     ["test.yaml", "yaml"],
     ["test.yml", "yml"],
     ["test.toml", "toml"],
+    ["test.css", "css"],
+    ["test.sh", "sh"],
+    ["test.bash", "bash"],
+    ["test.ksh", "ksh"],
     ["test", null],
   ])(
     "returns correct extension for file: %s",
@@ -122,6 +132,10 @@ describe("fileTypeFromFileName", () => {
     ["test.yaml", FileType.YAML],
     ["test.yml", FileType.YAML],
     ["test.toml", FileType.TOML],
+    ["test.css", FileType.CSS],
+    ["test.sh", FileType.Shell],
+    ["test.bash", FileType.Shell],
+    ["test.ksh", FileType.Shell],
     ["test", FileType.Plaintext],
   ])("returns correct FileType for file: %s", (fileName, expectedType) => {
     expect(fileTypeFromFileName(fileName)).toBe(expectedType)

@@ -1,13 +1,14 @@
 ---
 // src/components/GitHubDownloadButton.astro
-import { LinkButton } from "@astrojs/starlight/components";
-import { getDownloadUrl } from "../lib/github-releases";
+import { LinkButton } from "@astrojs/starlight/components"
+
+import { getDownloadUrl } from "../lib/github-releases"
 
 interface Props {
-  platform: "macos-arm64" | "macos-x64";
+  platform: "macos-arm64" | "macos-x64"
 }
 
-const { platform } = Astro.props;
+const { platform } = Astro.props
 
 const platformMap = {
   "macos-arm64": {
@@ -16,10 +17,10 @@ const platformMap = {
   "macos-x64": {
     text: "download (mac intel)",
   },
-};
+}
 
-const { text } = platformMap[platform];
-const { downloadUrl, errorMessage } = await getDownloadUrl(platform);
+const { text } = platformMap[platform]
+const { downloadUrl, errorMessage } = await getDownloadUrl(platform)
 ---
 
 {
