@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.29
+
+### Patch Changes
+
+- 43accae: Claude Code integration.
+
 ## 0.1.0-alpha.28
 
 ### Patch Changes
