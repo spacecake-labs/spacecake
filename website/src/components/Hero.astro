@@ -70,10 +70,9 @@ const { title = data.title, tagline } = data.hero || {}
     .hero {
       display: grid;
       align-items: center;
-      gap: 1rem;
+      gap: 2rem;
       padding-bottom: 1rem;
-      max-width: 80rem;
-      margin-inline: auto;
+      width: 100%;
     }
 
     .hero > img,
@@ -81,12 +80,14 @@ const { title = data.title, tagline } = data.hero || {}
     .hero > .editor-preview {
       object-fit: contain;
       width: 100%;
+      max-width: 600px;
       height: auto;
       margin-inline: auto;
     }
 
     .stack {
       flex-direction: column;
+      align-items: center;
       gap: clamp(1.5rem, calc(1.5rem + 1vw), 2rem);
       text-align: center;
     }
@@ -109,6 +110,7 @@ const { title = data.title, tagline } = data.hero || {}
     .badges-container {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 0.75rem;
       flex-wrap: wrap;
     }
@@ -187,7 +189,7 @@ const { title = data.title, tagline } = data.hero || {}
     }
 
     .actions {
-      gap: 1rem 2rem;
+      gap: 1rem;
       flex-wrap: wrap;
       justify-content: center;
     }
@@ -213,7 +215,7 @@ const { title = data.title, tagline } = data.hero || {}
       margin-top: 1rem;
     }
 
-    @media (min-width: 50rem) {
+    @media (min-width: 60rem) {
       .hero {
         grid-template-columns: 1fr 1fr;
         gap: 3%;
@@ -225,14 +227,14 @@ const { title = data.title, tagline } = data.hero || {}
       .hero > .hero-html,
       .hero > .editor-preview {
         width: 100%;
+        max-width: none;
         align-self: start;
       }
 
       .stack {
         text-align: start;
-        width: 100%;
+        align-items: flex-start;
         max-width: 38rem;
-        margin-inline: auto;
       }
 
       .copy {
@@ -244,7 +246,11 @@ const { title = data.title, tagline } = data.hero || {}
       }
 
       .actions {
+        flex-direction: row;
+        gap: 1rem 2rem;
+        flex-wrap: wrap;
         justify-content: flex-start;
+        align-items: flex-start;
       }
     }
   }
