@@ -1,9 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("route not found", () => {
   test("should show 'file not found' message when file is deleted after opening", async ({
@@ -16,12 +14,8 @@ test.describe("route not found", () => {
     const testFilePath = path.join(tempTestDir, "_README.md")
     fs.copyFileSync(fixturePath, testFilePath)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     await window.getByRole("button", { name: "_README.md" }).first().click()
 
@@ -51,12 +45,8 @@ test.describe("route not found", () => {
   }) => {
     const window = await electronApp.firstWindow()
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // wait for watcher to be ready
     await window.waitForTimeout(1000)

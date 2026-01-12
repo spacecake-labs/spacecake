@@ -1,9 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("editor view toggle", () => {
   test("python file can toggle between block and source views", async ({
@@ -31,12 +29,9 @@ class MathUtils:
 
     const page = await electronApp.firstWindow()
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
+    // open the temp test directory as workspace
+    await waitForWorkspace(page)
 
-    await page.getByRole("button", { name: "open folder" }).click()
     await page.getByRole("button", { name: "test.py" }).click()
 
     const editor = page.getByTestId("lexical-editor")
@@ -112,12 +107,9 @@ class MathUtils:
 
     const page = await electronApp.firstWindow()
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
+    // open the temp test directory as workspace
+    await waitForWorkspace(page)
 
-    await page.getByRole("button", { name: "open folder" }).click()
     await page.getByRole("button", { name: "test_md.py" }).click()
 
     const editor = page.getByTestId("lexical-editor")
@@ -201,10 +193,10 @@ This is a **markdown** file.
     fs.writeFileSync(markdownFile, markdownContent)
 
     const page = await electronApp.firstWindow()
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-    })
-    await page.getByRole("button", { name: "open folder" }).click()
+
+    // open the temp test directory as workspace
+    await waitForWorkspace(page)
+
     await page.getByRole("button", { name: "test.md" }).click()
 
     await page.waitForTimeout(1000)
@@ -251,10 +243,10 @@ This is a **markdown** file.
     fs.writeFileSync(textFile, textContent)
 
     const page = await electronApp.firstWindow()
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-    })
-    await page.getByRole("button", { name: "open folder" }).click()
+
+    // open the temp test directory as workspace
+    await waitForWorkspace(page)
+
     await page.getByRole("button", { name: "test.txt" }).click()
 
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
@@ -281,10 +273,9 @@ This is a **markdown** file.
     fs.writeFileSync(pythonFile2, pythonContent)
 
     const page = await electronApp.firstWindow()
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-    })
-    await page.getByRole("button", { name: "open folder" }).click()
+
+    // open the temp test directory as workspace
+    await waitForWorkspace(page)
 
     // Open first file and switch to source view
     await page.getByRole("button", { name: "file1.py" }).click()
@@ -326,10 +317,9 @@ This is a **markdown** file.
     }
 
     const page = await electronApp.firstWindow()
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-    })
-    await page.getByRole("button", { name: "open folder" }).click()
+
+    // open the temp test directory as workspace
+    await waitForWorkspace(page)
 
     // Open the README file
     await page.getByRole("button", { name: "_README.md" }).click()

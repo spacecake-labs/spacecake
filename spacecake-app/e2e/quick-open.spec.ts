@@ -1,9 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("quick open feature", () => {
   test("quick open and navigate to files", async ({
@@ -55,18 +53,15 @@ test.describe("quick open feature", () => {
     // Verify the window is visible
     await expect(window.locator("body")).toBeVisible()
 
-    // Stub the showOpenDialog to return our temp test directory
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
+    // Wait for initial home folder load to complete
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // Click the "open folder" button
-    await window.getByRole("button", { name: "open folder" }).click()
+    // open the temp test directory as workspace (triggers file tree refresh)
+    await waitForWorkspace(window)
 
-    // Wait for the workspace to load (indicated by the create file button appearing)
+    // Wait for the test files to appear in the file tree
     await expect(
-      window.getByRole("button", { name: "create file or folder" })
+      window.getByRole("button", { name: "README.md" })
     ).toBeVisible()
 
     // --- Test README.md (root level) ---
@@ -79,6 +74,7 @@ test.describe("quick open feature", () => {
       .nth(1)
     await expect(quickOpenInput).toBeVisible()
     await quickOpenInput.pressSequentially("README.md", { delay: 100 })
+
     await window.keyboard.press("Enter")
     await expect(quickOpenInput).not.toBeVisible() // Quick open should close
 

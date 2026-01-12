@@ -1,9 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("python isomorphism e2e", () => {
   test("core.py maintains isomorphism through editor roundtrip (complex structures and async functions)", async ({
@@ -69,12 +67,8 @@ if __name__ == "__main__":
     const destPath = path.join(tempTestDir, "core.py")
     fs.writeFileSync(destPath, coreContent, "utf-8")
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window.getByRole("button", { name: "core.py" }).first().click()
@@ -124,12 +118,8 @@ if __name__ == "__main__":
     const emptyPyPath = path.join(tempTestDir, "empty.py")
     fs.writeFileSync(emptyPyPath, "", "utf-8")
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the empty file
     await window.getByRole("button", { name: "empty.py" }).first().click()
@@ -158,12 +148,8 @@ if __name__ == "__main__":
     const commentPyPath = path.join(tempTestDir, "comments.py")
     fs.writeFileSync(commentPyPath, commentContent, "utf-8")
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the comments file
     await window.getByRole("button", { name: "comments.py" }).first().click()

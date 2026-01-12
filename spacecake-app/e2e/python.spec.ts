@@ -1,9 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("python e2e", () => {
   test("open workspace and create an empty python file", async ({
@@ -12,16 +10,8 @@ test.describe("python e2e", () => {
   }, testInfo) => {
     const window = await electronApp.firstWindow()
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // create a python file
     await window.getByRole("button", { name: "create file or folder" }).click()
@@ -68,16 +58,8 @@ test.describe("python e2e", () => {
     const destPath = path.join(tempTestDir, "core.py")
     fs.copyFileSync(fixturePath, destPath)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window.getByRole("button", { name: "core.py" }).first().click()
@@ -258,16 +240,8 @@ test.describe("python e2e", () => {
     fs.copyFileSync(coreFixture, coreDest)
     fs.copyFileSync(emptyFixture, emptyDest)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open core.py and verify python rich are visible
     await window.getByRole("button", { name: "core.py" }).first().click()
@@ -304,16 +278,8 @@ test.describe("python e2e", () => {
     fs.copyFileSync(coreFixture, coreDest)
     fs.copyFileSync(emptyFixture, emptyDest)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open core.py and verify python content
     await window.getByRole("button", { name: "core.py" }).first().click()
@@ -349,12 +315,8 @@ test.describe("python e2e", () => {
     const coreDest = path.join(tempTestDir, "core.py")
     fs.copyFileSync(coreFixture, coreDest)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open core.py
     await window.getByRole("button", { name: "core.py" }).first().click()

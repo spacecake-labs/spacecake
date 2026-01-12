@@ -33,6 +33,8 @@ export const Route = createFileRoute("/")({
   component: Index,
   loader: async ({ context }) => {
     const { db } = context
+    const homeFolderPath = await window.electronAPI.getHomeFolderPath()
+
     const lastOpenedWorkspace = await RuntimeClient.runPromise(
       db.selectLastOpenedWorkspace
     )
@@ -56,7 +58,16 @@ export const Route = createFileRoute("/")({
         },
       })
     }
-    return { notFoundPath: Option.none() }
+
+    // no last opened workspace - open home folder with getting-started guide
+    const gettingStartedPath = `${homeFolderPath}/.app/getting-started.md`
+    throw redirect({
+      to: "/w/$workspaceId/f/$filePath",
+      params: {
+        workspaceId: encodeBase64Url(homeFolderPath),
+        filePath: encodeBase64Url(gettingStartedPath),
+      },
+    })
   },
   pendingComponent: () => <LoadingAnimation />,
   errorComponent: ({ error }) => <ErrorComponent error={error} />,

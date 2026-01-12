@@ -8,9 +8,15 @@ import { ZERO_HASH } from "@/types/workspace"
 import { commandScore } from "@/lib/command-score"
 import { parentFolderName } from "@/lib/utils"
 
+// Recency boost: recent files get a 15% score boost.
+// This means a recent file will only beat a non-recent file
+// if their match quality is within ~15% of each other.
+export const RECENCY_BOOST = 1.15
+
 export function sortFilesByMatchingScore(
   files: QuickOpenFileItem[],
-  searchQuery: string
+  searchQuery: string,
+  recentPaths?: Set<string>
 ): QuickOpenFileItem[] {
   if (!searchQuery) return []
 
@@ -18,7 +24,8 @@ export function sortFilesByMatchingScore(
   for (const item of files) {
     const score = commandScore(item.file.path, searchQuery, [])
     if (score > 0) {
-      results.push({ item, score })
+      const isRecent = recentPaths?.has(item.file.path)
+      results.push({ item, score: isRecent ? score * RECENCY_BOOST : score })
     }
   }
 
@@ -62,16 +69,6 @@ export function createQuickOpenItems(
     }))
   }
 
-  // When searching, use normal filtering but boost recent files
-  const filtered = sortFilesByMatchingScore(visibleFileItems, searchQuery)
-
-  // Move recent files to the top of search results
-  const recentInResults = filtered.filter((item) =>
-    recentPaths.has(item.file.path)
-  )
-  const otherInResults = filtered.filter(
-    (item) => !recentPaths.has(item.file.path)
-  )
-
-  return [...recentInResults, ...otherInResults]
+  // When searching, sort by match score with recency boost applied
+  return sortFilesByMatchingScore(visibleFileItems, searchQuery, recentPaths)
 }

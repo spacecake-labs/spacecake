@@ -1,4 +1,10 @@
-import { BookOpen, Code, FileText, Folder as FolderIcon } from "lucide-react"
+import {
+  BookMarked,
+  BookOpen,
+  Code,
+  FileText,
+  Folder as FolderIcon,
+} from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 import { File, FileType, Folder } from "@/types/workspace"
@@ -211,6 +217,9 @@ export function getNavItemIcon(item: File | Folder): LucideIcon {
     return fileTypeIcon(item.fileType)
   }
   if (item.kind === "folder") {
+    if (item.isSystemFolder) {
+      return BookMarked
+    }
     return FolderIcon
   }
   return FileText

@@ -1,9 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test("clean file, no conflict: external file change updates editor via watcher", async ({
   electronApp,
@@ -16,16 +14,8 @@ test("clean file, no conflict: external file change updates editor via watcher",
 
   const window = await electronApp.firstWindow()
 
-  await stubDialog(electronApp, "showOpenDialog", {
-    filePaths: [tempTestDir],
-    canceled: false,
-  })
-
-  await window.getByRole("button", { name: "open folder" }).click()
-
-  await expect(
-    window.getByRole("button", { name: "create file or folder" })
-  ).toBeVisible()
+  // open the temp test directory as workspace
+  await waitForWorkspace(window)
 
   // open the file
   await window.getByRole("button", { name: "core.py" }).first().click()
@@ -70,16 +60,8 @@ test("dirty file, external change, keep mine: dirty indicator remains and conten
 
   const window = await electronApp.firstWindow()
 
-  await stubDialog(electronApp, "showOpenDialog", {
-    filePaths: [tempTestDir],
-    canceled: false,
-  })
-
-  await window.getByRole("button", { name: "open folder" }).click()
-
-  await expect(
-    window.getByRole("button", { name: "create file or folder" })
-  ).toBeVisible()
+  // open the temp test directory as workspace
+  await waitForWorkspace(window)
 
   // open the file
   await window.getByRole("button", { name: "core.py" }).first().click()
@@ -140,16 +122,8 @@ test("dirty file, external change, keep theirs: file reloads with original conte
 
   const window = await electronApp.firstWindow()
 
-  await stubDialog(electronApp, "showOpenDialog", {
-    filePaths: [tempTestDir],
-    canceled: false,
-  })
-
-  await window.getByRole("button", { name: "open folder" }).click()
-
-  await expect(
-    window.getByRole("button", { name: "create file or folder" })
-  ).toBeVisible()
+  // open the temp test directory as workspace
+  await waitForWorkspace(window)
 
   // open the file
   await window.getByRole("button", { name: "core.py" }).first().click()

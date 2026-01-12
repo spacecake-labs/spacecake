@@ -1,8 +1,8 @@
 # spacecake
 
-`spacecake` is a markdown editor for spec-driven development.
-Its WYSIWYG interface makes it easy to write agent rules, specs, and implementation plans.
-With `Python` and `TypeScript` support baked in, you can navigate your codebase to resolve the trickier issues.
+`spacecake` is a WYSIWYG markdown editor built for Claude Code.
+It combines a visual markdown editor with an integrated terminal, so you can run Claude Code (or other CLI agents) right alongside your specs.
+You can also navigate your codebase, with support for 10+ popular languages.
 
 > ℹ️ `spacecake` is in public alpha. Supported platforms: macOS (Apple Silicon & Intel) and Linux (x64).
 > If you find any bugs, please open an issue in this repo.
@@ -19,7 +19,7 @@ Once installed, you'll be prompted to open a folder. Select the root dir for you
 
 ### 📖 markdown features
 
-- _proper_ code blocks with syntax highlighting and your favourite keyboard shortcuts (`ctrl+D`, anyone?)
+- *proper* code blocks with syntax highlighting and your favourite keyboard shortcuts (`ctrl+D`, anyone?)
 - checklists and badges for agent execution plans
 - diagrams with [mermaid](https://mermaid.js.org/)
 - WYISWYG and 'live preview' modes
@@ -30,6 +30,7 @@ Once installed, you'll be prompted to open a folder. Select the root dir for you
 `spacecake` comes with [Ghostty](https://ghostty.org/) terminal embedded.
 
 - run your favourite CLI agents ([Claude Code](https://github.com/anthropics/claude-code), [Codex](https://github.com/openai/codex), [Gemini](https://github.com/google-gemini/gemini-cli))
+- Claude Code integration: `spacecake` tells Claude which file and line you're editing
 - go beyond vibe-coding with [Spec Kit](https://github.com/github/spec-kit)
 
 ### 🧑‍💻 code-editing features
