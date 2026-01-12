@@ -1,3 +1,4 @@
+import os from "node:os"
 import path from "path"
 
 import { commandQueue } from "@/main-process/watcher"
@@ -16,6 +17,12 @@ import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 export class FileSystemError extends Data.TaggedError("FileSystemError")<{
   message: string
 }> {}
+
+// helper to detect system folders (the .app folder inside ~/.spacecake)
+const isSystemFolder = (folderPath: string): boolean => {
+  const spacecakeAppPath = path.join(os.homedir(), ".spacecake", ".app")
+  return folderPath === spacecakeAppPath
+}
 
 export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
   // define how to create the service
@@ -173,6 +180,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
               cid: ZERO_HASH,
               isExpanded: false,
               isGitIgnored,
+              isSystemFolder: isSystemFolder(fullPath),
             }
             tree.push(folder)
           } else if (stats.type === "File") {

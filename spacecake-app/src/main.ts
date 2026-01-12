@@ -3,6 +3,7 @@ import path from "node:path"
 
 import { buildCSPString } from "@/csp"
 import { fixPath } from "@/main-process/fix-path"
+import { ensureHomeFolderExists } from "@/main-process/home-folder"
 import * as ParcelWatcher from "@/main-process/parcel-watcher"
 import { watcherService } from "@/main-process/watcher"
 import { ClaudeCodeServer } from "@/services/claude-code-server"
@@ -116,6 +117,9 @@ const AppLive = Layer.mergeAll(
 const program = Effect.gen(function* (_) {
   yield* _(Effect.promise(() => app.whenReady()))
   yield* _(Effect.promise(() => fixPath()))
+
+  // ensure home folder exists before window creation
+  ensureHomeFolderExists()
 
   if (!app.isPackaged) {
     const userDataPath = app.getPath("userData")

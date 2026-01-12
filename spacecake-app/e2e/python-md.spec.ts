@@ -1,9 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("python markdown directives e2e", () => {
   test("markdown directives are properly formatted and editable", async ({
@@ -17,16 +15,8 @@ test.describe("python markdown directives e2e", () => {
     const destPath = path.join(tempTestDir, "md.py")
     fs.copyFileSync(fixturePath, destPath)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window.getByRole("button", { name: "md.py" }).first().click()
@@ -79,16 +69,8 @@ test.describe("python markdown directives e2e", () => {
     const destPath = path.join(tempTestDir, "md.py")
     fs.copyFileSync(fixturePath, destPath)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window.getByRole("button", { name: "md.py" }).first().click()

@@ -1,11 +1,9 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
 import { LANGUAGE_SUPPORT } from "@/types/language"
 
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("code block language dropdown e2e", () => {
   test("change plaintext code block language to python via dropdown", async ({
@@ -22,16 +20,8 @@ test.describe("code block language dropdown e2e", () => {
     const destPath = path.join(tempTestDir, "plaintext-code-block.md")
     fs.copyFileSync(fixturePath, destPath)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window
@@ -83,16 +73,8 @@ test.describe("code block language dropdown e2e", () => {
     const destPath = path.join(tempTestDir, "core.py")
     fs.copyFileSync(fixturePath, destPath)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the python file
     await window.getByRole("button", { name: "core.py" }).click()
@@ -130,16 +112,8 @@ test.describe("code block language dropdown e2e", () => {
     const destPath = path.join(tempTestDir, "plaintext-code-block.md")
     fs.copyFileSync(fixturePath, destPath)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window

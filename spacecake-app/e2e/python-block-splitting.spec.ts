@@ -1,9 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("Python block splitting", () => {
   test("should split python blocks on navigation out of a code block", async ({
@@ -24,16 +22,8 @@ def my_function():
     const testFilePath = path.join(tempTestDir, "test_splitting.py")
     fs.writeFileSync(testFilePath, pythonCode, "utf8")
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window
@@ -90,16 +80,8 @@ def my_function():
     const testFilePath = path.join(tempTestDir, "test_splitting.py")
     fs.writeFileSync(testFilePath, pythonCode, "utf8")
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window

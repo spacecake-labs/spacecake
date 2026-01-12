@@ -1,9 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("spacecake app", () => {
   test("open electron app", async ({ electronApp }, testInfo) => {
@@ -20,12 +18,15 @@ test.describe("spacecake app", () => {
       description: `window title: ${title}`,
     })
 
+    // app auto-opens to home folder (tempTestDir via SPACECAKE_HOME) with getting-started.md
+    // verify the workspace loaded (sidebar visible with create file button)
     await expect(
-      window.getByRole("button", { name: "open folder" })
+      window.getByRole("button", { name: "create file or folder" })
     ).toBeVisible()
 
-    // verify that "empty" text doesn't appear when no workspace is selected
-    await expect(window.getByText("empty")).not.toBeVisible()
+    // verify getting-started.md is open in the editor
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
+    await expect(window.getByText("welcome to spacecake")).toBeVisible()
   })
 
   test("open workspace; create file with button", async ({
@@ -45,21 +46,8 @@ test.describe("spacecake app", () => {
       description: `window title: ${title}`,
     })
 
-    // stub the showOpenDialog to return our temp test directory
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    // wait for the workspace to load (indicated by the create file button appearing)
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
-
-    // verify that "empty" text appears when workspace is selected but empty
-    await expect(window.getByText("empty")).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     await window.getByRole("button", { name: "create file or folder" }).click()
 
@@ -107,21 +95,8 @@ test.describe("spacecake app", () => {
       description: `window title: ${title}`,
     })
 
-    // stub the showOpenDialog to return our temp test directory
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    // wait for the workspace to load (indicated by the create file button appearing)
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
-
-    // verify that "empty" text appears when workspace is selected but empty
-    await expect(window.getByText("empty")).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     await window.keyboard.press("ControlOrMeta+n")
 
@@ -187,18 +162,8 @@ test.describe("spacecake app", () => {
     // verify the window is visible by checking if it has content
     await expect(window.locator("body")).toBeVisible()
 
-    // stub the showOpenDialog to return our temp test directory
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    // wait for the workspace to load
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // verify that the nested folder structure is visible
     await expect(
@@ -236,17 +201,8 @@ test.describe("spacecake app", () => {
     // verify the window is visible by checking if it has content
     await expect(window.locator("body")).toBeVisible()
 
-    // stub the showOpenDialog to return our temp test directory
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // verify that the test folder is visible
     await expect(
@@ -323,18 +279,8 @@ test.describe("spacecake app", () => {
     // verify the window is visible by checking if it has content
     await expect(window.locator("body")).toBeVisible()
 
-    // stub the showOpenDialog to return our temp test directory
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    // wait for the workspace to load
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // verify that the parent folder is visible
     await expect(
@@ -460,18 +406,8 @@ test.describe("spacecake app", () => {
     fs.mkdirSync(subfolderPath)
     fs.writeFileSync(subfilePath, "sub content")
 
-    // stub the showOpenDialog to return our temp test directory
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    // wait for the workspace to load (indicated by the create file button appearing)
-    await expect(
-      window.getByRole("button", { name: "create file" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // Wait for all items to appear
     await expect(
@@ -628,11 +564,7 @@ test.describe("spacecake app", () => {
     const window = await electronApp.firstWindow()
 
     // 2. Open the workspace for the first time
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-    await window.getByRole("button", { name: "open folder" }).click()
+    await waitForWorkspace(window)
 
     // 3. Verify workspace is loaded
     await expect(
@@ -652,10 +584,10 @@ test.describe("spacecake app", () => {
       window.getByRole("button", { name: "persistent-file.txt" })
     ).toBeVisible()
 
-    // Also verify the "open folder" button is not there, since a workspace is open
+    // Verify the workspace loaded (create file button visible means we're in a workspace)
     await expect(
-      window.getByRole("button", { name: "open folder" })
-    ).not.toBeVisible()
+      window.getByRole("button", { name: "create file or folder" })
+    ).toBeVisible()
   })
 
   test("previously opened file reopens on launch", async ({
@@ -669,13 +601,9 @@ test.describe("spacecake app", () => {
     const window = await electronApp.firstWindow()
 
     // 2. Open the workspace for the first time
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-    await window.getByRole("button", { name: "open folder" }).click()
+    await waitForWorkspace(window)
 
-    // 3. Verify workspace is loaded
+    // 3. Verify workspace is loaded and open the file
     await window.getByRole("button", { name: "persistent-file.md" }).click()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
@@ -711,11 +639,7 @@ test.describe("spacecake app", () => {
     const window = await electronApp.firstWindow()
 
     // 2. Open the workspace
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-    await window.getByRole("button", { name: "open folder" }).click()
+    await waitForWorkspace(window)
 
     // 3. Open the deeply nested folder
     await window
@@ -767,16 +691,7 @@ test.describe("spacecake app", () => {
     const window = await electronApp.firstWindow()
 
     // 2. Open the workspace
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    // 3. Wait for workspace to load
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    await waitForWorkspace(window)
 
     // 4. Create a new markdown file using keyboard shortcut
     await window.keyboard.press("ControlOrMeta+n")
@@ -848,16 +763,7 @@ test.describe("spacecake app", () => {
     const window = await electronApp.firstWindow()
 
     // 2. Open the workspace
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    // 3. Wait for workspace to load
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    await waitForWorkspace(window)
 
     // 4. Click on the dot folder to expand it
     await window.getByRole("button", { name: ".notes" }).first().click()
@@ -902,13 +808,9 @@ test.describe("spacecake app", () => {
     const window = await electronApp.firstWindow()
 
     // 2. Open the workspace
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-    await window.getByRole("button", { name: "open folder" }).click()
+    await waitForWorkspace(window)
 
-    // 3. Wait for workspace to load and click on the file
+    // 3. Click on the file to open it
     await window.getByRole("button", { name: "test-dirty.md" }).click()
 
     // 4. Verify the editor is visible and has the initial content

@@ -3,7 +3,7 @@ import path from "path"
 
 import { stubDialog } from "electron-playwright-helpers"
 
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 import {
   locateQuickOpenInput,
   locateQuickOpenList,
@@ -26,12 +26,11 @@ test.describe("recent files", () => {
 
     const window = await electronApp.firstWindow()
 
-    // 2. Open the workspace
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-    await window.getByRole("button", { name: "open folder" }).click()
+    // Wait for initial home folder load to complete
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    // 2. Wait for workspace to load
+    await waitForWorkspace(window)
     await expect(window.getByRole("button", { name: "core.py" })).toBeVisible()
 
     // 3. Open a few files to make them "recent"
@@ -62,9 +61,9 @@ test.describe("recent files", () => {
 
     const recentFiles = locateQuickOpenList(window)
 
-    expect(await recentFiles.first().textContent()).toBe("google-doc.py")
-    expect(await recentFiles.nth(1).textContent()).toBe("_README.md")
-    expect(await recentFiles.nth(2).textContent()).toBe("core.py")
+    expect(await recentFiles.first().textContent()).toContain("google-doc.py")
+    expect(await recentFiles.nth(1).textContent()).toContain("_README.md")
+    expect(await recentFiles.nth(2).textContent()).toContain("core.py")
 
     // 5. Test persistence by reloading the page
     await window.reload()
@@ -78,39 +77,36 @@ test.describe("recent files", () => {
 
     const presistedFiles = locateQuickOpenList(window)
 
-    expect(await presistedFiles.first().textContent()).toBe("google-doc.py")
-    expect(await presistedFiles.nth(1).textContent()).toBe("_README.md")
-    expect(await presistedFiles.nth(2).textContent()).toBe("core.py")
+    expect(await presistedFiles.first().textContent()).toContain(
+      "google-doc.py"
+    )
+    expect(await presistedFiles.nth(1).textContent()).toContain("_README.md")
+    expect(await presistedFiles.nth(2).textContent()).toContain("core.py")
   })
 
   test("recent files updates with file creation and deletion; persists after reload", async ({
     electronApp,
-    tempTestDir,
   }) => {
     const window = await electronApp.firstWindow()
 
-    // 1. Open empty workspace
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-    await window.getByRole("button", { name: "open folder" }).click()
+    // 1. Wait for workspace to load
+    await waitForWorkspace(window)
 
-    // 2. Verify workspace is loaded (empty)
-    await expect(window.getByText("empty")).toBeVisible()
-
-    // 3. Open Quick Open and verify recent files list is empty
+    // 2. Open Quick Open and verify recent files list has getting-started.md (auto-opened)
     await pressQuickOpen(window)
     const quickOpenInput = locateQuickOpenInput(window)
     await expect(quickOpenInput).toBeVisible()
 
     const recentFiles = locateQuickOpenList(window)
-    await expect(recentFiles).toHaveCount(0)
+    await expect(recentFiles).toHaveCount(1)
+    expect(await recentFiles.first().textContent()).toContain(
+      "getting-started.md"
+    )
 
-    // 4. Close Quick Open
+    // 3. Close Quick Open
     await quickOpenInput.press("Escape")
 
-    // 5. Create a file using keyboard command
+    // 4. Create a file using keyboard command
     await window.keyboard.press("ControlOrMeta+n")
 
     const textbox = window.getByRole("textbox", { name: "filename.txt" })
@@ -126,13 +122,13 @@ test.describe("recent files", () => {
     await window.getByRole("button", { name: "test-recent-file.txt" }).click()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // 8. Open Quick Open and verify the file appears in recent files
+    // 7. Open Quick Open and verify the file appears in recent files
     await pressQuickOpen(window)
     await expect(quickOpenInput).toBeVisible()
 
     const recentFilesAfterCreate = locateQuickOpenList(window)
-    await expect(recentFilesAfterCreate).toHaveCount(1)
-    expect(await recentFilesAfterCreate.first().textContent()).toBe(
+    await expect(recentFilesAfterCreate).toHaveCount(2)
+    expect(await recentFilesAfterCreate.first().textContent()).toContain(
       "test-recent-file.txt"
     )
 
@@ -154,8 +150,8 @@ test.describe("recent files", () => {
     await expect(quickOpenInput).toBeVisible()
 
     const recentFilesAfterReload = locateQuickOpenList(window)
-    await expect(recentFilesAfterReload).toHaveCount(1)
-    expect(await recentFilesAfterReload.first().textContent()).toBe(
+    await expect(recentFilesAfterReload).toHaveCount(2)
+    expect(await recentFilesAfterReload.first().textContent()).toContain(
       "test-recent-file.txt"
     )
 
@@ -178,12 +174,15 @@ test.describe("recent files", () => {
       window.getByRole("button", { name: "test-recent-file.txt" })
     ).not.toBeVisible()
 
-    // 17. Open Quick Open and verify recent files list is empty again
+    // 17. Open Quick Open and verify recent files list only has getting-started.md
     await pressQuickOpen(window)
     await expect(quickOpenInput).toBeVisible()
 
     const recentFilesAfterDelete = locateQuickOpenList(window)
-    await expect(recentFilesAfterDelete).toHaveCount(0)
+    await expect(recentFilesAfterDelete).toHaveCount(1)
+    expect(await recentFilesAfterDelete.first().textContent()).toContain(
+      "getting-started.md"
+    )
 
     // 18. Close Quick Open
     await quickOpenInput.press("Escape")
@@ -191,15 +190,20 @@ test.describe("recent files", () => {
     // 19. Reload the window again
     await window.reload()
 
-    // 20. Verify workspace reopens (empty)
-    await expect(window.getByText("empty")).toBeVisible()
+    // 20. Verify workspace reopens
+    await expect(
+      window.getByRole("button", { name: "create file or folder" })
+    ).toBeVisible()
 
-    // 21. Open Quick Open and verify recent files list is still empty after reload
+    // 21. Open Quick Open and verify recent files list still has getting-started.md
     await pressQuickOpen(window)
     await expect(quickOpenInput).toBeVisible()
 
     const recentFilesAfterFinalReload = locateQuickOpenList(window)
-    await expect(recentFilesAfterFinalReload).toHaveCount(0)
+    await expect(recentFilesAfterFinalReload).toHaveCount(1)
+    expect(await recentFilesAfterFinalReload.first().textContent()).toContain(
+      "getting-started.md"
+    )
   })
 
   test("recent files are workspace-specific and persist across workspace switches", async ({
@@ -227,12 +231,15 @@ test.describe("recent files", () => {
 
     const window = await electronApp.firstWindow()
 
-    // 3. Open first workspace
+    // Wait for initial home folder load to complete before navigating
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    // 3. Open first workspace using keyboard shortcut
     await stubDialog(electronApp, "showOpenDialog", {
       filePaths: [workspace1Path],
       canceled: false,
     })
-    await window.getByRole("button", { name: "open folder" }).click()
+    await window.keyboard.press("ControlOrMeta+o")
     await expect(window.getByRole("button", { name: "core.py" })).toBeVisible()
 
     // 4. Open a file in workspace1 to make it "recent"
@@ -247,7 +254,9 @@ test.describe("recent files", () => {
     const recentFilesWorkspace1 = locateQuickOpenList(window)
 
     await expect(recentFilesWorkspace1).toHaveCount(1)
-    expect(await recentFilesWorkspace1.first().textContent()).toBe("core.py")
+    expect(await recentFilesWorkspace1.first().textContent()).toContain(
+      "core.py"
+    )
 
     // 6. Close Quick Open
     await quickOpenInput.press("Escape")
@@ -283,7 +292,7 @@ test.describe("recent files", () => {
     const recentFilesWorkspace2 = locateQuickOpenList(window)
 
     await expect(recentFilesWorkspace2).toHaveCount(1)
-    expect(await recentFilesWorkspace2.first().textContent()).toBe(
+    expect(await recentFilesWorkspace2.first().textContent()).toContain(
       "google-doc.py"
     )
 
@@ -305,7 +314,7 @@ test.describe("recent files", () => {
 
     const recentFilesWorkspace1Final = locateQuickOpenList(window)
     await expect(recentFilesWorkspace1Final).toHaveCount(1)
-    expect(await recentFilesWorkspace1Final.first().textContent()).toBe(
+    expect(await recentFilesWorkspace1Final.first().textContent()).toContain(
       "core.py"
     )
 
@@ -314,6 +323,9 @@ test.describe("recent files", () => {
     const fileNames = await Promise.all(
       allRecentFiles.map((file) => file.textContent())
     )
-    expect(fileNames).not.toContain("google-doc.py")
+    // Check that no recent file contains "google-doc.py" in its name
+    expect(fileNames.some((name) => name?.includes("google-doc.py"))).toBe(
+      false
+    )
   })
 })

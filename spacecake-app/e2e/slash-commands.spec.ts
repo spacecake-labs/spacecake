@@ -1,9 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("slash commands e2e", () => {
   test("slash command options are available", async ({
@@ -17,16 +15,8 @@ test.describe("slash commands e2e", () => {
     const destPath = path.join(tempTestDir, "_README.md")
     fs.copyFileSync(fixturePath, destPath)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window.getByRole("button", { name: "_README.md" }).first().click()
@@ -68,16 +58,8 @@ test.describe("slash commands e2e", () => {
     const destPath = path.join(tempTestDir, "_README.md")
     fs.copyFileSync(fixturePath, destPath)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window.getByRole("button", { name: "_README.md" }).first().click()
@@ -128,16 +110,8 @@ test.describe("slash commands e2e", () => {
     const destPath = path.join(tempTestDir, "_README.md")
     fs.copyFileSync(fixturePath, destPath)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window.getByRole("button", { name: "_README.md" }).first().click()
@@ -182,16 +156,8 @@ test.describe("slash commands e2e", () => {
     const destPath = path.join(tempTestDir, "_README.md")
     fs.copyFileSync(fixturePath, destPath)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window.getByRole("button", { name: "_README.md" }).first().click()
@@ -229,16 +195,8 @@ test.describe("slash commands e2e", () => {
     const destPath = path.join(tempTestDir, "core.py")
     fs.copyFileSync(fixturePath, destPath)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window.getByRole("button", { name: "core.py" }).first().click()

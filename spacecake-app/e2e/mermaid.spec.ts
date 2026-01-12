@@ -1,9 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("mermaid e2e", () => {
   test("open markdown file and render mermaid diagram", async ({
@@ -17,16 +15,8 @@ test.describe("mermaid e2e", () => {
     const destPath = path.join(tempTestDir, "mermaid.md")
     fs.copyFileSync(fixturePath, destPath)
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window.getByRole("button", { name: "mermaid.md" }).first().click()
@@ -61,16 +51,8 @@ test.describe("mermaid e2e", () => {
     const filePath = path.join(tempTestDir, "test-create-mermaid.md")
     fs.writeFileSync(filePath, "")
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window

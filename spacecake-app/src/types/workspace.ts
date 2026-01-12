@@ -116,6 +116,7 @@ export type Folder = FileTreeItem & {
   children: FileTree
   isExpanded: boolean
   isGitIgnored?: boolean
+  isSystemFolder?: boolean
 }
 
 export type FileTree = (File | Folder)[]

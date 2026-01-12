@@ -28,6 +28,7 @@ const createTestElectronAPI = (
   stopWatcher: async () => right(undefined),
   onFileEvent: () => () => {},
   platform: "test",
+  getHomeFolderPath: async () => "/test/.spacecake",
   exists: async () => right(true),
   createTerminal: async () => right(undefined),
   resizeTerminal: async () => right(undefined),

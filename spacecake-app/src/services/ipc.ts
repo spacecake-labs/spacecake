@@ -1,3 +1,4 @@
+import { getHomeFolderPath } from "@/main-process/home-folder"
 import { FileSystem, type FileSystemError } from "@/services/file-system"
 import { Terminal } from "@/services/terminal"
 import { Effect } from "effect"
@@ -96,6 +97,8 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         return dialog.showOpenDialog(options)
       }
     })
+
+    ipcMain.handle("get-home-folder-path", () => getHomeFolderPath())
 
     // Terminal IPC handlers
     ipcMain.handle(

@@ -2,6 +2,7 @@ import * as React from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { FileWarning, Loader2Icon } from "lucide-react"
+import { toast } from "sonner"
 
 import { match } from "@/types/adt"
 import type { File, Folder, WorkspaceInfo } from "@/types/workspace"
@@ -359,6 +360,16 @@ export function NavMain({
 
   const handleConfirmDelete = async () => {
     if (!deletionState.item || !workspace?.path) return
+
+    // prevent deletion of system folders
+    if (
+      deletionState.item.kind === "folder" &&
+      deletionState.item.isSystemFolder
+    ) {
+      toast.error("system folders cannot be deleted")
+      setDeletionState({ item: null, isOpen: false, isDeleting: false })
+      return
+    }
 
     setDeletionState((prev) => ({ ...prev, isDeleting: true }))
 

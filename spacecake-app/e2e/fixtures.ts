@@ -16,7 +16,32 @@ export type TestFixtures = {
 }
 export const test = base.extend<TestFixtures>({
   // eslint-disable-next-line no-empty-pattern
-  electronApp: async ({}, use, testInfo) => {
+  tempTestDir: async ({}, use, testInfo) => {
+    const testOutputRoot = path.join(process.cwd(), "test-output")
+    const workerTempRoot = path.join(
+      testOutputRoot,
+      `worker-${testInfo.workerIndex}`
+    )
+    fs.mkdirSync(workerTempRoot, { recursive: true })
+    const tempDir = fs.mkdtempSync(path.join(workerTempRoot, "spacecake-e2e-"))
+
+    testInfo.annotations.push({
+      type: "info",
+      description: `created temp test directory: ${tempDir}`,
+    })
+
+    await use(tempDir)
+
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true, maxRetries: 5 })
+      testInfo.annotations.push({
+        type: "info",
+        description: `cleaned up temp test directory: ${tempDir}`,
+      })
+    }
+  },
+
+  electronApp: async ({ tempTestDir }, use, testInfo) => {
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "spacecake-e2e-data"))
 
     const app = await _electron.launch({
@@ -24,6 +49,10 @@ export const test = base.extend<TestFixtures>({
         ".vite/build/main.js",
         `--user-data-dir=${dataDir}`, // isolate electron data per test
       ],
+      env: {
+        ...process.env,
+        SPACECAKE_HOME: tempTestDir, // isolate home folder per test
+      },
       cwd: process.cwd(),
       timeout: 60000,
     })
@@ -96,34 +125,22 @@ export const test = base.extend<TestFixtures>({
       })
     }
   },
-
-  tempTestDir: async ({ electronApp: _electronApp }, use, testInfo) => {
-    const testOutputRoot = path.join(process.cwd(), "test-output")
-    const workerTempRoot = path.join(
-      testOutputRoot,
-      `worker-${testInfo.workerIndex}`
-    )
-    fs.mkdirSync(workerTempRoot, { recursive: true })
-    const tempDir = fs.mkdtempSync(path.join(workerTempRoot, "spacecake-e2e-"))
-
-    testInfo.annotations.push({
-      type: "info",
-      description: `created temp test directory: ${tempDir}`,
-    })
-
-    await use(tempDir)
-
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true, maxRetries: 5 })
-      testInfo.annotations.push({
-        type: "info",
-        description: `cleaned up temp test directory: ${tempDir}`,
-      })
-    }
-  },
 })
 
 export { expect }
+
+/**
+ * Waits for the workspace to be ready (home folder loads automatically).
+ * Each test has its own isolated home folder via SPACECAKE_HOME env var.
+ *
+ * @param page - The Playwright page instance
+ */
+export async function waitForWorkspace(page: Page) {
+  // wait for the workspace to load (indicated by the create file button appearing)
+  await expect(
+    page.getByRole("button", { name: "create file or folder" })
+  ).toBeVisible()
+}
 
 /**
  * For a given absolute file path, asserts that every non-empty line of the file
