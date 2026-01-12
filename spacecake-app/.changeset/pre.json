@@ -5,6 +5,7 @@
     "spacecake": "1.0.0"
   },
   "changesets": [
+    "afraid-pandas-bow",
     "common-ears-notice",
     "cute-bars-brake",
     "dark-clouds-sip",

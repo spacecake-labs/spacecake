@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.30
+
+### Patch Changes
+
+- c5cb008: Adding default workspace (home folder).
+
 ## 0.1.0-alpha.29
 
 ### Patch Changes
