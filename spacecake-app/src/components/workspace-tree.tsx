@@ -16,7 +16,7 @@ import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import type { FlatTreeItem } from "@/lib/atoms/file-tree"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { supportedViews } from "@/lib/language-support"
-import { encodeBase64Url } from "@/lib/utils"
+import { cn, encodeBase64Url } from "@/lib/utils"
 import { getNavItemIcon } from "@/lib/workspace"
 import type { WorkspaceCache } from "@/hooks/use-workspace-cache"
 import { Button } from "@/components/ui/button"
@@ -467,6 +467,8 @@ export const TreeRow = React.memo(function TreeRow({
   }
 
   // Folder
+  const isSystemFolder = item.kind === "folder" && item.isSystemFolder
+
   return (
     <>
       <SidebarMenuItem
@@ -474,7 +476,10 @@ export const TreeRow = React.memo(function TreeRow({
           ...style,
           paddingLeft: `${indentPx}px`,
         }}
-        className={isGitIgnored ? "opacity-50" : undefined}
+        className={cn(
+          isGitIgnored && "opacity-50",
+          isSystemFolder && "text-muted-foreground"
+        )}
       >
         {isRenaming ? (
           <RenameInput

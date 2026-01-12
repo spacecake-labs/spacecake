@@ -1,9 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("ghostty terminal", () => {
   test("toggle terminal visibility, interact with terminal, and verify session management", async ({
@@ -17,17 +15,7 @@ test.describe("ghostty terminal", () => {
     const window = await electronApp.firstWindow()
 
     // Open the workspace
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
-
-    // Wait for workspace to load
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    await waitForWorkspace(window)
 
     // Open the test file to get to the workspace route
     await window.getByRole("button", { name: "test.md" }).click()

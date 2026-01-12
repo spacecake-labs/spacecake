@@ -55,6 +55,7 @@ export interface ElectronAPI {
   ) => Promise<Either<FileSystemError, undefined>>
   onFileEvent: (handler: (event: FileTreeEvent) => void) => () => void
   platform: string
+  getHomeFolderPath: () => Promise<string>
   exists: (path: AbsolutePath) => Promise<Either<FileSystemError, boolean>>
 
   createTerminal: (

@@ -1,9 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { stubDialog } from "electron-playwright-helpers"
-
-import { expect, test } from "./fixtures"
+import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("python markdown directives isomorphism e2e", () => {
   test("md.py maintains isomorphism through editor roundtrip", async ({
@@ -20,12 +18,8 @@ test.describe("python markdown directives isomorphism e2e", () => {
     // read the original content to verify isomorphism
     const originalContent = fs.readFileSync(destPath, "utf-8")
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window.getByRole("button", { name: "md.py" }).first().click()
@@ -118,12 +112,8 @@ if __name__ == "__main__":
     const destPath = path.join(tempTestDir, "mixed.py")
     fs.writeFileSync(destPath, mixedContent, "utf-8")
 
-    await stubDialog(electronApp, "showOpenDialog", {
-      filePaths: [tempTestDir],
-      canceled: false,
-    })
-
-    await window.getByRole("button", { name: "open folder" }).click()
+    // open the temp test directory as workspace
+    await waitForWorkspace(window)
 
     // open the file
     await window.getByRole("button", { name: "mixed.py" }).first().click()

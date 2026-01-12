@@ -125,6 +125,14 @@ export function getInitialEditorStateFromContent(
   onComplete?: () => void
 ) {
   return (editor: LexicalEditor) => {
+    /*
+    Reset the ID for the first node back to 1.
+    This is a bit of a hack but is necessary for now
+    to ensure that selection is restored correctly.
+    Otherwise the nodeKey values don't align
+    when switching files.
+    */
+    resetRandomKey()
     // If viewKind is explicitly provided, use it
     if (viewKind === "source") {
       convertToSourceView(file.content, file, editor, selection)
