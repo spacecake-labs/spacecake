@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.31
+
+### Patch Changes
+
+- 9f6784f: Handle workspace permissions change gracefully.
+
 ## 0.1.0-alpha.30
 
 ### Patch Changes
