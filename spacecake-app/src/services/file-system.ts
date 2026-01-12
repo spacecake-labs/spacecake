@@ -5,6 +5,7 @@ import { commandQueue } from "@/main-process/watcher"
 import { GitIgnore, GitIgnoreLive } from "@/services/git-ignore-parser"
 import { FileSystem as EffectFileSystem } from "@effect/platform"
 import { NodeFileSystem } from "@effect/platform-node"
+import type { PlatformError } from "@effect/platform/Error"
 import { Data, Effect, Either, Option } from "effect"
 import writeFileAtomic from "write-file-atomic"
 
@@ -14,9 +15,73 @@ import { fnv1a64Hex } from "@/lib/hash"
 import { EXCLUDED_ENTRIES } from "@/lib/ignore-patterns"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 
-export class FileSystemError extends Data.TaggedError("FileSystemError")<{
-  message: string
+// Tagged error classes for type-safe pattern matching with Match.tag()
+export class NotFoundError extends Data.TaggedError("NotFoundError")<{
+  readonly path?: string
+  readonly description: string
 }> {}
+
+export class PermissionDeniedError extends Data.TaggedError(
+  "PermissionDeniedError"
+)<{
+  readonly path?: string
+  readonly description: string
+}> {}
+
+export class AlreadyExistsError extends Data.TaggedError("AlreadyExistsError")<{
+  readonly path?: string
+  readonly description: string
+}> {}
+
+export class UnknownFSError extends Data.TaggedError("UnknownFSError")<{
+  readonly path?: string
+  readonly description: string
+}> {}
+
+// Union type for all file system errors
+export type FileSystemError =
+  | NotFoundError
+  | PermissionDeniedError
+  | AlreadyExistsError
+  | UnknownFSError
+
+// Helper to map Effect's PlatformError to our tagged errors
+const toFileSystemError = (
+  error: PlatformError,
+  fallbackPath?: string
+): FileSystemError => {
+  const errorPath =
+    error._tag === "SystemError" && typeof error.pathOrDescriptor === "string"
+      ? error.pathOrDescriptor
+      : fallbackPath
+
+  if (error._tag === "SystemError") {
+    switch (error.reason) {
+      case "PermissionDenied":
+        return new PermissionDeniedError({
+          path: errorPath,
+          description: error.message,
+        })
+      case "NotFound":
+        return new NotFoundError({
+          path: errorPath,
+          description: error.message,
+        })
+      case "AlreadyExists":
+        return new AlreadyExistsError({
+          path: errorPath,
+          description: error.message,
+        })
+      default:
+        return new UnknownFSError({
+          path: errorPath,
+          description: error.message,
+        })
+    }
+  }
+  // BadArgument or other
+  return new UnknownFSError({ path: errorPath, description: error.message })
+}
 
 // helper to detect system folders (the .app folder inside ~/.spacecake)
 const isSystemFolder = (folderPath: string): boolean => {
@@ -50,26 +115,26 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
           fileType: fileTypeFromFileName(name),
           cid: fnv1a64Hex(content),
         }
-      }).pipe(
-        Effect.mapError(
-          (error) =>
-            new FileSystemError({
-              message: `failed to read file \`${filePath}\`: ${error.message}`,
-            })
-        )
-      )
+      }).pipe(Effect.mapError((error) => toFileSystemError(error, filePath)))
     const writeTextFile = (
       filePath: AbsolutePath,
       content: string
     ): Effect.Effect<void, FileSystemError> =>
-      Effect.tryPromise({
-        try: async () =>
-          await writeFileAtomic(filePath, content, { encoding: "utf8" }),
-        catch: (error) =>
-          new FileSystemError({
-            message: `failed to write file \`${filePath}\`: ${error}`,
-          }),
-      })
+      Effect.gen(function* () {
+        yield* Effect.tryPromise({
+          try: async () =>
+            await writeFileAtomic(filePath, content, { encoding: "utf8" }),
+          catch: (error) => error,
+        })
+      }).pipe(
+        Effect.mapError(
+          (error) =>
+            new UnknownFSError({
+              path: filePath,
+              description: `failed to write file: ${String(error)}`,
+            })
+        )
+      )
 
     const createFolder = (
       folderPath: string,
@@ -77,58 +142,32 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
     ): Effect.Effect<void, FileSystemError> =>
       Effect.gen(function* () {
         return yield* fs.makeDirectory(folderPath, options)
-      }).pipe(
-        Effect.mapError(
-          (error) =>
-            new FileSystemError({
-              message: `failed to create folder \`${folderPath}\`: ${error}`,
-            })
-        )
-      )
+      }).pipe(Effect.mapError((error) => toFileSystemError(error, folderPath)))
 
-    const remove = (path: string, recursive?: boolean) =>
+    const remove = (targetPath: string, recursive?: boolean) =>
       Effect.gen(function* (_) {
-        return yield* fs.remove(path, { recursive: recursive })
-      }).pipe(
-        Effect.mapError(
-          (error) =>
-            new FileSystemError({
-              message: `error deleting file \`${path}\`: ${error}`,
-            })
-        )
-      )
+        return yield* fs.remove(targetPath, { recursive: recursive })
+      }).pipe(Effect.mapError((error) => toFileSystemError(error, targetPath)))
 
     const rename = (
-      path: string,
+      oldPath: string,
       newPath: string
     ): Effect.Effect<void, FileSystemError> =>
       Effect.gen(function* () {
-        return yield* fs.rename(path, newPath)
-      }).pipe(
-        Effect.mapError(
-          (error) =>
-            new FileSystemError({
-              message: `failed to rename path \`${path}\`: ${error}`,
-            })
-        )
-      )
+        return yield* fs.rename(oldPath, newPath)
+      }).pipe(Effect.mapError((error) => toFileSystemError(error, oldPath)))
 
-    const exists = (path: string): Effect.Effect<boolean, FileSystemError> =>
+    const exists = (
+      targetPath: string
+    ): Effect.Effect<boolean, FileSystemError> =>
       Effect.gen(function* () {
-        return yield* fs.exists(path)
-      }).pipe(
-        Effect.mapError(
-          (error) =>
-            new FileSystemError({
-              message: `failed to check if path exists \`${path}\`: ${error}`,
-            })
-        )
-      )
+        return yield* fs.exists(targetPath)
+      }).pipe(Effect.mapError((error) => toFileSystemError(error, targetPath)))
 
     const readDirectory = (
       workspacePath: string,
       currentPath: string = workspacePath
-    ): Effect.Effect<FileTree, Error> => {
+    ): Effect.Effect<FileTree, FileSystemError> => {
       return Effect.gen(function* (_) {
         const entries = yield* _(fs.readDirectory(currentPath))
         const tree: FileTree = []
@@ -201,35 +240,47 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         }
         return tree
       }).pipe(
-        Effect.mapError(
-          (error) =>
-            new FileSystemError({
-              message: `failed to read directory \`${currentPath}\`: ${error}`,
-            })
-        )
+        Effect.mapError((error) => {
+          // For PlatformErrors, use our typed error mapper
+          if (
+            error &&
+            typeof error === "object" &&
+            "_tag" in error &&
+            (error._tag === "SystemError" || error._tag === "BadArgument")
+          ) {
+            return toFileSystemError(error as PlatformError, currentPath)
+          }
+          // For other errors, wrap in UnknownFSError
+          return new UnknownFSError({
+            path: currentPath,
+            description: `failed to read directory: ${String(error)}`,
+          })
+        })
       )
     }
 
-    const startWatcher = (path: AbsolutePath) =>
+    const startWatcher = (watchPath: AbsolutePath) =>
       Effect.gen(function* (_) {
-        return yield* _(commandQueue.offer({ _tag: "Start", path: path }))
+        return yield* _(commandQueue.offer({ _tag: "Start", path: watchPath }))
       }).pipe(
         Effect.mapError(
           (error) =>
-            new FileSystemError({
-              message: `failed to watch path \`${path}\`: ${error}`,
+            new UnknownFSError({
+              path: watchPath,
+              description: `failed to watch path: ${String(error)}`,
             })
         )
       )
 
-    const stopWatcher = (path: AbsolutePath) =>
+    const stopWatcher = (watchPath: AbsolutePath) =>
       Effect.gen(function* (_) {
-        return yield* _(commandQueue.offer({ _tag: "Stop", path: path }))
+        return yield* _(commandQueue.offer({ _tag: "Stop", path: watchPath }))
       }).pipe(
         Effect.mapError(
           (error) =>
-            new FileSystemError({
-              message: `failed to stop watcher \`${path}\`: ${error}`,
+            new UnknownFSError({
+              path: watchPath,
+              description: `failed to stop watcher: ${String(error)}`,
             })
         )
       )

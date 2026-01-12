@@ -1,4 +1,4 @@
-.EditorTheme__code {
+/* .EditorTheme__code {
   background-color: transparent;
   font-family: Menlo, Consolas, Monaco, monospace;
   display: block;
@@ -27,7 +27,7 @@
   white-space: pre-wrap;
   text-align: right;
   min-width: 25px;
-}
+} */
 
 .EditorTheme__table {
   border-collapse: collapse;
@@ -39,7 +39,7 @@
   width: 100%;
   margin: 0px 25px 30px 0px;
 }
-
+/* 
 .EditorTheme__tokenComment {
   color: slategray;
 }
@@ -70,7 +70,7 @@
 
 .EditorTheme__tokenFunction {
   color: #dd4a68;
-}
+} */
 
 .Collapsible__container {
   background-color: var(--background);

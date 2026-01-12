@@ -1,7 +1,7 @@
 # spacecake
 
-`spacecake` is a WYSIWYG markdown editor built for Claude Code.
-It combines a visual markdown editor with an integrated terminal, so you can run Claude Code (or other CLI agents) right alongside your specs.
+`spacecake` is a WYSIWYG markdown editor built for Claude Code.  
+It combines a visual markdown editor with an integrated terminal, so you can run Claude Code (or other CLI agents) right alongside your specs.  
 You can also navigate your codebase, with support for 10+ popular languages.
 
 > ℹ️ `spacecake` is in public alpha. Supported platforms: macOS (Apple Silicon & Intel) and Linux (x64).
@@ -19,7 +19,7 @@ Once installed, you'll be prompted to open a folder. Select the root dir for you
 
 ### 📖 markdown features
 
-- *proper* code blocks with syntax highlighting and your favourite keyboard shortcuts (`ctrl+D`, anyone?)
+- _proper_ code blocks with syntax highlighting and your favourite keyboard shortcuts (`ctrl+D`, anyone?)
 - checklists and badges for agent execution plans
 - diagrams with [mermaid](https://mermaid.js.org/)
 - WYISWYG and 'live preview' modes

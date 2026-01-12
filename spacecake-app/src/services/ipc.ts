@@ -7,6 +7,20 @@ import { BrowserWindow, dialog, ipcMain } from "electron"
 import { left, right, type Either } from "@/types/adt"
 import { AbsolutePath, FileContent } from "@/types/workspace"
 
+// Plain object representation of FileSystemError for IPC serialization
+// (Error instances lose custom properties like _tag during structured clone)
+type SerializedFileSystemError = {
+  _tag: FileSystemError["_tag"]
+  path: string | undefined
+  description: string
+}
+
+const serializeError = (error: FileSystemError): SerializedFileSystemError => ({
+  _tag: error._tag,
+  path: error.path,
+  description: error.description,
+})
+
 export class Ipc extends Effect.Service<Ipc>()("Ipc", {
   effect: Effect.gen(function* (_) {
     const fs = yield* FileSystem
@@ -17,10 +31,10 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       (
         _,
         filePath: AbsolutePath
-      ): Promise<Either<FileSystemError, FileContent>> =>
+      ): Promise<Either<SerializedFileSystemError, FileContent>> =>
         Effect.runPromise(
           Effect.match(fs.readTextFile(filePath), {
-            onFailure: (error) => left(error),
+            onFailure: (error) => left(serializeError(error)),
             onSuccess: (file) => right(file),
           })
         )
@@ -28,7 +42,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     ipcMain.handle("save-file", (_, path, content) =>
       Effect.runPromise(
         Effect.match(fs.writeTextFile(path, content), {
-          onFailure: (error) => left(error),
+          onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
         })
       )
@@ -36,7 +50,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     ipcMain.handle("create-folder", (_, folderPath: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.createFolder(folderPath), {
-          onFailure: (error) => left(error),
+          onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
         })
       )
@@ -44,7 +58,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     ipcMain.handle("remove", (_, path: AbsolutePath, recursive?: boolean) =>
       Effect.runPromise(
         Effect.match(fs.remove(path, recursive), {
-          onFailure: (error) => left(error),
+          onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
         })
       )
@@ -52,7 +66,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     ipcMain.handle("rename", (_, path: AbsolutePath, newPath: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.rename(path, newPath), {
-          onFailure: (error) => left(error),
+          onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
         })
       )
@@ -60,7 +74,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     ipcMain.handle("path-exists", (_, path: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.exists(path), {
-          onFailure: (error) => left(error),
+          onFailure: (error) => left(serializeError(error)),
           onSuccess: (exists) => right(exists),
         })
       )
@@ -68,7 +82,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     ipcMain.handle("read-directory", (_, path: string) =>
       Effect.runPromise(
         Effect.match(fs.readDirectory(path), {
-          onFailure: (error) => left(error),
+          onFailure: (error) => left(serializeError(error)),
           onSuccess: (tree) => right(tree),
         })
       )
@@ -76,7 +90,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     ipcMain.handle("start-watcher", (_, path: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.startWatcher(path), {
-          onFailure: (error) => left(error),
+          onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
         })
       )
@@ -84,7 +98,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     ipcMain.handle("stop-watcher", (_, path: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.stopWatcher(path), {
-          onFailure: (error) => left(error),
+          onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
         })
       )
