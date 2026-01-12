@@ -1,4 +1,8 @@
-import { FileSystemError } from "@/services/file-system"
+import {
+  NotFoundError,
+  PermissionDeniedError,
+  UnknownFSError,
+} from "@/services/file-system"
 import { assert, describe, expect, test, vi } from "vitest"
 
 import { left, match, right } from "@/types/adt"
@@ -76,7 +80,12 @@ describe("readFile", () => {
   test("returns null when read fails", async () => {
     const electronAPI = createTestElectronAPI({
       readFile: async () =>
-        left(new FileSystemError({ message: "file not found" })),
+        left(
+          new NotFoundError({
+            path: "/nonexistent/file.py",
+            description: "file not found",
+          })
+        ),
     })
 
     const result = await readFile(
@@ -86,7 +95,7 @@ describe("readFile", () => {
 
     match(result, {
       onLeft: (error) => {
-        expect(error.message).toBe("file not found")
+        expect(error.description).toBe("file not found")
       },
       onRight: () => {
         assert.fail("should not be right")
@@ -97,7 +106,12 @@ describe("readFile", () => {
   test("returns null when read throws error", async () => {
     const electronAPI = createTestElectronAPI({
       readFile: async () =>
-        left(new FileSystemError({ message: "permission denied" })),
+        left(
+          new PermissionDeniedError({
+            path: "/protected/file.py",
+            description: "permission denied",
+          })
+        ),
     })
 
     const result = await readFile(
@@ -107,7 +121,7 @@ describe("readFile", () => {
 
     match(result, {
       onLeft: (error) => {
-        expect(error.message).toBe("permission denied")
+        expect(error.description).toBe("permission denied")
       },
       onRight: () => {
         assert.fail("should not be right")
@@ -160,7 +174,13 @@ describe("saveFile", () => {
 
   test("returns false when save fails", async () => {
     const electronAPI = createTestElectronAPI({
-      saveFile: async () => left(new FileSystemError({ message: "disk full" })),
+      saveFile: async () =>
+        left(
+          new UnknownFSError({
+            path: "/test/test.py",
+            description: "disk full",
+          })
+        ),
     })
 
     const result = await saveFile(
@@ -171,7 +191,7 @@ describe("saveFile", () => {
 
     match(result, {
       onLeft: (error) => {
-        expect(error.message).toBe("disk full")
+        expect(error.description).toBe("disk full")
       },
       onRight: () => {
         assert.fail("should not be right")
@@ -182,7 +202,12 @@ describe("saveFile", () => {
   test("returns false when save throws error", async () => {
     const electronAPI = createTestElectronAPI({
       saveFile: async () =>
-        left(new FileSystemError({ message: "permission denied" })),
+        left(
+          new PermissionDeniedError({
+            path: "/protected/file.py",
+            description: "permission denied",
+          })
+        ),
     })
 
     const result = await saveFile(
@@ -193,7 +218,7 @@ describe("saveFile", () => {
 
     match(result, {
       onLeft: (error) => {
-        expect(error.message).toBe("permission denied")
+        expect(error.description).toBe("permission denied")
       },
       onRight: () => {
         assert.fail("should not be right")

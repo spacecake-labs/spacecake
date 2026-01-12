@@ -10,7 +10,6 @@ import {
 } from "@codemirror/state"
 import { EditorView, keymap, lineNumbers } from "@codemirror/view"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
-import { githubDark, githubLight } from "@uiw/codemirror-theme-github"
 import { basicSetup } from "codemirror"
 import {
   $addUpdateTag,
@@ -31,6 +30,7 @@ import {
 } from "@/components/editor/nodes/code-node"
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { useNavigation } from "@/components/editor/plugins/use-navigation"
+import { githubDark, githubLight } from "@/components/editor/themes"
 import { useTheme } from "@/components/theme-provider"
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]

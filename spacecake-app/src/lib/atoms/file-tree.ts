@@ -14,6 +14,7 @@ import type {
   WorkspaceInfo,
 } from "@/types/workspace"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
+import { WorkspaceNotFound } from "@/types/workspace-error"
 import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms"
 // Import expandedFoldersAtom
 import { parentFolderName } from "@/lib/utils"
@@ -221,7 +222,7 @@ export const fileTreeEventAtom = atom(
           router.navigate({
             to: "/",
             search: {
-              notFoundPath: workspacePath,
+              workspaceError: new WorkspaceNotFound({ path: workspacePath }),
             },
             replace: true,
           })

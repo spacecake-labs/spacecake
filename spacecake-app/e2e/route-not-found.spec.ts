@@ -4,6 +4,35 @@ import path from "path"
 import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("route not found", () => {
+  test("should show 'workspace not accessible' message when workspace has no read permissions", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    const window = await electronApp.firstWindow()
+
+    // open the temp test directory as workspace (via SPACECAKE_HOME env var)
+    await waitForWorkspace(window)
+
+    // wait for watcher to be ready
+    await window.waitForTimeout(1000)
+
+    // remove read permissions from the workspace
+    fs.chmodSync(tempTestDir, 0o000)
+
+    try {
+      // reload the window - this should trigger the permission denied error
+      await window.reload()
+
+      // verify the "workspace not accessible" message appears
+      await expect(
+        window.getByText(`workspace not accessible:\n${tempTestDir}`)
+      ).toBeVisible({ timeout: 10000 })
+    } finally {
+      // always restore permissions for cleanup
+      fs.chmodSync(tempTestDir, 0o755)
+    }
+  })
+
   test("should show 'file not found' message when file is deleted after opening", async ({
     electronApp,
     tempTestDir,

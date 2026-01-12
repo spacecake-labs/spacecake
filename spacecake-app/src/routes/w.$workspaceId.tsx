@@ -13,11 +13,16 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router"
+import { Match } from "effect"
 import { useAtom, useSetAtom } from "jotai"
 import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
 
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
+import {
+  WorkspaceNotAccessible,
+  WorkspaceNotFound,
+} from "@/types/workspace-error"
 import {
   atomWithToggle,
   contextItemNameAtom,
@@ -59,13 +64,28 @@ export const Route = createFileRoute("/w/$workspaceId")({
     const pathExists = await exists(workspacePath)
 
     match(pathExists, {
-      onLeft: (error) => console.error(error),
+      onLeft: (error) => {
+        // Map file system error to workspace error using Match.tag
+        const workspaceError = Match.value(error).pipe(
+          Match.tag(
+            "PermissionDeniedError",
+            () => new WorkspaceNotAccessible({ path: workspacePath })
+          ),
+          Match.orElse(() => new WorkspaceNotFound({ path: workspacePath }))
+        )
+        throw redirect({
+          to: "/",
+          search: { workspaceError },
+        })
+      },
       onRight: (pathExists) => {
         if (!pathExists) {
-          // redirect to home with workspace path as search param
+          // redirect to home with workspace error
           throw redirect({
             to: "/",
-            search: { notFoundPath: workspacePath },
+            search: {
+              workspaceError: new WorkspaceNotFound({ path: workspacePath }),
+            },
           })
         }
       },
@@ -94,7 +114,21 @@ export const Route = createFileRoute("/w/$workspaceId")({
     const { db, workspace } = context
     const result = await readDirectory(workspace.path)
     match(result, {
-      onLeft: (error) => console.error(error),
+      onLeft: (error) => {
+        Match.value(error).pipe(
+          Match.tag("PermissionDeniedError", () => {
+            throw redirect({
+              to: "/",
+              search: {
+                workspaceError: new WorkspaceNotAccessible({
+                  path: workspace.path,
+                }),
+              },
+            })
+          }),
+          Match.orElse((e) => console.error(e))
+        )
+      },
       onRight: async (tree) => {
         // hydrate file state machine atoms
         const cache = await RuntimeClient.runPromise(
