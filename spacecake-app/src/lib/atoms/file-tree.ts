@@ -15,7 +15,11 @@ import type {
 } from "@/types/workspace"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { WorkspaceNotFound } from "@/types/workspace-error"
-import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms"
+import {
+  expandedFoldersAtom,
+  fileTreeAtom,
+  isCreatingInContextAtom,
+} from "@/lib/atoms/atoms"
 // Import expandedFoldersAtom
 import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
@@ -304,10 +308,19 @@ const createFileStateMachineAtom = (filePath: AbsolutePath) =>
 export const fileStateAtomFamily = atomFamily(createFileStateMachineAtom)
 
 /**
+ * Represents a creation input placeholder for virtualized rendering.
+ */
+export interface CreationInputItem {
+  kind: "creation-input"
+  parentPath: string
+  creationKind: "file" | "folder"
+}
+
+/**
  * Represents a flattened tree item for virtualized rendering.
  */
 export interface FlatTreeItem {
-  item: File | Folder
+  item: File | Folder | CreationInputItem
   depth: number
   isExpanded: boolean
   hasChildren: boolean
@@ -359,10 +372,42 @@ export function flattenVisibleTree(
 /**
  * Atom that provides a flattened list of visible tree items for virtualized rendering.
  * Merges user-expanded folders with auto-reveal folders.
+ * Injects creation input pseudo-items when creating files/folders in a directory.
  */
 export const flatVisibleTreeAtom = atom((get) => {
   const tree = get(sortedFileTreeAtom)
   const expandedFolders = get(expandedFoldersAtom)
+  const isCreatingInContext = get(isCreatingInContextAtom)
 
-  return flattenVisibleTree(tree, expandedFolders)
+  const flatTree = flattenVisibleTree(tree, expandedFolders)
+
+  // If creating in a folder context, inject a creation input pseudo-item
+  if (isCreatingInContext) {
+    const { parentPath, kind } = isCreatingInContext
+
+    // Find the index of the parent folder
+    const parentIndex = flatTree.findIndex(
+      (flatItem) =>
+        flatItem.item.kind === "folder" && flatItem.item.path === parentPath
+    )
+
+    if (parentIndex !== -1) {
+      const parentItem = flatTree[parentIndex]
+      const creationInputItem: FlatTreeItem = {
+        item: {
+          kind: "creation-input",
+          parentPath,
+          creationKind: kind,
+        },
+        depth: parentItem.depth + 1,
+        isExpanded: false,
+        hasChildren: false,
+      }
+
+      // Insert after the parent folder
+      flatTree.splice(parentIndex + 1, 0, creationInputItem)
+    }
+  }
+
+  return flatTree
 })

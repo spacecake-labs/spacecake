@@ -439,9 +439,43 @@ export function NavMain({
               >
                 {rowVirtualizer.getVirtualItems().map((virtualItem) => {
                   const flatItem = flatVisibleTree[virtualItem.index]
+                  const itemKey =
+                    flatItem.item.kind === "creation-input"
+                      ? `creation-input-${flatItem.item.parentPath}`
+                      : flatItem.item.path
+
+                  // Render creation input as a separate row
+                  if (flatItem.item.kind === "creation-input") {
+                    const indentPx = flatItem.depth * 12
+                    return (
+                      <div
+                        key={itemKey}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: `${virtualItem.size}px`,
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }}
+                      >
+                        <SidebarMenuItem
+                          style={{ paddingLeft: `${indentPx}px` }}
+                        >
+                          <CreationInput
+                            kind={flatItem.item.creationKind}
+                            onCreateFile={handleCreateFile}
+                            onCreateFolder={handleCreateFolder}
+                            onCancel={handleCancelCreation}
+                          />
+                        </SidebarMenuItem>
+                      </div>
+                    )
+                  }
+
                   return (
                     <div
-                      key={flatItem.item.path}
+                      key={itemKey}
                       style={{
                         position: "absolute",
                         top: 0,
@@ -457,8 +491,8 @@ export function NavMain({
                         onFolderToggle={handleFolderToggleCallback}
                         onStartRename={handleStartRenameCallback}
                         onStartDelete={handleStartDeleteCallback}
-                        onCreateFile={handleCreateFile} // Now accepts (name: string)
-                        onCreateFolder={handleCreateFolder} // Now accepts (name: string)
+                        onCreateFile={handleCreateFile}
+                        onCreateFolder={handleCreateFolder}
                         selectedFilePath={initialSelectedFilePath}
                         editingItem={editingItem}
                         setEditingItem={setEditingItem}
