@@ -317,14 +317,29 @@ export interface CreationInputItem {
 }
 
 /**
- * Represents a flattened tree item for virtualized rendering.
+ * Represents a flattened tree item for virtualized rendering (file or folder).
  */
-export interface FlatTreeItem {
-  item: File | Folder | CreationInputItem
+export interface FlatFileTreeItem {
+  item: File | Folder
   depth: number
   isExpanded: boolean
   hasChildren: boolean
 }
+
+/**
+ * Represents a creation input row in the virtualized tree.
+ */
+export interface FlatCreationInputItem {
+  item: CreationInputItem
+  depth: number
+  isExpanded: false
+  hasChildren: false
+}
+
+/**
+ * Union type for all items in the flattened tree.
+ */
+export type FlatTreeItem = FlatFileTreeItem | FlatCreationInputItem
 
 /**
  * Flattens a file tree into a list of visible items based on expanded folders.

@@ -13,7 +13,11 @@ import {
   editingItemAtom,
   isCreatingInContextAtom,
 } from "@/lib/atoms/atoms"
-import { flatVisibleTreeAtom, sortedFileTreeAtom } from "@/lib/atoms/file-tree"
+import {
+  flatVisibleTreeAtom,
+  sortedFileTreeAtom,
+  type FlatFileTreeItem,
+} from "@/lib/atoms/file-tree"
 import { createFolder, remove, rename, saveFile } from "@/lib/fs"
 import { useRoute } from "@/hooks/use-route"
 import { useWorkspaceCache } from "@/hooks/use-workspace-cache"
@@ -486,7 +490,7 @@ export function NavMain({
                       }}
                     >
                       <TreeRow
-                        flatItem={flatItem}
+                        flatItem={flatItem as FlatFileTreeItem}
                         onFileClick={handleFileClickCallback}
                         onFolderToggle={handleFolderToggleCallback}
                         onStartRename={handleStartRenameCallback}

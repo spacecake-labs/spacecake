@@ -13,7 +13,7 @@ import {
 
 import { AbsolutePath, File, Folder, WorkspaceInfo } from "@/types/workspace"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
-import type { FlatTreeItem } from "@/lib/atoms/file-tree"
+import type { FlatFileTreeItem } from "@/lib/atoms/file-tree"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { supportedViews } from "@/lib/language-support"
 import { cn, encodeBase64Url } from "@/lib/utils"
@@ -286,7 +286,7 @@ function FileStatusIndicator({ filePath }: { filePath: AbsolutePath }) {
 }
 
 export interface TreeRowProps {
-  flatItem: FlatTreeItem
+  flatItem: FlatFileTreeItem
   onFileClick: (filePath: AbsolutePath) => void
   onFolderToggle: (folderPath: Folder["path"]) => void
   onStartRename: (item: File | Folder) => void
