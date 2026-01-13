@@ -158,6 +158,42 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
           writeTerminal(id, input)
         })
 
+        // Handle Shift+Tab and Shift+Enter since ghostty-web doesn't fully support
+        // keyboard protocol mode switching yet. We send the sequences that native
+        // Ghostty sends (modifyOtherKeys format for Shift+Enter, legacy for Shift+Tab).
+        // Return true = prevent default (we handled it), false = allow normal handling
+        term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+          if (event.type !== "keydown") return false
+
+          // Shift+Tab → legacy backtab sequence
+          if (
+            event.key === "Tab" &&
+            event.shiftKey &&
+            !event.ctrlKey &&
+            !event.altKey &&
+            !event.metaKey
+          ) {
+            writeTerminal(id, "\x1b[Z")
+            event.preventDefault()
+            return true
+          }
+
+          // Shift+Enter → Kitty protocol format: CSI keycode ; modifier u
+          if (
+            event.key === "Enter" &&
+            event.shiftKey &&
+            !event.ctrlKey &&
+            !event.altKey &&
+            !event.metaKey
+          ) {
+            writeTerminal(id, "\x1b[13;2u")
+            event.preventDefault()
+            return true
+          }
+
+          return false
+        })
+
         // notify parent that terminal is ready
         const api: TerminalAPI = {
           fit: () => fitAddon.fit(),
