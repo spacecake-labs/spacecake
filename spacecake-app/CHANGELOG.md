@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.34
+
+### Patch Changes
+
+- 722dbdb: Fix file creation input box placement.
+
 ## 0.1.0-alpha.33
 
 ### Patch Changes
