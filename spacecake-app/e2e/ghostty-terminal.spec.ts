@@ -77,7 +77,7 @@ test.describe("ghostty terminal", () => {
     })
     expect(terminalContent).toContain("123")
 
-    // Test: Delete terminal -> creates new session, variable is gone
+    // Test: kill terminal -> creates new session, variable is gone
     await deleteButton.click()
     await expect(terminalElement).not.toBeVisible()
 

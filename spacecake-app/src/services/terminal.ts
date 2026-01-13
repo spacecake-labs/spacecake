@@ -65,6 +65,8 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           const env = {
             ...(process.env as Record<string, string>),
             BASH_SILENCE_DEPRECATION_WARNING: "1",
+            TERM: "xterm-256color",
+            COLORTERM: "truecolor",
           }
 
           const ptyProcess = pty.spawn(defaultShell, [], {

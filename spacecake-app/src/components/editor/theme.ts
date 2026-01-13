@@ -13,12 +13,10 @@ export const editorTheme: EditorThemeClasses = {
     h5: "text-block mt-6 mb-2 font-semibold text-base",
     h6: "text-block mt-6 mb-2 font-semibold text-sm",
   },
-  // Hide empty paragraphs unless they are focused or starting a new section.
-  // Logic breakdown:
-  // 1. [.text-block+&...]: Target this paragraph (&) ONLY if it immediately follows another .text-block element (sibling selector).
-  // 2. :not(.focused-node): ...AND it is NOT currently focused (class managed by FocusedNodePlugin).
-  // 3. :has-[>br:only-child]: ...AND it is effectively empty (contains only a <br> tag).
-  // 4. :hidden: Apply display:none if all above match.
+  // Hide empty paragraphs to match markdown behavior (which collapses blank lines).
+  // Rule 1 (here): Hide empty para that follows another .text-block
+  // Rule 2 (theme.css): Visually hide empty para between code block and text content
+  // Empty paras remain visible at doc end or between code blocks for user to click into.
   paragraph:
     "text-block leading-7 mt-2 [.text-block+&:not(.focused-node)]:has-[>br:only-child]:hidden",
   quote: "mt-6 border-l-2 pl-6 italic",
@@ -58,7 +56,7 @@ export const editorTheme: EditorThemeClasses = {
   hashtag: "text-blue-600 bg-blue-100 rounded-md px-1",
   text: {
     bold: "font-bold",
-    code: "bg-muted rounded px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold",
+    code: "rounded bg-muted px-1.5 py-0.5 font-mono text-sm",
     italic: "italic",
     strikethrough: "line-through",
     subscript: "sub",
