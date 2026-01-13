@@ -13,7 +13,7 @@ import {
 
 import { AbsolutePath, File, Folder, WorkspaceInfo } from "@/types/workspace"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
-import type { FlatTreeItem } from "@/lib/atoms/file-tree"
+import type { FlatFileTreeItem } from "@/lib/atoms/file-tree"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { supportedViews } from "@/lib/language-support"
 import { cn, encodeBase64Url } from "@/lib/utils"
@@ -80,45 +80,6 @@ function RenameInput({
         </div>
       )}
     </div>
-  )
-}
-
-function CreationInput({
-  kind,
-  onCreateFile,
-  onCreateFolder,
-  onCancel,
-}: {
-  kind: "file" | "folder"
-  onCreateFile: (path: string) => void
-  onCreateFolder: (path: string) => void
-  onCancel: () => void
-}) {
-  const [contextItemName, setContextItemName] = useAtom(contextItemNameAtom)
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      if (kind === "file") {
-        onCreateFile(contextItemName)
-      } else {
-        onCreateFolder(contextItemName)
-      }
-    } else if (e.key === "Escape") {
-      onCancel()
-    }
-  }
-
-  return (
-    <SidebarMenuButton className="cursor-default">
-      <Input
-        placeholder={kind === "file" ? "filename.txt" : "folder name"}
-        value={contextItemName}
-        onChange={(e) => setContextItemName(e.target.value)}
-        onKeyDown={handleKeyDown}
-        className="h-6 text-xs flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-        autoFocus
-      />
-    </SidebarMenuButton>
   )
 }
 
@@ -325,7 +286,7 @@ function FileStatusIndicator({ filePath }: { filePath: AbsolutePath }) {
 }
 
 export interface TreeRowProps {
-  flatItem: FlatTreeItem
+  flatItem: FlatFileTreeItem
   onFileClick: (filePath: AbsolutePath) => void
   onFolderToggle: (folderPath: Folder["path"]) => void
   onStartRename: (item: File | Folder) => void
@@ -368,8 +329,8 @@ export const TreeRow = React.memo(function TreeRow({
   onFolderToggle,
   onStartRename,
   onStartDelete,
-  onCreateFile,
-  onCreateFolder,
+  onCreateFile: _onCreateFile,
+  onCreateFolder: _onCreateFolder,
   selectedFilePath,
   editingItem,
   setEditingItem: _setEditingItem,
@@ -389,18 +350,6 @@ export const TreeRow = React.memo(function TreeRow({
   const isSelected = selectedFilePath === filePath
   const isRenaming = editingItem?.path === filePath
   const isGitIgnored = item.isGitIgnored
-
-  const [isCreatingInContext, setIsCreatingInContext] = useAtom(
-    isCreatingInContextAtom
-  )
-  const setContextItemName = useSetAtom(contextItemNameAtom)
-
-  const isCreatingInThisContext = isCreatingInContext?.parentPath === filePath
-
-  const handleCancelCreation = () => {
-    setIsCreatingInContext(null)
-    setContextItemName("")
-  }
 
   // Base indentation per level (in pixels)
   const indentPx = depth * 12
@@ -510,22 +459,6 @@ export const TreeRow = React.memo(function TreeRow({
         />
         {isRenaming && <CancelRenameButton onCancel={onCancelRename} />}
       </SidebarMenuItem>
-
-      {/* Inline creation input - shown after the folder item when creating inside it */}
-      {isCreatingInThisContext && (
-        <SidebarMenuItem
-          style={{
-            paddingLeft: `${indentPx + 12}px`,
-          }}
-        >
-          <CreationInput
-            kind={isCreatingInContext.kind}
-            onCreateFile={onCreateFile}
-            onCreateFolder={onCreateFolder}
-            onCancel={handleCancelCreation}
-          />
-        </SidebarMenuItem>
-      )}
     </>
   )
 })
