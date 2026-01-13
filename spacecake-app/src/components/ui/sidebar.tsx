@@ -98,6 +98,13 @@ function SidebarProvider({
         event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
         (event.metaKey || event.ctrlKey)
       ) {
+        if (
+          event.defaultPrevented ||
+          (event.target instanceof HTMLElement &&
+            event.target.isContentEditable)
+        ) {
+          return
+        }
         event.preventDefault()
         toggleSidebar()
       }
