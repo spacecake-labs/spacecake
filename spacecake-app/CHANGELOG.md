@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.32
+
+### Patch Changes
+
+- a01d34d: Fix shift+tab and shift+enter commands in Claude Code.
+
 ## 0.1.0-alpha.31
 
 ### Patch Changes
