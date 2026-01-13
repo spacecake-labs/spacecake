@@ -16,9 +16,7 @@ export const router = createRouter({
   routeTree,
   history: memoryHistory,
   defaultStructuralSharing: true,
-  defaultPreload: "intent",
-  defaultPreloadDelay: 200,
-  defaultPreloadStaleTime: 10_000, // cache for 10s
+  defaultPreload: false,
   context: undefined!,
 })
 

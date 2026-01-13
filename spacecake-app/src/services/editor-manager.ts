@@ -156,7 +156,8 @@ export class EditorManager extends Effect.Service<EditorManager>()(
                   fileType: fileType,
                   content: content,
                   cid: cid,
-                  selection: maybeState.value.selection,
+                  // Don't restore selection when switching views - offsets are view-specific
+                  selection: null,
                 },
               },
             })
@@ -180,6 +181,13 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               position: 0, // assuming single editor per pane for now
               is_active: true,
             })
+
+            // Only restore selection if prior state had matching view kind
+            const priorSelection =
+              isRight(maybeState) && maybeState.value.viewKind === viewKind
+                ? maybeState.value.selection
+                : null
+
             return right<
               PgliteError | FileSystemError | EditorManagerError,
               InitialContent
@@ -190,7 +198,7 @@ export class EditorManager extends Effect.Service<EditorManager>()(
                 data: {
                   ...maybeFile.value,
                   editorId: editor.id,
-                  selection: Option.getOrNull(editor.selection),
+                  selection: priorSelection,
                 },
               },
             })
