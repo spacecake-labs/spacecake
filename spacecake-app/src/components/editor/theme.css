@@ -136,3 +136,13 @@ table.border-separate tr:last-child th {
     mix-blend-mode: color;
   }
 }
+
+/* Empty paragraph hiding - Rule 2 (Rule 1 is in theme.ts)
+   Visually hides empty paras between code blocks and text content by pulling the
+   text content up with negative margin. Only applies after non-.text-block elements
+   (code blocks, diagrams) so it doesn't conflict with Rule 1's display:none. */
+:not(.text-block)
+  + .text-block:not(.focused-node):has(> br:only-child)
+  + .text-block:has([data-lexical-text]) {
+  margin-top: -1.75rem;
+}

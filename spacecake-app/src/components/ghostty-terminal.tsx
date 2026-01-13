@@ -288,7 +288,7 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         onDelete={onDelete}
         className="absolute top-3 right-2 z-10"
         data-testid="terminal-delete-button"
-        title="delete terminal"
+        title="kill terminal"
       />
       {error && (
         <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-100 px-4 py-2 text-sm font-mono">
