@@ -1,5 +1,12 @@
 # spacecake-app
 
+## 0.1.0-alpha.33
+
+### Patch Changes
+
+- 1d2c1b0: Fix selection restoration issue when switching view kinds.
+- 1d2c1b0: Fix header and table margins.
+
 ## 0.1.0-alpha.32
 
 ### Patch Changes
