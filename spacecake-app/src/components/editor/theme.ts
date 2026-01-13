@@ -13,13 +13,28 @@ export const editorTheme: EditorThemeClasses = {
     h5: "text-block mt-6 mb-2 font-semibold text-base",
     h6: "text-block mt-6 mb-2 font-semibold text-sm",
   },
-  // Hide empty paragraphs to match markdown behavior (which collapses blank lines).
-  // Rule 1 (here): Hide empty para that follows another .text-block
-  // Rule 2 (theme.css): Visually hide empty para between code block and text content
-  // Empty paras remain visible at doc end or between code blocks for user to click into.
+  // EMPTY PARAGRAPH HANDLING - ensures consistent spacing regardless of blank lines in source.
+  //
+  // Goal: "paragraph → blank line → heading" should look identical to "paragraph → heading".
+  // Blank lines in markdown become empty <p><br></p> nodes that would add unwanted extra space.
+  //
+  // The `.text-block` class marks block elements (headings, paragraphs, quotes, lists, hr).
+  // Elements WITHOUT text-block: code blocks, mermaid diagrams, tables (these are "non-text-blocks").
+  //
+  // RULE 1 (here): When an empty para follows a .text-block element, hide it completely.
+  // This uses display:none via the Tailwind arbitrary variant below.
+  // Example: paragraph → empty para → heading  =>  empty para is hidden
+  //
+  // RULE 2 (theme.css): When an empty para follows a NON-text-block (code block, table),
+  // we can't use display:none (we want empty paras between consecutive code blocks to remain
+  // visible so users can click there). Instead, we use negative margin on the following
+  // text element to pull it up, making the spacing match the "no blank line" case.
+  // Example: table → empty para → heading  =>  heading gets negative margin to match spacing
+  //
+  // See theme.css for Rule 2 implementation and the margin calculation.
   paragraph:
     "text-block leading-7 mt-2 [.text-block+&:not(.focused-node)]:has-[>br:only-child]:hidden",
-  quote: "mt-6 border-l-2 pl-6 italic",
+  quote: "text-block mt-6 border-l-2 pl-6 italic",
   link: "text-blue-600 hover:underline hover:cursor-pointer",
   list: {
     nested: {
@@ -131,7 +146,7 @@ export const editorTheme: EditorThemeClasses = {
     base: "user-select-none",
     focus: "ring-2 ring-primary ring-offset-2",
   },
-  hr: 'p-0.5 border-none my-1 mx-0 cursor-pointer after:content-[""] after:block after:h-0.5 after:bg-muted selected:ring-2 selected:ring-primary selected:ring-offset-2 selected:user-select-none',
+  hr: 'text-block p-0.5 border-none my-1 mx-0 cursor-pointer after:content-[""] after:block after:h-0.5 after:bg-muted selected:ring-2 selected:ring-primary selected:ring-offset-2 selected:user-select-none',
   indent: "[--lexical-indent-base-value:40px]",
   mark: "",
   markOverlap: "",

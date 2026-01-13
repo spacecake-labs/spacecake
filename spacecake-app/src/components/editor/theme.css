@@ -137,12 +137,30 @@ table.border-separate tr:last-child th {
   }
 }
 
-/* Empty paragraph hiding - Rule 2 (Rule 1 is in theme.ts)
-   Visually hides empty paras between code blocks and text content by pulling the
-   text content up with negative margin. Only applies after non-.text-block elements
-   (code blocks, diagrams) so it doesn't conflict with Rule 1's display:none. */
+/* EMPTY PARAGRAPH HANDLING - RULE 2 (Rule 1 is in theme.ts)
+
+   Goal: Make "table → blank line → heading" look identical to "table → heading".
+
+   Why not just hide the empty para with display:none like Rule 1?
+   Because we WANT empty paras to remain visible between consecutive non-text-blocks
+   (e.g., two code blocks) so users have a place to click and add content.
+
+   So instead of hiding, we pull the following text element UP with negative margin
+   to achieve the same visual spacing as if there were no blank line.
+
+   THE MATH:
+   - Empty para takes up: mt-2 (8px) + line-height (28px) = 36px total
+   - Without blank line, heading would have mt-6 (24px) gap from the table
+   - To match: we need the heading to end up 24px from the table
+   - So: 36px (para space) + margin = 24px  →  margin = -12px = -0.75rem
+
+   SELECTOR EXPLAINED:
+   - :not(.text-block)                           → previous element is code block, table, etc.
+   - + .text-block:has(> br:only-child)          → followed by empty paragraph
+   - + .text-block:has([data-lexical-text])      → followed by text content (heading, para, etc.)
+*/
 :not(.text-block)
   + .text-block:not(.focused-node):has(> br:only-child)
   + .text-block:has([data-lexical-text]) {
-  margin-top: -1.75rem;
+  margin-top: -0.75rem;
 }
