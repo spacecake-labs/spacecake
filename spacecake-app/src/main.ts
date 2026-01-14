@@ -55,6 +55,7 @@ const createWindow = () => {
     width: 800,
     height: 600,
     show: !isTest || showWindow,
+    titleBarStyle: "hidden",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,

@@ -60,7 +60,7 @@ export function AppSidebar({
 
   return (
     <Sidebar variant="inset" data-testid="sidebar">
-      <SidebarHeader>
+      <SidebarHeader className="pt-4">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
