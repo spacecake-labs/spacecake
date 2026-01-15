@@ -164,3 +164,147 @@ table.border-separate tr:last-child th {
   + .text-block:has([data-lexical-text]) {
   margin-top: -0.75rem;
 }
+
+/* EMPTY PARAGRAPH COLLAPSE
+
+   Rule 1: Paragraphs never focused - instant collapse (keep in DOM for indicator)
+   Rule 2: Paragraphs user visited - animated collapse
+
+   The first hidden paragraph shows a fold-vertical icon in the margin with a poof animation.
+   Subsequent hidden paragraphs show no indicator (icon hidden via adjacent sibling selector).
+*/
+
+/* Rule 1: Collapse paragraphs never visited (keep in DOM for indicator) */
+.text-block
+  + .empty-para-collapsible:not(.focused-node):not(.was-focused-node):has(
+    > br:only-child
+  ) {
+  height: 0;
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+/* Show icon on 2nd empty paragraph when there are 2+ consecutive.
+   Requires 1st para to NOT be focused (so it's collapsing).
+   Icon appears on 2nd para regardless of its focus state.
+*/
+.text-block:has([data-lexical-text])
+  + .empty-para-collapsible:not(.focused-node):has(> br:only-child)
+  + .empty-para-collapsible:has(> br:only-child) {
+  position: relative;
+}
+
+.text-block:has([data-lexical-text])
+  + .empty-para-collapsible:not(.focused-node):has(> br:only-child)
+  + .empty-para-collapsible:has(> br:only-child)::before {
+  content: "";
+  position: absolute;
+  left: -2rem;
+  /* Vertically center icon within line-height (leading-7 = 28px, icon = 14px) */
+  top: 0.375rem;
+  width: 14px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22v-6'/%3E%3Cpath d='M12 8V2'/%3E%3Cpath d='M4 12H2'/%3E%3Cpath d='M10 12H8'/%3E%3Cpath d='M16 12h-2'/%3E%3Cpath d='M22 12h-2'/%3E%3Cpath d='m15 19-3-3-3 3'/%3E%3Cpath d='m15 5-3 3-3-3'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  animation: ghost-in 0.3s ease-out 0.3s backwards;
+}
+
+/* When 2nd para is also collapsed, offset icon down to account for lost mt-2 margin.
+   Collapsed paras have margin-top: 0 (from animation), but visible paras have mt-2 (8px).
+   Base is 0.375rem + 0.5rem margin offset = 0.875rem */
+.text-block:has([data-lexical-text])
+  + .empty-para-collapsible:not(.focused-node):has(> br:only-child)
+  + .empty-para-collapsible:not(.focused-node):has(> br:only-child)::before {
+  top: 0.875rem;
+}
+
+/* Poof on 2nd empty paragraph (only for user-created).
+   Requires 1st para to have was-focused (user visited) and NOT be focused.
+*/
+.text-block:has([data-lexical-text])
+  + .empty-para-collapsible.was-focused-node:not(.focused-node):has(
+    > br:only-child
+  )
+  + .empty-para-collapsible:has(> br:only-child)::after {
+  content: "💨";
+  position: absolute;
+  left: -2rem;
+  top: 0.375rem;
+  width: 14px;
+  height: 14px;
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+  animation: poof-out 0.6s ease-out 0.25s forwards;
+  pointer-events: none;
+}
+
+/* When 2nd para is also collapsed, offset poof down (same as icon) */
+.text-block:has([data-lexical-text])
+  + .empty-para-collapsible.was-focused-node:not(.focused-node):has(
+    > br:only-child
+  )
+  + .empty-para-collapsible:not(.focused-node):has(> br:only-child)::after {
+  top: 0.875rem;
+}
+
+/* Hide indicator on 3rd+ consecutive paragraphs */
+.text-block:has([data-lexical-text])
+  + .empty-para-collapsible:not(.focused-node):has(> br:only-child)
+  + .empty-para-collapsible:has(> br:only-child)
+  + .empty-para-collapsible:has(> br:only-child)::before {
+  display: none;
+}
+
+.text-block:has([data-lexical-text])
+  + .empty-para-collapsible:not(.focused-node):has(> br:only-child)
+  + .empty-para-collapsible:has(> br:only-child)
+  + .empty-para-collapsible:has(> br:only-child)::after {
+  display: none;
+}
+
+@keyframes ghost-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes poof-out {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+/* Rule 2: Animated collapse for paragraphs user visited (only after text-blocks) */
+.text-block
+  + .empty-para-collapsible.was-focused-node:not(.focused-node):has(
+    > br:only-child
+  ) {
+  position: relative;
+  animation: collapse 0.6s ease-out forwards;
+}
+
+@keyframes collapse {
+  0% {
+    max-height: 1.75rem;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  100% {
+    max-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+}

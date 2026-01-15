@@ -21,19 +21,18 @@ export const editorTheme: EditorThemeClasses = {
   // The `.text-block` class marks block elements (headings, paragraphs, quotes, lists, hr).
   // Elements WITHOUT text-block: code blocks, mermaid diagrams, tables (these are "non-text-blocks").
   //
-  // RULE 1 (here): When an empty para follows a .text-block element, hide it completely.
-  // This uses display:none via the Tailwind arbitrary variant below.
-  // Example: paragraph → empty para → heading  =>  empty para is hidden
+  // COLLAPSE RULES (theme.css):
+  // - Never-focused paragraphs: instant collapse, no animation
+  // - User-visited paragraphs: animated collapse when user leaves
+  // - First hidden paragraph after content: shows fold-vertical icon in margin with poof animation
   //
-  // RULE 2 (theme.css): When an empty para follows a NON-text-block (code block, table),
-  // we can't use display:none (we want empty paras between consecutive code blocks to remain
-  // visible so users can click there). Instead, we use negative margin on the following
-  // text element to pull it up, making the spacing match the "no blank line" case.
-  // Example: table → empty para → heading  =>  heading gets negative margin to match spacing
+  // NEGATIVE MARGIN RULE (theme.css): When an empty para follows a NON-text-block (code block,
+  // table), we can't collapse it (we want empty paras between consecutive code blocks to remain
+  // visible so users can click there). Instead, we use negative margin on the following text
+  // element to pull it up, making the spacing match the "no blank line" case.
   //
-  // See theme.css for Rule 2 implementation and the margin calculation.
-  paragraph:
-    "text-block leading-7 mt-2 [.text-block+&:not(.focused-node)]:has-[>br:only-child]:hidden",
+  // See theme.css for implementations and FocusedNodePlugin for class management.
+  paragraph: "text-block leading-7 mt-2 empty-para-collapsible",
   quote: "text-block mt-6 border-l-2 pl-6 italic",
   link: "text-blue-600 hover:underline hover:cursor-pointer",
   list: {

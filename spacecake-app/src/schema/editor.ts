@@ -43,6 +43,7 @@ export const EditorUpdateStateSchema = Schema.Struct({
   id: EditorPrimaryKeySchema,
   state: EditorSelectSchema.fields.state,
   selection: EditorSelectSchema.fields.selection,
+  view_kind: EditorSelectSchema.fields.view_kind,
 })
 export type EditorStateUpdate = Schema.Schema.Encoded<
   typeof EditorUpdateStateSchema

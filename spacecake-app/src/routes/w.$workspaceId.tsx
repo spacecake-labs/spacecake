@@ -210,14 +210,14 @@ function HeaderToolbar() {
 
   if (selectedFilePath) {
     return (
-      <div className="flex items-center gap-3 px-4">
+      <div className="app-no-drag flex items-center gap-3 px-4">
         {route && <EditorToolbar routeContext={route} />}
         <ModeToggle variant="compact" />
       </div>
     )
   }
   return (
-    <div className="px-4">
+    <div className="app-no-drag px-4">
       <ModeToggle />
     </div>
   )
@@ -294,9 +294,9 @@ function LayoutContent() {
           workspace={workspace}
           selectedFilePath={selectedFilePath}
         />
-        <main className="bg-background relative flex w-full flex-1 flex-col overflow-auto rounded-xl shadow-sm h-full p-2">
-          <header className="flex h-16 shrink-0 items-center gap-2 justify-between">
-            <div className="flex items-center gap-2 px-4">
+        <main className="bg-background relative flex w-full flex-1 flex-col overflow-hidden rounded-xl shadow-sm h-full p-2">
+          <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
+            <div className="app-no-drag flex items-center gap-2 px-4">
               <SidebarTrigger
                 aria-label="toggle sidebar"
                 className="-ml-1 cursor-pointer"
@@ -305,7 +305,7 @@ function LayoutContent() {
             </div>
             <HeaderToolbar />
           </header>
-          <div className="h-full flex flex-1 flex-col gap-4 p-4 pt-0">
+          <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
             <Outlet />
           </div>
         </main>
@@ -327,13 +327,16 @@ function LayoutContent() {
         />
       </ResizablePanel>
       <ResizableHandle withHandle className="w-0" />
-      <ResizablePanel defaultSize={85} className="p-2">
+      <ResizablePanel defaultSize={85} className="p-2 overflow-hidden">
         <div className="h-full flex flex-col bg-background rounded-xl shadow-sm overflow-hidden">
           <ResizablePanelGroup direction="vertical" ref={verticalPanelGroupRef}>
-            <ResizablePanel defaultSize={70} minSize={30}>
-              <main className="relative flex w-full flex-1 flex-col overflow-auto h-full">
-                <header className="flex h-16 shrink-0 items-center gap-2 justify-between">
-                  <div className="flex items-center gap-2 px-4">
+            <ResizablePanel
+              defaultSize={isTerminalCollapsed ? 100 : 70}
+              minSize={30}
+            >
+              <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
+                <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
+                  <div className="app-no-drag flex items-center gap-2 px-4">
                     <SidebarTrigger
                       aria-label="toggle sidebar"
                       className="-ml-1 cursor-pointer"
@@ -342,7 +345,7 @@ function LayoutContent() {
                   </div>
                   <HeaderToolbar />
                 </header>
-                <div className="h-full flex flex-1 flex-col gap-4 p-4 pt-0">
+                <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
                   <Outlet />
                 </div>
               </main>
@@ -454,7 +457,7 @@ function WorkspaceLayout() {
   if (!workspace?.path) {
     return (
       <>
-        <div className="flex h-screen">
+        <div className="flex h-screen overflow-hidden">
           <SidebarProvider>
             <LayoutContent />
           </SidebarProvider>
@@ -465,7 +468,7 @@ function WorkspaceLayout() {
   return (
     <>
       <WorkspaceWatcher workspacePath={workspace.path} />
-      <div className="flex h-screen">
+      <div className="flex h-screen overflow-hidden">
         <SidebarProvider>
           <LayoutContent />
         </SidebarProvider>

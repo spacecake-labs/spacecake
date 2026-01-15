@@ -1,6 +1,12 @@
 import { useEditor } from "@/contexts/editor-context"
 import { useAtomValue, useSetAtom } from "jotai"
-import { FileSearch, FolderSearch, Loader2, Save } from "lucide-react"
+import {
+  FileSearch,
+  FileWarning,
+  FolderSearch,
+  Loader2,
+  Save,
+} from "lucide-react"
 
 import { RouteContext } from "@/types/workspace"
 import { quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
@@ -17,10 +23,11 @@ interface EditorToolbarProps {
 
 export function EditorToolbar({ routeContext }: EditorToolbarProps) {
   const { editorRef } = useEditor()
-  const fileState = useAtomValue(
-    fileStateAtomFamily(routeContext.filePath)
-  ).value
+  const fileStateAtom = fileStateAtomFamily(routeContext.filePath)
+  const fileState = useAtomValue(fileStateAtom).value
+  const send = useSetAtom(fileStateAtom)
   const isSaving = fileState === "Saving"
+  const isConflict = fileState === "Conflict"
   const openQuickOpen = useSetAtom(quickOpenMenuOpenAtom)
   const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
 
@@ -28,6 +35,33 @@ export function EditorToolbar({ routeContext }: EditorToolbarProps) {
     if (editorRef.current) {
       editorRef.current.dispatchCommand(SAVE_FILE_COMMAND, undefined)
     }
+  }
+
+  if (isConflict) {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mr-2">
+          <FileWarning className="h-4 w-4 text-destructive" />
+          <span>file changed externally</span>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 px-2 text-xs cursor-pointer"
+          onClick={() => send({ type: "file.resolve.overwrite" })}
+        >
+          keep my changes
+        </Button>
+        <Button
+          size="sm"
+          variant="destructive"
+          className="h-7 px-2 text-xs cursor-pointer"
+          onClick={() => send({ type: "file.resolve.discard" })}
+        >
+          discard my changes
+        </Button>
+      </div>
+    )
   }
 
   return (
