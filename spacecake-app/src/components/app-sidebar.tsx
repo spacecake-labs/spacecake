@@ -60,10 +60,12 @@ export function AppSidebar({
 
   return (
     <Sidebar variant="inset" data-testid="sidebar">
-      <SidebarHeader className="pt-4">
+      {/* Drag region for window traffic lights area */}
+      <div className="app-drag h-10" />
+      <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
+            <SidebarMenuButton size="lg" asChild className="app-no-drag">
               <Link
                 to={workspace?.path ? "/w/$workspaceId" : "/"}
                 params={

@@ -87,6 +87,12 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
           scrollback: 10000,
         })
 
+        // HACK: Prevent the terminal from ever showing the scrollbar. This is
+        // to work around a bug where the terminal does not resize correctly
+        // after the scrollbar disappears.
+        // @ts-expect-error This is a private API
+        term.showScrollbar = () => {}
+
         const fitAddon = new FitAddon()
         term.loadAddon(fitAddon)
 
@@ -276,13 +282,15 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
 
   return (
     <div
-      className="relative w-full h-full p-4"
+      className="relative w-full h-full"
       style={{ backgroundColor: activeTheme.current.background }}
     >
       <div
         data-testid="ghostty-terminal"
         ref={terminalRef}
-        className="w-full h-full overflow-hidden [&_textarea]:caret-transparent! [&_textarea]:outline-none!"
+        // p-4 on the terminal container and box-border to ensure padding is included
+        // in the element's total width and height, which is what FitAddon measures.
+        className="w-full h-full overflow-hidden p-4 box-border [&_textarea]:caret-transparent! [&_textarea]:outline-none!"
       />
       <DeleteButton
         onDelete={onDelete}
