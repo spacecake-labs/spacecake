@@ -182,9 +182,9 @@ export function createFrontmatterTransformer(): MultilineElementTransformer {
       if (!$isFrontmatterNode(node)) {
         return null
       }
-      const yaml = node.getYaml()
+      const yaml = node.getYaml().trim()
       // Export as standard YAML frontmatter
-      if (!yaml.trim()) {
+      if (!yaml) {
         return "---\n---"
       }
       return "---\n" + yaml + "\n---"
@@ -225,6 +225,19 @@ export function createFrontmatterTransformer(): MultilineElementTransformer {
       if (firstChild && $isFrontmatterNode(firstChild)) {
         // Don't create another frontmatter node
         return false
+      }
+
+      // Trim empty lines from start and end of content
+      if (linesInBetween) {
+        while (linesInBetween.length > 0 && !linesInBetween[0].length) {
+          linesInBetween.shift()
+        }
+        while (
+          linesInBetween.length > 0 &&
+          !linesInBetween[linesInBetween.length - 1].length
+        ) {
+          linesInBetween.pop()
+        }
       }
 
       const content = linesInBetween?.join("\n") ?? ""

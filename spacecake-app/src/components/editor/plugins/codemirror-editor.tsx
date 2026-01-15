@@ -169,6 +169,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<
   (
     {
       language,
+      nodeKey,
       code,
       onCodeChange,
       showLineNumbers = true,
@@ -183,6 +184,9 @@ export const BaseCodeMirrorEditor = React.forwardRef<
     const elRef = React.useRef<HTMLDivElement | null>(null)
     const onCodeChangeRef = React.useRef(onCodeChange)
     onCodeChangeRef.current = onCodeChange
+
+    // Navigation keymap for arrow key handling at boundaries
+    const { navigationKeymap } = useNavigation(nodeKey)
 
     // use empty array as default, but stable across renders
     const stableAdditionalExtensions = React.useMemo(
@@ -274,6 +278,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<
               ]
             : []),
           keymap.of([indentWithTab]),
+          navigationKeymap,
           EditorView.lineWrapping,
           themeCompartment.current.of(
             theme === "dark" ? githubDark : githubLight

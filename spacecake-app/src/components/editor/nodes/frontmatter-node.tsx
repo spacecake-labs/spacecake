@@ -426,7 +426,7 @@ const FrontmatterNodeEditorContainer: React.FC<
               variant="ghost"
               size="sm"
               onClick={handleToggleViewMode}
-              className="h-7 w-7 p-0 cursor-pointer"
+              className="h-6 w-6 p-0 cursor-pointer"
               data-testid="frontmatter-toggle-view-mode"
             >
               {viewMode === "table" ? (

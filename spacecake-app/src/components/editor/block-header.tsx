@@ -1,5 +1,4 @@
 import React from "react"
-import { Code } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -23,11 +22,7 @@ export function BlockHeader({
   className,
 }: BlockHeaderProps) {
   const titleElement =
-    typeof title === "string" && title === "anonymous" ? (
-      <Code className="inline-block h-[1em] w-[1em] align-middle text-foreground" />
-    ) : (
-      title
-    )
+    typeof title === "string" && title === "anonymous" ? null : title
 
   const badgeElement =
     typeof badge === "string" ? (
@@ -41,7 +36,7 @@ export function BlockHeader({
   return (
     <div
       className={cn(
-        "flex items-center justify-between border-b bg-muted/30 px-4 py-2 rounded-t-lg",
+        "flex items-center justify-between border-b bg-muted/30 px-4 py-1.5 rounded-t-lg",
         className
       )}
     >
