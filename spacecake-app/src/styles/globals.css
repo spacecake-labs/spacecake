@@ -125,7 +125,12 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-hidden;
+  }
+
+  /* Prevent layout shift when scrollbar appears */
+  .ContentEditable__root {
+    scrollbar-gutter: stable;
   }
 
   *::-webkit-scrollbar {

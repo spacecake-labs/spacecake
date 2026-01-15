@@ -137,7 +137,7 @@ export function Editor({
   }, [])
 
   return (
-    <div data-testid="lexical-editor" className="relative">
+    <div data-testid="lexical-editor" className="relative h-full">
       <LexicalComposer
         initialConfig={{
           ...editorConfig,
