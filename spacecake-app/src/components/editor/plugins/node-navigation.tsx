@@ -15,6 +15,8 @@ import {
 } from "lexical"
 
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
+import { $isFrontmatterNode } from "@/components/editor/nodes/frontmatter-node"
+import { $isMermaidNode } from "@/components/editor/nodes/mermaid-node"
 
 export function NodeNavigationPlugin(): null {
   const [editor] = useLexicalComposerContext()
@@ -76,7 +78,11 @@ export function NodeNavigationPlugin(): null {
           if (!sibling) return false
 
           event?.preventDefault()
-          if ($isCodeBlockNode(sibling)) {
+          if (
+            $isCodeBlockNode(sibling) ||
+            $isMermaidNode(sibling) ||
+            $isFrontmatterNode(sibling)
+          ) {
             sibling.select()
           } else if ($isElementNode(sibling)) {
             if (isForward) sibling.selectStart()

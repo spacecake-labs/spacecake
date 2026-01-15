@@ -162,7 +162,8 @@
     "web-tree-sitter": "^0.25.10",
     "write-file-atomic": "^6.0.0",
     "ws": "^8.19.0",
-    "xstate": "^5.22.0"
+    "xstate": "^5.22.0",
+    "yaml": "^2.8.2"
   },
   "optionalDependencies": {
     "@lydell/node-pty-darwin-arm64": "1.1.0",

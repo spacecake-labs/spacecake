@@ -26,6 +26,7 @@ import {
 } from "@lexical/table"
 import {
   $createNodeSelection,
+  $getRoot,
   $isParagraphNode,
   $isTextNode,
   $setSelection,
@@ -38,6 +39,11 @@ import {
   $isCodeBlockNode,
 } from "@/components/editor/nodes/code-node"
 import { delimitedNode } from "@/components/editor/nodes/delimited-node"
+import {
+  $createFrontmatterNode,
+  $isFrontmatterNode,
+  FrontmatterNode,
+} from "@/components/editor/nodes/frontmatter-node"
 import {
   $createImageNode,
   $isImageNode,
@@ -166,6 +172,91 @@ export function createCodeTransformer(): MultilineElementTransformer {
         )
       }
     },
+  }
+}
+
+export function createFrontmatterTransformer(): MultilineElementTransformer {
+  return {
+    dependencies: [FrontmatterNode],
+    export: (node: LexicalNode) => {
+      if (!$isFrontmatterNode(node)) {
+        return null
+      }
+      const yaml = node.getYaml()
+      // Export as standard YAML frontmatter
+      if (!yaml.trim()) {
+        return "---\n---"
+      }
+      return "---\n" + yaml + "\n---"
+    },
+    // Match opening --- (no $ anchor so it matches even with trailing space when typing)
+    regExpStart: /^---/,
+    // Match closing --- (optional: true allows the block to be created when typing the opening ---)
+    regExpEnd: {
+      optional: true,
+      regExp: /^---$/,
+    },
+    replace: (
+      rootNode,
+      _children,
+      _startMatch,
+      endMatch,
+      linesInBetween,
+      _isImport
+    ) => {
+      // CRITICAL: Validate position - must be at document start
+      const root = $getRoot()
+      const firstChild = root.getFirstChild()
+
+      // Only allow frontmatter at the very beginning
+      // Check if rootNode is the first child or if we're replacing the first element
+      const isAtDocumentStart =
+        firstChild === null ||
+        firstChild === rootNode ||
+        rootNode.getIndexWithinParent() === 0
+
+      if (!isAtDocumentStart) {
+        // Don't convert to frontmatter if not at start
+        // Return false to let other transformers handle it
+        return false
+      }
+
+      // Check if a frontmatter node already exists at the start
+      if (firstChild && $isFrontmatterNode(firstChild)) {
+        // Don't create another frontmatter node
+        return false
+      }
+
+      const content = linesInBetween?.join("\n") ?? ""
+
+      // if no ending delimiter, user has just created the block
+      const isUserCreated = !endMatch
+
+      const frontmatterNode = $createFrontmatterNode({
+        yaml: content,
+        viewMode: isUserCreated ? "code" : "table",
+      })
+
+      if (!rootNode.getParent()) {
+        rootNode.append(frontmatterNode)
+      } else {
+        rootNode.replace(frontmatterNode)
+      }
+
+      const nodeSelection = $createNodeSelection()
+      nodeSelection.add(frontmatterNode.getKey())
+      $setSelection(nodeSelection)
+
+      if (isUserCreated) {
+        // refocus after replacement
+        Promise.resolve(
+          setTimeout(() => {
+            frontmatterNode.select()
+          }, 0)
+        )
+      }
+    },
+    type: "multiline-element",
   }
 }
 
@@ -391,6 +482,7 @@ const MULTILINE_ELEMENT_TRANSFORMERS_FILTERED =
   })
 
 export const MARKDOWN_TRANSFORMERS = [
+  createFrontmatterTransformer(), // Must be first to check position before other transformers
   TABLE,
   CHECK_LIST,
   ...ELEMENT_TRANSFORMERS,

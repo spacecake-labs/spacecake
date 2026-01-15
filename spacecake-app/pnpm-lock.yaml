@@ -236,6 +236,9 @@ importers:
       xstate:
         specifier: ^5.22.0
         version: 5.25.0
+      yaml:
+        specifier: ^2.8.2
+        version: 2.8.2
     devDependencies:
       '@changesets/cli':
         specifier: ^2.29.7
