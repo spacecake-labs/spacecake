@@ -131,12 +131,13 @@ export class EditorManager extends Effect.Service<EditorManager>()(
             const content = serializeFromCache(maybeState.value.state, fileType)
             const cid = fnv1a64Hex(content)
 
-            // update view kind
+            // update timestamp and is_active, but keep view_kind matching the cached state
+            // (the cached state is for the old view, so view_kind should reflect that)
             yield* Effect.forkDaemon(
               db.upsertEditor({
                 pane_id: props.paneId,
                 file_id: maybeState.value.fileId,
-                view_kind: props.targetViewKind,
+                view_kind: maybeState.value.viewKind,
                 position: 0, // assuming single editor per pane for now
                 is_active: true,
               })

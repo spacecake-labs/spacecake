@@ -245,6 +245,7 @@ export class Database extends Effect.Service<Database>()("Database", {
                   state: values.state,
                   state_updated_at: DateTime.formatIso(now),
                   selection: values.selection,
+                  view_kind: values.view_kind,
                 })
                 .where(eq(editorTable.id, values.id))
             )
