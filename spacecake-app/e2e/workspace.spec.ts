@@ -823,14 +823,15 @@ test.describe("spacecake app", () => {
     await window.keyboard.type("... some new text", { delay: 100 })
 
     // 6. Verify the dirty indicator is visible
-    const dirtyIndicator = window.getByLabel("unsaved changes")
-    await expect(dirtyIndicator).toBeVisible()
+    const dirtyRow = window.getByTitle("test-dirty.md (dirty)")
+    await expect(dirtyRow).toBeVisible()
 
     // 7. Save the file
     await window.keyboard.press("ControlOrMeta+s", { delay: 100 })
 
-    // 8. Verify the dirty indicator is gone
-    await expect(dirtyIndicator).not.toBeVisible()
+    // 8. Verify the dirty indicator is gone (row title should update to clean)
+    await expect(dirtyRow).not.toBeVisible()
+    await expect(window.getByTitle("test-dirty.md (clean)")).toBeVisible()
 
     // 9. (Optional but good) Verify the content was saved
     const fileContent = fs.readFileSync(testFilePath, "utf-8")

@@ -1,7 +1,7 @@
 import * as React from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { FileWarning, Loader2Icon } from "lucide-react"
+import { FileWarning, Loader2Icon, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { match } from "@/types/adt"
@@ -302,42 +302,6 @@ export function NavMain({
 
   const handleRenameInputChangeCallback = React.useCallback(
     (value: string) => {
-      // NOTE: We cannot simply use `editingItem` from closure if we want this callback to be stable
-      // But `setEditingItem` with functional update handles the "current" state.
-      // HOWEVER, we need the `path` and `originalValue` from `editingItem` to validate.
-      // So this callback MUST depend on `editingItem` or we use a ref.
-      // If it depends on `editingItem`, it changes on every keystroke, defeating memoization for the ROW being renamed.
-      // But other rows are fine.
-
-      // Actually, we can just let this one change. Only the row being renamed will re-render, which is fine/required.
-      // But we should check if `editingItem` being in dependency array breaks other rows?
-      // Yes, if we pass this function to ALL rows.
-      // But `TreeRow` only uses it if it's the one being edited?
-      // No, `TreeRow` receives `onRenameInputChange`.
-      // If `handleRenameInputChangeCallback` changes, ALL rows re-render.
-      // We should use a functional update or a ref to avoid this dependency if possible,
-      // OR only pass it to the row that needs it? No, virtual list.
-
-      // Better approach:
-      // `editingItem` is global atom state.
-      // The `TreeRow` can read it directly? No, we passed it as prop.
-      // Let's stick to standard pattern: `NavMain` re-renders on rename input.
-      // Is that bad?
-      // When renaming, we are typing. We don't want the WHOLE TREE to re-render.
-      // `editingItem` changes -> `NavMain` re-renders -> new `handleRenameInputChangeCallback` -> ALL rows re-render.
-      // To fix this, we need `handleRenameInputChangeCallback` to be stable.
-      // But it needs access to `editingItem`.
-      // We can use a Ref to store the latest `editingItem` without triggering re-render,
-      // but `NavMain` re-renders anyway because of `useAtom(editingItemAtom)`.
-
-      // So `NavMain` re-rendering is unavoidable with current atom structure unless we move rename state down.
-      // But rename state IS global (only one item renamed at a time).
-
-      // ACCEPTABLE TRADEOFF: Renaming is rare.
-      // The critical path is **Creating a file** (typing name) and **Expanding folders**.
-      // This fix solves the "Creating File" re-renders (by extracting Input) and "Expanding Folder" re-renders (by memoizing rows).
-      // I will leave Rename optimization for later if needed.
-
       if (editingItem) {
         // using the variable from closure
         setEditingItem((prev) => (prev ? { ...prev, value } : null))
@@ -389,11 +353,9 @@ export function NavMain({
         setDeletionState((prev) => ({ ...prev, isDeleting: false }))
       },
       onRight: async () => {
-        setDeletionState({
-          item: null,
-          isOpen: false,
-          isDeleting: false,
-        })
+        // Only close the dialog - keep isDeleting true during close animation
+        // The onOpenChange handler will clean up the full state after animation completes
+        setDeletionState((prev) => ({ ...prev, isOpen: false }))
       },
     })
   }
@@ -535,11 +497,15 @@ export function NavMain({
         open={deletionState.isOpen}
         onOpenChange={(open) => {
           if (!open) {
-            setDeletionState({
-              item: null,
-              isOpen: false,
-              isDeleting: false,
-            })
+            // Delay state reset until after close animation completes
+            // to keep isDeleting true during the fade-out
+            setTimeout(() => {
+              setDeletionState({
+                item: null,
+                isOpen: false,
+                isDeleting: false,
+              })
+            }, 150)
           }
         }}
       >
@@ -569,6 +535,7 @@ export function NavMain({
               variant="outline"
               onClick={handleCancelDelete}
               disabled={deletionState.isDeleting}
+              className="cursor-pointer"
             >
               cancel
             </Button>
@@ -576,15 +543,14 @@ export function NavMain({
               variant="destructive"
               onClick={handleConfirmDelete}
               disabled={deletionState.isDeleting}
+              className="cursor-pointer"
             >
               {deletionState.isDeleting ? (
-                <>
-                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-                  deleting...
-                </>
+                <Loader2Icon className="mr-1 h-3 w-3 animate-spin" />
               ) : (
-                "delete"
+                <Trash2 className="mr-1 h-3 w-3" />
               )}
+              delete
             </Button>
           </DialogFooter>
         </DialogContent>

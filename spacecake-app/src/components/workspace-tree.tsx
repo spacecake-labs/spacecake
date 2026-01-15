@@ -2,14 +2,7 @@ import { useEffect, useRef } from "react"
 import * as React from "react"
 import { Link } from "@tanstack/react-router"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import {
-  ChevronRight,
-  FileWarning,
-  Loader2,
-  MoreHorizontal,
-  Plus,
-  X,
-} from "lucide-react"
+import { ChevronRight, Loader2, MoreHorizontal, Plus, X } from "lucide-react"
 
 import { AbsolutePath, File, Folder, WorkspaceInfo } from "@/types/workspace"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
@@ -255,34 +248,65 @@ function CancelRenameButton({ onCancel }: { onCancel: () => void }) {
   )
 }
 
-function FileStatusIndicator({ filePath }: { filePath: AbsolutePath }) {
-  const state = useAtomValue(fileStateAtomFamily(filePath)).value
+function FileRowLink({
+  item,
+  workspace,
+  isSelected,
+  cacheMap,
+}: {
+  item: File
+  workspace: WorkspaceInfo
+  isSelected: boolean
+  cacheMap: WorkspaceCache
+}) {
+  const state = useAtomValue(fileStateAtomFamily(item.path)).value
+  const statusText =
+    state === "Dirty" ? "dirty" : state === "Conflict" ? "conflict" : "clean"
+  const title = `${item.name} (${statusText})`
 
-  if (state === "Dirty") {
-    return (
-      <div
-        className="ml-auto size-2 shrink-0 rounded-full bg-foreground"
-        aria-label="unsaved changes"
-        title="unsaved changes"
-      />
-    )
-  }
+  const filePathEncoded = encodeBase64Url(AbsolutePath(item.path))
+  const workspaceIdEncoded = workspace?.path
+    ? encodeBase64Url(workspace.path)
+    : ""
 
-  // show spinner until resolved
-  if (state === "ExternalChange") {
-    return <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-  }
+  const canToggleViews = supportedViews(item.fileType).size > 1
+  const cacheEntry = cacheMap.get(item.path)
+  const view = cacheEntry?.view_kind ?? (canToggleViews ? undefined : "source")
+  const editorId = cacheEntry?.editorId ?? undefined
+  const cached = cacheMap.has(item.path)
 
-  if (state === "Conflict") {
-    return (
-      <FileWarning
-        className="ml-auto size-3 shrink-0"
-        aria-label="file has conflicting changes"
-      />
-    )
-  }
+  const Icon = getNavItemIcon(item)
+  const iconClass =
+    state === "Dirty"
+      ? "text-warning"
+      : state === "Conflict"
+        ? "text-destructive"
+        : ""
 
-  return null
+  return (
+    <Link
+      to="/w/$workspaceId/f/$filePath"
+      params={{
+        workspaceId: workspaceIdEncoded,
+        filePath: filePathEncoded,
+      }}
+      search={{ view, editorId }}
+      className="w-full"
+      title={title}
+    >
+      <SidebarMenuButton
+        isActive={isSelected}
+        onClick={() => {}}
+        className="cursor-pointer"
+      >
+        <Icon className={iconClass} />
+        <span className="truncate">{item.name}</span>
+        {cached && state === "ExternalChange" && (
+          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+        )}
+      </SidebarMenuButton>
+    </Link>
+  )
 }
 
 export interface TreeRowProps {
@@ -355,18 +379,6 @@ export const TreeRow = React.memo(function TreeRow({
   const indentPx = depth * 12
 
   if (item.kind === "file") {
-    const filePathEncoded = encodeBase64Url(AbsolutePath(filePath))
-    const workspaceIdEncoded = workspace?.path
-      ? encodeBase64Url(workspace.path)
-      : ""
-
-    const canToggleViews = supportedViews(item.fileType).size > 1
-    const cacheEntry = cacheMap.get(item.path)
-    const view =
-      cacheEntry?.view_kind ?? (canToggleViews ? undefined : "source")
-    const editorId = cacheEntry?.editorId ?? undefined
-    const cached = cacheMap.has(item.path)
-
     return (
       <SidebarMenuItem
         style={{
@@ -383,25 +395,12 @@ export const TreeRow = React.memo(function TreeRow({
             validationError={validationError}
           />
         ) : (
-          <Link
-            to="/w/$workspaceId/f/$filePath"
-            params={{
-              workspaceId: workspaceIdEncoded,
-              filePath: filePathEncoded,
-            }}
-            search={{ view, editorId }}
-            className="w-full"
-          >
-            <SidebarMenuButton
-              isActive={isSelected}
-              onClick={() => {}}
-              className="cursor-pointer"
-            >
-              {React.createElement(getNavItemIcon(item))}
-              <span className="truncate">{item.name}</span>
-              {cached && <FileStatusIndicator filePath={item.path} />}
-            </SidebarMenuButton>
-          </Link>
+          <FileRowLink
+            item={item}
+            workspace={workspace}
+            isSelected={isSelected}
+            cacheMap={cacheMap}
+          />
         )}
         <ItemDropdownMenu
           item={item}

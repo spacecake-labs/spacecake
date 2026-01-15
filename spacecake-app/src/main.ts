@@ -82,6 +82,14 @@ const createWindow = () => {
   const cspString = buildCSPString(isDev ? "development" : "production")
   mainWindow.webContents.session.webRequest.onHeadersReceived(
     (details, callback) => {
+      if (
+        details.url.startsWith("devtools://") ||
+        details.url.startsWith("chrome-extension://")
+      ) {
+        callback({ responseHeaders: details.responseHeaders })
+        return
+      }
+
       callback({
         responseHeaders: {
           ...details.responseHeaders,

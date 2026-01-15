@@ -83,9 +83,9 @@ test("dirty file, external change, keep mine: dirty indicator remains and conten
   await blockEditor.locator(".cm-content").click()
   await window.keyboard.type("# my edit\n", { delay: 50 })
 
-  // verify dirty indicator appears
-  const dirtyIndicator = window.getByLabel("unsaved changes")
-  await expect(dirtyIndicator).toBeVisible()
+  // verify dirty indicator appears (title updates to include dirty status)
+  const dirtyRow = window.getByTitle("core.py (dirty)")
+  await expect(dirtyRow).toBeVisible()
 
   // overwrite core.py on disk: add a different comment
   const original = fs.readFileSync(destPath, "utf8")
@@ -97,14 +97,14 @@ test("dirty file, external change, keep mine: dirty indicator remains and conten
   fs.writeFileSync(destPath, updated, "utf8")
 
   // wait for conflict banner to appear
-  const conflictBanner = window.getByText("external file change detected")
+  const conflictBanner = window.getByText("file changed externally")
   await expect(conflictBanner).toBeVisible()
 
-  // click "keep mine" button
-  await window.getByRole("button", { name: "keep mine" }).click()
+  // click "keep my changes" button
+  await window.getByRole("button", { name: "keep my changes" }).click()
 
   // verify dirty indicator is still visible (file is still dirty)
-  await expect(dirtyIndicator).toBeVisible()
+  await expect(dirtyRow).toBeVisible()
 
   // verify the editor content still contains our edit (not the external change)
   const editorContent = blockEditor.locator(".cm-content")
@@ -148,8 +148,8 @@ test("dirty file, external change, keep theirs: file reloads with original conte
   })
 
   // verify dirty indicator appears
-  const dirtyIndicator = window.getByLabel("unsaved changes")
-  await expect(dirtyIndicator).toBeVisible()
+  const dirtyRow = window.getByTitle("core.py (dirty)")
+  await expect(dirtyRow).toBeVisible()
 
   // verify our edit is in the block editor
   const editorContent = blockEditor.locator(".cm-content")
@@ -165,14 +165,15 @@ test("dirty file, external change, keep theirs: file reloads with original conte
   fs.writeFileSync(destPath, updated, "utf8")
 
   // wait for conflict banner to appear
-  const conflictBanner = window.getByText("external file change detected")
+  const conflictBanner = window.getByText("file changed externally")
   await expect(conflictBanner).toBeVisible()
 
-  // click "keep theirs" button
-  await window.getByRole("button", { name: "keep theirs" }).click()
+  // click "discard my changes" button
+  await window.getByRole("button", { name: "discard my changes" }).click()
 
-  // wait for file to reload (dirty indicator should be gone and content updated)
-  await expect(dirtyIndicator).not.toBeVisible()
+  // wait for file to reload (dirty indicator should be gone)
+  await expect(dirtyRow).not.toBeVisible()
+  await expect(window.getByTitle("core.py (clean)")).toBeVisible()
 
   // verify the editor content is now the external change (not our edit)
   await expect(editorContent).toContainText(

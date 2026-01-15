@@ -36,7 +36,6 @@ import { createRichViewClaudeSelection } from "@/lib/selection-utils"
 import { store } from "@/lib/store"
 import { decodeBase64Url } from "@/lib/utils"
 import { Editor } from "@/components/editor/editor"
-import { FileConflictBanner } from "@/components/editor/file-conflict-banner"
 import { LoadingAnimation } from "@/components/loading-animation"
 
 const fileSearchSchema = Schema.Struct({
@@ -180,7 +179,6 @@ function FileLayout() {
 
   return (
     <>
-      <FileConflictBanner filePath={filePath} send={sendFileState} />
       <Editor
         key={key}
         filePath={filePath}
