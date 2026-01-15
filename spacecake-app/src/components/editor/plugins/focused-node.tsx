@@ -7,13 +7,19 @@ import {
 import { $getSelection, $isParagraphNode, $isRangeSelection } from "lexical"
 
 const FOCUSED_NODE_CLASS = "focused-node"
+const WAS_FOCUSED_NODE_CLASS = "was-focused-node"
 
 /**
- * Plugin that adds a CSS class to the currently focused paragraph node.
- * This allows conditional styling of the focused node, e.g., to show empty paragraphs
- * only when they are currently being edited.
+ * Plugin that manages CSS classes for paragraph focus state.
  *
- * Uses a ref to efficiently track and remove the class from the previously focused DOM element.
+ * Adds "focused-node" class to the currently focused paragraph.
+ * Adds "was-focused-node" class when leaving a paragraph (persists until page reload).
+ *
+ * These classes enable:
+ * - Showing empty paragraphs only when focused (via :not(.focused-node) selector)
+ * - Different collapse animations for never-focused vs previously-focused paragraphs
+ *
+ * Uses a ref to efficiently track and update classes on DOM elements.
  */
 export function FocusedNodePlugin(): null {
   const [editor] = useLexicalComposerContext()
@@ -29,6 +35,10 @@ export function FocusedNodePlugin(): null {
             removeClassNamesFromElement(
               previouslyFocusedDomRef.current,
               FOCUSED_NODE_CLASS
+            )
+            addClassNamesToElement(
+              previouslyFocusedDomRef.current,
+              WAS_FOCUSED_NODE_CLASS
             )
             previouslyFocusedDomRef.current = null
           }
@@ -47,6 +57,10 @@ export function FocusedNodePlugin(): null {
             removeClassNamesFromElement(
               previouslyFocusedDomRef.current,
               FOCUSED_NODE_CLASS
+            )
+            addClassNamesToElement(
+              previouslyFocusedDomRef.current,
+              WAS_FOCUSED_NODE_CLASS
             )
             previouslyFocusedDomRef.current = null
           }
@@ -69,6 +83,10 @@ export function FocusedNodePlugin(): null {
           removeClassNamesFromElement(
             previouslyFocusedDomRef.current,
             FOCUSED_NODE_CLASS
+          )
+          addClassNamesToElement(
+            previouslyFocusedDomRef.current,
+            WAS_FOCUSED_NODE_CLASS
           )
         }
 
