@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.35
+
+### Patch Changes
+
+- dc3646f: UI enhancements and fix for state cache view kind.
+
 ## 0.1.0-alpha.34
 
 ### Patch Changes
