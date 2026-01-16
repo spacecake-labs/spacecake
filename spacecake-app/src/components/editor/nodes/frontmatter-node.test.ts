@@ -511,3 +511,13 @@ Content after frontmatter.
     })
   })
 })
+
+// NOTE: Markdown shortcut tests for frontmatter are complex because:
+// 1. The frontmatter transformer is a "multiline-element" type
+// 2. Multiline transformers are designed for patterns with opening/closing delimiters
+// 3. The shortcut system has specific requirements for triggering updates
+//
+// The parsing tests above using $convertFromMarkdownString cover the transformation logic.
+// For full shortcut testing (typing "--- " to create frontmatter), use e2e tests.
+//
+// See e2e/mermaid.spec.ts for an example of testing markdown shortcuts with Playwright.

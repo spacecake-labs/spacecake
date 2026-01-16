@@ -299,7 +299,7 @@ const FrontmatterTable: React.FC<FrontmatterTableProps> = ({ data, error }) => {
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" data-testid="frontmatter-table">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/50">
