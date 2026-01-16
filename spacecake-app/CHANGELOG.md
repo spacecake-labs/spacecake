@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.36
+
+### Patch Changes
+
+- 94f33fd: Ability to paste images into Claude Code.
+
 ## 0.1.0-alpha.35
 
 ### Patch Changes
