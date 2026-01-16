@@ -14,7 +14,6 @@ import {
   resizeTerminal,
   writeTerminal,
 } from "@/lib/terminal"
-import { DeleteButton } from "@/components/delete-button"
 import { useTheme } from "@/components/theme-provider"
 
 export interface TerminalAPI {
@@ -30,7 +29,6 @@ interface GhosttyTerminalProps {
   onReady?: (api: TerminalAPI) => void
   autoFocus?: boolean
   cwd?: string
-  onDelete?: () => void
 }
 
 const terminalTheme: Record<"light" | "dark", ITheme> = {
@@ -53,7 +51,6 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   onReady,
   autoFocus = false,
   cwd,
-  onDelete,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<Terminal | null>(null)
@@ -312,12 +309,6 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         // p-4 on the terminal container and box-border to ensure padding is included
         // in the element's total width and height, which is what FitAddon measures.
         className="w-full h-full overflow-hidden p-4 box-border [&_textarea]:caret-transparent! [&_textarea]:outline-none!"
-      />
-      <DeleteButton
-        onDelete={onDelete}
-        className="absolute top-3 right-2 z-10"
-        data-testid="terminal-delete-button"
-        title="kill terminal"
       />
       {error && (
         <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-100 px-4 py-2 text-sm font-mono">

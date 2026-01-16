@@ -8,6 +8,7 @@ interface DeleteButtonProps {
   onDelete?: () => void
   className?: string
   title?: string
+  disabled?: boolean
   "data-testid"?: string
 }
 
@@ -15,17 +16,20 @@ export function DeleteButton({
   onDelete,
   className,
   title = "delete",
+  disabled = false,
   "data-testid": testId,
 }: DeleteButtonProps) {
-  if (!onDelete) return null
-
   return (
     <Button
       variant="ghost"
       size="icon"
       onClick={onDelete}
+      disabled={disabled || !onDelete}
       className={cn(
-        "h-6 w-6 cursor-pointer text-muted-foreground hover:text-destructive transition-colors",
+        "h-6 w-6 text-muted-foreground transition-colors",
+        disabled || !onDelete
+          ? "cursor-not-allowed opacity-50"
+          : "cursor-pointer hover:text-destructive",
         className
       )}
       data-testid={testId}
