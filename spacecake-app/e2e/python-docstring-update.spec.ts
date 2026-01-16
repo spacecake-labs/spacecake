@@ -4,120 +4,94 @@ import path from "path"
 import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("Python docstring updating", () => {
-  test("should update docstring on navigation out of a code block", async ({
+  test("should update docstring on navigation and on save", async ({
     electronApp,
     tempTestDir,
   }) => {
     const window = await electronApp.firstWindow()
 
-    // create the python file on disk first
-    const pythonCode = `def my_function():
+    // create two python files to test both triggers
+    const pythonCode1 = `def my_function():
     """A docstring."""
     pass
 `
+    const pythonCode2 = `def another_function():
+    """Another docstring."""
+    pass
+`
 
-    const testFilePath = path.join(tempTestDir, "test_docstring.py")
-    fs.writeFileSync(testFilePath, pythonCode, "utf8")
+    const testFilePath1 = path.join(tempTestDir, "test_docstring.py")
+    const testFilePath2 = path.join(tempTestDir, "test_docstring_save.py")
+    fs.writeFileSync(testFilePath1, pythonCode1, "utf8")
+    fs.writeFileSync(testFilePath2, pythonCode2, "utf8")
 
     // open the temp test directory as workspace
     await waitForWorkspace(window)
 
-    // open the file
+    // =========================================================================
+    // Test 1: Update docstring on navigation
+    // =========================================================================
     await window
       .getByRole("button", { name: "test_docstring.py" })
       .first()
       .click()
 
-    // Explicitly wait for the Lexical editor to be visible
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
-    // verify we're in rich view (not source view)
     await expect(
       window.getByRole("link", { name: "switch to source view" })
     ).toBeVisible()
 
-    // find the code block by data-block-id
-    const codeBlock = editor.locator('[data-block-id*="my_function-function"]')
-    await expect(codeBlock).toBeVisible()
+    const codeBlock1 = editor.locator('[data-block-id*="my_function-function"]')
+    await expect(codeBlock1).toBeVisible()
 
-    const docSection = codeBlock.locator('[data-section="doc"]')
-    const codeSection = codeBlock.locator('[data-section="code"]')
+    const docSection1 = codeBlock1.locator('[data-section="doc"]')
+    const codeSection1 = codeBlock1.locator('[data-section="code"]')
 
-    // verify docstring is initially rendered in the docstring section
-    await expect(docSection.getByText("A docstring.")).toBeVisible()
+    await expect(docSection1.getByText("A docstring.")).toBeVisible()
 
-    // unfold the docstring section
-    await codeSection.getByLabel("folded code").click()
+    // unfold and edit docstring
+    await codeSection1.getByLabel("folded code").click()
+    await codeSection1.getByText("docstring").first().dblclick()
+    await codeSection1.pressSequentially("test", { delay: 100 })
 
-    // click on the code block to focus it
-    await codeSection.getByText("docstring").first().dblclick()
-
-    await codeSection.pressSequentially("test", { delay: 100 })
-
+    // trigger update via navigation
     await window.keyboard.press("ControlOrMeta+ArrowDown", { delay: 100 })
     await window.keyboard.press("ArrowDown", { delay: 100 })
 
-    // verify the docstring section has been updated
-    await expect(docSection.getByText("A test.")).toBeVisible()
-  })
+    await expect(docSection1.getByText("A test.")).toBeVisible()
 
-  test("should update docstring on save", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    const window = await electronApp.firstWindow()
-
-    // create the python file on disk first
-    const pythonCode = `def my_function():
-    """A docstring."""
-    pass
-`
-
-    const testFilePath = path.join(tempTestDir, "test_docstring_save.py")
-    fs.writeFileSync(testFilePath, pythonCode, "utf8")
-
-    // open the temp test directory as workspace
-    await waitForWorkspace(window)
-
-    // open the file
+    // =========================================================================
+    // Test 2: Update docstring on save
+    // =========================================================================
     await window
       .getByRole("button", { name: "test_docstring_save.py" })
       .first()
       .click()
 
-    // Explicitly wait for the Lexical editor to be visible
-    const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
-    // verify we're in rich view (not source view)
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
 
-    // find the code block by data-block-id
-    const codeBlock = editor.locator('[data-block-id*="my_function-function"]')
-    await expect(codeBlock).toBeVisible()
+    const codeBlock2 = editor.locator(
+      '[data-block-id*="another_function-function"]'
+    )
+    await expect(codeBlock2).toBeVisible()
 
-    const docSection = codeBlock.locator('[data-section="doc"]')
-    const codeSection = codeBlock.locator('[data-section="code"]')
+    const docSection2 = codeBlock2.locator('[data-section="doc"]')
+    const codeSection2 = codeBlock2.locator('[data-section="code"]')
 
-    // verify docstring is initially rendered in the docstring section
-    await expect(docSection.getByText("A docstring.")).toBeVisible()
+    await expect(docSection2.getByText("Another docstring.")).toBeVisible()
 
-    // unfold the docstring section
-    await codeSection.getByLabel("folded code").click()
-
-    // click on the code block to focus it
-    await codeSection.getByText("docstring").first().dblclick()
-
-    await codeSection.pressSequentially("test", { delay: 100 })
+    // unfold and edit docstring
+    await codeSection2.getByLabel("folded code").click()
+    await codeSection2.getByText("docstring").first().dblclick()
+    await codeSection2.pressSequentially("test", { delay: 100 })
 
     await window.waitForTimeout(500)
 
-    // save the file
+    // trigger update via save
     await window.keyboard.press("ControlOrMeta+s", { delay: 300 })
 
     await expect(editor).toBeVisible()
-    // verify the docstring section has been updated
-    await expect(docSection.getByText("A test.")).toBeVisible()
+    await expect(docSection2.getByText("Another test.")).toBeVisible()
   })
 })

@@ -4,50 +4,7 @@ import path from "path"
 import { expect, test, waitForWorkspace } from "./fixtures"
 
 test.describe("slash commands e2e", () => {
-  test("slash command options are available", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    const window = await electronApp.firstWindow()
-
-    // copy the _README.md fixture into the temp workspace
-    const fixturePath = path.join(process.cwd(), "tests/fixtures/_README.md")
-    const destPath = path.join(tempTestDir, "_README.md")
-    fs.copyFileSync(fixturePath, destPath)
-
-    // open the temp test directory as workspace
-    await waitForWorkspace(window)
-
-    // open the file
-    await window.getByRole("button", { name: "_README.md" }).first().click()
-
-    await expect(window.getByTestId("lexical-editor")).toBeVisible()
-
-    // verify we're in rich view
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
-
-    const heading = window.getByRole("heading", {
-      name: "An Example README File to Test Parsing",
-    })
-
-    await heading.click({ delay: 100 })
-
-    // navigate to a new paragraph and type slash
-    await window.keyboard.press("End", { delay: 100 })
-    await window.keyboard.press("Enter", { delay: 100 })
-    await window.keyboard.press("/", { delay: 200 })
-
-    // expect the slash command menu to appear with at least one option
-    await expect(window.getByRole("option", { name: "code" })).toBeVisible()
-    await expect(window.getByRole("option", { name: "text" })).toBeVisible()
-    await expect(
-      window.getByRole("option", { name: "heading 1" })
-    ).toBeVisible()
-  })
-
-  test("can insert code block with slash command", async ({
+  test("slash commands in markdown: menu options, code block, heading, and paragraph", async ({
     electronApp,
     tempTestDir,
   }) => {
@@ -76,103 +33,65 @@ test.describe("slash commands e2e", () => {
       name: "An Example README File to Test Parsing",
     })
 
+    // =========================================================================
+    // Test 1: Verify slash command menu options are available
+    // =========================================================================
     await heading.click({ delay: 100 })
-
-    // navigate to a new paragraph and type slash
     await window.keyboard.press("ControlOrMeta+ArrowRight", { delay: 100 })
     await window.keyboard.press("Enter", { delay: 100 })
     await window.keyboard.press("/", { delay: 200 })
 
-    // expect the slash command menu to appear
     await expect(window.getByRole("option", { name: "code" })).toBeVisible()
-    // select code block option using enter key
-    await window.keyboard.press("Enter", { delay: 100 })
-
-    // expect a new code block node to appear
+    await expect(window.getByRole("option", { name: "text" })).toBeVisible()
     await expect(
-      editor.locator('[data-block-id="anonymous-code"]').first()
-    ).toBeVisible()
-    // type some code without doing anything else
-    await window.keyboard.type("print('second code block')", { delay: 100 })
-
-    // expect the code to be in the code block
-    await expect(window.getByText("print('second code block')")).toBeVisible()
-  })
-
-  test("can insert h1 heading with slash command", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    const window = await electronApp.firstWindow()
-
-    // copy the _README.md fixture into the temp workspace
-    const fixturePath = path.join(process.cwd(), "tests/fixtures/_README.md")
-    const destPath = path.join(tempTestDir, "_README.md")
-    fs.copyFileSync(fixturePath, destPath)
-
-    // open the temp test directory as workspace
-    await waitForWorkspace(window)
-
-    // open the file
-    await window.getByRole("button", { name: "_README.md" }).first().click()
-
-    await expect(window.getByTestId("lexical-editor")).toBeVisible()
-
-    // verify we're in rich view
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
+      window.getByRole("option", { name: "heading 1" })
     ).toBeVisible()
 
-    const heading = window.getByRole("heading", {
-      name: "An Example README File to Test Parsing",
-    })
+    // dismiss menu
+    await window.keyboard.press("Escape", { delay: 100 })
+    // delete the slash character
+    await window.keyboard.press("Backspace", { delay: 100 })
 
+    // =========================================================================
+    // Test 2: Insert code block with slash command
+    // =========================================================================
     await heading.click({ delay: 100 })
-
-    // navigate to a new paragraph and type slash
     await window.keyboard.press("ControlOrMeta+ArrowRight", { delay: 100 })
     await window.keyboard.press("Enter", { delay: 100 })
+    await window.keyboard.press("/", { delay: 200 })
+
+    await expect(window.getByRole("option", { name: "code" })).toBeVisible()
+    await window.keyboard.press("Enter", { delay: 100 })
+
+    const newCodeBlock = editor
+      .locator('[data-block-id="anonymous-code"]')
+      .first()
+    await expect(newCodeBlock).toBeVisible()
+    await window.keyboard.type("print('second code block')", { delay: 100 })
+    await expect(
+      newCodeBlock.getByText("print('second code block')")
+    ).toBeVisible()
+
+    // =========================================================================
+    // Test 3: Insert h1 heading with slash command
+    // =========================================================================
+    await window.keyboard.press("ControlOrMeta+ArrowDown", { delay: 300 })
+    await window.keyboard.press("ArrowDown", { delay: 100 })
     await window.keyboard.press("/", { delay: 200 })
 
     await window
       .getByRole("option", { name: "heading 1 #" })
       .click({ delay: 100 })
-
     await window.keyboard.type("TEST_HEADING", { delay: 100 })
 
     await expect(
       window.getByRole("heading", { name: "TEST_HEADING" })
     ).toBeVisible()
-  })
 
-  test("can insert paragraph with slash command", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    const window = await electronApp.firstWindow()
-
-    // copy the _README.md fixture into the temp workspace
-    const fixturePath = path.join(process.cwd(), "tests/fixtures/_README.md")
-    const destPath = path.join(tempTestDir, "_README.md")
-    fs.copyFileSync(fixturePath, destPath)
-
-    // open the temp test directory as workspace
-    await waitForWorkspace(window)
-
-    // open the file
-    await window.getByRole("button", { name: "_README.md" }).first().click()
-
-    await expect(window.getByTestId("lexical-editor")).toBeVisible()
-
-    // verify we're in rich view
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
-
-    await window.getByText("A brief description").click({ delay: 200 })
-
-    // navigate to a new paragraph and type slash
-    await window.keyboard.press("ControlOrMeta+ArrowRight", { delay: 100 })
+    // =========================================================================
+    // Test 4: Insert paragraph with slash command
+    // =========================================================================
+    await window.keyboard.press("End", { delay: 100 })
     await window.keyboard.press("Enter", { delay: 100 })
     await window.keyboard.press("/", { delay: 200 })
 
@@ -184,7 +103,7 @@ test.describe("slash commands e2e", () => {
     ).toBeVisible()
   })
 
-  test("can use slash commands in Python files", async ({
+  test("slash commands in Python files", async ({
     electronApp,
     tempTestDir,
   }) => {
