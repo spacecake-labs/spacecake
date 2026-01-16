@@ -2,10 +2,9 @@ import * as fs from "node:fs/promises"
 import * as os from "node:os"
 import * as path from "node:path"
 
+import { GitIgnore, GitIgnoreConfig } from "@/services/git-ignore-parser"
 import { Effect, Layer } from "effect"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-
-import { GitIgnore, GitIgnoreConfig } from "@/services/git-ignore-parser"
 
 describe("GitIgnore", () => {
   let projectRoot: string

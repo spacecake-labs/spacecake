@@ -4,6 +4,7 @@ import { Schema } from "effect"
 const JsonRpcRequestSchema = Schema.Struct({
   method: Schema.String,
   id: Schema.optional(Schema.Union(Schema.Number, Schema.String)),
+  params: Schema.optional(Schema.Unknown),
 })
 
 // Union allows for future extension with Response, Error, and other message types
@@ -11,6 +12,14 @@ const JsonRpcRequestSchema = Schema.Struct({
 export const JsonRpcMessageSchema = Schema.Union(JsonRpcRequestSchema)
 
 export type JsonRpcMessage = Schema.Schema.Type<typeof JsonRpcMessageSchema>
+
+// MCP tool call params schema
+export const ToolCallParamsSchema = Schema.Struct({
+  name: Schema.String,
+  arguments: Schema.optional(Schema.Unknown),
+})
+
+export type ToolCallParams = Schema.Schema.Type<typeof ToolCallParamsSchema>
 
 // JSON-RPC 2.0 Response schema
 export const JsonRpcResponseSchema = Schema.Struct({

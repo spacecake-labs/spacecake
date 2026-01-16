@@ -18,15 +18,14 @@ import {
 } from "lexical"
 import { describe, expect, it, vi } from "vitest"
 
-import { ContentEditable } from "@/components/editor/content-editable"
-import { editorConfig } from "@/components/editor/editor"
-import { initializeUnitTest } from "@/components/editor/test-utils"
-import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
-
 import {
   createRichViewClaudeSelection,
   createSourceViewClaudeSelection,
 } from "@/lib/selection-utils"
+import { ContentEditable } from "@/components/editor/content-editable"
+import { editorConfig } from "@/components/editor/editor"
+import { initializeUnitTest } from "@/components/editor/test-utils"
+import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 
 // Mock web-tree-sitter and language parser as in previous setup
 vi.mock("web-tree-sitter", () => {

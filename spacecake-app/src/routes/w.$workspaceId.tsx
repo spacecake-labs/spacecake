@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { FileStateHydrationEvent } from "@/machines/file-tree"
+import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
   createFileRoute,
@@ -240,7 +241,6 @@ function LayoutContent() {
     isTerminalCollapsedAtom
   )
   const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
-  const claudeServerStarted = useRef(false)
 
   // reset terminal panel size when toggling collapse state
   useEffect(() => {
@@ -259,20 +259,6 @@ function LayoutContent() {
     }
   }, [isTerminalCollapsed])
 
-  // lazily start the Claude Code server when the terminal is first expanded
-  useEffect(() => {
-    if (
-      !isTerminalCollapsed &&
-      !claudeServerStarted.current &&
-      workspace?.path
-    ) {
-      claudeServerStarted.current = true
-      window.electronAPI.claude.ensureServer([workspace.path]).catch((err) => {
-        console.error("Failed to start Claude Code server:", err)
-      })
-    }
-  }, [isTerminalCollapsed, workspace?.path])
-
   const handleFileClick = (filePath: AbsolutePath) => {
     if (workspace?.path) {
       const workspaceIdEncoded = encodeBase64Url(workspace.path)
@@ -289,7 +275,10 @@ function LayoutContent() {
 
   if (isMobile) {
     return (
-      <>
+      <ClaudeIntegrationProvider
+        workspacePath={workspace.path}
+        enabled={!isTerminalCollapsed}
+      >
         <AppSidebar
           onFileClick={handleFileClick}
           workspace={workspace}
@@ -310,125 +299,135 @@ function LayoutContent() {
             <Outlet />
           </div>
         </main>
-      </>
+      </ClaudeIntegrationProvider>
     )
   }
   return (
-    <ResizablePanelGroup direction="horizontal" className="h-screen">
-      <ResizablePanel
-        defaultSize={15}
-        minSize={15}
-        maxSize={40}
-        className="flex flex-col h-full [&>*]:flex-1 [&>*]:min-h-0"
-      >
-        <AppSidebar
-          onFileClick={handleFileClick}
-          workspace={workspace}
-          selectedFilePath={selectedFilePath}
-        />
-      </ResizablePanel>
-      <ResizableHandle withHandle className="w-0" />
-      <ResizablePanel defaultSize={85} className="p-2 overflow-hidden">
-        <div className="h-full flex flex-col bg-background rounded-xl shadow-sm overflow-hidden">
-          <ResizablePanelGroup direction="vertical" ref={verticalPanelGroupRef}>
-            <ResizablePanel
-              defaultSize={isTerminalCollapsed ? 100 : 70}
-              minSize={30}
+    <ClaudeIntegrationProvider
+      workspacePath={workspace.path}
+      enabled={!isTerminalCollapsed}
+    >
+      <ResizablePanelGroup direction="horizontal" className="h-screen">
+        <ResizablePanel
+          defaultSize={15}
+          minSize={15}
+          maxSize={40}
+          className="flex flex-col h-full [&>*]:flex-1 [&>*]:min-h-0"
+        >
+          <AppSidebar
+            onFileClick={handleFileClick}
+            workspace={workspace}
+            selectedFilePath={selectedFilePath}
+          />
+        </ResizablePanel>
+        <ResizableHandle withHandle className="w-0" />
+        <ResizablePanel defaultSize={85} className="p-2 overflow-hidden">
+          <div className="h-full flex flex-col bg-background rounded-xl shadow-sm overflow-hidden">
+            <ResizablePanelGroup
+              direction="vertical"
+              ref={verticalPanelGroupRef}
             >
-              <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
-                <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
-                  <div className="app-no-drag flex items-center gap-2 px-4">
-                    <SidebarTrigger
-                      aria-label="toggle sidebar"
-                      className="-ml-1 cursor-pointer"
-                    />
-                    <FileHeader />
+              <ResizablePanel
+                defaultSize={isTerminalCollapsed ? 100 : 70}
+                minSize={30}
+              >
+                <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
+                  <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
+                    <div className="app-no-drag flex items-center gap-2 px-4">
+                      <SidebarTrigger
+                        aria-label="toggle sidebar"
+                        className="-ml-1 cursor-pointer"
+                      />
+                      <FileHeader />
+                    </div>
+                    <HeaderToolbar />
+                  </header>
+                  <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
+                    <Outlet />
                   </div>
-                  <HeaderToolbar />
-                </header>
-                <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
-                  <Outlet />
-                </div>
-              </main>
-            </ResizablePanel>
-            <ResizableHandle
-              withHandle
-              className={isTerminalCollapsed ? "invisible" : ""}
-            />
-            <ResizablePanel
-              defaultSize={isTerminalCollapsed ? 0 : 30}
-              minSize={isTerminalCollapsed ? 0 : 10}
-              maxSize={isTerminalCollapsed ? 0 : 70}
-              className={
-                isTerminalCollapsed ? "grow-0! shrink-0! basis-auto!" : ""
-              }
-            >
-              <div className="flex flex-col h-full w-full border-t">
-                <div
-                  className={cn(
-                    "h-8 w-full bg-background/50 flex items-center justify-between px-4",
-                    !isTerminalCollapsed && "border-b"
-                  )}
-                >
-                  <TerminalStatusBadge />
-                  <div className="flex items-center gap-2">
-                    <ClaudeStatusBadge className="text-xs" />
-                    <DeleteButton
-                      onDelete={
-                        isTerminalSessionActive
-                          ? () => {
-                              setIsTerminalSessionActive(false)
-                              setIsTerminalCollapsed(true)
-                            }
-                          : undefined
-                      }
-                      disabled={!isTerminalSessionActive}
-                      title="kill terminal"
-                      data-testid="terminal-delete-button"
-                    />
-                    <button
-                      onClick={() => {
-                        if (isTerminalCollapsed && !isTerminalSessionActive) {
-                          setIsTerminalSessionActive(true)
+                </main>
+              </ResizablePanel>
+              <ResizableHandle
+                withHandle
+                className={isTerminalCollapsed ? "invisible" : ""}
+              />
+              <ResizablePanel
+                defaultSize={isTerminalCollapsed ? 0 : 30}
+                minSize={isTerminalCollapsed ? 0 : 10}
+                maxSize={isTerminalCollapsed ? 0 : 70}
+                className={
+                  isTerminalCollapsed ? "grow-0! shrink-0! basis-auto!" : ""
+                }
+              >
+                <div className="flex flex-col h-full w-full border-t">
+                  <div
+                    className={cn(
+                      "h-8 w-full bg-background/50 flex items-center justify-between px-4",
+                      !isTerminalCollapsed && "border-b"
+                    )}
+                  >
+                    <TerminalStatusBadge />
+                    <div className="flex items-center gap-2">
+                      <ClaudeStatusBadge className="text-xs" />
+                      <DeleteButton
+                        onDelete={
+                          isTerminalSessionActive
+                            ? () => {
+                                setIsTerminalSessionActive(false)
+                                setIsTerminalCollapsed(true)
+                              }
+                            : undefined
                         }
-                        setIsTerminalCollapsed(!isTerminalCollapsed)
-                      }}
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                      aria-label={
-                        isTerminalCollapsed ? "show terminal" : "hide terminal"
-                      }
-                    >
-                      {isTerminalCollapsed ? (
-                        <ChevronUp className="cursor-pointer h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="cursor-pointer h-4 w-4" />
-                      )}
-                    </button>
+                        disabled={!isTerminalSessionActive}
+                        title="kill terminal"
+                        data-testid="terminal-delete-button"
+                      />
+                      <button
+                        onClick={() => {
+                          if (isTerminalCollapsed && !isTerminalSessionActive) {
+                            setIsTerminalSessionActive(true)
+                          }
+                          setIsTerminalCollapsed(!isTerminalCollapsed)
+                        }}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label={
+                          isTerminalCollapsed
+                            ? "show terminal"
+                            : "hide terminal"
+                        }
+                      >
+                        {isTerminalCollapsed ? (
+                          <ChevronUp className="cursor-pointer h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="cursor-pointer h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div
+                    className={cn(
+                      "flex-1 overflow-hidden",
+                      isTerminalCollapsed && "hidden"
+                    )}
+                  >
+                    {isTerminalSessionActive && (
+                      <GhosttyTerminal
+                        id="main-terminal"
+                        autoFocus={false}
+                        cwd={workspace.path}
+                        onReady={(api) => {
+                          terminalApiRef.current = api
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
-                <div
-                  className={cn(
-                    "flex-1 overflow-hidden",
-                    isTerminalCollapsed && "hidden"
-                  )}
-                >
-                  {isTerminalSessionActive && (
-                    <GhosttyTerminal
-                      id="main-terminal"
-                      autoFocus={false}
-                      cwd={workspace.path}
-                      onReady={(api) => {
-                        terminalApiRef.current = api
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </div>
-      </ResizablePanel>
-    </ResizablePanelGroup>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    </ClaudeIntegrationProvider>
   )
 }
 

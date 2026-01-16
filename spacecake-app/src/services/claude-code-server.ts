@@ -7,18 +7,69 @@ import { Console, Effect, Either, Schema } from "effect"
 import { BrowserWindow, ipcMain } from "electron"
 import { WebSocket, WebSocketServer } from "ws"
 
-import type { ClaudeCodeStatus } from "@/types/claude-code"
+import type { ClaudeCodeStatus, OpenFilePayload } from "@/types/claude-code"
 import {
   AtMentionedPayloadSchema,
+  OpenFileArgsSchema,
   SelectionChangedPayloadSchema,
 } from "@/types/claude-code"
-import { JsonRpcMessageSchema, type JsonRpcResponse } from "@/types/rpc"
+import {
+  JsonRpcMessageSchema,
+  ToolCallParamsSchema,
+  type JsonRpcResponse,
+} from "@/types/rpc"
 import { AbsolutePath } from "@/types/workspace"
 
 function broadcastClaudeCodeStatus(status: ClaudeCodeStatus) {
   BrowserWindow.getAllWindows().forEach((win) => {
     win.webContents.send("claude-code-status", status)
   })
+}
+
+function broadcastOpenFile(payload: OpenFilePayload) {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    win.webContents.send("claude:open-file", payload)
+  })
+}
+
+// MCP tool definitions for tools/list response
+const OPEN_FILE_TOOL = {
+  name: "openFile",
+  description:
+    "Open a file in the editor and optionally select a range of text",
+  inputSchema: {
+    type: "object" as const,
+    properties: {
+      filePath: {
+        type: "string",
+        description: "Path to the file to open",
+      },
+      preview: {
+        type: "boolean",
+        description: "Whether to open in preview mode",
+        default: false,
+      },
+      startText: {
+        type: "string",
+        description: "Text pattern to find selection start",
+      },
+      endText: {
+        type: "string",
+        description: "Text pattern to find selection end",
+      },
+      selectToEndOfLine: {
+        type: "boolean",
+        description: "Extend selection to end of line",
+        default: false,
+      },
+      makeFrontmost: {
+        type: "boolean",
+        description: "Make the file the active editor tab",
+        default: true,
+      },
+    },
+    required: ["filePath"],
+  },
 }
 
 export interface ClaudeCodeServerService {
@@ -46,6 +97,7 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
     port: number
     lockFilePath: AbsolutePath
     authToken: string
+    workspaceFolders: string[]
   } | null = null
 
   let startPromise: Promise<void> | null = null
@@ -154,6 +206,146 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
           Console.log("claude code server: ide connected and ready")
           return
         }
+
+        // Handle tools/list request - respond with available tools
+        if (
+          data.method === "tools/list" &&
+          data.id !== null &&
+          data.id !== undefined
+        ) {
+          const toolsListResponse = {
+            jsonrpc: "2.0",
+            id: data.id,
+            result: {
+              tools: [OPEN_FILE_TOOL],
+            },
+          } satisfies JsonRpcResponse
+          ws.send(JSON.stringify(toolsListResponse))
+          Console.log("claude code server: sent tools/list response")
+          return
+        }
+
+        // Handle tools/call request
+        if (
+          data.method === "tools/call" &&
+          data.id !== null &&
+          data.id !== undefined
+        ) {
+          const paramsDecoded = Schema.decodeUnknownEither(
+            ToolCallParamsSchema
+          )(data.params)
+          if (Either.isLeft(paramsDecoded)) {
+            Console.error(
+              "claude code server: invalid tools/call params",
+              paramsDecoded.left
+            )
+            const errorResponse = {
+              jsonrpc: "2.0",
+              id: data.id,
+              result: {
+                content: [
+                  { type: "text", text: "Error: Invalid tool call params" },
+                ],
+                isError: true,
+              },
+            } satisfies JsonRpcResponse
+            ws.send(JSON.stringify(errorResponse))
+            return
+          }
+
+          const toolParams = paramsDecoded.right
+
+          if (toolParams.name === "openFile") {
+            const argsDecoded = Schema.decodeUnknownEither(OpenFileArgsSchema)(
+              toolParams.arguments
+            )
+            if (Either.isLeft(argsDecoded)) {
+              Console.error(
+                "claude code server: invalid openFile args",
+                argsDecoded.left
+              )
+              const errorResponse = {
+                jsonrpc: "2.0",
+                id: data.id,
+                result: {
+                  content: [
+                    { type: "text", text: "Error: Invalid openFile arguments" },
+                  ],
+                  isError: true,
+                },
+              } satisfies JsonRpcResponse
+              ws.send(JSON.stringify(errorResponse))
+              return
+            }
+
+            const args = argsDecoded.right
+            Console.log("claude code server: openFile called", args)
+
+            // Find which workspace contains this file
+            const matchingWorkspace = workspaceFolders.find((folder) =>
+              args.filePath.startsWith(folder)
+            )
+
+            if (!matchingWorkspace) {
+              Console.warn(
+                "claude code server: file not in any workspace",
+                args.filePath
+              )
+              const errorResponse = {
+                jsonrpc: "2.0",
+                id: data.id,
+                result: {
+                  content: [
+                    {
+                      type: "text",
+                      text: `Error: File ${args.filePath} is not in any open workspace`,
+                    },
+                  ],
+                  isError: true,
+                },
+              } satisfies JsonRpcResponse
+              ws.send(JSON.stringify(errorResponse))
+              return
+            }
+
+            // Broadcast to renderer to open the file
+            broadcastOpenFile({
+              workspacePath: matchingWorkspace,
+              filePath: args.filePath,
+            })
+
+            // Send success response
+            const successResponse = {
+              jsonrpc: "2.0",
+              id: data.id,
+              result: {
+                content: [
+                  { type: "text", text: `Opened file: ${args.filePath}` },
+                ],
+              },
+            } satisfies JsonRpcResponse
+            ws.send(JSON.stringify(successResponse))
+            return
+          }
+
+          // Unknown tool
+          const unknownToolResponse = {
+            jsonrpc: "2.0",
+            id: data.id,
+            result: {
+              content: [
+                {
+                  type: "text",
+                  text: `Error: Unknown tool: ${toolParams.name}`,
+                },
+              ],
+              isError: true,
+            },
+          } satisfies JsonRpcResponse
+          ws.send(JSON.stringify(unknownToolResponse))
+          return
+        }
+
         Console.log("claude code server: received message", data)
       })
     })
@@ -178,7 +370,7 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
     }
 
     // Store state for cleanup and broadcast
-    serverState = { wss, port, lockFilePath, authToken }
+    serverState = { wss, port, lockFilePath, authToken, workspaceFolders }
 
     process.env.CLAUDE_CODE_SSE_PORT = port.toString()
     process.env.ENABLE_IDE_INTEGRATION = "true"

@@ -40,6 +40,24 @@ export type AtMentionedPayload = Schema.Schema.Type<
   typeof AtMentionedPayloadSchema
 >
 
+// openFile tool arguments from Claude Code
+export const OpenFileArgsSchema = Schema.Struct({
+  filePath: Schema.String,
+  preview: Schema.optional(Schema.Boolean),
+  startText: Schema.optional(Schema.String),
+  endText: Schema.optional(Schema.String),
+  selectToEndOfLine: Schema.optional(Schema.Boolean),
+  makeFrontmost: Schema.optionalWith(Schema.Boolean, { default: () => true }),
+})
+
+export type OpenFileArgs = Schema.Schema.Type<typeof OpenFileArgsSchema>
+
+// Payload sent from main process to renderer for open file
+export interface OpenFilePayload {
+  workspacePath: string
+  filePath: string
+}
+
 export const EditorExtendedSelectionSchema = Schema.Struct({
   selection: SerializedSelectionSchema,
   selectedText: Schema.String,

@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from "electron"
 import {
   AtMentionedPayload,
   ClaudeCodeStatus,
+  OpenFilePayload,
   SelectionChangedPayload,
 } from "@/types/claude-code"
 import type { FileContent, FileTreeEvent } from "@/types/workspace"
@@ -30,6 +31,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
       }
       ipcRenderer.on("claude-code-status", listener)
       return () => ipcRenderer.removeListener("claude-code-status", listener)
+    },
+    onOpenFile: (handler: (payload: OpenFilePayload) => void) => {
+      const listener = (
+        _e: Electron.IpcRendererEvent,
+        payload: OpenFilePayload
+      ) => {
+        handler(payload)
+      }
+      ipcRenderer.on("claude:open-file", listener)
+      return () => ipcRenderer.removeListener("claude:open-file", listener)
     },
   },
   showOpenDialog: (options: unknown) =>

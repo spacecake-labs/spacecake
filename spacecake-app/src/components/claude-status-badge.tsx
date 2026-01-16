@@ -1,6 +1,6 @@
+import { claudeStatusAtom } from "@/providers/claude-integration-provider"
 import { useAtomValue } from "jotai"
 
-import { claudeCodeStatusAtom } from "@/lib/atoms/atoms"
 import { cn } from "@/lib/utils"
 import { useTheme } from "@/components/theme-provider"
 
@@ -9,7 +9,7 @@ interface ClaudeStatusBadgeProps {
 }
 
 export function ClaudeStatusBadge({ className }: ClaudeStatusBadgeProps) {
-  const status = useAtomValue(claudeCodeStatusAtom)
+  const status = useAtomValue(claudeStatusAtom)
   const { theme } = useTheme()
 
   const darkStatusConfig = {
