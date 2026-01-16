@@ -174,6 +174,47 @@ Here's a simple flow showing how data moves through the system.`
         )
         expect(result).toBe(text)
       })
+
+      it("markdown file with images and links should have isomorphic parsing & serialization", async () => {
+        const text = `# Project README
+
+A brief description of what this project does.
+
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
+
+## Features
+
+- Light/dark mode toggle
+- Live previews
+- Cross platform
+
+## Authors
+
+- [@spacecake-labs](https://www.github.com/spacecake-labs)
+
+## Links
+
+Check out [the docs](https://example.com/docs) for more info.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () =>
+              $convertFromMarkdownString(
+                text,
+                MARKDOWN_TRANSFORMERS,
+                undefined,
+                true
+              ),
+            { discrete: true }
+          )
+        })
+        const result = serializeEditorToMarkdown(
+          testEnv.editor.getEditorState()
+        )
+        expect(result).toBe(text)
+      })
     },
     editorConfig,
     <Plugins />
