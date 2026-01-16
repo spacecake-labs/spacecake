@@ -2,6 +2,9 @@ import { vi } from "vitest"
 
 // only set up DOM mocks in jsdom environment
 if (typeof window !== "undefined") {
+  // Tell React that we're in a test environment (suppresses act() warnings)
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true
+
   // mock window.matchMedia for mermaid and theme provider
   Object.defineProperty(window, "matchMedia", {
     writable: true,

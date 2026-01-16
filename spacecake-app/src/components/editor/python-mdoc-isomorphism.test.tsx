@@ -3,6 +3,7 @@
  */
 
 import * as React from "react"
+import { act } from "react"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin"
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
@@ -75,7 +76,7 @@ const Plugins = React.memo(function Plugins() {
 describe("Python mdoc isomorphism", () => {
   initializeUnitTest(
     (testEnv) => {
-      it("should maintain isomorphism through mdBlockToNode and nodeToMdBlock roundtrip", () => {
+      it("should maintain isomorphism through mdBlockToNode and nodeToMdBlock roundtrip", async () => {
         const text = `#🍰 # section with spaces
 #🍰    this line has leading spaces
 #🍰 
@@ -110,9 +111,11 @@ describe("Python mdoc isomorphism", () => {
 
         let result = ""
 
-        testEnv.editor.update(() => {
-          const node = mdBlockToNode(block.text)
-          result = nodeToMdBlock(node)
+        await act(async () => {
+          testEnv.editor.update(() => {
+            const node = mdBlockToNode(block.text)
+            result = nodeToMdBlock(node)
+          })
         })
 
         expect(result).toBe(text)

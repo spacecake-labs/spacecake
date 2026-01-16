@@ -1,12 +1,12 @@
 import * as React from "react"
-import { createRef } from "react"
+import { act, createRef } from "react"
 import { InitialConfigType } from "@lexical/react/LexicalComposer"
 import {
   createLexicalComposerContext,
   LexicalComposerContext,
 } from "@lexical/react/LexicalComposerContext"
 import { createEditor, type LexicalEditor } from "lexical"
-import { createRoot } from "react-dom/client"
+import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, vi, type Mock } from "vitest"
 
 // this is a simplified version of the lexical test utils
@@ -278,6 +278,7 @@ export function initializeUnitTest(
   const testEnv = {
     _container: null as HTMLDivElement | null,
     _editor: null as LexicalEditor | null,
+    _root: null as Root | null,
     get container() {
       if (!this._container) {
         throw new Error("testEnv.container not initialized.")
@@ -296,6 +297,12 @@ export function initializeUnitTest(
     set editor(editor) {
       this._editor = editor
     },
+    get root() {
+      return this._root
+    },
+    set root(root) {
+      this._root = root
+    },
     get innerHTML() {
       return (this.container.firstChild as HTMLElement).innerHTML
     },
@@ -305,6 +312,7 @@ export function initializeUnitTest(
     reset() {
       this._container = null
       this._editor = null
+      this._root = null
     },
   }
 
@@ -347,12 +355,17 @@ export function initializeUnitTest(
       )
     }
 
-    React.act(() => {
-      createRoot(testEnv.container).render(<Editor />)
+    testEnv.root = createRoot(testEnv.container)
+    await act(async () => {
+      testEnv.root?.render(<Editor />)
     })
   })
 
-  afterEach(() => {
+  afterEach(async () => {
+    // Properly unmount React before removing DOM to flush pending updates
+    await act(async () => {
+      testEnv.root?.unmount()
+    })
     document.body.removeChild(testEnv.container)
     testEnv.reset()
   })

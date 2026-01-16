@@ -3,6 +3,7 @@
  */
 
 import * as React from "react"
+import { act } from "react"
 import { $convertFromMarkdownString } from "@lexical/markdown"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin"
@@ -87,12 +88,14 @@ graph TD;
     C-->D;
 \`\`\`
 `
-        testEnv.editor.update(
-          () => $convertFromMarkdownString(markdown, MARKDOWN_TRANSFORMERS),
-          {
-            discrete: true,
-          }
-        )
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(markdown, MARKDOWN_TRANSFORMERS),
+            {
+              discrete: true,
+            }
+          )
+        })
 
         testEnv.editor.getEditorState().read(() => {
           const root = $getRoot()
@@ -100,9 +103,6 @@ graph TD;
 
           expect($isMermaidNode(mermaidNode)).toBe(true)
         })
-
-        // allow pending async operations to complete
-        await new Promise((resolve) => setTimeout(resolve, 0))
       })
     },
     editorConfig,
