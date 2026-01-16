@@ -69,8 +69,8 @@ def my_function():
     // Test 2: Split on save (Ctrl+S)
     // =========================================================================
     // Add another class in the import block to test save-triggered split
+    // (same approach as original test - click places cursor, Enter adds lines)
     await firstCodeblock.click()
-    await window.keyboard.press("ControlOrMeta+ArrowDown", { delay: 100 })
     await window.keyboard.press("Enter", { delay: 100 })
     await window.keyboard.press("Enter", { delay: 100 })
 
