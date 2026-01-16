@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from "react"
+import { Effect } from "effect"
 import { FitAddon, init, ITheme, Terminal } from "ghostty-web"
 import { useAtom } from "jotai"
 
 import { isLeft } from "@/types/adt"
 import { terminalProfileLoadedAtom } from "@/lib/atoms/atoms"
+import { handleImagePaste, TerminalClipboardLive } from "@/lib/clipboard"
 import { suppressDuplicateWarnings } from "@/lib/suppress-duplicate-warnings"
 import {
   createTerminal,
@@ -168,12 +170,26 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
           writeTerminal(id, input)
         })
 
-        // Handle Shift+Tab and Shift+Enter since ghostty-web doesn't fully support
-        // keyboard protocol mode switching yet. We send the sequences that native
-        // Ghostty sends (modifyOtherKeys format for Shift+Enter, legacy for Shift+Tab).
+        // Handle special key combinations that ghostty-web doesn't fully support.
         // Return true = prevent default (we handled it), false = allow normal handling
         term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
           if (event.type !== "keydown") return false
+
+          // Ctrl+V → image paste (ghostty-web doesn't support image paste)
+          // On macOS, Cmd+V handles text paste, Ctrl+V is specifically for images in Claude Code
+          if (
+            event.key === "v" &&
+            event.ctrlKey &&
+            !event.shiftKey &&
+            !event.altKey &&
+            !event.metaKey
+          ) {
+            event.preventDefault()
+            Effect.runPromise(
+              handleImagePaste(id).pipe(Effect.provide(TerminalClipboardLive))
+            )
+            return true
+          }
 
           // Shift+Tab → legacy backtab sequence
           if (
