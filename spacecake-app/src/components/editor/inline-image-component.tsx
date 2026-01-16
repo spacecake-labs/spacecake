@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/select"
 import { InlineImageNode } from "@/components/editor/nodes/inline-image-node"
 
-import { ContentEditable } from "./content-editable"
+import { ContentEditable } from "@/components/editor/content-editable"
 
 const imageCache = new Set()
 

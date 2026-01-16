@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures"
+import { expect, test } from "@/../e2e/fixtures"
 
 test.describe("theme toggle", () => {
   test("toggles theme and persists choice", async ({ electronApp }) => {

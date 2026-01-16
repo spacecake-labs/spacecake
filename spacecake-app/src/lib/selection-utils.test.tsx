@@ -26,7 +26,7 @@ import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown
 import {
   createRichViewClaudeSelection,
   createSourceViewClaudeSelection,
-} from "./selection-utils"
+} from "@/lib/selection-utils"
 
 // Mock web-tree-sitter and language parser as in previous setup
 vi.mock("web-tree-sitter", () => {

@@ -7,7 +7,7 @@ import {
   NotFoundError,
   PermissionDeniedError,
   UnknownFSError,
-} from "./file-system"
+} from "@/services/file-system"
 
 describe("FileSystemError tagged classes", () => {
   describe("NotFoundError", () => {
