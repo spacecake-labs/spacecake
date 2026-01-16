@@ -1,7 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { expect, test, waitForWorkspace } from "./fixtures"
+import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 
 test.describe("quick open feature", () => {
   test("quick open and navigate to files", async ({

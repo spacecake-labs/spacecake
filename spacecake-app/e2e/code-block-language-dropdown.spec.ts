@@ -3,137 +3,56 @@ import path from "path"
 
 import { LANGUAGE_SUPPORT } from "@/types/language"
 
-import { expect, test, waitForWorkspace } from "./fixtures"
+import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 
 test.describe("code block language dropdown e2e", () => {
-  test("change plaintext code block language to python via dropdown", async ({
+  test("language dropdown: change language, verify all options, and disabled for Python files", async ({
     electronApp,
     tempTestDir,
   }) => {
     const window = await electronApp.firstWindow()
 
-    // copy plaintext code block fixture into the temp workspace
-    const fixturePath = path.join(
+    // copy fixtures into the temp workspace
+    const plaintextFixturePath = path.join(
       process.cwd(),
       "tests/fixtures/plaintext-code-block.md"
     )
-    const destPath = path.join(tempTestDir, "plaintext-code-block.md")
-    fs.copyFileSync(fixturePath, destPath)
+    const plaintextDestPath = path.join(tempTestDir, "plaintext-code-block.md")
+    fs.copyFileSync(plaintextFixturePath, plaintextDestPath)
+
+    const pythonFixturePath = path.join(process.cwd(), "tests/fixtures/core.py")
+    const pythonDestPath = path.join(tempTestDir, "core.py")
+    fs.copyFileSync(pythonFixturePath, pythonDestPath)
 
     // open the temp test directory as workspace
     await waitForWorkspace(window)
 
-    // open the file
+    // =========================================================================
+    // Test 1: Dropdown shows all available languages
+    // =========================================================================
     await window
       .getByRole("button", { name: "plaintext-code-block.md" })
       .click()
 
-    // verify we're in rich view (not source view)
     await expect(
       window.getByRole("link", { name: "switch to source view" })
     ).toBeVisible()
-
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // find the code block with the plaintext content
     const codeBlock = window.locator(".cm-editor")
     await expect(
       codeBlock.getByText('console.log("This is plaintext")').first()
     ).toBeVisible()
 
-    // verify the language dropdown exists and is enabled
     const languageSelect = window
       .getByRole("combobox")
       .filter({ hasText: "plaintext" })
     await expect(languageSelect).toBeVisible()
     await expect(languageSelect).toBeEnabled()
 
-    // click the dropdown
+    // open dropdown and verify all languages are available
     await languageSelect.click()
 
-    // select python from the dropdown
-    await window.getByRole("option", { name: "python" }).click()
-
-    // verify the language has been updated in the UI by checking the dropdown shows python
-    const updatedLanguageSelect = window
-      .getByRole("combobox")
-      .filter({ hasText: "python" })
-    await expect(updatedLanguageSelect).toBeVisible()
-    await expect(updatedLanguageSelect).toHaveText(/python/i)
-  })
-
-  test("python file code block dropdown is visible but disabled", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    const window = await electronApp.firstWindow()
-
-    // copy a python fixture into the temp workspace
-    const fixturePath = path.join(process.cwd(), "tests/fixtures/core.py")
-    const destPath = path.join(tempTestDir, "core.py")
-    fs.copyFileSync(fixturePath, destPath)
-
-    // open the temp test directory as workspace
-    await waitForWorkspace(window)
-
-    // open the python file
-    await window.getByRole("button", { name: "core.py" }).click()
-
-    // verify we're in rich view (not source view)
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
-
-    await expect(window.getByTestId("lexical-editor")).toBeVisible()
-
-    // find the language dropdown - should be visible
-    const languageSelect = window.locator('button[role="combobox"]').first()
-    await expect(languageSelect).toBeVisible()
-
-    // verify it's disabled
-    await expect(languageSelect).toBeDisabled()
-
-    // verify we cannot click it
-    const isDisabled = await languageSelect.isDisabled()
-    expect(isDisabled).toBe(true)
-  })
-
-  test("dropdown shows all available languages", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    const window = await electronApp.firstWindow()
-
-    // copy a markdown fixture into the temp workspace
-    const fixturePath = path.join(
-      process.cwd(),
-      "tests/fixtures/plaintext-code-block.md"
-    )
-    const destPath = path.join(tempTestDir, "plaintext-code-block.md")
-    fs.copyFileSync(fixturePath, destPath)
-
-    // open the temp test directory as workspace
-    await waitForWorkspace(window)
-
-    // open the file
-    await window
-      .getByRole("button", { name: "plaintext-code-block.md" })
-      .click()
-
-    // verify we're in rich view
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
-
-    await expect(window.getByTestId("lexical-editor")).toBeVisible()
-
-    // open the dropdown
-    const languageSelect = window
-      .getByRole("combobox")
-      .filter({ hasText: "plaintext" })
-    await languageSelect.click()
-
-    // verify all configured languages appear in the dropdown
     for (const languageSpec of Object.values(LANGUAGE_SUPPORT) as Array<
       (typeof LANGUAGE_SUPPORT)[keyof typeof LANGUAGE_SUPPORT]
     >) {
@@ -143,5 +62,32 @@ test.describe("code block language dropdown e2e", () => {
         `language option "${optionName}" should be visible in dropdown`
       ).toBeVisible()
     }
+
+    // =========================================================================
+    // Test 2: Change language from plaintext to python
+    // =========================================================================
+    await window.getByRole("option", { name: "python" }).click()
+
+    const updatedLanguageSelect = window
+      .getByRole("combobox")
+      .filter({ hasText: "python" })
+    await expect(updatedLanguageSelect).toBeVisible()
+    await expect(updatedLanguageSelect).toHaveText(/python/i)
+
+    // =========================================================================
+    // Test 3: Python file code block dropdown is disabled
+    // =========================================================================
+    await window.getByRole("button", { name: "core.py" }).click()
+
+    await expect(
+      window.getByRole("link", { name: "switch to source view" })
+    ).toBeVisible()
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    const pythonLanguageSelect = window
+      .locator('button[role="combobox"]')
+      .first()
+    await expect(pythonLanguageSelect).toBeVisible()
+    await expect(pythonLanguageSelect).toBeDisabled()
   })
 })

@@ -4,8 +4,8 @@ import { PyBlock } from "@/types/parser"
 import { parseCodeBlocks } from "@/lib/parser/python/blocks"
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 
-import { maybeSplitBlock } from "./block-splitting"
-import { maybeUpdateDocstring } from "./docstring-update"
+import { maybeSplitBlock } from "@/components/editor/plugins/block-splitting"
+import { maybeUpdateDocstring } from "@/components/editor/plugins/docstring-update"
 
 /**
  * Parse code into blocks - shared utility to avoid duplicate parsing

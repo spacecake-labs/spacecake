@@ -1,7 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { expect, test, waitForWorkspace } from "./fixtures"
+import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 
 test.describe("selection restoration", () => {
   test("should restore selection in a markdown file on save", async ({

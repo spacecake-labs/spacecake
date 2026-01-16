@@ -3,12 +3,12 @@ import path from "path"
 
 import { stubDialog } from "electron-playwright-helpers"
 
-import { expect, test, waitForWorkspace } from "./fixtures"
+import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import {
   locateQuickOpenInput,
   locateQuickOpenList,
   pressQuickOpen,
-} from "./utils"
+} from "@/../e2e/utils"
 
 test.describe("recent files", () => {
   test("should list recent files and persist them across reloads", async ({

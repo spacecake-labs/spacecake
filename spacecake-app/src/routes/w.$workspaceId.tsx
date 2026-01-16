@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ClaudeStatusBadge } from "@/components/claude-status-badge"
+import { DeleteButton } from "@/components/delete-button"
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { GhosttyTerminal, TerminalAPI } from "@/components/ghostty-terminal"
 import { LoadingAnimation } from "@/components/loading-animation"
@@ -370,8 +371,21 @@ function LayoutContent() {
                   )}
                 >
                   <TerminalStatusBadge />
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <ClaudeStatusBadge className="text-xs" />
+                    <DeleteButton
+                      onDelete={
+                        isTerminalSessionActive
+                          ? () => {
+                              setIsTerminalSessionActive(false)
+                              setIsTerminalCollapsed(true)
+                            }
+                          : undefined
+                      }
+                      disabled={!isTerminalSessionActive}
+                      title="kill terminal"
+                      data-testid="terminal-delete-button"
+                    />
                     <button
                       onClick={() => {
                         if (isTerminalCollapsed && !isTerminalSessionActive) {
@@ -403,10 +417,6 @@ function LayoutContent() {
                       id="main-terminal"
                       autoFocus={false}
                       cwd={workspace.path}
-                      onDelete={() => {
-                        setIsTerminalSessionActive(false)
-                        setIsTerminalCollapsed(true)
-                      }}
                       onReady={(api) => {
                         terminalApiRef.current = api
                       }}

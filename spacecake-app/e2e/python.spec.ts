@@ -1,7 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { expect, test, waitForWorkspace } from "./fixtures"
+import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 
 test.describe("python e2e", () => {
   test("open workspace and create an empty python file", async ({

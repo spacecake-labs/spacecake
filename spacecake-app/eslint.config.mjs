@@ -1,5 +1,6 @@
 import js from "@eslint/js"
 import importPlugin from "eslint-plugin-import"
+import noRelativeImportPaths from "eslint-plugin-no-relative-import-paths"
 import unusedImports from "eslint-plugin-unused-imports"
 import { defineConfig, globalIgnores } from "eslint/config"
 import tseslint from "typescript-eslint"
@@ -29,10 +30,15 @@ export default defineConfig([
     },
     plugins: {
       import: importPlugin,
+      "no-relative-import-paths": noRelativeImportPaths,
       "unused-imports": unusedImports,
     },
     rules: {
       "@typescript-eslint/no-unused-vars": "off",
+      "no-relative-import-paths/no-relative-import-paths": [
+        "error",
+        { allowSameFolder: false, rootDir: "src", prefix: "@" },
+      ],
       "unused-imports/no-unused-imports": "error",
       "unused-imports/no-unused-vars": [
         "warn",

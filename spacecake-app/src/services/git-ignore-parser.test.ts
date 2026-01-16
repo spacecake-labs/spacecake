@@ -5,7 +5,7 @@ import * as path from "node:path"
 import { Effect, Layer } from "effect"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
-import { GitIgnore, GitIgnoreConfig } from "./git-ignore-parser"
+import { GitIgnore, GitIgnoreConfig } from "@/services/git-ignore-parser"
 
 describe("GitIgnore", () => {
   let projectRoot: string

@@ -13,7 +13,6 @@ function convertToFileTreeEvent(
   fileEvent: FileSystem.WatchEvent,
   workspacePath: AbsolutePath
 ): Effect.Effect<FileTreeEvent | null, never, FileSystem.FileSystem> {
-  Effect.log("convertToFileTreeEvent", fileEvent)
   const { path: eventPath } = fileEvent
 
   const TEMP_FILE_RE = /\..*\.(sw[px])$|~$|\.subl.*\.tmp|\.\d+$/ // Regex to filter out common temporary files and atomic write artifacts
@@ -104,7 +103,6 @@ export const commandQueue = Effect.runSync(Queue.unbounded<WatcherCommand>())
 
 export const watcherService = Effect.gen(function* (_) {
   const fs = yield* _(FileSystem.FileSystem)
-  Effect.log("watcher service: filesystem", fs)
   const runningWatchers = new Map<
     AbsolutePath,
     Fiber.RuntimeFiber<void, PlatformError>

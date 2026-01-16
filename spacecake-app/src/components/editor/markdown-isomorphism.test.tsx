@@ -3,6 +3,7 @@
  */
 
 import * as React from "react"
+import { act } from "react"
 import { $convertFromMarkdownString } from "@lexical/markdown"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin"
@@ -72,7 +73,7 @@ const Plugins = React.memo(function Plugins() {
 describe("Markdown isomorphism", () => {
   initializeUnitTest(
     (testEnv) => {
-      it("markdown file with checklist should have isomorphic parsing & serialization", () => {
+      it("markdown file with checklist should have isomorphic parsing & serialization", async () => {
         const text = `# [CHECKLIST TYPE] Checklist: [FEATURE NAME]
 
 **Purpose**: [Brief description of what this checklist covers]
@@ -100,46 +101,50 @@ describe("Markdown isomorphism", () => {
 - Link to relevant resources or documentation
 - Items are numbered sequentially for easy reference`
 
-        testEnv.editor.update(
-          () =>
-            $convertFromMarkdownString(
-              text,
-              MARKDOWN_TRANSFORMERS,
-              undefined,
-              true
-            ),
-          { discrete: true }
-        )
+        await act(async () => {
+          testEnv.editor.update(
+            () =>
+              $convertFromMarkdownString(
+                text,
+                MARKDOWN_TRANSFORMERS,
+                undefined,
+                true
+              ),
+            { discrete: true }
+          )
+        })
         const result = serializeEditorToMarkdown(
           testEnv.editor.getEditorState()
         )
         expect(result).toBe(text)
       })
 
-      it("markdown file with table should have isomorphic parsing & serialization", () => {
+      it("markdown file with table should have isomorphic parsing & serialization", async () => {
         const text = `|  | Feature | Supported | Notes |
 | --- | --- | --- | --- |
 |  | Tables | ✅ | Full support |
 |  | Task Lists | ✅ | Interactive |
 |  | Strikethrough | ✅ | ~~Like this~~ |`
 
-        testEnv.editor.update(
-          () =>
-            $convertFromMarkdownString(
-              text,
-              MARKDOWN_TRANSFORMERS,
-              undefined,
-              true
-            ),
-          { discrete: true }
-        )
+        await act(async () => {
+          testEnv.editor.update(
+            () =>
+              $convertFromMarkdownString(
+                text,
+                MARKDOWN_TRANSFORMERS,
+                undefined,
+                true
+              ),
+            { discrete: true }
+          )
+        })
         const result = serializeEditorToMarkdown(
           testEnv.editor.getEditorState()
         )
         expect(result).toBe(text)
       })
 
-      it("markdown file with mermaid diagram should have isomorphic parsing & serialization", () => {
+      it("markdown file with mermaid diagram should have isomorphic parsing & serialization", async () => {
         const text = `# Architecture Diagram
 
 \`\`\`mermaid
@@ -152,16 +157,59 @@ graph TD;
 
 Here's a simple flow showing how data moves through the system.`
 
-        testEnv.editor.update(
-          () =>
-            $convertFromMarkdownString(
-              text,
-              MARKDOWN_TRANSFORMERS,
-              undefined,
-              true
-            ),
-          { discrete: true }
+        await act(async () => {
+          testEnv.editor.update(
+            () =>
+              $convertFromMarkdownString(
+                text,
+                MARKDOWN_TRANSFORMERS,
+                undefined,
+                true
+              ),
+            { discrete: true }
+          )
+        })
+        const result = serializeEditorToMarkdown(
+          testEnv.editor.getEditorState()
         )
+        expect(result).toBe(text)
+      })
+
+      it("markdown file with images and links should have isomorphic parsing & serialization", async () => {
+        const text = `# Project README
+
+A brief description of what this project does.
+
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
+
+## Features
+
+- Light/dark mode toggle
+- Live previews
+- Cross platform
+
+## Authors
+
+- [@spacecake-labs](https://www.github.com/spacecake-labs)
+
+## Links
+
+Check out [the docs](https://example.com/docs) for more info.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () =>
+              $convertFromMarkdownString(
+                text,
+                MARKDOWN_TRANSFORMERS,
+                undefined,
+                true
+              ),
+            { discrete: true }
+          )
+        })
         const result = serializeEditorToMarkdown(
           testEnv.editor.getEditorState()
         )

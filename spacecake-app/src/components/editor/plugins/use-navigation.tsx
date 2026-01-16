@@ -15,6 +15,8 @@ import {
 
 import { debounce } from "@/lib/utils"
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
+import { $isFrontmatterNode } from "@/components/editor/nodes/frontmatter-node"
+import { $isMermaidNode } from "@/components/editor/nodes/mermaid-node"
 import { maybeUpdateBlockAndDocstring } from "@/components/editor/plugins/block-utils"
 
 export function useNavigation(nodeKey: string) {
@@ -63,7 +65,11 @@ export function useNavigation(nodeKey: string) {
 
     // Apply selection outside the transaction
     if (nextNode) {
-      if ($isCodeBlockNode(nextNode)) {
+      if (
+        $isCodeBlockNode(nextNode) ||
+        $isMermaidNode(nextNode) ||
+        $isFrontmatterNode(nextNode)
+      ) {
         editor.update(() => {
           const selection = $createNodeSelection()
           selection.add(nextNode!.getKey())
@@ -98,7 +104,11 @@ export function useNavigation(nodeKey: string) {
 
     // Apply selection outside the transaction
     if (prevNode) {
-      if ($isCodeBlockNode(prevNode)) {
+      if (
+        $isCodeBlockNode(prevNode) ||
+        $isMermaidNode(prevNode) ||
+        $isFrontmatterNode(prevNode)
+      ) {
         editor.update(() => {
           const selection = $createNodeSelection()
           selection.add(prevNode!.getKey())

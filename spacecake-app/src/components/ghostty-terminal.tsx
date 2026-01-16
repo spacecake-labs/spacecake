@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from "react"
+import { Effect } from "effect"
 import { FitAddon, init, ITheme, Terminal } from "ghostty-web"
 import { useAtom } from "jotai"
 
 import { isLeft } from "@/types/adt"
 import { terminalProfileLoadedAtom } from "@/lib/atoms/atoms"
+import { handleImagePaste, TerminalClipboardLive } from "@/lib/clipboard"
+import { suppressDuplicateWarnings } from "@/lib/suppress-duplicate-warnings"
 import {
   createTerminal,
   killTerminal,
@@ -11,7 +14,6 @@ import {
   resizeTerminal,
   writeTerminal,
 } from "@/lib/terminal"
-import { DeleteButton } from "@/components/delete-button"
 import { useTheme } from "@/components/theme-provider"
 
 export interface TerminalAPI {
@@ -27,7 +29,6 @@ interface GhosttyTerminalProps {
   onReady?: (api: TerminalAPI) => void
   autoFocus?: boolean
   cwd?: string
-  onDelete?: () => void
 }
 
 const terminalTheme: Record<"light" | "dark", ITheme> = {
@@ -50,7 +51,6 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   onReady,
   autoFocus = false,
   cwd,
-  onDelete,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<Terminal | null>(null)
@@ -72,6 +72,9 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   )
 
   useEffect(() => {
+    // Suppress duplicate ghostty-vt warnings (first occurrence still logs)
+    const restoreWarnings = suppressDuplicateWarnings(/\[ghostty-vt\]/)
+
     const initialize = async () => {
       if (!terminalRef.current) return
 
@@ -164,12 +167,26 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
           writeTerminal(id, input)
         })
 
-        // Handle Shift+Tab and Shift+Enter since ghostty-web doesn't fully support
-        // keyboard protocol mode switching yet. We send the sequences that native
-        // Ghostty sends (modifyOtherKeys format for Shift+Enter, legacy for Shift+Tab).
+        // Handle special key combinations that ghostty-web doesn't fully support.
         // Return true = prevent default (we handled it), false = allow normal handling
         term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
           if (event.type !== "keydown") return false
+
+          // Ctrl+V → image paste (ghostty-web doesn't support image paste)
+          // On macOS, Cmd+V handles text paste, Ctrl+V is specifically for images in Claude Code
+          if (
+            event.key === "v" &&
+            event.ctrlKey &&
+            !event.shiftKey &&
+            !event.altKey &&
+            !event.metaKey
+          ) {
+            event.preventDefault()
+            Effect.runPromise(
+              handleImagePaste(id).pipe(Effect.provide(TerminalClipboardLive))
+            )
+            return true
+          }
 
           // Shift+Tab → legacy backtab sequence
           if (
@@ -239,6 +256,7 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
     initialize()
 
     return () => {
+      restoreWarnings()
       if (resizeTimeoutRef.current !== null) {
         clearTimeout(resizeTimeoutRef.current)
       }
@@ -291,12 +309,6 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         // p-4 on the terminal container and box-border to ensure padding is included
         // in the element's total width and height, which is what FitAddon measures.
         className="w-full h-full overflow-hidden p-4 box-border [&_textarea]:caret-transparent! [&_textarea]:outline-none!"
-      />
-      <DeleteButton
-        onDelete={onDelete}
-        className="absolute top-3 right-2 z-10"
-        data-testid="terminal-delete-button"
-        title="kill terminal"
       />
       {error && (
         <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-100 px-4 py-2 text-sm font-mono">

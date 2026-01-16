@@ -30,7 +30,8 @@ export function insertBlockNode(
   while (current !== null) {
     const parent: ElementNode | null = current.getParent()
     if (parent !== null && $isRootOrShadowRoot(parent)) {
-      parent.insertAfter(node)
+      // Insert after `current` (the direct child of root), not after the root itself
+      current.insertAfter(node)
       return
     }
     current = parent

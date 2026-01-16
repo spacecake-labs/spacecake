@@ -3,6 +3,7 @@
  */
 
 import * as React from "react"
+import { act } from "react"
 import { $convertFromMarkdownString } from "@lexical/markdown"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
@@ -25,7 +26,7 @@ import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown
 import {
   createRichViewClaudeSelection,
   createSourceViewClaudeSelection,
-} from "./selection-utils"
+} from "@/lib/selection-utils"
 
 // Mock web-tree-sitter and language parser as in previous setup
 vi.mock("web-tree-sitter", () => {
@@ -272,31 +273,35 @@ describe("selection-utils", () => {
           })
         })
 
-        it("should correctly extract single word selection from markdown", () => {
+        it("should correctly extract single word selection from markdown", async () => {
           const content = "Hello spacecake"
 
-          testEnv.editor.update(
-            () => {
-              $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
-            },
-            { discrete: true }
-          )
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
+              },
+              { discrete: true }
+            )
+          })
 
-          testEnv.editor.update(
-            () => {
-              const root = $getRoot()
-              const firstChild = root.getFirstChild()
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                const root = $getRoot()
+                const firstChild = root.getFirstChild()
 
-              if ($isElementNode(firstChild)) {
-                const textNode = firstChild.getFirstChild()
-                if ($isTextNode(textNode)) {
-                  // Select "spacecake" (offset 6 to 15)
-                  textNode.select(6, 15)
+                if ($isElementNode(firstChild)) {
+                  const textNode = firstChild.getFirstChild()
+                  if ($isTextNode(textNode)) {
+                    // Select "spacecake" (offset 6 to 15)
+                    textNode.select(6, 15)
+                  }
                 }
-              }
-            },
-            { discrete: true }
-          )
+              },
+              { discrete: true }
+            )
+          })
 
           const result = getSelectionForClaude()
 
@@ -308,31 +313,35 @@ describe("selection-utils", () => {
           })
         })
 
-        it("should handle collapsed cursor (empty selection)", () => {
+        it("should handle collapsed cursor (empty selection)", async () => {
           const content = "Hello world"
 
-          testEnv.editor.update(
-            () => {
-              $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
-            },
-            { discrete: true }
-          )
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
+              },
+              { discrete: true }
+            )
+          })
 
-          testEnv.editor.update(
-            () => {
-              const root = $getRoot()
-              const firstChild = root.getFirstChild()
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                const root = $getRoot()
+                const firstChild = root.getFirstChild()
 
-              if ($isElementNode(firstChild)) {
-                const textNode = firstChild.getFirstChild()
-                if ($isTextNode(textNode)) {
-                  // Collapsed selection at index 5 (cursor after "Hello")
-                  textNode.select(5, 5)
+                if ($isElementNode(firstChild)) {
+                  const textNode = firstChild.getFirstChild()
+                  if ($isTextNode(textNode)) {
+                    // Collapsed selection at index 5 (cursor after "Hello")
+                    textNode.select(5, 5)
+                  }
                 }
-              }
-            },
-            { discrete: true }
-          )
+              },
+              { discrete: true }
+            )
+          })
 
           const result = getSelectionForClaude()
 
@@ -344,44 +353,48 @@ describe("selection-utils", () => {
           })
         })
 
-        it("should handle multi-line selection from markdown with header", () => {
+        it("should handle multi-line selection from markdown with header", async () => {
           const content = "# Header\nLine 1\nLine 2"
 
-          testEnv.editor.update(
-            () => {
-              $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
-            },
-            { discrete: true }
-          )
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
+              },
+              { discrete: true }
+            )
+          })
 
-          testEnv.editor.update(
-            () => {
-              const root = $getRoot()
-              const children = root.getChildren()
-              // children[0] is HeadingNode (# Header)
-              // children[1] is ParagraphNode containing "Line 1\nLine 2"
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                const root = $getRoot()
+                const children = root.getChildren()
+                // children[0] is HeadingNode (# Header)
+                // children[1] is ParagraphNode containing "Line 1\nLine 2"
 
-              const paragraph = children[1]
+                const paragraph = children[1]
 
-              if ($isElementNode(paragraph)) {
-                const paraChildren = paragraph.getChildren()
-                // paraChildren[0] is TextNode ("Line 1")
-                // paraChildren[1] is LineBreakNode
-                // paraChildren[2] is TextNode ("Line 2")
-                const text1 = paraChildren[0]
-                const text2 = paraChildren[2]
+                if ($isElementNode(paragraph)) {
+                  const paraChildren = paragraph.getChildren()
+                  // paraChildren[0] is TextNode ("Line 1")
+                  // paraChildren[1] is LineBreakNode
+                  // paraChildren[2] is TextNode ("Line 2")
+                  const text1 = paraChildren[0]
+                  const text2 = paraChildren[2]
 
-                if ($isTextNode(text1) && $isTextNode(text2)) {
-                  // Select from start of Line 1 to end of Line 2
-                  const rangeSelection = $createRangeSelection()
-                  rangeSelection.anchor.set(text1.getKey(), 0, "text")
-                  rangeSelection.focus.set(text2.getKey(), 6, "text")
-                  $setSelection(rangeSelection)
+                  if ($isTextNode(text1) && $isTextNode(text2)) {
+                    // Select from start of Line 1 to end of Line 2
+                    const rangeSelection = $createRangeSelection()
+                    rangeSelection.anchor.set(text1.getKey(), 0, "text")
+                    rangeSelection.focus.set(text2.getKey(), 6, "text")
+                    $setSelection(rangeSelection)
+                  }
                 }
-              }
-            },
-            { discrete: true }
-          )
+              },
+              { discrete: true }
+            )
+          })
 
           const result = getSelectionForClaude()
 
@@ -393,38 +406,42 @@ describe("selection-utils", () => {
           })
         })
 
-        it("should handle backward selection (anchor > focus)", () => {
+        it("should handle backward selection (anchor > focus)", async () => {
           const content = "# Header\nLine 1\nLine 2"
 
-          testEnv.editor.update(
-            () => {
-              $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
-            },
-            { discrete: true }
-          )
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
+              },
+              { discrete: true }
+            )
+          })
 
-          testEnv.editor.update(
-            () => {
-              const root = $getRoot()
-              const children = root.getChildren()
-              const paragraph = children[1]
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                const root = $getRoot()
+                const children = root.getChildren()
+                const paragraph = children[1]
 
-              if ($isElementNode(paragraph)) {
-                const paraChildren = paragraph.getChildren()
-                const text1 = paraChildren[0]
-                const text2 = paraChildren[2]
+                if ($isElementNode(paragraph)) {
+                  const paraChildren = paragraph.getChildren()
+                  const text1 = paraChildren[0]
+                  const text2 = paraChildren[2]
 
-                if ($isTextNode(text1) && $isTextNode(text2)) {
-                  // Create a backward selection (anchor at end, focus at start)
-                  const rangeSelection = $createRangeSelection()
-                  rangeSelection.anchor.set(text2.getKey(), 6, "text")
-                  rangeSelection.focus.set(text1.getKey(), 0, "text")
-                  $setSelection(rangeSelection)
+                  if ($isTextNode(text1) && $isTextNode(text2)) {
+                    // Create a backward selection (anchor at end, focus at start)
+                    const rangeSelection = $createRangeSelection()
+                    rangeSelection.anchor.set(text2.getKey(), 6, "text")
+                    rangeSelection.focus.set(text1.getKey(), 0, "text")
+                    $setSelection(rangeSelection)
+                  }
                 }
-              }
-            },
-            { discrete: true }
-          )
+              },
+              { discrete: true }
+            )
+          })
 
           const result = getSelectionForClaude()
 
@@ -437,49 +454,53 @@ describe("selection-utils", () => {
           })
         })
 
-        it("should handle selection within a code block in markdown", () => {
+        it("should handle selection within a code block in markdown", async () => {
           // Note: Code blocks in rich view are handled by CodeMirror, but
           // let's verify plain inline code works correctly
           const content = "Some `inline code` here"
 
-          testEnv.editor.update(
-            () => {
-              $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
-            },
-            { discrete: true }
-          )
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
+              },
+              { discrete: true }
+            )
+          })
 
-          testEnv.editor.update(
-            () => {
-              const root = $getRoot()
-              const firstChild = root.getFirstChild()
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                const root = $getRoot()
+                const firstChild = root.getFirstChild()
 
-              if ($isElementNode(firstChild)) {
-                // Find the code node (likely second child after "Some ")
-                const children = firstChild.getChildren()
-                // Structure depends on transformers but typically:
-                // TextNode("Some "), CodeNode("inline code"), TextNode(" here")
+                if ($isElementNode(firstChild)) {
+                  // Find the code node (likely second child after "Some ")
+                  const children = firstChild.getChildren()
+                  // Structure depends on transformers but typically:
+                  // TextNode("Some "), CodeNode("inline code"), TextNode(" here")
 
-                // Select all text in the paragraph
-                if (children.length > 0) {
-                  const firstText = children[0]
-                  const lastText = children[children.length - 1]
+                  // Select all text in the paragraph
+                  if (children.length > 0) {
+                    const firstText = children[0]
+                    const lastText = children[children.length - 1]
 
-                  if ($isTextNode(firstText) && $isTextNode(lastText)) {
-                    const rangeSelection = $createRangeSelection()
-                    rangeSelection.anchor.set(firstText.getKey(), 0, "text")
-                    rangeSelection.focus.set(
-                      lastText.getKey(),
-                      lastText.getTextContentSize(),
-                      "text"
-                    )
-                    $setSelection(rangeSelection)
+                    if ($isTextNode(firstText) && $isTextNode(lastText)) {
+                      const rangeSelection = $createRangeSelection()
+                      rangeSelection.anchor.set(firstText.getKey(), 0, "text")
+                      rangeSelection.focus.set(
+                        lastText.getKey(),
+                        lastText.getTextContentSize(),
+                        "text"
+                      )
+                      $setSelection(rangeSelection)
+                    }
                   }
                 }
-              }
-            },
-            { discrete: true }
-          )
+              },
+              { discrete: true }
+            )
+          })
 
           const result = getSelectionForClaude()
 
@@ -489,31 +510,35 @@ describe("selection-utils", () => {
           expect(result.claudeSelection.isEmpty).toBe(false)
         })
 
-        it("should handle selecting header text", () => {
+        it("should handle selecting header text", async () => {
           const content = "# My Header Title"
 
-          testEnv.editor.update(
-            () => {
-              $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
-            },
-            { discrete: true }
-          )
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
+              },
+              { discrete: true }
+            )
+          })
 
-          testEnv.editor.update(
-            () => {
-              const root = $getRoot()
-              const heading = root.getFirstChild()
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                const root = $getRoot()
+                const heading = root.getFirstChild()
 
-              if ($isElementNode(heading)) {
-                const textNode = heading.getFirstChild()
-                if ($isTextNode(textNode)) {
-                  // Select "Header" from "My Header Title"
-                  textNode.select(3, 9)
+                if ($isElementNode(heading)) {
+                  const textNode = heading.getFirstChild()
+                  if ($isTextNode(textNode)) {
+                    // Select "Header" from "My Header Title"
+                    textNode.select(3, 9)
+                  }
                 }
-              }
-            },
-            { discrete: true }
-          )
+              },
+              { discrete: true }
+            )
+          })
 
           const result = getSelectionForClaude()
 
@@ -525,47 +550,51 @@ describe("selection-utils", () => {
           })
         })
 
-        it("should handle selecting entire document", () => {
+        it("should handle selecting entire document", async () => {
           const content = "# Title\n\nFirst paragraph.\n\nSecond paragraph."
 
-          testEnv.editor.update(
-            () => {
-              $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
-            },
-            { discrete: true }
-          )
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
+              },
+              { discrete: true }
+            )
+          })
 
-          testEnv.editor.update(
-            () => {
-              const root = $getRoot()
-              const children = root.getChildren()
+          await act(async () => {
+            testEnv.editor.update(
+              () => {
+                const root = $getRoot()
+                const children = root.getChildren()
 
-              if (children.length > 0) {
-                const firstElement = children[0]
-                const lastElement = children[children.length - 1]
+                if (children.length > 0) {
+                  const firstElement = children[0]
+                  const lastElement = children[children.length - 1]
 
-                if (
-                  $isElementNode(firstElement) &&
-                  $isElementNode(lastElement)
-                ) {
-                  const firstText = firstElement.getFirstChild()
-                  const lastText = lastElement.getLastChild()
+                  if (
+                    $isElementNode(firstElement) &&
+                    $isElementNode(lastElement)
+                  ) {
+                    const firstText = firstElement.getFirstChild()
+                    const lastText = lastElement.getLastChild()
 
-                  if ($isTextNode(firstText) && $isTextNode(lastText)) {
-                    const rangeSelection = $createRangeSelection()
-                    rangeSelection.anchor.set(firstText.getKey(), 0, "text")
-                    rangeSelection.focus.set(
-                      lastText.getKey(),
-                      lastText.getTextContentSize(),
-                      "text"
-                    )
-                    $setSelection(rangeSelection)
+                    if ($isTextNode(firstText) && $isTextNode(lastText)) {
+                      const rangeSelection = $createRangeSelection()
+                      rangeSelection.anchor.set(firstText.getKey(), 0, "text")
+                      rangeSelection.focus.set(
+                        lastText.getKey(),
+                        lastText.getTextContentSize(),
+                        "text"
+                      )
+                      $setSelection(rangeSelection)
+                    }
                   }
                 }
-              }
-            },
-            { discrete: true }
-          )
+              },
+              { discrete: true }
+            )
+          })
 
           const result = getSelectionForClaude()
 

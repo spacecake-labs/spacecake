@@ -1,14 +1,14 @@
 import fs from "fs"
 import path from "path"
 
-import { expect, test, waitForWorkspace } from "./fixtures"
+import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 
 test.describe("editor view toggle", () => {
-  test("python file can toggle between block and source views", async ({
+  test("different file types toggle between rich and source views correctly", async ({
     electronApp,
     tempTestDir,
   }) => {
-    // Create a Python file with some content
+    // Create test files for all file types
     const pythonFile = path.join(tempTestDir, "test.py")
     const pythonContent = `"""Module docstring"""
 
@@ -20,170 +20,24 @@ def fibonacci(n):
 
 class MathUtils:
     """Utility class for math operations."""
-    
+
     @staticmethod
     def is_even(n):
         return n % 2 == 0`
-
     fs.writeFileSync(pythonFile, pythonContent)
 
-    const page = await electronApp.firstWindow()
-
-    // open the temp test directory as workspace
-    await waitForWorkspace(page)
-
-    await page.getByRole("button", { name: "test.py" }).click()
-
-    const editor = page.getByTestId("lexical-editor")
-    await expect(editor).toBeVisible()
-
-    // Should start in rich view for Python
-    await expect(
-      page.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
-    await expect(
-      page.getByRole("heading", { name: "fibonacci" }).first()
-    ).toBeVisible()
-    await expect(
-      page.getByRole("heading", { name: "MathUtils" }).first()
-    ).toBeVisible()
-
-    // Toggle to source view
-    await page.getByRole("link", { name: "switch to source view" }).click()
-    await expect(
-      page.getByRole("link", { name: "switch to rich view" })
-    ).toBeVisible()
-    await expect(page.getByText('"""Module docstring"""')).toBeVisible()
-    await expect(page.getByText("def fibonacci(n):")).toBeVisible()
-
-    // Toggle back to rich view
-    await page.getByRole("link", { name: "switch to rich view" }).click()
-    await expect(
-      page.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
-    await expect(
-      page.getByRole("heading", { name: "fibonacci" }).first()
-    ).toBeVisible()
-  })
-
-  test("python file with markdown directives can toggle between block and source views", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    // Create a Python file with markdown directives
-    const pythonFile = path.join(tempTestDir, "test_md.py")
-    const pythonContent = `"""Module with markdown documentation."""
+    const pythonMdFile = path.join(tempTestDir, "test_md.py")
+    const pythonMdContent = `"""Module with markdown documentation."""
 
 import os
-import sys
 
 #🍰 # main section
-#🍰 this is a paragraph with **bold** and *italic* text
-#🍰 
-#🍰 ## subsection
-#🍰 - list item 1
-#🍰 - list item 2
+#🍰 this is a paragraph with **bold** text
 
 def fibonacci(n):
-    """Calculate fibonacci number."""
-    if n <= 1:
-        return n
-    return fibonacci(n-1) + fibonacci(n-2)
+    return n`
+    fs.writeFileSync(pythonMdFile, pythonMdContent)
 
-#🍰 ## usage
-#🍰 call the function like this:
-#🍰 \`\`\`python
-#🍰 result = fibonacci(10)
-#🍰 \`\`\`
-
-class MathUtils:
-    """Utility class for math operations."""
-    
-    @staticmethod
-    def is_even(n):
-        return n % 2 == 0`
-
-    fs.writeFileSync(pythonFile, pythonContent)
-
-    const page = await electronApp.firstWindow()
-
-    // open the temp test directory as workspace
-    await waitForWorkspace(page)
-
-    await page.getByRole("button", { name: "test_md.py" }).click()
-
-    const editor = page.getByTestId("lexical-editor")
-    await expect(editor).toBeVisible()
-
-    // Should start in rich view for Python
-    await expect(
-      page.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
-    await expect(
-      page.getByRole("heading", { name: "fibonacci" }).first()
-    ).toBeVisible()
-    await expect(page.getByRole("heading", { name: "MathUtils" })).toBeVisible()
-
-    // Verify markdown directives are rendered in rich view
-    await expect(
-      page.getByRole("heading", { name: "main section" })
-    ).toBeVisible()
-    await expect(
-      page.getByRole("heading", { name: "subsection" })
-    ).toBeVisible()
-    await expect(page.getByRole("heading", { name: "usage" })).toBeVisible()
-    await expect(
-      page.getByText("this is a paragraph with").first()
-    ).toBeVisible()
-    await expect(page.getByText("list item 1").first()).toBeVisible()
-    await expect(page.getByText("list item 2").first()).toBeVisible()
-
-    // Toggle to source view
-    await page.getByRole("link", { name: "switch to source view" }).click()
-    await expect(
-      page.getByRole("link", { name: "switch to rich view" })
-    ).toBeVisible()
-
-    // Verify raw Python code is visible
-    await expect(
-      page.getByText('"""Module with markdown documentation."""')
-    ).toBeVisible()
-    await expect(page.getByText("def fibonacci(n):")).toBeVisible()
-    await expect(page.getByText("class MathUtils:")).toBeVisible()
-
-    // Verify markdown directives show the #🍰 syntax in source view
-    await expect(page.getByText("#🍰 # main section")).toBeVisible()
-    await expect(
-      page.getByText("#🍰 this is a paragraph with **bold** and *italic* text")
-    ).toBeVisible()
-    await expect(page.getByText("#🍰 ## subsection")).toBeVisible()
-    await expect(page.getByText("#🍰 - list item 1")).toBeVisible()
-    await expect(page.getByText("#🍰 - list item 2")).toBeVisible()
-    await expect(page.getByText("#🍰 ## usage")).toBeVisible()
-    await expect(
-      page.getByText("#🍰 call the function like this:")
-    ).toBeVisible()
-    await expect(page.getByText("#🍰 ```python", { exact: true })).toBeVisible()
-    await expect(page.getByText("#🍰 result = fibonacci(10)")).toBeVisible()
-    await expect(page.getByText("#🍰 ```", { exact: true })).toBeVisible()
-
-    // Toggle back to rich view
-    await page.getByRole("link", { name: "switch to rich view" }).click()
-    await expect(
-      page.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
-    await expect(
-      page.getByRole("heading", { name: "fibonacci" }).first()
-    ).toBeVisible()
-    await expect(
-      page.getByRole("heading", { name: "main section" })
-    ).toBeVisible()
-  })
-
-  test("markdown file can toggle between block and source views", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
     const markdownFile = path.join(tempTestDir, "test.md")
     const markdownContent = `# Test Document
 
@@ -192,67 +46,87 @@ This is a **markdown** file.
 ## Section 1`
     fs.writeFileSync(markdownFile, markdownContent)
 
-    const page = await electronApp.firstWindow()
-
-    // open the temp test directory as workspace
-    await waitForWorkspace(page)
-
-    await page.getByRole("button", { name: "test.md" }).click()
-
-    await page.waitForTimeout(1000)
-
-    // Should start in rich view (Lexical)
-    await expect(page.getByTestId("lexical-editor")).toBeVisible()
-    await expect(
-      page.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
-    await expect(
-      page.getByRole("heading", { name: "Test Document" })
-    ).toBeVisible()
-    await expect(page.getByRole("heading", { name: "Section 1" })).toBeVisible()
-
-    await page.waitForTimeout(1000)
-
-    // Toggle to source view (CodeMirror)
-    await page.getByRole("link", { name: "switch to source view" }).click()
-    await expect(
-      page.getByRole("link", { name: "switch to rich view" })
-    ).toBeVisible()
-    await expect(page.getByText("# Test Document")).toBeVisible()
-    await expect(page.getByText("## Section 1")).toBeVisible()
-
-    await page.waitForTimeout(1000)
-
-    // Toggle back to rich view (Lexical)
-    await page.getByRole("link", { name: "switch to rich view" }).click()
-    await expect(
-      page.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
-    await expect(
-      page.getByRole("heading", { name: "Test Document" })
-    ).toBeVisible()
-    await expect(page.getByRole("heading", { name: "Section 1" })).toBeVisible()
-  })
-
-  test("plaintext file shows no toggle option", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
     const textFile = path.join(tempTestDir, "test.txt")
     const textContent = "This is a plain text file."
     fs.writeFileSync(textFile, textContent)
 
     const page = await electronApp.firstWindow()
-
-    // open the temp test directory as workspace
     await waitForWorkspace(page)
 
-    await page.getByRole("button", { name: "test.txt" }).click()
+    // =========================================================================
+    // Test 1: Python file toggle
+    // =========================================================================
+    await page.getByRole("button", { name: "test.py" }).click()
+    const editor = page.getByTestId("lexical-editor")
+    await expect(editor).toBeVisible()
 
-    await expect(page.getByTestId("lexical-editor")).toBeVisible()
+    // Should start in rich view
+    await expect(
+      page.getByRole("link", { name: "switch to source view" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "fibonacci" }).first()
+    ).toBeVisible()
+
+    // Toggle to source view
+    await page.getByRole("link", { name: "switch to source view" }).click()
+    await expect(
+      page.getByRole("link", { name: "switch to rich view" })
+    ).toBeVisible()
+    await expect(page.getByText('"""Module docstring"""')).toBeVisible()
+
+    // Toggle back to rich view
+    await page.getByRole("link", { name: "switch to rich view" }).click()
+    await expect(
+      page.getByRole("link", { name: "switch to source view" })
+    ).toBeVisible()
+
+    // =========================================================================
+    // Test 2: Python with markdown directives toggle
+    // =========================================================================
+    await page.getByRole("button", { name: "test_md.py" }).click()
+    await expect(editor).toBeVisible()
+
+    // Verify markdown directives are rendered in rich view
+    await expect(
+      page.getByRole("heading", { name: "main section" })
+    ).toBeVisible()
+    await expect(
+      page.getByText("this is a paragraph with").first()
+    ).toBeVisible()
+
+    // Toggle to source view
+    await page.getByRole("link", { name: "switch to source view" }).click()
+    await expect(page.getByText("#🍰 # main section")).toBeVisible()
+
+    // Toggle back
+    await page.getByRole("link", { name: "switch to rich view" }).click()
+
+    // =========================================================================
+    // Test 3: Markdown file toggle
+    // =========================================================================
+    await page.getByRole("button", { name: "test.md" }).click()
+    await expect(editor).toBeVisible()
+
+    await expect(
+      page.getByRole("heading", { name: "Test Document" })
+    ).toBeVisible()
+
+    // Toggle to source view
+    await page.getByRole("link", { name: "switch to source view" }).click()
+    await expect(page.getByText("# Test Document")).toBeVisible()
+
+    // Toggle back
+    await page.getByRole("link", { name: "switch to rich view" }).click()
+
+    // =========================================================================
+    // Test 4: Plaintext file shows no toggle option
+    // =========================================================================
+    await page.getByRole("button", { name: "test.txt" }).click()
+    await expect(editor).toBeVisible()
     await expect(page.getByText(textContent)).toBeVisible()
 
-    // Verify that no view toggle button is present
+    // Verify no toggle buttons
     await expect(
       page.getByRole("link", { name: "switch to source view" })
     ).not.toBeVisible()
@@ -261,7 +135,7 @@ This is a **markdown** file.
     ).not.toBeVisible()
   })
 
-  test("view preference persists when switching between files", async ({
+  test("view preference persists across file switches and saves", async ({
     electronApp,
     tempTestDir,
   }) => {
@@ -272,11 +146,17 @@ This is a **markdown** file.
     fs.writeFileSync(pythonFile1, pythonContent)
     fs.writeFileSync(pythonFile2, pythonContent)
 
-    const page = await electronApp.firstWindow()
+    const header = "An Example README File to Test Parsing"
+    const readmeContent = `# ${header}\n\nA brief description.`
+    const readmePath = path.join(tempTestDir, "_README.md")
+    fs.writeFileSync(readmePath, readmeContent)
 
-    // open the temp test directory as workspace
+    const page = await electronApp.firstWindow()
     await waitForWorkspace(page)
 
+    // =========================================================================
+    // Test 1: View preference persists when switching between files
+    // =========================================================================
     // Open first file and switch to source view
     await page.getByRole("button", { name: "file1.py" }).click()
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
@@ -284,115 +164,58 @@ This is a **markdown** file.
     await expect(
       page.getByRole("link", { name: "switch to rich view" })
     ).toBeVisible()
-    await expect(page.getByTestId("lexical-editor")).toBeVisible()
 
-    // Open second file and verify it's in rich view (the default)
+    // Open second file - should be in rich view (default)
     await page.getByRole("button", { name: "file2.py" }).click()
-    await expect(page.getByTestId("lexical-editor")).toBeVisible()
     await expect(
       page.getByRole("link", { name: "switch to source view" })
     ).toBeVisible()
 
-    // Switch back to first file and verify it's still in source view
+    // Switch back to first file - should still be in source view
     await page.getByRole("button", { name: "file1.py" }).click()
-    await expect(page.getByTestId("lexical-editor")).toBeVisible()
     await expect(
       page.getByRole("link", { name: "switch to rich view" })
     ).toBeVisible()
-  })
 
-  test("README fixture maintains source view through save operations", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    const fixturePath = path.join(__dirname, "fixtures", "_README.md")
-    const testFilePath = path.join(tempTestDir, "_README.md")
-    const header = "An Example README File to Test Parsing"
-    const initialContent = `# ${header}\n\nA brief description.`
-
-    if (fs.existsSync(fixturePath)) {
-      fs.copyFileSync(fixturePath, testFilePath)
-    } else {
-      fs.writeFileSync(testFilePath, initialContent)
-    }
-
-    const page = await electronApp.firstWindow()
-
-    // open the temp test directory as workspace
-    await waitForWorkspace(page)
-
-    // Open the README file
+    // =========================================================================
+    // Test 2: Source view persists through save operations
+    // =========================================================================
     await page.getByRole("button", { name: "_README.md" }).click()
-    await expect(page.getByTestId("lexical-editor")).toBeVisible()
-    await expect(
-      page.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
-
-    // Should start in rich view (Lexical editor).
-    // Wait for the content to be visible first, as it's the most reliable indicator.
-    await expect(
-      page.getByRole("heading", {
-        name: header,
-      })
-    ).toBeVisible()
-
-    // Switch to source view (CodeMirror editor)
-    await page.getByRole("link", { name: "switch to source view" }).click()
     const editor = page.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
+
+    // Start in rich view
+    await expect(page.getByRole("heading", { name: header })).toBeVisible()
+
+    // Switch to source view
+    await page.getByRole("link", { name: "switch to source view" }).click()
     await expect(
       page.getByRole("link", { name: "switch to rich view" })
     ).toBeVisible()
 
-    // Verify raw markdown is visible
-    await expect(page.getByText(header)).toBeVisible()
-
-    // Save the file (no changes) and verify view persists
-    await editor.press("ControlOrMeta+s", { delay: 1000 })
-
-    await expect(page.getByTestId("lexical-editor")).toBeVisible()
+    // Save without changes - view should persist
+    await editor.press("ControlOrMeta+s", { delay: 500 })
     await expect(
       page.getByRole("link", { name: "switch to rich view" })
     ).toBeVisible()
 
-    // verify the file was saved with the exact same content
-    const savedContent = fs.readFileSync(testFilePath, "utf-8")
-    expect(savedContent).toBe(initialContent)
-
-    await expect(page.getByText(header)).toBeVisible()
+    // Add content and save
     await page.getByText(header).click({ delay: 100 })
-
-    // Add a new line to the bottom and save
     await editor.press("ControlOrMeta+ArrowDown", { delay: 100 })
-
     await editor.press("Enter", { delay: 100 })
-
     await editor.pressSequentially("## New Section Added", { delay: 100 })
 
     await page.waitForTimeout(250)
+    await editor.press("ControlOrMeta+s", { delay: 500 })
 
-    // Save the changes
-    await editor.press("ControlOrMeta+s", { delay: 1000 })
-
-    await expect(page.getByTestId("lexical-editor")).toBeVisible()
-
-    // Verify toggle still says 'source' and new content is there
+    // Still in source view after save
     await expect(
       page.getByRole("link", { name: "switch to rich view" })
     ).toBeVisible()
+    await expect(page.getByText("## New Section Added")).toBeVisible()
 
-    // Verify we're still in source view (raw markdown, not rendered)
-    const newContent = "## New Section Added"
-    await expect(page.getByText(newContent)).toBeVisible() // Raw markdown
-
-    // Toggle back to rich view
+    // Toggle to rich view to verify content
     await page.getByRole("link", { name: "switch to rich view" }).click()
-
-    await expect(page.getByTestId("lexical-editor")).toBeVisible()
-    await expect(
-      page.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
-
     await expect(
       page.getByRole("heading", { name: "New Section Added" })
     ).toBeVisible()

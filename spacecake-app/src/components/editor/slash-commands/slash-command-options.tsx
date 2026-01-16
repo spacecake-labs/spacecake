@@ -9,6 +9,7 @@ import { $setBlocksType } from "@lexical/selection"
 import {
   $createNodeSelection,
   $createParagraphNode,
+  $getRoot,
   $getSelection,
   $isRangeSelection,
   $setSelection,
@@ -16,6 +17,7 @@ import {
 } from "lexical"
 import {
   Code,
+  FileText,
   Heading1,
   Heading2,
   Heading3,
@@ -28,6 +30,10 @@ import {
 
 import { insertBlockNode } from "@/lib/editor/insert-block-node"
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node"
+import {
+  $createFrontmatterNode,
+  $isFrontmatterNode,
+} from "@/components/editor/nodes/frontmatter-node"
 
 export class SlashCommandOption extends MenuOption {
   title: string
@@ -113,6 +119,44 @@ export function slashCommandOptions(
               selection.insertRawText(textContent)
             }
           }
+        }),
+    }),
+    new SlashCommandOption("frontmatter", {
+      icon: <FileText className="w-4 h-4" />,
+      keywords: ["frontmatter", "yaml", "metadata", "fm", "properties"],
+      onSelect: () =>
+        editor.update(() => {
+          const root = $getRoot()
+          const firstChild = root.getFirstChild()
+
+          // Check if frontmatter already exists
+          if (firstChild && $isFrontmatterNode(firstChild)) {
+            // Focus existing frontmatter instead of creating new
+            firstChild.select()
+            return
+          }
+
+          const frontmatterNode = $createFrontmatterNode({
+            yaml: "",
+            viewMode: "code", // Start in code mode for new frontmatter
+          })
+
+          // Insert at the very beginning
+          if (firstChild) {
+            firstChild.insertBefore(frontmatterNode)
+          } else {
+            root.append(frontmatterNode)
+          }
+
+          const nodeSelection = $createNodeSelection()
+          nodeSelection.add(frontmatterNode.getKey())
+          $setSelection(nodeSelection)
+
+          Promise.resolve(
+            setTimeout(() => {
+              frontmatterNode.select()
+            }, 0)
+          )
         }),
     }),
     new SlashCommandOption("text", {

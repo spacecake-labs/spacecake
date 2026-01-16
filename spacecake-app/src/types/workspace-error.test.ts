@@ -6,7 +6,7 @@ import {
   WorkspaceErrorSchema,
   WorkspaceNotAccessible,
   WorkspaceNotFound,
-} from "./workspace-error"
+} from "@/types/workspace-error"
 
 describe("WorkspaceError tagged classes", () => {
   describe("WorkspaceNotFound", () => {

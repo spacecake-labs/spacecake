@@ -10,10 +10,38 @@ import { FileSystem } from "@/services/file-system"
 import { Effect, Fiber, Layer } from "effect"
 import { Provider } from "jotai"
 import { createRoot } from "react-dom/client"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest"
 import WebSocket from "ws"
 
 import { ClaudeStatusBadge } from "@/components/claude-status-badge"
+
+// Suppress act() warnings for this integration test - WebSocket message handling
+// is async and can't be wrapped in act() without blocking the event loop
+const originalConsoleError = console.error
+beforeAll(() => {
+  console.error = (...args: unknown[]) => {
+    const message = args[0]
+    if (
+      typeof message === "string" &&
+      message.includes("was not wrapped in act")
+    ) {
+      return
+    }
+    originalConsoleError.apply(console, args)
+  }
+})
+afterAll(() => {
+  console.error = originalConsoleError
+})
 
 // --- Mocks & Bridge Setup ---
 
@@ -98,7 +126,11 @@ describe("ClaudeStatusBadge Integration", () => {
     vi.clearAllMocks()
   })
 
-  afterEach(() => {
+  afterEach(async () => {
+    // Properly unmount React before removing DOM to flush pending updates
+    await act(async () => {
+      root?.unmount()
+    })
     if (container) {
       document.body.removeChild(container)
     }
@@ -176,6 +208,8 @@ describe("ClaudeStatusBadge Integration", () => {
         }
         ws.send(JSON.stringify(initMessage))
 
+        // Note: vi.waitFor is intentionally not wrapped in act() here because
+        // the WebSocket message handling is async and act() would block the event loop
         yield* _(
           Effect.promise(async () => {
             await vi.waitFor(
