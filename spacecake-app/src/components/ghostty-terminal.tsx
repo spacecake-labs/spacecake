@@ -4,6 +4,7 @@ import { useAtom } from "jotai"
 
 import { isLeft } from "@/types/adt"
 import { terminalProfileLoadedAtom } from "@/lib/atoms/atoms"
+import { suppressDuplicateWarnings } from "@/lib/suppress-duplicate-warnings"
 import {
   createTerminal,
   killTerminal,
@@ -72,6 +73,9 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   )
 
   useEffect(() => {
+    // Suppress duplicate ghostty-vt warnings (first occurrence still logs)
+    const restoreWarnings = suppressDuplicateWarnings(/\[ghostty-vt\]/)
+
     const initialize = async () => {
       if (!terminalRef.current) return
 
@@ -239,6 +243,7 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
     initialize()
 
     return () => {
+      restoreWarnings()
       if (resizeTimeoutRef.current !== null) {
         clearTimeout(resizeTimeoutRef.current)
       }
