@@ -4,7 +4,7 @@ import path from "node:path"
 import { ClaudeConfig } from "@/services/claude-config"
 import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
-import { Console, Effect, Either, Schema } from "effect"
+import { Effect, Either, Schema } from "effect"
 import { BrowserWindow, ipcMain } from "electron"
 import { WebSocket, WebSocketServer } from "ws"
 
@@ -96,10 +96,10 @@ function getRandomPort(): number {
   )
 }
 
-export const makeClaudeCodeServer = Effect.gen(function* (_) {
-  const claudeConfig = yield* _(ClaudeConfig)
-  const fsService = yield* _(FileSystem)
-  const hooksServer = yield* _(ClaudeHooksServer)
+export const makeClaudeCodeServer = Effect.gen(function* () {
+  const claudeConfig = yield* ClaudeConfig
+  const fsService = yield* FileSystem
+  const hooksServer = yield* ClaudeHooksServer
 
   // Lazy state - server is not started until ensureStarted() is called
   let serverState: {
@@ -112,26 +112,24 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
 
   let startPromise: Promise<void> | null = null
 
-  const startServerEffect = Effect.gen(function* (_) {
+  const startServerEffect = Effect.gen(function* () {
     const port = getRandomPort()
-    const wss = yield* _(
-      Effect.async<WebSocketServer, Error>((resume) => {
-        const server = new WebSocketServer({ port })
+    const wss = yield* Effect.async<WebSocketServer, Error>((resume) => {
+      const server = new WebSocketServer({ port })
 
-        const onListening = () => {
-          server.removeListener("error", onError)
-          resume(Effect.succeed(server))
-        }
+      const onListening = () => {
+        server.removeListener("error", onError)
+        resume(Effect.succeed(server))
+      }
 
-        const onError = (err: Error) => {
-          server.removeListener("listening", onListening)
-          resume(Effect.fail(err))
-        }
+      const onError = (err: Error) => {
+        server.removeListener("listening", onListening)
+        resume(Effect.fail(err))
+      }
 
-        server.once("listening", onListening)
-        server.once("error", onError)
-      })
-    )
+      server.once("listening", onListening)
+      server.once("error", onError)
+    })
     return { wss, port }
   }).pipe(
     Effect.retry({
@@ -163,16 +161,13 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
     wss.on("connection", (ws, req) => {
       const authHeader = req.headers["x-claude-code-ide-authorization"]
       if (authHeader !== authToken) {
-        Console.warn("Claude Code Server: Unauthorized connection attempt")
+        console.warn("Claude Code Server: Unauthorized connection attempt")
         ws.close(1008, "Unauthorized")
         return
       }
 
-      Console.log("Claude Code Server: Client connected")
-
       ws.on("close", () => {
         broadcastClaudeCodeStatus("disconnected")
-        Console.log("Claude Code Server: Client disconnected")
       })
 
       ws.on("message", (message) => {
@@ -180,13 +175,13 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
         try {
           parsed = JSON.parse(message.toString())
         } catch (err) {
-          Console.error("claude code server: failed to parse json", err)
+          console.error("claude code server: failed to parse json", err)
           return
         }
 
         const decoded = Schema.decodeUnknownEither(JsonRpcMessageSchema)(parsed)
         if (Either.isLeft(decoded)) {
-          Console.error(
+          console.error(
             "claude code server: invalid json-rpc message",
             decoded.left
           )
@@ -222,7 +217,6 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
         // Track when Claude Code IDE is fully connected
         if (data.method === "ide_connected") {
           broadcastClaudeCodeStatus("connected")
-          Console.log("claude code server: ide connected and ready")
           return
         }
 
@@ -240,7 +234,6 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
             },
           } satisfies JsonRpcResponse
           ws.send(JSON.stringify(toolsListResponse))
-          Console.log("claude code server: sent tools/list response")
           return
         }
 
@@ -254,7 +247,7 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
             ToolCallParamsSchema
           )(data.params)
           if (Either.isLeft(paramsDecoded)) {
-            Console.error(
+            console.error(
               "claude code server: invalid tools/call params",
               paramsDecoded.left
             )
@@ -279,7 +272,7 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
               toolParams.arguments
             )
             if (Either.isLeft(argsDecoded)) {
-              Console.error(
+              console.error(
                 "claude code server: invalid openFile args",
                 argsDecoded.left
               )
@@ -298,7 +291,6 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
             }
 
             const args = argsDecoded.right
-            Console.log("claude code server: openFile called", args)
 
             // Find which workspace contains this file
             const matchingWorkspace = workspaceFolders.find((folder) =>
@@ -306,7 +298,7 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
             )
 
             if (!matchingWorkspace) {
-              Console.warn(
+              console.warn(
                 "claude code server: file not in any workspace",
                 args.filePath
               )
@@ -364,8 +356,6 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
           ws.send(JSON.stringify(unknownToolResponse))
           return
         }
-
-        Console.log("claude code server: received message", data)
       })
     })
 
@@ -381,11 +371,11 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
       await Effect.runPromise(
         fsService.writeTextFile(lockFilePath, JSON.stringify(lockData))
       )
-      Console.log(
+      console.log(
         `Claude Code Server listening on port ${port}, lock file: ${lockFilePath}`
       )
     } catch (error) {
-      Console.error("Failed to write lock file", error)
+      console.error("Failed to write lock file", error)
     }
 
     // Store state for cleanup and broadcast
@@ -440,7 +430,7 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
       payload
     )
     if (Either.isLeft(decoded)) {
-      Console.error(
+      console.error(
         "claude code server: invalid selection changed payload",
         decoded.left
       )
@@ -455,7 +445,7 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
       payload
     )
     if (Either.isLeft(decoded)) {
-      Console.error(
+      console.error(
         "claude code server: invalid at-mentioned payload",
         decoded.left
       )
@@ -465,37 +455,34 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
   })
 
   // Finalizer only cleans up if server was actually started
-  yield* _(
-    Effect.addFinalizer(() =>
-      Effect.gen(function* (_) {
-        if (!serverState) {
-          Console.log("Claude Code Server: Never started, nothing to clean up")
-          return
-        }
+  yield* Effect.addFinalizer(() =>
+    Effect.gen(function* () {
+      if (!serverState) {
+        return
+      }
 
-        Console.log("Claude Code Server: Stopping...")
-        broadcastClaudeCodeStatus("disconnected")
-        serverState.wss.close()
+      console.log("Claude Code Server: Stopping...")
+      broadcastClaudeCodeStatus("disconnected")
+      serverState.wss.close()
 
-        const exists = yield* _(fsService.exists(serverState.lockFilePath))
-        if (exists) {
-          yield* _(fsService.remove(serverState.lockFilePath))
-        }
-      }).pipe(Effect.catchAll(() => Effect.void))
-    )
+      const exists = yield* fsService.exists(serverState.lockFilePath)
+      if (exists) {
+        yield* fsService.remove(serverState.lockFilePath)
+      }
+    }).pipe(Effect.catchAll(() => Effect.void))
   )
 
   return {
     ensureStarted,
     broadcast,
     isStarted,
-  }
+  } as const
 })
 
 export class ClaudeCodeServer extends Effect.Service<ClaudeCodeServer>()(
   "ClaudeCodeServer",
   {
-    effect: makeClaudeCodeServer,
+    scoped: makeClaudeCodeServer,
     dependencies: [
       ClaudeConfig.Default,
       ClaudeHooksServer.Default,

@@ -7,7 +7,7 @@ import {
 
 import { ClaudeConfig } from "@/services/claude-config"
 import { FileSystem } from "@/services/file-system"
-import { Console, Effect } from "effect"
+import { Effect } from "effect"
 
 import { StatuslineInput } from "@/types/statusline"
 import type { DisplayStatusline } from "@/lib/statusline-parser"
@@ -111,7 +111,7 @@ const handleRequest = async (
           service.processStatusline(parsed as StatuslineInput)
           respondJson(res, 200, { success: true })
         } catch (err) {
-          Console.error("Statusline Server: failed to parse JSON", err)
+          console.error("Statusline Server: failed to parse JSON", err)
           respondJson(res, 400, { error: "Failed to parse JSON" })
         }
       })
@@ -128,7 +128,7 @@ const handleRequest = async (
     // 404 for other routes
     respondJson(res, 404, { error: "Not found" })
   } catch (err) {
-    Console.error("Statusline Server: unexpected error", err)
+    console.error("Statusline Server: unexpected error", err)
     respondJson(res, 500, { error: "Internal server error" })
   }
 }
@@ -140,7 +140,7 @@ const startServerEffect = (
   Effect.async<Server, Error>((resume) => {
     const server = createServer((req, res) => {
       handleRequest(req, res, service).catch((err) => {
-        Console.error("Claude Hooks Server: unhandled request error", err)
+        console.error("Claude Hooks Server: unhandled request error", err)
         respondJson(res, 500, { error: "Internal server error" })
       })
     })
@@ -174,10 +174,10 @@ export interface ClaudeHooksServerService {
   ) => () => void
 }
 
-export const makeClaudeHooksServer = Effect.gen(function* (_) {
-  const claudeConfig = yield* _(ClaudeConfig)
-  const fsService = yield* _(FileSystem)
-  const statuslineService = yield* _(StatuslineService)
+export const makeClaudeHooksServer = Effect.gen(function* () {
+  const claudeConfig = yield* ClaudeConfig
+  const fsService = yield* FileSystem
+  const statuslineService = yield* StatuslineService
 
   let serverState: {
     socketPath: string
@@ -187,26 +187,22 @@ export const makeClaudeHooksServer = Effect.gen(function* (_) {
   let startPromise: Promise<string> | null = null
 
   const doStart = Effect.gen(function* () {
-    yield* _(
-      fsService.createFolder(claudeConfig.configDir, { recursive: true })
-    )
+    yield* fsService.createFolder(claudeConfig.configDir, { recursive: true })
 
     const { socketPath } = claudeConfig
 
     // Clean up any existing socket file (ignore if doesn't exist)
-    const socketExists = yield* _(
-      fsService
-        .exists(socketPath)
-        .pipe(Effect.catchAll(() => Effect.succeed(false)))
-    )
+    const socketExists = yield* fsService
+      .exists(socketPath)
+      .pipe(Effect.catchAll(() => Effect.succeed(false)))
     if (socketExists) {
-      yield* _(
-        fsService.remove(socketPath).pipe(Effect.catchAll(() => Effect.void))
-      )
+      yield* fsService
+        .remove(socketPath)
+        .pipe(Effect.catchAll(() => Effect.void))
     }
 
     // Start the server (waits until it's listening)
-    const server = yield* _(startServerEffect(socketPath, statuslineService))
+    const server = yield* startServerEffect(socketPath, statuslineService)
 
     serverState = { socketPath, server }
     return socketPath
@@ -231,31 +227,29 @@ export const makeClaudeHooksServer = Effect.gen(function* (_) {
   }
 
   // Finalizer to clean up on shutdown
-  yield* _(
-    Effect.addFinalizer(() => {
-      if (!serverState) {
-        return Effect.void
-      }
-      const { server, socketPath } = serverState
-      return Effect.sync(() => server.close()).pipe(
-        Effect.andThen(fsService.remove(socketPath)),
-        Effect.catchAll(() => Effect.void)
-      )
-    })
-  )
+  yield* Effect.addFinalizer(() => {
+    if (!serverState) {
+      return Effect.void
+    }
+    const { server, socketPath } = serverState
+    return Effect.sync(() => server.close()).pipe(
+      Effect.andThen(fsService.remove(socketPath)),
+      Effect.catchAll(() => Effect.void)
+    )
+  })
 
   return {
     ensureStarted,
     isStarted,
     getLastStatusline,
     onStatuslineUpdate,
-  }
+  } as const
 })
 
 export class ClaudeHooksServer extends Effect.Service<ClaudeHooksServer>()(
   "ClaudeHooksServer",
   {
-    effect: makeClaudeHooksServer,
+    scoped: makeClaudeHooksServer,
     dependencies: [
       ClaudeConfig.Default,
       FileSystem.Default,

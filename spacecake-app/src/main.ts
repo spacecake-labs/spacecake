@@ -141,9 +141,9 @@ const AppLive = Layer.mergeAll(
 )
 
 // --- Main Program
-const program = Effect.gen(function* (_) {
-  yield* _(Effect.promise(() => app.whenReady()))
-  yield* _(Effect.promise(() => fixPath()))
+const program = Effect.gen(function* () {
+  yield* Effect.promise(() => app.whenReady())
+  yield* Effect.promise(() => fixPath())
 
   // ensure home folder exists before window creation
   ensureHomeFolderExists()
@@ -166,7 +166,7 @@ const program = Effect.gen(function* (_) {
   createWindow()
 
   // The watcher service still needs its specific layer context
-  yield* _(Effect.fork(watcherService))
+  yield* Effect.fork(watcherService)
 
   app.on("activate", () => {
     // On OS X it's common to re-create a window in the app when the
@@ -190,15 +190,13 @@ const program = Effect.gen(function* (_) {
 
   // will-quit: fires after all windows closed, before actually quitting
   // Use once() so the listener is removed after first invocation
-  yield* _(
-    Effect.async<void>((resume) => {
-      app.once("will-quit", (e) => {
-        console.log("Lifecycle: will-quit - starting graceful shutdown")
-        e.preventDefault()
-        resume(Effect.void)
-      })
+  yield* Effect.async<void>((resume) => {
+    app.once("will-quit", (e) => {
+      console.log("Lifecycle: will-quit - starting graceful shutdown")
+      e.preventDefault()
+      resume(Effect.void)
     })
-  )
+  })
 })
 
 // --- Main Execution
