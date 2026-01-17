@@ -245,6 +245,19 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
             return true
           }
 
+          // Cmd+Backspace → delete to beginning of line (Ctrl+U)
+          if (
+            event.key === "Backspace" &&
+            event.metaKey &&
+            !event.shiftKey &&
+            !event.ctrlKey &&
+            !event.altKey
+          ) {
+            writeTerminal(id, "\x15")
+            event.preventDefault()
+            return true
+          }
+
           return false
         })
 
