@@ -47,7 +47,9 @@ const { title = data.title, tagline } = data.hero || {}
       (
         <div class="sl-flex actions">
           <GitHubDownloadButton platform="macos-arm64" />
-          <GitHubDownloadButton platform="macos-x64" />
+          <div class="desktop-only">
+            <GitHubDownloadButton platform="macos-x64" />
+          </div>
         </div>
       )
     }
@@ -79,7 +81,7 @@ const { title = data.title, tagline } = data.hero || {}
 
     <!-- Integrated Terminal Feature -->
     <div class="grid lg:grid-cols-2 gap-12 items-center">
-      <div class="space-y-6">
+      <div class="space-y-6" style="min-width: 0;">
         <div class="inline-block">
           <span
             class="inline-flex items-center px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-mono text-xs font-medium"
@@ -110,7 +112,7 @@ const { title = data.title, tagline } = data.hero || {}
         </ul>
       </div>
 
-      <div>
+      <div style="min-width: 0;">
         <TerminalPreview />
       </div>
     </div>
@@ -125,6 +127,7 @@ const { title = data.title, tagline } = data.hero || {}
       gap: 2rem;
       padding-bottom: 1rem;
       width: 100%;
+      padding-inline: 1.5rem;
     }
 
     .hero > img,
@@ -134,20 +137,20 @@ const { title = data.title, tagline } = data.hero || {}
       width: 100%;
       max-width: 600px;
       height: auto;
-      margin-inline: auto;
+      margin-inline: 0;
     }
 
     .stack {
       flex-direction: column;
-      align-items: center;
+      align-items: flex-start;
       gap: clamp(1.5rem, calc(1.5rem + 1vw), 2rem);
-      text-align: center;
+      text-align: left;
     }
 
     .copy {
       flex-direction: column;
       gap: 1rem;
-      align-items: center;
+      align-items: flex-start;
     }
 
     .copy > * {
@@ -162,7 +165,7 @@ const { title = data.title, tagline } = data.hero || {}
     .badges-container {
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       gap: 0.75rem;
       flex-wrap: wrap;
     }
@@ -243,7 +246,17 @@ const { title = data.title, tagline } = data.hero || {}
     .actions {
       gap: 1rem;
       flex-wrap: wrap;
-      justify-content: center;
+      justify-content: flex-start;
+    }
+
+    .desktop-only {
+      display: none;
+    }
+
+    @media (min-width: 60rem) {
+      .desktop-only {
+        display: block;
+      }
     }
 
     .status-badge {

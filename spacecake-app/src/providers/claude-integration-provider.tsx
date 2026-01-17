@@ -4,6 +4,7 @@ import { atom, useAtomValue, useSetAtom } from "jotai"
 
 import type { ClaudeCodeStatus } from "@/types/claude-code"
 import { AbsolutePath } from "@/types/workspace"
+import { claudeStatuslineAtom } from "@/lib/atoms/atoms"
 import { encodeBase64Url } from "@/lib/utils"
 
 // Atoms for Claude integration state
@@ -22,6 +23,7 @@ export function ClaudeIntegrationProvider({
   children,
 }: ClaudeIntegrationProviderProps) {
   const setStatus = useSetAtom(claudeStatusAtom)
+  const setStatusline = useSetAtom(claudeStatuslineAtom)
   const serverReady = useAtomValue(claudeServerReadyAtom)
   const setServerReady = useSetAtom(claudeServerReadyAtom)
   const serverStarted = useRef(false)
@@ -48,6 +50,8 @@ export function ClaudeIntegrationProvider({
 
     cleanups.push(window.electronAPI.claude.onStatusChange(setStatus))
 
+    cleanups.push(window.electronAPI.claude.onStatuslineUpdate(setStatusline))
+
     cleanups.push(
       window.electronAPI.claude.onOpenFile((payload) => {
         const workspaceId = encodeBase64Url(payload.workspacePath)
@@ -60,7 +64,7 @@ export function ClaudeIntegrationProvider({
     )
 
     return () => cleanups.forEach((c) => c())
-  }, [serverReady])
+  }, [serverReady, setStatus, setStatusline])
 
   return children
 }

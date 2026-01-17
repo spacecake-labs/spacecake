@@ -20,6 +20,7 @@ const createTestElectronAPI = (
     notifyAtMentioned: async () => {},
     onStatusChange: () => () => {},
     onOpenFile: () => () => {},
+    onStatuslineUpdate: () => () => {},
     ensureServer: async () => {},
   },
   showOpenDialog: async () => ({ canceled: false, filePaths: ["/test/path"] }),

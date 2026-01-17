@@ -1,7 +1,8 @@
 import crypto from "node:crypto"
-import os from "node:os"
 import path from "node:path"
 
+import { ClaudeConfig } from "@/services/claude-config"
+import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
 import { Console, Effect, Either, Schema } from "effect"
 import { BrowserWindow, ipcMain } from "electron"
@@ -19,6 +20,7 @@ import {
   type JsonRpcResponse,
 } from "@/types/rpc"
 import { AbsolutePath } from "@/types/workspace"
+import type { DisplayStatusline } from "@/lib/statusline-parser"
 
 function broadcastClaudeCodeStatus(status: ClaudeCodeStatus) {
   BrowserWindow.getAllWindows().forEach((win) => {
@@ -29,6 +31,12 @@ function broadcastClaudeCodeStatus(status: ClaudeCodeStatus) {
 function broadcastOpenFile(payload: OpenFilePayload) {
   BrowserWindow.getAllWindows().forEach((win) => {
     win.webContents.send("claude:open-file", payload)
+  })
+}
+
+function broadcastStatusline(statusline: DisplayStatusline) {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    win.webContents.send("statusline-update", statusline)
   })
 }
 
@@ -89,7 +97,9 @@ function getRandomPort(): number {
 }
 
 export const makeClaudeCodeServer = Effect.gen(function* (_) {
+  const claudeConfig = yield* _(ClaudeConfig)
   const fsService = yield* _(FileSystem)
+  const hooksServer = yield* _(ClaudeHooksServer)
 
   // Lazy state - server is not started until ensureStarted() is called
   let serverState: {
@@ -134,12 +144,21 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
     const { wss, port } = await Effect.runPromise(startServerEffect)
     const authToken = crypto.randomUUID()
 
-    const homeDir = os.homedir()
-    const claudeDir = path.join(homeDir, ".claude", "ide")
+    // Start the statusline server alongside Claude Code server
+    // (both are related to Claude Code sessions)
+    await hooksServer.ensureStarted()
+
+    // Register statusline update callback to broadcast to renderer
+    hooksServer.onStatuslineUpdate((statusline) => {
+      broadcastStatusline(statusline)
+    })
+
     await Effect.runPromise(
-      fsService.createFolder(claudeDir, { recursive: true })
+      fsService.createFolder(claudeConfig.ideDir, { recursive: true })
     )
-    const lockFilePath = AbsolutePath(path.join(claudeDir, `${port}.lock`))
+    const lockFilePath = AbsolutePath(
+      path.join(claudeConfig.ideDir, `${port}.lock`)
+    )
 
     wss.on("connection", (ws, req) => {
       const authHeader = req.headers["x-claude-code-ide-authorization"]
@@ -477,6 +496,10 @@ export class ClaudeCodeServer extends Effect.Service<ClaudeCodeServer>()(
   "ClaudeCodeServer",
   {
     effect: makeClaudeCodeServer,
-    dependencies: [FileSystem.Default],
+    dependencies: [
+      ClaudeConfig.Default,
+      ClaudeHooksServer.Default,
+      FileSystem.Default,
+    ],
   }
 ) {}

@@ -7,6 +7,7 @@ import { ensureHomeFolderExists } from "@/main-process/home-folder"
 import * as ParcelWatcher from "@/main-process/parcel-watcher"
 import { watcherService } from "@/main-process/watcher"
 import { ClaudeCodeServer } from "@/services/claude-code-server"
+import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { Ipc } from "@/services/ipc"
 import { setupUpdates } from "@/update"
 import { NodeFileSystem } from "@effect/platform-node"
@@ -135,7 +136,8 @@ const WatcherLive = NodeFileSystem.layer.pipe(
 const AppLive = Layer.mergeAll(
   Ipc.Default,
   WatcherLive,
-  ClaudeCodeServer.Default
+  ClaudeCodeServer.Default,
+  ClaudeHooksServer.Default
 )
 
 // --- Main Program

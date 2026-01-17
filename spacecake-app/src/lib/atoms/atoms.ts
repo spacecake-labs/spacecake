@@ -4,6 +4,7 @@ import { SerializedEditorState } from "lexical"
 
 import type { ExpandedFolders, File, FileTree, Folder } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
+import type { DisplayStatusline } from "@/lib/statusline-parser"
 
 export function atomWithToggle(
   initialValue?: boolean
@@ -64,3 +65,6 @@ export const themeAtom = atomWithStorage<Theme>("spacecake-theme", "system")
 
 // terminal shell profile loaded (initialized when bracketed paste mode is enabled)
 export const terminalProfileLoadedAtom = atom<boolean>(false)
+
+// Claude statusline data (model, context usage, cost)
+export const claudeStatuslineAtom = atom<DisplayStatusline | null>(null)

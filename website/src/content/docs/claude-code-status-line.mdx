@@ -1,0 +1,66 @@
+---
+title: claude code status line
+description: Display Claude Code session metrics (model, context usage, cost) in your `spacecake` header.
+---
+
+## overview
+
+`spacecake` can display live Claude Code session metrics in the terminal header badge, including:
+
+- current model name
+- context usage percentage
+- session cost
+
+this requires a one-time setup to configure Claude Code's status line hook.
+
+## 🛠️ setup
+
+### step 1: configure claude code
+
+edit `~/.claude/settings.json` and add the `statusLine` configuration. if the file doesn't exist, create it:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "bash -c 'socketPath=\"${HOME}/.claude/spacecake.sock\"; [ -S \"$socketPath\" ] || exit 0; curl -s -X POST -H \"Content-Type: application/json\" -d @- --unix-socket \"$socketPath\" --max-time 2 http://localhost/statusline >/dev/null 2>&1; exit 0'",
+    "padding": 0
+  }
+}
+```
+
+if you already have other settings in this file, preserve them and add the `statusLine` field.
+
+### step 2: restart claude code
+
+restart Claude Code for the changes to take effect.
+
+### step 3: verify
+
+1. open a Claude Code session in a terminal
+2. open a `spacecake` workspace
+3. you should see the model name, context usage %, and cost in the header badge
+
+## 🔧 how it works
+
+when Claude Code runs the status line hook (every ~300ms):
+
+1. reads session JSON from stdin (containing model, context, cost)
+2. checks if `~/.claude/spacecake.sock` exists (Unix socket)
+3. POSTs the data to `spacecake` via the Unix socket with a 2-second timeout
+4. gracefully handles errors if `spacecake` isn't running
+
+the integration has zero impact on Claude Code if `spacecake` isn't running—the hook simply fails silently.
+
+## ⚙️ troubleshooting
+
+**no data appearing in the header badge?**
+
+- make sure `spacecake` is running
+- verify `~/.claude/settings.json` has the correct `statusLine` configuration
+- restart Claude Code after making changes
+
+**command not found errors?**
+
+- make sure `bash` and `curl` are available in your PATH (standard on macOS/Linux)
+- on Windows, use a bash-compatible shell (WSL, Git Bash, etc.)

@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ClaudeStatusBadge } from "@/components/claude-status-badge"
+import { ClaudeStatuslineBadge } from "@/components/claude-statusline-badge"
 import { DeleteButton } from "@/components/delete-button"
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { GhosttyTerminal, TerminalAPI } from "@/components/ghostty-terminal"
@@ -369,6 +370,7 @@ function LayoutContent() {
                     <TerminalStatusBadge />
                     <div className="flex items-center gap-2">
                       <ClaudeStatusBadge className="text-xs" />
+                      <ClaudeStatuslineBadge className="text-xs" />
                       <DeleteButton
                         onDelete={
                           isTerminalSessionActive

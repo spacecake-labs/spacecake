@@ -7,6 +7,8 @@ import * as React from "react"
 import { act } from "react"
 import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
 import { makeClaudeCodeServer } from "@/services/claude-code-server"
+import { makeClaudeConfigTestLayer } from "@/services/claude-config"
+import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
 import { Effect, Fiber, Layer } from "effect"
 import { Provider } from "jotai"
@@ -79,7 +81,9 @@ afterAll(() => {
 
 // 1. Mock window.electronAPI (Renderer side)
 type StatusChangeCallback = (status: string) => void
+type StatuslineUpdateCallback = (statusline: unknown) => void
 const rendererListeners = new Set<StatusChangeCallback>()
+const statuslineListeners = new Set<StatuslineUpdateCallback>()
 Object.defineProperty(window, "electronAPI", {
   writable: true,
   value: {
@@ -87,6 +91,10 @@ Object.defineProperty(window, "electronAPI", {
       onStatusChange: (callback: StatusChangeCallback) => {
         rendererListeners.add(callback)
         return () => rendererListeners.delete(callback)
+      },
+      onStatuslineUpdate: (callback: StatuslineUpdateCallback) => {
+        statuslineListeners.add(callback)
+        return () => statuslineListeners.delete(callback)
       },
       onOpenFile: () => () => {},
       ensureServer: () => Promise.resolve(),
@@ -139,9 +147,21 @@ const mockFileSystem: Partial<FileSystem> = {
   remove: vi.fn(() => Effect.void),
 }
 
+const mockClaudeHooksServer = {
+  ensureStarted: vi.fn(() => Promise.resolve(10000)),
+  isStarted: vi.fn(() => true),
+  getLastStatusline: vi.fn(() => null),
+  onStatuslineUpdate: vi.fn(() => () => {}),
+}
+
 const FileSystemTestLayer = Layer.succeed(
   FileSystem,
   mockFileSystem as FileSystem
+)
+
+const ClaudeHooksServerTestLayer = Layer.succeed(
+  ClaudeHooksServer,
+  mockClaudeHooksServer as unknown as ClaudeHooksServer
 )
 
 describe("ClaudeStatusBadge Integration", () => {
@@ -155,6 +175,7 @@ describe("ClaudeStatusBadge Integration", () => {
 
     // Reset mocks/state
     rendererListeners.clear()
+    statuslineListeners.clear()
     lockFileData = null
     serverPort = 0
     vi.clearAllMocks()
@@ -178,7 +199,13 @@ describe("ClaudeStatusBadge Integration", () => {
         const serverFiber = yield* _(
           Effect.scoped(
             makeClaudeCodeServer.pipe(
-              Effect.provide(FileSystemTestLayer),
+              Effect.provide(
+                Layer.mergeAll(
+                  makeClaudeConfigTestLayer("/tmp/test-claude"),
+                  FileSystemTestLayer,
+                  ClaudeHooksServerTestLayer
+                )
+              ),
               Effect.tap((server) =>
                 Effect.promise(() => server.ensureStarted(["/test/workspace"]))
               ),

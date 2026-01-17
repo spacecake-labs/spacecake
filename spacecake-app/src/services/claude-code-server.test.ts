@@ -1,6 +1,8 @@
 import path from "path"
 
 import { makeClaudeCodeServer } from "@/services/claude-code-server"
+import { makeClaudeConfigTestLayer } from "@/services/claude-config"
+import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
 import { Effect, Layer } from "effect"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -94,8 +96,22 @@ describe("ClaudeCodeServer", () => {
     }
   })
 
-  const createTestLayer = () =>
-    Layer.succeed(FileSystem, mockFileSystem as FileSystem)
+  const createTestLayer = () => {
+    const mockClaudeHooksServer = {
+      ensureStarted: vi.fn(() => Promise.resolve(10000)),
+      isStarted: vi.fn(() => true),
+      getLastStatusline: vi.fn(() => null),
+      onStatuslineUpdate: vi.fn(() => () => {}),
+    }
+    return Layer.mergeAll(
+      makeClaudeConfigTestLayer("/tmp/test-claude"),
+      Layer.succeed(FileSystem, mockFileSystem as FileSystem),
+      Layer.succeed(
+        ClaudeHooksServer,
+        mockClaudeHooksServer as unknown as ClaudeHooksServer
+      )
+    )
+  }
 
   const runTestServer = () => {
     return Effect.gen(function* (_) {

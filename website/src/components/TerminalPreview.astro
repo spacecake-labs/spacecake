@@ -2,11 +2,12 @@
 
 ---
 
-<div class="relative w-full max-w-[500px] mx-auto overflow-hidden">
+<div class="relative w-full max-w-[500px] mx-auto">
   <div
     class="terminal-container bg-[#0c0c0c] border border-zinc-700 rounded-lg overflow-hidden shadow-xl"
   >
     <!-- Terminal Header -->
+
     <div
       class="flex items-center justify-between px-4 py-1.5 border-b border-zinc-800 bg-[#0a0a0a]"
     >
@@ -24,27 +25,32 @@
           class="text-emerald-400 w-4 h-4"
         >
           <polyline points="4 17 10 11 4 5"></polyline>
+
           <line x1="12" y1="19" x2="20" y2="19"></line>
         </svg>
       </div>
+
       <div class="flex items-center gap-2">
         <div
           class="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-500/30 rounded px-2 py-0.5"
         >
           <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+
           <span class="text-emerald-400 text-xs font-mono">claude</span>
         </div>
       </div>
     </div>
 
     <!-- Terminal Content -->
+
     <div
-      class="bg-[#0a0a0a] p-6 font-mono text-sm min-h-[400px] overflow-x-hidden"
+      class="bg-[#0a0a0a] p-6 font-mono text-sm min-h-[400px] overflow-x-auto"
     >
       <pre
         class="terminal-pre text-emerald-400 whitespace-pre leading-tight"
         id="terminal-ascii">
       </pre>
+
       <span
         class="inline-block w-2 h-4 bg-emerald-400 opacity-100"
         id="ascii-cursor"></span>
