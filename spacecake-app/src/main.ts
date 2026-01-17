@@ -46,8 +46,24 @@ const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
 const isTest = process.env.IS_PLAYWRIGHT === "true"
 const showWindow = process.env.SHOW_WINDOW === "true"
 
-// Track shutdown state for graceful cleanup coordination
-let isShuttingDown = false
+// Lifecycle state tracking (following VSCode pattern)
+let quitRequested = false
+
+// Listener functions defined at module level for reference during removal
+const beforeQuitListener = () => {
+  if (quitRequested) {
+    return
+  }
+  console.log("Lifecycle: before-quit")
+  quitRequested = true
+}
+
+const windowAllClosedListener = () => {
+  console.log("Lifecycle: window-all-closed")
+  if (quitRequested || process.platform !== "darwin") {
+    app.quit()
+  }
+}
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
@@ -158,36 +174,26 @@ const program = Effect.gen(function* (_) {
     }
   })
 
-  // Workaround to prevent macOS complaining that the app 'quit unexpectedly'
-  // when running Playwright tests.
-  if (isTest && process.platform === "darwin") {
-    app.on("before-quit", (e) => {
-      e.preventDefault()
-      app.quit()
+  // Playwright tests: force immediate exit to avoid platform-specific issues
+  // (macOS "unexpected quit" dialog, Linux WebSocket cleanup hangs)
+  if (isTest) {
+    app.once("before-quit", () => {
+      app.exit(0)
     })
   }
 
-  // Quit when all windows are closed, except on macOS. There, it's common
-  // for applications and their menu bar to stay active until the user quits
-  // explicitly with Cmd + Q.
-  app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") {
-      app.quit()
-    }
-  })
+  // Set up lifecycle listeners (following VSCode pattern)
+  app.addListener("before-quit", beforeQuitListener)
+  app.addListener("window-all-closed", windowAllClosedListener)
 
-  // Wait for quit signal, preventing immediate quit to allow cleanup
+  // will-quit: fires after all windows closed, before actually quitting
+  // Use once() so the listener is removed after first invocation
   yield* _(
     Effect.async<void>((resume) => {
-      app.on("will-quit", (e) => {
-        if (!isShuttingDown) {
-          // First quit attempt - prevent default and start cleanup
-          e.preventDefault()
-          isShuttingDown = true
-          console.log("Graceful shutdown initiated, running cleanup...")
-          resume(Effect.void)
-        }
-        // Second quit (after cleanup) - let it through
+      app.once("will-quit", (e) => {
+        console.log("Lifecycle: will-quit - starting graceful shutdown")
+        e.preventDefault()
+        resume(Effect.void)
       })
     })
   )
@@ -202,8 +208,15 @@ const main = program.pipe(
 )
 
 // Run and coordinate graceful shutdown - after all Effect finalizers complete,
-// actually quit the app
+// remove listeners and quit cleanly (following VSCode pattern)
 Effect.runPromise(main).finally(() => {
-  console.log("Effect cleanup complete, quitting app...")
+  console.log(
+    "Lifecycle: Effect cleanup complete, removing listeners and quitting"
+  )
+
+  // Remove listeners before final quit to ensure clean exit path
+  app.removeListener("before-quit", beforeQuitListener)
+  app.removeListener("window-all-closed", windowAllClosedListener)
+
   app.quit()
 })

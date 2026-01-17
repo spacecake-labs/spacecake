@@ -49,7 +49,8 @@ test.describe("slash commands e2e", () => {
 
     // dismiss menu
     await window.keyboard.press("Escape", { delay: 100 })
-    // delete the slash character
+    // delete the slash character and line break
+    await window.keyboard.press("Backspace", { delay: 100 })
     await window.keyboard.press("Backspace", { delay: 100 })
 
     // =========================================================================
