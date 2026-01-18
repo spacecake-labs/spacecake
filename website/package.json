@@ -9,7 +9,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "lint": "eslint --fix --ext .ts,.tsx,.astro .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "astro sync && tsc --noEmit",
     "format": "prettier --log-level warn --write ."
   },
   "devDependencies": {
