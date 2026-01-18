@@ -31,7 +31,7 @@
     "@astrojs/starlight": "^0.37.1",
     "@mux/mux-player-astro": "^3.10.2",
     "@tailwindcss/vite": "^4.1.18",
-    "astro": "^5.6.1",
+    "astro": "^5.16.11",
     "posthog-js": "^1.318.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.1.18"
