@@ -1,38 +1,38 @@
 /**
- * Suppresses duplicate console warnings matching a pattern.
+ * Suppresses duplicate console logs matching a pattern.
  * First N unique occurrences are logged, subsequent ones are silenced.
- * Once maxUnique is reached, all matching warnings are suppressed.
+ * Once maxUnique is reached, all matching logs are suppressed.
  *
- * @param pattern - RegExp to match warning messages
- * @param maxUnique - Maximum unique warnings to log before suppressing all (default: 5)
- * @returns Cleanup function to restore original console.warn
+ * @param pattern - RegExp to match log messages
+ * @param maxUnique - Maximum unique logs to log before suppressing all (default: 5)
+ * @returns Cleanup function to restore original console.log
  */
 export function suppressDuplicateWarnings(
   pattern: RegExp,
   maxUnique: number = 5
 ): () => void {
   const seen = new Set<string>()
-  const originalWarn = console.warn
+  const originalLog = console.log
 
-  console.warn = (...args: unknown[]) => {
+  console.log = (...args: unknown[]) => {
     const msg = String(args[0])
 
     if (pattern.test(msg)) {
-      // Once we've logged maxUnique warnings, suppress everything
+      // Once we've logged maxUnique logs, suppress everything
       if (seen.size >= maxUnique) return
 
       const key = msg.slice(0, 100)
       if (seen.has(key)) return
 
       seen.add(key)
-      originalWarn.apply(console, args)
+      originalLog.apply(console, args)
       return
     }
 
-    originalWarn.apply(console, args)
+    originalLog.apply(console, args)
   }
 
   return () => {
-    console.warn = originalWarn
+    console.log = originalLog
   }
 }

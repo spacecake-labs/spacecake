@@ -4,6 +4,7 @@ import { type Either } from "@/types/adt"
 import {
   AtMentionedPayload,
   ClaudeCodeStatus,
+  OpenFilePayload,
   SelectionChangedPayload,
 } from "@/types/claude-code"
 import { TerminalError } from "@/types/terminal"
@@ -13,6 +14,7 @@ import type {
   FileTree,
   FileTreeEvent,
 } from "@/types/workspace"
+import type { DisplayStatusline } from "@/lib/statusline-parser"
 
 export interface ElectronAPI {
   claude: {
@@ -20,6 +22,10 @@ export interface ElectronAPI {
     notifySelectionChanged: (payload: SelectionChangedPayload) => Promise<void>
     notifyAtMentioned: (payload: AtMentionedPayload) => Promise<void>
     onStatusChange: (handler: (status: ClaudeCodeStatus) => void) => () => void
+    onOpenFile: (handler: (payload: OpenFilePayload) => void) => () => void
+    onStatuslineUpdate: (
+      handler: (statusline: DisplayStatusline) => void
+    ) => () => void
   }
   showOpenDialog: (options: unknown) => Promise<{
     canceled: boolean

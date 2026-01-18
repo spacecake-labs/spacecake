@@ -1,0 +1,55 @@
+name: Website CI
+
+on:
+  push:
+    paths:
+      - "website/**"
+    branches:
+      - "**"
+      - "!main"
+  pull_request:
+    paths:
+      - "website/**"
+    branches:
+      - "**"
+      - "!main"
+  workflow_dispatch:
+
+concurrency:
+  group: website-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./website
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: "./website/pnpm-lock.yaml"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Run checks
+        run: just check

@@ -3,7 +3,6 @@ import { $getNodeByKey, LexicalEditor } from "lexical"
 import { PyBlock } from "@/types/parser"
 import { parseCodeBlocks } from "@/lib/parser/python/blocks"
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
-
 import { maybeSplitBlock } from "@/components/editor/plugins/block-splitting"
 import { maybeUpdateDocstring } from "@/components/editor/plugins/docstring-update"
 

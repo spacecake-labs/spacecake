@@ -42,6 +42,9 @@ e2e-repeat filter="" times="5":
 test:
     just unit && just e2e
 
+ci:
+    just check && just test
+
 coverage:
     just _maybe_package && pnpm run coverage
 

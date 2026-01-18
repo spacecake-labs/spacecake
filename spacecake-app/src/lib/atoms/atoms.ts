@@ -2,9 +2,9 @@ import { atom, WritableAtom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 import { SerializedEditorState } from "lexical"
 
-import type { ClaudeCodeStatus } from "@/types/claude-code"
 import type { ExpandedFolders, File, FileTree, Folder } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
+import type { DisplayStatusline } from "@/lib/statusline-parser"
 
 export function atomWithToggle(
   initialValue?: boolean
@@ -66,9 +66,5 @@ export const themeAtom = atomWithStorage<Theme>("spacecake-theme", "system")
 // terminal shell profile loaded (initialized when bracketed paste mode is enabled)
 export const terminalProfileLoadedAtom = atom<boolean>(false)
 
-// Claude Code IDE connection status
-export const claudeCodeStatusAtom = atom<ClaudeCodeStatus>("disconnected")
-
-claudeCodeStatusAtom.onMount = (setAtom) => {
-  return window.electronAPI.claude.onStatusChange(setAtom)
-}
+// Claude statusline data (model, context usage, cost)
+export const claudeStatuslineAtom = atom<DisplayStatusline | null>(null)

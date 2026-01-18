@@ -3,10 +3,12 @@ import { contextBridge, ipcRenderer } from "electron"
 import {
   AtMentionedPayload,
   ClaudeCodeStatus,
+  OpenFilePayload,
   SelectionChangedPayload,
 } from "@/types/claude-code"
 import type { FileContent, FileTreeEvent } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
+import type { DisplayStatusline } from "@/lib/statusline-parser"
 
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
@@ -30,6 +32,26 @@ contextBridge.exposeInMainWorld("electronAPI", {
       }
       ipcRenderer.on("claude-code-status", listener)
       return () => ipcRenderer.removeListener("claude-code-status", listener)
+    },
+    onOpenFile: (handler: (payload: OpenFilePayload) => void) => {
+      const listener = (
+        _e: Electron.IpcRendererEvent,
+        payload: OpenFilePayload
+      ) => {
+        handler(payload)
+      }
+      ipcRenderer.on("claude:open-file", listener)
+      return () => ipcRenderer.removeListener("claude:open-file", listener)
+    },
+    onStatuslineUpdate: (handler: (statusline: DisplayStatusline) => void) => {
+      const listener = (
+        _e: Electron.IpcRendererEvent,
+        statusline: DisplayStatusline
+      ) => {
+        handler(statusline)
+      }
+      ipcRenderer.on("statusline-update", listener)
+      return () => ipcRenderer.removeListener("statusline-update", listener)
     },
   },
   showOpenDialog: (options: unknown) =>

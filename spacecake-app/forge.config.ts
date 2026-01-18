@@ -132,6 +132,9 @@ const config: ForgeConfig = {
     },
     icon: "./assets/icon", // no file extension required
   },
+  rebuildConfig: {
+    onlyModules: [],
+  },
   makers: [
     new MakerZIP({}, ["darwin"]),
     {

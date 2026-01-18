@@ -1,15 +1,41 @@
 import path from "path"
 
 import { makeClaudeCodeServer } from "@/services/claude-code-server"
+import { makeClaudeConfigTestLayer } from "@/services/claude-config"
+import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
 import { Effect, Layer } from "effect"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import WebSocket from "ws"
 
-import { SelectionChangedPayload } from "@/types/claude-code"
+import { OpenFilePayload, SelectionChangedPayload } from "@/types/claude-code"
 
 interface IpcEvent {
   readonly sender?: unknown
+}
+
+interface ToolsListResponse {
+  readonly jsonrpc: string
+  readonly id: number
+  readonly result: {
+    readonly tools: ReadonlyArray<{
+      readonly name: string
+      readonly description: string
+      readonly inputSchema: unknown
+    }>
+  }
+}
+
+interface ToolCallResponse {
+  readonly jsonrpc: string
+  readonly id: number
+  readonly result: {
+    readonly content: ReadonlyArray<{
+      readonly type: string
+      readonly text: string
+    }>
+    readonly isError?: boolean
+  }
 }
 
 const mocks = vi.hoisted(() => ({
@@ -70,8 +96,22 @@ describe("ClaudeCodeServer", () => {
     }
   })
 
-  const createTestLayer = () =>
-    Layer.succeed(FileSystem, mockFileSystem as FileSystem)
+  const createTestLayer = () => {
+    const mockClaudeHooksServer = {
+      ensureStarted: vi.fn(() => Promise.resolve(10000)),
+      isStarted: vi.fn(() => true),
+      getLastStatusline: vi.fn(() => null),
+      onStatuslineUpdate: vi.fn(() => () => {}),
+    }
+    return Layer.mergeAll(
+      makeClaudeConfigTestLayer("/tmp/test-claude"),
+      Layer.succeed(FileSystem, mockFileSystem as FileSystem),
+      Layer.succeed(
+        ClaudeHooksServer,
+        mockClaudeHooksServer as unknown as ClaudeHooksServer
+      )
+    )
+  }
 
   const runTestServer = () => {
     return Effect.gen(function* (_) {
@@ -325,6 +365,199 @@ describe("ClaudeCodeServer", () => {
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
             "claude-code-status",
             "connected"
+          )
+
+          ws.close()
+        })
+      )
+    )
+  })
+
+  it("should respond to tools/list with available tools including openFile", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const { lockFileData, port } = yield* _(runTestServer())
+          const expectedToken = lockFileData.authToken
+
+          const ws = new WebSocket(`ws://localhost:${port}`, {
+            headers: {
+              "x-claude-code-ide-authorization": expectedToken,
+            },
+          })
+
+          // Wait for connection
+          yield* _(
+            Effect.async<void, Error>((resume) => {
+              ws.on("open", () => resume(Effect.succeed(undefined)))
+              ws.on("error", (err) => resume(Effect.fail(err)))
+            })
+          )
+
+          // Prepare to receive response
+          const responsePromise = new Promise<ToolsListResponse>((resolve) => {
+            ws.once("message", (data) => {
+              resolve(JSON.parse(data.toString()) as ToolsListResponse)
+            })
+          })
+
+          // Send tools/list request
+          const toolsListMessage = {
+            method: "tools/list",
+            jsonrpc: "2.0",
+            id: 1,
+          }
+          ws.send(JSON.stringify(toolsListMessage))
+
+          // Verify response
+          const response = yield* _(Effect.promise(() => responsePromise))
+          expect(response.jsonrpc).toBe("2.0")
+          expect(response.id).toBe(1)
+          expect(response.result.tools).toBeInstanceOf(Array)
+          expect(response.result.tools.length).toBeGreaterThan(0)
+
+          const openFileTool = response.result.tools.find(
+            (t) => t.name === "openFile"
+          )
+          expect(openFileTool).toBeDefined()
+          expect(openFileTool?.description).toContain("Open a file")
+
+          ws.close()
+        })
+      )
+    )
+  })
+
+  it("should handle tools/call openFile and broadcast open-file event", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const { lockFileData, port } = yield* _(runTestServer())
+          const expectedToken = lockFileData.authToken
+
+          const ws = new WebSocket(`ws://localhost:${port}`, {
+            headers: {
+              "x-claude-code-ide-authorization": expectedToken,
+            },
+          })
+
+          // Wait for connection
+          yield* _(
+            Effect.async<void, Error>((resume) => {
+              ws.on("open", () => resume(Effect.succeed(undefined)))
+              ws.on("error", (err) => resume(Effect.fail(err)))
+            })
+          )
+
+          // Prepare to receive response
+          const responsePromise = new Promise<ToolCallResponse>((resolve) => {
+            ws.once("message", (data) => {
+              resolve(JSON.parse(data.toString()) as ToolCallResponse)
+            })
+          })
+
+          // Send tools/call request for openFile
+          const toolCallMessage = {
+            method: "tools/call",
+            params: {
+              name: "openFile",
+              arguments: {
+                filePath: "/test/workspace/src/index.ts",
+              },
+            },
+            jsonrpc: "2.0",
+            id: 2,
+          }
+          ws.send(JSON.stringify(toolCallMessage))
+
+          // Verify response
+          const response = yield* _(Effect.promise(() => responsePromise))
+          expect(response.jsonrpc).toBe("2.0")
+          expect(response.id).toBe(2)
+          expect(response.result.isError).toBeUndefined()
+          expect(response.result.content[0].text).toContain(
+            "Opened file: /test/workspace/src/index.ts"
+          )
+
+          // Verify broadcast was sent
+          yield* _(
+            Effect.promise(async () => {
+              let attempts = 0
+              while (
+                !mocks.webContentsSend.mock.calls.some(
+                  (args: readonly unknown[]) => args[0] === "claude:open-file"
+                ) &&
+                attempts < 20
+              ) {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+                attempts++
+              }
+            })
+          )
+
+          expect(mocks.webContentsSend).toHaveBeenCalledWith(
+            "claude:open-file",
+            expect.objectContaining({
+              workspacePath: "/test/workspace",
+              filePath: "/test/workspace/src/index.ts",
+            } satisfies OpenFilePayload)
+          )
+
+          ws.close()
+        })
+      )
+    )
+  })
+
+  it("should return error when openFile is called with file outside workspace", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const { lockFileData, port } = yield* _(runTestServer())
+          const expectedToken = lockFileData.authToken
+
+          const ws = new WebSocket(`ws://localhost:${port}`, {
+            headers: {
+              "x-claude-code-ide-authorization": expectedToken,
+            },
+          })
+
+          // Wait for connection
+          yield* _(
+            Effect.async<void, Error>((resume) => {
+              ws.on("open", () => resume(Effect.succeed(undefined)))
+              ws.on("error", (err) => resume(Effect.fail(err)))
+            })
+          )
+
+          // Prepare to receive response
+          const responsePromise = new Promise<ToolCallResponse>((resolve) => {
+            ws.once("message", (data) => {
+              resolve(JSON.parse(data.toString()) as ToolCallResponse)
+            })
+          })
+
+          // Send tools/call request with file outside workspace
+          const toolCallMessage = {
+            method: "tools/call",
+            params: {
+              name: "openFile",
+              arguments: {
+                filePath: "/some/other/path/file.ts",
+              },
+            },
+            jsonrpc: "2.0",
+            id: 3,
+          }
+          ws.send(JSON.stringify(toolCallMessage))
+
+          // Verify error response
+          const response = yield* _(Effect.promise(() => responsePromise))
+          expect(response.jsonrpc).toBe("2.0")
+          expect(response.id).toBe(3)
+          expect(response.result.isError).toBe(true)
+          expect(response.result.content[0].text).toContain(
+            "not in any open workspace"
           )
 
           ws.close()

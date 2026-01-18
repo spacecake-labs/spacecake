@@ -7,6 +7,7 @@ import { ensureHomeFolderExists } from "@/main-process/home-folder"
 import * as ParcelWatcher from "@/main-process/parcel-watcher"
 import { watcherService } from "@/main-process/watcher"
 import { ClaudeCodeServer } from "@/services/claude-code-server"
+import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { Ipc } from "@/services/ipc"
 import { setupUpdates } from "@/update"
 import { NodeFileSystem } from "@effect/platform-node"
@@ -46,8 +47,24 @@ const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
 const isTest = process.env.IS_PLAYWRIGHT === "true"
 const showWindow = process.env.SHOW_WINDOW === "true"
 
-// Track shutdown state for graceful cleanup coordination
-let isShuttingDown = false
+// Lifecycle state tracking (following VSCode pattern)
+let quitRequested = false
+
+// Listener functions defined at module level for reference during removal
+const beforeQuitListener = () => {
+  if (quitRequested) {
+    return
+  }
+  console.log("Lifecycle: before-quit")
+  quitRequested = true
+}
+
+const windowAllClosedListener = () => {
+  console.log("Lifecycle: window-all-closed")
+  if (quitRequested || process.platform !== "darwin") {
+    app.quit()
+  }
+}
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
@@ -119,13 +136,14 @@ const WatcherLive = NodeFileSystem.layer.pipe(
 const AppLive = Layer.mergeAll(
   Ipc.Default,
   WatcherLive,
-  ClaudeCodeServer.Default
+  ClaudeCodeServer.Default,
+  ClaudeHooksServer.Default
 )
 
 // --- Main Program
-const program = Effect.gen(function* (_) {
-  yield* _(Effect.promise(() => app.whenReady()))
-  yield* _(Effect.promise(() => fixPath()))
+const program = Effect.gen(function* () {
+  yield* Effect.promise(() => app.whenReady())
+  yield* Effect.promise(() => fixPath())
 
   // ensure home folder exists before window creation
   ensureHomeFolderExists()
@@ -148,7 +166,7 @@ const program = Effect.gen(function* (_) {
   createWindow()
 
   // The watcher service still needs its specific layer context
-  yield* _(Effect.fork(watcherService))
+  yield* Effect.fork(watcherService)
 
   app.on("activate", () => {
     // On OS X it's common to re-create a window in the app when the
@@ -158,39 +176,27 @@ const program = Effect.gen(function* (_) {
     }
   })
 
-  // Workaround to prevent macOS complaining that the app 'quit unexpectedly'
-  // when running Playwright tests.
-  if (isTest && process.platform === "darwin") {
-    app.on("before-quit", (e) => {
-      e.preventDefault()
-      app.quit()
+  // Playwright tests: force immediate exit to avoid platform-specific issues
+  // (macOS "unexpected quit" dialog, Linux WebSocket cleanup hangs)
+  if (isTest) {
+    app.once("before-quit", () => {
+      app.exit(0)
     })
   }
 
-  // Quit when all windows are closed, except on macOS. There, it's common
-  // for applications and their menu bar to stay active until the user quits
-  // explicitly with Cmd + Q.
-  app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") {
-      app.quit()
-    }
-  })
+  // Set up lifecycle listeners (following VSCode pattern)
+  app.addListener("before-quit", beforeQuitListener)
+  app.addListener("window-all-closed", windowAllClosedListener)
 
-  // Wait for quit signal, preventing immediate quit to allow cleanup
-  yield* _(
-    Effect.async<void>((resume) => {
-      app.on("will-quit", (e) => {
-        if (!isShuttingDown) {
-          // First quit attempt - prevent default and start cleanup
-          e.preventDefault()
-          isShuttingDown = true
-          console.log("Graceful shutdown initiated, running cleanup...")
-          resume(Effect.void)
-        }
-        // Second quit (after cleanup) - let it through
-      })
+  // will-quit: fires after all windows closed, before actually quitting
+  // Use once() so the listener is removed after first invocation
+  yield* Effect.async<void>((resume) => {
+    app.once("will-quit", (e) => {
+      console.log("Lifecycle: will-quit - starting graceful shutdown")
+      e.preventDefault()
+      resume(Effect.void)
     })
-  )
+  })
 })
 
 // --- Main Execution
@@ -202,8 +208,15 @@ const main = program.pipe(
 )
 
 // Run and coordinate graceful shutdown - after all Effect finalizers complete,
-// actually quit the app
+// remove listeners and quit cleanly (following VSCode pattern)
 Effect.runPromise(main).finally(() => {
-  console.log("Effect cleanup complete, quitting app...")
+  console.log(
+    "Lifecycle: Effect cleanup complete, removing listeners and quitting"
+  )
+
+  // Remove listeners before final quit to ensure clean exit path
+  app.removeListener("before-quit", beforeQuitListener)
+  app.removeListener("window-all-closed", windowAllClosedListener)
+
   app.quit()
 })

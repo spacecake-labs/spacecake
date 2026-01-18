@@ -1,6 +1,3 @@
-import { Match } from "effect"
-import { describe, expect, test } from "vitest"
-
 import {
   AlreadyExistsError,
   FileSystemError,
@@ -8,6 +5,8 @@ import {
   PermissionDeniedError,
   UnknownFSError,
 } from "@/services/file-system"
+import { Match } from "effect"
+import { describe, expect, test } from "vitest"
 
 describe("FileSystemError tagged classes", () => {
   describe("NotFoundError", () => {

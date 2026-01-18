@@ -1,24 +1,83 @@
 import crypto from "node:crypto"
-import os from "node:os"
 import path from "node:path"
 
+import { ClaudeConfig } from "@/services/claude-config"
+import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
-import { Console, Effect, Either, Schema } from "effect"
+import { Effect, Either, Schema } from "effect"
 import { BrowserWindow, ipcMain } from "electron"
 import { WebSocket, WebSocketServer } from "ws"
 
-import type { ClaudeCodeStatus } from "@/types/claude-code"
+import type { ClaudeCodeStatus, OpenFilePayload } from "@/types/claude-code"
 import {
   AtMentionedPayloadSchema,
+  OpenFileArgsSchema,
   SelectionChangedPayloadSchema,
 } from "@/types/claude-code"
-import { JsonRpcMessageSchema, type JsonRpcResponse } from "@/types/rpc"
+import {
+  JsonRpcMessageSchema,
+  ToolCallParamsSchema,
+  type JsonRpcResponse,
+} from "@/types/rpc"
 import { AbsolutePath } from "@/types/workspace"
+import type { DisplayStatusline } from "@/lib/statusline-parser"
 
 function broadcastClaudeCodeStatus(status: ClaudeCodeStatus) {
   BrowserWindow.getAllWindows().forEach((win) => {
     win.webContents.send("claude-code-status", status)
   })
+}
+
+function broadcastOpenFile(payload: OpenFilePayload) {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    win.webContents.send("claude:open-file", payload)
+  })
+}
+
+function broadcastStatusline(statusline: DisplayStatusline) {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    win.webContents.send("statusline-update", statusline)
+  })
+}
+
+// MCP tool definitions for tools/list response
+const OPEN_FILE_TOOL = {
+  name: "openFile",
+  description:
+    "Open a file in the editor and optionally select a range of text",
+  inputSchema: {
+    type: "object" as const,
+    properties: {
+      filePath: {
+        type: "string",
+        description: "Path to the file to open",
+      },
+      preview: {
+        type: "boolean",
+        description: "Whether to open in preview mode",
+        default: false,
+      },
+      startText: {
+        type: "string",
+        description: "Text pattern to find selection start",
+      },
+      endText: {
+        type: "string",
+        description: "Text pattern to find selection end",
+      },
+      selectToEndOfLine: {
+        type: "boolean",
+        description: "Extend selection to end of line",
+        default: false,
+      },
+      makeFrontmost: {
+        type: "boolean",
+        description: "Make the file the active editor tab",
+        default: true,
+      },
+    },
+    required: ["filePath"],
+  },
 }
 
 export interface ClaudeCodeServerService {
@@ -37,8 +96,10 @@ function getRandomPort(): number {
   )
 }
 
-export const makeClaudeCodeServer = Effect.gen(function* (_) {
-  const fsService = yield* _(FileSystem)
+export const makeClaudeCodeServer = Effect.gen(function* () {
+  const claudeConfig = yield* ClaudeConfig
+  const fsService = yield* FileSystem
+  const hooksServer = yield* ClaudeHooksServer
 
   // Lazy state - server is not started until ensureStarted() is called
   let serverState: {
@@ -46,30 +107,29 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
     port: number
     lockFilePath: AbsolutePath
     authToken: string
+    workspaceFolders: string[]
   } | null = null
 
   let startPromise: Promise<void> | null = null
 
-  const startServerEffect = Effect.gen(function* (_) {
+  const startServerEffect = Effect.gen(function* () {
     const port = getRandomPort()
-    const wss = yield* _(
-      Effect.async<WebSocketServer, Error>((resume) => {
-        const server = new WebSocketServer({ port })
+    const wss = yield* Effect.async<WebSocketServer, Error>((resume) => {
+      const server = new WebSocketServer({ port })
 
-        const onListening = () => {
-          server.removeListener("error", onError)
-          resume(Effect.succeed(server))
-        }
+      const onListening = () => {
+        server.removeListener("error", onError)
+        resume(Effect.succeed(server))
+      }
 
-        const onError = (err: Error) => {
-          server.removeListener("listening", onListening)
-          resume(Effect.fail(err))
-        }
+      const onError = (err: Error) => {
+        server.removeListener("listening", onListening)
+        resume(Effect.fail(err))
+      }
 
-        server.once("listening", onListening)
-        server.once("error", onError)
-      })
-    )
+      server.once("listening", onListening)
+      server.once("error", onError)
+    })
     return { wss, port }
   }).pipe(
     Effect.retry({
@@ -82,26 +142,32 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
     const { wss, port } = await Effect.runPromise(startServerEffect)
     const authToken = crypto.randomUUID()
 
-    const homeDir = os.homedir()
-    const claudeDir = path.join(homeDir, ".claude", "ide")
+    // Start the statusline server alongside Claude Code server
+    // (both are related to Claude Code sessions)
+    await hooksServer.ensureStarted()
+
+    // Register statusline update callback to broadcast to renderer
+    hooksServer.onStatuslineUpdate((statusline) => {
+      broadcastStatusline(statusline)
+    })
+
     await Effect.runPromise(
-      fsService.createFolder(claudeDir, { recursive: true })
+      fsService.createFolder(claudeConfig.ideDir, { recursive: true })
     )
-    const lockFilePath = AbsolutePath(path.join(claudeDir, `${port}.lock`))
+    const lockFilePath = AbsolutePath(
+      path.join(claudeConfig.ideDir, `${port}.lock`)
+    )
 
     wss.on("connection", (ws, req) => {
       const authHeader = req.headers["x-claude-code-ide-authorization"]
       if (authHeader !== authToken) {
-        Console.warn("Claude Code Server: Unauthorized connection attempt")
+        console.warn("Claude Code Server: Unauthorized connection attempt")
         ws.close(1008, "Unauthorized")
         return
       }
 
-      Console.log("Claude Code Server: Client connected")
-
       ws.on("close", () => {
         broadcastClaudeCodeStatus("disconnected")
-        Console.log("Claude Code Server: Client disconnected")
       })
 
       ws.on("message", (message) => {
@@ -109,13 +175,13 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
         try {
           parsed = JSON.parse(message.toString())
         } catch (err) {
-          Console.error("claude code server: failed to parse json", err)
+          console.error("claude code server: failed to parse json", err)
           return
         }
 
         const decoded = Schema.decodeUnknownEither(JsonRpcMessageSchema)(parsed)
         if (Either.isLeft(decoded)) {
-          Console.error(
+          console.error(
             "claude code server: invalid json-rpc message",
             decoded.left
           )
@@ -151,10 +217,145 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
         // Track when Claude Code IDE is fully connected
         if (data.method === "ide_connected") {
           broadcastClaudeCodeStatus("connected")
-          Console.log("claude code server: ide connected and ready")
           return
         }
-        Console.log("claude code server: received message", data)
+
+        // Handle tools/list request - respond with available tools
+        if (
+          data.method === "tools/list" &&
+          data.id !== null &&
+          data.id !== undefined
+        ) {
+          const toolsListResponse = {
+            jsonrpc: "2.0",
+            id: data.id,
+            result: {
+              tools: [OPEN_FILE_TOOL],
+            },
+          } satisfies JsonRpcResponse
+          ws.send(JSON.stringify(toolsListResponse))
+          return
+        }
+
+        // Handle tools/call request
+        if (
+          data.method === "tools/call" &&
+          data.id !== null &&
+          data.id !== undefined
+        ) {
+          const paramsDecoded = Schema.decodeUnknownEither(
+            ToolCallParamsSchema
+          )(data.params)
+          if (Either.isLeft(paramsDecoded)) {
+            console.error(
+              "claude code server: invalid tools/call params",
+              paramsDecoded.left
+            )
+            const errorResponse = {
+              jsonrpc: "2.0",
+              id: data.id,
+              result: {
+                content: [
+                  { type: "text", text: "Error: Invalid tool call params" },
+                ],
+                isError: true,
+              },
+            } satisfies JsonRpcResponse
+            ws.send(JSON.stringify(errorResponse))
+            return
+          }
+
+          const toolParams = paramsDecoded.right
+
+          if (toolParams.name === "openFile") {
+            const argsDecoded = Schema.decodeUnknownEither(OpenFileArgsSchema)(
+              toolParams.arguments
+            )
+            if (Either.isLeft(argsDecoded)) {
+              console.error(
+                "claude code server: invalid openFile args",
+                argsDecoded.left
+              )
+              const errorResponse = {
+                jsonrpc: "2.0",
+                id: data.id,
+                result: {
+                  content: [
+                    { type: "text", text: "Error: Invalid openFile arguments" },
+                  ],
+                  isError: true,
+                },
+              } satisfies JsonRpcResponse
+              ws.send(JSON.stringify(errorResponse))
+              return
+            }
+
+            const args = argsDecoded.right
+
+            // Find which workspace contains this file
+            const matchingWorkspace = workspaceFolders.find((folder) =>
+              args.filePath.startsWith(folder)
+            )
+
+            if (!matchingWorkspace) {
+              console.warn(
+                "claude code server: file not in any workspace",
+                args.filePath
+              )
+              const errorResponse = {
+                jsonrpc: "2.0",
+                id: data.id,
+                result: {
+                  content: [
+                    {
+                      type: "text",
+                      text: `Error: File ${args.filePath} is not in any open workspace`,
+                    },
+                  ],
+                  isError: true,
+                },
+              } satisfies JsonRpcResponse
+              ws.send(JSON.stringify(errorResponse))
+              return
+            }
+
+            // Broadcast to renderer to open the file
+            broadcastOpenFile({
+              workspacePath: matchingWorkspace,
+              filePath: args.filePath,
+            })
+
+            // Send success response
+            const successResponse = {
+              jsonrpc: "2.0",
+              id: data.id,
+              result: {
+                content: [
+                  { type: "text", text: `Opened file: ${args.filePath}` },
+                ],
+              },
+            } satisfies JsonRpcResponse
+            ws.send(JSON.stringify(successResponse))
+            return
+          }
+
+          // Unknown tool
+          const unknownToolResponse = {
+            jsonrpc: "2.0",
+            id: data.id,
+            result: {
+              content: [
+                {
+                  type: "text",
+                  text: `Error: Unknown tool: ${toolParams.name}`,
+                },
+              ],
+              isError: true,
+            },
+          } satisfies JsonRpcResponse
+          ws.send(JSON.stringify(unknownToolResponse))
+          return
+        }
       })
     })
 
@@ -170,15 +371,15 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
       await Effect.runPromise(
         fsService.writeTextFile(lockFilePath, JSON.stringify(lockData))
       )
-      Console.log(
+      console.log(
         `Claude Code Server listening on port ${port}, lock file: ${lockFilePath}`
       )
     } catch (error) {
-      Console.error("Failed to write lock file", error)
+      console.error("Failed to write lock file", error)
     }
 
     // Store state for cleanup and broadcast
-    serverState = { wss, port, lockFilePath, authToken }
+    serverState = { wss, port, lockFilePath, authToken, workspaceFolders }
 
     process.env.CLAUDE_CODE_SSE_PORT = port.toString()
     process.env.ENABLE_IDE_INTEGRATION = "true"
@@ -229,7 +430,7 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
       payload
     )
     if (Either.isLeft(decoded)) {
-      Console.error(
+      console.error(
         "claude code server: invalid selection changed payload",
         decoded.left
       )
@@ -244,7 +445,7 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
       payload
     )
     if (Either.isLeft(decoded)) {
-      Console.error(
+      console.error(
         "claude code server: invalid at-mentioned payload",
         decoded.left
       )
@@ -254,37 +455,38 @@ export const makeClaudeCodeServer = Effect.gen(function* (_) {
   })
 
   // Finalizer only cleans up if server was actually started
-  yield* _(
-    Effect.addFinalizer(() =>
-      Effect.gen(function* (_) {
-        if (!serverState) {
-          Console.log("Claude Code Server: Never started, nothing to clean up")
-          return
-        }
+  yield* Effect.addFinalizer(() =>
+    Effect.gen(function* () {
+      if (!serverState) {
+        return
+      }
 
-        Console.log("Claude Code Server: Stopping...")
-        broadcastClaudeCodeStatus("disconnected")
-        serverState.wss.close()
+      console.log("Claude Code Server: Stopping...")
+      broadcastClaudeCodeStatus("disconnected")
+      serverState.wss.close()
 
-        const exists = yield* _(fsService.exists(serverState.lockFilePath))
-        if (exists) {
-          yield* _(fsService.remove(serverState.lockFilePath))
-        }
-      }).pipe(Effect.catchAll(() => Effect.void))
-    )
+      const exists = yield* fsService.exists(serverState.lockFilePath)
+      if (exists) {
+        yield* fsService.remove(serverState.lockFilePath)
+      }
+    }).pipe(Effect.catchAll(() => Effect.void))
   )
 
   return {
     ensureStarted,
     broadcast,
     isStarted,
-  }
+  } as const
 })
 
 export class ClaudeCodeServer extends Effect.Service<ClaudeCodeServer>()(
   "ClaudeCodeServer",
   {
-    effect: makeClaudeCodeServer,
-    dependencies: [FileSystem.Default],
+    scoped: makeClaudeCodeServer,
+    dependencies: [
+      ClaudeConfig.Default,
+      ClaudeHooksServer.Default,
+      FileSystem.Default,
+    ],
   }
 ) {}

@@ -5,7 +5,10 @@ import path from "path"
 
 import * as React from "react"
 import { act } from "react"
+import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
 import { makeClaudeCodeServer } from "@/services/claude-code-server"
+import { makeClaudeConfigTestLayer } from "@/services/claude-config"
+import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
 import { Effect, Fiber, Layer } from "effect"
 import { Provider } from "jotai"
@@ -23,6 +26,37 @@ import {
 import WebSocket from "ws"
 
 import { ClaudeStatusBadge } from "@/components/claude-status-badge"
+
+// Mock web-tree-sitter to avoid WASM loading issues in tests
+vi.mock("web-tree-sitter", () => {
+  return {
+    Parser: class {
+      static init = vi.fn()
+      setLanguage = vi.fn()
+      parse = vi.fn(() => ({
+        rootNode: {
+          children: [],
+        },
+      }))
+    },
+  }
+})
+
+vi.mock("@/lib/parser/languages", () => {
+  const mockQuery = {
+    exec: () => [],
+  }
+
+  const mockLanguage = {
+    query: () => mockQuery,
+  }
+
+  return {
+    default: Promise.resolve({
+      Python: mockLanguage,
+    }),
+  }
+})
 
 // Suppress act() warnings for this integration test - WebSocket message handling
 // is async and can't be wrapped in act() without blocking the event loop
@@ -47,7 +81,9 @@ afterAll(() => {
 
 // 1. Mock window.electronAPI (Renderer side)
 type StatusChangeCallback = (status: string) => void
+type StatuslineUpdateCallback = (statusline: unknown) => void
 const rendererListeners = new Set<StatusChangeCallback>()
+const statuslineListeners = new Set<StatuslineUpdateCallback>()
 Object.defineProperty(window, "electronAPI", {
   writable: true,
   value: {
@@ -56,6 +92,12 @@ Object.defineProperty(window, "electronAPI", {
         rendererListeners.add(callback)
         return () => rendererListeners.delete(callback)
       },
+      onStatuslineUpdate: (callback: StatuslineUpdateCallback) => {
+        statuslineListeners.add(callback)
+        return () => statuslineListeners.delete(callback)
+      },
+      onOpenFile: () => () => {},
+      ensureServer: () => Promise.resolve(),
     },
   },
 })
@@ -105,9 +147,21 @@ const mockFileSystem: Partial<FileSystem> = {
   remove: vi.fn(() => Effect.void),
 }
 
+const mockClaudeHooksServer = {
+  ensureStarted: vi.fn(() => Promise.resolve(10000)),
+  isStarted: vi.fn(() => true),
+  getLastStatusline: vi.fn(() => null),
+  onStatuslineUpdate: vi.fn(() => () => {}),
+}
+
 const FileSystemTestLayer = Layer.succeed(
   FileSystem,
   mockFileSystem as FileSystem
+)
+
+const ClaudeHooksServerTestLayer = Layer.succeed(
+  ClaudeHooksServer,
+  mockClaudeHooksServer as unknown as ClaudeHooksServer
 )
 
 describe("ClaudeStatusBadge Integration", () => {
@@ -121,6 +175,7 @@ describe("ClaudeStatusBadge Integration", () => {
 
     // Reset mocks/state
     rendererListeners.clear()
+    statuslineListeners.clear()
     lockFileData = null
     serverPort = 0
     vi.clearAllMocks()
@@ -144,7 +199,13 @@ describe("ClaudeStatusBadge Integration", () => {
         const serverFiber = yield* _(
           Effect.scoped(
             makeClaudeCodeServer.pipe(
-              Effect.provide(FileSystemTestLayer),
+              Effect.provide(
+                Layer.mergeAll(
+                  makeClaudeConfigTestLayer("/tmp/test-claude"),
+                  FileSystemTestLayer,
+                  ClaudeHooksServerTestLayer
+                )
+              ),
               Effect.tap((server) =>
                 Effect.promise(() => server.ensureStarted(["/test/workspace"]))
               ),
@@ -155,16 +216,24 @@ describe("ClaudeStatusBadge Integration", () => {
 
         // 2. Render the Component
         // We render immediately to catch the status updates
+        // The provider is enabled immediately so listeners are set up after ensureServer resolves
         yield* _(
           Effect.promise(async () => {
             await act(async () => {
               if (!root) throw new Error("root is not initialized")
               root.render(
                 <Provider>
-                  <ClaudeStatusBadge />
+                  <ClaudeIntegrationProvider
+                    workspacePath="/test/workspace"
+                    enabled={true}
+                  >
+                    <ClaudeStatusBadge />
+                  </ClaudeIntegrationProvider>
                 </Provider>
               )
             })
+            // Wait for the provider to set up listeners after ensureServer resolves
+            await new Promise((resolve) => setTimeout(resolve, 50))
           })
         )
 

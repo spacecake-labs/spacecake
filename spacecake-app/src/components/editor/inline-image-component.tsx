@@ -46,9 +46,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { InlineImageNode } from "@/components/editor/nodes/inline-image-node"
-
 import { ContentEditable } from "@/components/editor/content-editable"
+import { InlineImageNode } from "@/components/editor/nodes/inline-image-node"
 
 const imageCache = new Set()
 

@@ -276,7 +276,7 @@ export class Database extends Effect.Service<Database>()("Database", {
           return yield* query((_) =>
             _.delete(fileTable).where(eq(fileTable.path, filePath)).returning()
           ).pipe(
-            singleResult(() => new PgliteError({ cause: "file not deleted" }))
+            maybeSingleResult()
             // Effect.tap((deletedFiles) =>
             //   Effect.log("db: deleted file:", deletedFiles)
             // )

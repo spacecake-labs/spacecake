@@ -36,7 +36,13 @@ export default defineConfig({
       sidebar: [
         {
           label: "📖",
-          items: [{ label: "getting started", slug: "getting-started" }],
+          items: [
+            { label: "getting started", slug: "getting-started" },
+            {
+              label: "claude code integration",
+              slug: "claude-code-integration",
+            },
+          ],
         },
       ],
       components: {

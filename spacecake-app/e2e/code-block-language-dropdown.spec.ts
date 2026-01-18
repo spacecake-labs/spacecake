@@ -1,9 +1,9 @@
 import fs from "fs"
 import path from "path"
 
-import { LANGUAGE_SUPPORT } from "@/types/language"
-
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+
+import { LANGUAGE_SUPPORT } from "@/types/language"
 
 test.describe("code block language dropdown e2e", () => {
   test("language dropdown: change language, verify all options, and disabled for Python files", async ({

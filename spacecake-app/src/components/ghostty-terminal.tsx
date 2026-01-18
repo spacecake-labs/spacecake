@@ -99,6 +99,37 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         const fitAddon = new FitAddon()
         term.loadAddon(fitAddon)
 
+        // HACK: Override proposeDimensions to not reserve 15px for scrollbar.
+        // The original implementation subtracts a hardcoded 15px scrollbar width
+        // which creates uneven padding since we've disabled the scrollbar.
+        const originalProposeDimensions =
+          fitAddon.proposeDimensions.bind(fitAddon)
+        fitAddon.proposeDimensions = () => {
+          const dimensions = originalProposeDimensions()
+          if (!dimensions) return dimensions
+
+          const renderer = term.renderer
+          if (!renderer || typeof renderer.getMetrics !== "function") {
+            return dimensions
+          }
+
+          const metrics = renderer.getMetrics()
+          if (!metrics || metrics.width === 0) return dimensions
+
+          // Add back the 15px that was subtracted for scrollbar, then recalculate cols
+          const element = terminalRef.current
+          if (!element) return dimensions
+
+          const style = window.getComputedStyle(element)
+          const paddingLeft = Number.parseInt(style.paddingLeft) || 0
+          const paddingRight = Number.parseInt(style.paddingRight) || 0
+          const availableWidth =
+            element.clientWidth - paddingLeft - paddingRight
+          const cols = Math.max(2, Math.floor(availableWidth / metrics.width))
+
+          return { cols, rows: dimensions.rows }
+        }
+
         // attach to DOM
         // HACK: ghostty-web automatically calls focus() at the end of open().
         // If autoFocus is false, we temporarily override the focus method to a no-op
@@ -214,6 +245,19 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
             return true
           }
 
+          // Cmd+Backspace → delete to beginning of line (Ctrl+U)
+          if (
+            event.key === "Backspace" &&
+            event.metaKey &&
+            !event.shiftKey &&
+            !event.ctrlKey &&
+            !event.altKey
+          ) {
+            writeTerminal(id, "\x15")
+            event.preventDefault()
+            return true
+          }
+
           return false
         })
 
@@ -308,7 +352,7 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         ref={terminalRef}
         // p-4 on the terminal container and box-border to ensure padding is included
         // in the element's total width and height, which is what FitAddon measures.
-        className="w-full h-full overflow-hidden p-4 box-border [&_textarea]:caret-transparent! [&_textarea]:outline-none!"
+        className="w-full h-full overflow-hidden p-4 box-border [&_textarea]:caret-transparent! [&_textarea]:outline-none! [&_canvas]:mx-auto"
       />
       {error && (
         <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-100 px-4 py-2 text-sm font-mono">
