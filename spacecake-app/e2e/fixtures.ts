@@ -93,6 +93,14 @@ export const test = base.extend<TestFixtures>({
 
     await use(app)
 
+    // Gracefully exit with code 0 to prevent macOS "quit unexpectedly" dialog.
+    // app.close() alone may kill the process ungracefully, triggering the dialog.
+    try {
+      await app.evaluate(({ app }) => app.exit(0))
+    } catch {
+      // app may have already closed, ignore
+    }
+
     // On Linux, graceful close can hang due to WebSocket cleanup issues.
     // Use a timeout with force-kill fallback. Shorter timeout on CI since
     // speed matters more than graceful cleanup there.
