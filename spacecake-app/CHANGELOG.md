@@ -1,5 +1,13 @@
 # spacecake-app
 
+## 0.1.0-alpha.37
+
+### Patch Changes
+
+- 0c74119: Claude Code openFile tool.
+- c34901a: Fix cmd+backspace in Ghostty.
+- 5bd6d88: Adding Claude Code status line.
+
 ## 0.1.0-alpha.36
 
 ### Patch Changes
