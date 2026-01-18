@@ -1,19 +1,29 @@
 ---
-title: claude code status line
-description: Display Claude Code session metrics (model, context usage, cost) in your `spacecake` header.
+title: claude code integration
+description: Connect Claude Code to `spacecake` for file context and live session metrics.
 ---
 
 ## overview
 
-`spacecake` can display live Claude Code session metrics in the terminal header badge, including:
+`spacecake` integrates with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) to give Claude context about your open files and display live session metrics.
+
+## connecting claude code
+
+run `claude` from the integrated terminal - it should automatically connect to spacecake, giving Claude context about your open files.
+
+if Claude shows "IDE disconnected", run `/ide` to check the connection status. you should see spacecake listed and can select it to reconnect.
+
+a green `claude` status badge in the header indicates an active Claude session is connected.
+
+## status line
+
+you can display live Claude Code session metrics in the terminal header badge, including:
 
 - current model name
 - context usage percentage
 - session cost
 
 this requires a one-time setup to configure Claude Code's status line hook.
-
-## 🛠️ setup
 
 ### step 1: configure claude code
 
@@ -41,7 +51,7 @@ restart Claude Code for the changes to take effect.
 2. open a `spacecake` workspace
 3. you should see the model name, context usage %, and cost in the header badge
 
-## 🔧 how it works
+## how it works
 
 when Claude Code runs the status line hook (every ~300ms):
 
@@ -52,9 +62,14 @@ when Claude Code runs the status line hook (every ~300ms):
 
 the integration has zero impact on Claude Code if `spacecake` isn't running—the hook simply fails silently.
 
-## ⚙️ troubleshooting
+## troubleshooting
 
-**no data appearing in the header badge?**
+**IDE disconnected?**
+
+- run `/ide` in Claude Code to check connection status
+- select spacecake from the list to reconnect
+
+**no status line data appearing?**
 
 - make sure `spacecake` is running
 - verify `~/.claude/settings.json` has the correct `statusLine` configuration
