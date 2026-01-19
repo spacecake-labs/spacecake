@@ -19,6 +19,9 @@ export function atomWithToggle(
 
 export const quickOpenMenuOpenAtom = atomWithToggle(false)
 
+// Save feedback state per file (shows tick/cross after save)
+export const saveResultAtom = atom<"success" | "error" | null>(null)
+
 export const fileTreeAtom = atom<FileTree>([])
 
 export const expandedFoldersAtom = atom<ExpandedFolders>({})
