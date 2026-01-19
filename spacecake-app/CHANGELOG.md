@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.38
+
+### Patch Changes
+
+- 111e942: Recover watcher on failure.
+
 ## 0.1.0-alpha.37
 
 ### Patch Changes
