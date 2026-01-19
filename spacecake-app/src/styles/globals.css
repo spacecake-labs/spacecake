@@ -140,6 +140,12 @@
   /* Prevent layout shift when scrollbar appears */
   .ContentEditable__root {
     scrollbar-gutter: stable;
+    font-size: 1rem;
+  }
+
+  /* Reset inline code to inherit font-size from parent */
+  .ContentEditable__root code {
+    font-size: inherit;
   }
 
   *::-webkit-scrollbar {
