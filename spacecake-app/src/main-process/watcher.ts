@@ -2,14 +2,15 @@ import path from "path"
 
 import { FileSystem } from "@effect/platform"
 import type { PlatformError } from "@effect/platform/Error"
-import { Effect, Fiber, Match, Option, Queue, Stream } from "effect"
+import { Effect, Fiber, Match, Option, Queue, Schedule, Stream } from "effect"
 import { BrowserWindow } from "electron"
 
 import { AbsolutePath, ETag, FileTreeEvent } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
 import { fileTypeFromFileName } from "@/lib/workspace"
 
-function convertToFileTreeEvent(
+/** Exported for testing */
+export function convertToFileTreeEvent(
   fileEvent: FileSystem.WatchEvent,
   workspacePath: AbsolutePath
 ): Effect.Effect<FileTreeEvent | null, never, FileSystem.FileSystem> {
@@ -26,30 +27,48 @@ function convertToFileTreeEvent(
   }
 
   const match = Match.type<FileSystem.WatchEvent>().pipe(
-    Match.tag("Create", (event) => {
-      const ext = path.extname(event.path)
-      if (ext) {
-        const etag: ETag = { mtime: new Date(), size: 0 }
-        return Effect.succeed({
-          kind: "addFile" as const,
-          path: AbsolutePath(event.path),
-          etag,
-        })
-      } else {
-        return Effect.succeed({
-          kind: "addFolder" as const,
-          path: AbsolutePath(event.path),
-        })
-      }
-    }),
+    Match.tag("Create", (event) =>
+      Effect.gen(function* (_) {
+        const fs = yield* _(FileSystem.FileSystem)
+        const stats = yield* _(fs.stat(event.path))
+
+        if (stats.type === "Directory") {
+          return {
+            kind: "addFolder" as const,
+            path: AbsolutePath(event.path),
+          }
+        } else {
+          const etag: ETag = {
+            mtime: Option.getOrElse(stats.mtime, () => new Date()),
+            size: Number(stats.size),
+          }
+          return {
+            kind: "addFile" as const,
+            path: AbsolutePath(event.path),
+            etag,
+          }
+        }
+      }).pipe(
+        // On error (file already deleted, etc.), skip the event
+        Effect.catchAll(() => Effect.succeed(null))
+      )
+    ),
     Match.tag("Update", (event) =>
       Effect.gen(function* (_) {
         const fs = yield* _(FileSystem.FileSystem)
+
+        // Stat first to check if it's a directory
+        const stats = yield* _(fs.stat(event.path))
+
+        // Skip directories - they don't have "content changes"
+        if (stats.type === "Directory") {
+          return null
+        }
+
         const content = yield* _(fs.readFileString(event.path))
         const fileName = path.basename(event.path)
         const fileType = fileTypeFromFileName(fileName)
         const cid = fnv1a64Hex(content)
-        const stats = yield* _(fs.stat(event.path))
         const etag: ETag = {
           mtime: Option.getOrElse(stats.mtime, () => new Date()),
           size: Number(stats.size),
@@ -63,14 +82,8 @@ function convertToFileTreeEvent(
           cid,
         }
       }).pipe(
-        Effect.catchAll(() => {
-          const etag: ETag = { mtime: new Date(Date.now()), size: 0 }
-          return Effect.succeed({
-            kind: "addFile" as const,
-            path: AbsolutePath(event.path),
-            etag,
-          })
-        })
+        // On any error (file deleted, permission denied, etc.), skip the event
+        Effect.catchAll(() => Effect.succeed(null))
       )
     ),
     Match.tag("Remove", (event) => {
@@ -121,6 +134,13 @@ export const watcherService = Effect.gen(function* (_) {
 
             yield* _(Effect.log(`starting watcher for ${path}`))
 
+            // Retry schedule: exponential backoff starting at 1s, with jitter,
+            // capped at 30s between retries. Retries forever.
+            const retrySchedule = Schedule.exponential("1 second").pipe(
+              Schedule.jittered,
+              Schedule.union(Schedule.spaced("30 seconds"))
+            )
+
             const watchStream = fs.watch(path, { recursive: true }).pipe(
               Stream.runForEach((fileEvent) =>
                 convertToFileTreeEvent(fileEvent, path).pipe(
@@ -134,7 +154,14 @@ export const watcherService = Effect.gen(function* (_) {
                       : Effect.void
                   )
                 )
-              )
+              ),
+              Effect.tapError((e) =>
+                Effect.log(
+                  `watcher for ${path} encountered error, will retry`,
+                  e
+                )
+              ),
+              Effect.retry(retrySchedule)
             )
 
             const fiber = yield* _(Effect.fork(watchStream))
