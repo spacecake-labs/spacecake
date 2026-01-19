@@ -5,6 +5,9 @@
 GEMINI.md
 .gemini*
 
+# Private experimental code
+recorder/
+
 # Logs
 logs
 *.log

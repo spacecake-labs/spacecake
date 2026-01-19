@@ -10,6 +10,7 @@ if (typeof window !== "undefined" && !posthog.__loaded) {
     capture_exceptions: true,
     cookieless_mode: "always",
     person_profiles: "identified_only",
+    advanced_disable_feature_flags: true, // disabled until cookieless + file:// protocol is supported
     debug: false,
   })
   posthog.register_once({

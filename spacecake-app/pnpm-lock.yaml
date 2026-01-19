@@ -246,6 +246,9 @@ importers:
       '@changesets/cli':
         specifier: ^2.29.7
         version: 2.29.8(@types/node@24.10.4)
+      '@effect/vitest':
+        specifier: ^0.27.0
+        version: 0.27.0(effect@3.19.14)(vitest@3.2.4(@types/node@24.10.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.4.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
       '@electron-forge/cli':
         specifier: ^7.9.0
         version: 7.10.2(@swc/core@1.15.8)(encoding@0.1.13)(esbuild@0.25.12)
@@ -799,6 +802,12 @@ packages:
       '@effect/experimental': ^0.55.0
       '@effect/platform': ^0.91.0
       effect: ^3.17.14
+
+  '@effect/vitest@0.27.0':
+    resolution: {integrity: sha512-8bM7n9xlMUYw9GqPIVgXFwFm2jf27m/R7psI64PGpwU5+26iwyxp9eAXEsfT5S6lqztYfpQQ1Ubp5o6HfNYzJQ==}
+    peerDependencies:
+      effect: ^3.19.0
+      vitest: ^3.2.0
 
   '@effect/workflow@0.10.3':
     resolution: {integrity: sha512-TaFrxGmkDXi7qB7cPk7Iy4MwxtLfDE3dImlRhliHLwyWORaeFC1jBY5KjewyAszCeSO0XE9meqa4zFMNmp+meA==}
@@ -8267,6 +8276,11 @@ snapshots:
       '@effect/platform': 0.91.1(effect@3.19.14)
       effect: 3.19.14
       uuid: 11.1.0
+
+  '@effect/vitest@0.27.0(effect@3.19.14)(vitest@3.2.4(@types/node@24.10.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.4.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))':
+    dependencies:
+      effect: 3.19.14
+      vitest: 3.2.4(@types/node@24.10.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.4.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
 
   '@effect/workflow@0.10.3(@effect/platform@0.91.1(effect@3.19.14))(@effect/rpc@0.70.2(@effect/platform@0.91.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)':
     dependencies:
