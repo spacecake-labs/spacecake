@@ -57,6 +57,9 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   const addonRef = useRef<FitAddon | null>(null)
   const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingResizeRef = useRef<{ cols: number; rows: number } | null>(null)
+  const appShortcutHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(
+    null
+  )
 
   const [error, setError] = useState<string | null>(null)
   const [profileLoaded, setTerminalProfileLoaded] = useAtom(
@@ -200,6 +203,8 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
 
         // Handle special key combinations that ghostty-web doesn't fully support.
         // Return true = prevent default (we handled it), false = allow normal handling
+        // Note: App shortcuts (Cmd+O/P/B/N/S) are intercepted by the capture-phase
+        // handler above and re-dispatched to document, so they won't reach here.
         term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
           if (event.type !== "keydown") return false
 
@@ -261,6 +266,40 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
           return false
         })
 
+        // Intercept app shortcuts BEFORE they reach Ghostty's internal handlers.
+        // We add this on the container div in the capture phase so it fires before
+        // Ghostty's textarea receives the event.
+        const containerEl = terminalRef.current
+        appShortcutHandlerRef.current = (event: KeyboardEvent) => {
+          const isMod = event.metaKey || event.ctrlKey
+          if (isMod && !event.shiftKey && !event.altKey) {
+            const key = event.key.toLowerCase()
+            // App shortcuts: O=open workspace, P=quick open, B=sidebar, N=new file, S=save
+            const appShortcuts = ["o", "p", "b", "n", "s"]
+            if (appShortcuts.includes(key)) {
+              // Stop propagation so Ghostty doesn't capture it
+              event.stopPropagation()
+              // Re-dispatch a clone to document so global handlers can process it
+              const clone = new KeyboardEvent("keydown", {
+                key: event.key,
+                code: event.code,
+                metaKey: event.metaKey,
+                ctrlKey: event.ctrlKey,
+                shiftKey: event.shiftKey,
+                altKey: event.altKey,
+                bubbles: true,
+                cancelable: true,
+              })
+              document.dispatchEvent(clone)
+            }
+          }
+        }
+        containerEl.addEventListener(
+          "keydown",
+          appShortcutHandlerRef.current,
+          true
+        ) // capture phase
+
         // notify parent that terminal is ready
         const api: TerminalAPI = {
           fit: () => fitAddon.fit(),
@@ -303,6 +342,15 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
       restoreWarnings()
       if (resizeTimeoutRef.current !== null) {
         clearTimeout(resizeTimeoutRef.current)
+      }
+      // Remove app shortcut handler
+      if (terminalRef.current && appShortcutHandlerRef.current) {
+        terminalRef.current.removeEventListener(
+          "keydown",
+          appShortcutHandlerRef.current,
+          true
+        )
+        appShortcutHandlerRef.current = null
       }
       killTerminal(id)
       delete window.__terminalAPI

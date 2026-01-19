@@ -66,7 +66,8 @@ export function SaveCommandPlugin() {
     )
   }, [editor, sendFileState, selectedFilePath, cancelDebounce])
 
-  // Register keyboard shortcut for Cmd/Ctrl+S
+  // Register keyboard shortcut for Cmd/Ctrl+S via Lexical's command system
+  // (handles events that reach the editor directly)
   useEffect(() => {
     return editor.registerCommand(
       KEY_DOWN_COMMAND,
@@ -85,6 +86,27 @@ export function SaveCommandPlugin() {
       },
       COMMAND_PRIORITY_HIGH
     )
+  }, [editor])
+
+  // Also register at document level for events dispatched from terminal/other sources
+  // (e.g., when terminal intercepts Cmd+S and re-dispatches to document)
+  useEffect(() => {
+    const handleDocumentKeyDown = (event: KeyboardEvent) => {
+      // Skip if already handled (e.g., by Lexical's KEY_DOWN_COMMAND)
+      if (event.defaultPrevented) return
+
+      const isSave =
+        (event.metaKey || event.ctrlKey) &&
+        (event.key === "s" || event.key === "S")
+
+      if (isSave) {
+        event.preventDefault()
+        editor.dispatchCommand(SAVE_FILE_COMMAND, undefined)
+      }
+    }
+
+    document.addEventListener("keydown", handleDocumentKeyDown)
+    return () => document.removeEventListener("keydown", handleDocumentKeyDown)
   }, [editor])
 
   return null
