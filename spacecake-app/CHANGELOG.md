@@ -1,5 +1,12 @@
 # spacecake-app
 
+## 0.1.0-alpha.39
+
+### Patch Changes
+
+- 24197bb: Linux AppImage build.
+- 24197bb: Ability to revert a file (discard cached state).
+
 ## 0.1.0-alpha.38
 
 ### Patch Changes
