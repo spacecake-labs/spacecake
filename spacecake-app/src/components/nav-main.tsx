@@ -1,7 +1,7 @@
 import * as React from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { FileWarning, Loader2Icon, Trash2 } from "lucide-react"
+import { useAtom, useAtomValue, useSetAtom, useStore } from "jotai"
+import { FileWarning, Loader2Icon, RotateCcw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { match } from "@/types/adt"
@@ -12,8 +12,10 @@ import {
   deletionStateAtom,
   editingItemAtom,
   isCreatingInContextAtom,
+  revertStateAtom,
 } from "@/lib/atoms/atoms"
 import {
+  fileStateAtomFamily,
   flatVisibleTreeAtom,
   sortedFileTreeAtom,
   type FlatFileTreeItem,
@@ -99,6 +101,7 @@ export function NavMain({
   // Removed global subscription to contextItemNameAtom here
   const setContextItemName = useSetAtom(contextItemNameAtom)
   const [deletionState, setDeletionState] = useAtom(deletionStateAtom)
+  const [revertState, setRevertState] = useAtom(revertStateAtom)
 
   const route = useRoute()
   const selectedFilePath = route?.filePath || null
@@ -364,6 +367,36 @@ export function NavMain({
     setDeletionState({ item: null, isOpen: false, isDeleting: false })
   }
 
+  const handleStartRevertCallback = React.useCallback(
+    (item: File) => {
+      setRevertState({
+        filePath: AbsolutePath(item.path),
+        fileName: item.name,
+        isOpen: true,
+        isReverting: false,
+      })
+    },
+    [setRevertState]
+  )
+
+  const store = useStore()
+
+  const handleConfirmRevert = () => {
+    if (!revertState.isOpen) return
+    setRevertState({ ...revertState, isReverting: true })
+    // Use store.set directly to ensure we target the correct file's state machine
+    store.set(fileStateAtomFamily(revertState.filePath), {
+      type: "file.revert",
+    })
+    setTimeout(() => {
+      setRevertState({ isOpen: false })
+    }, 150)
+  }
+
+  const handleCancelRevert = () => {
+    setRevertState({ isOpen: false })
+  }
+
   const handleCancelCreation = () => {
     setIsCreatingInContext(null)
     setContextItemName("")
@@ -457,6 +490,7 @@ export function NavMain({
                         onFolderToggle={handleFolderToggleCallback}
                         onStartRename={handleStartRenameCallback}
                         onStartDelete={handleStartDeleteCallback}
+                        onStartRevert={handleStartRevertCallback}
                         onCreateFile={handleCreateFile}
                         onCreateFolder={handleCreateFolder}
                         selectedFilePath={initialSelectedFilePath}
@@ -551,6 +585,53 @@ export function NavMain({
                 <Trash2 className="mr-1 h-3 w-3" />
               )}
               delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Revert Confirmation Dialog */}
+      <Dialog
+        open={revertState.isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTimeout(() => {
+              setRevertState({ isOpen: false })
+            }, 150)
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>revert file</DialogTitle>
+            <DialogDescription>
+              are you sure you want to revert '
+              {revertState.isOpen ? revertState.fileName : ""}'?
+              <br />
+              all unsaved changes will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCancelRevert}
+              disabled={revertState.isOpen && revertState.isReverting}
+              className="cursor-pointer"
+            >
+              cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmRevert}
+              disabled={revertState.isOpen && revertState.isReverting}
+              className="cursor-pointer"
+            >
+              {revertState.isOpen && revertState.isReverting ? (
+                <Loader2Icon className="mr-1 h-3 w-3 animate-spin" />
+              ) : (
+                <RotateCcw className="mr-1 h-3 w-3" />
+              )}
+              revert
             </Button>
           </DialogFooter>
         </DialogContent>

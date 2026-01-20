@@ -81,12 +81,14 @@ function ItemDropdownMenu({
   item,
   onStartRename,
   onStartDelete,
+  onStartRevert,
   isRenaming,
   onExpandFolder,
 }: {
   item: File | Folder
   onStartRename: (item: File | Folder) => void
   onStartDelete: (item: File | Folder) => void
+  onStartRevert?: (item: File) => void
   isRenaming: boolean
   onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
 }) {
@@ -96,6 +98,11 @@ function ItemDropdownMenu({
     isCreatingInContextAtom
   )
   const setContextItemName = useSetAtom(contextItemNameAtom)
+
+  // Check if file is dirty (only for files)
+  const isFile = item.kind === "file"
+  const fileState = useAtomValue(fileStateAtomFamily(item.path))
+  const isDirty = isFile && fileState.value === "Dirty"
 
   const itemTitle = item.name
   const itemPath = item.path
@@ -165,6 +172,11 @@ function ItemDropdownMenu({
             <DropdownMenuItem onClick={() => onStartDelete(item)}>
               <span>delete</span>
             </DropdownMenuItem>
+            {!isItemFolder && isDirty && (
+              <DropdownMenuItem onClick={() => onStartRevert?.(item as File)}>
+                <span>revert</span>
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -315,6 +327,7 @@ export interface TreeRowProps {
   onFolderToggle: (folderPath: Folder["path"]) => void
   onStartRename: (item: File | Folder) => void
   onStartDelete: (item: File | Folder) => void
+  onStartRevert?: (item: File) => void
   onCreateFile: (name: string) => void
   onCreateFolder: (name: string) => void
   selectedFilePath?: AbsolutePath | null
@@ -353,6 +366,7 @@ export const TreeRow = React.memo(function TreeRow({
   onFolderToggle,
   onStartRename,
   onStartDelete,
+  onStartRevert,
   onCreateFile: _onCreateFile,
   onCreateFolder: _onCreateFolder,
   selectedFilePath,
@@ -406,6 +420,7 @@ export const TreeRow = React.memo(function TreeRow({
           item={item}
           onStartRename={onStartRename}
           onStartDelete={onStartDelete}
+          onStartRevert={onStartRevert}
           isRenaming={isRenaming}
           onExpandFolder={onExpandFolder}
         />
@@ -453,6 +468,7 @@ export const TreeRow = React.memo(function TreeRow({
           item={item}
           onStartRename={onStartRename}
           onStartDelete={onStartDelete}
+          onStartRevert={onStartRevert}
           isRenaming={isRenaming}
           onExpandFolder={onExpandFolder}
         />

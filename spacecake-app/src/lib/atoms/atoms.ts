@@ -61,6 +61,18 @@ export const deletionStateAtom = atom<{
   isDeleting: false,
 })
 
+// Revert state atoms
+export type RevertState =
+  | { isOpen: false }
+  | {
+      isOpen: true
+      filePath: AbsolutePath
+      fileName: string
+      isReverting: boolean
+    }
+
+export const revertStateAtom = atom<RevertState>({ isOpen: false })
+
 export type Theme = "light" | "dark" | "system"
 
 // theme state (persisted)

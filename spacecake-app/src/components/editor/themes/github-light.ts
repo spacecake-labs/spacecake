@@ -39,7 +39,7 @@ const editorTheme = EditorView.theme(
     "&": {
       color: colors.foreground,
       backgroundColor: colors.background,
-      fontSize: "13px",
+      fontSize: "12px",
     },
     ".cm-content": {
       caretColor: colors.cursor,

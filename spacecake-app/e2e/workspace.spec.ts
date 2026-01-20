@@ -837,4 +837,69 @@ test.describe("spacecake app", () => {
     const fileContent = fs.readFileSync(testFilePath, "utf-8")
     expect(fileContent).toContain("... some new text")
   })
+
+  test("file revert discards changes and restores original content", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    // 1. Setup: Create a test file with known content
+    const testFilePath = path.join(tempTestDir, "test-revert.md")
+    fs.writeFileSync(testFilePath, "# Original content")
+
+    const window = await electronApp.firstWindow()
+
+    // 2. Open the workspace
+    await waitForWorkspace(window)
+
+    // 3. Click on the file to open it
+    await window.getByRole("button", { name: "test-revert.md" }).click()
+
+    // 4. Verify the editor is visible and has the initial content
+    const editor = window.getByTestId("lexical-editor")
+    await expect(editor).toBeVisible()
+    await expect(editor.getByText("Original content")).toBeVisible()
+
+    // 5. Type some text to make the file dirty
+    await editor.getByText("Original content").click()
+    await window.keyboard.press("End") // ensure cursor is at end of line
+    await window.keyboard.type(" EDITED", { delay: 50 })
+
+    // 6. Verify the dirty indicator and edited content
+    const dirtyRow = window.getByTitle("test-revert.md (dirty)")
+    await expect(dirtyRow).toBeVisible()
+    await expect(editor.getByText("Original content EDITED")).toBeVisible()
+
+    // 7. Open dropdown and click revert
+    await window.getByTestId("more-options-test-revert.md").click()
+    await window.getByRole("menuitem", { name: "revert" }).click()
+
+    // 8. Verify revert confirmation dialog appears
+    await expect(
+      window.getByRole("dialog", { name: "revert file" })
+    ).toBeVisible()
+    await expect(
+      window.getByText("are you sure you want to revert 'test-revert.md'?")
+    ).toBeVisible()
+
+    // 9. Cancel the revert - should remain dirty with edited content
+    await window.getByRole("button", { name: "cancel" }).click()
+    await expect(
+      window.getByRole("dialog", { name: "revert file" })
+    ).not.toBeVisible()
+    await expect(dirtyRow).toBeVisible()
+    await expect(editor.getByText("Original content EDITED")).toBeVisible()
+
+    // 10. Open dropdown and click revert again
+    await window.getByTestId("more-options-test-revert.md").click()
+    await window.getByRole("menuitem", { name: "revert" }).click()
+
+    // 11. Confirm the revert
+    await window.getByRole("button", { name: "revert" }).click()
+
+    // 12. Verify file is now clean and content is restored to original
+    await expect(dirtyRow).not.toBeVisible()
+    await expect(window.getByTitle("test-revert.md (clean)")).toBeVisible()
+    await expect(editor.getByText("Original content")).toBeVisible()
+    await expect(editor.getByText("Original content EDITED")).not.toBeVisible()
+  })
 })
