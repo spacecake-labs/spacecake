@@ -22,6 +22,7 @@ type FileStateMachineContext = {
   filePath: AbsolutePath
   fileType: FileType
   invalidateRoute: () => Promise<void>
+  epoch: number
 }
 
 type FILE_STATE_KEYS = {
@@ -49,12 +50,19 @@ type FileStateMachineEvent =
   | { type: "file.resolve.overwrite" }
   | { type: "file.resolve.discard" }
   | { type: "file.reload" }
+  | { type: "file.revert" }
 
 export const fileStateMachine = setup({
   types: {
     context: {} as FileStateMachineContext,
     events: {} as FileStateMachineEvent,
     input: {} as FileStateMachineContext,
+  },
+
+  actions: {
+    incrementEpoch: assign({
+      epoch: ({ context }) => context.epoch + 1,
+    }),
   },
 
   actors: {
@@ -112,6 +120,7 @@ export const fileStateMachine = setup({
       filePath: input.filePath,
       fileType: input.fileType,
       invalidateRoute: router.invalidate,
+      epoch: 0,
     }
   },
   states: {
@@ -132,6 +141,7 @@ export const fileStateMachine = setup({
       on: {
         "file.save": "Saving",
         "file.external.change": "Conflict",
+        "file.revert": "ClearingEditorStates",
       },
     },
     Saving: {
@@ -216,6 +226,7 @@ export const fileStateMachine = setup({
       },
     },
     ClearingEditorStates: {
+      entry: "incrementEpoch",
       invoke: {
         src: "clearEditorStatesForFile",
         input: ({ context }: { context: FileStateMachineContext }) => ({

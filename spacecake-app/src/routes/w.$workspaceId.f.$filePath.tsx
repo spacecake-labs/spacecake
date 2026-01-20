@@ -112,7 +112,8 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 
         const cid =
           result.content.kind === "state" ? ZERO_HASH : result.content.data.cid
-        const key = `${filePath}-${result.viewKind}-${cid}`
+        const epoch = store.get(fileStateAtomFamily(filePath)).context.epoch
+        const key = `${filePath}-${result.viewKind}-${cid}-${epoch}`
 
         return {
           filePath,

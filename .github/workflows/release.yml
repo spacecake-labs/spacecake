@@ -62,6 +62,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt install -y squashfs-tools
+
       - name: Load certificates (macOS)
         if: runner.os == 'macOS'
         uses: apple-actions/import-codesign-certs@v3

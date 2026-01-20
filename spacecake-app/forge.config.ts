@@ -54,6 +54,11 @@ function getPlatformArchSpecificPackages(
   return [...universalPackages, ...platformSpecific]
 }
 
+const commonLinuxConfig = {
+  categories: ["Development"] as ("Development" | "Utility")[],
+  homepage: "https://spacecake.ai",
+}
+
 const config: ForgeConfig = {
   hooks: {
     async packageAfterCopy(
@@ -144,11 +149,15 @@ const config: ForgeConfig = {
       },
     },
     new MakerDeb({
-      options: {
-        categories: ["Development"],
-        homepage: "https://spacecake.ai",
-      },
+      options: commonLinuxConfig,
     }),
+    {
+      name: "@reforged/maker-appimage",
+      platforms: ["linux"],
+      config: {
+        options: commonLinuxConfig,
+      },
+    },
   ],
   publishers: [
     {
