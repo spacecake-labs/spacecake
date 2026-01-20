@@ -4,24 +4,34 @@ import { getDownloadUrl } from "../lib/github-releases"
 interface DownloadRow {
   platform: string
   architecture: string
-  githubPlatform: "macos-arm64" | "macos-x64" | "debian-x64"
+  format: string
+  githubPlatform: "macos-arm64" | "macos-x64" | "debian-x64" | "linux-x64"
 }
 
 const downloadRows: DownloadRow[] = [
   {
     platform: "macOS",
     architecture: "apple silicon",
+    format: "dmg",
     githubPlatform: "macos-arm64",
   },
   {
     platform: "macOS",
     architecture: "intel",
+    format: "dmg",
     githubPlatform: "macos-x64",
   },
   {
     platform: "debian",
     architecture: "x86-64",
+    format: "deb",
     githubPlatform: "debian-x64",
+  },
+  {
+    platform: "linux",
+    architecture: "x86-64",
+    format: "appimage",
+    githubPlatform: "linux-x64",
   },
 ]
 
@@ -59,6 +69,7 @@ const downloads = await Promise.all(
           <tr>
             <th>platform</th>
             <th>architecture</th>
+            <th>format</th>
             <th>download</th>
           </tr>
         </thead>
@@ -68,6 +79,7 @@ const downloads = await Promise.all(
               <tr>
                 <td>{row.platform}</td>
                 <td class="monospace">{row.architecture}</td>
+                <td class="monospace">{row.format}</td>
                 <td class="download-cell">
                   {row.downloadUrl ? (
                     <a

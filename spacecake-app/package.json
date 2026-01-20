@@ -53,6 +53,7 @@
     "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
     "@lexical/headless": "^0.39.0",
     "@playwright/test": "^1.57.0",
+    "@reforged/maker-appimage": "^5.1.1",
     "@tanstack/router-plugin": "^1.132.7",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/jest": "^30.0.0",
