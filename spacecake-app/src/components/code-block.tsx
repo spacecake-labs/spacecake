@@ -76,8 +76,8 @@ export function CodeBlock({
       : doc?.between.substring(firstLineBreak + 1).trimStart()
 
   const availableLanguages = Object.entries(LANGUAGE_SUPPORT).map(
-    ([_, spec]) => ({
-      value: spec.codemirrorName,
+    ([fileType, spec]) => ({
+      value: fileType,
       label: spec.name.toLowerCase(),
     })
   )

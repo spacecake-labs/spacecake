@@ -22,7 +22,10 @@ export const LanguageSchema = Schema.Union(
   Schema.Literal(FileType.YAML),
   Schema.Literal(FileType.TOML),
   Schema.Literal(FileType.CSS),
-  Schema.Literal(FileType.Shell)
+  Schema.Literal(FileType.Shell),
+  Schema.Literal(FileType.Bash),
+  Schema.Literal(FileType.Zsh),
+  Schema.Literal(FileType.XML)
 )
 export type Language = typeof LanguageSchema.Type
 
@@ -184,8 +187,29 @@ export const LANGUAGE_SUPPORT: Record<FileType, LanguageSpec> = {
   [FileType.Shell]: {
     name: "Shell",
     code: "sh",
-    extensions: new Set([".sh", ".bash", ".ksh"]),
+    extensions: new Set([".sh", ".ksh"]),
     supportedViews: new Set(["source"]),
     codemirrorName: "shell",
+  },
+  [FileType.Bash]: {
+    name: "Bash",
+    code: "bash",
+    extensions: new Set([".bash"]),
+    supportedViews: new Set(["source"]),
+    codemirrorName: "shell",
+  },
+  [FileType.Zsh]: {
+    name: "Zsh",
+    code: "zsh",
+    extensions: new Set([".zsh"]),
+    supportedViews: new Set(["source"]),
+    codemirrorName: "shell",
+  },
+  [FileType.XML]: {
+    name: "XML",
+    code: "xml",
+    extensions: new Set([".xml", ".xsl", ".xslt", ".xsd", ".svg", ".plist"]),
+    supportedViews: new Set(["source"]),
+    codemirrorName: "xml",
   },
 }

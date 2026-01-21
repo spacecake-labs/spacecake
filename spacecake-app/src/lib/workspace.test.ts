@@ -47,9 +47,9 @@ describe("fileTypeFromLanguage", () => {
     ["css", FileType.CSS],
     ["CSS", FileType.CSS],
     ["shell", FileType.Shell],
-    ["bash", FileType.Shell],
     ["sh", FileType.Shell],
-    ["zsh", FileType.Shell],
+    ["bash", FileType.Bash],
+    ["zsh", FileType.Zsh],
   ])("returns correct FileType for language: %s", (language, expectedType) => {
     expect(fileTypeFromLanguage(language)).toBe(expectedType)
   })
@@ -134,7 +134,8 @@ describe("fileTypeFromFileName", () => {
     ["test.toml", FileType.TOML],
     ["test.css", FileType.CSS],
     ["test.sh", FileType.Shell],
-    ["test.bash", FileType.Shell],
+    ["test.bash", FileType.Bash],
+    ["test.zsh", FileType.Zsh],
     ["test.ksh", FileType.Shell],
     ["test", FileType.Plaintext],
   ])("returns correct FileType for file: %s", (fileName, expectedType) => {
