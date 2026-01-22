@@ -14,6 +14,7 @@ import {
   resizeTerminal,
   writeTerminal,
 } from "@/lib/terminal"
+import { cn } from "@/lib/utils"
 import { useTheme } from "@/components/theme-provider"
 
 export interface TerminalAPI {
@@ -29,6 +30,7 @@ interface GhosttyTerminalProps {
   onReady?: (api: TerminalAPI) => void
   autoFocus?: boolean
   cwd?: string
+  className?: string
 }
 
 const terminalTheme: Record<"light" | "dark", ITheme> = {
@@ -51,6 +53,7 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
   onReady,
   autoFocus = false,
   cwd,
+  className,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<Terminal | null>(null)
@@ -414,7 +417,10 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         ref={terminalRef}
         // p-4 on the terminal container and box-border to ensure padding is included
         // in the element's total width and height, which is what FitAddon measures.
-        className="w-full h-full overflow-hidden p-4 box-border [&_textarea]:caret-transparent! [&_textarea]:outline-none! [&_canvas]:mx-auto"
+        className={cn(
+          "w-full h-full overflow-hidden p-4 box-border [&_textarea]:caret-transparent! [&_textarea]:outline-none! [&_canvas]:mx-auto",
+          className
+        )}
       />
       {error && (
         <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-100 px-4 py-2 text-sm font-mono">
