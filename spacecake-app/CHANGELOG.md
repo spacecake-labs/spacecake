@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.40
+
+### Patch Changes
+
+- e05a738: Introducing docking system for terminal panel.
+
 ## 0.1.0-alpha.39
 
 ### Patch Changes
