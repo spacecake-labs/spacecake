@@ -67,9 +67,19 @@ export function fileTypeFromExtension(extension: string): FileType {
     case "css":
       return FileType.CSS
     case "sh":
-    case "bash":
     case "ksh":
       return FileType.Shell
+    case "bash":
+      return FileType.Bash
+    case "zsh":
+      return FileType.Zsh
+    case "xml":
+    case "xsl":
+    case "xslt":
+    case "xsd":
+    case "svg":
+    case "plist":
+      return FileType.XML
     default:
       return FileType.Plaintext
   }
@@ -127,10 +137,14 @@ export function fileTypeFromLanguage(language: string): FileType {
     case "css":
       return FileType.CSS
     case "shell":
-    case "bash":
     case "sh":
-    case "zsh":
       return FileType.Shell
+    case "bash":
+      return FileType.Bash
+    case "zsh":
+      return FileType.Zsh
+    case "xml":
+      return FileType.XML
     default:
       return FileType.Plaintext
   }
@@ -200,7 +214,11 @@ export function fileTypeEmoji(fileType: FileType): string {
     case FileType.CSS:
       return "🎨"
     case FileType.Shell:
+    case FileType.Bash:
+    case FileType.Zsh:
       return "🐚"
+    case FileType.XML:
+      return "📑"
     case FileType.Plaintext:
     default:
       return "📄"

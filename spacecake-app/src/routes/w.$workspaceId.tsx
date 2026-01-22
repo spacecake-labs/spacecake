@@ -3,9 +3,12 @@
  * If the workspace path is not valid, it redirects to the home route.
  */
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { FileStateHydrationEvent } from "@/machines/file-tree"
 import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
+import { WorkspacePrimaryKey } from "@/schema/workspace"
+import type { DockPosition, WorkspaceLayout } from "@/schema/workspace-layout"
+import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
   createFileRoute,
@@ -14,9 +17,18 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router"
-import { Match } from "effect"
-import { useAtom, useSetAtom } from "jotai"
-import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
+import { Effect, Match } from "effect"
+import { useSetAtom } from "jotai"
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  PanelBottom,
+  PanelLeft,
+  PanelRight,
+} from "lucide-react"
+import type { ImperativePanelHandle } from "react-resizable-panels"
 
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
@@ -24,18 +36,28 @@ import {
   WorkspaceNotAccessible,
   WorkspaceNotFound,
 } from "@/types/workspace-error"
-import {
-  atomWithToggle,
-  contextItemNameAtom,
-  isCreatingInContextAtom,
-} from "@/lib/atoms/atoms"
+import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { fileStateAtomFamily, setFileTreeAtom } from "@/lib/atoms/file-tree"
 import { exists, readDirectory } from "@/lib/fs"
 import { store } from "@/lib/store"
-import { cn, condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
+import {
+  cn,
+  condensePath,
+  debounce,
+  decodeBase64Url,
+  encodeBase64Url,
+} from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
+import { useGhosttyEngine } from "@/hooks/use-ghostty-engine"
 import { useRoute } from "@/hooks/use-route"
+import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   ResizableHandle,
   ResizablePanel,
@@ -51,13 +73,11 @@ import { ClaudeStatusBadge } from "@/components/claude-status-badge"
 import { ClaudeStatuslineBadge } from "@/components/claude-statusline-badge"
 import { DeleteButton } from "@/components/delete-button"
 import { EditorToolbar } from "@/components/editor/toolbar"
-import { GhosttyTerminal, TerminalAPI } from "@/components/ghostty-terminal"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
+import { TerminalMountPoint } from "@/components/terminal-mount-point"
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
-
-const isTerminalCollapsedAtom = atomWithToggle(true)
 
 export const Route = createFileRoute("/w/$workspaceId")({
   beforeLoad: async ({ params, context }) => {
@@ -107,6 +127,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
     return {
       workspace: {
+        id: workspace.id as WorkspacePrimaryKey,
         path: workspacePath,
         name: workspacePath.split("/").pop() || "spacecake",
       },
@@ -150,6 +171,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
     return {
       workspace: {
+        id: workspace.id,
         path: workspace.path,
         name: workspace.path.split("/").pop() || "spacecake",
       },
@@ -226,39 +248,248 @@ function HeaderToolbar() {
   )
 }
 
+// Dock position dropdown - shows current dock icon and allows switching
+function DockPositionDropdown({
+  currentDock,
+  onDockChange,
+}: {
+  currentDock: DockPosition
+  onDockChange: (dock: DockPosition) => void
+}) {
+  const CurrentIcon =
+    currentDock === "left"
+      ? PanelLeft
+      : currentDock === "right"
+        ? PanelRight
+        : PanelBottom
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          aria-label="change dock position"
+          title="change dock position"
+        >
+          <CurrentIcon className="h-3.5 w-3.5" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align={currentDock === "right" ? "end" : "start"}>
+        {currentDock !== "left" && (
+          <DropdownMenuItem
+            onClick={() => onDockChange("left")}
+            className="cursor-pointer"
+          >
+            <PanelLeft className="h-4 w-4" />
+            dock left
+          </DropdownMenuItem>
+        )}
+        {currentDock !== "bottom" && (
+          <DropdownMenuItem
+            onClick={() => onDockChange("bottom")}
+            className="cursor-pointer"
+          >
+            <PanelBottom className="h-4 w-4" />
+            dock bottom
+          </DropdownMenuItem>
+        )}
+        {currentDock !== "right" && (
+          <DropdownMenuItem
+            onClick={() => onDockChange("right")}
+            className="cursor-pointer"
+          >
+            <PanelRight className="h-4 w-4" />
+            dock right
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 function LayoutContent() {
-  const { workspace } = Route.useLoaderData()
-  const { isMobile } = useSidebar()
+  const { workspace } = Route.useRouteContext()
+  const { isMobile, open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
   const navigate = useNavigate()
+  const sidebarPanelRef = useRef<ImperativePanelHandle>(null)
   const verticalPanelGroupRef =
     useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
-  const terminalApiRef = useRef<TerminalAPI | null>(null)
+
+  // Sync sidebar open/close state with the resizable panel
+  useEffect(() => {
+    const panel = sidebarPanelRef.current
+    if (!panel) return
+    if (sidebarOpen) {
+      panel.expand()
+    } else {
+      panel.collapse()
+    }
+  }, [sidebarOpen])
 
   // this hook is still needed here because AppSidebar needs the path as a prop
   const route = useRoute()
   const selectedFilePath = route?.filePath || null
 
-  const [isTerminalCollapsed, setIsTerminalCollapsed] = useAtom(
-    isTerminalCollapsedAtom
-  )
+  // Get layout from database with live updates
+  const { layout } = useWorkspaceLayout(workspace.id)
+  const terminalDock = layout.panel.terminal.dock
+  const dockState = layout.dock[terminalDock]
+  const isTerminalExpanded = dockState.isExpanded
+  const terminalSize = dockState.size
+  const isTerminalCollapsed = !isTerminalExpanded
+
   const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
 
-  // reset terminal panel size when toggling collapse state
+  const {
+    containerEl: terminalContainerEl,
+    error: terminalError,
+    fit: terminalFit,
+  } = useGhosttyEngine({
+    id: "main-terminal",
+    enabled: isTerminalSessionActive,
+    cwd: workspace.path,
+  })
+
+  const handleTerminalMount = useCallback(() => {
+    terminalFit()
+  }, [terminalFit])
+
+  const terminalPanelRef = useRef<HTMLDivElement>(null)
+  const [terminalPanelHeight, setTerminalPanelHeight] = useState(0)
+
+  // Measure terminal panel height for rotated toolbar
+  useEffect(() => {
+    if (terminalDock === "bottom" || !terminalPanelRef.current) return
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setTerminalPanelHeight(entry.contentRect.height)
+      }
+    })
+    resizeObserver.observe(terminalPanelRef.current)
+    return () => resizeObserver.disconnect()
+  }, [terminalDock])
+
+  // Helper to persist layout changes
+  const updateLayout = useCallback(
+    (updater: (current: WorkspaceLayout) => WorkspaceLayout) => {
+      const newLayout = updater(layout)
+      RuntimeClient.runPromise(
+        Effect.gen(function* () {
+          const db = yield* Database
+          yield* db.updateWorkspaceLayout(workspace.id, newLayout)
+        })
+      )
+    },
+    [layout, workspace.id]
+  )
+
+  const setTerminalExpanded = useCallback(
+    (expanded: boolean) => {
+      updateLayout((current) => ({
+        ...current,
+        dock: {
+          ...current.dock,
+          [current.panel.terminal.dock]: {
+            ...current.dock[current.panel.terminal.dock],
+            isExpanded: expanded,
+          },
+        },
+      }))
+    },
+    [updateLayout]
+  )
+
+  const setTerminalDock = useCallback(
+    (dock: DockPosition) => {
+      updateLayout((current) => {
+        const currentDock = current.panel.terminal.dock
+        if (currentDock === dock) return current
+        // Move terminal to new dock, preserving expanded state
+        const wasExpanded = current.dock[currentDock].isExpanded
+        return {
+          ...current,
+          dock: {
+            ...current.dock,
+            // Collapse old dock
+            [currentDock]: { ...current.dock[currentDock], isExpanded: false },
+            // Expand new dock
+            [dock]: { ...current.dock[dock], isExpanded: wasExpanded },
+          },
+          panel: {
+            ...current.panel,
+            terminal: { ...current.panel.terminal, dock },
+          },
+        }
+      })
+    },
+    [updateLayout]
+  )
+
+  // Track pending terminal size for debounced saves
+  const pendingTerminalSizeRef = useRef<number | null>(null)
+
+  // Keep updateLayout in a ref so debounced callback always has current version
+  const updateLayoutRef = useRef(updateLayout)
+  updateLayoutRef.current = updateLayout
+
+  // Debounced save for terminal resize - only save after resize stops for 250ms
+  const debouncedSaveTerminalSize = useRef(
+    debounce(() => {
+      const newSize = pendingTerminalSizeRef.current
+      if (newSize !== null) {
+        updateLayoutRef.current((current) => {
+          const dock = current.panel.terminal.dock
+          return {
+            ...current,
+            dock: {
+              ...current.dock,
+              [dock]: { ...current.dock[dock], size: newSize },
+            },
+          }
+        })
+        pendingTerminalSizeRef.current = null
+      }
+    }, 250)
+  ).current
+
+  // Handle terminal resize - debounce persistence to avoid excessive DB writes
+  const handleTerminalResize = useCallback(
+    (sizes: number[]) => {
+      // Terminal panel index depends on dock position (left = index 0, otherwise index 1)
+      const terminalIndex = terminalDock === "left" ? 0 : 1
+      const newSize = sizes[terminalIndex]
+      // Only persist if terminal is expanded and size is meaningful
+      if (newSize > 0 && isTerminalExpanded) {
+        pendingTerminalSizeRef.current = newSize
+        debouncedSaveTerminalSize.schedule()
+      }
+    },
+    [isTerminalExpanded, debouncedSaveTerminalSize, terminalDock]
+  )
+
+  // reset terminal panel size when toggling collapse state or changing dock position
   useEffect(() => {
     if (verticalPanelGroupRef.current) {
-      // reset to default layout: 70% for editor, 30% for terminal
-      verticalPanelGroupRef.current.setLayout(
-        isTerminalCollapsed ? [100, 0] : [70, 30]
-      )
+      // Layout order depends on dock position (left = terminal first, otherwise editor first)
+      const terminalFirst = terminalDock === "left"
+      const layout = isTerminalCollapsed
+        ? terminalFirst
+          ? [0, 100]
+          : [100, 0]
+        : terminalFirst
+          ? [terminalSize, 100 - terminalSize]
+          : [100 - terminalSize, terminalSize]
+      verticalPanelGroupRef.current.setLayout(layout)
       // when expanding, fit the terminal to the new size
-      if (!isTerminalCollapsed && terminalApiRef.current) {
+      if (!isTerminalCollapsed) {
         // use requestAnimationFrame to ensure layout has settled
         requestAnimationFrame(() => {
-          terminalApiRef.current?.fit()
+          terminalFit()
         })
       }
     }
-  }, [isTerminalCollapsed])
+  }, [isTerminalCollapsed, terminalSize, terminalDock])
 
   const handleFileClick = (filePath: AbsolutePath) => {
     if (workspace?.path) {
@@ -303,6 +534,182 @@ function LayoutContent() {
       </ClaudeIntegrationProvider>
     )
   }
+  // Layout direction based on dock position
+  const panelDirection = terminalDock === "bottom" ? "vertical" : "horizontal"
+  const terminalFirst = terminalDock === "left"
+
+  // Always use up/down chevrons - CSS rotation handles the rest
+  const collapseIcon = isTerminalCollapsed ? (
+    <ChevronUp className="cursor-pointer h-4 w-4" />
+  ) : (
+    <ChevronDown className="cursor-pointer h-4 w-4" />
+  )
+
+  // Border class based on dock position (between terminal and editor)
+  const terminalBorderClass =
+    terminalDock === "bottom"
+      ? "border-t"
+      : terminalDock === "left"
+        ? "border-r"
+        : "border-l"
+
+  const editorPanel = (
+    <ResizablePanel
+      defaultSize={isTerminalCollapsed ? 100 : 100 - terminalSize}
+      minSize={30}
+    >
+      <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
+        <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
+          <div className="app-no-drag flex items-center gap-2 px-4">
+            <SidebarTrigger
+              aria-label="toggle sidebar"
+              className="-ml-1 cursor-pointer"
+            />
+            <FileHeader />
+          </div>
+          <HeaderToolbar />
+        </header>
+        <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
+          <Outlet />
+        </div>
+      </main>
+    </ResizablePanel>
+  )
+
+  // The toolbar content - same for all dock positions, just rotated for left/right
+  const toolbarContent = (
+    <div className="h-8 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden">
+      {/* Left side: terminal status + dock position */}
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+        <TerminalStatusBadge />
+        <DockPositionDropdown
+          currentDock={terminalDock}
+          onDockChange={setTerminalDock}
+        />
+      </div>
+      {/* Right side: badges, delete, collapse */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <ClaudeStatusBadge className="text-xs" />
+        <ClaudeStatuslineBadge className="text-xs" />
+        <DeleteButton
+          onDelete={
+            isTerminalSessionActive
+              ? () => {
+                  setIsTerminalSessionActive(false)
+                  setTerminalExpanded(false)
+                }
+              : undefined
+          }
+          disabled={!isTerminalSessionActive}
+          title="kill terminal"
+          data-testid="terminal-delete-button"
+        />
+        <button
+          onClick={() => {
+            if (isTerminalCollapsed && !isTerminalSessionActive) {
+              setIsTerminalSessionActive(true)
+            }
+            setTerminalExpanded(!isTerminalExpanded)
+          }}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label={isTerminalCollapsed ? "show terminal" : "hide terminal"}
+        >
+          {collapseIcon}
+        </button>
+      </div>
+    </div>
+  )
+
+  const terminalPanel = (
+    <ResizablePanel
+      defaultSize={isTerminalCollapsed ? 0 : terminalSize}
+      minSize={isTerminalCollapsed ? 0 : 10}
+      maxSize={isTerminalCollapsed ? 0 : 70}
+      className={isTerminalCollapsed ? "grow-0! shrink-0! basis-auto!" : ""}
+    >
+      <div
+        ref={terminalPanelRef}
+        className={cn(
+          "flex h-full w-full",
+          terminalBorderClass,
+          terminalDock === "bottom" ? "flex-col" : "flex-row"
+        )}
+      >
+        {/* Bottom dock: horizontal toolbar at top */}
+        {terminalDock === "bottom" && (
+          <div className={cn("shrink-0", !isTerminalCollapsed && "border-b")}>
+            {toolbarContent}
+          </div>
+        )}
+
+        {/* Left dock: rotated toolbar on the left side */}
+        {terminalDock === "left" && (
+          <div
+            className={cn(
+              "shrink-0 w-8 h-full relative overflow-hidden",
+              !isTerminalCollapsed && "border-r"
+            )}
+          >
+            <div
+              className="absolute top-1/2 left-1/2"
+              style={{
+                width:
+                  terminalPanelHeight > 0 ? `${terminalPanelHeight}px` : "100%",
+                height: "2rem",
+                transform: "translate(-50%, -50%) rotate(-90deg)",
+              }}
+            >
+              {toolbarContent}
+            </div>
+          </div>
+        )}
+
+        {/* Terminal content area */}
+        <div
+          className={cn(
+            "flex-1 min-h-0 min-w-0 overflow-hidden",
+            isTerminalCollapsed && "hidden"
+          )}
+        >
+          {isTerminalSessionActive && terminalContainerEl && (
+            <TerminalMountPoint
+              containerEl={terminalContainerEl}
+              className={terminalDock !== "bottom" ? "pt-6" : undefined}
+              onMount={handleTerminalMount}
+            />
+          )}
+          {terminalError && (
+            <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-100 px-4 py-2 text-sm font-mono">
+              {terminalError}
+            </div>
+          )}
+        </div>
+
+        {/* Right dock: rotated toolbar on the right side */}
+        {terminalDock === "right" && (
+          <div
+            className={cn(
+              "shrink-0 w-8 h-full relative overflow-hidden",
+              !isTerminalCollapsed && "border-l"
+            )}
+          >
+            <div
+              className="absolute top-1/2 left-1/2"
+              style={{
+                width:
+                  terminalPanelHeight > 0 ? `${terminalPanelHeight}px` : "100%",
+                height: "2rem",
+                transform: "translate(-50%, -50%) rotate(90deg)",
+              }}
+            >
+              {toolbarContent}
+            </div>
+          </div>
+        )}
+      </div>
+    </ResizablePanel>
+  )
+
   return (
     <ClaudeIntegrationProvider
       workspacePath={workspace.path}
@@ -310,10 +717,15 @@ function LayoutContent() {
     >
       <ResizablePanelGroup direction="horizontal" className="h-screen">
         <ResizablePanel
+          ref={sidebarPanelRef}
           defaultSize={15}
-          minSize={15}
+          minSize={10}
           maxSize={40}
-          className="flex flex-col h-full [&>*]:flex-1 [&>*]:min-h-0"
+          collapsible
+          collapsedSize={0}
+          onCollapse={() => setSidebarOpen(false)}
+          onExpand={() => setSidebarOpen(true)}
+          className="flex flex-col h-full *:flex-1 *:min-h-0"
         >
           <AppSidebar
             onFileClick={handleFileClick}
@@ -321,110 +733,36 @@ function LayoutContent() {
             selectedFilePath={selectedFilePath}
           />
         </ResizablePanel>
-        <ResizableHandle withHandle className="w-0" />
+        <ResizableHandle
+          withHandle
+          className={cn("w-0", !sidebarOpen && "[&>div]:translate-x-1.5")}
+        />
         <ResizablePanel defaultSize={85} className="p-2 overflow-hidden">
           <div className="h-full flex flex-col bg-background rounded-xl shadow-sm overflow-hidden">
             <ResizablePanelGroup
-              direction="vertical"
+              direction={panelDirection}
               ref={verticalPanelGroupRef}
+              onLayout={handleTerminalResize}
             >
-              <ResizablePanel
-                defaultSize={isTerminalCollapsed ? 100 : 70}
-                minSize={30}
-              >
-                <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
-                  <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
-                    <div className="app-no-drag flex items-center gap-2 px-4">
-                      <SidebarTrigger
-                        aria-label="toggle sidebar"
-                        className="-ml-1 cursor-pointer"
-                      />
-                      <FileHeader />
-                    </div>
-                    <HeaderToolbar />
-                  </header>
-                  <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
-                    <Outlet />
-                  </div>
-                </main>
-              </ResizablePanel>
-              <ResizableHandle
-                withHandle
-                className={isTerminalCollapsed ? "invisible" : ""}
-              />
-              <ResizablePanel
-                defaultSize={isTerminalCollapsed ? 0 : 30}
-                minSize={isTerminalCollapsed ? 0 : 10}
-                maxSize={isTerminalCollapsed ? 0 : 70}
-                className={
-                  isTerminalCollapsed ? "grow-0! shrink-0! basis-auto!" : ""
-                }
-              >
-                <div className="flex flex-col h-full w-full border-t">
-                  <div
-                    className={cn(
-                      "h-8 w-full bg-background/50 flex items-center justify-between px-4",
-                      !isTerminalCollapsed && "border-b"
-                    )}
-                  >
-                    <TerminalStatusBadge />
-                    <div className="flex items-center gap-2">
-                      <ClaudeStatusBadge className="text-xs" />
-                      <ClaudeStatuslineBadge className="text-xs" />
-                      <DeleteButton
-                        onDelete={
-                          isTerminalSessionActive
-                            ? () => {
-                                setIsTerminalSessionActive(false)
-                                setIsTerminalCollapsed(true)
-                              }
-                            : undefined
-                        }
-                        disabled={!isTerminalSessionActive}
-                        title="kill terminal"
-                        data-testid="terminal-delete-button"
-                      />
-                      <button
-                        onClick={() => {
-                          if (isTerminalCollapsed && !isTerminalSessionActive) {
-                            setIsTerminalSessionActive(true)
-                          }
-                          setIsTerminalCollapsed(!isTerminalCollapsed)
-                        }}
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                        aria-label={
-                          isTerminalCollapsed
-                            ? "show terminal"
-                            : "hide terminal"
-                        }
-                      >
-                        {isTerminalCollapsed ? (
-                          <ChevronUp className="cursor-pointer h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="cursor-pointer h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div
-                    className={cn(
-                      "flex-1 overflow-hidden",
-                      isTerminalCollapsed && "hidden"
-                    )}
-                  >
-                    {isTerminalSessionActive && (
-                      <GhosttyTerminal
-                        id="main-terminal"
-                        autoFocus={false}
-                        cwd={workspace.path}
-                        onReady={(api) => {
-                          terminalApiRef.current = api
-                        }}
-                      />
-                    )}
-                  </div>
-                </div>
-              </ResizablePanel>
+              {terminalFirst ? (
+                <>
+                  {terminalPanel}
+                  <ResizableHandle
+                    withHandle
+                    className={isTerminalCollapsed ? "invisible" : ""}
+                  />
+                  {editorPanel}
+                </>
+              ) : (
+                <>
+                  {editorPanel}
+                  <ResizableHandle
+                    withHandle
+                    className={isTerminalCollapsed ? "invisible" : ""}
+                  />
+                  {terminalPanel}
+                </>
+              )}
             </ResizablePanelGroup>
           </div>
         </ResizablePanel>

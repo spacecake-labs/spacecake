@@ -42,7 +42,10 @@ export const FileTypeSchema = Schema.Union(
   Schema.Literal("yaml"),
   Schema.Literal("toml"),
   Schema.Literal("css"),
-  Schema.Literal("shell")
+  Schema.Literal("shell"),
+  Schema.Literal("bash"),
+  Schema.Literal("zsh"),
+  Schema.Literal("xml")
 )
 export type FileType = typeof FileTypeSchema.Type
 
@@ -68,6 +71,9 @@ export const FileType = {
   TOML: "toml" as const,
   CSS: "css" as const,
   Shell: "shell" as const,
+  Bash: "bash" as const,
+  Zsh: "zsh" as const,
+  XML: "xml" as const,
 } as const
 
 export const ZERO_HASH = "0000000000000000"

@@ -1,6 +1,7 @@
-import { editorTable, fileTable } from "@/schema/drizzle"
+import { editorTable, fileTable, workspaceTable } from "@/schema/drizzle"
 import { EditorPrimaryKey } from "@/schema/editor"
 import { FilePrimaryKey } from "@/schema/file"
+import { WorkspacePrimaryKey } from "@/schema/workspace"
 import { desc, eq, like, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 
@@ -42,4 +43,21 @@ export const workspaceCacheQuery = (orm: Orm, workspacePath: AbsolutePath) => {
     .leftJoin(editorTable, eq(fileTable.id, editorTable.file_id))
     .where(like(fileTable.path, `${workspacePath}%`))
     .orderBy(fileTable.id, desc(editorTable.last_accessed_at))
+}
+
+/**
+ * Constructs a query to fetch workspace layout data.
+ *
+ * Returns the layout column for the specified workspace.
+ */
+export const workspaceLayoutQuery = (
+  orm: Orm,
+  workspaceId: WorkspacePrimaryKey
+) => {
+  return orm
+    .select({
+      layout: workspaceTable.layout,
+    })
+    .from(workspaceTable)
+    .where(eq(workspaceTable.id, workspaceId))
 }

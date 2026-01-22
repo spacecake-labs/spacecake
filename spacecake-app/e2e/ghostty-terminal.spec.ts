@@ -27,9 +27,7 @@ test.describe("ghostty terminal", () => {
     const hideButton = window.getByRole("button", { name: "hide terminal" })
     const showButton = window.getByRole("button", { name: "show terminal" })
 
-    // Terminal starts collapsed - expand it first
-    await expect(terminalElement).not.toBeVisible()
-    await showButton.click()
+    // Terminal starts expanded by default
     await expect(terminalElement).toBeVisible()
 
     // Wait for shell profile to be loaded (shell integration complete)
