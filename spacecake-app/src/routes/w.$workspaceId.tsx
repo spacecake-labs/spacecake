@@ -28,6 +28,7 @@ import {
   PanelLeft,
   PanelRight,
 } from "lucide-react"
+import type { ImperativePanelHandle } from "react-resizable-panels"
 
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
@@ -308,10 +309,22 @@ function DockPositionDropdown({
 
 function LayoutContent() {
   const { workspace } = Route.useRouteContext()
-  const { isMobile } = useSidebar()
+  const { isMobile, open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
   const navigate = useNavigate()
+  const sidebarPanelRef = useRef<ImperativePanelHandle>(null)
   const verticalPanelGroupRef =
     useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
+
+  // Sync sidebar open/close state with the resizable panel
+  useEffect(() => {
+    const panel = sidebarPanelRef.current
+    if (!panel) return
+    if (sidebarOpen) {
+      panel.expand()
+    } else {
+      panel.collapse()
+    }
+  }, [sidebarOpen])
 
   // this hook is still needed here because AppSidebar needs the path as a prop
   const route = useRoute()
@@ -704,9 +717,14 @@ function LayoutContent() {
     >
       <ResizablePanelGroup direction="horizontal" className="h-screen">
         <ResizablePanel
+          ref={sidebarPanelRef}
           defaultSize={15}
-          minSize={15}
+          minSize={10}
           maxSize={40}
+          collapsible
+          collapsedSize={0}
+          onCollapse={() => setSidebarOpen(false)}
+          onExpand={() => setSidebarOpen(true)}
           className="flex flex-col h-full *:flex-1 *:min-h-0"
         >
           <AppSidebar
@@ -715,7 +733,10 @@ function LayoutContent() {
             selectedFilePath={selectedFilePath}
           />
         </ResizablePanel>
-        <ResizableHandle withHandle className="w-0" />
+        <ResizableHandle
+          withHandle
+          className={cn("w-0", !sidebarOpen && "[&>div]:translate-x-1.5")}
+        />
         <ResizablePanel defaultSize={85} className="p-2 overflow-hidden">
           <div className="h-full flex flex-col bg-background rounded-xl shadow-sm overflow-hidden">
             <ResizablePanelGroup
