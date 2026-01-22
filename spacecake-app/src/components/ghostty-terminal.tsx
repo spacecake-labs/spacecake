@@ -78,12 +78,18 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
     // Suppress duplicate ghostty-vt warnings (first occurrence still logs)
     const restoreWarnings = suppressDuplicateWarnings(/\[ghostty-vt\]/)
 
+    // Track if component is still mounted to prevent race conditions
+    let isMounted = true
+
     const initialize = async () => {
       if (!terminalRef.current) return
 
       try {
         // initialize WASM
         await init()
+
+        // Check if component was unmounted during async init
+        if (!isMounted || !terminalRef.current) return
 
         const term = new Terminal({
           fontSize: 14,
@@ -164,6 +170,13 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
         if (isLeft(result)) {
           console.error("failed to create terminal:", result.value)
           setError("failed to create terminal session")
+          return
+        }
+
+        // Check if component was unmounted during async createTerminal
+        if (!isMounted) {
+          // Clean up the terminal we just created since we're unmounting
+          killTerminal(id)
           return
         }
 
@@ -339,6 +352,7 @@ export const GhosttyTerminal: React.FC<GhosttyTerminalProps> = ({
     initialize()
 
     return () => {
+      isMounted = false
       restoreWarnings()
       if (resizeTimeoutRef.current !== null) {
         clearTimeout(resizeTimeoutRef.current)
