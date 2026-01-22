@@ -25,8 +25,10 @@ import {
   type FileUpdate,
   type PaneInsert,
   type WorkspaceInsert,
+  type WorkspaceLayout,
 } from "@/schema"
 import { EditorPrimaryKey } from "@/schema/editor"
+import { WorkspacePrimaryKey } from "@/schema/workspace"
 import { maybeSingleResult, singleResult } from "@/services/utils"
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
@@ -414,6 +416,16 @@ export class Database extends Effect.Service<Database>()("Database", {
                 ),
             })
           )
+        ),
+
+      updateWorkspaceLayout: (
+        workspaceId: WorkspacePrimaryKey,
+        layout: WorkspaceLayout
+      ) =>
+        query((_) =>
+          _.update(workspaceTable)
+            .set({ layout })
+            .where(eq(workspaceTable.id, workspaceId))
         ),
 
       // selectRecentFiles: (workspacePath: AbsolutePath) =>

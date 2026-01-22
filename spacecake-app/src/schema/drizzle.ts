@@ -3,6 +3,7 @@ import {
   createSelectSchema,
   type JsonValue,
 } from "@/schema/drizzle-effect"
+import type { WorkspaceLayout } from "@/schema/workspace-layout"
 import { sql } from "drizzle-orm"
 import {
   boolean,
@@ -31,6 +32,7 @@ export const workspaceTable = pgTable(
     // path: text("path").$type<AbsolutePath>().notNull(),
     path: text("path").notNull(),
     is_open: boolean("is_open").notNull().default(false),
+    layout: jsonb("layout").$type<WorkspaceLayout>(),
     created_at: timestamp("created_at", { mode: "string" })
       .defaultNow()
       .notNull(),

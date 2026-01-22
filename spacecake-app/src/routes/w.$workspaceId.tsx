@@ -3,9 +3,12 @@
  * If the workspace path is not valid, it redirects to the home route.
  */
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { FileStateHydrationEvent } from "@/machines/file-tree"
 import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
+import { WorkspacePrimaryKey } from "@/schema/workspace"
+import type { WorkspaceLayout } from "@/schema/workspace-layout"
+import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
   createFileRoute,
@@ -14,8 +17,8 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router"
-import { Match } from "effect"
-import { useAtom, useSetAtom } from "jotai"
+import { Effect, Match } from "effect"
+import { useSetAtom } from "jotai"
 import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
 
 import { match } from "@/types/adt"
@@ -24,17 +27,20 @@ import {
   WorkspaceNotAccessible,
   WorkspaceNotFound,
 } from "@/types/workspace-error"
-import {
-  atomWithToggle,
-  contextItemNameAtom,
-  isCreatingInContextAtom,
-} from "@/lib/atoms/atoms"
+import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { fileStateAtomFamily, setFileTreeAtom } from "@/lib/atoms/file-tree"
 import { exists, readDirectory } from "@/lib/fs"
 import { store } from "@/lib/store"
-import { cn, condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
+import {
+  cn,
+  condensePath,
+  debounce,
+  decodeBase64Url,
+  encodeBase64Url,
+} from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
 import { useRoute } from "@/hooks/use-route"
+import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
 import { Button } from "@/components/ui/button"
 import {
   ResizableHandle,
@@ -56,8 +62,6 @@ import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
-
-const isTerminalCollapsedAtom = atomWithToggle(true)
 
 export const Route = createFileRoute("/w/$workspaceId")({
   beforeLoad: async ({ params, context }) => {
@@ -107,6 +111,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
     return {
       workspace: {
+        id: workspace.id as WorkspacePrimaryKey,
         path: workspacePath,
         name: workspacePath.split("/").pop() || "spacecake",
       },
@@ -150,6 +155,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
     return {
       workspace: {
+        id: workspace.id,
         path: workspace.path,
         name: workspace.path.split("/").pop() || "spacecake",
       },
@@ -227,7 +233,7 @@ function HeaderToolbar() {
 }
 
 function LayoutContent() {
-  const { workspace } = Route.useLoaderData()
+  const { workspace } = Route.useRouteContext()
   const { isMobile } = useSidebar()
   const navigate = useNavigate()
   const verticalPanelGroupRef =
@@ -238,17 +244,85 @@ function LayoutContent() {
   const route = useRoute()
   const selectedFilePath = route?.filePath || null
 
-  const [isTerminalCollapsed, setIsTerminalCollapsed] = useAtom(
-    isTerminalCollapsedAtom
-  )
+  // Get layout from database with live updates
+  const { layout } = useWorkspaceLayout(workspace.id)
+  const isTerminalExpanded = layout.dock.bottom.isExpanded
+  const terminalSize = layout.dock.bottom.size
+  const isTerminalCollapsed = !isTerminalExpanded
+
   const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
+
+  // Helper to persist layout changes
+  const updateLayout = useCallback(
+    (updater: (current: WorkspaceLayout) => WorkspaceLayout) => {
+      const newLayout = updater(layout)
+      RuntimeClient.runPromise(
+        Effect.gen(function* () {
+          const db = yield* Database
+          yield* db.updateWorkspaceLayout(workspace.id, newLayout)
+        })
+      )
+    },
+    [layout, workspace.id]
+  )
+
+  const setTerminalExpanded = useCallback(
+    (expanded: boolean) => {
+      updateLayout((current) => ({
+        ...current,
+        dock: {
+          ...current.dock,
+          bottom: { ...current.dock.bottom, isExpanded: expanded },
+        },
+      }))
+    },
+    [updateLayout]
+  )
+
+  // Track pending terminal size for debounced saves
+  const pendingTerminalSizeRef = useRef<number | null>(null)
+
+  // Keep updateLayout in a ref so debounced callback always has current version
+  const updateLayoutRef = useRef(updateLayout)
+  updateLayoutRef.current = updateLayout
+
+  // Debounced save for terminal resize - only save after resize stops for 250ms
+  const debouncedSaveTerminalSize = useRef(
+    debounce(() => {
+      const newSize = pendingTerminalSizeRef.current
+      if (newSize !== null) {
+        updateLayoutRef.current((current) => ({
+          ...current,
+          dock: {
+            ...current.dock,
+            bottom: { ...current.dock.bottom, size: newSize },
+          },
+        }))
+        pendingTerminalSizeRef.current = null
+      }
+    }, 250)
+  ).current
+
+  // Handle terminal resize - debounce persistence to avoid excessive DB writes
+  const handleTerminalResize = useCallback(
+    (sizes: number[]) => {
+      // sizes[1] is the terminal panel size
+      const newSize = sizes[1]
+      // Only persist if terminal is expanded and size is meaningful
+      if (newSize > 0 && isTerminalExpanded) {
+        pendingTerminalSizeRef.current = newSize
+        debouncedSaveTerminalSize.schedule()
+      }
+    },
+    [isTerminalExpanded, debouncedSaveTerminalSize]
+  )
 
   // reset terminal panel size when toggling collapse state
   useEffect(() => {
     if (verticalPanelGroupRef.current) {
-      // reset to default layout: 70% for editor, 30% for terminal
+      // reset to layout: (100 - size)% for editor, size% for terminal
       verticalPanelGroupRef.current.setLayout(
-        isTerminalCollapsed ? [100, 0] : [70, 30]
+        isTerminalCollapsed ? [100, 0] : [100 - terminalSize, terminalSize]
       )
       // when expanding, fit the terminal to the new size
       if (!isTerminalCollapsed && terminalApiRef.current) {
@@ -258,7 +332,7 @@ function LayoutContent() {
         })
       }
     }
-  }, [isTerminalCollapsed])
+  }, [isTerminalCollapsed, terminalSize])
 
   const handleFileClick = (filePath: AbsolutePath) => {
     if (workspace?.path) {
@@ -327,6 +401,7 @@ function LayoutContent() {
             <ResizablePanelGroup
               direction="vertical"
               ref={verticalPanelGroupRef}
+              onLayout={handleTerminalResize}
             >
               <ResizablePanel
                 defaultSize={isTerminalCollapsed ? 100 : 70}
@@ -376,7 +451,7 @@ function LayoutContent() {
                           isTerminalSessionActive
                             ? () => {
                                 setIsTerminalSessionActive(false)
-                                setIsTerminalCollapsed(true)
+                                setTerminalExpanded(false)
                               }
                             : undefined
                         }
@@ -389,7 +464,7 @@ function LayoutContent() {
                           if (isTerminalCollapsed && !isTerminalSessionActive) {
                             setIsTerminalSessionActive(true)
                           }
-                          setIsTerminalCollapsed(!isTerminalCollapsed)
+                          setTerminalExpanded(!isTerminalExpanded)
                         }}
                         className="text-muted-foreground hover:text-foreground transition-colors"
                         aria-label={
