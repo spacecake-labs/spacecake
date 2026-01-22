@@ -47,6 +47,7 @@ import {
   encodeBase64Url,
 } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
+import { useGhosttyEngine } from "@/hooks/use-ghostty-engine"
 import { useRoute } from "@/hooks/use-route"
 import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
 import { Button } from "@/components/ui/button"
@@ -71,10 +72,10 @@ import { ClaudeStatusBadge } from "@/components/claude-status-badge"
 import { ClaudeStatuslineBadge } from "@/components/claude-statusline-badge"
 import { DeleteButton } from "@/components/delete-button"
 import { EditorToolbar } from "@/components/editor/toolbar"
-import { GhosttyTerminal, TerminalAPI } from "@/components/ghostty-terminal"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
+import { TerminalMountPoint } from "@/components/terminal-mount-point"
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
 
 export const Route = createFileRoute("/w/$workspaceId")({
@@ -311,7 +312,6 @@ function LayoutContent() {
   const navigate = useNavigate()
   const verticalPanelGroupRef =
     useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
-  const terminalApiRef = useRef<TerminalAPI | null>(null)
 
   // this hook is still needed here because AppSidebar needs the path as a prop
   const route = useRoute()
@@ -326,6 +326,21 @@ function LayoutContent() {
   const isTerminalCollapsed = !isTerminalExpanded
 
   const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
+
+  const {
+    containerEl: terminalContainerEl,
+    error: terminalError,
+    fit: terminalFit,
+  } = useGhosttyEngine({
+    id: "main-terminal",
+    enabled: isTerminalSessionActive,
+    cwd: workspace.path,
+  })
+
+  const handleTerminalMount = useCallback(() => {
+    terminalFit()
+  }, [terminalFit])
+
   const terminalPanelRef = useRef<HTMLDivElement>(null)
   const [terminalPanelHeight, setTerminalPanelHeight] = useState(0)
 
@@ -454,10 +469,10 @@ function LayoutContent() {
           : [100 - terminalSize, terminalSize]
       verticalPanelGroupRef.current.setLayout(layout)
       // when expanding, fit the terminal to the new size
-      if (!isTerminalCollapsed && terminalApiRef.current) {
+      if (!isTerminalCollapsed) {
         // use requestAnimationFrame to ensure layout has settled
         requestAnimationFrame(() => {
-          terminalApiRef.current?.fit()
+          terminalFit()
         })
       }
     }
@@ -550,9 +565,9 @@ function LayoutContent() {
 
   // The toolbar content - same for all dock positions, just rotated for left/right
   const toolbarContent = (
-    <div className="h-8 w-full bg-background/50 flex items-center justify-between px-4">
+    <div className="h-8 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden">
       {/* Left side: terminal status + dock position */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
         <TerminalStatusBadge />
         <DockPositionDropdown
           currentDock={terminalDock}
@@ -560,7 +575,7 @@ function LayoutContent() {
         />
       </div>
       {/* Right side: badges, delete, collapse */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <ClaudeStatusBadge className="text-xs" />
         <ClaudeStatuslineBadge className="text-xs" />
         <DeleteButton
@@ -618,7 +633,7 @@ function LayoutContent() {
         {terminalDock === "left" && (
           <div
             className={cn(
-              "shrink-0 w-8 h-full relative overflow-visible",
+              "shrink-0 w-8 h-full relative overflow-hidden",
               !isTerminalCollapsed && "border-r"
             )}
           >
@@ -643,16 +658,17 @@ function LayoutContent() {
             isTerminalCollapsed && "hidden"
           )}
         >
-          {isTerminalSessionActive && (
-            <GhosttyTerminal
-              id="main-terminal"
-              autoFocus={false}
-              cwd={workspace.path}
+          {isTerminalSessionActive && terminalContainerEl && (
+            <TerminalMountPoint
+              containerEl={terminalContainerEl}
               className={terminalDock !== "bottom" ? "pt-6" : undefined}
-              onReady={(api) => {
-                terminalApiRef.current = api
-              }}
+              onMount={handleTerminalMount}
             />
+          )}
+          {terminalError && (
+            <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-100 px-4 py-2 text-sm font-mono">
+              {terminalError}
+            </div>
           )}
         </div>
 
@@ -660,7 +676,7 @@ function LayoutContent() {
         {terminalDock === "right" && (
           <div
             className={cn(
-              "shrink-0 w-8 h-full relative overflow-visible",
+              "shrink-0 w-8 h-full relative overflow-hidden",
               !isTerminalCollapsed && "border-l"
             )}
           >
