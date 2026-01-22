@@ -11,7 +11,7 @@ import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { Ipc } from "@/services/ipc"
 import { setupUpdates } from "@/update"
 import { NodeFileSystem } from "@effect/platform-node"
-import { Effect, Layer } from "effect"
+import { Effect, Exit, Layer, ManagedRuntime } from "effect"
 import { app, BrowserWindow, session } from "electron"
 import {
   installExtension,
@@ -47,20 +47,34 @@ const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
 const isTest = process.env.IS_PLAYWRIGHT === "true"
 const showWindow = process.env.SHOW_WINDOW === "true"
 
-// Lifecycle state tracking (following VSCode pattern)
 let quitRequested = false
+let windowCounter = 0
+let pendingWillShutdownPromise: Promise<void> | null = null
 
-// Listener functions defined at module level for reference during removal
+/** Idempotent - returns the same promise if shutdown is already running */
+function fireOnWillShutdown(): Promise<void> {
+  if (pendingWillShutdownPromise) {
+    return pendingWillShutdownPromise
+  }
+
+  pendingWillShutdownPromise = AppRuntime.dispose()
+
+  return pendingWillShutdownPromise
+}
+
 const beforeQuitListener = () => {
   if (quitRequested) {
     return
   }
-  console.log("Lifecycle: before-quit")
   quitRequested = true
+
+  // macOS can run without any window open, so fire shutdown directly
+  if (process.platform === "darwin" && windowCounter === 0) {
+    fireOnWillShutdown()
+  }
 }
 
 const windowAllClosedListener = () => {
-  console.log("Lifecycle: window-all-closed")
   if (quitRequested || process.platform !== "darwin") {
     app.quit()
   }
@@ -82,6 +96,18 @@ const createWindow = () => {
       devTools: true,
       webgl: true,
     },
+  })
+
+  windowCounter++
+
+  mainWindow.once("closed", () => {
+    windowCounter--
+    if (
+      windowCounter === 0 &&
+      (process.platform !== "darwin" || quitRequested)
+    ) {
+      fireOnWillShutdown()
+    }
   })
 
   if (!isTest || showWindow) {
@@ -131,21 +157,18 @@ const WatcherLive = NodeFileSystem.layer.pipe(
   Layer.provide(ParcelWatcher.layer)
 )
 
-// The final composed layer for the whole app.
-// Layer.merge combines independent layers.
 const AppLive = Layer.mergeAll(
   Ipc.Default,
   WatcherLive,
   ClaudeCodeServer.Default,
   ClaudeHooksServer.Default
-)
+).pipe(Layer.provide(Layer.scope))
 
-// --- Main Program
-const program = Effect.gen(function* () {
+const AppRuntime = ManagedRuntime.make(AppLive)
+
+const setupProgram = Effect.gen(function* () {
   yield* Effect.promise(() => app.whenReady())
   yield* Effect.promise(() => fixPath())
-
-  // ensure home folder exists before window creation
   ensureHomeFolderExists()
 
   if (!app.isPackaged) {
@@ -165,58 +188,37 @@ const program = Effect.gen(function* () {
 
   createWindow()
 
-  // The watcher service still needs its specific layer context
-  yield* Effect.fork(watcherService)
-
   app.on("activate", () => {
-    // On OS X it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }
   })
+})
 
-  // Playwright tests: force immediate exit to avoid platform-specific issues
-  // (macOS "unexpected quit" dialog, Linux WebSocket cleanup hangs)
-  if (isTest) {
-    app.once("before-quit", () => {
-      app.exit(0)
-    })
-  }
-
-  // Set up lifecycle listeners (following VSCode pattern)
+async function main() {
   app.addListener("before-quit", beforeQuitListener)
   app.addListener("window-all-closed", windowAllClosedListener)
 
-  // will-quit: fires after all windows closed, before actually quitting
-  // Use once() so the listener is removed after first invocation
-  yield* Effect.async<void>((resume) => {
-    app.once("will-quit", (e) => {
-      console.log("Lifecycle: will-quit - starting graceful shutdown")
-      e.preventDefault()
-      resume(Effect.void)
+  // Attach shutdown promise chain directly inside the handler to keep
+  // execution context connected to Electron's event system
+  app.once("will-quit", (e) => {
+    e.preventDefault()
+    fireOnWillShutdown().finally(() => {
+      app.removeListener("before-quit", beforeQuitListener)
+      app.removeListener("window-all-closed", windowAllClosedListener)
+      app.quit()
     })
   })
-})
 
-// --- Main Execution
-// A separate effect that provides the services and handles errors
-const main = program.pipe(
-  Effect.provide(AppLive),
-  Effect.scoped,
-  Effect.catchAll(Effect.logError)
-)
+  const exit = await AppRuntime.runPromiseExit(setupProgram)
 
-// Run and coordinate graceful shutdown - after all Effect finalizers complete,
-// remove listeners and quit cleanly (following VSCode pattern)
-Effect.runPromise(main).finally(() => {
-  console.log(
-    "Lifecycle: Effect cleanup complete, removing listeners and quitting"
-  )
+  if (Exit.isFailure(exit)) {
+    console.error("Lifecycle: App setup failed", exit.cause)
+    await AppRuntime.dispose()
+    app.exit(1)
+  }
 
-  // Remove listeners before final quit to ensure clean exit path
-  app.removeListener("before-quit", beforeQuitListener)
-  app.removeListener("window-all-closed", windowAllClosedListener)
+  AppRuntime.runFork(watcherService)
+}
 
-  app.quit()
-})
+main()
