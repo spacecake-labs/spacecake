@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.41
+
+### Patch Changes
+
+- cbc3230: Claude task panel.
+
 ## 0.1.0-alpha.40
 
 ### Patch Changes
