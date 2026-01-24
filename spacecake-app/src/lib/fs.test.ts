@@ -26,7 +26,7 @@ const createTestElectronAPI = (
       startWatching: async () => right(undefined),
       list: async () => right([]),
       stopWatching: async () => right(undefined),
-      onEvent: () => () => {},
+      onChange: () => () => {},
     },
   },
   showOpenDialog: async () => ({ canceled: false, filePaths: ["/test/path"] }),

@@ -10,13 +10,12 @@ import {
   ClaudeTaskError,
   ClaudeTaskSchema,
   type ClaudeTask,
-  type ClaudeTaskEvent,
 } from "@/types/claude-task"
 
 export class ClaudeTaskListService extends Effect.Service<ClaudeTaskListService>()(
   "ClaudeTaskListService",
   {
-    effect: Effect.gen(function* () {
+    scoped: Effect.gen(function* () {
       const config = yield* ClaudeConfig
 
       let subscription: ParcelWatcher.AsyncSubscription | null = null
@@ -75,16 +74,17 @@ export class ClaudeTaskListService extends Effect.Service<ClaudeTaskListService>
       }
 
       /**
-       * Broadcast a task event to all renderer windows
+       * Notify all renderer windows that the task list has changed
        */
-      const broadcastEvent = (event: ClaudeTaskEvent): void => {
+      const notifyChanged = (): void => {
         for (const win of BrowserWindow.getAllWindows()) {
-          win.webContents.send("claude:tasks:event", event)
+          win.webContents.send("claude:tasks:changed")
         }
       }
 
       /**
-       * Start watching a task list directory for changes
+       * Start watching a task list directory for changes.
+       * Notifies renderers on any .json file change so they can re-fetch.
        */
       const startWatching = async (sessionId?: string): Promise<void> => {
         const listId = resolveListId(sessionId)
@@ -97,12 +97,7 @@ export class ClaudeTaskListService extends Effect.Service<ClaudeTaskListService>
           await stopWatching()
         }
 
-        if (subscription) {
-          // Already watching — still send current state for newly-loaded renderers
-          const initialTasks = readAllTasks(listId)
-          broadcastEvent({ kind: "initial", tasks: initialTasks })
-          return
-        }
+        if (subscription) return
 
         currentListId = listId
         const tasksPath = getTasksPath(listId)
@@ -110,27 +105,12 @@ export class ClaudeTaskListService extends Effect.Service<ClaudeTaskListService>
         // Ensure directory exists before watching
         fs.mkdirSync(tasksPath, { recursive: true })
 
-        // Send initial state
-        const initialTasks = readAllTasks(listId)
-        broadcastEvent({ kind: "initial", tasks: initialTasks })
-
         subscription = await ParcelWatcher.subscribe(
           tasksPath,
           (_err, events) => {
-            for (const event of events) {
-              if (!event.path.endsWith(".json")) continue
-
-              if (event.type === "delete") {
-                const taskId = path.basename(event.path, ".json")
-                broadcastEvent({ kind: "remove", taskId })
-              } else {
-                // create or update
-                const task = readTaskFile(event.path)
-                if (task) {
-                  broadcastEvent({ kind: "update", task })
-                }
-              }
-            }
+            const hasJsonChanges = events.some((e) => e.path.endsWith(".json"))
+            if (!hasJsonChanges) return
+            notifyChanged()
           }
         )
       }

@@ -51,12 +51,3 @@ export class ClaudeTaskError {
     public readonly path?: string
   ) {}
 }
-
-// ============================================
-// IPC Events
-// ============================================
-
-export type ClaudeTaskEvent =
-  | { kind: "initial"; tasks: ClaudeTask[] }
-  | { kind: "update"; task: ClaudeTask }
-  | { kind: "remove"; taskId: string }

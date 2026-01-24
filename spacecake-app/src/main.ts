@@ -4,13 +4,10 @@ import path from "node:path"
 import { buildCSPString } from "@/csp"
 import { fixPath } from "@/main-process/fix-path"
 import { ensureHomeFolderExists } from "@/main-process/home-folder"
-import * as ParcelWatcher from "@/main-process/parcel-watcher"
-import { watcherService } from "@/main-process/watcher"
 import { ClaudeCodeServer } from "@/services/claude-code-server"
 import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { Ipc } from "@/services/ipc"
 import { setupUpdates } from "@/update"
-import { NodeFileSystem } from "@effect/platform-node"
 import { Effect, Exit, Layer, ManagedRuntime } from "effect"
 import { app, BrowserWindow, session } from "electron"
 import {
@@ -51,13 +48,27 @@ let quitRequested = false
 let windowCounter = 0
 let pendingWillShutdownPromise: Promise<void> | null = null
 
+const SHUTDOWN_TIMEOUT_MS = 3000
+
 /** Idempotent - returns the same promise if shutdown is already running */
 function fireOnWillShutdown(): Promise<void> {
   if (pendingWillShutdownPromise) {
     return pendingWillShutdownPromise
   }
 
+  const timeout = setTimeout(() => {
+    console.error("Lifecycle: Shutdown timed out, force exiting")
+    app.exit(0)
+  }, SHUTDOWN_TIMEOUT_MS)
+  timeout.unref()
+
   pendingWillShutdownPromise = AppRuntime.dispose()
+    .catch((err) => {
+      console.error("Lifecycle: Error during shutdown", err)
+    })
+    .finally(() => {
+      clearTimeout(timeout)
+    })
 
   return pendingWillShutdownPromise
 }
@@ -153,13 +164,8 @@ const createWindow = () => {
   }
 }
 
-const WatcherLive = NodeFileSystem.layer.pipe(
-  Layer.provide(ParcelWatcher.layer)
-)
-
 const AppLive = Layer.mergeAll(
   Ipc.Default,
-  WatcherLive,
   ClaudeCodeServer.Default,
   ClaudeHooksServer.Default
 ).pipe(Layer.provide(Layer.scope))
@@ -217,8 +223,6 @@ async function main() {
     await AppRuntime.dispose()
     app.exit(1)
   }
-
-  AppRuntime.runFork(watcherService)
 }
 
 main()
