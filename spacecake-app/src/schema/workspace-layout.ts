@@ -7,29 +7,17 @@ import { Schema } from "effect"
 export const DockPositionSchema = Schema.Literal("left", "right", "bottom")
 export type DockPosition = typeof DockPositionSchema.Type
 
-export const PanelKindSchema = Schema.Literal("terminal")
+export const PanelKindSchema = Schema.Literal("terminal", "task")
 export type PanelKind = typeof PanelKindSchema.Type
 
 // ============================================
 // Dock
 // ============================================
 
-export const DockStateSchema = Schema.Struct({
-  isExpanded: Schema.optionalWith(Schema.Boolean, { default: () => false }),
-  size: Schema.optionalWith(Schema.Number, { default: () => 20 }),
-})
-export type DockState = typeof DockStateSchema.Type
-
 export const DockSchema = Schema.Struct({
-  left: Schema.optionalWith(DockStateSchema, {
-    default: () => ({ isExpanded: false, size: 15 }),
-  }),
-  right: Schema.optionalWith(DockStateSchema, {
-    default: () => ({ isExpanded: false, size: 20 }),
-  }),
-  bottom: Schema.optionalWith(DockStateSchema, {
-    default: () => ({ isExpanded: true, size: 30 }),
-  }),
+  left: Schema.NullOr(PanelKindSchema),
+  right: Schema.NullOr(PanelKindSchema),
+  bottom: Schema.NullOr(PanelKindSchema),
 })
 export type Dock = typeof DockSchema.Type
 
@@ -37,17 +25,21 @@ export type Dock = typeof DockSchema.Type
 // Panel
 // ============================================
 
-export const PanelConfigSchema = Schema.Struct({
-  dock: DockPositionSchema,
+export const PanelStateSchema = Schema.Struct({
+  isExpanded: Schema.optionalWith(Schema.Boolean, { default: () => false }),
+  size: Schema.optionalWith(Schema.Number, { default: () => 20 }),
 })
-export type PanelConfig = typeof PanelConfigSchema.Type
+export type PanelState = typeof PanelStateSchema.Type
 
-export const PanelSchema = Schema.Struct({
-  terminal: Schema.optionalWith(PanelConfigSchema, {
-    default: () => ({ dock: "bottom" as const }),
+export const PanelMapSchema = Schema.Struct({
+  terminal: Schema.optionalWith(PanelStateSchema, {
+    default: () => ({ isExpanded: true, size: 30 }),
+  }),
+  task: Schema.optionalWith(PanelStateSchema, {
+    default: () => ({ isExpanded: false, size: 20 }),
   }),
 })
-export type Panel = typeof PanelSchema.Type
+export type PanelMap = typeof PanelMapSchema.Type
 
 // ============================================
 // Workspace Layout
@@ -56,14 +48,15 @@ export type Panel = typeof PanelSchema.Type
 export const WorkspaceLayoutSchema = Schema.Struct({
   dock: Schema.optionalWith(DockSchema, {
     default: () => ({
-      left: { isExpanded: false, size: 15 },
-      right: { isExpanded: false, size: 20 },
-      bottom: { isExpanded: true, size: 30 },
+      left: null as PanelKind | null,
+      right: "terminal" as const,
+      bottom: "task" as const,
     }),
   }),
-  panel: Schema.optionalWith(PanelSchema, {
+  panels: Schema.optionalWith(PanelMapSchema, {
     default: () => ({
-      terminal: { dock: "bottom" as const },
+      terminal: { isExpanded: true, size: 30 },
+      task: { isExpanded: false, size: 20 },
     }),
   }),
 })
@@ -74,12 +67,13 @@ export type WorkspaceLayout = typeof WorkspaceLayoutSchema.Type
  */
 export const defaultWorkspaceLayout: WorkspaceLayout = {
   dock: {
-    left: { isExpanded: false, size: 15 },
-    right: { isExpanded: false, size: 20 },
-    bottom: { isExpanded: true, size: 30 },
+    left: null,
+    right: "terminal",
+    bottom: "task",
   },
-  panel: {
-    terminal: { dock: "bottom" },
+  panels: {
+    terminal: { isExpanded: true, size: 30 },
+    task: { isExpanded: false, size: 20 },
   },
 }
 
@@ -97,22 +91,18 @@ export type WorkspaceLayoutRow = typeof WorkspaceLayoutRowSchema.Type
  */
 export const WorkspaceLayoutStrictSchema = Schema.Struct({
   dock: Schema.Struct({
-    left: Schema.Struct({
-      isExpanded: Schema.Boolean,
-      size: Schema.Number,
-    }),
-    right: Schema.Struct({
-      isExpanded: Schema.Boolean,
-      size: Schema.Number,
-    }),
-    bottom: Schema.Struct({
-      isExpanded: Schema.Boolean,
-      size: Schema.Number,
-    }),
+    left: Schema.NullOr(PanelKindSchema),
+    right: Schema.NullOr(PanelKindSchema),
+    bottom: Schema.NullOr(PanelKindSchema),
   }),
-  panel: Schema.Struct({
+  panels: Schema.Struct({
     terminal: Schema.Struct({
-      dock: DockPositionSchema,
+      isExpanded: Schema.Boolean,
+      size: Schema.Number,
+    }),
+    task: Schema.Struct({
+      isExpanded: Schema.Boolean,
+      size: Schema.Number,
     }),
   }),
 })

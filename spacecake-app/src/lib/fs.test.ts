@@ -22,6 +22,12 @@ const createTestElectronAPI = (
     onOpenFile: () => () => {},
     onStatuslineUpdate: () => () => {},
     ensureServer: async () => {},
+    tasks: {
+      startWatching: async () => right(undefined),
+      list: async () => right([]),
+      stopWatching: async () => right(undefined),
+      onChange: () => () => {},
+    },
   },
   showOpenDialog: async () => ({ canceled: false, filePaths: ["/test/path"] }),
   readFile: async () => right(createTestFileContent()),

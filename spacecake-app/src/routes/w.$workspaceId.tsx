@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { FileStateHydrationEvent } from "@/machines/file-tree"
 import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
-import type { DockPosition, WorkspaceLayout } from "@/schema/workspace-layout"
+import type { DockPosition } from "@/schema/workspace-layout"
 import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
@@ -18,15 +18,17 @@ import {
   useNavigate,
 } from "@tanstack/react-router"
 import { Effect, Match } from "effect"
-import { useSetAtom } from "jotai"
+import { useAtom, useSetAtom } from "jotai"
 import {
   Check,
   ChevronDown,
   ChevronUp,
   Copy,
+  ListTodo,
   PanelBottom,
   PanelLeft,
   PanelRight,
+  X,
 } from "lucide-react"
 import type { ImperativePanelHandle } from "react-resizable-panels"
 
@@ -37,7 +39,15 @@ import {
   WorkspaceNotFound,
 } from "@/types/workspace-error"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
+import { taskStatusFilterAtom } from "@/lib/atoms/claude-tasks"
 import { fileStateAtomFamily, setFileTreeAtom } from "@/lib/atoms/file-tree"
+import type { DockAction } from "@/lib/dock-transition"
+import {
+  clampSize,
+  DOCK_SIZE_CONSTRAINTS,
+  findPanel,
+  transition,
+} from "@/lib/dock-transition"
 import { exists, readDirectory } from "@/lib/fs"
 import { store } from "@/lib/store"
 import {
@@ -48,6 +58,7 @@ import {
   encodeBase64Url,
 } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
+import { useClaudeTaskWatcher } from "@/hooks/use-claude-task-watcher"
 import { useGhosttyEngine } from "@/hooks/use-ghostty-engine"
 import { useRoute } from "@/hooks/use-route"
 import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
@@ -76,6 +87,7 @@ import { EditorToolbar } from "@/components/editor/toolbar"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
+import { TaskTable } from "@/components/task-table/task-table"
 import { TerminalMountPoint } from "@/components/terminal-mount-point"
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
 
@@ -330,13 +342,22 @@ function LayoutContent() {
   const route = useRoute()
   const selectedFilePath = route?.filePath || null
 
+  // Start watching Claude tasks
+  useClaudeTaskWatcher()
+
   // Get layout from database with live updates
   const { layout } = useWorkspaceLayout(workspace.id)
-  const terminalDock = layout.panel.terminal.dock
-  const dockState = layout.dock[terminalDock]
-  const isTerminalExpanded = dockState.isExpanded
-  const terminalSize = dockState.size
+  const terminalDock = findPanel(layout, "terminal") ?? "bottom"
+  const isTerminalExpanded = layout.panels.terminal.isExpanded
+  const terminalSize = clampSize(layout.panels.terminal.size, terminalDock)
   const isTerminalCollapsed = !isTerminalExpanded
+
+  // Task panel state
+  const taskDock = findPanel(layout, "task") ?? "right"
+  const isTaskExpanded = layout.panels.task.isExpanded
+  const taskSize = clampSize(layout.panels.task.size, taskDock)
+  const isTaskCollapsed = !isTaskExpanded
+  const [taskStatusFilter, setTaskStatusFilter] = useAtom(taskStatusFilterAtom)
 
   const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
 
@@ -370,10 +391,31 @@ function LayoutContent() {
     return () => resizeObserver.disconnect()
   }, [terminalDock])
 
-  // Helper to persist layout changes
-  const updateLayout = useCallback(
-    (updater: (current: WorkspaceLayout) => WorkspaceLayout) => {
-      const newLayout = updater(layout)
+  const taskPanelRef = useRef<HTMLDivElement>(null)
+  const taskPanelGroupRef =
+    useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
+  const taskBottomPanelGroupRef =
+    useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
+  const [taskPanelHeight, setTaskPanelHeight] = useState(0)
+
+  // Measure task panel height for rotated toolbar
+  useEffect(() => {
+    if (taskDock === "bottom" || !taskPanelRef.current) return
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setTaskPanelHeight(entry.contentRect.height)
+      }
+    })
+    resizeObserver.observe(taskPanelRef.current)
+    return () => resizeObserver.disconnect()
+  }, [taskDock])
+
+  // Helper to dispatch a dock action and persist the result
+  const dispatch = useCallback(
+    (action: DockAction) => {
+      const newLayout = transition(layout, action)
+      if (newLayout === layout) return // no-op
       RuntimeClient.runPromise(
         Effect.gen(function* () {
           const db = yield* Database
@@ -386,67 +428,48 @@ function LayoutContent() {
 
   const setTerminalExpanded = useCallback(
     (expanded: boolean) => {
-      updateLayout((current) => ({
-        ...current,
-        dock: {
-          ...current.dock,
-          [current.panel.terminal.dock]: {
-            ...current.dock[current.panel.terminal.dock],
-            isExpanded: expanded,
-          },
-        },
-      }))
+      dispatch({ kind: expanded ? "expand" : "collapse", panel: "terminal" })
     },
-    [updateLayout]
+    [dispatch]
   )
 
   const setTerminalDock = useCallback(
     (dock: DockPosition) => {
-      updateLayout((current) => {
-        const currentDock = current.panel.terminal.dock
-        if (currentDock === dock) return current
-        // Move terminal to new dock, preserving expanded state
-        const wasExpanded = current.dock[currentDock].isExpanded
-        return {
-          ...current,
-          dock: {
-            ...current.dock,
-            // Collapse old dock
-            [currentDock]: { ...current.dock[currentDock], isExpanded: false },
-            // Expand new dock
-            [dock]: { ...current.dock[dock], isExpanded: wasExpanded },
-          },
-          panel: {
-            ...current.panel,
-            terminal: { ...current.panel.terminal, dock },
-          },
-        }
-      })
+      dispatch({ kind: "move", panel: "terminal", to: dock })
     },
-    [updateLayout]
+    [dispatch]
+  )
+
+  const setTaskExpanded = useCallback(
+    (expanded: boolean) => {
+      dispatch({ kind: expanded ? "expand" : "collapse", panel: "task" })
+    },
+    [dispatch]
+  )
+
+  const setTaskDock = useCallback(
+    (dock: DockPosition) => {
+      dispatch({ kind: "move", panel: "task", to: dock })
+    },
+    [dispatch]
   )
 
   // Track pending terminal size for debounced saves
   const pendingTerminalSizeRef = useRef<number | null>(null)
 
-  // Keep updateLayout in a ref so debounced callback always has current version
-  const updateLayoutRef = useRef(updateLayout)
-  updateLayoutRef.current = updateLayout
+  // Keep dispatch in a ref so debounced callback always has current version
+  const dispatchRef = useRef(dispatch)
+  dispatchRef.current = dispatch
 
   // Debounced save for terminal resize - only save after resize stops for 250ms
   const debouncedSaveTerminalSize = useRef(
     debounce(() => {
       const newSize = pendingTerminalSizeRef.current
       if (newSize !== null) {
-        updateLayoutRef.current((current) => {
-          const dock = current.panel.terminal.dock
-          return {
-            ...current,
-            dock: {
-              ...current.dock,
-              [dock]: { ...current.dock[dock], size: newSize },
-            },
-          }
+        dispatchRef.current({
+          kind: "resize",
+          panel: "terminal",
+          size: newSize,
         })
         pendingTerminalSizeRef.current = null
       }
@@ -467,6 +490,28 @@ function LayoutContent() {
     },
     [isTerminalExpanded, debouncedSaveTerminalSize, terminalDock]
   )
+
+  // Reset task panel size when toggling collapse state or changing dock position
+  useEffect(() => {
+    if (taskDock === "bottom") {
+      if (taskBottomPanelGroupRef.current) {
+        const layout = isTaskCollapsed ? [100, 0] : [100 - taskSize, taskSize]
+        taskBottomPanelGroupRef.current.setLayout(layout)
+      }
+      return
+    }
+    if (taskPanelGroupRef.current) {
+      const taskFirst = taskDock === "left"
+      const layout = isTaskCollapsed
+        ? taskFirst
+          ? [0, 100]
+          : [100, 0]
+        : taskFirst
+          ? [taskSize, 100 - taskSize]
+          : [100 - taskSize, taskSize]
+      taskPanelGroupRef.current.setLayout(layout)
+    }
+  }, [isTaskCollapsed, taskSize, taskDock])
 
   // reset terminal panel size when toggling collapse state or changing dock position
   useEffect(() => {
@@ -553,29 +598,6 @@ function LayoutContent() {
         ? "border-r"
         : "border-l"
 
-  const editorPanel = (
-    <ResizablePanel
-      defaultSize={isTerminalCollapsed ? 100 : 100 - terminalSize}
-      minSize={30}
-    >
-      <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
-        <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
-          <div className="app-no-drag flex items-center gap-2 px-4">
-            <SidebarTrigger
-              aria-label="toggle sidebar"
-              className="-ml-1 cursor-pointer"
-            />
-            <FileHeader />
-          </div>
-          <HeaderToolbar />
-        </header>
-        <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
-          <Outlet />
-        </div>
-      </main>
-    </ResizablePanel>
-  )
-
   // The toolbar content - same for all dock positions, just rotated for left/right
   const toolbarContent = (
     <div className="h-8 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden">
@@ -587,7 +609,7 @@ function LayoutContent() {
           onDockChange={setTerminalDock}
         />
       </div>
-      {/* Right side: badges, delete, collapse */}
+      {/* Right side: badges, task toggle, delete, collapse */}
       <div className="flex items-center gap-2 flex-shrink-0">
         <ClaudeStatusBadge className="text-xs" />
         <ClaudeStatuslineBadge className="text-xs" />
@@ -620,11 +642,157 @@ function LayoutContent() {
     </div>
   )
 
+  const taskStatuses = [
+    { value: "pending", label: "pending" },
+    { value: "in_progress", label: "in progress" },
+    { value: "completed", label: "completed" },
+  ]
+
+  const toggleTaskStatus = (status: string) => {
+    if (taskStatusFilter.includes(status)) {
+      const next = taskStatusFilter.filter((s) => s !== status)
+      setTaskStatusFilter(next)
+    } else {
+      setTaskStatusFilter([...taskStatusFilter, status])
+    }
+  }
+
+  const taskToolbarContent = (
+    <div className="h-8 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden">
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+        <ListTodo className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <DockPositionDropdown
+          currentDock={taskDock}
+          onDockChange={setTaskDock}
+        />
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {taskStatuses.map((status) => {
+          const isActive = taskStatusFilter.includes(status.value)
+          return (
+            <button
+              key={status.value}
+              onClick={() => toggleTaskStatus(status.value)}
+              className={cn(
+                "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-colors cursor-pointer shrink-0",
+                isActive
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
+                  : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300"
+              )}
+            >
+              {status.label}
+            </button>
+          )
+        })}
+        {taskStatusFilter.length > 0 && (
+          <button
+            onClick={() => setTaskStatusFilter([])}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+          >
+            <X className="h-3 w-3" />
+            reset
+          </button>
+        )}
+        <button
+          onClick={() => setTaskExpanded(!isTaskExpanded)}
+          className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          aria-label={isTaskCollapsed ? "show tasks" : "hide tasks"}
+        >
+          {isTaskCollapsed ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+        </button>
+      </div>
+    </div>
+  )
+
+  const editorPanel = (
+    <ResizablePanel
+      defaultSize={isTerminalCollapsed ? 100 : 100 - terminalSize}
+      minSize={30}
+    >
+      {taskDock === "bottom" ? (
+        <ResizablePanelGroup
+          ref={taskBottomPanelGroupRef}
+          direction="vertical"
+          className="h-full"
+        >
+          <ResizablePanel
+            defaultSize={isTaskCollapsed ? 100 : 100 - taskSize}
+            minSize={30}
+          >
+            <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
+              <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
+                <div className="app-no-drag flex items-center gap-2 px-4">
+                  <SidebarTrigger
+                    aria-label="toggle sidebar"
+                    className="-ml-1 cursor-pointer"
+                  />
+                  <FileHeader />
+                </div>
+                <HeaderToolbar />
+              </header>
+              <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
+                <Outlet />
+              </div>
+            </main>
+          </ResizablePanel>
+          <ResizableHandle
+            withHandle
+            className={isTaskCollapsed ? "invisible" : ""}
+          />
+          <ResizablePanel
+            defaultSize={isTaskCollapsed ? 0 : taskSize}
+            minSize={isTaskCollapsed ? 0 : 15}
+            maxSize={isTaskCollapsed ? 0 : 50}
+            className={isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""}
+          >
+            <div
+              ref={taskPanelRef}
+              className="flex h-full w-full border-t flex-col"
+            >
+              <div className={cn("shrink-0", !isTaskCollapsed && "border-b")}>
+                {taskToolbarContent}
+              </div>
+              <div
+                className={cn(
+                  "flex-1 min-h-0 min-w-0 overflow-hidden",
+                  isTaskCollapsed && "hidden"
+                )}
+              >
+                <TaskTable />
+              </div>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
+          <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
+            <div className="app-no-drag flex items-center gap-2 px-4">
+              <SidebarTrigger
+                aria-label="toggle sidebar"
+                className="-ml-1 cursor-pointer"
+              />
+              <FileHeader />
+            </div>
+            <HeaderToolbar />
+          </header>
+          <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
+            <Outlet />
+          </div>
+        </main>
+      )}
+    </ResizablePanel>
+  )
+
+  const terminalConstraints = DOCK_SIZE_CONSTRAINTS[terminalDock]
   const terminalPanel = (
     <ResizablePanel
       defaultSize={isTerminalCollapsed ? 0 : terminalSize}
-      minSize={isTerminalCollapsed ? 0 : 10}
-      maxSize={isTerminalCollapsed ? 0 : 70}
+      minSize={isTerminalCollapsed ? 0 : terminalConstraints.min}
+      maxSize={isTerminalCollapsed ? 0 : terminalConstraints.max}
       className={isTerminalCollapsed ? "grow-0! shrink-0! basis-auto!" : ""}
     >
       <div
@@ -731,6 +899,15 @@ function LayoutContent() {
             onFileClick={handleFileClick}
             workspace={workspace}
             selectedFilePath={selectedFilePath}
+            isTerminalExpanded={isTerminalExpanded}
+            isTaskExpanded={isTaskExpanded}
+            onToggleTerminal={() => {
+              if (isTerminalCollapsed && !isTerminalSessionActive) {
+                setIsTerminalSessionActive(true)
+              }
+              dispatch({ kind: "toggle", panel: "terminal" })
+            }}
+            onToggleTask={() => dispatch({ kind: "toggle", panel: "task" })}
           />
         </ResizablePanel>
         <ResizableHandle
@@ -738,33 +915,154 @@ function LayoutContent() {
           className={cn("w-0", !sidebarOpen && "[&>div]:translate-x-1.5")}
         />
         <ResizablePanel defaultSize={85} className="p-2 overflow-hidden">
-          <div className="h-full flex flex-col bg-background rounded-xl shadow-sm overflow-hidden">
-            <ResizablePanelGroup
-              direction={panelDirection}
-              ref={verticalPanelGroupRef}
-              onLayout={handleTerminalResize}
+          <ResizablePanelGroup
+            ref={taskPanelGroupRef}
+            direction="horizontal"
+            className="h-full bg-background rounded-xl shadow-sm overflow-hidden"
+          >
+            {/* Left task panel - full height */}
+            {taskDock === "left" && (
+              <>
+                <ResizablePanel
+                  order={1}
+                  defaultSize={isTaskCollapsed ? 0 : taskSize}
+                  minSize={isTaskCollapsed ? 0 : 15}
+                  maxSize={isTaskCollapsed ? 0 : 50}
+                  className={
+                    isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""
+                  }
+                >
+                  <div
+                    ref={taskPanelRef}
+                    className="flex h-full w-full border-r flex-row"
+                  >
+                    <div
+                      className={cn(
+                        "shrink-0 w-8 h-full relative overflow-hidden",
+                        !isTaskCollapsed && "border-r"
+                      )}
+                    >
+                      <div
+                        className="absolute top-1/2 left-1/2"
+                        style={{
+                          width:
+                            taskPanelHeight > 0
+                              ? `${taskPanelHeight}px`
+                              : "100%",
+                          height: "2rem",
+                          transform: "translate(-50%, -50%) rotate(-90deg)",
+                        }}
+                      >
+                        {taskToolbarContent}
+                      </div>
+                    </div>
+                    <div
+                      className={cn(
+                        "flex-1 min-h-0 min-w-0 overflow-hidden",
+                        isTaskCollapsed && "hidden"
+                      )}
+                    >
+                      <TaskTable />
+                    </div>
+                  </div>
+                </ResizablePanel>
+                <ResizableHandle
+                  withHandle
+                  className={isTaskCollapsed ? "invisible" : ""}
+                />
+              </>
+            )}
+
+            {/* Center panel */}
+            <ResizablePanel
+              order={2}
+              defaultSize={
+                isTaskCollapsed || taskDock === "bottom" ? 100 : 100 - taskSize
+              }
+              minSize={30}
             >
-              {terminalFirst ? (
-                <>
-                  {terminalPanel}
-                  <ResizableHandle
-                    withHandle
-                    className={isTerminalCollapsed ? "invisible" : ""}
-                  />
-                  {editorPanel}
-                </>
-              ) : (
-                <>
-                  {editorPanel}
-                  <ResizableHandle
-                    withHandle
-                    className={isTerminalCollapsed ? "invisible" : ""}
-                  />
-                  {terminalPanel}
-                </>
-              )}
-            </ResizablePanelGroup>
-          </div>
+              <div className="h-full flex flex-col overflow-hidden">
+                <ResizablePanelGroup
+                  direction={panelDirection}
+                  ref={verticalPanelGroupRef}
+                  onLayout={handleTerminalResize}
+                >
+                  {terminalFirst ? (
+                    <>
+                      {terminalPanel}
+                      <ResizableHandle
+                        withHandle
+                        className={isTerminalCollapsed ? "invisible" : ""}
+                      />
+                      {editorPanel}
+                    </>
+                  ) : (
+                    <>
+                      {editorPanel}
+                      <ResizableHandle
+                        withHandle
+                        className={isTerminalCollapsed ? "invisible" : ""}
+                      />
+                      {terminalPanel}
+                    </>
+                  )}
+                </ResizablePanelGroup>
+              </div>
+            </ResizablePanel>
+
+            {/* Right task panel - full height */}
+            {taskDock === "right" && (
+              <>
+                <ResizableHandle
+                  withHandle
+                  className={isTaskCollapsed ? "invisible" : ""}
+                />
+                <ResizablePanel
+                  order={3}
+                  defaultSize={isTaskCollapsed ? 0 : taskSize}
+                  minSize={isTaskCollapsed ? 0 : 15}
+                  maxSize={isTaskCollapsed ? 0 : 50}
+                  className={
+                    isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""
+                  }
+                >
+                  <div
+                    ref={taskPanelRef}
+                    className="flex h-full w-full border-l flex-row"
+                  >
+                    <div
+                      className={cn(
+                        "flex-1 min-h-0 min-w-0 overflow-hidden",
+                        isTaskCollapsed && "hidden"
+                      )}
+                    >
+                      <TaskTable />
+                    </div>
+                    <div
+                      className={cn(
+                        "shrink-0 w-8 h-full relative overflow-hidden",
+                        !isTaskCollapsed && "border-l"
+                      )}
+                    >
+                      <div
+                        className="absolute top-1/2 left-1/2"
+                        style={{
+                          width:
+                            taskPanelHeight > 0
+                              ? `${taskPanelHeight}px`
+                              : "100%",
+                          height: "2rem",
+                          transform: "translate(-50%, -50%) rotate(90deg)",
+                        }}
+                      >
+                        {taskToolbarContent}
+                      </div>
+                    </div>
+                  </div>
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
         </ResizablePanel>
       </ResizablePanelGroup>
     </ClaudeIntegrationProvider>

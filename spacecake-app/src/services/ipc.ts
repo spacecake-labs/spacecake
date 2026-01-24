@@ -1,10 +1,12 @@
 import { getHomeFolderPath } from "@/main-process/home-folder"
+import { ClaudeTaskListService } from "@/services/claude-task-list"
 import { FileSystem, type FileSystemError } from "@/services/file-system"
 import { Terminal } from "@/services/terminal"
 import { Effect } from "effect"
 import { BrowserWindow, dialog, ipcMain } from "electron"
 
 import { left, right, type Either } from "@/types/adt"
+import { ClaudeTaskError } from "@/types/claude-task"
 import { AbsolutePath, FileContent } from "@/types/workspace"
 
 // Plain object representation of FileSystemError for IPC serialization
@@ -21,10 +23,26 @@ const serializeError = (error: FileSystemError): SerializedFileSystemError => ({
   description: error.description,
 })
 
+// Plain object representation of ClaudeTaskError for IPC serialization
+type SerializedClaudeTaskError = {
+  _tag: "ClaudeTaskError"
+  description: string
+  path: string | undefined
+}
+
+const serializeTaskError = (
+  error: ClaudeTaskError
+): SerializedClaudeTaskError => ({
+  _tag: error._tag,
+  description: error.description,
+  path: error.path,
+})
+
 export class Ipc extends Effect.Service<Ipc>()("Ipc", {
   effect: Effect.gen(function* (_) {
     const fs = yield* FileSystem
     const terminal = yield* Terminal
+    const taskList = yield* ClaudeTaskListService
 
     ipcMain.handle(
       "read-file",
@@ -155,7 +173,60 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       )
     )
 
+    // Claude Tasks IPC handlers
+    ipcMain.handle(
+      "claude:tasks:start-watching",
+      async (_, sessionId?: string) => {
+        try {
+          await taskList.startWatching(sessionId)
+          return right(undefined)
+        } catch (error) {
+          return left(
+            serializeTaskError(
+              error instanceof ClaudeTaskError
+                ? error
+                : new ClaudeTaskError(String(error))
+            )
+          )
+        }
+      }
+    )
+
+    ipcMain.handle("claude:tasks:list", (_, sessionId?: string) => {
+      try {
+        const tasks = taskList.listTasks(sessionId)
+        return right(tasks)
+      } catch (error) {
+        return left(
+          serializeTaskError(
+            error instanceof ClaudeTaskError
+              ? error
+              : new ClaudeTaskError(String(error))
+          )
+        )
+      }
+    })
+
+    ipcMain.handle("claude:tasks:stop-watching", async () => {
+      try {
+        await taskList.stopWatching()
+        return right(undefined)
+      } catch (error) {
+        return left(
+          serializeTaskError(
+            error instanceof ClaudeTaskError
+              ? error
+              : new ClaudeTaskError(String(error))
+          )
+        )
+      }
+    })
+
     return {}
   }),
-  dependencies: [FileSystem.Default, Terminal.Default],
+  dependencies: [
+    FileSystem.Default,
+    Terminal.Default,
+    ClaudeTaskListService.Default,
+  ],
 }) {}

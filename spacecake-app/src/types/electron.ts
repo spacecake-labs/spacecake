@@ -7,6 +7,7 @@ import {
   OpenFilePayload,
   SelectionChangedPayload,
 } from "@/types/claude-code"
+import type { ClaudeTask, ClaudeTaskError } from "@/types/claude-task"
 import { TerminalError } from "@/types/terminal"
 import type {
   AbsolutePath,
@@ -26,6 +27,16 @@ export interface ElectronAPI {
     onStatuslineUpdate: (
       handler: (statusline: DisplayStatusline) => void
     ) => () => void
+    tasks: {
+      startWatching: (
+        sessionId?: string
+      ) => Promise<Either<ClaudeTaskError, void>>
+      list: (
+        sessionId?: string
+      ) => Promise<Either<ClaudeTaskError, ClaudeTask[]>>
+      stopWatching: () => Promise<Either<ClaudeTaskError, void>>
+      onChange: (handler: () => void) => () => void
+    }
   }
   showOpenDialog: (options: unknown) => Promise<{
     canceled: boolean

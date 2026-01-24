@@ -1,10 +1,9 @@
 import os from "node:os"
 import path from "path"
 
-import { commandQueue } from "@/main-process/watcher"
+import { WatcherFileSystemLive, WatcherService } from "@/main-process/watcher"
 import { GitIgnore, GitIgnoreLive } from "@/services/git-ignore-parser"
 import { FileSystem as EffectFileSystem } from "@effect/platform"
-import { NodeFileSystem } from "@effect/platform-node"
 import type { PlatformError } from "@effect/platform/Error"
 import { Data, Effect, Either, Option } from "effect"
 import writeFileAtomic from "write-file-atomic"
@@ -94,6 +93,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
   effect: Effect.gen(function* () {
     const fs = yield* EffectFileSystem.FileSystem
     const gitIgnore = yield* GitIgnore
+    const watcher = yield* WatcherService
 
     const readTextFile = (
       filePath: AbsolutePath
@@ -260,9 +260,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
     }
 
     const startWatcher = (watchPath: AbsolutePath) =>
-      Effect.gen(function* (_) {
-        return yield* _(commandQueue.offer({ _tag: "Start", path: watchPath }))
-      }).pipe(
+      watcher.start(watchPath).pipe(
         Effect.mapError(
           (error) =>
             new UnknownFSError({
@@ -273,9 +271,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
       )
 
     const stopWatcher = (watchPath: AbsolutePath) =>
-      Effect.gen(function* (_) {
-        return yield* _(commandQueue.offer({ _tag: "Stop", path: watchPath }))
-      }).pipe(
+      watcher.stop(watchPath).pipe(
         Effect.mapError(
           (error) =>
             new UnknownFSError({
@@ -298,5 +294,5 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
     } as const
   }),
 
-  dependencies: [NodeFileSystem.layer, GitIgnoreLive],
+  dependencies: [WatcherFileSystemLive, GitIgnoreLive, WatcherService.Default],
 }) {}

@@ -53,6 +53,19 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.on("statusline-update", listener)
       return () => ipcRenderer.removeListener("statusline-update", listener)
     },
+    tasks: {
+      startWatching: (sessionId?: string) =>
+        ipcRenderer.invoke("claude:tasks:start-watching", sessionId),
+      list: (sessionId?: string) =>
+        ipcRenderer.invoke("claude:tasks:list", sessionId),
+      stopWatching: () => ipcRenderer.invoke("claude:tasks:stop-watching"),
+      onChange: (handler: () => void) => {
+        const listener = () => handler()
+        ipcRenderer.on("claude:tasks:changed", listener)
+        return () =>
+          ipcRenderer.removeListener("claude:tasks:changed", listener)
+      },
+    },
   },
   showOpenDialog: (options: unknown) =>
     ipcRenderer.invoke("show-open-dialog", options),
