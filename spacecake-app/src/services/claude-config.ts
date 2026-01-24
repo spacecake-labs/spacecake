@@ -1,7 +1,7 @@
 import os from "node:os"
 import path from "node:path"
 
-import { Config, Effect, Layer } from "effect"
+import { Config, Effect, Layer, Option } from "effect"
 
 /**
  * Service that provides the Claude configuration directory path.
@@ -16,6 +16,10 @@ export class ClaudeConfig extends Effect.Service<ClaudeConfig>()(
         Config.withDefault(path.join(os.homedir(), ".claude"))
       )
 
+      const taskListId = yield* Config.option(
+        Config.string("CLAUDE_CODE_TASK_LIST_ID")
+      )
+
       return {
         /** Base Claude config directory (e.g., ~/.claude or $CLAUDE_CONFIG_DIR) */
         configDir,
@@ -23,6 +27,10 @@ export class ClaudeConfig extends Effect.Service<ClaudeConfig>()(
         ideDir: path.join(configDir, "ide"),
         /** Unix socket path for Claude hooks (e.g., ~/.claude/spacecake.sock) */
         socketPath: path.join(configDir, "spacecake.sock"),
+        /** Base tasks directory (e.g., ~/.claude/tasks) */
+        tasksDir: path.join(configDir, "tasks"),
+        /** Optional task list ID from CLAUDE_CODE_TASK_LIST_ID env var */
+        taskListId: taskListId as Option.Option<string>,
       }
     }),
   }
@@ -36,4 +44,6 @@ export const makeClaudeConfigTestLayer = (configDir: string) =>
     configDir,
     ideDir: path.join(configDir, "ide"),
     socketPath: path.join(configDir, "spacecake.sock"),
+    tasksDir: path.join(configDir, "tasks"),
+    taskListId: Option.none(),
   } as ClaudeConfig)

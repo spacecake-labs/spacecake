@@ -6,6 +6,7 @@ import {
   OpenFilePayload,
   SelectionChangedPayload,
 } from "@/types/claude-code"
+import type { ClaudeTaskEvent } from "@/types/claude-task"
 import type { FileContent, FileTreeEvent } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
 import type { DisplayStatusline } from "@/lib/statusline-parser"
@@ -52,6 +53,23 @@ contextBridge.exposeInMainWorld("electronAPI", {
       }
       ipcRenderer.on("statusline-update", listener)
       return () => ipcRenderer.removeListener("statusline-update", listener)
+    },
+    tasks: {
+      startWatching: (sessionId?: string) =>
+        ipcRenderer.invoke("claude:tasks:start-watching", sessionId),
+      list: (sessionId?: string) =>
+        ipcRenderer.invoke("claude:tasks:list", sessionId),
+      stopWatching: () => ipcRenderer.invoke("claude:tasks:stop-watching"),
+      onEvent: (handler: (event: ClaudeTaskEvent) => void) => {
+        const listener = (
+          _e: Electron.IpcRendererEvent,
+          event: ClaudeTaskEvent
+        ) => {
+          handler(event)
+        }
+        ipcRenderer.on("claude:tasks:event", listener)
+        return () => ipcRenderer.removeListener("claude:tasks:event", listener)
+      },
     },
   },
   showOpenDialog: (options: unknown) =>

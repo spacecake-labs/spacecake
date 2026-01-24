@@ -24,8 +24,9 @@ test.describe("ghostty terminal", () => {
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     const terminalElement = window.getByTestId("ghostty-terminal")
-    const hideButton = window.getByRole("button", { name: "hide terminal" })
-    const showButton = window.getByRole("button", { name: "show terminal" })
+    const sidebar = window.getByTestId("sidebar")
+    const hideButton = sidebar.getByRole("button", { name: "hide terminal" })
+    const showButton = sidebar.getByRole("button", { name: "show terminal" })
 
     // Terminal starts expanded by default
     await expect(terminalElement).toBeVisible()
@@ -51,9 +52,9 @@ test.describe("ghostty terminal", () => {
     let terminalContent = await window.evaluate(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const api = (globalThis as any).__terminalAPI
-      return api?.getAllLines().join("\n") as string | undefined
+      return api?.getAllLines().join("") as string | undefined
     })
-    // Verify both CWD and command executed
+    // Verify both CWD and command executed (join without newlines to handle line-wrapping)
     expect(terminalContent).toContain(path.basename(tempTestDir))
 
     // Test: Hide (collapse) and show again -> should be SAME session
@@ -71,7 +72,7 @@ test.describe("ghostty terminal", () => {
     terminalContent = await window.evaluate(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const api = (globalThis as any).__terminalAPI
-      return api?.getAllLines().join("\n") as string | undefined
+      return api?.getAllLines().join("") as string | undefined
     })
     expect(terminalContent).toContain("123")
 
@@ -96,7 +97,7 @@ test.describe("ghostty terminal", () => {
     terminalContent = await window.evaluate(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const api = (globalThis as any).__terminalAPI
-      return api?.getAllLines().join("\n") as string | undefined
+      return api?.getAllLines().join("") as string | undefined
     })
     // In a new session, the variable should be empty, so we expect MARKER::END
     // We're explicitly checking for MARKER::END which proves the variable is not set

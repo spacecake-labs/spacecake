@@ -127,6 +127,7 @@
     "@tailwindcss/vite": "^4.1.13",
     "@tanstack/react-router": "^1.132.7",
     "@tanstack/react-router-devtools": "^1.132.11",
+    "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.12",
     "@xstate/react": "^6.0.0",
     "LexicalTableCellResizer": "link:@lexical/react/LexicalTableCellResizer",
