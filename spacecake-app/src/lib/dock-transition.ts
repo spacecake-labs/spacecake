@@ -1,6 +1,6 @@
 import type {
+  DockablePanelKind,
   DockPosition,
-  PanelKind,
   WorkspaceLayout,
 } from "@/schema/workspace-layout"
 
@@ -9,11 +9,11 @@ import type {
 // ============================================
 
 export type DockAction =
-  | { kind: "move"; panel: PanelKind; to: DockPosition }
-  | { kind: "toggle"; panel: PanelKind }
-  | { kind: "expand"; panel: PanelKind }
-  | { kind: "collapse"; panel: PanelKind }
-  | { kind: "resize"; panel: PanelKind; size: number }
+  | { kind: "move"; panel: DockablePanelKind; to: DockPosition }
+  | { kind: "toggle"; panel: DockablePanelKind }
+  | { kind: "expand"; panel: DockablePanelKind }
+  | { kind: "collapse"; panel: DockablePanelKind }
+  | { kind: "resize"; panel: DockablePanelKind; size: number }
 
 // ============================================
 // Query Helpers
@@ -22,7 +22,7 @@ export type DockAction =
 /** Find which dock position a panel is assigned to, or null if not assigned. */
 export function findPanel(
   layout: WorkspaceLayout,
-  panel: PanelKind
+  panel: DockablePanelKind
 ): DockPosition | null {
   if (layout.dock.left === panel) return "left"
   if (layout.dock.right === panel) return "right"

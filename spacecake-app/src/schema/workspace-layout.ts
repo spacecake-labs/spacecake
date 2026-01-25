@@ -7,7 +7,17 @@ import { Schema } from "effect"
 export const DockPositionSchema = Schema.Literal("left", "right", "bottom")
 export type DockPosition = typeof DockPositionSchema.Type
 
-export const PanelKindSchema = Schema.Literal("terminal", "task")
+// Dockable panels that can be positioned in the dock and have tracked state
+export const DockablePanelKindSchema = Schema.Literal("terminal", "task")
+export type DockablePanelKind = typeof DockablePanelKindSchema.Type
+
+// All focusable panels (includes dockable panels plus editor/project)
+export const PanelKindSchema = Schema.Literal(
+  "terminal",
+  "task",
+  "editor",
+  "project"
+)
 export type PanelKind = typeof PanelKindSchema.Type
 
 // ============================================
@@ -15,9 +25,9 @@ export type PanelKind = typeof PanelKindSchema.Type
 // ============================================
 
 export const DockSchema = Schema.Struct({
-  left: Schema.NullOr(PanelKindSchema),
-  right: Schema.NullOr(PanelKindSchema),
-  bottom: Schema.NullOr(PanelKindSchema),
+  left: Schema.NullOr(DockablePanelKindSchema),
+  right: Schema.NullOr(DockablePanelKindSchema),
+  bottom: Schema.NullOr(DockablePanelKindSchema),
 })
 export type Dock = typeof DockSchema.Type
 
@@ -48,7 +58,7 @@ export type PanelMap = typeof PanelMapSchema.Type
 export const WorkspaceLayoutSchema = Schema.Struct({
   dock: Schema.optionalWith(DockSchema, {
     default: () => ({
-      left: null as PanelKind | null,
+      left: null as DockablePanelKind | null,
       right: "terminal" as const,
       bottom: "task" as const,
     }),
@@ -91,9 +101,9 @@ export type WorkspaceLayoutRow = typeof WorkspaceLayoutRowSchema.Type
  */
 export const WorkspaceLayoutStrictSchema = Schema.Struct({
   dock: Schema.Struct({
-    left: Schema.NullOr(PanelKindSchema),
-    right: Schema.NullOr(PanelKindSchema),
-    bottom: Schema.NullOr(PanelKindSchema),
+    left: Schema.NullOr(DockablePanelKindSchema),
+    right: Schema.NullOr(DockablePanelKindSchema),
+    bottom: Schema.NullOr(DockablePanelKindSchema),
   }),
   panels: Schema.Struct({
     terminal: Schema.Struct({

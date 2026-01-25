@@ -43,8 +43,46 @@ test.describe("ghostty terminal", () => {
     await showButton.click()
     await expect(terminalElement).toBeVisible()
 
+    // Test: Cmd+1 / Ctrl+1 focuses editor from terminal
+    // Focus the terminal textarea directly (xterm uses textarea for keyboard input)
+    await terminalElement.locator("textarea").focus()
+    await window.waitForTimeout(100)
+    // Verify terminal has focus
+    await expect(terminalElement.locator("textarea")).toBeFocused()
+    // Press Cmd+1 (Mac) or Ctrl+1 (Linux/Windows) to focus editor
+    await window.keyboard.press("ControlOrMeta+1")
+    await window.waitForTimeout(100)
+    // Verify editor now has focus (contenteditable inside lexical-editor)
+    const editorContentEditable = window
+      .getByTestId("lexical-editor")
+      .locator("[contenteditable='true']")
+    await expect(editorContentEditable).toBeFocused()
+
+    // Test: Ctrl+` when editor focused + terminal expanded → focus terminal
+    await expect(editorContentEditable).toBeFocused()
+    await expect(terminalElement).toBeVisible()
+    await window.keyboard.press("Control+`")
+    await window.waitForTimeout(100)
+    await expect(terminalElement.locator("textarea")).toBeFocused()
+
+    // Test: Ctrl+` when terminal focused + expanded → collapse terminal
+    await expect(terminalElement.locator("textarea")).toBeFocused()
+    await window.keyboard.press("Control+`")
+    await window.waitForTimeout(100)
+    await expect(terminalElement).not.toBeVisible()
+
+    // Test: Ctrl+` when editor focused + terminal collapsed → expand AND focus terminal
+    await editorContentEditable.click()
+    await window.waitForTimeout(100)
+    await expect(editorContentEditable).toBeFocused()
+    await expect(terminalElement).not.toBeVisible()
+    await window.keyboard.press("Control+`")
+    await window.waitForTimeout(200)
+    await expect(terminalElement).toBeVisible()
+    await expect(terminalElement.locator("textarea")).toBeFocused()
+
     // Test: Interact with terminal - set a variable and verify CWD
-    await terminalElement.click()
+    await terminalElement.locator("textarea").focus()
     await window.waitForTimeout(100)
     await window.keyboard.type("export TEST_VAR=123 && pwd", { delay: 50 })
     await window.keyboard.press("Enter")
@@ -64,7 +102,7 @@ test.describe("ghostty terminal", () => {
     await expect(terminalElement).toBeVisible()
 
     // Verify variable still exists (same session)
-    await terminalElement.click()
+    await terminalElement.locator("textarea").focus()
     await window.waitForTimeout(100)
     await window.keyboard.type("echo $TEST_VAR", { delay: 50 })
     await window.keyboard.press("Enter")
@@ -89,7 +127,7 @@ test.describe("ghostty terminal", () => {
     // Verify it's a new session (variable is gone)
     // Use a marker command to distinguish the output - echo the variable with a prefix
     // If the variable is unset, we'll see just the prefix; if set, we'll see prefix+value
-    await terminalElement.click()
+    await terminalElement.locator("textarea").focus()
     await window.waitForTimeout(100)
     await window.keyboard.type("echo MARKER:$TEST_VAR:END", { delay: 50 })
     await window.keyboard.press("Enter")

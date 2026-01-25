@@ -1,6 +1,6 @@
 import type {
+  DockablePanelKind,
   DockPosition,
-  PanelKind,
   WorkspaceLayout,
 } from "@/schema/workspace-layout"
 import { describe, expect, it } from "vitest"
@@ -17,12 +17,14 @@ import {
 // Test Helpers
 // ============================================
 
-const PANELS: PanelKind[] = ["terminal", "task"]
+const PANELS: DockablePanelKind[] = ["terminal", "task"]
 const POSITIONS: DockPosition[] = ["left", "right", "bottom"]
 
 function makeLayout(
-  dock: Record<DockPosition, PanelKind | null>,
-  panels?: Partial<Record<PanelKind, { isExpanded: boolean; size: number }>>
+  dock: Record<DockPosition, DockablePanelKind | null>,
+  panels?: Partial<
+    Record<DockablePanelKind, { isExpanded: boolean; size: number }>
+  >
 ): WorkspaceLayout {
   return {
     dock,
@@ -43,7 +45,7 @@ const defaultLayout = makeLayout({
 /** Assert bijection: each panel in exactly one dock, exactly one dock is null. */
 function assertBijection(layout: WorkspaceLayout) {
   const values = [layout.dock.left, layout.dock.right, layout.dock.bottom]
-  const panels = values.filter((v): v is PanelKind => v !== null)
+  const panels = values.filter((v): v is DockablePanelKind => v !== null)
   expect(values.filter((v) => v === null)).toHaveLength(1)
   expect(panels).toHaveLength(2)
   expect(new Set(panels).size).toBe(2)
@@ -83,8 +85,8 @@ describe("findPanel", () => {
       expected: null,
     },
   ] as {
-    dock: Record<DockPosition, PanelKind | null>
-    panel: PanelKind
+    dock: Record<DockPosition, DockablePanelKind | null>
+    panel: DockablePanelKind
     expected: DockPosition | null
   }[])(
     "returns $expected for $panel with dock=$dock",
@@ -117,7 +119,7 @@ describe("findEmptyDock", () => {
       expected: null,
     },
   ] as {
-    dock: Record<DockPosition, PanelKind | null>
+    dock: Record<DockPosition, DockablePanelKind | null>
     expected: DockPosition | null
   }[])("returns $expected for dock=$dock", ({ dock, expected }) => {
     expect(findEmptyDock(makeLayout(dock))).toBe(expected)
@@ -165,11 +167,12 @@ describe("transition - move", () => {
       "$panel: $source -> $target (target empty)",
       ({ panel, source, target }) => {
         // Place panel at source, other panel elsewhere, target is null
-        const otherPanel: PanelKind = panel === "terminal" ? "task" : "terminal"
+        const otherPanel: DockablePanelKind =
+          panel === "terminal" ? "task" : "terminal"
         const otherPos = POSITIONS.find((p) => p !== source && p !== target)!
         const dock = { left: null, right: null, bottom: null } as Record<
           DockPosition,
-          PanelKind | null
+          DockablePanelKind | null
         >
         dock[source] = panel
         dock[otherPos] = otherPanel
@@ -187,7 +190,8 @@ describe("transition - move", () => {
 
   describe("move to occupied dock (swap)", () => {
     it.each(PANELS)("%s: swaps with the other panel", (panel) => {
-      const otherPanel: PanelKind = panel === "terminal" ? "task" : "terminal"
+      const otherPanel: DockablePanelKind =
+        panel === "terminal" ? "task" : "terminal"
       // panel at bottom, other at right, left is null
       const layout = makeLayout({
         left: null,
@@ -300,7 +304,8 @@ describe("transition - expand/collapse/toggle", () => {
   it.each(PANELS)(
     "%s: toggle/expand/collapse does not affect other panel",
     (panel) => {
-      const otherPanel: PanelKind = panel === "terminal" ? "task" : "terminal"
+      const otherPanel: DockablePanelKind =
+        panel === "terminal" ? "task" : "terminal"
       for (const kind of ["toggle", "expand", "collapse"] as const) {
         const result = transition(defaultLayout, { kind, panel })
         expect(result.panels[otherPanel]).toEqual(
@@ -329,7 +334,8 @@ describe("transition - resize", () => {
   })
 
   it.each(PANELS)("%s: resize does not affect dock or other panel", (panel) => {
-    const otherPanel: PanelKind = panel === "terminal" ? "task" : "terminal"
+    const otherPanel: DockablePanelKind =
+      panel === "terminal" ? "task" : "terminal"
     const result = transition(defaultLayout, {
       kind: "resize",
       panel,

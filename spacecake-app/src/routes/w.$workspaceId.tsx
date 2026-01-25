@@ -4,6 +4,11 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import {
+  FocusManagerProvider,
+  useFocusablePanel,
+  useFocusManager,
+} from "@/contexts/focus-manager"
 import { FileStateHydrationEvent } from "@/machines/file-tree"
 import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
@@ -326,6 +331,30 @@ function LayoutContent() {
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null)
   const verticalPanelGroupRef =
     useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
+  const { focus } = useFocusManager()
+
+  // Cmd+1 / Ctrl+1 to focus editor
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "1") {
+        e.preventDefault()
+        focus("editor")
+      }
+    }
+    window.addEventListener("keydown", onKey, true)
+    return () => window.removeEventListener("keydown", onKey, true)
+  }, [focus])
+
+  // Register terminal focus callback
+  const focusTerminal = useCallback(() => {
+    const terminalEl = document.querySelector(
+      '[data-testid="ghostty-terminal"]'
+    )
+    // xterm.js uses a textarea for keyboard input, not the canvas
+    const textarea = terminalEl?.querySelector("textarea")
+    textarea?.focus()
+  }, [])
+  useFocusablePanel("terminal", focusTerminal)
 
   // Sync sidebar open/close state with the resizable panel
   useEffect(() => {
@@ -360,6 +389,18 @@ function LayoutContent() {
   const [taskStatusFilter, setTaskStatusFilter] = useAtom(taskStatusFilterAtom)
 
   const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
+  const shouldFocusTerminalRef = useRef(false)
+
+  // Focus terminal after it expands (when triggered by Ctrl+`)
+  useEffect(() => {
+    if (isTerminalExpanded && shouldFocusTerminalRef.current) {
+      shouldFocusTerminalRef.current = false
+      // Wait for layout to settle before focusing
+      requestAnimationFrame(() => {
+        focus("terminal")
+      })
+    }
+  }, [isTerminalExpanded, focus])
 
   const {
     containerEl: terminalContainerEl,
@@ -432,6 +473,48 @@ function LayoutContent() {
     },
     [dispatch]
   )
+
+  // Ctrl+` to toggle terminal (VS Code behavior)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // Ctrl+` to toggle terminal (Cmd+` is system window switching on macOS)
+      if (e.ctrlKey && e.code === "Backquote") {
+        e.preventDefault()
+
+        // Skip synthetic events dispatched by the terminal's shortcut interceptor
+        // The window capture handler already sees the original event first
+        if (!e.isTrusted) return
+
+        const terminalEl = document.querySelector(
+          '[data-testid="ghostty-terminal"]'
+        )
+        const isTerminalFocused = terminalEl?.contains(document.activeElement)
+
+        if (isTerminalFocused && isTerminalExpanded) {
+          // Terminal focused + expanded → collapse
+          setTerminalExpanded(false)
+        } else if (!isTerminalFocused && isTerminalExpanded) {
+          // Editor focused + terminal expanded → focus terminal
+          focus("terminal")
+        } else {
+          // Editor focused + terminal collapsed → expand AND focus
+          if (!isTerminalSessionActive) {
+            setIsTerminalSessionActive(true)
+          }
+          shouldFocusTerminalRef.current = true
+          setTerminalExpanded(true)
+        }
+      }
+    }
+    window.addEventListener("keydown", onKey, true)
+    return () => window.removeEventListener("keydown", onKey, true)
+  }, [
+    focus,
+    isTerminalExpanded,
+    isTerminalSessionActive,
+    setTerminalExpanded,
+    setIsTerminalSessionActive,
+  ])
 
   const setTerminalDock = useCallback(
     (dock: DockPosition) => {
@@ -1105,9 +1188,11 @@ function WorkspaceLayout() {
     return (
       <>
         <div className="flex h-screen overflow-hidden">
-          <SidebarProvider>
-            <LayoutContent />
-          </SidebarProvider>
+          <FocusManagerProvider>
+            <SidebarProvider>
+              <LayoutContent />
+            </SidebarProvider>
+          </FocusManagerProvider>
         </div>
       </>
     )
@@ -1116,9 +1201,11 @@ function WorkspaceLayout() {
     <>
       <WorkspaceWatcher workspacePath={workspace.path} />
       <div className="flex h-screen overflow-hidden">
-        <SidebarProvider>
-          <LayoutContent />
-        </SidebarProvider>
+        <FocusManagerProvider>
+          <SidebarProvider>
+            <LayoutContent />
+          </SidebarProvider>
+        </FocusManagerProvider>
       </div>
       <QuickOpen workspacePath={workspace.path} />
     </>
