@@ -1,6 +1,6 @@
-import os from "node:os"
 import path from "path"
 
+import { getAppDir } from "@/main-process/home-folder"
 import { WatcherFileSystemLive, WatcherService } from "@/main-process/watcher"
 import { GitIgnore, GitIgnoreLive } from "@/services/git-ignore-parser"
 import { FileSystem as EffectFileSystem } from "@effect/platform"
@@ -13,6 +13,16 @@ import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { fnv1a64Hex } from "@/lib/hash"
 import { EXCLUDED_ENTRIES } from "@/lib/ignore-patterns"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
+
+/** Common file permission modes */
+export const FileMode = {
+  /** rwxr-xr-x - executable scripts */
+  EXECUTABLE: 0o755,
+  /** rw-r--r-- - regular files */
+  READ_WRITE: 0o644,
+  /** rw------- - private files (only owner) */
+  PRIVATE: 0o600,
+} as const
 
 // Tagged error classes for type-safe pattern matching with Match.tag()
 export class NotFoundError extends Data.TaggedError("NotFoundError")<{
@@ -84,8 +94,7 @@ const toFileSystemError = (
 
 // helper to detect system folders (the .app folder inside ~/.spacecake)
 const isSystemFolder = (folderPath: string): boolean => {
-  const spacecakeAppPath = path.join(os.homedir(), ".spacecake", ".app")
-  return folderPath === spacecakeAppPath
+  return folderPath === getAppDir()
 }
 
 export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
@@ -118,12 +127,16 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
       }).pipe(Effect.mapError((error) => toFileSystemError(error, filePath)))
     const writeTextFile = (
       filePath: AbsolutePath,
-      content: string
+      content: string,
+      options?: { mode?: number }
     ): Effect.Effect<void, FileSystemError> =>
       Effect.gen(function* () {
         yield* Effect.tryPromise({
           try: async () =>
-            await writeFileAtomic(filePath, content, { encoding: "utf8" }),
+            await writeFileAtomic(filePath, content, {
+              encoding: "utf8",
+              mode: options?.mode,
+            }),
           catch: (error) => error,
         })
       }).pipe(
