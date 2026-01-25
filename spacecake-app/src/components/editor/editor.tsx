@@ -4,6 +4,7 @@ import {
   useEditor,
   type CancelDebounceRef,
 } from "@/contexts/editor-context"
+import { useFocusablePanel } from "@/contexts/focus-manager"
 import {
   InitialConfigType,
   LexicalComposer,
@@ -94,6 +95,14 @@ export function Editor({
   const context = React.useContext(RouteContext)
   const { editorRef } = useEditor()
   const fileState = useAtomValue(fileStateAtomFamily(filePath)).value
+
+  // Register editor with focus manager for Cmd+1 / Ctrl+1 support
+  useFocusablePanel(
+    "editor",
+    React.useCallback(() => {
+      editorRef.current?.getRootElement()?.focus()
+    }, [editorRef])
+  )
 
   const onChangeRef = React.useRef<EditorProps["onChange"]>(onChange)
   React.useEffect(() => {

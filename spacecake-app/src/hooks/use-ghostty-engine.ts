@@ -271,8 +271,10 @@ export function useGhosttyEngine({
           const isMod = event.metaKey || event.ctrlKey
           if (isMod && !event.shiftKey && !event.altKey) {
             const key = event.key.toLowerCase()
-            const appShortcuts = ["o", "p", "b", "n", "s"]
-            if (appShortcuts.includes(key)) {
+            const appShortcuts = ["o", "p", "b", "n", "s", "1"]
+            // Ctrl+` for terminal toggle - check separately
+            const isBackquote = event.ctrlKey && event.code === "Backquote"
+            if (appShortcuts.includes(key) || isBackquote) {
               event.stopPropagation()
               const clone = new KeyboardEvent("keydown", {
                 key: event.key,
@@ -284,7 +286,8 @@ export function useGhosttyEngine({
                 bubbles: true,
                 cancelable: true,
               })
-              document.dispatchEvent(clone)
+              // Dispatch to window so capture-phase listeners receive it
+              window.dispatchEvent(clone)
             }
           }
         }
