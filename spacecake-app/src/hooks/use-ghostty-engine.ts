@@ -271,7 +271,7 @@ export function useGhosttyEngine({
           const isMod = event.metaKey || event.ctrlKey
           if (isMod && !event.shiftKey && !event.altKey) {
             const key = event.key.toLowerCase()
-            const appShortcuts = ["o", "p", "b", "n", "s", "1"]
+            const appShortcuts = ["p", "n", "s", "1"]
             // Ctrl+` for terminal toggle - check separately
             const isBackquote = event.ctrlKey && event.code === "Backquote"
             if (appShortcuts.includes(key) || isBackquote) {
