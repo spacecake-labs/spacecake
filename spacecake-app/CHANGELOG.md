@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.42
+
+### Patch Changes
+
+- 627a922: cmd+1 and ctrl+` shortcuts.
+
 ## 0.1.0-alpha.41
 
 ### Patch Changes
