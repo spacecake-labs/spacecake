@@ -24,13 +24,12 @@ export function getHooksDir(): string {
   return path.join(getAppDir(), "hooks")
 }
 
-/** Statusline hook script that sends data to Spacecake via Unix socket */
+/** Statusline hook script that sends data to spacecake via unix socket */
 const STATUSLINE_SCRIPT = `#!/usr/bin/env bash
-# Sends Claude Code statusline data to Spacecake (no output)
+# Sends Claude Code statusline data to spacecake (no output)
 configDir="\${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 socketPath="\${configDir}/spacecake.sock"
 
-# Read stdin before backgrounding (backgrounded processes lose stdin access)
 input=$(cat)
 
 if [ -S "$socketPath" ]; then

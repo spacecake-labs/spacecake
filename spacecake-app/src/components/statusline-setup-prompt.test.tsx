@@ -138,9 +138,9 @@ describe("StatuslineSetupPrompt", () => {
       renderPrompt()
       await setServerReady()
 
-      expect(container.textContent).toContain("enable statusline integration")
+      expect(container.textContent).toContain("enable statusline")
       expect(container.textContent).toContain(
-        "enable real-time status updates from Claude Code."
+        "enable real-time Claude Code status."
       )
     })
 
@@ -156,9 +156,9 @@ describe("StatuslineSetupPrompt", () => {
       renderPrompt()
       await setServerReady()
 
-      expect(container.textContent).toContain("enable statusline integration")
+      expect(container.textContent).toContain("enable statusline")
       expect(container.textContent).toContain(
-        "Claude's statusline is configured but not pointing to Spacecake."
+        "statusline not pointing to Spacecake."
       )
     })
 
@@ -174,9 +174,7 @@ describe("StatuslineSetupPrompt", () => {
       renderPrompt()
       await setServerReady()
 
-      expect(container.textContent).not.toContain(
-        "enable statusline integration"
-      )
+      expect(container.textContent).not.toContain("enable statusline")
     })
 
     it("does not show prompt when previously dismissed", async () => {
@@ -192,9 +190,7 @@ describe("StatuslineSetupPrompt", () => {
       renderPrompt()
       await setServerReady()
 
-      expect(container.textContent).not.toContain(
-        "enable statusline integration"
-      )
+      expect(container.textContent).not.toContain("enable statusline")
     })
   })
 
@@ -240,9 +236,7 @@ describe("StatuslineSetupPrompt", () => {
       })
       await waitForEffects()
 
-      expect(container.textContent).not.toContain(
-        "enable statusline integration"
-      )
+      expect(container.textContent).not.toContain("enable statusline")
     })
 
     it("shows error message when setup fails", async () => {
@@ -268,7 +262,7 @@ describe("StatuslineSetupPrompt", () => {
       // Error should be displayed
       expect(container.textContent).toContain(errorMessage)
       // Prompt should still be visible for retry
-      expect(container.textContent).toContain("enable statusline integration")
+      expect(container.textContent).toContain("enable statusline")
     })
 
     it("shows loading state while setting up", async () => {
@@ -323,9 +317,7 @@ describe("StatuslineSetupPrompt", () => {
       })
       await waitForEffects()
 
-      expect(container.textContent).not.toContain(
-        "enable statusline integration"
-      )
+      expect(container.textContent).not.toContain("enable statusline")
       // Should persist dismissal
       expect(
         localStorage.getItem("spacecake:statusline-prompt-dismissed")
@@ -350,9 +342,7 @@ describe("StatuslineSetupPrompt", () => {
       })
       await waitForEffects()
 
-      expect(container.textContent).not.toContain(
-        "enable statusline integration"
-      )
+      expect(container.textContent).not.toContain("enable statusline")
     })
   })
 

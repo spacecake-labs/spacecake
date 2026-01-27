@@ -85,17 +85,15 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
-import { ClaudeStatusBadge } from "@/components/claude-status-badge"
-import { ClaudeStatuslineBadge } from "@/components/claude-statusline-badge"
 import { DeleteButton } from "@/components/delete-button"
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
-import { StatuslineSetupPrompt } from "@/components/statusline-setup-prompt"
 import { TaskTable } from "@/components/task-table/task-table"
 import { TerminalMountPoint } from "@/components/terminal-mount-point"
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
+import { WorkspaceStatusBar } from "@/components/workspace-status-bar"
 
 export const Route = createFileRoute("/w/$workspaceId")({
   beforeLoad: async ({ params, context }) => {
@@ -657,10 +655,10 @@ function LayoutContent() {
             <HeaderToolbar />
           </header>
           <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
-            <StatuslineSetupPrompt />
             <Outlet />
           </div>
         </main>
+        <WorkspaceStatusBar bottomPanels={[]} />
       </ClaudeIntegrationProvider>
     )
   }
@@ -696,8 +694,6 @@ function LayoutContent() {
       </div>
       {/* Right side: badges, task toggle, delete, collapse */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        <ClaudeStatusBadge className="text-xs" />
-        <ClaudeStatuslineBadge className="text-xs" />
         <DeleteButton
           onDelete={
             isTerminalSessionActive
@@ -820,7 +816,6 @@ function LayoutContent() {
                 <HeaderToolbar />
               </header>
               <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
-                <StatuslineSetupPrompt />
                 <Outlet />
               </div>
             </main>
@@ -839,9 +834,9 @@ function LayoutContent() {
               ref={taskPanelRef}
               className="flex h-full w-full border-t flex-col"
             >
-              <div className={cn("shrink-0", !isTaskCollapsed && "border-b")}>
-                {taskToolbarContent}
-              </div>
+              {!isTaskCollapsed && (
+                <div className="shrink-0 border-b">{taskToolbarContent}</div>
+              )}
               <div
                 className={cn(
                   "flex-1 min-h-0 min-w-0 overflow-hidden",
@@ -866,7 +861,6 @@ function LayoutContent() {
             <HeaderToolbar />
           </header>
           <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
-            <StatuslineSetupPrompt />
             <Outlet />
           </div>
         </main>
@@ -890,11 +884,9 @@ function LayoutContent() {
           terminalDock === "bottom" ? "flex-col" : "flex-row"
         )}
       >
-        {/* Bottom dock: horizontal toolbar at top */}
-        {terminalDock === "bottom" && (
-          <div className={cn("shrink-0", !isTerminalCollapsed && "border-b")}>
-            {toolbarContent}
-          </div>
+        {/* Bottom dock: horizontal toolbar at top (hidden when collapsed — status bar provides toggle) */}
+        {terminalDock === "bottom" && !isTerminalCollapsed && (
+          <div className="shrink-0 border-b">{toolbarContent}</div>
         )}
 
         {/* Left dock: rotated toolbar on the left side */}
@@ -965,6 +957,38 @@ function LayoutContent() {
     </ResizablePanel>
   )
 
+  const toggleTerminal = useCallback(() => {
+    if (isTerminalCollapsed && !isTerminalSessionActive) {
+      setIsTerminalSessionActive(true)
+    }
+    dispatch({ kind: "toggle", panel: "terminal" })
+  }, [isTerminalCollapsed, isTerminalSessionActive, dispatch])
+
+  const toggleTask = useCallback(() => {
+    dispatch({ kind: "toggle", panel: "task" })
+  }, [dispatch])
+
+  const bottomPanels = [
+    ...(terminalDock === "bottom"
+      ? [
+          {
+            panel: "terminal" as const,
+            isCollapsed: isTerminalCollapsed,
+            onToggle: toggleTerminal,
+          },
+        ]
+      : []),
+    ...(taskDock === "bottom"
+      ? [
+          {
+            panel: "task" as const,
+            isCollapsed: isTaskCollapsed,
+            onToggle: toggleTask,
+          },
+        ]
+      : []),
+  ]
+
   return (
     <ClaudeIntegrationProvider
       workspacePath={workspace.path}
@@ -988,13 +1012,8 @@ function LayoutContent() {
             selectedFilePath={selectedFilePath}
             isTerminalExpanded={isTerminalExpanded}
             isTaskExpanded={isTaskExpanded}
-            onToggleTerminal={() => {
-              if (isTerminalCollapsed && !isTerminalSessionActive) {
-                setIsTerminalSessionActive(true)
-              }
-              dispatch({ kind: "toggle", panel: "terminal" })
-            }}
-            onToggleTask={() => dispatch({ kind: "toggle", panel: "task" })}
+            onToggleTerminal={toggleTerminal}
+            onToggleTask={toggleTask}
           />
         </ResizablePanel>
         <ResizableHandle
@@ -1002,154 +1021,159 @@ function LayoutContent() {
           className={cn("w-0", !sidebarOpen && "[&>div]:translate-x-1.5")}
         />
         <ResizablePanel defaultSize={85} className="p-2 overflow-hidden">
-          <ResizablePanelGroup
-            ref={taskPanelGroupRef}
-            direction="horizontal"
-            className="h-full bg-background rounded-xl shadow-sm overflow-hidden"
-          >
-            {/* Left task panel - full height */}
-            {taskDock === "left" && (
-              <>
-                <ResizablePanel
-                  order={1}
-                  defaultSize={isTaskCollapsed ? 0 : taskSize}
-                  minSize={isTaskCollapsed ? 0 : 15}
-                  maxSize={isTaskCollapsed ? 0 : 50}
-                  className={
-                    isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""
-                  }
-                >
-                  <div
-                    ref={taskPanelRef}
-                    className="flex h-full w-full border-r flex-row"
-                  >
-                    <div
-                      className={cn(
-                        "shrink-0 w-8 h-full relative overflow-hidden",
-                        !isTaskCollapsed && "border-r"
-                      )}
-                    >
-                      <div
-                        className="absolute top-1/2 left-1/2"
-                        style={{
-                          width:
-                            taskPanelHeight > 0
-                              ? `${taskPanelHeight}px`
-                              : "100%",
-                          height: "2rem",
-                          transform: "translate(-50%, -50%) rotate(-90deg)",
-                        }}
-                      >
-                        {taskToolbarContent}
-                      </div>
-                    </div>
-                    <div
-                      className={cn(
-                        "flex-1 min-h-0 min-w-0 overflow-hidden",
-                        isTaskCollapsed && "hidden"
-                      )}
-                    >
-                      <TaskTable />
-                    </div>
-                  </div>
-                </ResizablePanel>
-                <ResizableHandle
-                  withHandle
-                  className={isTaskCollapsed ? "invisible" : ""}
-                />
-              </>
-            )}
-
-            {/* Center panel */}
-            <ResizablePanel
-              order={2}
-              defaultSize={
-                isTaskCollapsed || taskDock === "bottom" ? 100 : 100 - taskSize
-              }
-              minSize={30}
+          <div className="flex flex-col h-full bg-background rounded-xl shadow-sm overflow-hidden">
+            <ResizablePanelGroup
+              ref={taskPanelGroupRef}
+              direction="horizontal"
+              className="flex-1 min-h-0"
             >
-              <div className="h-full flex flex-col overflow-hidden">
-                <ResizablePanelGroup
-                  direction={panelDirection}
-                  ref={verticalPanelGroupRef}
-                  onLayout={handleTerminalResize}
-                >
-                  {terminalFirst ? (
-                    <>
-                      {terminalPanel}
-                      <ResizableHandle
-                        withHandle
-                        className={isTerminalCollapsed ? "invisible" : ""}
-                      />
-                      {editorPanel}
-                    </>
-                  ) : (
-                    <>
-                      {editorPanel}
-                      <ResizableHandle
-                        withHandle
-                        className={isTerminalCollapsed ? "invisible" : ""}
-                      />
-                      {terminalPanel}
-                    </>
-                  )}
-                </ResizablePanelGroup>
-              </div>
-            </ResizablePanel>
-
-            {/* Right task panel - full height */}
-            {taskDock === "right" && (
-              <>
-                <ResizableHandle
-                  withHandle
-                  className={isTaskCollapsed ? "invisible" : ""}
-                />
-                <ResizablePanel
-                  order={3}
-                  defaultSize={isTaskCollapsed ? 0 : taskSize}
-                  minSize={isTaskCollapsed ? 0 : 15}
-                  maxSize={isTaskCollapsed ? 0 : 50}
-                  className={
-                    isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""
-                  }
-                >
-                  <div
-                    ref={taskPanelRef}
-                    className="flex h-full w-full border-l flex-row"
+              {/* Left task panel - full height */}
+              {taskDock === "left" && (
+                <>
+                  <ResizablePanel
+                    order={1}
+                    defaultSize={isTaskCollapsed ? 0 : taskSize}
+                    minSize={isTaskCollapsed ? 0 : 15}
+                    maxSize={isTaskCollapsed ? 0 : 50}
+                    className={
+                      isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""
+                    }
                   >
                     <div
-                      className={cn(
-                        "flex-1 min-h-0 min-w-0 overflow-hidden",
-                        isTaskCollapsed && "hidden"
-                      )}
-                    >
-                      <TaskTable />
-                    </div>
-                    <div
-                      className={cn(
-                        "shrink-0 w-8 h-full relative overflow-hidden",
-                        !isTaskCollapsed && "border-l"
-                      )}
+                      ref={taskPanelRef}
+                      className="flex h-full w-full border-r flex-row"
                     >
                       <div
-                        className="absolute top-1/2 left-1/2"
-                        style={{
-                          width:
-                            taskPanelHeight > 0
-                              ? `${taskPanelHeight}px`
-                              : "100%",
-                          height: "2rem",
-                          transform: "translate(-50%, -50%) rotate(90deg)",
-                        }}
+                        className={cn(
+                          "shrink-0 w-8 h-full relative overflow-hidden",
+                          !isTaskCollapsed && "border-r"
+                        )}
                       >
-                        {taskToolbarContent}
+                        <div
+                          className="absolute top-1/2 left-1/2"
+                          style={{
+                            width:
+                              taskPanelHeight > 0
+                                ? `${taskPanelHeight}px`
+                                : "100%",
+                            height: "2rem",
+                            transform: "translate(-50%, -50%) rotate(-90deg)",
+                          }}
+                        >
+                          {taskToolbarContent}
+                        </div>
+                      </div>
+                      <div
+                        className={cn(
+                          "flex-1 min-h-0 min-w-0 overflow-hidden",
+                          isTaskCollapsed && "hidden"
+                        )}
+                      >
+                        <TaskTable />
                       </div>
                     </div>
-                  </div>
-                </ResizablePanel>
-              </>
-            )}
-          </ResizablePanelGroup>
+                  </ResizablePanel>
+                  <ResizableHandle
+                    withHandle
+                    className={isTaskCollapsed ? "invisible" : ""}
+                  />
+                </>
+              )}
+
+              {/* Center panel */}
+              <ResizablePanel
+                order={2}
+                defaultSize={
+                  isTaskCollapsed || taskDock === "bottom"
+                    ? 100
+                    : 100 - taskSize
+                }
+                minSize={30}
+              >
+                <div className="h-full flex flex-col overflow-hidden">
+                  <ResizablePanelGroup
+                    direction={panelDirection}
+                    ref={verticalPanelGroupRef}
+                    onLayout={handleTerminalResize}
+                  >
+                    {terminalFirst ? (
+                      <>
+                        {terminalPanel}
+                        <ResizableHandle
+                          withHandle
+                          className={isTerminalCollapsed ? "invisible" : ""}
+                        />
+                        {editorPanel}
+                      </>
+                    ) : (
+                      <>
+                        {editorPanel}
+                        <ResizableHandle
+                          withHandle
+                          className={isTerminalCollapsed ? "invisible" : ""}
+                        />
+                        {terminalPanel}
+                      </>
+                    )}
+                  </ResizablePanelGroup>
+                </div>
+              </ResizablePanel>
+
+              {/* Right task panel - full height */}
+              {taskDock === "right" && (
+                <>
+                  <ResizableHandle
+                    withHandle
+                    className={isTaskCollapsed ? "invisible" : ""}
+                  />
+                  <ResizablePanel
+                    order={3}
+                    defaultSize={isTaskCollapsed ? 0 : taskSize}
+                    minSize={isTaskCollapsed ? 0 : 15}
+                    maxSize={isTaskCollapsed ? 0 : 50}
+                    className={
+                      isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""
+                    }
+                  >
+                    <div
+                      ref={taskPanelRef}
+                      className="flex h-full w-full border-l flex-row"
+                    >
+                      <div
+                        className={cn(
+                          "flex-1 min-h-0 min-w-0 overflow-hidden",
+                          isTaskCollapsed && "hidden"
+                        )}
+                      >
+                        <TaskTable />
+                      </div>
+                      <div
+                        className={cn(
+                          "shrink-0 w-8 h-full relative overflow-hidden",
+                          !isTaskCollapsed && "border-l"
+                        )}
+                      >
+                        <div
+                          className="absolute top-1/2 left-1/2"
+                          style={{
+                            width:
+                              taskPanelHeight > 0
+                                ? `${taskPanelHeight}px`
+                                : "100%",
+                            height: "2rem",
+                            transform: "translate(-50%, -50%) rotate(90deg)",
+                          }}
+                        >
+                          {taskToolbarContent}
+                        </div>
+                      </div>
+                    </div>
+                  </ResizablePanel>
+                </>
+              )}
+            </ResizablePanelGroup>
+            <WorkspaceStatusBar bottomPanels={bottomPanels} />
+          </div>
         </ResizablePanel>
       </ResizablePanelGroup>
     </ClaudeIntegrationProvider>

@@ -65,16 +65,16 @@ function StatuslinePromptContent() {
   }, [setDismissed])
 
   return (
-    <Alert className="mb-4 relative">
+    <Alert className="relative">
       <Settings2 className="h-4 w-4" />
-      <AlertTitle className="pr-8">enable statusline integration</AlertTitle>
-      <AlertDescription>
-        <p className="mb-3">
+      <AlertTitle className="pr-8 text-xs">enable statusline</AlertTitle>
+      <AlertDescription className="text-xs">
+        <p className="mb-2">
           {config?.configured
-            ? "Claude's statusline is configured but not pointing to Spacecake."
-            : "enable real-time status updates from Claude Code."}
+            ? "statusline not pointing to Spacecake."
+            : "enable real-time Claude Code status."}
         </p>
-        {error && <p className="text-destructive text-sm mb-2">{error}</p>}
+        {error && <p className="text-destructive text-xs mb-2">{error}</p>}
         <div className="flex gap-2">
           <Button
             size="sm"

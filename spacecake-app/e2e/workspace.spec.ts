@@ -655,10 +655,10 @@ test.describe("spacecake app", () => {
       .locator("svg:first-child")
       .click({ delay: 100 })
 
-    // 4. Open the deeply nested file
+    // 4. Open the deeply nested file (click left side to avoid more-options overlay)
     await window
       .getByRole("button", { name: "deep-file.txt" })
-      .click({ delay: 100 })
+      .click({ delay: 100, position: { x: 5, y: 5 } })
 
     // 5. Verify the file content is visible
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
