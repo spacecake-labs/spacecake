@@ -128,13 +128,16 @@ export function useGhosttyEngine({
           }
 
           const metrics = renderer.getMetrics()
-          if (!metrics || metrics.width === 0) return dimensions
+          if (!metrics || metrics.width === 0 || metrics.height === 0)
+            return dimensions
 
-          // Container has no padding — use clientWidth directly
+          // Container has no padding — use client dimensions directly
           const availableWidth = containerEl.clientWidth
+          const availableHeight = containerEl.clientHeight
           const cols = Math.max(2, Math.floor(availableWidth / metrics.width))
+          const rows = Math.max(2, Math.floor(availableHeight / metrics.height))
 
-          return { cols, rows: dimensions.rows }
+          return { cols, rows }
         }
 
         // Attach to DOM (the persistent container div)
