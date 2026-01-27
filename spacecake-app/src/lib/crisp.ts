@@ -1,4 +1,6 @@
 export function initCrisp() {
+  if (window.electronAPI?.isPlaywright) return
+
   window.$crisp = []
   window.CRISP_WEBSITE_ID = "8aa1839d-b111-439c-9627-86b73a66bd66"
   ;(function () {
