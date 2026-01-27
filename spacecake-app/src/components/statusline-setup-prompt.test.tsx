@@ -4,19 +4,18 @@
 import * as React from "react"
 import { act } from "react"
 import type { FileSystemError } from "@/services/file-system"
-import { createStore, Provider } from "jotai"
+import { createStore, Provider, useAtomValue } from "jotai"
 import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { left, right } from "@/types/adt"
 import type { ElectronAPI, StatuslineConfigStatus } from "@/types/electron"
 import {
-  resetStatuslinePromptDismissed,
-  StatuslineSetupPrompt,
+  statuslineConflictAtom,
+  useStatuslineAutoSetup,
 } from "@/components/statusline-setup-prompt"
 
 // vi.hoisted runs before vi.mock hoisting, so the atom is available.
-// require() is necessary here because vi.hoisted executes before ES imports resolve.
 const { mockServerReadyAtom } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { atom } = require("jotai") as typeof import("jotai")
@@ -37,6 +36,7 @@ const createMockElectronAPI = (overrides: {
   updateError?: { description: string }
 }) => {
   const api: Partial<ElectronAPI> = {
+    isPlaywright: false,
     claude: {
       notifySelectionChanged: async () => {},
       notifyAtMentioned: async () => {},
@@ -58,7 +58,11 @@ const createMockElectronAPI = (overrides: {
             )
           }
           return right<FileSystemError, StatuslineConfigStatus>(
-            overrides.readResult ?? { configured: false, isSpacecake: false }
+            overrides.readResult ?? {
+              configured: false,
+              isSpacecake: false,
+              isInlineSpacecake: false,
+            }
           )
         }),
         update: vi.fn(async () => {
@@ -82,13 +86,27 @@ const createMockElectronAPI = (overrides: {
 const waitForEffects = () =>
   act(() => new Promise((resolve) => setTimeout(resolve, 50)))
 
-describe("StatuslineSetupPrompt", () => {
+/** Thin wrapper component that calls the hook and renders nothing */
+function AutoSetupHarness() {
+  useStatuslineAutoSetup()
+  return null
+}
+
+/** Wrapper that reads the conflict atom and reports via callback */
+function ConflictReader({ onConflict }: { onConflict: (v: unknown) => void }) {
+  const conflict = useAtomValue(statuslineConflictAtom)
+  React.useEffect(() => {
+    onConflict(conflict)
+  })
+  return null
+}
+
+describe("useStatuslineAutoSetup", () => {
   let container: HTMLDivElement
   let root: Root
   let store: ReturnType<typeof createStore>
 
   beforeEach(() => {
-    localStorage.clear()
     container = document.createElement("div")
     document.body.appendChild(container)
     root = createRoot(container)
@@ -102,11 +120,11 @@ describe("StatuslineSetupPrompt", () => {
     vi.clearAllMocks()
   })
 
-  const renderPrompt = () => {
+  const renderHook = () => {
     act(() => {
       root.render(
         <Provider store={store}>
-          <StatuslineSetupPrompt />
+          <AutoSetupHarness />
         </Provider>
       )
     })
@@ -119,287 +137,165 @@ describe("StatuslineSetupPrompt", () => {
     await waitForEffects()
   }
 
-  describe("visibility conditions", () => {
-    it("does not render when server is not ready", () => {
-      window.electronAPI = createMockElectronAPI({
-        readResult: { configured: false, isSpacecake: false },
-      })
-
-      renderPrompt()
-
-      expect(container.querySelector("[class*='alert']")).toBeNull()
+  it("auto-configures when configured is false", async () => {
+    const mockApi = createMockElectronAPI({
+      readResult: {
+        configured: false,
+        isSpacecake: false,
+        isInlineSpacecake: false,
+      },
     })
+    window.electronAPI = mockApi
 
-    it("shows prompt when server ready and statusline not configured", async () => {
-      window.electronAPI = createMockElectronAPI({
-        readResult: { configured: false, isSpacecake: false },
-      })
+    renderHook()
+    await setServerReady()
 
-      renderPrompt()
-      await setServerReady()
-
-      expect(container.textContent).toContain("enable statusline")
-      expect(container.textContent).toContain(
-        "enable real-time Claude Code status."
-      )
-    })
-
-    it("shows prompt when statusline configured but not pointing to spacecake", async () => {
-      window.electronAPI = createMockElectronAPI({
-        readResult: {
-          configured: true,
-          isSpacecake: false,
-          command: "/other/script.sh",
-        },
-      })
-
-      renderPrompt()
-      await setServerReady()
-
-      expect(container.textContent).toContain("enable statusline")
-      expect(container.textContent).toContain(
-        "statusline not pointing to Spacecake."
-      )
-    })
-
-    it("does not show prompt when already configured for spacecake", async () => {
-      window.electronAPI = createMockElectronAPI({
-        readResult: {
-          configured: true,
-          isSpacecake: true,
-          command: "/spacecake/script.sh",
-        },
-      })
-
-      renderPrompt()
-      await setServerReady()
-
-      expect(container.textContent).not.toContain("enable statusline")
-    })
-
-    it("does not show prompt when previously dismissed", async () => {
-      localStorage.setItem(
-        "spacecake:statusline-prompt-dismissed",
-        JSON.stringify(true)
-      )
-
-      window.electronAPI = createMockElectronAPI({
-        readResult: { configured: false, isSpacecake: false },
-      })
-
-      renderPrompt()
-      await setServerReady()
-
-      expect(container.textContent).not.toContain("enable statusline")
-    })
+    expect(mockApi.claude.statusline.read).toHaveBeenCalledTimes(1)
+    expect(mockApi.claude.statusline.update).toHaveBeenCalledTimes(1)
   })
 
-  describe("user interactions", () => {
-    it("calls update API when enable button is clicked", async () => {
-      const mockApi = createMockElectronAPI({
-        readResult: { configured: false, isSpacecake: false },
-      })
-      window.electronAPI = mockApi
-
-      renderPrompt()
-      await setServerReady()
-
-      const enableButton = Array.from(
-        container.querySelectorAll("button")
-      ).find((btn) => btn.textContent === "enable statusline")
-      expect(enableButton).toBeTruthy()
-
-      await act(async () => {
-        enableButton!.click()
-      })
-      await waitForEffects()
-
-      expect(mockApi.claude.statusline.update).toHaveBeenCalled()
+  it("silently migrates old inline spacecake config", async () => {
+    const mockApi = createMockElectronAPI({
+      readResult: {
+        configured: true,
+        isSpacecake: false,
+        isInlineSpacecake: true,
+        command:
+          "bash -c 'socketPath=\"${HOME}/.claude/spacecake.sock\"; exit 0'",
+      },
     })
+    window.electronAPI = mockApi
 
-    it("hides prompt after successful setup", async () => {
-      const mockApi = createMockElectronAPI({
-        readResult: { configured: false, isSpacecake: false },
-        updateResult: undefined,
-      })
-      window.electronAPI = mockApi
+    renderHook()
+    await setServerReady()
 
-      renderPrompt()
-      await setServerReady()
-
-      const enableButton = Array.from(
-        container.querySelectorAll("button")
-      ).find((btn) => btn.textContent === "enable statusline")
-
-      await act(async () => {
-        enableButton!.click()
-      })
-      await waitForEffects()
-
-      expect(container.textContent).not.toContain("enable statusline")
-    })
-
-    it("shows error message when setup fails", async () => {
-      const errorMessage = "Failed to write settings file"
-      const mockApi = createMockElectronAPI({
-        readResult: { configured: false, isSpacecake: false },
-        updateError: { description: errorMessage },
-      })
-      window.electronAPI = mockApi
-
-      renderPrompt()
-      await setServerReady()
-
-      const enableButton = Array.from(
-        container.querySelectorAll("button")
-      ).find((btn) => btn.textContent === "enable statusline")
-
-      await act(async () => {
-        enableButton!.click()
-      })
-      await waitForEffects()
-
-      // Error should be displayed
-      expect(container.textContent).toContain(errorMessage)
-      // Prompt should still be visible for retry
-      expect(container.textContent).toContain("enable statusline")
-    })
-
-    it("shows loading state while setting up", async () => {
-      // Create a promise we control
-      let resolveUpdate!: (value: unknown) => void
-      const updatePromise = new Promise((resolve) => {
-        resolveUpdate = resolve
-      })
-
-      const mockApi = createMockElectronAPI({
-        readResult: { configured: false, isSpacecake: false },
-      })
-      mockApi.claude.statusline.update = vi.fn(() => updatePromise as never)
-      window.electronAPI = mockApi
-
-      renderPrompt()
-      await setServerReady()
-
-      const enableButton = Array.from(
-        container.querySelectorAll("button")
-      ).find((btn) => btn.textContent === "enable statusline")
-
-      await act(async () => {
-        enableButton!.click()
-      })
-
-      // Should show loading state
-      expect(container.textContent).toContain("setting up...")
-
-      // Resolve the promise
-      await act(async () => {
-        resolveUpdate(right(undefined))
-      })
-      await waitForEffects()
-    })
-
-    it("dismisses prompt when not now button is clicked", async () => {
-      window.electronAPI = createMockElectronAPI({
-        readResult: { configured: false, isSpacecake: false },
-      })
-
-      renderPrompt()
-      await setServerReady()
-
-      const notNowButton = Array.from(
-        container.querySelectorAll("button")
-      ).find((btn) => btn.textContent === "not now")
-      expect(notNowButton).toBeTruthy()
-
-      await act(async () => {
-        notNowButton!.click()
-      })
-      await waitForEffects()
-
-      expect(container.textContent).not.toContain("enable statusline")
-      // Should persist dismissal
-      expect(
-        localStorage.getItem("spacecake:statusline-prompt-dismissed")
-      ).toBe("true")
-    })
-
-    it("dismisses prompt when X button is clicked", async () => {
-      window.electronAPI = createMockElectronAPI({
-        readResult: { configured: false, isSpacecake: false },
-      })
-
-      renderPrompt()
-      await setServerReady()
-
-      const dismissButton = container.querySelector(
-        "button[aria-label='dismiss']"
-      ) as HTMLButtonElement
-      expect(dismissButton).toBeTruthy()
-
-      await act(async () => {
-        dismissButton.click()
-      })
-      await waitForEffects()
-
-      expect(container.textContent).not.toContain("enable statusline")
-    })
+    expect(mockApi.claude.statusline.update).toHaveBeenCalledTimes(1)
   })
 
-  describe("resetStatuslinePromptDismissed", () => {
-    it("clears the dismissed state from localStorage", () => {
-      localStorage.setItem(
-        "spacecake:statusline-prompt-dismissed",
-        JSON.stringify(true)
-      )
-
-      resetStatuslinePromptDismissed()
-
-      expect(
-        localStorage.getItem("spacecake:statusline-prompt-dismissed")
-      ).toBeNull()
+  it("sets conflict atom when configured but not spacecake", async () => {
+    const mockApi = createMockElectronAPI({
+      readResult: {
+        configured: true,
+        isSpacecake: false,
+        isInlineSpacecake: false,
+        command: "/other/script.sh",
+      },
     })
+    window.electronAPI = mockApi
+
+    let latestConflict: unknown = undefined
+    act(() => {
+      root.render(
+        <Provider store={store}>
+          <AutoSetupHarness />
+          <ConflictReader onConflict={(v) => (latestConflict = v)} />
+        </Provider>
+      )
+    })
+    await setServerReady()
+
+    expect(mockApi.claude.statusline.update).not.toHaveBeenCalled()
+    expect(latestConflict).toEqual({ command: "/other/script.sh" })
   })
 
-  describe("error handling", () => {
-    it("logs error when reading statusline config fails", async () => {
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+  it("does nothing when already configured for spacecake", async () => {
+    const mockApi = createMockElectronAPI({
+      readResult: {
+        configured: true,
+        isSpacecake: true,
+        isInlineSpacecake: false,
+        command: "/spacecake/script.sh",
+      },
+    })
+    window.electronAPI = mockApi
 
-      window.electronAPI = createMockElectronAPI({
-        readError: { description: "Permission denied" },
-      })
-
-      renderPrompt()
-      await setServerReady()
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "failed to read statusline config:",
-        expect.objectContaining({ description: "Permission denied" })
+    let latestConflict: unknown = "initial"
+    act(() => {
+      root.render(
+        <Provider store={store}>
+          <AutoSetupHarness />
+          <ConflictReader onConflict={(v) => (latestConflict = v)} />
+        </Provider>
       )
+    })
+    await setServerReady()
 
-      consoleSpy.mockRestore()
+    expect(mockApi.claude.statusline.update).not.toHaveBeenCalled()
+    expect(latestConflict).toBeNull()
+  })
+
+  it("logs error when reading statusline config fails", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+
+    window.electronAPI = createMockElectronAPI({
+      readError: { description: "Permission denied" },
     })
 
-    it("only fetches config once even when server ready toggles", async () => {
-      const mockApi = createMockElectronAPI({
-        readResult: { configured: false, isSpacecake: false },
-      })
-      window.electronAPI = mockApi
+    renderHook()
+    await setServerReady()
 
-      renderPrompt()
-      await setServerReady()
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "failed to read statusline config:",
+      expect.objectContaining({ description: "Permission denied" })
+    )
 
-      // Toggle server ready off and back on
-      await act(async () => {
-        store.set(mockServerReadyAtom, false)
-      })
-      await act(async () => {
-        store.set(mockServerReadyAtom, true)
-      })
-      await waitForEffects()
+    consoleSpy.mockRestore()
+  })
 
-      // Should only have been called once due to hasFetchedRef
-      expect(mockApi.claude.statusline.read).toHaveBeenCalledTimes(1)
+  it("only fetches config once even when server ready toggles", async () => {
+    const mockApi = createMockElectronAPI({
+      readResult: {
+        configured: false,
+        isSpacecake: false,
+        isInlineSpacecake: false,
+      },
     })
+    window.electronAPI = mockApi
+
+    renderHook()
+    await setServerReady()
+
+    await act(async () => {
+      store.set(mockServerReadyAtom, false)
+    })
+    await act(async () => {
+      store.set(mockServerReadyAtom, true)
+    })
+    await waitForEffects()
+
+    expect(mockApi.claude.statusline.read).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("StatuslineConflictLink (via statuslineConflictAtom)", () => {
+  let container: HTMLDivElement
+  let root: Root
+  let store: ReturnType<typeof createStore>
+
+  beforeEach(() => {
+    container = document.createElement("div")
+    document.body.appendChild(container)
+    root = createRoot(container)
+    store = createStore()
+  })
+
+  afterEach(() => {
+    act(() => root.unmount())
+    container.remove()
+    vi.clearAllMocks()
+  })
+
+  it("conflict atom starts as null", () => {
+    expect(store.get(statuslineConflictAtom)).toBeNull()
+  })
+
+  it("conflict atom can be set and cleared", () => {
+    store.set(statuslineConflictAtom, { command: "/other/script.sh" })
+    expect(store.get(statuslineConflictAtom)).toEqual({
+      command: "/other/script.sh",
+    })
+
+    store.set(statuslineConflictAtom, null)
+    expect(store.get(statuslineConflictAtom)).toBeNull()
   })
 })

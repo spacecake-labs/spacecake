@@ -463,7 +463,13 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
 
       console.log("Claude Code Server: Stopping...")
       broadcastClaudeCodeStatus("disconnected")
-      serverState.wss.close()
+      // Terminate all connected clients so wss.close() can complete
+      for (const client of serverState.wss.clients) {
+        client.terminate()
+      }
+      yield* Effect.async<void, never>((resume) => {
+        serverState!.wss.close(() => resume(Effect.void))
+      })
 
       const exists = yield* fsService.exists(serverState.lockFilePath)
       if (exists) {

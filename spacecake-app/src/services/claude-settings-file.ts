@@ -35,6 +35,8 @@ export interface StatuslineConfigStatus {
   configured: boolean
   /** Whether the configured command points to our spacecake script */
   isSpacecake: boolean
+  /** Old inline `bash -c '…spacecake.sock…'` config from pre-auto-setup versions */
+  isInlineSpacecake: boolean
   /** The current command, if any */
   command?: string
 }
@@ -116,13 +118,23 @@ const makeClaudeSettingsFile = Effect.gen(function* () {
         const spacecakePath = getStatuslineScriptPath()
 
         if (!settings?.statusLine) {
-          return { configured: false, isSpacecake: false }
+          return {
+            configured: false,
+            isSpacecake: false,
+            isInlineSpacecake: false,
+          }
         }
 
         const command = settings.statusLine.command
         return {
           configured: !!command,
           isSpacecake: command === spacecakePath,
+          // Detects the old inline `bash -c '…spacecake.sock…'` config
+          // that users copy-pasted before auto-setup existed
+          isInlineSpacecake:
+            !!command &&
+            command !== spacecakePath &&
+            command.includes("spacecake.sock"),
           command,
         }
       })

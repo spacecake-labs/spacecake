@@ -104,6 +104,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("file-event", listener)
     return () => ipcRenderer.removeListener("file-event", listener)
   },
+  isPlaywright: process.env.IS_PLAYWRIGHT === "true",
   exists: (path: string) => ipcRenderer.invoke("path-exists", path),
   createTerminal: (id: string, cols: number, rows: number, cwd?: string) =>
     ipcRenderer.invoke("terminal:create", id, cols, rows, cwd),

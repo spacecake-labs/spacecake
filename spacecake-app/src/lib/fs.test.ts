@@ -29,7 +29,12 @@ const createTestElectronAPI = (
       onChange: () => () => {},
     },
     statusline: {
-      read: async () => right({ configured: false, isSpacecake: false }),
+      read: async () =>
+        right({
+          configured: false,
+          isSpacecake: false,
+          isInlineSpacecake: false,
+        }),
       update: async () => right(undefined),
       remove: async () => right(undefined),
     },
@@ -44,6 +49,7 @@ const createTestElectronAPI = (
   startWatcher: async () => right(undefined),
   stopWatcher: async () => right(undefined),
   onFileEvent: () => () => {},
+  isPlaywright: false,
   platform: "test",
   getHomeFolderPath: async () => "/test/.spacecake",
   exists: async () => right(true),

@@ -23,6 +23,8 @@ export interface StatuslineConfigStatus {
   configured: boolean
   /** Whether the configured command points to our spacecake script */
   isSpacecake: boolean
+  /** Old inline `bash -c '…spacecake.sock…'` config from pre-auto-setup versions */
+  isInlineSpacecake: boolean
   /** The current command, if any */
   command?: string
 }
@@ -89,6 +91,7 @@ export interface ElectronAPI {
     workspacePath: AbsolutePath
   ) => Promise<Either<FileSystemError, undefined>>
   onFileEvent: (handler: (event: FileTreeEvent) => void) => () => void
+  isPlaywright: boolean
   platform: string
   getHomeFolderPath: () => Promise<string>
   exists: (path: AbsolutePath) => Promise<Either<FileSystemError, boolean>>

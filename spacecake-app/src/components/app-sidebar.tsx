@@ -17,14 +17,12 @@ import { cn, encodeBase64Url } from "@/lib/utils"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { NavMain } from "@/components/nav-main"
-import { StatuslineSetupPrompt } from "@/components/statusline-setup-prompt"
 
 // import { NavProjects } from "@/components/nav-projects"
 // import { NavSecondary } from "@/components/nav-secondary"
@@ -153,9 +151,6 @@ export function AppSidebar({
           user={{ name: "User", email: "user@example.com", avatar: "" }}
         /> */}
       </SidebarContent>
-      <SidebarFooter>
-        <StatuslineSetupPrompt />
-      </SidebarFooter>
     </Sidebar>
   )
 }

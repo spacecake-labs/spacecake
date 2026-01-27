@@ -164,6 +164,7 @@ describe("ClaudeSettingsFile", () => {
         expect(result).toEqual({
           configured: false,
           isSpacecake: false,
+          isInlineSpacecake: false,
         })
       }).pipe(Effect.provide(NodeFileSystem.layer))
     )
@@ -193,6 +194,7 @@ describe("ClaudeSettingsFile", () => {
           expect(result).toEqual({
             configured: false,
             isSpacecake: false,
+            isInlineSpacecake: false,
           })
         }).pipe(Effect.provide(NodeFileSystem.layer))
     )
@@ -222,6 +224,7 @@ describe("ClaudeSettingsFile", () => {
           expect(result).toEqual({
             configured: false,
             isSpacecake: false,
+            isInlineSpacecake: false,
             command: undefined,
           })
         }).pipe(Effect.provide(NodeFileSystem.layer))
@@ -253,7 +256,41 @@ describe("ClaudeSettingsFile", () => {
           expect(result).toEqual({
             configured: true,
             isSpacecake: false,
+            isInlineSpacecake: false,
             command: otherCommand,
+          })
+        }).pipe(Effect.provide(NodeFileSystem.layer))
+    )
+
+    it.scoped(
+      "returns isInlineSpacecake for old inline bash -c config with spacecake.sock",
+      () =>
+        Effect.gen(function* () {
+          const effectFs = yield* EffectFileSystem.FileSystem
+          const tempDir = yield* effectFs.makeTempDirectoryScoped()
+
+          const inlineCommand =
+            'bash -c \'socketPath="${HOME}/.claude/spacecake.sock"; [ -S "$socketPath" ] || exit 0; curl -s -X POST -H "Content-Type: application/json" -d @- --unix-socket "$socketPath" --max-time 2 http://localhost/statusline >/dev/null 2>&1; exit 0\''
+          fs.writeFileSync(
+            path.join(tempDir, "settings.json"),
+            JSON.stringify({ statusLine: { command: inlineCommand } })
+          )
+
+          const testLayer = makeClaudeSettingsFileTestLayer(
+            makeTestClaudeConfigLayer(tempDir),
+            FileSystemTestLayer
+          )
+
+          const result = yield* Effect.gen(function* () {
+            const service = yield* ClaudeSettingsFile
+            return yield* service.getStatuslineStatus()
+          }).pipe(Effect.provide(testLayer))
+
+          expect(result).toEqual({
+            configured: true,
+            isSpacecake: false,
+            isInlineSpacecake: true,
+            command: inlineCommand,
           })
         }).pipe(Effect.provide(NodeFileSystem.layer))
     )
@@ -283,6 +320,7 @@ describe("ClaudeSettingsFile", () => {
           expect(result).toEqual({
             configured: true,
             isSpacecake: true,
+            isInlineSpacecake: false,
             command: SPACECAKE_SCRIPT_PATH,
           })
         }).pipe(Effect.provide(NodeFileSystem.layer))
