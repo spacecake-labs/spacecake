@@ -92,6 +92,7 @@ import { EditorToolbar } from "@/components/editor/toolbar"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
+import { StatuslineSetupPrompt } from "@/components/statusline-setup-prompt"
 import { TaskTable } from "@/components/task-table/task-table"
 import { TerminalMountPoint } from "@/components/terminal-mount-point"
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
@@ -656,6 +657,7 @@ function LayoutContent() {
             <HeaderToolbar />
           </header>
           <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
+            <StatuslineSetupPrompt />
             <Outlet />
           </div>
         </main>
@@ -818,6 +820,7 @@ function LayoutContent() {
                 <HeaderToolbar />
               </header>
               <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
+                <StatuslineSetupPrompt />
                 <Outlet />
               </div>
             </main>
@@ -863,6 +866,7 @@ function LayoutContent() {
             <HeaderToolbar />
           </header>
           <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
+            <StatuslineSetupPrompt />
             <Outlet />
           </div>
         </main>

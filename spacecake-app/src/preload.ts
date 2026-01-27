@@ -66,6 +66,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
           ipcRenderer.removeListener("claude:tasks:changed", listener)
       },
     },
+    statusline: {
+      read: () => ipcRenderer.invoke("claude:statusline:read"),
+      update: () => ipcRenderer.invoke("claude:statusline:update"),
+      remove: () => ipcRenderer.invoke("claude:statusline:remove"),
+    },
   },
   showOpenDialog: (options: unknown) =>
     ipcRenderer.invoke("show-open-dialog", options),

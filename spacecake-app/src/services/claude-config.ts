@@ -29,6 +29,8 @@ export class ClaudeConfig extends Effect.Service<ClaudeConfig>()(
         socketPath: path.join(configDir, "spacecake.sock"),
         /** Base tasks directory (e.g., ~/.claude/tasks) */
         tasksDir: path.join(configDir, "tasks"),
+        /** Claude settings file path (e.g., ~/.claude/settings.json) */
+        settingsPath: path.join(configDir, "settings.json"),
         /** Optional task list ID from CLAUDE_CODE_TASK_LIST_ID env var */
         taskListId: taskListId as Option.Option<string>,
       }
@@ -45,5 +47,6 @@ export const makeClaudeConfigTestLayer = (configDir: string) =>
     ideDir: path.join(configDir, "ide"),
     socketPath: path.join(configDir, "spacecake.sock"),
     tasksDir: path.join(configDir, "tasks"),
+    settingsPath: path.join(configDir, "settings.json"),
     taskListId: Option.none(),
   } as ClaudeConfig)

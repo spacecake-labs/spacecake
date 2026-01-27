@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 
 import { GETTING_STARTED_CONTENT } from "@/guides/getting-started"
+import { FileMode } from "@/services/file-system"
 import { app } from "electron"
 
 /** Base spacecake directory (e.g., ~/.spacecake or $SPACECAKE_HOME) */
@@ -23,13 +24,43 @@ export function getHooksDir(): string {
   return path.join(getAppDir(), "hooks")
 }
 
+/** Statusline hook script that sends data to Spacecake via Unix socket */
+const STATUSLINE_SCRIPT = `#!/usr/bin/env bash
+# Sends Claude Code statusline data to Spacecake (no output)
+configDir="\${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+socketPath="\${configDir}/spacecake.sock"
+
+# Read stdin before backgrounding (backgrounded processes lose stdin access)
+input=$(cat)
+
+if [ -S "$socketPath" ]; then
+  echo "$input" | curl -s -X POST -H "Content-Type: application/json" -d @- \\
+    --unix-socket "$socketPath" --max-time 2 \\
+    http://localhost/statusline >/dev/null 2>&1 &
+fi
+exit 0
+`
+
+/** Returns the path to the statusline hook script */
+export function getStatuslineScriptPath(): string {
+  return path.join(getHooksDir(), "statusline.sh")
+}
+
 export function ensureHomeFolderExists(): void {
   const appPath = getAppDir()
+  const hooksPath = getHooksDir()
   const guidePath = path.join(appPath, "getting-started.md")
+  const statuslineScriptPath = getStatuslineScriptPath()
 
-  // ensure .app folder exists
-  fs.mkdirSync(appPath, { recursive: true })
+  // ensure .app and hooks folders exist
+  fs.mkdirSync(hooksPath, { recursive: true })
 
   // always write latest guide content (we own .app/)
   fs.writeFileSync(guidePath, GETTING_STARTED_CONTENT, "utf-8")
+
+  // always write latest statusline hook script (we own .app/hooks/)
+  fs.writeFileSync(statuslineScriptPath, STATUSLINE_SCRIPT, {
+    encoding: "utf-8",
+    mode: FileMode.EXECUTABLE,
+  })
 }

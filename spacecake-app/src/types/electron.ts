@@ -17,6 +17,16 @@ import type {
 } from "@/types/workspace"
 import type { DisplayStatusline } from "@/lib/statusline-parser"
 
+/** Status of the statusline configuration */
+export interface StatuslineConfigStatus {
+  /** Whether statusLine is configured at all */
+  configured: boolean
+  /** Whether the configured command points to our spacecake script */
+  isSpacecake: boolean
+  /** The current command, if any */
+  command?: string
+}
+
 export interface ElectronAPI {
   claude: {
     ensureServer: (workspaceFolders: string[]) => Promise<void>
@@ -36,6 +46,14 @@ export interface ElectronAPI {
       ) => Promise<Either<ClaudeTaskError, ClaudeTask[]>>
       stopWatching: () => Promise<Either<ClaudeTaskError, void>>
       onChange: (handler: () => void) => () => void
+    }
+    statusline: {
+      /** Read the current statusline configuration */
+      read: () => Promise<Either<FileSystemError, StatuslineConfigStatus>>
+      /** Configure statusline to use Spacecake's hook script */
+      update: () => Promise<Either<FileSystemError, void>>
+      /** Remove statusline configuration */
+      remove: () => Promise<Either<FileSystemError, void>>
     }
   }
   showOpenDialog: (options: unknown) => Promise<{

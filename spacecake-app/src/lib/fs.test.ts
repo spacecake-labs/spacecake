@@ -28,6 +28,11 @@ const createTestElectronAPI = (
       stopWatching: async () => right(undefined),
       onChange: () => () => {},
     },
+    statusline: {
+      read: async () => right({ configured: false, isSpacecake: false }),
+      update: async () => right(undefined),
+      remove: async () => right(undefined),
+    },
   },
   showOpenDialog: async () => ({ canceled: false, filePaths: ["/test/path"] }),
   readFile: async () => right(createTestFileContent()),

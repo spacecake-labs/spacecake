@@ -1,4 +1,8 @@
 import { getHomeFolderPath } from "@/main-process/home-folder"
+import {
+  ClaudeSettingsFile,
+  type StatuslineConfigStatus,
+} from "@/services/claude-settings-file"
 import { ClaudeTaskListService } from "@/services/claude-task-list"
 import { FileSystem, type FileSystemError } from "@/services/file-system"
 import { Terminal } from "@/services/terminal"
@@ -43,6 +47,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     const fs = yield* FileSystem
     const terminal = yield* Terminal
     const taskList = yield* ClaudeTaskListService
+    const settingsFile = yield* ClaudeSettingsFile
 
     ipcMain.handle(
       "read-file",
@@ -222,11 +227,46 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       }
     })
 
+    // Claude Statusline IPC handlers
+    ipcMain.handle(
+      "claude:statusline:read",
+      (): Promise<Either<SerializedFileSystemError, StatuslineConfigStatus>> =>
+        Effect.runPromise(
+          Effect.match(settingsFile.getStatuslineStatus(), {
+            onFailure: (error) => left(serializeError(error)),
+            onSuccess: (status) => right(status),
+          })
+        )
+    )
+
+    ipcMain.handle(
+      "claude:statusline:update",
+      (): Promise<Either<SerializedFileSystemError, void>> =>
+        Effect.runPromise(
+          Effect.match(settingsFile.configureForSpacecake(), {
+            onFailure: (error) => left(serializeError(error)),
+            onSuccess: () => right(undefined),
+          })
+        )
+    )
+
+    ipcMain.handle(
+      "claude:statusline:remove",
+      (): Promise<Either<SerializedFileSystemError, void>> =>
+        Effect.runPromise(
+          Effect.match(settingsFile.updateStatusline(null), {
+            onFailure: (error) => left(serializeError(error)),
+            onSuccess: () => right(undefined),
+          })
+        )
+    )
+
     return {}
   }),
   dependencies: [
     FileSystem.Default,
     Terminal.Default,
     ClaudeTaskListService.Default,
+    ClaudeSettingsFile.Default,
   ],
 }) {}
