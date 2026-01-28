@@ -3,10 +3,14 @@ import path from "node:path"
 
 import { buildCSPString } from "@/csp"
 import { fixPath } from "@/main-process/fix-path"
-import { ensureHomeFolderExists } from "@/main-process/home-folder"
 import { ClaudeCodeServer } from "@/services/claude-code-server"
 import { ClaudeHooksServer } from "@/services/claude-hooks-server"
+import { CliServer } from "@/services/cli-server"
 import { Ipc } from "@/services/ipc"
+import {
+  ensureHomeFolderExists,
+  SpacecakeHome,
+} from "@/services/spacecake-home"
 import { setupUpdates } from "@/update"
 import { Effect, Exit, Layer, ManagedRuntime } from "effect"
 import { app, BrowserWindow, session } from "electron"
@@ -164,18 +168,26 @@ const createWindow = () => {
   }
 }
 
+const SpacecakeHomeLive = SpacecakeHome.Default
+
 const AppLive = Layer.mergeAll(
   Ipc.Default,
   ClaudeCodeServer.Default,
-  ClaudeHooksServer.Default
-).pipe(Layer.provide(Layer.scope))
+  ClaudeHooksServer.Default,
+  CliServer.Default,
+  SpacecakeHomeLive
+).pipe(Layer.provide(SpacecakeHomeLive), Layer.provide(Layer.scope))
 
 const AppRuntime = ManagedRuntime.make(AppLive)
 
 const setupProgram = Effect.gen(function* () {
   yield* Effect.promise(() => app.whenReady())
   yield* Effect.promise(() => fixPath())
-  ensureHomeFolderExists()
+  yield* ensureHomeFolderExists
+
+  // Start CLI server early so `spacecake open` works before a workspace is opened
+  const cliServer = yield* CliServer
+  yield* Effect.promise(() => cliServer.ensureStarted([]))
 
   if (!app.isPackaged) {
     const userDataPath = app.getPath("userData")

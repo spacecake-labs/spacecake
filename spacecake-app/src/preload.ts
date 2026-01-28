@@ -104,6 +104,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("file-event", listener)
     return () => ipcRenderer.removeListener("file-event", listener)
   },
+  // Project-level Claude settings
+  ensurePlansDirectory: (workspacePath: string) =>
+    ipcRenderer.invoke(
+      "claude:project-settings:ensure-plans-dir",
+      workspacePath
+    ),
+  // CLI integration
+  notifyFileClosed: (filePath: string) =>
+    ipcRenderer.invoke("cli:file-closed", filePath),
+  updateCliWorkspaces: (workspaceFolders: string[]) =>
+    ipcRenderer.invoke("cli:update-workspaces", workspaceFolders),
   isPlaywright: process.env.IS_PLAYWRIGHT === "true",
   exists: (path: string) => ipcRenderer.invoke("path-exists", path),
   createTerminal: (id: string, cols: number, rows: number, cwd?: string) =>

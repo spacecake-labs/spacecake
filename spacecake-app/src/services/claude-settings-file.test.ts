@@ -9,16 +9,12 @@ import {
 } from "@/services/claude-settings-file"
 import { FileSystem } from "@/services/file-system"
 import { GitIgnoreLive } from "@/services/git-ignore-parser"
+import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
 import { FileSystem as EffectFileSystem } from "@effect/platform"
 import { NodeFileSystem } from "@effect/platform-node"
 import { it } from "@effect/vitest"
 import { Effect, Layer, Option } from "effect"
-import { describe, expect, vi } from "vitest"
-
-// Mock the home-folder module to control the statusline script path
-vi.mock("@/main-process/home-folder", () => ({
-  getStatuslineScriptPath: () => "/test/.spacecake/.app/hooks/statusline.sh",
-}))
+import { describe, expect } from "vitest"
 
 const SPACECAKE_SCRIPT_PATH = "/test/.spacecake/.app/hooks/statusline.sh"
 
@@ -28,6 +24,10 @@ const MockWatcherService = Layer.succeed(WatcherService, {
   start: () => Effect.succeed(true),
   stop: () => Effect.succeed(true),
 } as WatcherService)
+
+const SpacecakeHomeTestLayer = makeSpacecakeHomeTestLayer({
+  homeDir: "/test/.spacecake",
+})
 
 // Create a test layer for ClaudeConfig that uses a temp directory
 const makeTestClaudeConfigLayer = (configDir: string) =>
@@ -44,7 +44,8 @@ const makeTestClaudeConfigLayer = (configDir: string) =>
 const FileSystemTestLayer = FileSystem.Default.pipe(
   Layer.provide(NodeFileSystem.layer),
   Layer.provide(GitIgnoreLive),
-  Layer.provide(MockWatcherService)
+  Layer.provide(MockWatcherService),
+  Layer.provide(SpacecakeHomeTestLayer)
 )
 
 describe("ClaudeSettingsFile", () => {
@@ -56,7 +57,8 @@ describe("ClaudeSettingsFile", () => {
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
-          FileSystemTestLayer
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer
         )
 
         const result = yield* Effect.gen(function* () {
@@ -85,7 +87,8 @@ describe("ClaudeSettingsFile", () => {
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
-          FileSystemTestLayer
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer
         )
 
         const result = yield* Effect.gen(function* () {
@@ -110,7 +113,8 @@ describe("ClaudeSettingsFile", () => {
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
-          FileSystemTestLayer
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer
         )
 
         const result = yield* Effect.gen(function* () {
@@ -132,7 +136,8 @@ describe("ClaudeSettingsFile", () => {
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
-          FileSystemTestLayer
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer
         )
 
         const result = yield* Effect.gen(function* () {
@@ -153,7 +158,8 @@ describe("ClaudeSettingsFile", () => {
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
-          FileSystemTestLayer
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer
         )
 
         const result = yield* Effect.gen(function* () {
@@ -183,7 +189,8 @@ describe("ClaudeSettingsFile", () => {
 
           const testLayer = makeClaudeSettingsFileTestLayer(
             makeTestClaudeConfigLayer(tempDir),
-            FileSystemTestLayer
+            FileSystemTestLayer,
+            SpacecakeHomeTestLayer
           )
 
           const result = yield* Effect.gen(function* () {
@@ -213,7 +220,8 @@ describe("ClaudeSettingsFile", () => {
 
           const testLayer = makeClaudeSettingsFileTestLayer(
             makeTestClaudeConfigLayer(tempDir),
-            FileSystemTestLayer
+            FileSystemTestLayer,
+            SpacecakeHomeTestLayer
           )
 
           const result = yield* Effect.gen(function* () {
@@ -245,7 +253,8 @@ describe("ClaudeSettingsFile", () => {
 
           const testLayer = makeClaudeSettingsFileTestLayer(
             makeTestClaudeConfigLayer(tempDir),
-            FileSystemTestLayer
+            FileSystemTestLayer,
+            SpacecakeHomeTestLayer
           )
 
           const result = yield* Effect.gen(function* () {
@@ -278,7 +287,8 @@ describe("ClaudeSettingsFile", () => {
 
           const testLayer = makeClaudeSettingsFileTestLayer(
             makeTestClaudeConfigLayer(tempDir),
-            FileSystemTestLayer
+            FileSystemTestLayer,
+            SpacecakeHomeTestLayer
           )
 
           const result = yield* Effect.gen(function* () {
@@ -309,7 +319,8 @@ describe("ClaudeSettingsFile", () => {
 
           const testLayer = makeClaudeSettingsFileTestLayer(
             makeTestClaudeConfigLayer(tempDir),
-            FileSystemTestLayer
+            FileSystemTestLayer,
+            SpacecakeHomeTestLayer
           )
 
           const result = yield* Effect.gen(function* () {
@@ -344,7 +355,8 @@ describe("ClaudeSettingsFile", () => {
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
-          FileSystemTestLayer
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer
         )
 
         yield* Effect.gen(function* () {
@@ -374,7 +386,8 @@ describe("ClaudeSettingsFile", () => {
 
           const testLayer = makeClaudeSettingsFileTestLayer(
             makeTestClaudeConfigLayer(tempDir),
-            FileSystemTestLayer
+            FileSystemTestLayer,
+            SpacecakeHomeTestLayer
           )
 
           yield* Effect.gen(function* () {
@@ -410,7 +423,8 @@ describe("ClaudeSettingsFile", () => {
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
-          FileSystemTestLayer
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer
         )
 
         yield* Effect.gen(function* () {
@@ -437,7 +451,8 @@ describe("ClaudeSettingsFile", () => {
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
-          FileSystemTestLayer
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer
         )
 
         yield* Effect.gen(function* () {
@@ -469,7 +484,8 @@ describe("ClaudeSettingsFile", () => {
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
-          FileSystemTestLayer
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer
         )
 
         yield* Effect.gen(function* () {
@@ -496,7 +512,8 @@ describe("ClaudeSettingsFile", () => {
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
-          FileSystemTestLayer
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer
         )
 
         const newSettings = { customKey: "customValue" }
@@ -521,7 +538,8 @@ describe("ClaudeSettingsFile", () => {
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
-          FileSystemTestLayer
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer
         )
 
         yield* Effect.gen(function* () {

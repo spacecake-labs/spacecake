@@ -4,12 +4,14 @@ on:
   push:
     paths:
       - "spacecake-app/**"
+      - "cli/**"
     branches:
       - "**" # run on any branch
       - "!main" # except `main`
   pull_request:
     paths:
       - "spacecake-app/**"
+      - "cli/**"
     branches:
       - "**"
       - "!main"
@@ -73,6 +75,21 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y watchman
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install CLI dependencies
+        working-directory: ./cli
+        run: bun install --frozen-lockfile
+
+      - name: Run CLI tests
+        working-directory: ./cli
+        run: bun run test
+
+      - name: Build CLI binary
+        working-directory: ./cli
+        run: bun run build
 
       - name: Run checks
         run: just check

@@ -1,4 +1,7 @@
+import path from "node:path"
+
 import defaultShell from "@/main-process/default-shell"
+import { SpacecakeHome } from "@/services/spacecake-home"
 import { Effect } from "effect"
 import { BrowserWindow } from "electron"
 
@@ -25,6 +28,7 @@ const loadPtyModule = async (): Promise<PtyModule> => {
 
 export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
   effect: Effect.gen(function* () {
+    const home = yield* SpacecakeHome
     const terminals = new Map<string, IPty>()
 
     // Finalizer to kill all pty processes on shutdown
@@ -62,11 +66,28 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             terminals.delete(id)
           }
 
+          const cliSocketPath = path.join(home.appDir, "cli.sock")
+          const cliBinDir = home.cliBinDir
+          const currentPath = process.env.PATH ?? ""
+          // Prepend CLI bin dir so `spacecake` is available even if
+          // /usr/local/bin symlink wasn't created (e.g. no permissions)
+          const pathWithCli = currentPath.includes(cliBinDir)
+            ? currentPath
+            : `${cliBinDir}:${currentPath}`
+
           const env = {
             ...(process.env as Record<string, string>),
+            PATH: pathWithCli,
             BASH_SILENCE_DEPRECATION_WARNING: "1",
             TERM: "xterm-256color",
             COLORTERM: "truecolor",
+            // CLI integration — allows `spacecake open` to find the running instance
+            SPACECAKE_IPC_HOOK: cliSocketPath,
+            // Set EDITOR/VISUAL so tools (including Claude Code plan mode) open files in spacecake
+            EDITOR: "spacecake open --wait",
+            VISUAL: "spacecake open --wait",
+            // Claude Code defaults to plan mode when run inside spacecake
+            CLAUDE_CODE_ACTION: "plan",
           }
 
           const ptyProcess = pty.spawn(defaultShell, [], {

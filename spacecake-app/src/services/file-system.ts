@@ -1,8 +1,8 @@
 import path from "path"
 
-import { getAppDir } from "@/main-process/home-folder"
 import { WatcherFileSystemLive, WatcherService } from "@/main-process/watcher"
 import { GitIgnore, GitIgnoreLive } from "@/services/git-ignore-parser"
+import { SpacecakeHome } from "@/services/spacecake-home"
 import { FileSystem as EffectFileSystem } from "@effect/platform"
 import type { PlatformError } from "@effect/platform/Error"
 import { Data, Effect, Either, Option } from "effect"
@@ -92,17 +92,18 @@ const toFileSystemError = (
   return new UnknownFSError({ path: errorPath, description: error.message })
 }
 
-// helper to detect system folders (the .app folder inside ~/.spacecake)
-const isSystemFolder = (folderPath: string): boolean => {
-  return folderPath === getAppDir()
-}
-
 export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
   // define how to create the service
   effect: Effect.gen(function* () {
     const fs = yield* EffectFileSystem.FileSystem
     const gitIgnore = yield* GitIgnore
     const watcher = yield* WatcherService
+    const home = yield* SpacecakeHome
+
+    // helper to detect system folders (the .app folder inside ~/.spacecake)
+    const isSystemFolder = (folderPath: string): boolean => {
+      return folderPath === home.appDir
+    }
 
     const readTextFile = (
       filePath: AbsolutePath

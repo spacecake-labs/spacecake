@@ -185,6 +185,11 @@ export const Route = createFileRoute("/w/$workspaceId")({
       },
     })
 
+    // Ensure plansDirectory is configured in project-level .claude/settings.json
+    window.electronAPI.ensurePlansDirectory(workspace.path).catch((err) => {
+      console.error("Failed to ensure plansDirectory:", err)
+    })
+
     return {
       workspace: {
         id: workspace.id,

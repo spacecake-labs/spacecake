@@ -1,0 +1,448 @@
+import fs from "node:fs"
+import http from "node:http"
+import os from "node:os"
+import path from "node:path"
+
+import { FileSystem } from "@/services/file-system"
+import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
+import { Effect, Layer } from "effect"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import type { OpenFilePayload } from "@/types/claude-code"
+
+// ---------------------------------------------------------------------------
+// Electron mock — capture ipcMain.handle calls + spy on webContents.send
+// ---------------------------------------------------------------------------
+
+interface IpcEvent {
+  readonly sender?: unknown
+}
+
+const mocks = vi.hoisted(() => ({
+  ipcHandlers: new Map<
+    string,
+    (event: IpcEvent, ...args: unknown[]) => unknown
+  >(),
+  webContentsSend: vi.fn(),
+}))
+
+vi.mock("electron", () => ({
+  BrowserWindow: {
+    getAllWindows: vi.fn(() => [
+      { webContents: { send: mocks.webContentsSend } },
+    ]),
+  },
+  ipcMain: {
+    handle: vi.fn(
+      (
+        channel: string,
+        listener: (event: IpcEvent, ...args: unknown[]) => unknown
+      ) => {
+        mocks.ipcHandlers.set(channel, listener)
+      }
+    ),
+  },
+}))
+
+// ---------------------------------------------------------------------------
+// Helpers & state
+// ---------------------------------------------------------------------------
+
+interface JsonResponse {
+  [key: string]: unknown
+}
+
+let testDir: string
+let appDir: string
+let socketPath: string
+let mockFileSystem: Partial<FileSystem>
+
+// We need to dynamically import so the module-level mocks are applied
+
+let makeCliServer: typeof import("@/services/cli-server").makeCliServer
+
+beforeEach(async () => {
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), "cli-server-test-"))
+  appDir = path.join(testDir, ".app")
+  fs.mkdirSync(appDir, { recursive: true })
+  socketPath = path.join(appDir, "cli.sock")
+
+  mockFileSystem = {
+    createFolder: vi.fn(() => Effect.void),
+    exists: vi.fn(() => Effect.succeed(false)),
+    remove: vi.fn(() => Effect.void),
+  }
+
+  mocks.ipcHandlers.clear()
+  mocks.webContentsSend.mockClear()
+
+  const mod = await import("@/services/cli-server")
+  makeCliServer = mod.makeCliServer
+})
+
+afterEach(() => {
+  try {
+    if (fs.existsSync(socketPath)) fs.unlinkSync(socketPath)
+    fs.rmSync(testDir, { recursive: true, force: true })
+  } catch {
+    // ignore cleanup errors
+  }
+})
+
+const createTestLayer = () =>
+  Layer.mergeAll(
+    Layer.succeed(FileSystem, mockFileSystem as FileSystem),
+    makeSpacecakeHomeTestLayer({ homeDir: testDir })
+  )
+
+const runTestServer = (workspaceFolders: string[] = ["/ws/primary"]) =>
+  Effect.gen(function* () {
+    const server = yield* makeCliServer.pipe(Effect.provide(createTestLayer()))
+
+    yield* Effect.promise(() => server.ensureStarted(workspaceFolders))
+
+    // Wait for socket to appear
+    yield* Effect.promise(async () => {
+      let attempts = 0
+      while (!fs.existsSync(socketPath) && attempts < 40) {
+        await new Promise((r) => setTimeout(r, 50))
+        attempts++
+      }
+      if (!fs.existsSync(socketPath)) {
+        throw new Error("Socket file not created")
+      }
+    })
+
+    return server
+  })
+
+const makeRequest = (
+  method: string,
+  urlPath: string,
+  body?: string
+): Promise<{ statusCode: number; body: JsonResponse }> =>
+  new Promise((resolve, reject) => {
+    const options: http.RequestOptions = {
+      socketPath,
+      path: urlPath,
+      method,
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+    }
+
+    const req = http.request(options, (res) => {
+      let data = ""
+      res.on("data", (chunk) => (data += chunk))
+      res.on("end", () => {
+        try {
+          resolve({
+            statusCode: res.statusCode ?? 500,
+            body: JSON.parse(data) as JsonResponse,
+          })
+        } catch {
+          resolve({ statusCode: res.statusCode ?? 500, body: {} })
+        }
+      })
+    })
+
+    req.on("error", reject)
+    if (body) req.write(body)
+    req.end()
+  })
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe("CliServer", () => {
+  it("GET /health → 200 {status:'ok'}", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* runTestServer()
+          const res = yield* Effect.promise(() => makeRequest("GET", "/health"))
+          expect(res.statusCode).toBe(200)
+          expect(res.body).toEqual({ status: "ok" })
+        })
+      )
+    )
+  })
+
+  it("POST /open valid files → 200, broadcasts correct OpenFilePayload", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* runTestServer(["/ws/primary"])
+
+          const res = yield* Effect.promise(() =>
+            makeRequest(
+              "POST",
+              "/open",
+              JSON.stringify({
+                files: [{ path: "/ws/primary/src/index.ts", line: 10, col: 5 }],
+              })
+            )
+          )
+
+          expect(res.statusCode).toBe(200)
+          expect(res.body).toEqual({ opened: 1 })
+
+          expect(mocks.webContentsSend).toHaveBeenCalledWith(
+            "claude:open-file",
+            expect.objectContaining({
+              workspacePath: "/ws/primary",
+              filePath: "/ws/primary/src/index.ts",
+              line: 10,
+              col: 5,
+            } satisfies OpenFilePayload)
+          )
+        })
+      )
+    )
+  })
+
+  it("POST /open file in second workspace → correct workspacePath", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* runTestServer(["/ws/primary", "/ws/secondary"])
+
+          const res = yield* Effect.promise(() =>
+            makeRequest(
+              "POST",
+              "/open",
+              JSON.stringify({
+                files: [{ path: "/ws/secondary/lib/foo.ts" }],
+              })
+            )
+          )
+
+          expect(res.statusCode).toBe(200)
+          expect(mocks.webContentsSend).toHaveBeenCalledWith(
+            "claude:open-file",
+            expect.objectContaining({
+              workspacePath: "/ws/secondary",
+            })
+          )
+        })
+      )
+    )
+  })
+
+  it("POST /open file outside all workspaces → falls back to primary", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* runTestServer(["/ws/primary", "/ws/secondary"])
+
+          const res = yield* Effect.promise(() =>
+            makeRequest(
+              "POST",
+              "/open",
+              JSON.stringify({
+                files: [{ path: "/other/place/file.ts" }],
+              })
+            )
+          )
+
+          expect(res.statusCode).toBe(200)
+          expect(mocks.webContentsSend).toHaveBeenCalledWith(
+            "claude:open-file",
+            expect.objectContaining({
+              workspacePath: "/ws/primary",
+            })
+          )
+        })
+      )
+    )
+  })
+
+  it("POST /open with empty workspaceFolders → 503", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* runTestServer([])
+
+          const res = yield* Effect.promise(() =>
+            makeRequest(
+              "POST",
+              "/open",
+              JSON.stringify({
+                files: [{ path: "/any/file.ts" }],
+              })
+            )
+          )
+
+          expect(res.statusCode).toBe(503)
+          expect(res.body).toEqual({ error: "No workspace open" })
+        })
+      )
+    )
+  })
+
+  it("POST /open invalid JSON → 400", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* runTestServer()
+
+          const res = yield* Effect.promise(() =>
+            makeRequest("POST", "/open", "not valid json{")
+          )
+
+          expect(res.statusCode).toBe(400)
+          expect(res.body).toEqual({ error: "Invalid JSON" })
+        })
+      )
+    )
+  })
+
+  it("POST /open missing files array → 400", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* runTestServer()
+
+          const res = yield* Effect.promise(() =>
+            makeRequest("POST", "/open", JSON.stringify({ wait: true }))
+          )
+
+          expect(res.statusCode).toBe(400)
+          expect(res.body).toEqual({ error: "Missing 'files' array" })
+        })
+      )
+    )
+  })
+
+  it("POST /open with wait:true — held open, cli:file-closed resolves it", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* runTestServer(["/ws/primary"])
+
+          // Fire the request (will block until the file is "closed")
+          const responsePromise = makeRequest(
+            "POST",
+            "/open",
+            JSON.stringify({
+              files: [{ path: "/ws/primary/src/index.ts" }],
+              wait: true,
+            })
+          )
+
+          // Give the server a moment to register the waiter
+          yield* Effect.promise(() => new Promise((r) => setTimeout(r, 200)))
+
+          // Simulate renderer sending file-closed IPC
+          const handler = mocks.ipcHandlers.get("cli:file-closed")
+          expect(handler).toBeDefined()
+          handler!({}, "/ws/primary/src/index.ts")
+
+          const res = yield* Effect.promise(() => responsePromise)
+          expect(res.statusCode).toBe(200)
+          expect(res.body).toEqual({ closed: true })
+        })
+      )
+    )
+  })
+
+  it("Unknown route → 404", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* runTestServer()
+
+          const res = yield* Effect.promise(() =>
+            makeRequest("GET", "/nonexistent")
+          )
+
+          expect(res.statusCode).toBe(404)
+          expect(res.body).toEqual({ error: "Not found" })
+        })
+      )
+    )
+  })
+
+  it("isStarted() false before start, true after", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const server = yield* makeCliServer.pipe(
+            Effect.provide(createTestLayer())
+          )
+
+          expect(server.isStarted()).toBe(false)
+
+          yield* Effect.promise(() => server.ensureStarted(["/ws/primary"]))
+
+          expect(server.isStarted()).toBe(true)
+        })
+      )
+    )
+  })
+
+  it("cli:update-workspaces IPC updates workspace for subsequent /open", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* runTestServer(["/ws/old"])
+
+          // Simulate workspace update via IPC
+          const handler = mocks.ipcHandlers.get("cli:update-workspaces")
+          expect(handler).toBeDefined()
+          handler!({}, ["/ws/new"])
+
+          const res = yield* Effect.promise(() =>
+            makeRequest(
+              "POST",
+              "/open",
+              JSON.stringify({
+                files: [{ path: "/ws/new/file.ts" }],
+              })
+            )
+          )
+
+          expect(res.statusCode).toBe(200)
+          expect(mocks.webContentsSend).toHaveBeenCalledWith(
+            "claude:open-file",
+            expect.objectContaining({
+              workspacePath: "/ws/new",
+            })
+          )
+        })
+      )
+    )
+  })
+
+  it("Scope exit resolves pending waiters with 503", async () => {
+    // We'll run a scoped server, fire a wait request, then let the scope close
+    let responsePromise: Promise<{ statusCode: number; body: JsonResponse }>
+
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* runTestServer(["/ws/primary"])
+
+          // Fire a wait request — won't resolve until file closed or server shuts down
+          responsePromise = makeRequest(
+            "POST",
+            "/open",
+            JSON.stringify({
+              files: [{ path: "/ws/primary/src/index.ts" }],
+              wait: true,
+            })
+          )
+
+          // Give server time to register waiter
+          yield* Effect.promise(() => new Promise((r) => setTimeout(r, 200)))
+
+          // Scope exits here → finalizer should resolve pending waiters with 503
+        })
+      )
+    )
+
+    // Now the scope has closed — the response should have been resolved by the finalizer
+    const res = await responsePromise!
+    expect(res.statusCode).toBe(503)
+    expect(res.body).toMatchObject({ closed: true })
+  })
+})

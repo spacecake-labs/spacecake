@@ -99,6 +99,7 @@ Object.defineProperty(window, "electronAPI", {
       onOpenFile: () => () => {},
       ensureServer: () => Promise.resolve(),
     },
+    updateCliWorkspaces: () => Promise.resolve(),
   },
 })
 

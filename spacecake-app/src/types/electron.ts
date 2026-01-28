@@ -52,7 +52,7 @@ export interface ElectronAPI {
     statusline: {
       /** Read the current statusline configuration */
       read: () => Promise<Either<FileSystemError, StatuslineConfigStatus>>
-      /** Configure statusline to use Spacecake's hook script */
+      /** Configure statusline to use spacecake's hook script */
       update: () => Promise<Either<FileSystemError, void>>
       /** Remove statusline configuration */
       remove: () => Promise<Either<FileSystemError, void>>
@@ -91,6 +91,11 @@ export interface ElectronAPI {
     workspacePath: AbsolutePath
   ) => Promise<Either<FileSystemError, undefined>>
   onFileEvent: (handler: (event: FileTreeEvent) => void) => () => void
+  ensurePlansDirectory: (
+    workspacePath: string
+  ) => Promise<Either<FileSystemError, undefined>>
+  notifyFileClosed: (filePath: string) => Promise<void>
+  updateCliWorkspaces: (workspaceFolders: string[]) => Promise<void>
   isPlaywright: boolean
   platform: string
   getHomeFolderPath: () => Promise<string>

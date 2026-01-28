@@ -56,6 +56,8 @@ export type OpenFileArgs = Schema.Schema.Type<typeof OpenFileArgsSchema>
 export interface OpenFilePayload {
   workspacePath: string
   filePath: string
+  line?: number
+  col?: number
 }
 
 export const EditorExtendedSelectionSchema = Schema.Struct({

@@ -1,0 +1,26 @@
+format:
+    pnpm run format
+
+lint:
+    pnpm run lint
+
+tc:
+    pnpm run typecheck
+
+check:
+    just format && just lint && just tc
+
+unit filter="":
+    pnpm run unit-test {{filter}}
+
+build:
+    pnpm run build
+
+dev:
+    pnpm run dev
+
+test:
+    just unit
+
+ci:
+    just check && just test

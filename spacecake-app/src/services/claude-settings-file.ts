@@ -1,10 +1,10 @@
-import { getStatuslineScriptPath } from "@/main-process/home-folder"
 import { ClaudeConfig } from "@/services/claude-config"
 import {
   FileSystem,
   UnknownFSError,
   type FileSystemError,
 } from "@/services/file-system"
+import { SpacecakeHome } from "@/services/spacecake-home"
 import { Effect, Layer } from "effect"
 
 import { AbsolutePath } from "@/types/workspace"
@@ -47,6 +47,7 @@ export interface StatuslineConfigStatus {
 const makeClaudeSettingsFile = Effect.gen(function* () {
   const config = yield* ClaudeConfig
   const fs = yield* FileSystem
+  const home = yield* SpacecakeHome
 
   const settingsPath = AbsolutePath(config.settingsPath)
 
@@ -101,10 +102,10 @@ const makeClaudeSettingsFile = Effect.gen(function* () {
     )
 
   /**
-   * Configure statusline to use the Spacecake hook script
+   * Configure statusline to use the spacecake hook script
    */
   const configureForSpacecake = (): Effect.Effect<void, FileSystemError> =>
-    updateStatusline({ type: "command", command: getStatuslineScriptPath() })
+    updateStatusline({ type: "command", command: home.statuslineScriptPath })
 
   /**
    * Get the current statusline configuration status
@@ -115,7 +116,7 @@ const makeClaudeSettingsFile = Effect.gen(function* () {
   > =>
     read().pipe(
       Effect.map((settings) => {
-        const spacecakePath = getStatuslineScriptPath()
+        const spacecakePath = home.statuslineScriptPath
 
         if (!settings?.statusLine) {
           return {
@@ -169,13 +170,18 @@ export class ClaudeSettingsFile extends Effect.Service<ClaudeSettingsFile>()(
  */
 export const makeClaudeSettingsFileTestLayer = (
   claudeConfigLayer: Layer.Layer<ClaudeConfig>,
-  fileSystemLayer: Layer.Layer<FileSystem>
+  fileSystemLayer: Layer.Layer<FileSystem>,
+  spacecakeHomeLayer: Layer.Layer<SpacecakeHome>
 ) =>
   Layer.effect(
     ClaudeSettingsFile,
     makeClaudeSettingsFile as unknown as Effect.Effect<
       ClaudeSettingsFile,
       never,
-      ClaudeConfig | FileSystem
+      ClaudeConfig | FileSystem | SpacecakeHome
     >
-  ).pipe(Layer.provide(claudeConfigLayer), Layer.provide(fileSystemLayer))
+  ).pipe(
+    Layer.provide(claudeConfigLayer),
+    Layer.provide(fileSystemLayer),
+    Layer.provide(spacecakeHomeLayer)
+  )

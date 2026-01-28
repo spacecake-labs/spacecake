@@ -1,10 +1,13 @@
-import { getHomeFolderPath } from "@/main-process/home-folder"
+import fsNode from "fs/promises"
+import path from "path"
+
 import {
   ClaudeSettingsFile,
   type StatuslineConfigStatus,
 } from "@/services/claude-settings-file"
 import { ClaudeTaskListService } from "@/services/claude-task-list"
 import { FileSystem, type FileSystemError } from "@/services/file-system"
+import { SpacecakeHome } from "@/services/spacecake-home"
 import { Terminal } from "@/services/terminal"
 import { Effect } from "effect"
 import { BrowserWindow, dialog, ipcMain } from "electron"
@@ -48,6 +51,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     const terminal = yield* Terminal
     const taskList = yield* ClaudeTaskListService
     const settingsFile = yield* ClaudeSettingsFile
+    const home = yield* SpacecakeHome
 
     ipcMain.handle(
       "read-file",
@@ -135,7 +139,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       }
     })
 
-    ipcMain.handle("get-home-folder-path", () => getHomeFolderPath())
+    ipcMain.handle("get-home-folder-path", () => home.homeDir)
 
     // Terminal IPC handlers
     ipcMain.handle(
@@ -259,6 +263,46 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
             onSuccess: () => right(undefined),
           })
         )
+    )
+
+    // Ensure plansDirectory is set in project-level .claude/settings.json
+    ipcMain.handle(
+      "claude:project-settings:ensure-plans-dir",
+      async (_, workspacePath: string) => {
+        try {
+          const claudeDir = path.join(workspacePath, ".claude")
+          const settingsPath = path.join(claudeDir, "settings.json")
+
+          // Ensure .claude/ directory exists
+          await fsNode.mkdir(claudeDir, { recursive: true })
+
+          // Read existing settings or start with empty object
+          let settings: Record<string, unknown> = {}
+          try {
+            const content = await fsNode.readFile(settingsPath, "utf-8")
+            settings = JSON.parse(content)
+          } catch {
+            // File doesn't exist or invalid JSON — start fresh
+          }
+
+          // Only write if plansDirectory is not already configured
+          if (!settings.plansDirectory) {
+            settings.plansDirectory = ".claude/plans"
+            await fsNode.writeFile(
+              settingsPath,
+              JSON.stringify(settings, null, 2)
+            )
+          }
+
+          return right(undefined)
+        } catch (error) {
+          return left({
+            _tag: "UnknownFSError" as const,
+            path: workspacePath,
+            description: String(error),
+          })
+        }
+      }
     )
 
     return {}

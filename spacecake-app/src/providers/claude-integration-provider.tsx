@@ -32,6 +32,8 @@ export function ClaudeIntegrationProvider({
   useEffect(() => {
     if (enabled && !serverStarted.current && workspacePath) {
       serverStarted.current = true
+      // Update CLI server workspace folders
+      window.electronAPI.updateCliWorkspaces([workspacePath])
       window.electronAPI.claude
         .ensureServer([workspacePath])
         .then(() => setServerReady(true))
