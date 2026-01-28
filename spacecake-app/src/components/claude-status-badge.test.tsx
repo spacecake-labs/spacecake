@@ -284,7 +284,7 @@ describe("ClaudeStatusBadge Integration", () => {
             await vi.waitFor(
               () => {
                 const badge = container?.querySelector(
-                  "div[title='connecting to claude code']"
+                  "div[data-ide-status='connecting']"
                 )
                 expect(badge).toBeTruthy()
               },
@@ -306,7 +306,7 @@ describe("ClaudeStatusBadge Integration", () => {
             await vi.waitFor(
               () => {
                 const badge = container?.querySelector(
-                  "div[title='claude code connected']"
+                  "div[data-ide-status='connected']"
                 )
                 expect(badge).toBeTruthy()
               },
@@ -324,7 +324,7 @@ describe("ClaudeStatusBadge Integration", () => {
             await vi.waitFor(
               () => {
                 const badge = container?.querySelector(
-                  "div[title='claude code disconnected']"
+                  "div[data-ide-status='disconnected']"
                 )
                 expect(badge).toBeTruthy()
               },
