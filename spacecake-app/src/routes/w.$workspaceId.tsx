@@ -681,22 +681,24 @@ function LayoutContent() {
           workspace={workspace}
           selectedFilePath={selectedFilePath}
         />
-        <main className="bg-background relative flex w-full flex-1 flex-col overflow-hidden rounded-xl shadow-sm h-full p-2">
-          <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
-            <div className="app-no-drag flex items-center gap-2 px-4">
-              <SidebarTrigger
-                aria-label="toggle sidebar"
-                className="-ml-1 cursor-pointer"
-              />
-              <FileHeader />
+        <div className="flex flex-col h-full w-full overflow-hidden">
+          <main className="bg-background relative flex w-full flex-1 flex-col overflow-hidden rounded-xl shadow-sm p-2">
+            <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
+              <div className="app-no-drag flex items-center gap-2 px-4">
+                <SidebarTrigger
+                  aria-label="toggle sidebar"
+                  className="-ml-1 cursor-pointer"
+                />
+                <FileHeader />
+              </div>
+              <HeaderToolbar />
+            </header>
+            <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
+              <Outlet />
             </div>
-            <HeaderToolbar />
-          </header>
-          <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
-            <Outlet />
-          </div>
-        </main>
-        <WorkspaceStatusBar bottomPanels={[]} />
+          </main>
+          <WorkspaceStatusBar bottomPanels={[]} />
+        </div>
       </ClaudeIntegrationProvider>
     )
   }
