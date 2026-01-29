@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("Python docstring updating", () => {
   test("should update docstring on navigation and on save", async ({
@@ -31,10 +32,7 @@ test.describe("Python docstring updating", () => {
     // =========================================================================
     // Test 1: Update docstring on navigation
     // =========================================================================
-    await window
-      .getByRole("button", { name: "test_docstring.py" })
-      .first()
-      .click()
+    await locateSidebarItem(window, "test_docstring.py").click()
 
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
@@ -64,10 +62,7 @@ test.describe("Python docstring updating", () => {
     // =========================================================================
     // Test 2: Update docstring on save
     // =========================================================================
-    await window
-      .getByRole("button", { name: "test_docstring_save.py" })
-      .first()
-      .click()
+    await locateSidebarItem(window, "test_docstring_save.py").click()
 
     await expect(editor).toBeVisible()
 

@@ -1,11 +1,10 @@
 import { ReactNode, useEffect, useRef } from "react"
-import { router } from "@/router"
+import type { PaneMachineRef } from "@/machines/pane"
 import { atom, useAtomValue, useSetAtom } from "jotai"
 
 import type { ClaudeCodeStatus } from "@/types/claude-code"
 import { AbsolutePath } from "@/types/workspace"
 import { claudeStatuslineAtom } from "@/lib/atoms/atoms"
-import { encodeBase64Url } from "@/lib/utils"
 
 // Atoms for Claude integration state
 export const claudeStatusAtom = atom<ClaudeCodeStatus>("disconnected")
@@ -15,12 +14,14 @@ interface ClaudeIntegrationProviderProps {
   workspacePath: string
   enabled: boolean
   children: ReactNode
+  machine: PaneMachineRef
 }
 
 export function ClaudeIntegrationProvider({
   workspacePath,
   enabled,
   children,
+  machine,
 }: ClaudeIntegrationProviderProps) {
   const setStatus = useSetAtom(claudeStatusAtom)
   const setStatusline = useSetAtom(claudeStatuslineAtom)
@@ -56,17 +57,17 @@ export function ClaudeIntegrationProvider({
 
     cleanups.push(
       window.electronAPI.claude.onOpenFile((payload) => {
-        const workspaceId = encodeBase64Url(payload.workspacePath)
-        const filePath = encodeBase64Url(AbsolutePath(payload.filePath))
-        router.navigate({
-          to: "/w/$workspaceId/f/$filePath",
-          params: { workspaceId, filePath },
+        // Use the pane machine to open files - this serializes the operation
+        // with close operations, preventing race conditions.
+        machine.send({
+          type: "pane.file.open",
+          filePath: AbsolutePath(payload.filePath),
         })
       })
     )
 
     return () => cleanups.forEach((c) => c())
-  }, [serverReady, setStatus, setStatusline])
+  }, [serverReady, setStatus, setStatusline, machine])
 
   return children
 }

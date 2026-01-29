@@ -1,8 +1,4 @@
-import {
-  createInsertSchema,
-  createSelectSchema,
-  type JsonValue,
-} from "@/schema/drizzle-effect"
+import { type JsonValue } from "@/schema/drizzle-effect"
 import type { WorkspaceLayout } from "@/schema/workspace-layout"
 import { sql } from "drizzle-orm"
 import {
@@ -95,8 +91,6 @@ export const paneTable = pgTable(
   ]
 )
 
-export const PaneInsertSchema = createInsertSchema(paneTable)
-export type PaneInsert = typeof PaneInsertSchema.Type
 // must be exported for drizzle to recognise it
 export const PaneItemKindEnum = pgEnum("pane_item_kind", ["editor"])
 
@@ -129,14 +123,6 @@ export const paneItemTable = pgTable(
     uniqueIndex("pane_item_pane_editor_idx").on(table.pane_id, table.editor_id),
   ]
 )
-
-export const PaneItemInsertSchema = createInsertSchema(paneItemTable)
-export type PaneItemInsert = typeof PaneItemInsertSchema.Type
-export const PaneItemSelectSchema = createSelectSchema(paneItemTable)
-export type PaneItemSelect = typeof PaneItemSelectSchema.Type
-
-export const PaneSelectSchema = createSelectSchema(paneTable)
-export type PaneSelect = typeof PaneSelectSchema.Type
 
 // must be exported for drizzle to recognise it
 export const ViewKindEnum = pgEnum("view_kind", ViewKindSchema.literals)

@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("selection restoration", () => {
   test("should restore selection in a markdown file on save", async ({
@@ -22,15 +23,10 @@ test.describe("selection restoration", () => {
     await waitForWorkspace(window)
 
     // Wait for test file to appear
-    await expect(
-      window.getByRole("button", { name: "test-selection.md" })
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "test-selection.md")).toBeVisible()
 
     // open the file
-    await window
-      .getByRole("button", { name: "test-selection.md" })
-      .first()
-      .click()
+    await locateSidebarItem(window, "test-selection.md").click()
 
     // Explicitly wait for the Lexical editor to be visible
     const editor = window.getByTestId("lexical-editor")
@@ -69,14 +65,11 @@ test.describe("selection restoration", () => {
 
     // Wait for the test file to appear in file tree
     await expect(
-      window.getByRole("button", { name: "test-selection-reload.md" })
+      locateSidebarItem(window, "test-selection-reload.md")
     ).toBeVisible()
 
     // open the file
-    await window
-      .getByRole("button", { name: "test-selection-reload.md" })
-      .first()
-      .click()
+    await locateSidebarItem(window, "test-selection-reload.md").click()
 
     // Explicitly wait for the Lexical editor to be visible with our content
     const editor = window.getByTestId("lexical-editor")
@@ -94,7 +87,7 @@ test.describe("selection restoration", () => {
 
     // Wait for workspace to restore
     await expect(
-      window.getByRole("button", { name: "test-selection-reload.md" })
+      locateSidebarItem(window, "test-selection-reload.md")
     ).toBeVisible()
 
     // wait for editor to be visible again with our content (file should auto-restore)

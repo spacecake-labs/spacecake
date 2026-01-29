@@ -5,6 +5,7 @@ import path from "path"
 
 import * as React from "react"
 import { act } from "react"
+import type { PaneMachineRef } from "@/machines/pane"
 import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
 import { makeClaudeCodeServer } from "@/services/claude-code-server"
 import { makeClaudeConfigTestLayer } from "@/services/claude-config"
@@ -26,6 +27,11 @@ import {
 import WebSocket from "ws"
 
 import { ClaudeStatusBadge } from "@/components/claude-status-badge"
+
+// Mock pane machine for tests
+const mockPaneMachine = {
+  send: vi.fn(),
+} as unknown as PaneMachineRef
 
 // Mock web-tree-sitter to avoid WASM loading issues in tests
 vi.mock("web-tree-sitter", () => {
@@ -227,6 +233,7 @@ describe("ClaudeStatusBadge Integration", () => {
                   <ClaudeIntegrationProvider
                     workspacePath="/test/workspace"
                     enabled={true}
+                    machine={mockPaneMachine}
                   >
                     <ClaudeStatusBadge />
                   </ClaudeIntegrationProvider>

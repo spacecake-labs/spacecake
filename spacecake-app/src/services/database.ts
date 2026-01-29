@@ -14,8 +14,10 @@ import {
   FileUpdateSchema,
   PaneInsertSchema,
   PaneItemInsertSchema,
+  PaneItemPrimaryKey,
   PaneItemSelectSchema,
   paneItemTable,
+  PanePrimaryKey,
   PaneSelectSchema,
   paneTable,
   WorkspaceInsertSchema,
@@ -208,7 +210,17 @@ export class Database extends Effect.Service<Database>()("Database", {
         Effect.flatMap(Schema.decode(PaneItemSelectSchema))
       ),
 
-      deletePaneItem: (paneItemId: string) =>
+      /**
+       * Closes a pane item (tab) and returns the next active item's info for navigation.
+       * - Deletes the pane item
+       * - Recompacts positions
+       * - Only updates the active item pointer if closing the active tab
+       * - Returns the new active item's editor/file info (or none if no items remain or not closing active)
+       */
+      closePaneItemAndGetNext: (
+        paneItemId: PaneItemPrimaryKey,
+        isClosingActiveTab: boolean
+      ) =>
         Effect.gen(function* () {
           // Get pane_id and position before deletion
           const deleted = yield* query((_) =>
@@ -236,10 +248,25 @@ export class Database extends Effect.Service<Database>()("Database", {
               )
           )
 
-          // Find new active item (most recently accessed)
+          // Only update active pointer if closing the active tab
+          if (!isClosingActiveTab) {
+            return Option.none()
+          }
+
+          // Find new active item with full info (most recently accessed)
           const newActive = yield* query((_) =>
-            _.select({ id: paneItemTable.id })
+            _.select({
+              id: paneItemTable.id,
+              editorId: editorTable.id,
+              filePath: fileTable.path,
+              viewKind: editorTable.view_kind,
+            })
               .from(paneItemTable)
+              .innerJoin(
+                editorTable,
+                eq(paneItemTable.editor_id, editorTable.id)
+              )
+              .innerJoin(fileTable, eq(editorTable.file_id, fileTable.id))
               .where(eq(paneItemTable.pane_id, paneId))
               .orderBy(desc(paneItemTable.last_accessed_at))
               .limit(1)
@@ -257,10 +284,11 @@ export class Database extends Effect.Service<Database>()("Database", {
               .where(eq(paneTable.id, paneId))
           )
 
-          return deleted
+          // Return the new active item's info for navigation
+          return newActive
         }),
 
-      updatePaneItemAccessedAt: (paneItemId: string) =>
+      updatePaneItemAccessedAt: (paneItemId: PaneItemPrimaryKey) =>
         Effect.gen(function* () {
           const now = yield* DateTime.now
           return yield* query((_) =>
@@ -270,7 +298,7 @@ export class Database extends Effect.Service<Database>()("Database", {
           )
         }),
 
-      selectActivePaneItemForPane: (paneId: string) =>
+      selectActivePaneItemForPane: (paneId: PanePrimaryKey) =>
         query((_) =>
           _.select(getTableColumns(paneItemTable))
             .from(paneTable)
@@ -291,7 +319,10 @@ export class Database extends Effect.Service<Database>()("Database", {
           )
         ),
 
-      updatePaneActivePaneItem: (paneId: string, paneItemId: string | null) =>
+      updatePaneActivePaneItem: (
+        paneId: PanePrimaryKey,
+        paneItemId: PaneItemPrimaryKey | null
+      ) =>
         Effect.gen(function* () {
           return yield* query((_) =>
             _.update(paneTable)
@@ -300,7 +331,10 @@ export class Database extends Effect.Service<Database>()("Database", {
           )
         }),
 
-      updateWorkspaceActivePane: (workspaceId: string, paneId: string | null) =>
+      updateWorkspaceActivePane: (
+        workspaceId: WorkspacePrimaryKey,
+        paneId: PanePrimaryKey | null
+      ) =>
         Effect.gen(function* () {
           return yield* query((_) =>
             _.update(workspaceTable)
@@ -315,7 +349,10 @@ export class Database extends Effect.Service<Database>()("Database", {
        * 2. Setting this paneItem as the pane's active item
        * 3. Setting this pane as the workspace's active pane
        */
-      activateEditorInPane: (editorId: EditorPrimaryKey, paneId: string) =>
+      activateEditorInPane: (
+        editorId: EditorPrimaryKey,
+        paneId: PanePrimaryKey
+      ) =>
         Effect.gen(function* () {
           const now = yield* DateTime.now
 
@@ -390,7 +427,10 @@ export class Database extends Effect.Service<Database>()("Database", {
         // Effect.tap((editor) => Effect.log("db: upserted editor:", editor))
       ),
 
-      updateEditorAccessedAt: (editorId: EditorPrimaryKey, paneId: string) =>
+      updateEditorAccessedAt: (
+        editorId: EditorPrimaryKey,
+        paneId: PanePrimaryKey
+      ) =>
         Effect.gen(function* () {
           const now = yield* DateTime.now
           // Find the paneItem for this editor in this pane and update its access time
@@ -484,7 +524,7 @@ export class Database extends Effect.Service<Database>()("Database", {
           )
         ),
 
-      selectLastOpenedEditor: (workspacePath: AbsolutePath) =>
+      selectActiveEditorForWorkspace: (workspacePath: AbsolutePath) =>
         query((_) =>
           _.select({
             id: editorTable.id,

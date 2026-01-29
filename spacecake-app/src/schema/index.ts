@@ -1,5 +1,6 @@
 export * from "@/schema/drizzle"
 export * from "@/schema/file"
+export * from "@/schema/pane"
 export * from "@/schema/workspace"
 export * from "@/schema/workspace-layout"
 export * from "@/schema/editor"

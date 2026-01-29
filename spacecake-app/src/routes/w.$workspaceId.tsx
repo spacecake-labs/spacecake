@@ -20,7 +20,6 @@ import {
   ErrorComponent,
   Outlet,
   redirect,
-  useNavigate,
 } from "@tanstack/react-router"
 import { Effect, Match } from "effect"
 import { useAtom, useSetAtom } from "jotai"
@@ -65,6 +64,8 @@ import {
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
 import { useClaudeTaskWatcher } from "@/hooks/use-claude-task-watcher"
 import { useGhosttyEngine } from "@/hooks/use-ghostty-engine"
+import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
+import { usePaneMachine } from "@/hooks/use-pane-machine"
 import { useRoute } from "@/hooks/use-route"
 import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
 import { Button } from "@/components/ui/button"
@@ -90,6 +91,7 @@ import { EditorToolbar } from "@/components/editor/toolbar"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
+import { TabBar } from "@/components/tab-bar"
 import { TaskTable } from "@/components/task-table/task-table"
 import { TerminalMountPoint } from "@/components/terminal-mount-point"
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
@@ -329,13 +331,38 @@ function DockPositionDropdown({
 }
 
 function LayoutContent() {
-  const { workspace } = Route.useRouteContext()
+  const { workspace, paneId } = Route.useRouteContext()
   const { isMobile, open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
-  const navigate = useNavigate()
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null)
   const verticalPanelGroupRef =
     useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
   const { focus } = useFocusManager()
+
+  // Pane machine for serializing tab operations
+  const workspaceIdEncoded = encodeBase64Url(workspace.path)
+  const machine = usePaneMachine(paneId, workspace.path, workspaceIdEncoded)
+  const { items: paneItems } = usePaneItems(paneId)
+  const activePaneItemId = useActivePaneItemId(paneId)
+
+  // Ctrl+W / Cmd+W to close active tab
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "w" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        const activeItem = paneItems.find((i) => i.id === activePaneItemId)
+        if (activeItem) {
+          machine.send({
+            type: "pane.item.close",
+            itemId: activeItem.id,
+            filePath: activeItem.filePath,
+            isClosingActiveTab: true,
+          })
+        }
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [paneItems, activePaneItemId, machine])
 
   // Cmd+1 / Ctrl+1 to focus editor
   useEffect(() => {
@@ -636,15 +663,10 @@ function LayoutContent() {
 
   const handleFileClick = (filePath: AbsolutePath) => {
     if (workspace?.path) {
-      const workspaceIdEncoded = encodeBase64Url(workspace.path)
-      const filePathEncoded = encodeBase64Url(filePath)
-      navigate({
-        to: "/w/$workspaceId/f/$filePath",
-        params: {
-          workspaceId: workspaceIdEncoded,
-          filePath: filePathEncoded,
-        },
-      })
+      // Use the pane machine to open files - this serializes the operation
+      // with close operations, preventing race conditions where a loader
+      // recreates a pane item that was just deleted.
+      machine.send({ type: "pane.file.open", filePath })
     }
   }
 
@@ -653,6 +675,7 @@ function LayoutContent() {
       <ClaudeIntegrationProvider
         workspacePath={workspace.path}
         enabled={!isTerminalCollapsed}
+        machine={machine}
       >
         <AppSidebar
           onFileClick={handleFileClick}
@@ -831,6 +854,7 @@ function LayoutContent() {
                 </div>
                 <HeaderToolbar />
               </header>
+              <TabBar paneId={paneId} machine={machine} />
               <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
                 <Outlet />
               </div>
@@ -876,6 +900,7 @@ function LayoutContent() {
             </div>
             <HeaderToolbar />
           </header>
+          <TabBar paneId={paneId} machine={machine} />
           <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
             <Outlet />
           </div>
@@ -998,6 +1023,7 @@ function LayoutContent() {
     <ClaudeIntegrationProvider
       workspacePath={workspace.path}
       enabled={!isTerminalCollapsed}
+      machine={machine}
     >
       <ResizablePanelGroup direction="horizontal" className="h-screen">
         <ResizablePanel
@@ -1186,7 +1212,11 @@ function LayoutContent() {
 }
 
 function WorkspaceLayout() {
-  const { workspace } = Route.useRouteContext()
+  const { workspace, paneId } = Route.useRouteContext()
+
+  // Pane machine for quick open file selection (serializes with tab operations)
+  const workspaceIdEncoded = encodeBase64Url(workspace.path)
+  const machine = usePaneMachine(paneId, workspace.path, workspaceIdEncoded)
 
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
@@ -1240,7 +1270,7 @@ function WorkspaceLayout() {
           </SidebarProvider>
         </FocusManagerProvider>
       </div>
-      <QuickOpen workspacePath={workspace.path} />
+      <QuickOpen workspacePath={workspace.path} machine={machine} />
     </>
   )
 }

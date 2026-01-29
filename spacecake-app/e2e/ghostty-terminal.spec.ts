@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("ghostty terminal", () => {
   test("toggle terminal visibility, interact with terminal, and verify session management", async ({
@@ -18,7 +19,7 @@ test.describe("ghostty terminal", () => {
     await waitForWorkspace(window)
 
     // Open the test file to get to the workspace route
-    await window.getByRole("button", { name: "test.md" }).click()
+    await locateSidebarItem(window, "test.md").click()
 
     // Wait for the editor to be visible
     await expect(window.getByTestId("lexical-editor")).toBeVisible()

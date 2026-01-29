@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("frontmatter e2e", () => {
   // Single test with multiple assertions to minimize app startup overhead
@@ -18,10 +19,7 @@ test.describe("frontmatter e2e", () => {
     await waitForWorkspace(window)
 
     // Open the file
-    await window
-      .getByRole("button", { name: "test-frontmatter.md" })
-      .first()
-      .click()
+    await locateSidebarItem(window, "test-frontmatter.md").click()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
@@ -126,10 +124,7 @@ Some content here.
     await waitForWorkspace(window)
 
     // Open the file
-    await window
-      .getByRole("button", { name: "with-frontmatter.md" })
-      .first()
-      .click()
+    await locateSidebarItem(window, "with-frontmatter.md").click()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 

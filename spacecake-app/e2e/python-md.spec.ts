@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("python markdown directives e2e", () => {
   test("markdown directives are properly formatted and editable", async ({
@@ -19,7 +20,7 @@ test.describe("python markdown directives e2e", () => {
     await waitForWorkspace(window)
 
     // open the file
-    await window.getByRole("button", { name: "md.py" }).first().click()
+    await locateSidebarItem(window, "md.py").click()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
@@ -73,7 +74,7 @@ test.describe("python markdown directives e2e", () => {
     await waitForWorkspace(window)
 
     // open the file
-    await window.getByRole("button", { name: "md.py" }).first().click()
+    await locateSidebarItem(window, "md.py").click()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 

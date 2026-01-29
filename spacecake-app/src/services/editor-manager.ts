@@ -17,6 +17,9 @@ import { fnv1a64Hex } from "@/lib/hash"
 import { supportsRichView } from "@/lib/language-support"
 import { fileTypeFromFileName } from "@/lib/workspace"
 
+// Note: Route loader is now read-only. Pane item creation is handled by the pane machine
+// before navigation, preventing race conditions with tab close operations.
+
 // Define a specific error type for this service
 export class EditorManagerError extends Data.TaggedError("EditorManagerError")<{
   cause: unknown
@@ -114,11 +117,6 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               !props.targetViewKind ||
               props.targetViewKind === maybeState.value.viewKind
             ) {
-              // Activate the editor in the pane (creates paneItem, updates pointers)
-              yield* Effect.forkDaemon(
-                db.activateEditorInPane(maybeState.value.editorId, props.paneId)
-              )
-
               return right<
                 PgliteError | FileSystemError | EditorManagerError,
                 InitialContent
@@ -135,22 +133,6 @@ export class EditorManager extends Effect.Service<EditorManager>()(
             const fileType = fileTypeFromFileName(props.filePath)
             const content = serializeFromCache(maybeState.value.state, fileType)
             const cid = fnv1a64Hex(content)
-
-            // update timestamp, but keep view_kind matching the cached state
-            // (the cached state is for the old view, so view_kind should reflect that)
-            yield* Effect.forkDaemon(
-              Effect.gen(function* () {
-                yield* db.upsertEditor({
-                  pane_id: props.paneId,
-                  file_id: maybeState.value.fileId,
-                  view_kind: maybeState.value.viewKind,
-                })
-                yield* db.activateEditorInPane(
-                  maybeState.value.editorId,
-                  props.paneId
-                )
-              })
-            )
 
             return right<
               PgliteError | FileSystemError | EditorManagerError,
@@ -189,11 +171,6 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               file_id: maybeFile.value.fileId,
               view_kind: viewKind,
             })
-
-            // Activate the editor in the pane (creates paneItem, updates pointers)
-            yield* Effect.forkDaemon(
-              db.activateEditorInPane(editor.id, props.paneId)
-            )
 
             // Only restore selection if prior state had matching view kind
             const priorSelection =

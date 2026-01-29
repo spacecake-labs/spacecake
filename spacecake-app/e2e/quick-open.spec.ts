@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("quick open feature", () => {
   test("quick open and navigate to files", async ({
@@ -60,9 +61,7 @@ test.describe("quick open feature", () => {
     await waitForWorkspace(window)
 
     // Wait for the test files to appear in the file tree
-    await expect(
-      window.getByRole("button", { name: "README.md" })
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "README.md")).toBeVisible()
 
     // --- Test README.md (root level) ---
     // Try using the keyboard shortcut
