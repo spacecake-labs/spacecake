@@ -65,10 +65,9 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
     })
 
     // Route loader is read-only for content - pane item creation is normally handled
-    // by the pane machine before navigation, preventing race conditions with tab close.
-    // However, for direct URL navigation (typing URL, browser back/forward, bookmarks),
-    // we need to ensure the pane item exists. This is safe because direct URL nav
-    // doesn't have concurrent close operations.
+    // by the pane machine before navigation. However, for direct URL navigation
+    // (typing URL, browser back/forward, bookmarks), we need to ensure the pane item
+    // exists.
     const initialState = await RuntimeClient.runPromise(
       Effect.gen(function* () {
         const em = yield* EditorManager

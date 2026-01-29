@@ -15,7 +15,7 @@ const paneMachineCache = new Map<string, PaneMachineActor>()
 /**
  * Get or create a pane machine actor for a given pane.
  * The machine serializes all pane operations (close, activate, open)
- * to prevent race conditions.
+ * ensuring operations complete in order.
  */
 export function getOrCreatePaneMachine(
   input: PaneMachineInput

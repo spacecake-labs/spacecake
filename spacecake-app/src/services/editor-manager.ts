@@ -18,7 +18,7 @@ import { supportsRichView } from "@/lib/language-support"
 import { fileTypeFromFileName } from "@/lib/workspace"
 
 // Note: Route loader is now read-only. Pane item creation is handled by the pane machine
-// before navigation, preventing race conditions with tab close operations.
+// before navigation to ensure operations complete in order.
 
 // Define a specific error type for this service
 export class EditorManagerError extends Data.TaggedError("EditorManagerError")<{

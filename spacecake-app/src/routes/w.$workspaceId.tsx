@@ -664,8 +664,7 @@ function LayoutContent() {
   const handleFileClick = (filePath: AbsolutePath) => {
     if (workspace?.path) {
       // Use the pane machine to open files - this serializes the operation
-      // with close operations, preventing race conditions where a loader
-      // recreates a pane item that was just deleted.
+      // with close operations ensuring they complete in order.
       machine.send({ type: "pane.file.open", filePath })
     }
   }

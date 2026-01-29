@@ -90,7 +90,7 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
     if (!workspacePath) return
 
     // Use the pane machine to open files - this serializes the operation
-    // with close operations, preventing race conditions.
+    // with close operations ensuring they complete in order.
     machine.send({ type: "pane.file.open", filePath: AbsolutePath(file.path) })
     setIsOpen(false)
   }

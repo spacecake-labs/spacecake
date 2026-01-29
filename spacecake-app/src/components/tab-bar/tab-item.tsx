@@ -25,6 +25,10 @@ export function TabItem({ id, fileName, isActive, onClose }: TabItemProps) {
         role="button"
         tabIndex={0}
         onPointerDown={(e) => {
+          // Prevent Radix TabsTrigger's default activation behavior.
+          // Without this, clicking close on an inactive tab would activate it
+          // (via onPointerDown) before the close handler runs, causing the tab
+          // to briefly reappear due to route loader recreating the pane item.
           e.stopPropagation()
           e.preventDefault()
         }}

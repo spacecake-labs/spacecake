@@ -58,7 +58,7 @@ export function ClaudeIntegrationProvider({
     cleanups.push(
       window.electronAPI.claude.onOpenFile((payload) => {
         // Use the pane machine to open files - this serializes the operation
-        // with close operations, preventing race conditions.
+        // with close operations ensuring they complete in order.
         machine.send({
           type: "pane.file.open",
           filePath: AbsolutePath(payload.filePath),
