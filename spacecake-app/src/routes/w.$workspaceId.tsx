@@ -541,6 +541,17 @@ function LayoutContent() {
     [dispatch]
   )
 
+  const toggleTerminal = useCallback(() => {
+    if (isTerminalCollapsed && !isTerminalSessionActive) {
+      setIsTerminalSessionActive(true)
+    }
+    dispatch({ kind: "toggle", panel: "terminal" })
+  }, [isTerminalCollapsed, isTerminalSessionActive, dispatch])
+
+  const toggleTask = useCallback(() => {
+    dispatch({ kind: "toggle", panel: "task" })
+  }, [dispatch])
+
   // Track pending terminal size for debounced saves
   const pendingTerminalSizeRef = useRef<number | null>(null)
 
@@ -961,17 +972,6 @@ function LayoutContent() {
       </div>
     </ResizablePanel>
   )
-
-  const toggleTerminal = useCallback(() => {
-    if (isTerminalCollapsed && !isTerminalSessionActive) {
-      setIsTerminalSessionActive(true)
-    }
-    dispatch({ kind: "toggle", panel: "terminal" })
-  }, [isTerminalCollapsed, isTerminalSessionActive, dispatch])
-
-  const toggleTask = useCallback(() => {
-    dispatch({ kind: "toggle", panel: "task" })
-  }, [dispatch])
 
   const bottomPanels = [
     ...(terminalDock === "bottom"
