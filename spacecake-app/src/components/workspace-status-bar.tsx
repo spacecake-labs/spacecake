@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react"
 import { useAtom } from "jotai"
-import { ListTodo, Terminal, TriangleAlert } from "lucide-react"
+import { ListTodo, PanelLeft, Terminal, TriangleAlert } from "lucide-react"
 
 import { match } from "@/types/adt"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/popover"
 import { ClaudeStatusBadge } from "@/components/claude-status-badge"
 import { ClaudeStatuslineBadge } from "@/components/claude-statusline-badge"
+import { ModeToggle } from "@/components/mode-toggle"
 import {
   statuslineConflictAtom,
   useStatuslineAutoSetup,
@@ -24,6 +25,8 @@ interface BottomPanelInfo {
 
 interface WorkspaceStatusBarProps {
   bottomPanels: BottomPanelInfo[]
+  isSidebarOpen?: boolean
+  onToggleSidebar?: () => void
 }
 
 const panelIcons = {
@@ -112,15 +115,30 @@ function StatuslineConflictLink() {
   )
 }
 
-export function WorkspaceStatusBar({ bottomPanels }: WorkspaceStatusBarProps) {
+export function WorkspaceStatusBar({
+  bottomPanels,
+  isSidebarOpen,
+  onToggleSidebar,
+}: WorkspaceStatusBarProps) {
   useStatuslineAutoSetup()
 
   const collapsedPanels = bottomPanels.filter((p) => p.isCollapsed)
 
   return (
     <div className="h-8 w-full bg-background/50 border-t flex items-center justify-between px-4 text-xs shrink-0">
-      {/* Left side: toggle icons for collapsed bottom-docked panels */}
+      {/* Left side: theme toggle + sidebar toggle + toggle icons for collapsed bottom-docked panels */}
       <div className="flex items-center gap-1.5 min-w-0">
+        <ModeToggle variant="icon" />
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            aria-label="toggle sidebar"
+            title="toggle sidebar"
+          >
+            <PanelLeft className="h-3.5 w-3.5" />
+          </button>
+        )}
         {collapsedPanels.map(({ panel, onToggle }) => {
           const Icon = panelIcons[panel]
           return (

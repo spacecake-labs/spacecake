@@ -11,6 +11,20 @@ export function ModeToggle({ variant }: { variant?: "icon" | "compact" }) {
     setTheme(next)
   }
 
+  if (variant === "icon") {
+    return (
+      <button
+        onClick={handleClick}
+        className="relative p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        aria-label={`switch to ${next} mode`}
+        title={`switch to ${next} mode`}
+      >
+        <Sun className="h-3.5 w-3.5 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+        <Moon className="absolute inset-0 m-auto h-3.5 w-3.5 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+      </button>
+    )
+  }
+
   if (variant === "compact") {
     return (
       <Button

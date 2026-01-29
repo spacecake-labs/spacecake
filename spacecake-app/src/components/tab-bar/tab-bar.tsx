@@ -43,30 +43,26 @@ export function TabBar({ paneId, machine }: TabBarProps) {
   }
 
   return (
-    <div className="h-9 shrink-0 border-b bg-muted/30 flex items-center px-2">
-      <Tabs
-        value={activePaneItemId ?? ""}
-        onValueChange={handleTabChange}
-        className="flex-1 min-w-0"
-      >
-        <TabsList
-          variant="line"
-          className="h-8 gap-0 bg-transparent justify-start"
-        >
-          {items.map((item) => {
-            const fileName = item.filePath.split("/").pop() || "untitled"
-            return (
-              <TabItem
-                key={item.id}
-                id={item.id}
-                fileName={fileName}
-                isActive={item.id === activePaneItemId}
-                onClose={(e) => handleClose(e, item)}
-              />
-            )
-          })}
-        </TabsList>
-      </Tabs>
-    </div>
+    <Tabs
+      value={activePaneItemId ?? ""}
+      onValueChange={handleTabChange}
+      className="h-full flex-1 min-w-0"
+    >
+      <TabsList className="!h-full gap-0 bg-transparent justify-start rounded-none p-0">
+        {items.map((item) => {
+          const fileName = item.filePath.split("/").pop() || "untitled"
+          return (
+            <TabItem
+              key={item.id}
+              id={item.id}
+              fileName={fileName}
+              filePath={item.filePath}
+              isActive={item.id === activePaneItemId}
+              onClose={(e) => handleClose(e, item)}
+            />
+          )
+        })}
+      </TabsList>
+    </Tabs>
   )
 }

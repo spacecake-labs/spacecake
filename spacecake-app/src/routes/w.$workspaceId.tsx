@@ -24,10 +24,8 @@ import {
 import { Effect, Match } from "effect"
 import { useAtom, useSetAtom } from "jotai"
 import {
-  Check,
   ChevronDown,
   ChevronUp,
-  Copy,
   ListTodo,
   PanelBottom,
   PanelLeft,
@@ -54,13 +52,7 @@ import {
 } from "@/lib/dock-transition"
 import { exists, readDirectory } from "@/lib/fs"
 import { store } from "@/lib/store"
-import {
-  cn,
-  condensePath,
-  debounce,
-  decodeBase64Url,
-  encodeBase64Url,
-} from "@/lib/utils"
+import { cn, debounce, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
 import { useClaudeTaskWatcher } from "@/hooks/use-claude-task-watcher"
 import { useGhosttyEngine } from "@/hooks/use-ghostty-engine"
@@ -68,7 +60,6 @@ import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
 import { usePaneMachine } from "@/hooks/use-pane-machine"
 import { useRoute } from "@/hooks/use-route"
 import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
-import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,16 +71,11 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
-import {
-  SidebarProvider,
-  SidebarTrigger,
-  useSidebar,
-} from "@/components/ui/sidebar"
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DeleteButton } from "@/components/delete-button"
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { LoadingAnimation } from "@/components/loading-animation"
-import { ModeToggle } from "@/components/mode-toggle"
 import { QuickOpen } from "@/components/quick-open"
 import { TabBar } from "@/components/tab-bar"
 import { TaskTable } from "@/components/task-table/task-table"
@@ -205,70 +191,19 @@ export const Route = createFileRoute("/w/$workspaceId")({
   component: WorkspaceLayout,
 })
 
-// component for the file path part of the header
-function FileHeader() {
-  const route = useRoute()
-  const selectedFilePath = route?.filePath || null
-  const [copied, setCopied] = useState(false)
-
-  const handleCopyPath = async (filePath: string) => {
-    try {
-      await navigator.clipboard.writeText(filePath)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error("failed to copy path:", err)
-    }
-  }
-
-  if (!selectedFilePath) return null
-
-  return (
-    <div
-      className="flex items-center gap-2 min-w-0"
-      data-testid="current-file-path"
-    >
-      <div className="min-w-0 flex-1">
-        <div className="font-mono text-xs text-muted-foreground/70 truncate">
-          {condensePath(selectedFilePath)}
-        </div>
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => handleCopyPath(selectedFilePath)}
-        className="h-7 w-7 p-0 cursor-pointer flex-shrink-0"
-        aria-label="copy path"
-        title="copy path"
-      >
-        {copied ? (
-          <Check className="h-3 w-3 text-green-600" />
-        ) : (
-          <Copy className="h-3 w-3" />
-        )}
-      </Button>
-    </div>
-  )
-}
-
 // component for the right side of the header
 function HeaderToolbar() {
   const route = useRoute()
   const selectedFilePath = route?.filePath || null
 
-  if (selectedFilePath) {
+  if (selectedFilePath && route) {
     return (
       <div className="app-no-drag flex items-center gap-3 px-4">
-        {route && <EditorToolbar routeContext={route} />}
-        <ModeToggle variant="compact" />
+        <EditorToolbar routeContext={route} />
       </div>
     )
   }
-  return (
-    <div className="app-no-drag px-4">
-      <ModeToggle />
-    </div>
-  )
+  return null
 }
 
 // Dock position dropdown - shows current dock icon and allows switching
@@ -683,13 +618,9 @@ function LayoutContent() {
         />
         <div className="flex flex-col h-full w-full overflow-hidden">
           <main className="bg-background relative flex w-full flex-1 flex-col overflow-hidden rounded-xl shadow-sm p-2">
-            <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
-              <div className="app-no-drag flex items-center gap-2 px-4">
-                <SidebarTrigger
-                  aria-label="toggle sidebar"
-                  className="-ml-1 cursor-pointer"
-                />
-                <FileHeader />
+            <header className="app-drag flex h-10 shrink-0 items-center gap-2 justify-between border-b">
+              <div className="app-no-drag flex h-full items-end px-4">
+                <TabBar paneId={paneId} machine={machine} />
               </div>
               <HeaderToolbar />
             </header>
@@ -697,7 +628,11 @@ function LayoutContent() {
               <Outlet />
             </div>
           </main>
-          <WorkspaceStatusBar bottomPanels={[]} />
+          <WorkspaceStatusBar
+            bottomPanels={[]}
+            isSidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          />
         </div>
       </ClaudeIntegrationProvider>
     )
@@ -845,17 +780,12 @@ function LayoutContent() {
             minSize={30}
           >
             <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
-              <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
-                <div className="app-no-drag flex items-center gap-2 px-4">
-                  <SidebarTrigger
-                    aria-label="toggle sidebar"
-                    className="-ml-1 cursor-pointer"
-                  />
-                  <FileHeader />
+              <header className="app-drag flex h-10 shrink-0 items-center gap-2 justify-between border-b">
+                <div className="app-no-drag flex h-full items-end px-4">
+                  <TabBar paneId={paneId} machine={machine} />
                 </div>
                 <HeaderToolbar />
               </header>
-              <TabBar paneId={paneId} machine={machine} />
               <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
                 <Outlet />
               </div>
@@ -891,17 +821,12 @@ function LayoutContent() {
         </ResizablePanelGroup>
       ) : (
         <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
-          <header className="app-drag flex h-16 shrink-0 items-center gap-2 justify-between">
-            <div className="app-no-drag flex items-center gap-2 px-4">
-              <SidebarTrigger
-                aria-label="toggle sidebar"
-                className="-ml-1 cursor-pointer"
-              />
-              <FileHeader />
+          <header className="app-drag flex h-10 shrink-0 items-center gap-2 justify-between border-b">
+            <div className="app-no-drag flex h-full items-end px-4">
+              <TabBar paneId={paneId} machine={machine} />
             </div>
             <HeaderToolbar />
           </header>
-          <TabBar paneId={paneId} machine={machine} />
           <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
             <Outlet />
           </div>
@@ -1204,7 +1129,11 @@ function LayoutContent() {
                 </>
               )}
             </ResizablePanelGroup>
-            <WorkspaceStatusBar bottomPanels={bottomPanels} />
+            <WorkspaceStatusBar
+              bottomPanels={bottomPanels}
+              isSidebarOpen={sidebarOpen}
+              onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+            />
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>

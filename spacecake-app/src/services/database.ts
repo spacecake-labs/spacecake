@@ -68,6 +68,7 @@ export class Database extends Effect.Service<Database>()("Database", {
           relaxedDurability: true,
         }),
       catch: (error) => {
+        console.log(error)
         return new PgliteError({ cause: error })
       },
     })
