@@ -6,7 +6,6 @@ import {
   EditorStateUpdate,
   EditorStateWithFileIdSelectSchema,
   editorTable,
-  EditorUpdateSchema,
   EditorUpdateSelectionSchema,
   EditorUpdateStateSchema,
   FileInsertSchema,
@@ -14,16 +13,19 @@ import {
   fileTable,
   FileUpdateSchema,
   PaneInsertSchema,
+  PaneItemInsertSchema,
+  PaneItemSelectSchema,
+  paneItemTable,
   PaneSelectSchema,
   paneTable,
   WorkspaceInsertSchema,
   WorkspaceSelectSchema,
   workspaceTable,
   type EditorInsert,
-  type EditorUpdate,
   type FileInsert,
   type FileUpdate,
   type PaneInsert,
+  type PaneItemInsert,
   type WorkspaceInsert,
   type WorkspaceLayout,
 } from "@/schema"
@@ -32,7 +34,7 @@ import { WorkspacePrimaryKey } from "@/schema/workspace"
 import { maybeSingleResult, singleResult } from "@/services/utils"
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
-import { and, desc, eq, getTableColumns, isNotNull } from "drizzle-orm"
+import { and, desc, eq, getTableColumns, gt, isNotNull, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 import { Console, Data, DateTime, Effect, flow, Option, Schema } from "effect"
 
@@ -171,21 +173,15 @@ export class Database extends Effect.Service<Database>()("Database", {
       upsertPane: flow(
         execute(PaneInsertSchema, (values: PaneInsert) =>
           Effect.gen(function* () {
-            // yield* query((_) =>
-            //   _.update(paneTable)
-            //     .set({ is_active: false })
-            //     .where(eq(paneTable.workspace_id, values.workspace_id))
-            // )
             const now = yield* DateTime.now
 
             return yield* query((_) =>
               _.insert(paneTable)
-                .values({ ...values, is_active: true })
+                .values(values)
                 .onConflictDoUpdate({
                   target: [paneTable.workspace_id, paneTable.position],
                   set: {
                     ...values,
-                    is_active: true,
                     last_accessed_at: DateTime.formatIso(now),
                   },
                 })
@@ -198,6 +194,181 @@ export class Database extends Effect.Service<Database>()("Database", {
         // Effect.tap((pane) => Effect.log("db: upserted pane:", pane))
       ),
 
+      insertPaneItem: flow(
+        execute(PaneItemInsertSchema, (values: PaneItemInsert) =>
+          Effect.gen(function* () {
+            return yield* query((_) =>
+              _.insert(paneItemTable).values(values).returning()
+            )
+          })
+        ),
+        singleResult(
+          () => new PgliteError({ cause: "pane item not inserted" })
+        ),
+        Effect.flatMap(Schema.decode(PaneItemSelectSchema))
+      ),
+
+      deletePaneItem: (paneItemId: string) =>
+        Effect.gen(function* () {
+          // Get pane_id and position before deletion
+          const deleted = yield* query((_) =>
+            _.delete(paneItemTable)
+              .where(eq(paneItemTable.id, paneItemId))
+              .returning({
+                pane_id: paneItemTable.pane_id,
+                position: paneItemTable.position,
+              })
+          ).pipe(maybeSingleResult())
+
+          if (Option.isNone(deleted)) return Option.none()
+
+          const { pane_id: paneId, position: deletedPosition } = deleted.value
+
+          // Recompact positions: decrement all positions greater than deleted
+          yield* query((_) =>
+            _.update(paneItemTable)
+              .set({ position: sql`${paneItemTable.position} - 1` })
+              .where(
+                and(
+                  eq(paneItemTable.pane_id, paneId),
+                  gt(paneItemTable.position, deletedPosition)
+                )
+              )
+          )
+
+          // Find new active item (most recently accessed)
+          const newActive = yield* query((_) =>
+            _.select({ id: paneItemTable.id })
+              .from(paneItemTable)
+              .where(eq(paneItemTable.pane_id, paneId))
+              .orderBy(desc(paneItemTable.last_accessed_at))
+              .limit(1)
+          ).pipe(maybeSingleResult())
+
+          // Update pane's active item (will be null if no items remain)
+          yield* query((_) =>
+            _.update(paneTable)
+              .set({
+                active_pane_item_id: Option.match(newActive, {
+                  onNone: () => null,
+                  onSome: (v) => v.id,
+                }),
+              })
+              .where(eq(paneTable.id, paneId))
+          )
+
+          return deleted
+        }),
+
+      updatePaneItemAccessedAt: (paneItemId: string) =>
+        Effect.gen(function* () {
+          const now = yield* DateTime.now
+          return yield* query((_) =>
+            _.update(paneItemTable)
+              .set({ last_accessed_at: DateTime.formatIso(now) })
+              .where(eq(paneItemTable.id, paneItemId))
+          )
+        }),
+
+      selectActivePaneItemForPane: (paneId: string) =>
+        query((_) =>
+          _.select(getTableColumns(paneItemTable))
+            .from(paneTable)
+            .innerJoin(
+              paneItemTable,
+              eq(paneItemTable.id, paneTable.active_pane_item_id)
+            )
+            .where(eq(paneTable.id, paneId))
+            .limit(1)
+        ).pipe(
+          maybeSingleResult(),
+          Effect.flatMap((maybe) =>
+            Option.isNone(maybe)
+              ? Effect.succeed(Option.none())
+              : Schema.decode(PaneItemSelectSchema)(maybe.value).pipe(
+                  Effect.map(Option.some)
+                )
+          )
+        ),
+
+      updatePaneActivePaneItem: (paneId: string, paneItemId: string | null) =>
+        Effect.gen(function* () {
+          return yield* query((_) =>
+            _.update(paneTable)
+              .set({ active_pane_item_id: paneItemId })
+              .where(eq(paneTable.id, paneId))
+          )
+        }),
+
+      updateWorkspaceActivePane: (workspaceId: string, paneId: string | null) =>
+        Effect.gen(function* () {
+          return yield* query((_) =>
+            _.update(workspaceTable)
+              .set({ active_pane_id: paneId })
+              .where(eq(workspaceTable.id, workspaceId))
+          )
+        }),
+
+      /**
+       * Activates an editor in a pane by:
+       * 1. Upserting a paneItem for this editor
+       * 2. Setting this paneItem as the pane's active item
+       * 3. Setting this pane as the workspace's active pane
+       */
+      activateEditorInPane: (editorId: EditorPrimaryKey, paneId: string) =>
+        Effect.gen(function* () {
+          const now = yield* DateTime.now
+
+          // Get next position for new items
+          const [{ maxPosition }] = yield* query((_) =>
+            _.select({
+              maxPosition: sql<number>`COALESCE(MAX(${paneItemTable.position}), -1)`,
+            })
+              .from(paneItemTable)
+              .where(eq(paneItemTable.pane_id, paneId))
+          )
+
+          // Upsert paneItem (unique on pane_id + editor_id)
+          // New items get next position, existing items keep their position
+          const paneItems = yield* query((_) =>
+            _.insert(paneItemTable)
+              .values({
+                pane_id: paneId,
+                kind: "editor",
+                editor_id: editorId,
+                position: maxPosition + 1,
+              })
+              .onConflictDoUpdate({
+                target: [paneItemTable.pane_id, paneItemTable.editor_id],
+                set: { last_accessed_at: DateTime.formatIso(now) },
+                // Don't change position for existing items
+              })
+              .returning({ id: paneItemTable.id })
+          )
+
+          const paneItemId = paneItems[0].id
+
+          // Update pane's active item and get workspace_id
+          const panes = yield* query((_) =>
+            _.update(paneTable)
+              .set({
+                active_pane_item_id: paneItemId,
+                last_accessed_at: DateTime.formatIso(now),
+              })
+              .where(eq(paneTable.id, paneId))
+              .returning({ workspace_id: paneTable.workspace_id })
+          )
+
+          // Update workspace's active pane
+          yield* query((_) =>
+            _.update(workspaceTable)
+              .set({ active_pane_id: paneId })
+              .where(eq(workspaceTable.id, panes[0].workspace_id))
+          )
+
+          return paneItemId
+        }),
+
       upsertEditor: flow(
         execute(EditorInsertSchema, (values: EditorInsert) =>
           Effect.gen(function* () {
@@ -208,7 +379,6 @@ export class Database extends Effect.Service<Database>()("Database", {
                   target: [editorTable.pane_id, editorTable.file_id],
                   set: {
                     ...values,
-                    is_active: true,
                   },
                 })
                 .returning()
@@ -220,21 +390,21 @@ export class Database extends Effect.Service<Database>()("Database", {
         // Effect.tap((editor) => Effect.log("db: upserted editor:", editor))
       ),
 
-      updateEditorAccessedAt: flow(
-        execute(EditorUpdateSchema, (values: EditorUpdate) =>
-          Effect.gen(function* () {
-            const now = yield* DateTime.now
-            return yield* query((_) =>
-              _.update(editorTable)
-                .set({ last_accessed_at: DateTime.formatIso(now) })
-                .where(eq(editorTable.id, values.id))
-            )
-          })
-        )
-        // Effect.tap((editor) =>
-        //   Effect.log("db: updated editor accessed at:", editor)
-        // )
-      ),
+      updateEditorAccessedAt: (editorId: EditorPrimaryKey, paneId: string) =>
+        Effect.gen(function* () {
+          const now = yield* DateTime.now
+          // Find the paneItem for this editor in this pane and update its access time
+          return yield* query((_) =>
+            _.update(paneItemTable)
+              .set({ last_accessed_at: DateTime.formatIso(now) })
+              .where(
+                and(
+                  eq(paneItemTable.editor_id, editorId),
+                  eq(paneItemTable.pane_id, paneId)
+                )
+              )
+          )
+        }),
 
       updateEditorState: flow(
         execute(EditorUpdateStateSchema, (values: EditorStateUpdate) =>
@@ -322,25 +492,20 @@ export class Database extends Effect.Service<Database>()("Database", {
             workspacePath: workspaceTable.path,
             filePath: fileTable.path,
           })
-            .from(editorTable)
+            .from(workspaceTable)
             .innerJoin(
-              fileTable,
+              paneTable,
               and(
-                eq(editorTable.file_id, fileTable.id),
-                // filter early for performance
-                eq(editorTable.is_active, true),
-                isNotNull(editorTable.last_accessed_at)
-              )
-            )
-            .innerJoin(paneTable, eq(editorTable.pane_id, paneTable.id))
-            .innerJoin(
-              workspaceTable,
-              and(
-                eq(paneTable.workspace_id, workspaceTable.id),
+                eq(paneTable.id, workspaceTable.active_pane_id),
                 eq(workspaceTable.path, workspacePath)
               )
             )
-            .orderBy(desc(editorTable.last_accessed_at))
+            .innerJoin(
+              paneItemTable,
+              eq(paneItemTable.id, paneTable.active_pane_item_id)
+            )
+            .innerJoin(editorTable, eq(editorTable.id, paneItemTable.editor_id))
+            .innerJoin(fileTable, eq(fileTable.id, editorTable.file_id))
             .limit(1)
         ).pipe(
           maybeSingleResult(),
@@ -366,8 +531,7 @@ export class Database extends Effect.Service<Database>()("Database", {
             .innerJoin(fileTable, eq(editorTable.file_id, fileTable.id))
             .where(eq(fileTable.path, filePath))
             .orderBy(
-              desc(editorTable.state_updated_at), // prioritise records with state
-              desc(editorTable.last_accessed_at)
+              desc(editorTable.state_updated_at) // prioritise records with state
             )
             .limit(1)
         ).pipe(

@@ -8,6 +8,13 @@
       "when": 1761888825141,
       "tag": "0000_natural_rogue",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1769649995551,
+      "tag": "0001_stiff_ego",
+      "breakpoints": true
     }
   ]
 }

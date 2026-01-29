@@ -114,6 +114,11 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               !props.targetViewKind ||
               props.targetViewKind === maybeState.value.viewKind
             ) {
+              // Activate the editor in the pane (creates paneItem, updates pointers)
+              yield* Effect.forkDaemon(
+                db.activateEditorInPane(maybeState.value.editorId, props.paneId)
+              )
+
               return right<
                 PgliteError | FileSystemError | EditorManagerError,
                 InitialContent
@@ -131,15 +136,19 @@ export class EditorManager extends Effect.Service<EditorManager>()(
             const content = serializeFromCache(maybeState.value.state, fileType)
             const cid = fnv1a64Hex(content)
 
-            // update timestamp and is_active, but keep view_kind matching the cached state
+            // update timestamp, but keep view_kind matching the cached state
             // (the cached state is for the old view, so view_kind should reflect that)
             yield* Effect.forkDaemon(
-              db.upsertEditor({
-                pane_id: props.paneId,
-                file_id: maybeState.value.fileId,
-                view_kind: maybeState.value.viewKind,
-                position: 0, // assuming single editor per pane for now
-                is_active: true,
+              Effect.gen(function* () {
+                yield* db.upsertEditor({
+                  pane_id: props.paneId,
+                  file_id: maybeState.value.fileId,
+                  view_kind: maybeState.value.viewKind,
+                })
+                yield* db.activateEditorInPane(
+                  maybeState.value.editorId,
+                  props.paneId
+                )
               })
             )
 
@@ -179,9 +188,12 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               pane_id: props.paneId,
               file_id: maybeFile.value.fileId,
               view_kind: viewKind,
-              position: 0, // assuming single editor per pane for now
-              is_active: true,
             })
+
+            // Activate the editor in the pane (creates paneItem, updates pointers)
+            yield* Effect.forkDaemon(
+              db.activateEditorInPane(editor.id, props.paneId)
+            )
 
             // Only restore selection if prior state had matching view kind
             const priorSelection =

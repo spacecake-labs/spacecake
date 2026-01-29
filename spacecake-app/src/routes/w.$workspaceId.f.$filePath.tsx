@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { fileMachine } from "@/machines/manage-file"
 import { JsonValue } from "@/schema/drizzle-effect"
 import { EditorPrimaryKeySchema } from "@/schema/editor"
@@ -7,9 +8,10 @@ import {
   createFileRoute,
   ErrorComponent,
   redirect,
+  useNavigate,
 } from "@tanstack/react-router"
 import { useActorRef } from "@xstate/react"
-import { Effect, Schema } from "effect"
+import { Effect, Option, Schema } from "effect"
 import { useSetAtom } from "jotai"
 import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 
@@ -137,7 +139,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 function FileLayout() {
   const { filePath, editorConfig, key, editorId, fileId } =
     Route.useLoaderData()
-  const { db } = Route.useRouteContext()
+  const { db, paneId } = Route.useRouteContext()
   const { view: viewKind } = Route.useSearch()
 
   const sendFileState = useSetAtom(fileStateAtomFamily(filePath))
@@ -163,20 +165,52 @@ function FileLayout() {
     window.electronAPI.claude.notifySelectionChanged(payload)
   }
 
-  RuntimeClient.runPromise(
-    Effect.gen(function* () {
-      yield* Effect.forkDaemon(
-        db.updateFileAccessedAt({
-          id: fileId,
+  const navigate = useNavigate()
+  const { workspaceId } = Route.useParams()
+
+  // Cmd+W / Ctrl+W to close file (navigate back to previously opened file)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "w" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+
+        // Notify CLI server that file is closed (for --wait support)
+        window.electronAPI.notifyFileClosed(filePath)
+
+        // Delete the paneItem for this editor to close the tab
+        // The improved deletePaneItem handles position recompaction and active pointer
+        RuntimeClient.runPromise(
+          Effect.gen(function* () {
+            const maybeItem = yield* db.selectActivePaneItemForPane(paneId)
+
+            if (Option.isSome(maybeItem)) {
+              const paneItem = maybeItem.value
+              if (paneItem.editor_id === editorId) {
+                yield* db.deletePaneItem(paneItem.id)
+              }
+            }
+          })
+        )
+
+        // Navigate to workspace index, which will auto-redirect to last opened file
+        navigate({
+          to: "/w/$workspaceId",
+          params: { workspaceId },
         })
-      )
-      yield* Effect.forkDaemon(
-        db.updateEditorAccessedAt({
-          id: editorId,
-        })
-      )
-    })
-  )
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [filePath, navigate, workspaceId, editorId, paneId, db])
+
+  useEffect(() => {
+    RuntimeClient.runPromise(
+      db.updateFileAccessedAt({
+        id: fileId,
+      })
+    )
+  }, [fileId, db])
 
   return (
     <>

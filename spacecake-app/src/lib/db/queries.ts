@@ -1,4 +1,9 @@
-import { editorTable, fileTable, workspaceTable } from "@/schema/drizzle"
+import {
+  editorTable,
+  fileTable,
+  paneItemTable,
+  workspaceTable,
+} from "@/schema/drizzle"
 import { EditorPrimaryKey } from "@/schema/editor"
 import { FilePrimaryKey } from "@/schema/file"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
@@ -12,7 +17,7 @@ type Orm = ReturnType<typeof drizzle>
 /**
  * Constructs a query to fetch workspace cache data.
  *
- * This joins the file and editor tables to get:
+ * This joins the file, editor, and paneItem tables to get:
  * - filePath: absolute path of the file
  * - fileId: primary key of the file
  * - view_kind: the view kind from the editor (rich or source)
@@ -23,7 +28,7 @@ type Orm = ReturnType<typeof drizzle>
  *
  * Uses PostgreSQL's DISTINCT ON to efficiently select only the most recently
  * accessed editor for each file, even when multiple editors exist per file.
- * A single query with DISTINCT ON (file_id) ordered by descending last_accessed_at
+ * A single query with DISTINCT ON (file_id) ordered by descending paneItem.last_accessed_at
  * ensures we get the most recent editor per file deterministically.
  */
 export const workspaceCacheQuery = (orm: Orm, workspacePath: AbsolutePath) => {
@@ -41,8 +46,9 @@ export const workspaceCacheQuery = (orm: Orm, workspacePath: AbsolutePath) => {
     })
     .from(fileTable)
     .leftJoin(editorTable, eq(fileTable.id, editorTable.file_id))
+    .leftJoin(paneItemTable, eq(paneItemTable.editor_id, editorTable.id))
     .where(like(fileTable.path, `${workspacePath}%`))
-    .orderBy(fileTable.id, desc(editorTable.last_accessed_at))
+    .orderBy(fileTable.id, desc(paneItemTable.last_accessed_at))
 }
 
 /**
