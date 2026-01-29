@@ -619,7 +619,7 @@ function LayoutContent() {
         <div className="flex flex-col h-full w-full overflow-hidden">
           <main className="bg-background relative flex w-full flex-1 flex-col overflow-hidden rounded-xl shadow-sm p-2">
             <header className="app-drag flex h-10 shrink-0 items-center gap-2 justify-between border-b">
-              <div className="app-no-drag flex h-full items-end px-4">
+              <div className="app-no-drag flex h-full items-end">
                 <TabBar paneId={paneId} machine={machine} />
               </div>
               <HeaderToolbar />
@@ -781,7 +781,7 @@ function LayoutContent() {
           >
             <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
               <header className="app-drag flex h-10 shrink-0 items-center gap-2 justify-between border-b">
-                <div className="app-no-drag flex h-full items-end px-4">
+                <div className="app-no-drag flex h-full items-end">
                   <TabBar paneId={paneId} machine={machine} />
                 </div>
                 <HeaderToolbar />
@@ -822,7 +822,7 @@ function LayoutContent() {
       ) : (
         <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
           <header className="app-drag flex h-10 shrink-0 items-center gap-2 justify-between border-b">
-            <div className="app-no-drag flex h-full items-end px-4">
+            <div className="app-no-drag flex h-full items-end">
               <TabBar paneId={paneId} machine={machine} />
             </div>
             <HeaderToolbar />

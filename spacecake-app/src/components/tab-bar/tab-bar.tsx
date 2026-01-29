@@ -48,7 +48,7 @@ export function TabBar({ paneId, machine }: TabBarProps) {
       onValueChange={handleTabChange}
       className="h-full flex-1 min-w-0"
     >
-      <TabsList className="!h-full gap-0 bg-transparent justify-start rounded-none p-0">
+      <TabsList className="!h-full gap-0 bg-transparent justify-start rounded-none p-0 [&>*:first-child_button]:pl-4">
         {items.map((item) => {
           const fileName = item.filePath.split("/").pop() || "untitled"
           return (
