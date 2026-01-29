@@ -25,6 +25,16 @@ export default defineConfig({
     }),
     starlight({
       title: "spacecake",
+      head: [
+        {
+          tag: "script",
+          attrs: {
+            src: "https://analytics.ahrefs.com/analytics.js",
+            "data-key": "TJwISHtBcWir5M/lRBkKWw",
+            async: true,
+          },
+        },
+      ],
       social: [
         {
           icon: "github",
