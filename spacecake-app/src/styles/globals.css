@@ -79,6 +79,8 @@
 }
 
 @theme inline {
+  --text-sm: 13px;
+  --text-sm--line-height: 1.25rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

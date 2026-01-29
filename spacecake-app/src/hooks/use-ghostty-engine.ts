@@ -101,7 +101,7 @@ export function useGhosttyEngine({
         if (!isMounted) return
 
         const term = new Terminal({
-          fontSize: 14,
+          fontSize: 13,
           fontFamily: "JetBrains Mono, monospace",
           cursorBlink: false,
           theme: activeTheme.current,
