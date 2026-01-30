@@ -1,23 +1,23 @@
 format:
-    pnpm run format
+    bun run format
 
 lint:
-    pnpm run lint
+    bun run lint
 
 tc:
-    pnpm run typecheck
+    bun run typecheck
 
 check:
     just format && just lint && just tc
 
 unit filter="":
-    pnpm run unit-test {{filter}}
+    bun run unit-test {{filter}}
 
 build:
-    pnpm run build
+    bun run build
 
 dev:
-    pnpm run dev
+    bun run dev
 
 test:
     just unit
