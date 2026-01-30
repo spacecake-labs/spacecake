@@ -62,6 +62,7 @@ export interface ElectronAPI {
     canceled: boolean
     filePaths: string[]
   }>
+  openExternal: (url: string) => Promise<void>
   readFile: (
     filePath: AbsolutePath
   ) => Promise<Either<FileSystemError, FileContent>>

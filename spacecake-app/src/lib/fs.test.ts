@@ -61,6 +61,7 @@ const createTestElectronAPI = (
   writeTerminal: async () => right(undefined),
   killTerminal: async () => right(undefined),
   onTerminalOutput: () => () => {},
+  openExternal: async () => {},
   ...overrides,
 })
 

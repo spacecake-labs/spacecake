@@ -28,7 +28,3 @@
 
 import "@/styles/globals.css"
 import "@/app.tsx"
-
-import { initCrisp } from "@/lib/crisp"
-
-initCrisp()

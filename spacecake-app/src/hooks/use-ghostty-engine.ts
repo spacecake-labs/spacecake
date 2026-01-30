@@ -75,6 +75,8 @@ export function useGhosttyEngine({
   const appShortcutHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(
     null
   )
+  const linkTooltipRef = useRef<HTMLDivElement | null>(null)
+  const linkHoverHandlerRef = useRef<((e: MouseEvent) => void) | null>(null)
 
   const [error, setError] = useState<string | null>(null)
   const [api, setApi] = useState<TerminalAPI | null>(null)
@@ -300,6 +302,35 @@ export function useGhosttyEngine({
           true
         )
 
+        // Create link hover tooltip
+        const tooltip = document.createElement("div")
+        tooltip.className =
+          "fixed pointer-events-none px-2 py-1 text-xs rounded bg-popover text-popover-foreground border shadow-md opacity-0 transition-opacity duration-150 z-50"
+        tooltip.textContent = "follow link (⌘ + click)"
+        document.body.appendChild(tooltip)
+        linkTooltipRef.current = tooltip
+
+        // Show tooltip when hovering over links
+        linkHoverHandlerRef.current = (e: MouseEvent) => {
+          const target = e.target as HTMLElement
+          // Check if cursor is pointer (ghostty-web sets this when over a link)
+          const isOverLink =
+            target.style.cursor === "pointer" ||
+            window.getComputedStyle(target).cursor === "pointer"
+
+          if (isOverLink) {
+            tooltip.style.left = `${e.clientX + 12}px`
+            tooltip.style.top = `${e.clientY + 12}px`
+            tooltip.style.opacity = "1"
+          } else {
+            tooltip.style.opacity = "0"
+          }
+        }
+        containerEl.addEventListener("mousemove", linkHoverHandlerRef.current)
+        containerEl.addEventListener("mouseleave", () => {
+          tooltip.style.opacity = "0"
+        })
+
         // Build API
         const terminalApi: TerminalAPI = {
           fit: () => fitAddon.fit(),
@@ -348,6 +379,17 @@ export function useGhosttyEngine({
           true
         )
         appShortcutHandlerRef.current = null
+      }
+      if (linkHoverHandlerRef.current) {
+        containerEl.removeEventListener(
+          "mousemove",
+          linkHoverHandlerRef.current
+        )
+        linkHoverHandlerRef.current = null
+      }
+      if (linkTooltipRef.current) {
+        linkTooltipRef.current.remove()
+        linkTooltipRef.current = null
       }
       killTerminal(id)
       delete window.__terminalAPI

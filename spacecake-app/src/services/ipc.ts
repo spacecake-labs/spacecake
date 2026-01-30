@@ -10,7 +10,7 @@ import { FileSystem, type FileSystemError } from "@/services/file-system"
 import { SpacecakeHome } from "@/services/spacecake-home"
 import { Terminal } from "@/services/terminal"
 import { Effect } from "effect"
-import { BrowserWindow, dialog, ipcMain } from "electron"
+import { BrowserWindow, dialog, ipcMain, shell } from "electron"
 
 import { left, right, type Either } from "@/types/adt"
 import { ClaudeTaskError } from "@/types/claude-task"
@@ -138,6 +138,8 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         return dialog.showOpenDialog(options)
       }
     })
+
+    ipcMain.handle("open-external", (_, url: string) => shell.openExternal(url))
 
     ipcMain.handle("get-home-folder-path", () => home.homeDir)
 

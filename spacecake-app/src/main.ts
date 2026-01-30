@@ -13,7 +13,7 @@ import {
 } from "@/services/spacecake-home"
 import { setupUpdates } from "@/update"
 import { Effect, Exit, Layer, ManagedRuntime } from "effect"
-import { app, BrowserWindow, session } from "electron"
+import { app, BrowserWindow, session, shell } from "electron"
 import {
   installExtension,
   REACT_DEVELOPER_TOOLS,
@@ -114,6 +114,12 @@ const createWindow = () => {
   })
 
   windowCounter++
+
+  // Intercept window.open calls and open URLs in external browser
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url)
+    return { action: "deny" }
+  })
 
   mainWindow.once("closed", () => {
     windowCounter--
