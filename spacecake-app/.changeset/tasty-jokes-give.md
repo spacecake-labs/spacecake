@@ -1,0 +1,5 @@
+---
+"spacecake": patch
+---
+
+Editor tabs.
