@@ -117,31 +117,6 @@ export function useGhosttyEngine({
         const fitAddon = new FitAddon()
         term.loadAddon(fitAddon)
 
-        // HACK: Override proposeDimensions to not reserve 15px for scrollbar.
-        const originalProposeDimensions =
-          fitAddon.proposeDimensions.bind(fitAddon)
-        fitAddon.proposeDimensions = () => {
-          const dimensions = originalProposeDimensions()
-          if (!dimensions) return dimensions
-
-          const renderer = term.renderer
-          if (!renderer || typeof renderer.getMetrics !== "function") {
-            return dimensions
-          }
-
-          const metrics = renderer.getMetrics()
-          if (!metrics || metrics.width === 0 || metrics.height === 0)
-            return dimensions
-
-          // Container has no padding — use client dimensions directly
-          const availableWidth = containerEl.clientWidth
-          const availableHeight = containerEl.clientHeight
-          const cols = Math.max(2, Math.floor(availableWidth / metrics.width))
-          const rows = Math.max(2, Math.floor(availableHeight / metrics.height))
-
-          return { cols, rows }
-        }
-
         // Attach to DOM (the persistent container div)
         if (!autoFocus) {
           const originalFocus = term.focus.bind(term)
