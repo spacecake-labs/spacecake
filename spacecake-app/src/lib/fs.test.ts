@@ -28,6 +28,16 @@ const createTestElectronAPI = (
       stopWatching: async () => right(undefined),
       onChange: () => () => {},
     },
+    statusline: {
+      read: async () =>
+        right({
+          configured: false,
+          isSpacecake: false,
+          isInlineSpacecake: false,
+        }),
+      update: async () => right(undefined),
+      remove: async () => right(undefined),
+    },
   },
   showOpenDialog: async () => ({ canceled: false, filePaths: ["/test/path"] }),
   readFile: async () => right(createTestFileContent()),
@@ -39,6 +49,10 @@ const createTestElectronAPI = (
   startWatcher: async () => right(undefined),
   stopWatcher: async () => right(undefined),
   onFileEvent: () => () => {},
+  ensurePlansDirectory: async () => right(undefined),
+  notifyFileClosed: async () => {},
+  updateCliWorkspaces: async () => {},
+  isPlaywright: false,
   platform: "test",
   getHomeFolderPath: async () => "/test/.spacecake",
   exists: async () => right(true),
@@ -47,6 +61,7 @@ const createTestElectronAPI = (
   writeTerminal: async () => right(undefined),
   killTerminal: async () => right(undefined),
   onTerminalOutput: () => () => {},
+  openExternal: async () => {},
   ...overrides,
 })
 

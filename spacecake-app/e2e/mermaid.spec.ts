@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("mermaid e2e", () => {
   test("open markdown file and render mermaid diagram", async ({
@@ -19,7 +20,7 @@ test.describe("mermaid e2e", () => {
     await waitForWorkspace(window)
 
     // open the file
-    await window.getByRole("button", { name: "mermaid.md" }).first().click()
+    await locateSidebarItem(window, "mermaid.md").click()
 
     // verify we're in rich view (not source view)
     await expect(
@@ -55,10 +56,7 @@ test.describe("mermaid e2e", () => {
     await waitForWorkspace(window)
 
     // open the file
-    await window
-      .getByRole("button", { name: "test-create-mermaid.md" })
-      .first()
-      .click()
+    await locateSidebarItem(window, "test-create-mermaid.md").click()
 
     // verify we're in rich view
     await expect(window.getByTestId("lexical-editor")).toBeVisible()

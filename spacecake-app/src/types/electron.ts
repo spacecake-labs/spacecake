@@ -17,6 +17,18 @@ import type {
 } from "@/types/workspace"
 import type { DisplayStatusline } from "@/lib/statusline-parser"
 
+/** Status of the statusline configuration */
+export interface StatuslineConfigStatus {
+  /** Whether statusLine is configured at all */
+  configured: boolean
+  /** Whether the configured command points to our spacecake script */
+  isSpacecake: boolean
+  /** Old inline `bash -c '…spacecake.sock…'` config from pre-auto-setup versions */
+  isInlineSpacecake: boolean
+  /** The current command, if any */
+  command?: string
+}
+
 export interface ElectronAPI {
   claude: {
     ensureServer: (workspaceFolders: string[]) => Promise<void>
@@ -37,11 +49,20 @@ export interface ElectronAPI {
       stopWatching: () => Promise<Either<ClaudeTaskError, void>>
       onChange: (handler: () => void) => () => void
     }
+    statusline: {
+      /** Read the current statusline configuration */
+      read: () => Promise<Either<FileSystemError, StatuslineConfigStatus>>
+      /** Configure statusline to use spacecake's hook script */
+      update: () => Promise<Either<FileSystemError, void>>
+      /** Remove statusline configuration */
+      remove: () => Promise<Either<FileSystemError, void>>
+    }
   }
   showOpenDialog: (options: unknown) => Promise<{
     canceled: boolean
     filePaths: string[]
   }>
+  openExternal: (url: string) => Promise<void>
   readFile: (
     filePath: AbsolutePath
   ) => Promise<Either<FileSystemError, FileContent>>
@@ -71,6 +92,12 @@ export interface ElectronAPI {
     workspacePath: AbsolutePath
   ) => Promise<Either<FileSystemError, undefined>>
   onFileEvent: (handler: (event: FileTreeEvent) => void) => () => void
+  ensurePlansDirectory: (
+    workspacePath: string
+  ) => Promise<Either<FileSystemError, undefined>>
+  notifyFileClosed: (filePath: string) => Promise<void>
+  updateCliWorkspaces: (workspaceFolders: string[]) => Promise<void>
+  isPlaywright: boolean
   platform: string
   getHomeFolderPath: () => Promise<string>
   exists: (path: AbsolutePath) => Promise<Either<FileSystemError, boolean>>

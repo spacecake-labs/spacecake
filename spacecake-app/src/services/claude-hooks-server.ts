@@ -232,7 +232,9 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
       return Effect.void
     }
     const { server, socketPath } = serverState
-    return Effect.sync(() => server.close()).pipe(
+    return Effect.async<void, never>((resume) => {
+      server.close(() => resume(Effect.void))
+    }).pipe(
       Effect.andThen(fsService.remove(socketPath)),
       Effect.catchAll(() => Effect.void)
     )

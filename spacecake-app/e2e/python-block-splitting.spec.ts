@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("Python block splitting", () => {
   test("should split python blocks on navigation and on save", async ({
@@ -26,10 +27,7 @@ def my_function():
     await waitForWorkspace(window)
 
     // open the file
-    await window
-      .getByRole("button", { name: "test_splitting.py" })
-      .first()
-      .click()
+    await locateSidebarItem(window, "test_splitting.py").click()
 
     // Explicitly wait for the Lexical editor to be visible
     const editor = window.getByTestId("lexical-editor")

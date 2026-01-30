@@ -5,6 +5,7 @@ import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import {
   locateQuickOpenInput,
   locateQuickOpenList,
+  locateSidebarItem,
   pressQuickOpen,
 } from "@/../e2e/utils"
 import { stubDialog } from "electron-playwright-helpers"
@@ -30,22 +31,18 @@ test.describe("recent files", () => {
 
     // 2. Wait for workspace to load
     await waitForWorkspace(window)
-    await expect(window.getByRole("button", { name: "core.py" })).toBeVisible()
+    await expect(locateSidebarItem(window, "core.py")).toBeVisible()
 
     // 3. Open a few files to make them "recent"
-    await window.getByRole("button", { name: "core.py" }).click({ delay: 200 })
+    await locateSidebarItem(window, "core.py").click({ delay: 200 })
     await expect(
       window.getByRole("heading", { name: "A file to test block parsing." })
     ).toBeVisible()
 
-    await window
-      .getByRole("button", { name: "_README.md" })
-      .click({ delay: 200 })
+    await locateSidebarItem(window, "_README.md").click({ delay: 200 })
     await expect(window.getByText("An Example README File")).toBeVisible()
 
-    await window
-      .getByRole("button", { name: "google-doc.py" })
-      .click({ delay: 200 })
+    await locateSidebarItem(window, "google-doc.py").click({ delay: 200 })
 
     await expect(
       window.getByRole("heading", { name: "A one-line summary of the module" })
@@ -68,7 +65,7 @@ test.describe("recent files", () => {
     await window.reload()
 
     // workspace should automatically reopen
-    await expect(window.getByRole("button", { name: "core.py" })).toBeVisible()
+    await expect(locateSidebarItem(window, "core.py")).toBeVisible()
 
     // 6. Re-open Quick Open and verify recent files are still there
     await pressQuickOpen(window)
@@ -114,11 +111,11 @@ test.describe("recent files", () => {
 
     // 6. Wait for the new file to appear in the sidebar
     await expect(
-      window.getByRole("button", { name: "test-recent-file.txt" }).first()
+      locateSidebarItem(window, "test-recent-file.txt")
     ).toBeVisible()
 
     // 7. Open the file to make it "recent"
-    await window.getByRole("button", { name: "test-recent-file.txt" }).click()
+    await locateSidebarItem(window, "test-recent-file.txt").click()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     // 7. Open Quick Open and verify the file appears in recent files
@@ -141,7 +138,7 @@ test.describe("recent files", () => {
 
     // 11. Verify workspace reopens
     await expect(
-      window.getByRole("button", { name: "test-recent-file.txt" })
+      locateSidebarItem(window, "test-recent-file.txt")
     ).toBeVisible()
 
     // 12. Open Quick Open and verify recent file persists after reload
@@ -158,10 +155,7 @@ test.describe("recent files", () => {
     await quickOpenInput.press("Escape")
 
     // 14. Delete the file
-    await window
-      .getByRole("button", { name: "test-recent-file.txt" })
-      .first()
-      .hover()
+    await locateSidebarItem(window, "test-recent-file.txt").hover()
     await window.getByTestId("more-options-test-recent-file.txt").click()
     await window.getByRole("menuitem", { name: "delete" }).click()
 
@@ -170,7 +164,7 @@ test.describe("recent files", () => {
 
     // 16. Verify the file is removed from the UI
     await expect(
-      window.getByRole("button", { name: "test-recent-file.txt" })
+      locateSidebarItem(window, "test-recent-file.txt")
     ).not.toBeVisible()
 
     // 17. Open Quick Open and verify recent files list only has getting-started.md
@@ -239,10 +233,10 @@ test.describe("recent files", () => {
       canceled: false,
     })
     await window.keyboard.press("ControlOrMeta+o")
-    await expect(window.getByRole("button", { name: "core.py" })).toBeVisible()
+    await expect(locateSidebarItem(window, "core.py")).toBeVisible()
 
     // 4. Open a file in workspace1 to make it "recent"
-    await window.getByRole("button", { name: "core.py" }).click()
+    await locateSidebarItem(window, "core.py").click()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     // 5. Check recent files in workspace1
@@ -266,9 +260,7 @@ test.describe("recent files", () => {
       canceled: false,
     })
     await window.keyboard.press("ControlOrMeta+o")
-    await expect(
-      window.getByRole("button", { name: "google-doc.py" })
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "google-doc.py")).toBeVisible()
 
     // 8. Check that recent files is empty in workspace2
     await pressQuickOpen(window)
@@ -281,7 +273,7 @@ test.describe("recent files", () => {
     await quickOpenInput.press("Escape")
 
     // 10. Open a file in workspace2 to make it "recent"
-    await window.getByRole("button", { name: "google-doc.py" }).click()
+    await locateSidebarItem(window, "google-doc.py").click()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     // 11. Check recent files in workspace2 now has the file
@@ -305,7 +297,7 @@ test.describe("recent files", () => {
     })
     await window.keyboard.press("ControlOrMeta+o")
 
-    await expect(window.getByRole("button", { name: "core.py" })).toBeVisible()
+    await expect(locateSidebarItem(window, "core.py")).toBeVisible()
 
     // 14. Check that recent files in workspace1 still shows the original file
     await pressQuickOpen(window)

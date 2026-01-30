@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("route not found", () => {
   test("should show 'workspace not accessible' message when workspace has no read permissions", async ({
@@ -46,7 +47,7 @@ test.describe("route not found", () => {
     // open the temp test directory as workspace
     await waitForWorkspace(window)
 
-    await window.getByRole("button", { name: "_README.md" }).first().click()
+    await locateSidebarItem(window, "_README.md").click()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 

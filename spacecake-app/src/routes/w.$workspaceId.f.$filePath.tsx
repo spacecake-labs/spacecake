@@ -1,6 +1,8 @@
+import { useEffect } from "react"
 import { fileMachine } from "@/machines/manage-file"
 import { JsonValue } from "@/schema/drizzle-effect"
 import { EditorPrimaryKeySchema } from "@/schema/editor"
+import { Database } from "@/services/database"
 import { EditorManager } from "@/services/editor-manager"
 import { RuntimeClient } from "@/services/runtime-client"
 import {
@@ -38,9 +40,15 @@ import { decodeBase64Url } from "@/lib/utils"
 import { Editor } from "@/components/editor/editor"
 import { LoadingAnimation } from "@/components/loading-animation"
 
+const OpenFileSourceSchema = Schema.Union(
+  Schema.Literal("claude"),
+  Schema.Literal("cli")
+)
+
 const fileSearchSchema = Schema.Struct({
   view: Schema.optional(ViewKindSchema),
   editorId: Schema.optional(EditorPrimaryKeySchema),
+  source: Schema.optional(OpenFileSourceSchema),
 })
 
 export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
@@ -62,6 +70,10 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
       return next
     })
 
+    // Route loader is read-only for content - pane item creation is normally handled
+    // by the pane machine before navigation. However, for direct URL navigation
+    // (typing URL, browser back/forward, bookmarks), we need to ensure the pane item
+    // exists.
     const initialState = await RuntimeClient.runPromise(
       Effect.gen(function* () {
         const em = yield* EditorManager
@@ -83,7 +95,16 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           search: { notFoundFilePath: filePath },
         })
       },
-      onRight: (result) => {
+      onRight: async (result) => {
+        // Ensure pane item exists for direct URL navigation
+        // This is safe because direct URL nav doesn't race with close operations
+        await RuntimeClient.runPromise(
+          Effect.gen(function* () {
+            const db = yield* Database
+            yield* db.activateEditorInPane(result.content.data.editorId, paneId)
+          })
+        )
+
         // add view to search params if it is not present
         if (!view) {
           throw redirect({
@@ -163,20 +184,13 @@ function FileLayout() {
     window.electronAPI.claude.notifySelectionChanged(payload)
   }
 
-  RuntimeClient.runPromise(
-    Effect.gen(function* () {
-      yield* Effect.forkDaemon(
-        db.updateFileAccessedAt({
-          id: fileId,
-        })
-      )
-      yield* Effect.forkDaemon(
-        db.updateEditorAccessedAt({
-          id: editorId,
-        })
-      )
-    })
-  )
+  useEffect(() => {
+    RuntimeClient.runPromise(
+      db.updateFileAccessedAt({
+        id: fileId,
+      })
+    )
+  }, [fileId, db])
 
   return (
     <>

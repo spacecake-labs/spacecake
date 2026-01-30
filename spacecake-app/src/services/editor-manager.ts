@@ -17,6 +17,9 @@ import { fnv1a64Hex } from "@/lib/hash"
 import { supportsRichView } from "@/lib/language-support"
 import { fileTypeFromFileName } from "@/lib/workspace"
 
+// Note: Route loader is now read-only. Pane item creation is handled by the pane machine
+// before navigation to ensure operations complete in order.
+
 // Define a specific error type for this service
 export class EditorManagerError extends Data.TaggedError("EditorManagerError")<{
   cause: unknown
@@ -131,18 +134,6 @@ export class EditorManager extends Effect.Service<EditorManager>()(
             const content = serializeFromCache(maybeState.value.state, fileType)
             const cid = fnv1a64Hex(content)
 
-            // update timestamp and is_active, but keep view_kind matching the cached state
-            // (the cached state is for the old view, so view_kind should reflect that)
-            yield* Effect.forkDaemon(
-              db.upsertEditor({
-                pane_id: props.paneId,
-                file_id: maybeState.value.fileId,
-                view_kind: maybeState.value.viewKind,
-                position: 0, // assuming single editor per pane for now
-                is_active: true,
-              })
-            )
-
             return right<
               PgliteError | FileSystemError | EditorManagerError,
               InitialContent
@@ -179,8 +170,6 @@ export class EditorManager extends Effect.Service<EditorManager>()(
               pane_id: props.paneId,
               file_id: maybeFile.value.fileId,
               view_kind: viewKind,
-              position: 0, // assuming single editor per pane for now
-              is_active: true,
             })
 
             // Only restore selection if prior state had matching view kind

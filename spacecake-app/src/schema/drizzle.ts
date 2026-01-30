@@ -1,8 +1,4 @@
-import {
-  createInsertSchema,
-  createSelectSchema,
-  type JsonValue,
-} from "@/schema/drizzle-effect"
+import { type JsonValue } from "@/schema/drizzle-effect"
 import type { WorkspaceLayout } from "@/schema/workspace-layout"
 import { sql } from "drizzle-orm"
 import {
@@ -15,6 +11,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core"
 
 import { SerializedSelection, ViewKindSchema } from "@/types/lexical"
@@ -33,6 +30,10 @@ export const workspaceTable = pgTable(
     path: text("path").notNull(),
     is_open: boolean("is_open").notNull().default(false),
     layout: jsonb("layout").$type<WorkspaceLayout>(),
+    active_pane_id: uuid("active_pane_id").references(
+      (): AnyPgColumn => paneTable.id,
+      { onDelete: "set null" }
+    ),
     created_at: timestamp("created_at", { mode: "string" })
       .defaultNow()
       .notNull(),
@@ -71,7 +72,10 @@ export const paneTable = pgTable(
       .references(() => workspaceTable.id)
       .notNull(),
     position: integer("index").notNull(),
-    is_active: boolean("is_active").notNull().default(false),
+    active_pane_item_id: uuid("active_pane_item_id").references(
+      (): AnyPgColumn => paneItemTable.id,
+      { onDelete: "set null" }
+    ),
     created_at: timestamp("created_at", { mode: "string" })
       .defaultNow()
       .notNull(),
@@ -87,10 +91,38 @@ export const paneTable = pgTable(
   ]
 )
 
-export const PaneInsertSchema = createInsertSchema(paneTable)
-export type PaneInsert = typeof PaneInsertSchema.Type
-export const PaneSelectSchema = createSelectSchema(paneTable)
-export type PaneSelect = typeof PaneSelectSchema.Type
+// must be exported for drizzle to recognise it
+export const PaneItemKindEnum = pgEnum("pane_item_kind", ["editor"])
+
+export const paneItemTable = pgTable(
+  "pane_item",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    pane_id: uuid("pane_id")
+      .references(() => paneTable.id, { onDelete: "cascade" })
+      .notNull(),
+    kind: PaneItemKindEnum("kind").notNull(),
+    editor_id: uuid("editor_id").references((): AnyPgColumn => editorTable.id, {
+      onDelete: "cascade",
+    }),
+    position: integer("index").notNull(),
+    last_accessed_at: timestamp("last_accessed_at", { mode: "string" })
+      .defaultNow()
+      .notNull(),
+    created_at: timestamp("created_at", { mode: "string" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("pane_item_pane_position_idx").on(
+      table.pane_id,
+      table.position
+    ),
+    uniqueIndex("pane_item_pane_editor_idx").on(table.pane_id, table.editor_id),
+  ]
+)
 
 // must be exported for drizzle to recognise it
 export const ViewKindEnum = pgEnum("view_kind", ViewKindSchema.literals)
@@ -108,17 +140,13 @@ export const editorTable = pgTable(
     file_id: uuid("file_id")
       .references(() => fileTable.id, { onDelete: "cascade" })
       .notNull(),
-    position: integer("index").notNull(),
     view_kind: ViewKindEnum("view_kind").notNull(),
-    is_active: boolean("is_active").notNull().default(false),
     state: jsonb("state").$type<JsonValue>(),
     state_updated_at: timestamp("state_updated_at", { mode: "string" }),
     selection: jsonb("selection").$type<SerializedSelection>(),
     created_at: timestamp("created_at", { mode: "string" })
       .defaultNow()
       .notNull(),
-    // nullable to allow for preloading
-    last_accessed_at: timestamp("last_accessed_at", { mode: "string" }),
   },
   (table) => [
     uniqueIndex("editor_pane_file_idx").on(table.pane_id, table.file_id),

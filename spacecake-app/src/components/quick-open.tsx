@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useNavigate } from "@tanstack/react-router"
+import type { PaneMachineRef } from "@/machines/pane"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { atom, useAtom, useAtomValue } from "jotai"
 import { File as FileIcon } from "lucide-react"
@@ -8,7 +8,6 @@ import { AbsolutePath, File, WorkspaceInfo } from "@/types/workspace"
 import { fileTreeAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
 import { getQuickOpenFileItems } from "@/lib/atoms/file-tree"
 import { createQuickOpenItems } from "@/lib/filter-files"
-import { encodeBase64Url } from "@/lib/utils"
 import { fileTypeFromFileName } from "@/lib/workspace"
 import { useRecentFiles } from "@/hooks/use-recent-files"
 import {
@@ -24,9 +23,10 @@ const quickOpenParentAtom = atom<HTMLDivElement | null>(null)
 
 interface QuickOpenProps {
   workspacePath: WorkspaceInfo["path"]
+  machine: PaneMachineRef
 }
 
-export function QuickOpen({ workspacePath }: QuickOpenProps) {
+export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
   const [isOpen, setIsOpen] = useAtom(quickOpenMenuOpenAtom)
   const [search, setSearch] = useAtom(quickOpenSearchAtom)
 
@@ -38,8 +38,6 @@ export function QuickOpen({ workspacePath }: QuickOpenProps) {
   if (recentFiles.error) {
     console.error("error getting recent files", recentFiles.error)
   }
-
-  const navigate = useNavigate()
 
   const [parent, setParent] = useAtom(quickOpenParentAtom)
 
@@ -91,16 +89,9 @@ export function QuickOpen({ workspacePath }: QuickOpenProps) {
   const handleSelectFile = (file: File) => {
     if (!workspacePath) return
 
-    const workspaceIdEncoded = encodeBase64Url(workspacePath)
-    const filePathEncoded = encodeBase64Url(AbsolutePath(file.path))
-
-    navigate({
-      to: "/w/$workspaceId/f/$filePath",
-      params: {
-        workspaceId: workspaceIdEncoded,
-        filePath: filePathEncoded,
-      },
-    })
+    // Use the pane machine to open files - this serializes the operation
+    // with close operations ensuring they complete in order.
+    machine.send({ type: "pane.file.open", filePath: AbsolutePath(file.path) })
     setIsOpen(false)
   }
 

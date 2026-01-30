@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("markdown e2e", () => {
   test("open workspace and render _README.md blocks", async ({
@@ -19,7 +20,7 @@ test.describe("markdown e2e", () => {
     await waitForWorkspace(window)
 
     // open the file
-    await window.getByRole("button", { name: "_README.md" }).first().click()
+    await locateSidebarItem(window, "_README.md").click()
 
     // verify we're in rich view (not source view)
     await expect(

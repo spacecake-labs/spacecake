@@ -1,5 +1,5 @@
 import v0000 from "@/drizzle/0000_natural_rogue.sql?raw"
-import v0001 from "@/drizzle/0001_add_workspace_layout.sql?raw"
+import v0001 from "@/drizzle/0001_stiff_ego.sql?raw"
 import { systemTable } from "@/schema/drizzle"
 import { Database } from "@/services/database"
 import { singleResult } from "@/services/utils"

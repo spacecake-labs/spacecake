@@ -43,7 +43,7 @@ export const editorTheme: EditorThemeClasses = {
     ol: "text-block my-2 ml-6 list-decimal [&>li]:mt-2",
     checklist: "relative",
     listitemChecked:
-      'relative mx-2 px-6 list-none outline-none text-muted-foreground before:content-[""] before:size-4 before:shrink-0 before:rounded-[4px] before:border before:border-primary before:bg-primary before:top-0.5 before:left-0 before:cursor-pointer before:block before:absolute before:shadow-xs before:flex before:items-center before:justify-center after:content-["✓"] after:absolute after:top-0.5 after:left-0 after:w-4 after:h-4 after:text-primary-foreground after:text-xs after:font-bold after:flex after:items-center after:justify-center after:pointer-events-none',
+      'relative mx-2 px-6 list-none outline-none text-muted-foreground before:content-[""] before:size-4 before:shrink-0 before:rounded-[4px] before:border before:border-[oklch(0.8_0.18_152)] before:bg-[oklch(0.8_0.18_152)] before:top-0.5 before:left-0 before:cursor-pointer before:block before:absolute before:shadow-xs before:flex before:items-center before:justify-center after:content-["✓"] after:absolute after:top-0.5 after:left-0 after:w-4 after:h-4 after:text-white after:text-xs after:font-bold after:flex after:items-center after:justify-center after:pointer-events-none',
     listitemUnchecked:
       'relative mx-2 px-6 list-none outline-none before:content-[""] before:size-4 before:shrink-0 before:rounded-[4px] before:border before:border-input before:top-0.5 before:left-0 before:cursor-pointer before:block before:absolute before:shadow-xs dark:before:bg-input/30',
   },

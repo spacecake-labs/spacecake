@@ -2,6 +2,11 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import {
+  locateSidebarItem,
+  locateTab,
+  locateTabCloseButton,
+} from "@/../e2e/utils"
 
 test.describe("spacecake app", () => {
   test("open electron app", async ({ electronApp }, testInfo) => {
@@ -61,9 +66,7 @@ test.describe("spacecake app", () => {
     await textbox.press("Enter", { delay: 100 }) // Added delay
 
     // Wait for the new file to appear in the sidebar
-    await expect(
-      window.getByRole("button", { name: "test.txt" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "test.txt")).toBeVisible()
 
     // Wait for the create file input to disappear (indicating state reset)
     await expect(textbox).not.toBeVisible()
@@ -106,9 +109,7 @@ test.describe("spacecake app", () => {
     await textbox.press("Enter", { delay: 100 }) // Added delay
 
     // Wait for the new file to appear in the sidebar
-    await expect(
-      window.getByRole("button", { name: "test.txt" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "test.txt")).toBeVisible()
 
     // Wait for the create file input to disappear (indicating state reset)
     await expect(textbox).not.toBeVisible()
@@ -166,20 +167,14 @@ test.describe("spacecake app", () => {
     await waitForWorkspace(window)
 
     // verify that the nested folder structure is visible
-    await expect(
-      window.getByRole("button", { name: "nested-folder" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "nested-folder")).toBeVisible()
 
     // click on the nested folder to expand it
-    await window.getByRole("button", { name: "nested-folder" }).first().click()
+    await locateSidebarItem(window, "nested-folder").click()
 
     // verify that the nested files are visible
-    await expect(
-      window.getByRole("button", { name: "nested-file-1.txt" }).first()
-    ).toBeVisible()
-    await expect(
-      window.getByRole("button", { name: "nested-file-2.txt" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "nested-file-1.txt")).toBeVisible()
+    await expect(locateSidebarItem(window, "nested-file-2.txt")).toBeVisible()
   })
 
   test("auto-expand and refresh when creating files and folders", async ({
@@ -205,9 +200,7 @@ test.describe("spacecake app", () => {
     await waitForWorkspace(window)
 
     // verify that the test folder is visible
-    await expect(
-      window.getByRole("button", { name: "test-folder" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "test-folder")).toBeVisible()
 
     // Test 1: Create a file inside the folder (should auto-expand)
     await window.getByTestId("more-options-test-folder").click()
@@ -224,13 +217,11 @@ test.describe("spacecake app", () => {
     await fileInput.press("Enter", { delay: 100 }) // Added delay
 
     // Verify the file was created and is visible
-    await expect(
-      window.getByRole("button", { name: "test-file.txt" })
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "test-file.txt")).toBeVisible()
 
     // Test 2: Create a folder inside the folder (should auto-expand)
     // Ensure the test-folder is expanded before trying to create a folder inside it
-    await window.getByRole("button", { name: "test-folder" }).first().click()
+    await locateSidebarItem(window, "test-folder").click()
 
     await window.getByTestId("more-options-test-folder").click()
     await window.getByRole("menuitem", { name: "new folder" }).click()
@@ -246,17 +237,11 @@ test.describe("spacecake app", () => {
     await folderInput.press("Enter", { delay: 100 }) // Added delay
 
     // Wait for the new folder to appear
-    await expect(
-      window.getByRole("button", { name: "test-subfolder" })
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "test-subfolder")).toBeVisible()
 
     // Verify both new items are visible in the expanded folder
-    await expect(
-      window.getByRole("button", { name: "test-file.txt" }).first()
-    ).toBeVisible()
-    await expect(
-      window.getByRole("button", { name: "test-subfolder" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "test-file.txt")).toBeVisible()
+    await expect(locateSidebarItem(window, "test-subfolder")).toBeVisible()
   })
 
   test("create multiple items in nested folders without collapse/expand", async ({
@@ -283,9 +268,7 @@ test.describe("spacecake app", () => {
     await waitForWorkspace(window)
 
     // verify that the parent folder is visible
-    await expect(
-      window.getByRole("button", { name: "parent-folder" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "parent-folder")).toBeVisible()
 
     // Test 1: Create a file in the parent folder
     await window.getByTestId("more-options-parent-folder").click()
@@ -296,9 +279,7 @@ test.describe("spacecake app", () => {
     await fileInput1.press("Enter", { delay: 100 }) // Added delay
 
     // Verify the file appears immediately
-    await expect(
-      window.getByRole("button", { name: "parent-file.txt" })
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "parent-file.txt")).toBeVisible()
 
     // Test 2: Create a folder in the parent folder
     await window.getByTestId("more-options-parent-folder").click()
@@ -311,9 +292,7 @@ test.describe("spacecake app", () => {
     await folderInput1.press("Enter", { delay: 100 }) // Added delay
 
     // Verify the new folder appears immediately
-    await expect(
-      window.getByRole("button", { name: "new-child-folder" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "new-child-folder")).toBeVisible()
 
     // Test 3: Create a file in the existing child folder
     await window.getByTestId("more-options-child-folder").click()
@@ -324,9 +303,7 @@ test.describe("spacecake app", () => {
     await fileInput2.press("Enter", { delay: 100 }) // Added delay
 
     // Verify the file appears immediately in the child folder
-    await expect(
-      window.getByRole("button", { name: "child-file.txt" })
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "child-file.txt")).toBeVisible()
 
     // Test 4: Create another folder in the child folder
     await window.getByTestId("more-options-child-folder").click()
@@ -339,23 +316,13 @@ test.describe("spacecake app", () => {
     await folderInput2.press("Enter", { delay: 100 }) // Added delay
 
     // Verify the grandchild folder appears immediately
-    await expect(
-      window.getByRole("button", { name: "grandchild-folder" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "grandchild-folder")).toBeVisible()
 
     // Final verification: All items should be visible without any collapse/expand
-    await expect(
-      window.getByRole("button", { name: "parent-file.txt" }).first()
-    ).toBeVisible()
-    await expect(
-      window.getByRole("button", { name: "new-child-folder" }).first()
-    ).toBeVisible()
-    await expect(
-      window.getByRole("button", { name: "child-file.txt" }).first()
-    ).toBeVisible()
-    await expect(
-      window.getByRole("button", { name: "grandchild-folder" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "parent-file.txt")).toBeVisible()
+    await expect(locateSidebarItem(window, "new-child-folder")).toBeVisible()
+    await expect(locateSidebarItem(window, "child-file.txt")).toBeVisible()
+    await expect(locateSidebarItem(window, "grandchild-folder")).toBeVisible()
 
     // Verify all files were actually created in the filesystem
     expect(fs.existsSync(path.join(parentFolderPath, "parent-file.txt"))).toBe(
@@ -410,21 +377,12 @@ test.describe("spacecake app", () => {
     await waitForWorkspace(window)
 
     // Wait for all items to appear
-    await expect(
-      window.getByRole("button", { name: "file-to-delete.txt" }).first()
-    ).toBeVisible()
-    await expect(
-      window.getByRole("button", { name: "empty-folder" }).first()
-    ).toBeVisible()
-    await expect(
-      window.getByRole("button", { name: "folder-with-files" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "file-to-delete.txt")).toBeVisible()
+    await expect(locateSidebarItem(window, "empty-folder")).toBeVisible()
+    await expect(locateSidebarItem(window, "folder-with-files")).toBeVisible()
 
     // Test delete functionality
-    await window
-      .getByRole("button", { name: "file-to-delete.txt" })
-      .first()
-      .hover()
+    await locateSidebarItem(window, "file-to-delete.txt").hover()
     await window.getByTestId("more-options-file-to-delete.txt").click()
 
     await window
@@ -447,15 +405,10 @@ test.describe("spacecake app", () => {
     ).not.toBeVisible()
 
     // Verify the file is still there
-    await expect(
-      window.getByRole("button", { name: "file-to-delete.txt" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "file-to-delete.txt")).toBeVisible()
 
     // Now actually delete the file
-    await window
-      .getByRole("button", { name: "file-to-delete.txt" })
-      .first()
-      .hover()
+    await locateSidebarItem(window, "file-to-delete.txt").hover()
     await window.getByTestId("more-options-file-to-delete.txt").click()
     await window
       .getByRole("menuitem", { name: "delete" })
@@ -473,14 +426,14 @@ test.describe("spacecake app", () => {
 
     // Verify the file is removed from the UI
     await expect(
-      window.getByRole("button", { name: "file-to-delete.txt" })
+      locateSidebarItem(window, "file-to-delete.txt")
     ).not.toBeVisible()
 
     // Verify the file was actually deleted from the filesystem
     expect(fs.existsSync(testFilePath)).toBe(false)
 
     // Test deleting an empty folder
-    await window.getByRole("button", { name: "empty-folder" }).first().hover()
+    await locateSidebarItem(window, "empty-folder").hover()
     await window.getByTestId("more-options-empty-folder").click()
     await window
       .getByRole("menuitem", { name: "delete" })
@@ -504,9 +457,7 @@ test.describe("spacecake app", () => {
     ).not.toBeVisible()
 
     // Verify the folder is removed from the UI
-    await expect(
-      window.getByRole("button", { name: "empty-folder" })
-    ).not.toBeVisible()
+    await expect(locateSidebarItem(window, "empty-folder")).not.toBeVisible()
 
     // Verify the folder was actually deleted from the filesystem
     expect(fs.existsSync(emptyFolderPath)).toBe(false)
@@ -536,7 +487,7 @@ test.describe("spacecake app", () => {
 
     // Verify the folder is removed from the UI
     await expect(
-      window.getByRole("button", { name: "folder-with-files" })
+      locateSidebarItem(window, "folder-with-files")
     ).not.toBeVisible()
 
     // Verify the folder and all its contents were actually deleted from the filesystem
@@ -567,9 +518,7 @@ test.describe("spacecake app", () => {
     await waitForWorkspace(window)
 
     // 3. Verify workspace is loaded
-    await expect(
-      window.getByRole("button", { name: "persistent-file.txt" })
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "persistent-file.txt")).toBeVisible()
 
     // wait for workspace to be logged in db
     await window.waitForTimeout(1000)
@@ -580,9 +529,7 @@ test.describe("spacecake app", () => {
     await window.reload()
 
     // 5. Verify the same workspace is automatically reopened
-    await expect(
-      window.getByRole("button", { name: "persistent-file.txt" })
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "persistent-file.txt")).toBeVisible()
 
     // Verify the workspace loaded (create file button visible means we're in a workspace)
     await expect(
@@ -604,7 +551,7 @@ test.describe("spacecake app", () => {
     await waitForWorkspace(window)
 
     // 3. Verify workspace is loaded and open the file
-    await window.getByRole("button", { name: "persistent-file.md" }).click()
+    await locateSidebarItem(window, "persistent-file.md").click()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
@@ -642,23 +589,21 @@ test.describe("spacecake app", () => {
     await waitForWorkspace(window)
 
     // 3. Open the deeply nested folder
-    await window
-      .getByRole("button", { name: "level1" })
+    await locateSidebarItem(window, "level1")
       .locator("svg:first-child") // click the chevron
       .click({ delay: 100 })
-    await window
-      .getByRole("button", { name: "level2" })
+    await locateSidebarItem(window, "level2")
       .locator("svg:first-child") // click the chevron
       .click({ delay: 100 })
-    await window
-      .getByRole("button", { name: "level3" })
+    await locateSidebarItem(window, "level3")
       .locator("svg:first-child")
       .click({ delay: 100 })
 
-    // 4. Open the deeply nested file
-    await window
-      .getByRole("button", { name: "deep-file.txt" })
-      .click({ delay: 100 })
+    // 4. Open the deeply nested file (click left side to avoid more-options overlay)
+    await locateSidebarItem(window, "deep-file.txt").click({
+      delay: 100,
+      position: { x: 5, y: 5 },
+    })
 
     // 5. Verify the file content is visible
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
@@ -675,9 +620,9 @@ test.describe("spacecake app", () => {
 
     // 7. Verify all parent folders are auto-expanded by checking that the nested structure is visible
     // In the virtualized list, children are only rendered if parents are expanded.
-    await expect(window.getByRole("button", { name: "level1" })).toBeVisible()
-    await expect(window.getByRole("button", { name: "level2" })).toBeVisible()
-    await expect(window.getByRole("button", { name: "level3" })).toBeVisible()
+    await expect(locateSidebarItem(window, "level1")).toBeVisible()
+    await expect(locateSidebarItem(window, "level2")).toBeVisible()
+    await expect(locateSidebarItem(window, "level3")).toBeVisible()
   })
 
   test("autofocus and type in new file", async ({
@@ -701,23 +646,15 @@ test.describe("spacecake app", () => {
     await textbox.press("Enter", { delay: 100 })
 
     // 5. Wait for the new file to appear in sidebar and be opened
-    await expect(
-      window.getByRole("button", { name: "test-autofocus.md" })
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "test-autofocus.md")).toBeVisible()
 
-    // 6. Verify the file is open by checking the file path in toolbar
-    await expect(window.getByTestId("current-file-path")).toBeVisible()
-    await expect(
-      window.getByTestId("current-file-path").getByText("test-autofocus.md")
-    ).toBeVisible()
-
-    // 7. Verify the editor is focused and ready for typing
+    // 6. Verify the editor is focused and ready for typing
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // 8. Type some text - this will only work if autofocus is working!
+    // 7. Type some text - this will only work if autofocus is working!
     await window.keyboard.type("Hello, autofocus!", { delay: 100 })
 
-    // 9. Verify the text was typed into the editor (not just the sidebar)
+    // 8. Verify the text was typed into the editor (not just the sidebar)
     // We'll look for the text in a paragraph element within the editor
     await expect(
       window.getByTestId("lexical-editor").getByRole("paragraph")
@@ -732,12 +669,12 @@ test.describe("spacecake app", () => {
       window.getByTestId("lexical-editor").getByRole("paragraph")
     ).toContainText("Hello, autofocus!")
 
-    // 10. Verify the file was actually created in the filesystem
+    // 9. Verify the file was actually created in the filesystem
     const expectedFilePath = path.join(tempTestDir, "test-autofocus.md")
     const fileExists = fs.existsSync(expectedFilePath)
     expect(fileExists).toBe(true)
 
-    // 11. Verify the content was saved to the file
+    // 10. Verify the content was saved to the file
     const fileContent = fs.readFileSync(expectedFilePath, "utf-8")
     expect(fileContent).toContain("Hello, autofocus!")
 
@@ -766,12 +703,10 @@ test.describe("spacecake app", () => {
     await waitForWorkspace(window)
 
     // 4. Click on the dot folder to expand it
-    await window.getByRole("button", { name: ".notes" }).first().click()
+    await locateSidebarItem(window, ".notes").click()
 
     // 5. Verify that test.md is not visible yet (since it doesn't exist)
-    await expect(
-      window.getByRole("button", { name: "test.md" })
-    ).not.toBeVisible()
+    await expect(locateSidebarItem(window, "test.md")).not.toBeVisible()
 
     // 6. Create the test.md file in the background using filesystem
     const testFilePath = path.join(dotFolderPath, "test.md")
@@ -783,9 +718,7 @@ test.describe("spacecake app", () => {
     })
 
     // 7. Wait for the file to become visible in the sidebar (file watching should detect it)
-    await expect(
-      window.getByRole("button", { name: "test.md" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "test.md")).toBeVisible()
 
     // 8. Verify the file was actually created in the filesystem
     expect(fs.existsSync(testFilePath)).toBe(true)
@@ -811,7 +744,7 @@ test.describe("spacecake app", () => {
     await waitForWorkspace(window)
 
     // 3. Click on the file to open it
-    await window.getByRole("button", { name: "test-dirty.md" }).click()
+    await locateSidebarItem(window, "test-dirty.md").click()
 
     // 4. Verify the editor is visible and has the initial content
     const editor = window.getByTestId("lexical-editor")
@@ -852,7 +785,7 @@ test.describe("spacecake app", () => {
     await waitForWorkspace(window)
 
     // 3. Click on the file to open it
-    await window.getByRole("button", { name: "test-revert.md" }).click()
+    await locateSidebarItem(window, "test-revert.md").click()
 
     // 4. Verify the editor is visible and has the initial content
     const editor = window.getByTestId("lexical-editor")
@@ -901,5 +834,62 @@ test.describe("spacecake app", () => {
     await expect(window.getByTitle("test-revert.md (clean)")).toBeVisible()
     await expect(editor.getByText("Original content")).toBeVisible()
     await expect(editor.getByText("Original content EDITED")).not.toBeVisible()
+  })
+
+  test("tab management: open, switch, close active, close non-active, persistence", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    // Setup: Create 3 test files
+    const file1 = path.join(tempTestDir, "file1.md")
+    const file2 = path.join(tempTestDir, "file2.md")
+    const file3 = path.join(tempTestDir, "file3.md")
+
+    fs.writeFileSync(file1, "# Content File 1")
+    fs.writeFileSync(file2, "# Content File 2")
+    fs.writeFileSync(file3, "# Content File 3")
+
+    const window = await electronApp.firstWindow()
+    await waitForWorkspace(window)
+
+    // 1. Opening a file creates a tab
+    await locateSidebarItem(window, "file1.md").click()
+    await expect(locateTab(window, "file1.md")).toBeVisible()
+    await expect(window.getByText("Content File 1")).toBeVisible()
+
+    // 2. Opening another file creates another tab, switches content
+    await locateSidebarItem(window, "file2.md").click()
+    await expect(locateTab(window, "file1.md")).toBeVisible()
+    await expect(locateTab(window, "file2.md")).toBeVisible()
+    await expect(window.getByText("Content File 2")).toBeVisible()
+
+    // 3. Clicking a tab switches to that file
+    await locateTab(window, "file1.md").click()
+    await expect(window.getByText("Content File 1")).toBeVisible()
+
+    // 4. Close non-active tab (file2) - active tab stays active
+    await locateTabCloseButton(window, "file2.md").click()
+    await expect(locateTab(window, "file2.md")).not.toBeVisible()
+    await expect(locateTab(window, "file1.md")).toBeVisible()
+    await expect(window.getByText("Content File 1")).toBeVisible()
+
+    // 5. Open file3, then close active tab (file1) - should switch to file3
+    await locateSidebarItem(window, "file3.md").click()
+    await locateTab(window, "file1.md").click() // make file1 active again
+    await locateTabCloseButton(window, "file1.md").click()
+    await expect(locateTab(window, "file1.md")).not.toBeVisible()
+    await expect(locateTab(window, "file3.md")).toBeVisible()
+    await expect(window.getByText("Content File 3")).toBeVisible()
+
+    // 6. Tab persistence across reload
+    await locateSidebarItem(window, "file2.md").click() // reopen file2
+    await expect(locateTab(window, "file2.md")).toBeVisible()
+    await expect(locateTab(window, "file3.md")).toBeVisible()
+
+    await window.waitForTimeout(1000) // allow db persistence
+    await window.reload()
+
+    await expect(locateTab(window, "file2.md")).toBeVisible()
+    await expect(locateTab(window, "file3.md")).toBeVisible()
   })
 })

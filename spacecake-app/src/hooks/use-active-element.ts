@@ -1,10 +1,11 @@
 import {
   EditorSelectSchema,
   editorTable,
+  paneItemTable,
   paneTable,
   workspaceTable,
 } from "@/schema"
-import { and, desc, eq, getTableColumns } from "drizzle-orm"
+import { and, eq, getTableColumns } from "drizzle-orm"
 
 import { AbsolutePath } from "@/types/workspace"
 import { useQuery } from "@/hooks/use-query"
@@ -14,17 +15,19 @@ export const useActiveEditor = (workspacePath: AbsolutePath) => {
     (orm) =>
       orm
         .select(getTableColumns(editorTable))
-        .from(editorTable)
-        .innerJoin(paneTable, eq(editorTable.pane_id, paneTable.id))
+        .from(workspaceTable)
         .innerJoin(
-          workspaceTable,
+          paneTable,
           and(
-            eq(paneTable.workspace_id, workspaceTable.id),
+            eq(paneTable.id, workspaceTable.active_pane_id),
             eq(workspaceTable.path, workspacePath)
           )
         )
-        .where(eq(editorTable.is_active, true))
-        .orderBy(desc(editorTable.last_accessed_at))
+        .innerJoin(
+          paneItemTable,
+          eq(paneItemTable.id, paneTable.active_pane_item_id)
+        )
+        .innerJoin(editorTable, eq(editorTable.id, paneItemTable.editor_id))
         .limit(1)
         .toSQL(),
     EditorSelectSchema

@@ -1,4 +1,3 @@
-import { useLiveQuery } from "@electric-sql/pglite-react"
 import type { Query } from "drizzle-orm"
 import {
   Data,
@@ -11,6 +10,7 @@ import {
 } from "effect"
 
 import { useDatabase } from "@/hooks/use-database"
+import { useStableLiveQuery } from "@/hooks/use-stable-live-query"
 
 class MissingData extends Data.TaggedError("MissingData") {}
 class InvalidData extends Data.TaggedError("InvalidData")<{
@@ -23,7 +23,7 @@ const useQueryEffect = <A, I>(
 ) => {
   const orm = useDatabase()
   const { params, sql } = query(orm)
-  const results = useLiveQuery<I>(sql, params)
+  const results = useStableLiveQuery<I>(sql, params)
   return pipe(
     results?.rows,
     Either.fromNullable(() => new MissingData()),

@@ -3,22 +3,26 @@
  *
  */
 
+import { useEffect, useRef } from "react"
 import { RuntimeClient } from "@/services/runtime-client"
-import {
-  createFileRoute,
-  ErrorComponent,
-  redirect,
-} from "@tanstack/react-router"
+import { createFileRoute, ErrorComponent } from "@tanstack/react-router"
 import { Option } from "effect"
 import { AlertCircleIcon, CakeSlice } from "lucide-react"
 
 import { match } from "@/types/adt"
+import { ViewKind } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 import { exists } from "@/lib/fs"
-import { condensePath, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
+import { condensePath, decodeBase64Url } from "@/lib/utils"
+import { usePaneMachine } from "@/hooks/use-pane-machine"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CommandShortcut } from "@/components/ui/command"
 import { LoadingAnimation } from "@/components/loading-animation"
+
+type LoaderResult =
+  | { kind: "empty" }
+  | { kind: "notFound"; filePath: string }
+  | { kind: "restore"; filePath: AbsolutePath; viewKind: ViewKind }
 
 export const Route = createFileRoute("/w/$workspaceId/")({
   validateSearch: (
@@ -31,17 +35,17 @@ export const Route = createFileRoute("/w/$workspaceId/")({
   loaderDeps: ({ search }) => ({
     notFoundFilePath: search.notFoundFilePath,
   }),
-  loader: async ({ params, deps, context }) => {
+  loader: async ({ deps, context }): Promise<LoaderResult> => {
     const { db } = context
     const { notFoundFilePath } = deps
-    const workspacePath = AbsolutePath(decodeBase64Url(params.workspaceId))
+    const workspacePath = context.workspace.path
 
     if (notFoundFilePath) {
       return { kind: "notFound", filePath: notFoundFilePath }
     }
 
     const activeEditor = await RuntimeClient.runPromise(
-      db.selectLastOpenedEditor(workspacePath)
+      db.selectActiveEditorForWorkspace(workspacePath)
     )
 
     if (Option.isSome(activeEditor)) {
@@ -53,20 +57,12 @@ export const Route = createFileRoute("/w/$workspaceId/")({
       return match(fileExists, {
         onLeft: (error) => {
           console.error(error)
-          return { kind: "notFound", filePath: filePath }
+          return { kind: "notFound", filePath: filePath } as LoaderResult
         },
-        onRight: async (exists) => {
+        onRight: async (exists): Promise<LoaderResult> => {
           if (exists) {
-            throw redirect({
-              to: "/w/$workspaceId/f/$filePath",
-              params: {
-                workspaceId: params.workspaceId,
-                filePath: encodeBase64Url(absolutePath),
-              },
-              search: {
-                view: viewKind,
-              },
-            })
+            // Return restore info - component will use pane machine to navigate
+            return { kind: "restore", filePath: absolutePath, viewKind }
           }
           // file not found
           await RuntimeClient.runPromise(db.deleteFile(absolutePath))
@@ -84,8 +80,32 @@ export const Route = createFileRoute("/w/$workspaceId/")({
 
 function WorkspaceIndex() {
   const { workspaceId } = Route.useParams()
+  const { workspace, paneId } = Route.useRouteContext()
   const data = Route.useLoaderData()
   const workspacePath = AbsolutePath(decodeBase64Url(workspaceId))
+
+  // Get the pane machine for navigation
+  const machine = usePaneMachine(paneId, workspace.path, workspaceId)
+
+  // Track if we've already triggered the restore navigation
+  const hasTriggeredRestore = useRef(false)
+
+  // If there's an active editor to restore, use the pane machine to navigate
+  useEffect(() => {
+    if (data.kind === "restore" && !hasTriggeredRestore.current) {
+      hasTriggeredRestore.current = true
+      machine.send({
+        type: "pane.file.open",
+        filePath: data.filePath,
+        viewKind: data.viewKind,
+      })
+    }
+  }, [data, machine])
+
+  // Show loading while restoring
+  if (data.kind === "restore") {
+    return <LoadingAnimation />
+  }
 
   // if we have a not found file path, show the alert
   if (data.kind === "notFound") {

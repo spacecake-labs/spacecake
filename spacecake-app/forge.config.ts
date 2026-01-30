@@ -89,6 +89,24 @@ const config: ForgeConfig = {
           })
         })
       )
+
+      // Bundle the CLI binary into the app's resources/bin directory
+      const cliBinarySource = path.resolve(__dirname, "../cli/dist/spacecake")
+      const cliBinaryDest = path.resolve(buildPath, "../bin/spacecake")
+
+      try {
+        await mkdir(path.dirname(cliBinaryDest), { recursive: true })
+        await cp(cliBinarySource, cliBinaryDest, { preserveTimestamps: true })
+        console.log(
+          `Bundled CLI binary: ${cliBinarySource} -> ${cliBinaryDest}`
+        )
+      } catch {
+        console.warn(
+          "CLI binary not found at",
+          cliBinarySource,
+          "— skipping. Run `cd cli && bun run build` first."
+        )
+      }
     },
   },
   plugins: [

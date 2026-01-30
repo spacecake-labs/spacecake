@@ -4,6 +4,7 @@ import path from "node:path"
 import { WatcherService } from "@/main-process/watcher"
 import { FileMode, FileSystem } from "@/services/file-system"
 import { GitIgnoreLive } from "@/services/git-ignore-parser"
+import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
 import { FileSystem as EffectFileSystem } from "@effect/platform"
 import { NodeFileSystem } from "@effect/platform-node"
 import { it } from "@effect/vitest"
@@ -22,12 +23,17 @@ const MockWatcherService = Layer.succeed(WatcherService, {
 // Test layer with real filesystem but mocked watcher
 // NodeFileSystem.layer provides Effect's FileSystem.FileSystem
 // We merge it so both our FileSystem service and direct usage work
+const SpacecakeHomeTestLayer = makeSpacecakeHomeTestLayer({
+  homeDir: "/test/.spacecake",
+})
+
 const TestLayer = Layer.mergeAll(
   NodeFileSystem.layer,
   FileSystem.Default.pipe(
     Layer.provide(NodeFileSystem.layer),
     Layer.provide(GitIgnoreLive),
-    Layer.provide(MockWatcherService)
+    Layer.provide(MockWatcherService),
+    Layer.provide(SpacecakeHomeTestLayer)
   )
 )
 

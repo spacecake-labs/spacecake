@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test("clean file, no conflict: external file change updates editor via watcher", async ({
   electronApp,
@@ -18,7 +19,7 @@ test("clean file, no conflict: external file change updates editor via watcher",
   await waitForWorkspace(window)
 
   // open the file
-  await window.getByRole("button", { name: "core.py" }).first().click()
+  await locateSidebarItem(window, "core.py").click()
   await window.getByText("🐍").first().click()
 
   // ensure second block (class Person / dataclass label present) is visible
@@ -64,7 +65,7 @@ test("dirty file, external change, keep mine: dirty indicator remains and conten
   await waitForWorkspace(window)
 
   // open the file
-  await window.getByRole("button", { name: "core.py" }).first().click()
+  await locateSidebarItem(window, "core.py").click()
 
   // click on the person-dataclass block to expand/show it
   const personBlock = window
@@ -126,7 +127,7 @@ test("dirty file, external change, keep theirs: file reloads with original conte
   await waitForWorkspace(window)
 
   // open the file
-  await window.getByRole("button", { name: "core.py" }).first().click()
+  await locateSidebarItem(window, "core.py").click()
 
   // click on the person-dataclass block to expand/show it
   const personBlock = window

@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("python e2e", () => {
   test("open workspace and create an empty python file", async ({
@@ -21,15 +22,13 @@ test.describe("python e2e", () => {
     await textbox.fill("empty.py")
     await textbox.press("Enter", { delay: 100 })
 
-    await expect(
-      window.getByRole("button", { name: "empty.py" }).first()
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "empty.py")).toBeVisible()
 
     // Wait for the create file input to disappear (indicating state reset)
     await expect(textbox).not.toBeVisible()
 
     // open the newly created file
-    await window.getByRole("button", { name: "empty.py" }).first().click()
+    await locateSidebarItem(window, "empty.py").click()
 
     // Explicitly wait for the Lexical editor to be visible for the empty file
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
@@ -62,7 +61,7 @@ test.describe("python e2e", () => {
     await waitForWorkspace(window)
 
     // open the file
-    await window.getByRole("button", { name: "core.py" }).first().click()
+    await locateSidebarItem(window, "core.py").click()
 
     // verify module dosctring is parsed as markdown header
     await expect(
@@ -244,12 +243,12 @@ test.describe("python e2e", () => {
     await waitForWorkspace(window)
 
     // open core.py and verify python rich are visible
-    await window.getByRole("button", { name: "core.py" }).first().click()
+    await locateSidebarItem(window, "core.py").click()
     await window.getByText("🐍").first().click()
     await expect(window.getByText("import").first()).toBeVisible()
 
     // switch to empty.py and verify default toolbar state
-    await window.getByRole("button", { name: "empty.py" }).first().click()
+    await locateSidebarItem(window, "empty.py").click()
     // wait until header reflects the newly selected file path (contains 'empty.py')
     await expect
       .poll(async () =>
@@ -282,13 +281,13 @@ test.describe("python e2e", () => {
     await waitForWorkspace(window)
 
     // open core.py and verify python content
-    await window.getByRole("button", { name: "core.py" }).first().click()
+    await locateSidebarItem(window, "core.py").click()
     await window.getByText("🐍").first().click()
     await expect(window.getByText("import").first()).toBeVisible()
 
     // expand nested folder and open empty.py
-    await window.getByRole("button", { name: "nested" }).first().click()
-    await window.getByRole("button", { name: "empty.py" }).first().click()
+    await locateSidebarItem(window, "nested").click()
+    await locateSidebarItem(window, "empty.py").click()
 
     // wait for selection to reflect switch
     await expect
@@ -319,7 +318,7 @@ test.describe("python e2e", () => {
     await waitForWorkspace(window)
 
     // open core.py
-    await window.getByRole("button", { name: "core.py" }).first().click()
+    await locateSidebarItem(window, "core.py").click()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 

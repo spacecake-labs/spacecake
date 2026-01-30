@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 import { LANGUAGE_SUPPORT } from "@/types/language"
 
@@ -30,9 +31,7 @@ test.describe("code block language dropdown e2e", () => {
     // =========================================================================
     // Test 1: Dropdown shows all available languages
     // =========================================================================
-    await window
-      .getByRole("button", { name: "plaintext-code-block.md" })
-      .click()
+    await locateSidebarItem(window, "plaintext-code-block.md").click()
 
     await expect(
       window.getByRole("link", { name: "switch to source view" })
@@ -77,7 +76,7 @@ test.describe("code block language dropdown e2e", () => {
     // =========================================================================
     // Test 3: Python file code block dropdown is disabled
     // =========================================================================
-    await window.getByRole("button", { name: "core.py" }).click()
+    await locateSidebarItem(window, "core.py").click()
 
     await expect(
       window.getByRole("link", { name: "switch to source view" })

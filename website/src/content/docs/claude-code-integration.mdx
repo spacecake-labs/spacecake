@@ -17,50 +17,42 @@ a green `claude` status badge in the header indicates an active Claude session i
 
 ## status line
 
-you can display live Claude Code session metrics in the terminal header badge, including:
+the status line displays live Claude Code session metrics in the terminal header badge:
 
 - current model name
 - context usage percentage
 - session cost
 
-this requires a one-time setup to configure Claude Code's status line hook.
+### automatic setup
 
-### step 1: configure claude code
+spacecake automatically configures Claude Code's status line hook when it detects a connected session. no manual setup is required.
 
-edit `~/.claude/settings.json` and add the `statusLine` configuration. if the file doesn't exist, create it:
+if your `~/.claude/settings.json` already has a custom `statusLine` command (not managed by spacecake), you'll be prompted to either override it with the spacecake hook or dismiss the prompt and keep your existing configuration.
+
+### manual setup
+
+if you need to configure the status line manually, edit `~/.claude/settings.json` and set the `statusLine` command to the spacecake hook script:
 
 ```json
 {
   "statusLine": {
     "type": "command",
-    "command": "bash -c 'socketPath=\"${HOME}/.claude/spacecake.sock\"; [ -S \"$socketPath\" ] || exit 0; curl -s -X POST -H \"Content-Type: application/json\" -d @- --unix-socket \"$socketPath\" --max-time 2 http://localhost/statusline >/dev/null 2>&1; exit 0'",
-    "padding": 0
+    "command": "~/.spacecake/.app/hooks/statusline.sh"
   }
 }
 ```
 
-if you already have other settings in this file, preserve them and add the `statusLine` field.
+restart Claude Code after making changes.
 
-### step 2: restart claude code
+### how it works
 
-restart Claude Code for the changes to take effect.
+Claude Code runs the status line hook on each render. the spacecake hook script:
 
-### step 3: verify
-
-1. open a Claude Code session in a terminal
-2. open a `spacecake` workspace
-3. you should see the model name, context usage %, and cost in the header badge
-
-## how it works
-
-when Claude Code runs the status line hook (every ~300ms):
-
-1. reads session JSON from stdin (containing model, context, cost)
+1. reads session JSON from stdin (model, context usage, cost)
 2. checks if `~/.claude/spacecake.sock` exists (Unix socket)
-3. POSTs the data to `spacecake` via the Unix socket with a 2-second timeout
-4. gracefully handles errors if `spacecake` isn't running
+3. POSTs the data to spacecake via the socket
 
-the integration has zero impact on Claude Code if `spacecake` isn't running—the hook simply fails silently.
+if spacecake isn't running, the hook exits silently with no impact on Claude Code.
 
 ## troubleshooting
 
@@ -71,11 +63,6 @@ the integration has zero impact on Claude Code if `spacecake` isn't running—th
 
 **no status line data appearing?**
 
-- make sure `spacecake` is running
+- make sure spacecake is running
 - verify `~/.claude/settings.json` has the correct `statusLine` configuration
 - restart Claude Code after making changes
-
-**command not found errors?**
-
-- make sure `bash` and `curl` are available in your PATH (standard on macOS/Linux)
-- on Windows, use a bash-compatible shell (WSL, Git Bash, etc.)

@@ -1,0 +1,38 @@
+{
+  "name": "@spacecake/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CLI tool for s editor",
+  "type": "module",
+  "bin": {
+    "spacecake": "./dist/spacecake"
+  },
+  "scripts": {
+    "build": "bun build src/main.ts --compile --outfile dist/spacecake",
+    "dev": "bun run src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint --fix --ext .ts .",
+    "format": "prettier --log-level warn --write .",
+    "unit-test": "vitest run"
+  },
+  "dependencies": {
+    "@effect/cli": "^0.73.1",
+    "@effect/platform": "^0.94.2",
+    "@effect/platform-bun": "^0.87.1",
+    "effect": "^3.19.15"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
+    "@types/node": "^24.5.2",
+    "eslint": "^9.36.0",
+    "eslint-plugin-unused-imports": "^4.2.0",
+    "prettier": "^3.6.2",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.44.1",
+    "vitest": "^3.2.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

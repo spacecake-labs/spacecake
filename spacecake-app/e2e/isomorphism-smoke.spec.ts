@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 /**
  * Smoke tests for file isomorphism through the full Electron pipeline.
@@ -28,7 +29,7 @@ test.describe("isomorphism smoke tests", () => {
     await waitForWorkspace(window)
 
     // open the file
-    await window.getByRole("button", { name: "_README.md" }).first().click()
+    await locateSidebarItem(window, "_README.md").click()
 
     // verify we're in rich view and editor loaded
     await expect(
@@ -70,7 +71,7 @@ test.describe("isomorphism smoke tests", () => {
     await waitForWorkspace(window)
 
     // open the file
-    await window.getByRole("button", { name: "md.py" }).first().click()
+    await locateSidebarItem(window, "md.py").click()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     // basic sanity check that content rendered

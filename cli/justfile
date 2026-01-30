@@ -1,0 +1,26 @@
+format:
+    bun run format
+
+lint:
+    bun run lint
+
+tc:
+    bun run typecheck
+
+check:
+    just format && just lint && just tc
+
+unit filter="":
+    bun run unit-test {{filter}}
+
+build:
+    bun run build
+
+dev:
+    bun run dev
+
+test:
+    just unit
+
+ci:
+    just check && just test

@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("editor view toggle", () => {
   test("different file types toggle between rich and source views correctly", async ({
@@ -56,7 +57,7 @@ This is a **markdown** file.
     // =========================================================================
     // Test 1: Python file toggle
     // =========================================================================
-    await page.getByRole("button", { name: "test.py" }).click()
+    await locateSidebarItem(page, "test.py").click()
     const editor = page.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
 
@@ -84,7 +85,7 @@ This is a **markdown** file.
     // =========================================================================
     // Test 2: Python with markdown directives toggle
     // =========================================================================
-    await page.getByRole("button", { name: "test_md.py" }).click()
+    await locateSidebarItem(page, "test_md.py").click()
     await expect(editor).toBeVisible()
 
     // Verify markdown directives are rendered in rich view
@@ -105,7 +106,7 @@ This is a **markdown** file.
     // =========================================================================
     // Test 3: Markdown file toggle
     // =========================================================================
-    await page.getByRole("button", { name: "test.md" }).click()
+    await locateSidebarItem(page, "test.md").click()
     await expect(editor).toBeVisible()
 
     await expect(
@@ -122,7 +123,7 @@ This is a **markdown** file.
     // =========================================================================
     // Test 4: Plaintext file shows no toggle option
     // =========================================================================
-    await page.getByRole("button", { name: "test.txt" }).click()
+    await locateSidebarItem(page, "test.txt").click()
     await expect(editor).toBeVisible()
     await expect(page.getByText(textContent)).toBeVisible()
 
@@ -158,7 +159,7 @@ This is a **markdown** file.
     // Test 1: View preference persists when switching between files
     // =========================================================================
     // Open first file and switch to source view
-    await page.getByRole("button", { name: "file1.py" }).click()
+    await locateSidebarItem(page, "file1.py").click()
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
     await page.getByRole("link", { name: "switch to source view" }).click()
     await expect(
@@ -166,13 +167,13 @@ This is a **markdown** file.
     ).toBeVisible()
 
     // Open second file - should be in rich view (default)
-    await page.getByRole("button", { name: "file2.py" }).click()
+    await locateSidebarItem(page, "file2.py").click()
     await expect(
       page.getByRole("link", { name: "switch to source view" })
     ).toBeVisible()
 
     // Switch back to first file - should still be in source view
-    await page.getByRole("button", { name: "file1.py" }).click()
+    await locateSidebarItem(page, "file1.py").click()
     await expect(
       page.getByRole("link", { name: "switch to rich view" })
     ).toBeVisible()
@@ -180,7 +181,7 @@ This is a **markdown** file.
     // =========================================================================
     // Test 2: Source view persists through save operations
     // =========================================================================
-    await page.getByRole("button", { name: "_README.md" }).click()
+    await locateSidebarItem(page, "_README.md").click()
     const editor = page.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
 

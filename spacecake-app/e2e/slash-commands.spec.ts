@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("slash commands e2e", () => {
   test("slash commands in markdown: menu options, code block, heading, and paragraph", async ({
@@ -19,7 +20,7 @@ test.describe("slash commands e2e", () => {
     await waitForWorkspace(window)
 
     // open the file
-    await window.getByRole("button", { name: "_README.md" }).first().click()
+    await locateSidebarItem(window, "_README.md").click()
 
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
@@ -119,7 +120,7 @@ test.describe("slash commands e2e", () => {
     await waitForWorkspace(window)
 
     // open the file
-    await window.getByRole("button", { name: "core.py" }).first().click()
+    await locateSidebarItem(window, "core.py").click()
 
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()

@@ -66,9 +66,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
           ipcRenderer.removeListener("claude:tasks:changed", listener)
       },
     },
+    statusline: {
+      read: () => ipcRenderer.invoke("claude:statusline:read"),
+      update: () => ipcRenderer.invoke("claude:statusline:update"),
+      remove: () => ipcRenderer.invoke("claude:statusline:remove"),
+    },
   },
   showOpenDialog: (options: unknown) =>
     ipcRenderer.invoke("show-open-dialog", options),
+  openExternal: (url: string) => ipcRenderer.invoke("open-external", url),
   readDirectory: (dirPath: string) => {
     return ipcRenderer.invoke("read-directory", dirPath)
   },
@@ -99,6 +105,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("file-event", listener)
     return () => ipcRenderer.removeListener("file-event", listener)
   },
+  // Project-level Claude settings
+  ensurePlansDirectory: (workspacePath: string) =>
+    ipcRenderer.invoke(
+      "claude:project-settings:ensure-plans-dir",
+      workspacePath
+    ),
+  // CLI integration
+  notifyFileClosed: (filePath: string) =>
+    ipcRenderer.invoke("cli:file-closed", filePath),
+  updateCliWorkspaces: (workspaceFolders: string[]) =>
+    ipcRenderer.invoke("cli:update-workspaces", workspaceFolders),
+  isPlaywright: process.env.IS_PLAYWRIGHT === "true",
   exists: (path: string) => ipcRenderer.invoke("path-exists", path),
   createTerminal: (id: string, cols: number, rows: number, cwd?: string) =>
     ipcRenderer.invoke("terminal:create", id, cols, rows, cwd),
