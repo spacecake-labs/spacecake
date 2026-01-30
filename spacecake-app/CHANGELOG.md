@@ -1,5 +1,12 @@
 # spacecake-app
 
+## 0.1.0-alpha.43
+
+### Patch Changes
+
+- a16d9a3: Ability to open Claude plans with ctrl+g.
+- a16d9a3: Editor tabs.
+
 ## 0.1.0-alpha.42
 
 ### Patch Changes
