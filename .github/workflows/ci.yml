@@ -87,7 +87,7 @@ jobs:
 
       - name: Run CLI tests
         working-directory: ./cli
-        run: bun run test
+        run: just test
 
       - name: Build CLI binary
         working-directory: ./cli
