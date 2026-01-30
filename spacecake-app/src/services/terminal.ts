@@ -98,8 +98,18 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             env,
           })
           ptyProcess.onData((data) => {
+            let output = data
+
+            // Filter Claude Code's "IDE disconnected" message - it shows briefly
+            // during startup even when connection succeeds. Our status badge
+            // shows the actual connection state.
+            if (data.includes("IDE disconnected")) {
+              output = data.replace(/◯\s*IDE disconnected\r?\n?/g, "")
+              if (!output) return
+            }
+
             BrowserWindow.getAllWindows().forEach((win) => {
-              win.webContents.send("terminal:output", { id, data })
+              win.webContents.send("terminal:output", { id, data: output })
             })
           })
 
