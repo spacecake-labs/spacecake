@@ -2,7 +2,11 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
-import { locateSidebarItem } from "@/../e2e/utils"
+import {
+  locateSidebarItem,
+  locateTab,
+  locateTabCloseButton,
+} from "@/../e2e/utils"
 
 test.describe("spacecake app", () => {
   test("open electron app", async ({ electronApp }, testInfo) => {
@@ -830,5 +834,62 @@ test.describe("spacecake app", () => {
     await expect(window.getByTitle("test-revert.md (clean)")).toBeVisible()
     await expect(editor.getByText("Original content")).toBeVisible()
     await expect(editor.getByText("Original content EDITED")).not.toBeVisible()
+  })
+
+  test("tab management: open, switch, close active, close non-active, persistence", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    // Setup: Create 3 test files
+    const file1 = path.join(tempTestDir, "file1.md")
+    const file2 = path.join(tempTestDir, "file2.md")
+    const file3 = path.join(tempTestDir, "file3.md")
+
+    fs.writeFileSync(file1, "# Content File 1")
+    fs.writeFileSync(file2, "# Content File 2")
+    fs.writeFileSync(file3, "# Content File 3")
+
+    const window = await electronApp.firstWindow()
+    await waitForWorkspace(window)
+
+    // 1. Opening a file creates a tab
+    await locateSidebarItem(window, "file1.md").click()
+    await expect(locateTab(window, "file1.md")).toBeVisible()
+    await expect(window.getByText("Content File 1")).toBeVisible()
+
+    // 2. Opening another file creates another tab, switches content
+    await locateSidebarItem(window, "file2.md").click()
+    await expect(locateTab(window, "file1.md")).toBeVisible()
+    await expect(locateTab(window, "file2.md")).toBeVisible()
+    await expect(window.getByText("Content File 2")).toBeVisible()
+
+    // 3. Clicking a tab switches to that file
+    await locateTab(window, "file1.md").click()
+    await expect(window.getByText("Content File 1")).toBeVisible()
+
+    // 4. Close non-active tab (file2) - active tab stays active
+    await locateTabCloseButton(window, "file2.md").click()
+    await expect(locateTab(window, "file2.md")).not.toBeVisible()
+    await expect(locateTab(window, "file1.md")).toBeVisible()
+    await expect(window.getByText("Content File 1")).toBeVisible()
+
+    // 5. Open file3, then close active tab (file1) - should switch to file3
+    await locateSidebarItem(window, "file3.md").click()
+    await locateTab(window, "file1.md").click() // make file1 active again
+    await locateTabCloseButton(window, "file1.md").click()
+    await expect(locateTab(window, "file1.md")).not.toBeVisible()
+    await expect(locateTab(window, "file3.md")).toBeVisible()
+    await expect(window.getByText("Content File 3")).toBeVisible()
+
+    // 6. Tab persistence across reload
+    await locateSidebarItem(window, "file2.md").click() // reopen file2
+    await expect(locateTab(window, "file2.md")).toBeVisible()
+    await expect(locateTab(window, "file3.md")).toBeVisible()
+
+    await window.waitForTimeout(1000) // allow db persistence
+    await window.reload()
+
+    await expect(locateTab(window, "file2.md")).toBeVisible()
+    await expect(locateTab(window, "file3.md")).toBeVisible()
   })
 })

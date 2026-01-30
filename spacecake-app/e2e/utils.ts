@@ -19,3 +19,17 @@ export function locateQuickOpenList(page: Page) {
 export function locateSidebarItem(page: Page, name: string): Locator {
   return page.getByTestId("sidebar").getByRole("button", { name })
 }
+
+/**
+ * Locates a tab in the tab bar by file name.
+ */
+export function locateTab(page: Page, fileName: string): Locator {
+  return page.getByRole("tab", { name: fileName })
+}
+
+/**
+ * Locates the close button for a tab.
+ */
+export function locateTabCloseButton(page: Page, fileName: string): Locator {
+  return page.getByRole("button", { name: `Close ${fileName}` })
+}
