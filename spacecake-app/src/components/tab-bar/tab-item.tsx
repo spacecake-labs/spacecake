@@ -42,7 +42,7 @@ export function TabItem({
   return (
     <HoverCard openDelay={300} closeDelay={100}>
       <HoverCardTrigger asChild>
-        <span className="h-full flex">
+        <span className="h-full flex shrink-0">
           <TabsTrigger
             value={id}
             className={cn(
