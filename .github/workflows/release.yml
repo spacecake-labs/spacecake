@@ -65,6 +65,8 @@ jobs:
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.1.25"
 
       - name: Build CLI binary
         working-directory: ./cli
