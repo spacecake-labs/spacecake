@@ -40,9 +40,15 @@ import { decodeBase64Url } from "@/lib/utils"
 import { Editor } from "@/components/editor/editor"
 import { LoadingAnimation } from "@/components/loading-animation"
 
+const OpenFileSourceSchema = Schema.Union(
+  Schema.Literal("claude"),
+  Schema.Literal("cli")
+)
+
 const fileSearchSchema = Schema.Struct({
   view: Schema.optional(ViewKindSchema),
   editorId: Schema.optional(EditorPrimaryKeySchema),
+  source: Schema.optional(OpenFileSourceSchema),
 })
 
 export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({

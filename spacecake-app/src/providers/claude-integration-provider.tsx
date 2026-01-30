@@ -62,6 +62,7 @@ export function ClaudeIntegrationProvider({
         machine.send({
           type: "pane.file.open",
           filePath: AbsolutePath(payload.filePath),
+          source: payload.source,
         })
       })
     )

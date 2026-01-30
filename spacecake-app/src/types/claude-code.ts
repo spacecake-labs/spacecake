@@ -52,12 +52,16 @@ export const OpenFileArgsSchema = Schema.Struct({
 
 export type OpenFileArgs = Schema.Schema.Type<typeof OpenFileArgsSchema>
 
+// Source of who opened the file - used for UI indicators
+export type OpenFileSource = "claude" | "cli"
+
 // Payload sent from main process to renderer for open file
 export interface OpenFilePayload {
   workspacePath: string
   filePath: string
   line?: number
   col?: number
+  source?: OpenFileSource
 }
 
 export const EditorExtendedSelectionSchema = Schema.Struct({

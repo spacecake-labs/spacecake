@@ -194,12 +194,20 @@ export const Route = createFileRoute("/w/$workspaceId")({
 // component for the right side of the header
 function HeaderToolbar() {
   const route = useRoute()
+  const { paneId, workspace } = Route.useRouteContext()
+  const workspaceIdEncoded = encodeBase64Url(workspace.path)
+  const machine = usePaneMachine(paneId, workspace.path, workspaceIdEncoded)
+  const activePaneItemId = useActivePaneItemId(paneId)
   const selectedFilePath = route?.filePath || null
 
-  if (selectedFilePath && route) {
+  if (selectedFilePath && route && activePaneItemId) {
     return (
       <div className="app-no-drag flex items-center gap-3 px-4">
-        <EditorToolbar routeContext={route} />
+        <EditorToolbar
+          routeContext={route}
+          machine={machine}
+          activePaneItemId={activePaneItemId}
+        />
       </div>
     )
   }

@@ -122,6 +122,7 @@ async function handleRequest(
           filePath: absPath,
           line: file.line,
           col: file.col,
+          source: "cli",
         })
 
         // If wait mode, register the response for this file

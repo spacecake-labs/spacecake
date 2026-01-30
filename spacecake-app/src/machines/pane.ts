@@ -10,6 +10,7 @@ import { RuntimeClient } from "@/services/runtime-client"
 import { Effect, Option } from "effect"
 import { assertEvent, fromPromise, setup, type ActorRefFrom } from "xstate"
 
+import type { OpenFileSource } from "@/types/claude-code"
 import { ViewKind } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 import { supportsRichView } from "@/lib/language-support"
@@ -39,6 +40,7 @@ export type PaneMachineEvent =
       type: "pane.file.open"
       filePath: AbsolutePath
       viewKind?: ViewKind
+      source?: OpenFileSource
     }
 
 // Input to create the machine
@@ -153,6 +155,7 @@ export const paneMachine = setup({
           viewKind?: ViewKind
           workspaceId: string
           paneId: PanePrimaryKey
+          source?: OpenFileSource
         }
       }): Promise<void> => {
         // Create editor and pane item, then navigate
@@ -233,6 +236,7 @@ export const paneMachine = setup({
           search: {
             view: result.value.viewKind,
             editorId: result.value.editorId,
+            source: input.source,
           },
         })
       }
@@ -295,6 +299,7 @@ export const paneMachine = setup({
             viewKind: event.viewKind,
             workspaceId: context.workspaceId,
             paneId: context.paneId,
+            source: event.source,
           }
         },
         onDone: "Idle",

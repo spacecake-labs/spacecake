@@ -1,5 +1,8 @@
 import * as React from "react"
 import { useEditor } from "@/contexts/editor-context"
+import type { PaneMachineRef } from "@/machines/pane"
+import type { PaneItemPrimaryKey } from "@/schema/pane"
+import { useSearch } from "@tanstack/react-router"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
   Check,
@@ -11,10 +14,12 @@ import {
   X,
 } from "lucide-react"
 
+import type { OpenFileSource } from "@/types/claude-code"
 import { RouteContext } from "@/types/workspace"
 import { quickOpenMenuOpenAtom, saveResultAtom } from "@/lib/atoms/atoms"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { useOpenWorkspace } from "@/lib/open-workspace"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { CommandShortcut } from "@/components/ui/command"
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
@@ -22,9 +27,15 @@ import { ViewToggleButton } from "@/components/editor/view-toggle-button"
 
 interface EditorToolbarProps {
   routeContext: RouteContext
+  machine?: PaneMachineRef
+  activePaneItemId?: PaneItemPrimaryKey
 }
 
-export function EditorToolbar({ routeContext }: EditorToolbarProps) {
+export function EditorToolbar({
+  routeContext,
+  machine,
+  activePaneItemId,
+}: EditorToolbarProps) {
   const { editorRef } = useEditor()
   const fileStateAtom = fileStateAtomFamily(routeContext.filePath)
   const fileState = useAtomValue(fileStateAtom).value
@@ -33,6 +44,12 @@ export function EditorToolbar({ routeContext }: EditorToolbarProps) {
   const isConflict = fileState === "Conflict"
   const openQuickOpen = useSetAtom(quickOpenMenuOpenAtom)
   const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
+
+  // Get source from route search params
+  const source = useSearch({
+    strict: false,
+    select: (search) => search?.source as OpenFileSource | undefined,
+  })
 
   // Track previous state for transition detection
   const prevStateRef = React.useRef(fileState)
@@ -60,6 +77,26 @@ export function EditorToolbar({ routeContext }: EditorToolbarProps) {
       editorRef.current.dispatchCommand(SAVE_FILE_COMMAND, undefined)
     }
   }
+
+  // Close the tab and return to Claude (triggers notifyFileClosed for --wait support)
+  const handleCloseAndReturn = React.useCallback(() => {
+    if (!machine || !activePaneItemId) return
+    machine.send({
+      type: "pane.item.close",
+      itemId: activePaneItemId,
+      filePath: routeContext.filePath,
+      isClosingActiveTab: true,
+    })
+  }, [machine, activePaneItemId, routeContext.filePath])
+
+  // Save the file, then close the tab
+  const handleSaveAndReturn = React.useCallback(() => {
+    if (editorRef.current) {
+      editorRef.current.dispatchCommand(SAVE_FILE_COMMAND, undefined)
+    }
+    // Small delay to allow save to complete before closing
+    setTimeout(handleCloseAndReturn, 100)
+  }, [editorRef, handleCloseAndReturn])
 
   if (isConflict) {
     return (
@@ -112,6 +149,45 @@ export function EditorToolbar({ routeContext }: EditorToolbarProps) {
           }`}
         />
       </span>
+    )
+  }
+
+  // When opened by Claude, show simplified toolbar with just close actions
+  if (source && machine && activePaneItemId) {
+    const isDirty = fileState === "Dirty"
+    // Preferred action: close when clean, save & close when dirty
+    const primaryButtonClass =
+      "h-7 px-2.5 text-xs cursor-pointer border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/60"
+    const secondaryButtonClass =
+      "h-7 px-2.5 text-xs cursor-pointer border border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-400 dark:hover:bg-zinc-800/60"
+
+    return (
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleCloseAndReturn}
+          className={cn(isDirty ? secondaryButtonClass : primaryButtonClass)}
+          aria-label="close and return to claude"
+          title="close and return to claude"
+        >
+          <X className="h-3 w-3 mr-1" />
+          close
+        </Button>
+        {isDirty && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSaveAndReturn}
+            className={cn(primaryButtonClass)}
+            aria-label="save and close"
+            title="save and close"
+          >
+            <Check className="h-3 w-3 mr-1" />
+            save & close
+          </Button>
+        )}
+      </div>
     )
   }
 

@@ -323,6 +323,7 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
             broadcastOpenFile({
               workspacePath: matchingWorkspace,
               filePath: args.filePath,
+              source: "claude",
             })
 
             // Send success response

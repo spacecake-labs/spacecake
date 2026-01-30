@@ -1,6 +1,7 @@
 import { useState } from "react"
-import { Check, Copy, X } from "lucide-react"
+import { Check, Copy, MoveHorizontal, X } from "lucide-react"
 
+import type { OpenFileSource } from "@/types/claude-code"
 import { cn, condensePath } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,6 +17,7 @@ interface TabItemProps {
   filePath: string
   isActive: boolean
   onClose: (e: React.MouseEvent) => void
+  source?: OpenFileSource
 }
 
 export function TabItem({
@@ -24,6 +26,7 @@ export function TabItem({
   filePath,
   isActive,
   onClose,
+  source,
 }: TabItemProps) {
   const [copied, setCopied] = useState(false)
 
@@ -53,6 +56,15 @@ export function TabItem({
               "data-[state=inactive]:hover:bg-muted/50"
             )}
           >
+            {source && (
+              <span
+                className="text-emerald-500 dark:text-emerald-400 shrink-0 inline-flex items-center gap-1.5"
+                title="opened by claude"
+              >
+                claude
+                <MoveHorizontal className="h-3 w-3" />
+              </span>
+            )}
             <span className="truncate max-w-[120px]">{fileName}</span>
             <span
               role="button"
@@ -95,24 +107,32 @@ export function TabItem({
         align="start"
         className="w-auto max-w-md p-2"
       >
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground truncate">
-            {condensePath(filePath)}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCopyPath}
-            className="h-6 w-6 p-0 cursor-pointer flex-shrink-0"
-            aria-label="copy path"
-            title="copy path"
-          >
-            {copied ? (
-              <Check className="h-3 w-3 text-green-600" />
-            ) : (
-              <Copy className="h-3 w-3" />
-            )}
-          </Button>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground truncate">
+              {condensePath(filePath)}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopyPath}
+              className="h-6 w-6 p-0 cursor-pointer flex-shrink-0"
+              aria-label="copy path"
+              title="copy path"
+            >
+              {copied ? (
+                <Check className="h-3 w-3 text-green-600" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
+            </Button>
+          </div>
+          {source && (
+            <span className="text-xs flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              opened by claude
+            </span>
+          )}
         </div>
       </HoverCardContent>
     </HoverCard>
