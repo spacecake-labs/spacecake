@@ -129,6 +129,7 @@ export function WorkspaceStatusBar({
         {onToggleTerminal && (
           <button
             onClick={onToggleTerminal}
+            data-testid="statusbar-terminal-toggle"
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-all cursor-pointer",
               isTerminalExpanded

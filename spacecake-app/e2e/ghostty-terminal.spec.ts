@@ -25,9 +25,7 @@ test.describe("ghostty terminal", () => {
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     const terminalElement = window.getByTestId("ghostty-terminal")
-    const sidebar = window.getByTestId("sidebar")
-    const hideButton = sidebar.getByRole("button", { name: "hide terminal" })
-    const showButton = sidebar.getByRole("button", { name: "show terminal" })
+    const terminalToggle = window.getByTestId("statusbar-terminal-toggle")
 
     // Terminal starts expanded by default
     await expect(terminalElement).toBeVisible()
@@ -39,9 +37,9 @@ test.describe("ghostty terminal", () => {
     const deleteButton = window.getByTestId("terminal-delete-button")
 
     // Test: Hide and show terminal (toggle visibility)
-    await hideButton.click()
+    await terminalToggle.click()
     await expect(terminalElement).not.toBeVisible()
-    await showButton.click()
+    await terminalToggle.click()
     await expect(terminalElement).toBeVisible()
 
     // Test: Cmd+1 / Ctrl+1 focuses editor from terminal
@@ -97,9 +95,9 @@ test.describe("ghostty terminal", () => {
     expect(terminalContent).toContain(path.basename(tempTestDir))
 
     // Test: Hide (collapse) and show again -> should be SAME session
-    await hideButton.click()
+    await terminalToggle.click()
     await expect(terminalElement).not.toBeVisible()
-    await showButton.click()
+    await terminalToggle.click()
     await expect(terminalElement).toBeVisible()
 
     // Verify variable still exists (same session)
@@ -119,7 +117,7 @@ test.describe("ghostty terminal", () => {
     await deleteButton.click()
     await expect(terminalElement).not.toBeVisible()
 
-    await showButton.click()
+    await terminalToggle.click()
     await expect(terminalElement).toBeVisible()
     await expect(
       window.getByRole("status", { name: "shell profile loaded" })
