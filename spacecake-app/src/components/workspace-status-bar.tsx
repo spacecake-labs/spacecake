@@ -3,6 +3,7 @@ import { useAtom } from "jotai"
 import { ListTodo, PanelLeft, Terminal, TriangleAlert } from "lucide-react"
 
 import { match } from "@/types/adt"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Popover,
@@ -17,27 +18,13 @@ import {
   useStatuslineAutoSetup,
 } from "@/components/statusline-setup-prompt"
 
-interface BottomPanelInfo {
-  panel: "terminal" | "task"
-  isCollapsed: boolean
-  onToggle: () => void
-}
-
 interface WorkspaceStatusBarProps {
-  bottomPanels: BottomPanelInfo[]
-  isSidebarOpen?: boolean
   onToggleSidebar?: () => void
+  isTerminalExpanded?: boolean
+  isTaskExpanded?: boolean
+  onToggleTerminal?: () => void
+  onToggleTask?: () => void
 }
-
-const panelIcons = {
-  terminal: Terminal,
-  task: ListTodo,
-} as const
-
-const panelLabels = {
-  terminal: "show terminal",
-  task: "show tasks",
-} as const
 
 function StatuslineConflictLink() {
   const [conflict, setConflict] = useAtom(statuslineConflictAtom)
@@ -116,17 +103,17 @@ function StatuslineConflictLink() {
 }
 
 export function WorkspaceStatusBar({
-  bottomPanels,
-  isSidebarOpen,
   onToggleSidebar,
+  isTerminalExpanded,
+  isTaskExpanded,
+  onToggleTerminal,
+  onToggleTask,
 }: WorkspaceStatusBarProps) {
   useStatuslineAutoSetup()
 
-  const collapsedPanels = bottomPanels.filter((p) => p.isCollapsed)
-
   return (
     <div className="h-8 w-full bg-background/50 border-t flex items-center justify-between px-4 text-xs shrink-0">
-      {/* Left side: theme toggle + sidebar toggle + toggle icons for collapsed bottom-docked panels */}
+      {/* Left side: theme toggle + sidebar toggle + terminal/task badges */}
       <div className="flex items-center gap-1.5 min-w-0">
         <ModeToggle variant="icon" />
         {onToggleSidebar && (
@@ -139,20 +126,38 @@ export function WorkspaceStatusBar({
             <PanelLeft className="h-3.5 w-3.5" />
           </button>
         )}
-        {collapsedPanels.map(({ panel, onToggle }) => {
-          const Icon = panelIcons[panel]
-          return (
-            <button
-              key={panel}
-              onClick={onToggle}
-              className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              aria-label={panelLabels[panel]}
-              title={panelLabels[panel]}
-            >
-              <Icon className="h-3.5 w-3.5" />
-            </button>
-          )
-        })}
+        {onToggleTerminal && (
+          <button
+            onClick={onToggleTerminal}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-all cursor-pointer",
+              isTerminalExpanded
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
+                : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300"
+            )}
+            aria-label={isTerminalExpanded ? "hide terminal" : "show terminal"}
+            title={isTerminalExpanded ? "hide terminal" : "show terminal"}
+          >
+            <Terminal className="h-3 w-3" />
+            terminal
+          </button>
+        )}
+        {onToggleTask && (
+          <button
+            onClick={onToggleTask}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-all cursor-pointer",
+              isTaskExpanded
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
+                : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300"
+            )}
+            aria-label={isTaskExpanded ? "hide tasks" : "show tasks"}
+            title={isTaskExpanded ? "hide tasks" : "show tasks"}
+          >
+            <ListTodo className="h-3 w-3" />
+            tasks
+          </button>
+        )}
       </div>
 
       {/* Right side: Claude status + conflict indicator */}

@@ -225,7 +225,7 @@ function DockPositionDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-0"
           aria-label="change dock position"
           title="change dock position"
         >
@@ -383,40 +383,12 @@ function LayoutContent() {
   }, [terminalFit])
 
   const terminalPanelRef = useRef<HTMLDivElement>(null)
-  const [terminalPanelHeight, setTerminalPanelHeight] = useState(0)
-
-  // Measure terminal panel height for rotated toolbar
-  useEffect(() => {
-    if (terminalDock === "bottom" || !terminalPanelRef.current) return
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setTerminalPanelHeight(entry.contentRect.height)
-      }
-    })
-    resizeObserver.observe(terminalPanelRef.current)
-    return () => resizeObserver.disconnect()
-  }, [terminalDock])
 
   const taskPanelRef = useRef<HTMLDivElement>(null)
   const taskPanelGroupRef =
     useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
   const taskBottomPanelGroupRef =
     useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
-  const [taskPanelHeight, setTaskPanelHeight] = useState(0)
-
-  // Measure task panel height for rotated toolbar
-  useEffect(() => {
-    if (taskDock === "bottom" || !taskPanelRef.current) return
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setTaskPanelHeight(entry.contentRect.height)
-      }
-    })
-    resizeObserver.observe(taskPanelRef.current)
-    return () => resizeObserver.disconnect()
-  }, [taskDock])
 
   // Helper to dispatch a dock action and persist the result
   const dispatch = useCallback(
@@ -433,11 +405,27 @@ function LayoutContent() {
     [layout, workspace.id]
   )
 
+  // Helper to blur terminal focus (prevents aria-hidden focus warning when collapsing)
+  const blurTerminal = useCallback(() => {
+    const terminalEl = document.querySelector(
+      '[data-testid="ghostty-terminal"]'
+    )
+    if (!terminalEl) return
+
+    // Check if focus is within the terminal (could be textarea, canvas container, or other elements)
+    if (terminalEl.contains(document.activeElement)) {
+      ;(document.activeElement as HTMLElement)?.blur?.()
+    }
+  }, [])
+
   const setTerminalExpanded = useCallback(
     (expanded: boolean) => {
+      if (!expanded) {
+        blurTerminal()
+      }
       dispatch({ kind: expanded ? "expand" : "collapse", panel: "terminal" })
     },
-    [dispatch]
+    [dispatch, blurTerminal]
   )
 
   // Ctrl+` to toggle terminal (VS Code behavior)
@@ -507,8 +495,12 @@ function LayoutContent() {
     if (isTerminalCollapsed && !isTerminalSessionActive) {
       setIsTerminalSessionActive(true)
     }
+    // Blur terminal before collapsing to avoid aria-hidden focus warning
+    if (!isTerminalCollapsed) {
+      blurTerminal()
+    }
     dispatch({ kind: "toggle", panel: "terminal" })
-  }, [isTerminalCollapsed, isTerminalSessionActive, dispatch])
+  }, [isTerminalCollapsed, isTerminalSessionActive, dispatch, blurTerminal])
 
   const toggleTask = useCallback(() => {
     dispatch({ kind: "toggle", panel: "task" })
@@ -629,8 +621,6 @@ function LayoutContent() {
             </div>
           </main>
           <WorkspaceStatusBar
-            bottomPanels={[]}
-            isSidebarOpen={sidebarOpen}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           />
         </div>
@@ -648,17 +638,11 @@ function LayoutContent() {
     <ChevronDown className="cursor-pointer h-4 w-4" />
   )
 
-  // Border class based on dock position (between terminal and editor)
-  const terminalBorderClass =
-    terminalDock === "bottom"
-      ? "border-t"
-      : terminalDock === "left"
-        ? "border-r"
-        : "border-l"
+  // Note: No border class needed - ResizableHandle provides the visual divider
 
-  // The toolbar content - same for all dock positions, just rotated for left/right
+  // The toolbar content - same for all dock positions, h-10 + border-b to match editor header
   const toolbarContent = (
-    <div className="h-8 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden">
+    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
       {/* Left side: terminal status + dock position */}
       <div className="flex items-center gap-2 min-w-0 overflow-hidden">
         <TerminalStatusBadge />
@@ -713,10 +697,18 @@ function LayoutContent() {
     }
   }
 
+  // Task toolbar content - h-10 + border-b to match editor header
   const taskToolbarContent = (
-    <div className="h-8 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden">
+    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
       <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-        <ListTodo className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <ListTodo
+          className={cn(
+            "h-3.5 w-3.5 shrink-0",
+            isTaskExpanded
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-muted-foreground"
+          )}
+        />
         <DockPositionDropdown
           currentDock={taskDock}
           onDockChange={setTaskDock}
@@ -766,6 +758,7 @@ function LayoutContent() {
 
   const editorPanel = (
     <ResizablePanel
+      id="editor-panel"
       defaultSize={isTerminalCollapsed ? 100 : 100 - terminalSize}
       minSize={30}
     >
@@ -776,6 +769,8 @@ function LayoutContent() {
           className="h-full"
         >
           <ResizablePanel
+            id="editor-main-panel"
+            order={1}
             defaultSize={isTaskCollapsed ? 100 : 100 - taskSize}
             minSize={30}
           >
@@ -796,18 +791,15 @@ function LayoutContent() {
             className={isTaskCollapsed ? "invisible" : ""}
           />
           <ResizablePanel
+            id="task-panel-bottom"
+            order={2}
             defaultSize={isTaskCollapsed ? 0 : taskSize}
             minSize={isTaskCollapsed ? 0 : 15}
             maxSize={isTaskCollapsed ? 0 : 50}
             className={isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""}
           >
-            <div
-              ref={taskPanelRef}
-              className="flex h-full w-full border-t flex-col"
-            >
-              {!isTaskCollapsed && (
-                <div className="shrink-0 border-b">{taskToolbarContent}</div>
-              )}
+            <div ref={taskPanelRef} className="flex h-full w-full flex-col">
+              {!isTaskCollapsed && taskToolbarContent}
               <div
                 className={cn(
                   "flex-1 min-h-0 min-w-0 overflow-hidden",
@@ -838,45 +830,15 @@ function LayoutContent() {
   const terminalConstraints = DOCK_SIZE_CONSTRAINTS[terminalDock]
   const terminalPanel = (
     <ResizablePanel
+      id="terminal-panel"
       defaultSize={isTerminalCollapsed ? 0 : terminalSize}
       minSize={isTerminalCollapsed ? 0 : terminalConstraints.min}
       maxSize={isTerminalCollapsed ? 0 : terminalConstraints.max}
       className={isTerminalCollapsed ? "grow-0! shrink-0! basis-auto!" : ""}
     >
-      <div
-        ref={terminalPanelRef}
-        className={cn(
-          "flex h-full w-full",
-          terminalBorderClass,
-          terminalDock === "bottom" ? "flex-col" : "flex-row"
-        )}
-      >
-        {/* Bottom dock: horizontal toolbar at top (hidden when collapsed — status bar provides toggle) */}
-        {terminalDock === "bottom" && !isTerminalCollapsed && (
-          <div className="shrink-0 border-b">{toolbarContent}</div>
-        )}
-
-        {/* Left dock: rotated toolbar on the left side */}
-        {terminalDock === "left" && (
-          <div
-            className={cn(
-              "shrink-0 w-8 h-full relative overflow-hidden",
-              !isTerminalCollapsed && "border-r"
-            )}
-          >
-            <div
-              className="absolute top-1/2 left-1/2"
-              style={{
-                width:
-                  terminalPanelHeight > 0 ? `${terminalPanelHeight}px` : "100%",
-                height: "2rem",
-                transform: "translate(-50%, -50%) rotate(-90deg)",
-              }}
-            >
-              {toolbarContent}
-            </div>
-          </div>
-        )}
+      <div ref={terminalPanelRef} className="flex h-full w-full flex-col">
+        {/* Horizontal toolbar at top for all dock positions (hidden when collapsed — status bar provides toggle) */}
+        {!isTerminalCollapsed && toolbarContent}
 
         {/* Terminal content area */}
         <div
@@ -888,7 +850,6 @@ function LayoutContent() {
           {isTerminalSessionActive && terminalContainerEl && (
             <TerminalMountPoint
               containerEl={terminalContainerEl}
-              className={terminalDock !== "bottom" ? "pt-6" : undefined}
               onMount={handleTerminalMount}
             />
           )}
@@ -898,52 +859,9 @@ function LayoutContent() {
             </div>
           )}
         </div>
-
-        {/* Right dock: rotated toolbar on the right side */}
-        {terminalDock === "right" && (
-          <div
-            className={cn(
-              "shrink-0 w-8 h-full relative overflow-hidden",
-              !isTerminalCollapsed && "border-l"
-            )}
-          >
-            <div
-              className="absolute top-1/2 left-1/2"
-              style={{
-                width:
-                  terminalPanelHeight > 0 ? `${terminalPanelHeight}px` : "100%",
-                height: "2rem",
-                transform: "translate(-50%, -50%) rotate(90deg)",
-              }}
-            >
-              {toolbarContent}
-            </div>
-          </div>
-        )}
       </div>
     </ResizablePanel>
   )
-
-  const bottomPanels = [
-    ...(terminalDock === "bottom"
-      ? [
-          {
-            panel: "terminal" as const,
-            isCollapsed: isTerminalCollapsed,
-            onToggle: toggleTerminal,
-          },
-        ]
-      : []),
-    ...(taskDock === "bottom"
-      ? [
-          {
-            panel: "task" as const,
-            isCollapsed: isTaskCollapsed,
-            onToggle: toggleTask,
-          },
-        ]
-      : []),
-  ]
 
   return (
     <ClaudeIntegrationProvider
@@ -953,6 +871,8 @@ function LayoutContent() {
     >
       <ResizablePanelGroup direction="horizontal" className="h-screen">
         <ResizablePanel
+          id="sidebar-panel"
+          order={1}
           ref={sidebarPanelRef}
           defaultSize={15}
           minSize={10}
@@ -967,17 +887,18 @@ function LayoutContent() {
             onFileClick={handleFileClick}
             workspace={workspace}
             selectedFilePath={selectedFilePath}
-            isTerminalExpanded={isTerminalExpanded}
-            isTaskExpanded={isTaskExpanded}
-            onToggleTerminal={toggleTerminal}
-            onToggleTask={toggleTask}
           />
         </ResizablePanel>
         <ResizableHandle
           withHandle
           className={cn("w-0", !sidebarOpen && "[&>div]:translate-x-1.5")}
         />
-        <ResizablePanel defaultSize={85} className="p-2 overflow-hidden">
+        <ResizablePanel
+          id="main-content-panel"
+          order={2}
+          defaultSize={85}
+          className="p-2 overflow-hidden"
+        >
           <div className="flex flex-col h-full bg-background rounded-xl shadow-sm overflow-hidden">
             <ResizablePanelGroup
               ref={taskPanelGroupRef}
@@ -988,6 +909,7 @@ function LayoutContent() {
               {taskDock === "left" && (
                 <>
                   <ResizablePanel
+                    id="task-panel-left"
                     order={1}
                     defaultSize={isTaskCollapsed ? 0 : taskSize}
                     minSize={isTaskCollapsed ? 0 : 15}
@@ -998,28 +920,9 @@ function LayoutContent() {
                   >
                     <div
                       ref={taskPanelRef}
-                      className="flex h-full w-full border-r flex-row"
+                      className="flex h-full w-full flex-col"
                     >
-                      <div
-                        className={cn(
-                          "shrink-0 w-8 h-full relative overflow-hidden",
-                          !isTaskCollapsed && "border-r"
-                        )}
-                      >
-                        <div
-                          className="absolute top-1/2 left-1/2"
-                          style={{
-                            width:
-                              taskPanelHeight > 0
-                                ? `${taskPanelHeight}px`
-                                : "100%",
-                            height: "2rem",
-                            transform: "translate(-50%, -50%) rotate(-90deg)",
-                          }}
-                        >
-                          {taskToolbarContent}
-                        </div>
-                      </div>
+                      {!isTaskCollapsed && taskToolbarContent}
                       <div
                         className={cn(
                           "flex-1 min-h-0 min-w-0 overflow-hidden",
@@ -1039,6 +942,7 @@ function LayoutContent() {
 
               {/* Center panel */}
               <ResizablePanel
+                id="center-panel"
                 order={2}
                 defaultSize={
                   isTaskCollapsed || taskDock === "bottom"
@@ -1084,6 +988,7 @@ function LayoutContent() {
                     className={isTaskCollapsed ? "invisible" : ""}
                   />
                   <ResizablePanel
+                    id="task-panel-right"
                     order={3}
                     defaultSize={isTaskCollapsed ? 0 : taskSize}
                     minSize={isTaskCollapsed ? 0 : 15}
@@ -1094,8 +999,9 @@ function LayoutContent() {
                   >
                     <div
                       ref={taskPanelRef}
-                      className="flex h-full w-full border-l flex-row"
+                      className="flex h-full w-full flex-col"
                     >
+                      {!isTaskCollapsed && taskToolbarContent}
                       <div
                         className={cn(
                           "flex-1 min-h-0 min-w-0 overflow-hidden",
@@ -1104,35 +1010,17 @@ function LayoutContent() {
                       >
                         <TaskTable />
                       </div>
-                      <div
-                        className={cn(
-                          "shrink-0 w-8 h-full relative overflow-hidden",
-                          !isTaskCollapsed && "border-l"
-                        )}
-                      >
-                        <div
-                          className="absolute top-1/2 left-1/2"
-                          style={{
-                            width:
-                              taskPanelHeight > 0
-                                ? `${taskPanelHeight}px`
-                                : "100%",
-                            height: "2rem",
-                            transform: "translate(-50%, -50%) rotate(90deg)",
-                          }}
-                        >
-                          {taskToolbarContent}
-                        </div>
-                      </div>
                     </div>
                   </ResizablePanel>
                 </>
               )}
             </ResizablePanelGroup>
             <WorkspaceStatusBar
-              bottomPanels={bottomPanels}
-              isSidebarOpen={sidebarOpen}
               onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+              isTerminalExpanded={isTerminalExpanded}
+              isTaskExpanded={isTaskExpanded}
+              onToggleTerminal={toggleTerminal}
+              onToggleTask={toggleTask}
             />
           </div>
         </ResizablePanel>
