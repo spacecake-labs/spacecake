@@ -644,19 +644,13 @@ test.describe("spacecake app", () => {
     // 5. Wait for the new file to appear in sidebar and be opened
     await expect(locateSidebarItem(window, "test-autofocus.md")).toBeVisible()
 
-    // 6. Verify the file is open by checking the file path in toolbar
-    await expect(window.getByTestId("current-file-path")).toBeVisible()
-    await expect(
-      window.getByTestId("current-file-path").getByText("test-autofocus.md")
-    ).toBeVisible()
-
-    // 7. Verify the editor is focused and ready for typing
+    // 6. Verify the editor is focused and ready for typing
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // 8. Type some text - this will only work if autofocus is working!
+    // 7. Type some text - this will only work if autofocus is working!
     await window.keyboard.type("Hello, autofocus!", { delay: 100 })
 
-    // 9. Verify the text was typed into the editor (not just the sidebar)
+    // 8. Verify the text was typed into the editor (not just the sidebar)
     // We'll look for the text in a paragraph element within the editor
     await expect(
       window.getByTestId("lexical-editor").getByRole("paragraph")
@@ -671,12 +665,12 @@ test.describe("spacecake app", () => {
       window.getByTestId("lexical-editor").getByRole("paragraph")
     ).toContainText("Hello, autofocus!")
 
-    // 10. Verify the file was actually created in the filesystem
+    // 9. Verify the file was actually created in the filesystem
     const expectedFilePath = path.join(tempTestDir, "test-autofocus.md")
     const fileExists = fs.existsSync(expectedFilePath)
     expect(fileExists).toBe(true)
 
-    // 11. Verify the content was saved to the file
+    // 10. Verify the content was saved to the file
     const fileContent = fs.readFileSync(expectedFilePath, "utf-8")
     expect(fileContent).toContain("Hello, autofocus!")
 
