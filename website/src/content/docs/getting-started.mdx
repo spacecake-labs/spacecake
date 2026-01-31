@@ -35,9 +35,39 @@ you can also build from source by following the steps in the [release pipeline](
 
 ### step 3: open your first project
 
-when `spacecake` launches, you'll start in your home folder (`~/.spacecake`). press `⌘O` to open your project's root directory.
+when `spacecake` launches, you'll start in your home folder (`~/.spacecake`). press `⌘O` (or `ctrl+o` on linux) to open your project's root directory.
 
 you can create notes and folders in your home folder, or open any project folder as a workspace anytime.
+
+## editor basics
+
+### workspaces
+
+a workspace is a folder you're working in. switch workspaces with `⌘O` / `ctrl+o` or the folder icon in the toolbar.
+
+your home folder (`~/.spacecake`) is always available for notes that aren't tied to a specific project.
+
+### files and tabs
+
+- **quick open**: press `⌘P` / `ctrl+p` to search and open files by name
+- **new file**: press `⌘N` / `ctrl+n` to create a new file
+- **close tab**: press `⌘W` / `ctrl+w` or click the × on the tab
+- **save**: press `⌘S` / `ctrl+s` to save the current file
+
+tabs show open files at the top of the editor. scroll horizontally if you have many tabs open.
+
+### keyboard shortcuts
+
+| action                | macos     | linux     |
+| --------------------- | --------- | --------- |
+| open/switch workspace | `⌘O`      | `ctrl+o`  |
+| quick open file       | `⌘P`      | `ctrl+p`  |
+| new file              | `⌘N`      | `ctrl+n`  |
+| save file             | `⌘S`      | `ctrl+s`  |
+| close tab             | `⌘W`      | `ctrl+w`  |
+| toggle terminal       | `ctrl+\`` | `ctrl+\`` |
+| focus editor          | `⌘1`      | `ctrl+1`  |
+| refresh app           | `⌘R`      | `ctrl+r`  |
 
 ## 🖥️ terminal
 
@@ -50,7 +80,9 @@ the integrated terminal is at the bottom of the screen. click it or drag to resi
 
 `spacecake` integrates with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) to give Claude context about your open files and display live session metrics.
 
-see the [claude code integration](/claude-code-integration) guide for setup instructions.
+run `claude` from the integrated terminal - it automatically connects to spacecake and defaults to plan mode. when Claude creates a plan, press `ctrl+g` to open it directly in spacecake for editing.
+
+see the [claude code integration](/claude-code-integration) guide for more details.
 
 ## 📝 writing markdown
 

@@ -9,11 +9,34 @@ description: Connect Claude Code to `spacecake` for file context and live sessio
 
 ## connecting claude code
 
-run `claude` from the integrated terminal - it should automatically connect to spacecake, giving Claude context about your open files.
+run `claude` from the integrated terminal - it automatically connects to spacecake, giving Claude context about your open files.
 
 if Claude shows "IDE disconnected", run `/ide` to check the connection status. you should see spacecake listed and can select it to reconnect.
 
 a green `claude` status badge in the header indicates an active Claude session is connected.
+
+## plan mode
+
+Claude Code defaults to **plan mode** when running inside spacecake's integrated terminal. in plan mode, Claude creates a plan file before making changes, giving you a chance to review and edit the approach.
+
+### opening plans with ctrl+g
+
+when Claude creates or updates a plan, you'll see a prompt in the terminal:
+
+```
+press ctrl+g to open the plan in spacecake
+```
+
+press `ctrl+g` to open the plan file directly in the editor. the tab will show a green "claude" badge indicating it was opened by Claude.
+
+### editing and returning
+
+when you're done reviewing or editing the plan:
+
+- **save & close**: saves your changes and returns focus to Claude
+- **close**: closes without saving and returns to Claude
+
+Claude will wait for you to close the file before continuing, so you can take your time reviewing the plan.
 
 ## status line
 
