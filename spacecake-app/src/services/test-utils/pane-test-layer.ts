@@ -11,9 +11,9 @@ let cachedDataDir: Blob | null = null
 
 /**
  * Initialize the cached database state by running migrations once.
- * Called lazily on first test run.
+ * Called lazily on first test run. Exported for use in beforeAll hooks.
  */
-const initCachedDataDir = async (): Promise<Blob> => {
+export const initCachedDataDir = async (): Promise<Blob> => {
   if (cachedDataDir) return cachedDataDir
 
   // Create a temporary PGlite instance, run migrations, then dump
