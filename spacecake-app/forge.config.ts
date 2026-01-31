@@ -1,4 +1,3 @@
-import { execSync } from "node:child_process"
 import { cp, mkdir } from "node:fs/promises"
 import path from "path"
 
@@ -101,19 +100,6 @@ const config: ForgeConfig = {
         console.log(
           `Bundled CLI binary: ${cliBinarySource} -> ${cliBinaryDest}`
         )
-
-        // On macOS, strip the adhoc linker signature from the CLI binary.
-        // Bun-compiled binaries have an adhoc signature that conflicts with
-        // app bundle codesigning. Removing it allows Electron Forge to
-        // properly sign the binary as part of the app bundle.
-        if (platform === "darwin") {
-          try {
-            execSync(`codesign --remove-signature "${cliBinaryDest}"`)
-            console.log(`Stripped adhoc signature from CLI binary`)
-          } catch {
-            // Binary might not have a signature, that's fine
-          }
-        }
       } catch {
         console.warn(
           "CLI binary not found at",
