@@ -4,9 +4,22 @@ spacecake is a WYSIWYG markdown editor with an integrated terminal, built for Cl
 
 ## 📖 quick start
 
-- **open a project**: press \`⌘O\` to open your project's root directory (works like VS Code or Cursor)
-- **create a new file**: press \`⌘N\` (or \`Ctrl+N\` on linux)
+- **open a project**: press \`⌘O\` (or \`ctrl+o\` on linux) to open your project's root directory
 - **quick open**: press \`⌘P\` to search and open files
+- **create a new file**: press \`⌘N\` to create a new file
+- **toggle terminal**: press \`ctrl+\`\` to show/hide the terminal
+
+## ⌨️ keyboard shortcuts
+
+| action | macos | linux |
+|--------|-------|-------|
+| open/switch workspace | \`⌘O\` | \`ctrl+o\` |
+| quick open file | \`⌘P\` | \`ctrl+p\` |
+| new file | \`⌘N\` | \`ctrl+n\` |
+| save file | \`⌘S\` | \`ctrl+s\` |
+| close tab | \`⌘W\` | \`ctrl+w\` |
+| toggle terminal | \`ctrl+\`\` | \`ctrl+\`\` |
+| focus editor | \`⌘1\` | \`ctrl+1\` |
 
 ## 🏠 your home folder
 
@@ -27,11 +40,17 @@ the integrated terminal is at the bottom of the screen. click it or drag to resi
 
 ## 🦀 claude code integration
 
-run \`claude\` from the integrated terminal - it should automatically connect to spacecake, giving Claude context about your open files.
+run \`claude\` from the integrated terminal - it automatically connects to spacecake and defaults to plan mode.
+
+### plan mode & ctrl+g
+
+when Claude creates a plan, press \`ctrl+g\` in the terminal to open it in spacecake. the tab shows a green "claude" badge, and you'll see **save & close** / **close** buttons to return to Claude when done.
+
+### troubleshooting connection
 
 if Claude shows "IDE disconnected", run \`/ide\` to check the connection status. you should see spacecake listed and can select it to reconnect.
 
-a green **Claude Code** badge in the status bar indicates an active Claude session is connected.
+a green **claude** badge in the status bar indicates an active session is connected.
 
 ## 📝 writing markdown
 
