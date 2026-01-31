@@ -104,7 +104,7 @@ export const test = base.extend<TestFixtures>({
     // On Linux, graceful close can hang due to WebSocket cleanup issues.
     // Use a timeout with force-kill fallback. Shorter timeout on CI since
     // speed matters more than graceful cleanup there.
-    const closeTimeout = process.env.CI ? 1000 : 5000
+    const closeTimeout = process.env.CI ? 100 : 5000 // Force SIGKILL on CI (was 1000)
     let timeoutId: NodeJS.Timeout | null = null
     const closePromise = app.close().finally(() => {
       if (timeoutId) clearTimeout(timeoutId)
