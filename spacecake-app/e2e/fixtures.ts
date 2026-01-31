@@ -9,6 +9,7 @@ import {
   expect,
   Page,
 } from "@playwright/test"
+import treeKill from "tree-kill"
 
 export type TestFixtures = {
   electronApp: ElectronApplication
@@ -104,18 +105,20 @@ export const test = base.extend<TestFixtures>({
     // On Linux, graceful close can hang due to WebSocket cleanup issues.
     // Use a timeout with force-kill fallback. Shorter timeout on CI since
     // speed matters more than graceful cleanup there.
-    const closeTimeout = process.env.CI ? 100 : 5000 // Force SIGKILL on CI (was 1000)
+    const closeTimeout = process.env.CI ? 1000 : 5000
     let timeoutId: NodeJS.Timeout | null = null
     const closePromise = app.close().finally(() => {
       if (timeoutId) clearTimeout(timeoutId)
     })
     const timeoutPromise = new Promise<void>((resolve) => {
       timeoutId = setTimeout(() => {
-        console.warn("app.close() timed out, force killing process")
+        console.warn("app.close() timed out, force killing process tree")
         try {
           const proc = app.process()
-          if (proc && !proc.killed) {
-            proc.kill("SIGKILL")
+          if (proc && proc.pid && !proc.killed) {
+            // Use tree-kill to kill the entire process tree (main + GPU/renderer helpers)
+            // This prevents orphaned Electron helper processes on macOS
+            treeKill(proc.pid, "SIGKILL")
           }
         } catch {
           // app already closed, ignore
