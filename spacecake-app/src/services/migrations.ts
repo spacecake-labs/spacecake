@@ -14,7 +14,10 @@ class MigrationsError extends Data.TaggedError("MigrationsError")<{
 const execute = (client: PGlite) => (sql: string) =>
   Effect.tryPromise({
     try: () => client.exec(sql),
-    catch: (error) => new MigrationsError({ cause: error }),
+    catch: (error) => {
+      console.error("Migration failed:", error)
+      return new MigrationsError({ cause: error })
+    },
   })
 
 export class Migrations extends Effect.Service<Migrations>()("Migrations", {
