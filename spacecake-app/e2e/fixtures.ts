@@ -9,6 +9,7 @@ import {
   expect,
   Page,
 } from "@playwright/test"
+import treeKill from "tree-kill"
 
 export type TestFixtures = {
   electronApp: ElectronApplication
@@ -111,11 +112,13 @@ export const test = base.extend<TestFixtures>({
     })
     const timeoutPromise = new Promise<void>((resolve) => {
       timeoutId = setTimeout(() => {
-        console.warn("app.close() timed out, force killing process")
+        console.warn("app.close() timed out, force killing process tree")
         try {
           const proc = app.process()
-          if (proc && !proc.killed) {
-            proc.kill("SIGKILL")
+          if (proc && proc.pid && !proc.killed) {
+            // Use tree-kill to kill the entire process tree (main + GPU/renderer helpers)
+            // This prevents orphaned Electron helper processes on macOS
+            treeKill(proc.pid, "SIGKILL")
           }
         } catch {
           // app already closed, ignore

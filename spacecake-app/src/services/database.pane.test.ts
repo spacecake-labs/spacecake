@@ -6,13 +6,21 @@ import {
   getPaneItemsOrderedByPosition,
   setupPaneWithTabs,
 } from "@/services/test-utils/pane-factories"
-import { TestDatabaseLayer } from "@/services/test-utils/pane-test-layer"
+import {
+  initCachedDataDir,
+  TestDatabaseLayer,
+} from "@/services/test-utils/pane-test-layer"
 import { it } from "@effect/vitest"
 import { eq } from "drizzle-orm"
 import { Effect, Option } from "effect"
-import { describe, expect } from "vitest"
+import { beforeAll, describe, expect } from "vitest"
 
 import { AbsolutePath } from "@/types/workspace"
+
+// Warm up the migration cache before tests run (avoids timeout on first test)
+beforeAll(async () => {
+  await initCachedDataDir()
+}, 30000)
 
 describe("activateEditorInPane", () => {
   it.effect("creates new paneItem when editor not in pane", () =>

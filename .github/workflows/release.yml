@@ -58,7 +58,7 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 8
+          version: 10
 
       - name: Install dependencies
         run: pnpm install
@@ -66,7 +66,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "1.1.25"
+          bun-version: "1.3.8"
 
       - name: Build CLI binary
         working-directory: ./cli
