@@ -1,5 +1,6 @@
 import migration0000 from "@/drizzle/0000_natural_rogue.sql?raw"
-import migration0001 from "@/drizzle/0001_stiff_ego.sql?raw"
+import migration0001 from "@/drizzle/0001_add_workspace_layout.sql?raw"
+import migration0002 from "@/drizzle/0002_pane_items.sql?raw"
 import { Database, makeDatabaseService, PgliteError } from "@/services/database"
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
@@ -20,6 +21,7 @@ export const initCachedDataDir = async (): Promise<Blob> => {
   const tempClient = await PGlite.create({ extensions: { live } })
   await tempClient.exec(migration0000)
   await tempClient.exec(migration0001)
+  await tempClient.exec(migration0002)
 
   // Dump the migrated state
   cachedDataDir = await tempClient.dumpDataDir()

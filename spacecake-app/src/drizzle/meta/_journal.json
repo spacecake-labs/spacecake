@@ -12,8 +12,15 @@
     {
       "idx": 1,
       "version": "7",
+      "when": 1737561290000,
+      "tag": "0001_add_workspace_layout",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
       "when": 1769649995551,
-      "tag": "0001_stiff_ego",
+      "tag": "0002_pane_items",
       "breakpoints": true
     }
   ]

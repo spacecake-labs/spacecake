@@ -10,7 +10,6 @@ CREATE TABLE "pane_item" (
 );
 --> statement-breakpoint
 ALTER TABLE "pane" ADD COLUMN "active_pane_item_id" uuid;--> statement-breakpoint
-ALTER TABLE "workspace" ADD COLUMN "layout" jsonb;--> statement-breakpoint
 ALTER TABLE "workspace" ADD COLUMN "active_pane_id" uuid;--> statement-breakpoint
 ALTER TABLE "pane_item" ADD CONSTRAINT "pane_item_pane_id_pane_id_fk" FOREIGN KEY ("pane_id") REFERENCES "public"."pane"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "pane_item" ADD CONSTRAINT "pane_item_editor_id_editor_id_fk" FOREIGN KEY ("editor_id") REFERENCES "public"."editor"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
