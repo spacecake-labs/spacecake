@@ -1,5 +1,124 @@
 # spacecake-app
 
+## 0.1.0-alpha.43
+
+### Patch Changes
+
+- a16d9a3: Ability to open Claude plans with ctrl+g.
+- a16d9a3: Editor tabs.
+
+## 0.1.0-alpha.42
+
+### Patch Changes
+
+- 627a922: cmd+1 and ctrl+` shortcuts.
+
+## 0.1.0-alpha.41
+
+### Patch Changes
+
+- cbc3230: Claude task panel.
+
+## 0.1.0-alpha.40
+
+### Patch Changes
+
+- e05a738: Introducing docking system for terminal panel.
+
+## 0.1.0-alpha.39
+
+### Patch Changes
+
+- 24197bb: Linux AppImage build.
+- 24197bb: Ability to revert a file (discard cached state).
+
+## 0.1.0-alpha.38
+
+### Patch Changes
+
+- 111e942: Recover watcher on failure.
+
+## 0.1.0-alpha.37
+
+### Patch Changes
+
+- 0c74119: Claude Code openFile tool.
+- c34901a: Fix cmd+backspace in Ghostty.
+- 5bd6d88: Adding Claude Code status line.
+
+## 0.1.0-alpha.36
+
+### Patch Changes
+
+- 94f33fd: Ability to paste images into Claude Code.
+
+## 0.1.0-alpha.35
+
+### Patch Changes
+
+- dc3646f: UI enhancements and fix for state cache view kind.
+
+## 0.1.0-alpha.34
+
+### Patch Changes
+
+- 722dbdb: Fix file creation input box placement.
+
+## 0.1.0-alpha.33
+
+### Patch Changes
+
+- 1d2c1b0: Fix selection restoration issue when switching view kinds.
+- 1d2c1b0: Fix header and table margins.
+
+## 0.1.0-alpha.32
+
+### Patch Changes
+
+- a01d34d: Fix shift+tab and shift+enter commands in Claude Code.
+
+## 0.1.0-alpha.31
+
+### Patch Changes
+
+- 9f6784f: Handle workspace permissions change gracefully.
+
+## 0.1.0-alpha.30
+
+### Patch Changes
+
+- c5cb008: Adding default workspace (home folder).
+
+## 0.1.0-alpha.29
+
+### Patch Changes
+
+- 43accae: Claude Code integration.
+
+## 0.1.0-alpha.28
+
+### Patch Changes
+
+- 9fed83d: Improving file ignore patterns and fixing key commands in code blocks.
+
+## 0.1.0-alpha.27
+
+### Patch Changes
+
+- 3574907: Improve file tree performance with virtualisation.
+
+## 0.1.0-alpha.26
+
+### Patch Changes
+
+- 4016443: Load shell profile.
+
+## 0.1.0-alpha.25
+
+### Patch Changes
+
+- 335cfb2: Adding gitignore capability for watcher service.
+
 ## 0.1.0-alpha.24
 
 ### Patch Changes
