@@ -1,5 +1,5 @@
 ---
-
+import TaskTablePreview from "./TaskTablePreview.astro"
 ---
 
 <div class="relative w-full mx-auto">
@@ -260,10 +260,27 @@
         </div>
       </div>
     </div>
+
+    <!-- Task Table - Desktop Only -->
+    <div class="task-panel-desktop">
+      <TaskTablePreview embedded />
+    </div>
   </div>
 </div>
 
 <style>
+  /* Task panel - hidden on mobile, shown on desktop */
+  .task-panel-desktop {
+    display: none;
+    border-top: 1px solid #3f3f46; /* zinc-700 */
+  }
+
+  @media (min-width: 550px) {
+    .task-panel-desktop {
+      display: block;
+    }
+  }
+
   /* Side-by-side layout for markdown and terminal panels */
   .editor-layout {
     display: flex;
