@@ -1,8 +1,7 @@
-import { WorkspaceCacheRowSchema } from "@/schema/workspace-cache"
-
-import { AbsolutePath } from "@/types/workspace"
-import { workspaceCacheQuery } from "@/lib/db/queries"
 import { useQuery } from "@/hooks/use-query"
+import { workspaceCacheQuery } from "@/lib/db/queries"
+import { WorkspaceCacheRowSchema } from "@/schema/workspace-cache"
+import { AbsolutePath } from "@/types/workspace"
 
 /**
  * Reactive hook that provides workspace cache data.
@@ -12,7 +11,7 @@ import { useQuery } from "@/hooks/use-query"
 export const useWorkspaceCache = (workspacePath: AbsolutePath) => {
   const { data, loading, error, empty } = useQuery(
     (orm) => workspaceCacheQuery(orm, workspacePath).toSQL(),
-    WorkspaceCacheRowSchema
+    WorkspaceCacheRowSchema,
   )
 
   const cacheMap = new Map(data?.map((row) => [row.filePath, row]) ?? [])
@@ -26,5 +25,4 @@ export const useWorkspaceCache = (workspacePath: AbsolutePath) => {
 }
 
 export type WorkspaceCache = ReturnType<typeof useWorkspaceCache>["cacheMap"]
-export type WorkspaceCacheValue =
-  WorkspaceCache extends Map<infer _K, infer V> ? V : never
+export type WorkspaceCacheValue = WorkspaceCache extends Map<infer _K, infer V> ? V : never

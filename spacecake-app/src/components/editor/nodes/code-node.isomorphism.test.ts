@@ -2,14 +2,8 @@ import { createEditor, LexicalEditor } from "lexical"
 import { beforeEach, describe, expect, it } from "vitest"
 
 import { nodes } from "@/components/editor/nodes"
-import {
-  $createCodeBlockNode,
-  CodeBlockNode,
-} from "@/components/editor/nodes/code-node"
-import {
-  $getDelimiters,
-  delimitedNode,
-} from "@/components/editor/nodes/delimited-node"
+import { $createCodeBlockNode, CodeBlockNode } from "@/components/editor/nodes/code-node"
+import { $getDelimiters, delimitedNode } from "@/components/editor/nodes/delimited-node"
 
 describe("CodeNode isomorphism", () => {
   let editor: LexicalEditor

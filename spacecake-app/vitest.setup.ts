@@ -9,8 +9,7 @@ if (typeof globalThis.ClipboardItem === "undefined") {
     constructor(items: Record<string, Blob | string>) {
       this._items = {}
       for (const [type, data] of Object.entries(items)) {
-        this._items[type] =
-          data instanceof Blob ? data : new Blob([data], { type })
+        this._items[type] = data instanceof Blob ? data : new Blob([data], { type })
       }
       this.types = Object.keys(this._items)
     }

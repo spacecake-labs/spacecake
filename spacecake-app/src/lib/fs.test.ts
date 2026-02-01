@@ -1,20 +1,15 @@
-import {
-  NotFoundError,
-  PermissionDeniedError,
-  UnknownFSError,
-} from "@/services/file-system"
 import { assert, describe, expect, test, vi } from "vitest"
 
-import { left, match, right } from "@/types/adt"
 import type { ElectronAPI } from "@/types/electron"
 import type { FileContent } from "@/types/workspace"
-import { AbsolutePath, FileType } from "@/types/workspace"
+
 import { openDirectory, readFile, saveFile } from "@/lib/fs"
+import { NotFoundError, PermissionDeniedError, UnknownFSError } from "@/services/file-system"
+import { left, match, right } from "@/types/adt"
+import { AbsolutePath, FileType } from "@/types/workspace"
 
 // Create test implementations of the ElectronAPI interface
-const createTestElectronAPI = (
-  overrides: Partial<ElectronAPI> = {}
-): ElectronAPI => ({
+const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAPI => ({
   claude: {
     notifySelectionChanged: async () => {},
     notifyAtMentioned: async () => {},
@@ -65,9 +60,7 @@ const createTestElectronAPI = (
   ...overrides,
 })
 
-const createTestFileContent = (
-  overrides: Partial<FileContent> = {}
-): FileContent => ({
+const createTestFileContent = (overrides: Partial<FileContent> = {}): FileContent => ({
   name: "test.py",
   path: AbsolutePath("/test/test.py"),
   kind: "file",
@@ -107,14 +100,11 @@ describe("readFile", () => {
           new NotFoundError({
             path: "/nonexistent/file.py",
             description: "file not found",
-          })
+          }),
         ),
     })
 
-    const result = await readFile(
-      AbsolutePath("/nonexistent/file.py"),
-      electronAPI
-    )
+    const result = await readFile(AbsolutePath("/nonexistent/file.py"), electronAPI)
 
     match(result, {
       onLeft: (error) => {
@@ -133,14 +123,11 @@ describe("readFile", () => {
           new PermissionDeniedError({
             path: "/protected/file.py",
             description: "permission denied",
-          })
+          }),
         ),
     })
 
-    const result = await readFile(
-      AbsolutePath("/protected/file.py"),
-      electronAPI
-    )
+    const result = await readFile(AbsolutePath("/protected/file.py"), electronAPI)
 
     match(result, {
       onLeft: (error) => {
@@ -179,11 +166,7 @@ describe("saveFile", () => {
       saveFile: async () => right(undefined),
     })
 
-    const result = await saveFile(
-      AbsolutePath("/test/test.py"),
-      "new content",
-      electronAPI
-    )
+    const result = await saveFile(AbsolutePath("/test/test.py"), "new content", electronAPI)
 
     match(result, {
       onLeft: () => {
@@ -202,15 +185,11 @@ describe("saveFile", () => {
           new UnknownFSError({
             path: "/test/test.py",
             description: "disk full",
-          })
+          }),
         ),
     })
 
-    const result = await saveFile(
-      AbsolutePath("/test/test.py"),
-      "content",
-      electronAPI
-    )
+    const result = await saveFile(AbsolutePath("/test/test.py"), "content", electronAPI)
 
     match(result, {
       onLeft: (error) => {
@@ -229,15 +208,11 @@ describe("saveFile", () => {
           new PermissionDeniedError({
             path: "/protected/file.py",
             description: "permission denied",
-          })
+          }),
         ),
     })
 
-    const result = await saveFile(
-      AbsolutePath("/protected/file.py"),
-      "content",
-      electronAPI
-    )
+    const result = await saveFile(AbsolutePath("/protected/file.py"), "content", electronAPI)
 
     match(result, {
       onLeft: (error) => {
@@ -254,11 +229,7 @@ describe("saveFile", () => {
       saveFile: async () => right(undefined),
     })
 
-    const result = await saveFile(
-      AbsolutePath("/test/empty.py"),
-      "",
-      electronAPI
-    )
+    const result = await saveFile(AbsolutePath("/test/empty.py"), "", electronAPI)
 
     match(result, {
       onLeft: (error) => {
@@ -296,9 +267,7 @@ describe("openDirectory", () => {
   })
 
   test("returns null when dialog throws error", async () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {})
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
 
     const electronAPI = createTestElectronAPI({
       showOpenDialog: async () => {

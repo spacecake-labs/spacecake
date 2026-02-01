@@ -1,12 +1,8 @@
-import { ClaudeConfig } from "@/services/claude-config"
-import {
-  FileSystem,
-  UnknownFSError,
-  type FileSystemError,
-} from "@/services/file-system"
-import { SpacecakeHome } from "@/services/spacecake-home"
 import { Effect, Layer } from "effect"
 
+import { ClaudeConfig } from "@/services/claude-config"
+import { FileSystem, UnknownFSError, type FileSystemError } from "@/services/file-system"
+import { SpacecakeHome } from "@/services/spacecake-home"
 import { AbsolutePath } from "@/types/workspace"
 
 /**
@@ -54,9 +50,7 @@ const makeClaudeSettingsFile = Effect.gen(function* () {
   /**
    * Parse JSON content, returning empty settings on parse failure
    */
-  const parseJson = (
-    content: string
-  ): Effect.Effect<ClaudeSettings, FileSystemError> =>
+  const parseJson = (content: string): Effect.Effect<ClaudeSettings, FileSystemError> =>
     Effect.try({
       try: () => JSON.parse(content) as ClaudeSettings,
       catch: () =>
@@ -66,7 +60,7 @@ const makeClaudeSettingsFile = Effect.gen(function* () {
         }),
     }).pipe(
       // Treat parse errors as empty settings (file exists but is malformed)
-      Effect.catchAll(() => Effect.succeed({}))
+      Effect.catchAll(() => Effect.succeed({})),
     )
 
   /**
@@ -75,15 +69,13 @@ const makeClaudeSettingsFile = Effect.gen(function* () {
   const read = (): Effect.Effect<ClaudeSettings | null, FileSystemError> =>
     fs.readTextFile(settingsPath).pipe(
       Effect.flatMap((content) => parseJson(content.content)),
-      Effect.catchTag("NotFoundError", () => Effect.succeed(null))
+      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
     )
 
   /**
    * Write settings.json (full replacement)
    */
-  const write = (
-    settings: ClaudeSettings
-  ): Effect.Effect<void, FileSystemError> =>
+  const write = (settings: ClaudeSettings): Effect.Effect<void, FileSystemError> =>
     fs.writeTextFile(settingsPath, JSON.stringify(settings, null, 2))
 
   /**
@@ -91,14 +83,14 @@ const makeClaudeSettingsFile = Effect.gen(function* () {
    * Pass null to remove the statusLine configuration.
    */
   const updateStatusline = (
-    statusLine: StatusLineSettings | null
+    statusLine: StatusLineSettings | null,
   ): Effect.Effect<void, FileSystemError> =>
     read().pipe(
       Effect.map((existing) => ({
         ...(existing ?? {}),
         statusLine,
       })),
-      Effect.flatMap(write)
+      Effect.flatMap(write),
     )
 
   /**
@@ -110,10 +102,7 @@ const makeClaudeSettingsFile = Effect.gen(function* () {
   /**
    * Get the current statusline configuration status
    */
-  const getStatuslineStatus = (): Effect.Effect<
-    StatuslineConfigStatus,
-    FileSystemError
-  > =>
+  const getStatuslineStatus = (): Effect.Effect<StatuslineConfigStatus, FileSystemError> =>
     read().pipe(
       Effect.map((settings) => {
         const spacecakePath = home.statuslineScriptPath
@@ -133,12 +122,10 @@ const makeClaudeSettingsFile = Effect.gen(function* () {
           // Detects the old inline `bash -c '…spacecake.sock…'` config
           // that users copy-pasted before auto-setup existed
           isInlineSpacecake:
-            !!command &&
-            command !== spacecakePath &&
-            command.includes("spacecake.sock"),
+            !!command && command !== spacecakePath && command.includes("spacecake.sock"),
           command,
         }
-      })
+      }),
     )
 
   return {
@@ -156,13 +143,10 @@ const makeClaudeSettingsFile = Effect.gen(function* () {
  * Handles the ~/.claude/settings.json file which stores Claude Code configuration
  * including the statusLine hook settings.
  */
-export class ClaudeSettingsFile extends Effect.Service<ClaudeSettingsFile>()(
-  "ClaudeSettingsFile",
-  {
-    effect: makeClaudeSettingsFile,
-    dependencies: [ClaudeConfig.Default, FileSystem.Default],
-  }
-) {}
+export class ClaudeSettingsFile extends Effect.Service<ClaudeSettingsFile>()("ClaudeSettingsFile", {
+  effect: makeClaudeSettingsFile,
+  dependencies: [ClaudeConfig.Default, FileSystem.Default],
+}) {}
 
 /**
  * Test layer for ClaudeSettingsFile that uses custom dependencies
@@ -171,7 +155,7 @@ export class ClaudeSettingsFile extends Effect.Service<ClaudeSettingsFile>()(
 export const makeClaudeSettingsFileTestLayer = (
   claudeConfigLayer: Layer.Layer<ClaudeConfig>,
   fileSystemLayer: Layer.Layer<FileSystem>,
-  spacecakeHomeLayer: Layer.Layer<SpacecakeHome>
+  spacecakeHomeLayer: Layer.Layer<SpacecakeHome>,
 ) =>
   Layer.effect(
     ClaudeSettingsFile,
@@ -179,9 +163,9 @@ export const makeClaudeSettingsFileTestLayer = (
       ClaudeSettingsFile,
       never,
       ClaudeConfig | FileSystem | SpacecakeHome
-    >
+    >,
   ).pipe(
     Layer.provide(claudeConfigLayer),
     Layer.provide(fileSystemLayer),
-    Layer.provide(spacecakeHomeLayer)
+    Layer.provide(spacecakeHomeLayer),
   )

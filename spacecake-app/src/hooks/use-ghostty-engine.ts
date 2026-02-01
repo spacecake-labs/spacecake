@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react"
 import { Effect } from "effect"
 import { FitAddon, init, ITheme, Terminal } from "ghostty-web"
 import { useAtom } from "jotai"
+import { useCallback, useEffect, useRef, useState } from "react"
 
-import { isLeft } from "@/types/adt"
+import { useTheme } from "@/components/theme-provider"
 import { terminalProfileLoadedAtom } from "@/lib/atoms/atoms"
 import { handleImagePaste, TerminalClipboardLive } from "@/lib/clipboard"
 import { suppressDuplicateWarnings } from "@/lib/suppress-duplicate-warnings"
@@ -14,7 +14,7 @@ import {
   resizeTerminal,
   writeTerminal,
 } from "@/lib/terminal"
-import { useTheme } from "@/components/theme-provider"
+import { isLeft } from "@/types/adt"
 
 export interface TerminalAPI {
   fit: () => void
@@ -72,22 +72,16 @@ export function useGhosttyEngine({
   const apiRef = useRef<TerminalAPI | null>(null)
   const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingResizeRef = useRef<{ cols: number; rows: number } | null>(null)
-  const appShortcutHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(
-    null
-  )
+  const appShortcutHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null)
   const linkTooltipRef = useRef<HTMLDivElement | null>(null)
   const linkHoverHandlerRef = useRef<((e: MouseEvent) => void) | null>(null)
 
   const [error, setError] = useState<string | null>(null)
   const [api, setApi] = useState<TerminalAPI | null>(null)
-  const [profileLoaded, setTerminalProfileLoaded] = useAtom(
-    terminalProfileLoadedAtom
-  )
+  const [profileLoaded, setTerminalProfileLoaded] = useAtom(terminalProfileLoadedAtom)
 
   const { theme } = useTheme()
-  const activeTheme = useRef(
-    theme === "dark" ? terminalTheme.dark : terminalTheme.light
-  )
+  const activeTheme = useRef(theme === "dark" ? terminalTheme.dark : terminalTheme.light)
 
   // Initialization effect — runs when enabled becomes true, cleans up when false
   useEffect(() => {
@@ -166,11 +160,7 @@ export function useGhosttyEngine({
               requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                   if (pendingResizeRef.current) {
-                    resizeTerminal(
-                      id,
-                      pendingResizeRef.current.cols,
-                      pendingResizeRef.current.rows
-                    )
+                    resizeTerminal(id, pendingResizeRef.current.cols, pendingResizeRef.current.rows)
                     pendingResizeRef.current = null
                   }
                 })
@@ -198,9 +188,7 @@ export function useGhosttyEngine({
             !event.metaKey
           ) {
             event.preventDefault()
-            Effect.runPromise(
-              handleImagePaste(id).pipe(Effect.provide(TerminalClipboardLive))
-            )
+            Effect.runPromise(handleImagePaste(id).pipe(Effect.provide(TerminalClipboardLive)))
             return true
           }
 
@@ -271,11 +259,7 @@ export function useGhosttyEngine({
             }
           }
         }
-        containerEl.addEventListener(
-          "keydown",
-          appShortcutHandlerRef.current,
-          true
-        )
+        containerEl.addEventListener("keydown", appShortcutHandlerRef.current, true)
 
         // Create link hover tooltip
         const tooltip = document.createElement("div")
@@ -309,14 +293,11 @@ export function useGhosttyEngine({
         // Build API
         const terminalApi: TerminalAPI = {
           fit: () => fitAddon.fit(),
-          getLine: (y: number) =>
-            term.buffer.active.getLine(y)?.translateToString(true) ?? null,
+          getLine: (y: number) => term.buffer.active.getLine(y)?.translateToString(true) ?? null,
           getAllLines: () => {
             const lines: string[] = []
             for (let y = 0; y < term.rows; y++) {
-              lines.push(
-                term.buffer.active.getLine(y)?.translateToString(true) ?? ""
-              )
+              lines.push(term.buffer.active.getLine(y)?.translateToString(true) ?? "")
             }
             return lines
           },
@@ -333,9 +314,7 @@ export function useGhosttyEngine({
         window.__terminalAPI = terminalApi
       } catch (err) {
         console.error("failed to initialize terminal:", err)
-        setError(
-          err instanceof Error ? err.message : "failed to initialize terminal"
-        )
+        setError(err instanceof Error ? err.message : "failed to initialize terminal")
       }
     }
 
@@ -348,18 +327,11 @@ export function useGhosttyEngine({
         clearTimeout(resizeTimeoutRef.current)
       }
       if (appShortcutHandlerRef.current) {
-        containerEl.removeEventListener(
-          "keydown",
-          appShortcutHandlerRef.current,
-          true
-        )
+        containerEl.removeEventListener("keydown", appShortcutHandlerRef.current, true)
         appShortcutHandlerRef.current = null
       }
       if (linkHoverHandlerRef.current) {
-        containerEl.removeEventListener(
-          "mousemove",
-          linkHoverHandlerRef.current
-        )
+        containerEl.removeEventListener("mousemove", linkHoverHandlerRef.current)
         linkHoverHandlerRef.current = null
       }
       if (linkTooltipRef.current) {

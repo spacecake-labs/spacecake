@@ -28,12 +28,12 @@ import {
   Type,
 } from "lucide-react"
 
-import { insertBlockNode } from "@/lib/editor/insert-block-node"
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node"
 import {
   $createFrontmatterNode,
   $isFrontmatterNode,
 } from "@/components/editor/nodes/frontmatter-node"
+import { insertBlockNode } from "@/lib/editor/insert-block-node"
 
 export class SlashCommandOption extends MenuOption {
   title: string
@@ -49,7 +49,7 @@ export class SlashCommandOption extends MenuOption {
       keywords?: Array<string>
       keyboardShortcut?: string
       onSelect: (queryString: string) => void
-    }
+    },
   ) {
     super(title)
     this.title = title
@@ -67,20 +67,13 @@ export class SlashCommandOption extends MenuOption {
 
 export function slashCommandOptions(
   editor: LexicalEditor,
-  language: string
+  language: string,
   // showModal: ShowModal
 ) {
   return [
     new SlashCommandOption("code", {
       icon: <Code className="w-4 h-4" />,
-      keywords: [
-        "code",
-        "codeblock",
-        "snippet",
-        "javascript",
-        "python",
-        "markdown",
-      ],
+      keywords: ["code", "codeblock", "snippet", "javascript", "python", "markdown"],
       onSelect: () =>
         editor.update(() => {
           const selection = $getSelection()
@@ -103,7 +96,7 @@ export function slashCommandOptions(
               Promise.resolve(
                 setTimeout(() => {
                   codeNode.select()
-                }, 0)
+                }, 0),
               )
             } else {
               // Will this ever happen?
@@ -155,7 +148,7 @@ export function slashCommandOptions(
           Promise.resolve(
             setTimeout(() => {
               frontmatterNode.select()
-            }, 0)
+            }, 0),
           )
         }),
     }),

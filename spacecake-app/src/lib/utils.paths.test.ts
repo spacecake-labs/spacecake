@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest"
 
+import { condensePath, filename, toAbsolutePath, toRelativePath } from "@/lib/utils"
 import { AbsolutePath, RelativePath } from "@/types/workspace"
-import {
-  condensePath,
-  filename,
-  toAbsolutePath,
-  toRelativePath,
-} from "@/lib/utils"
 
 describe("condensePath", () => {
   it("should condense Windows path with backslashes", () => {
@@ -138,18 +133,14 @@ describe("toAbsolutePath", () => {
       workspacePath: "workspace/",
       filePath: "/file.txt",
       expected: "workspace/file.txt",
-      description:
-        "relative workspace with trailing slash, file with leading slash",
+      description: "relative workspace with trailing slash, file with leading slash",
     },
   ])(
     "should convert relative path to absolute path: $description",
     ({ workspacePath, filePath, expected }) => {
-      const result = toAbsolutePath(
-        AbsolutePath(workspacePath),
-        RelativePath(filePath)
-      )
+      const result = toAbsolutePath(AbsolutePath(workspacePath), RelativePath(filePath))
       expect(result).toBe(expected)
-    }
+    },
   )
 })
 
@@ -212,11 +203,8 @@ describe("toRelativePath", () => {
   ])(
     "should convert absolute path to relative path: $description",
     ({ workspacePath, filePath, expected }) => {
-      const result = toRelativePath(
-        AbsolutePath(workspacePath),
-        AbsolutePath(filePath)
-      )
+      const result = toRelativePath(AbsolutePath(workspacePath), AbsolutePath(filePath))
       expect(result).toBe(expected)
-    }
+    },
   )
 })

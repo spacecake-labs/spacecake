@@ -1,9 +1,6 @@
-import { DelimitedString } from "@/types/parser"
 import { delimitStringWithRegex } from "@/lib/parser/delimit"
-import {
-  EMPTY_PATTERN,
-  PYTHON_COMMENT_PREFIX_PATTERN,
-} from "@/lib/parser/regex"
+import { EMPTY_PATTERN, PYTHON_COMMENT_PREFIX_PATTERN } from "@/lib/parser/regex"
+import { DelimitedString } from "@/types/parser"
 
 export function delimitPythonComment(line: string): DelimitedString {
   return delimitStringWithRegex(line, {

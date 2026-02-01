@@ -1,17 +1,11 @@
-import {
-  editorTable,
-  fileTable,
-  paneItemTable,
-  paneTable,
-  workspaceTable,
-} from "@/schema/drizzle"
+import { desc, eq, like, sql } from "drizzle-orm"
+import { drizzle } from "drizzle-orm/pglite"
+
+import { editorTable, fileTable, paneItemTable, paneTable, workspaceTable } from "@/schema/drizzle"
 import { EditorPrimaryKey } from "@/schema/editor"
 import { FilePrimaryKey } from "@/schema/file"
 import { PaneItemPrimaryKey, PanePrimaryKey } from "@/schema/pane"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
-import { desc, eq, like, sql } from "drizzle-orm"
-import { drizzle } from "drizzle-orm/pglite"
-
 import { ViewKind } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 
@@ -40,9 +34,7 @@ export const workspaceCacheQuery = (orm: Orm, workspacePath: AbsolutePath) => {
       filePath: sql<AbsolutePath>`${fileTable.path}`.as("filePath"),
       fileId: sql<FilePrimaryKey>`${fileTable.id}`.as("fileId"),
       view_kind: editorTable.view_kind,
-      has_cached_state: sql<boolean>`${editorTable.state} IS NOT NULL`.as(
-        "has_cached_state"
-      ),
+      has_cached_state: sql<boolean>`${editorTable.state} IS NOT NULL`.as("has_cached_state"),
       mtime: fileTable.mtime,
       cid: fileTable.cid,
       editorId: sql<EditorPrimaryKey>`${editorTable.id}`.as("editorId"),
@@ -59,10 +51,7 @@ export const workspaceCacheQuery = (orm: Orm, workspacePath: AbsolutePath) => {
  *
  * Returns the layout column for the specified workspace.
  */
-export const workspaceLayoutQuery = (
-  orm: Orm,
-  workspaceId: WorkspacePrimaryKey
-) => {
+export const workspaceLayoutQuery = (orm: Orm, workspaceId: WorkspacePrimaryKey) => {
   return orm
     .select({
       layout: workspaceTable.layout,
@@ -86,9 +75,7 @@ export const paneItemsQuery = (orm: Orm, paneId: PanePrimaryKey) => {
     .select({
       id: sql<PaneItemPrimaryKey>`${paneItemTable.id}`.as("id"),
       position: sql<number>`${paneItemTable.position}`.as("position"),
-      editorId: sql<EditorPrimaryKey | null>`${paneItemTable.editor_id}`.as(
-        "editorId"
-      ),
+      editorId: sql<EditorPrimaryKey | null>`${paneItemTable.editor_id}`.as("editorId"),
       filePath: sql<AbsolutePath>`${fileTable.path}`.as("filePath"),
       viewKind: sql<ViewKind>`${editorTable.view_kind}`.as("viewKind"),
     })
@@ -107,9 +94,7 @@ export const paneItemsQuery = (orm: Orm, paneId: PanePrimaryKey) => {
 export const activePaneItemQuery = (orm: Orm, paneId: PanePrimaryKey) => {
   return orm
     .select({
-      activePaneItemId: sql<string | null>`${paneTable.active_pane_item_id}`.as(
-        "activePaneItemId"
-      ),
+      activePaneItemId: sql<string | null>`${paneTable.active_pane_item_id}`.as("activePaneItemId"),
     })
     .from(paneTable)
     .where(eq(paneTable.id, paneId))

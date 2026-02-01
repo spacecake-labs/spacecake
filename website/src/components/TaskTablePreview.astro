@@ -1,0 +1,313 @@
+---
+
+---
+
+<div class="relative w-full max-w-[500px] mx-auto">
+  <div
+    class="task-table-container bg-[#0c0c0c] border border-zinc-700 rounded-lg overflow-hidden shadow-xl"
+  >
+    <!-- Header Bar -->
+    <div
+      class="flex items-center justify-between px-4 py-1.5 border-b border-zinc-800 bg-[#0a0a0a]"
+    >
+      <div class="flex items-center gap-2 text-xs font-mono">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="text-emerald-400"
+        >
+          <path d="M9 11l3 3L22 4"></path>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+          ></path>
+        </svg>
+        <span class="text-zinc-400">tasks</span>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div
+      class="flex items-center gap-2 px-4 py-2 border-b border-zinc-800 bg-[#0a0a0a]"
+    >
+      <button class="filter-btn active">all</button>
+      <button class="filter-btn">pending</button>
+      <button class="filter-btn">in progress</button>
+      <button class="filter-btn">completed</button>
+    </div>
+
+    <!-- Table Content -->
+    <div
+      class="table-content bg-[#0a0a0a] p-4 font-mono text-sm overflow-x-auto"
+    >
+      <table class="w-full">
+        <thead>
+          <tr class="text-zinc-500 text-xs tracking-wider">
+            <th class="text-left py-2 px-2 font-medium">task</th>
+            <th class="text-left py-2 px-2 font-medium">title</th>
+            <th class="text-left py-2 px-2 font-medium">status</th>
+          </tr>
+        </thead>
+        <tbody class="task-rows">
+          <tr class="task-row border-t border-zinc-800/50">
+            <td class="py-3 px-2 text-zinc-500">1</td>
+            <td class="py-3 px-2 text-zinc-200">create database schema</td>
+            <td class="py-3 px-2">
+              <span class="status-badge completed">completed</span>
+            </td>
+          </tr>
+          <tr class="task-row border-t border-zinc-800/50 in-progress-row">
+            <td class="py-3 px-2 text-zinc-500">2</td>
+            <td class="py-3 px-2 text-zinc-200">build api endpoints</td>
+            <td class="py-3 px-2">
+              <span class="status-badge in-progress">
+                <span class="status-dot-wrapper">
+                  <span class="status-dot"></span>
+                  <span class="status-dot-ping"></span>
+                </span>
+                in progress
+              </span>
+            </td>
+          </tr>
+          <tr class="task-row border-t border-zinc-800/50">
+            <td class="py-3 px-2 text-zinc-500">3</td>
+            <td class="py-3 px-2 text-zinc-200">add unit tests</td>
+            <td class="py-3 px-2">
+              <span class="status-badge pending">pending</span>
+            </td>
+          </tr>
+          <tr class="task-row border-t border-zinc-800/50">
+            <td class="py-3 px-2 text-zinc-500">4</td>
+            <td class="py-3 px-2 text-zinc-200">update documentation</td>
+            <td class="py-3 px-2">
+              <span class="status-badge pending">pending</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Override Starlight typography styles */
+  .task-table-container {
+    font-family: var(--sl-font);
+    line-height: 1.5 !important;
+  }
+
+  .task-table-container .font-mono {
+    font-family: var(--sl-font-mono) !important;
+  }
+
+  .task-table-container table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  .task-table-container th,
+  .task-table-container td {
+    border: none !important;
+  }
+
+  /* Fixed height for table content to prevent resize on filter */
+  .table-content {
+    height: 240px;
+    overflow: hidden;
+  }
+
+  /* Filter buttons */
+  .filter-btn {
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-family: var(--sl-font-mono) !important;
+    color: #a1a1aa; /* zinc-400 */
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .filter-btn:hover {
+    color: #e4e4e7; /* zinc-200 */
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .filter-btn.active {
+    color: #34d399; /* emerald-400 */
+    background: rgba(52, 211, 153, 0.1);
+    border-color: rgba(52, 211, 153, 0.2);
+  }
+
+  /* Status badges */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.6875rem;
+    font-family: var(--sl-font-mono) !important;
+    font-weight: 500;
+    text-transform: lowercase;
+  }
+
+  .status-badge.completed {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399; /* emerald-400 */
+    border: 1px solid rgba(52, 211, 153, 0.25);
+  }
+
+  /* In-progress badge - matching claude-status-badge.tsx amber styling */
+  .status-badge.in-progress {
+    background: rgb(69 26 3 / 0.4); /* amber-950/40 */
+    color: #fbbf24; /* amber-400 */
+    border: 1px solid rgb(245 158 11 / 0.3); /* amber-500/30 */
+  }
+
+  .status-dot-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .status-dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    background-color: #f59e0b; /* amber-500 */
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .status-dot-ping {
+    position: absolute;
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    background-color: #f59e0b; /* amber-500 */
+    animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+    opacity: 0.75;
+  }
+
+  .status-badge.pending {
+    background: rgba(161, 161, 170, 0.1);
+    color: #a1a1aa; /* zinc-400 */
+    border: 1px solid rgba(161, 161, 170, 0.2);
+  }
+
+  /* Task rows */
+  .task-row {
+    transition: background 0.15s ease;
+  }
+
+  .task-row:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .in-progress-row {
+    background: rgba(245, 158, 11, 0.03);
+  }
+
+  .in-progress-row:hover {
+    background: rgba(245, 158, 11, 0.06);
+  }
+
+  /* Animations */
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes ping {
+    75%,
+    100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+
+  /* Force Tailwind spacing utilities to work */
+  .task-table-container .gap-2 {
+    gap: 0.5rem !important;
+  }
+
+  .task-table-container .p-4 {
+    padding: 1rem !important;
+  }
+
+  .task-table-container .px-4 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .task-table-container .py-2 {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  .task-table-container .py-3 {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  .task-table-container .px-2 {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+</style>
+
+<script>
+  function initTaskTable() {
+    const container = document.querySelector(".task-table-container")
+    if (!container) return
+
+    const filterBtns = container.querySelectorAll(".filter-btn")
+    const taskRows = container.querySelectorAll(".task-row")
+
+    filterBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        // Update active button
+        filterBtns.forEach((b) => b.classList.remove("active"))
+        btn.classList.add("active")
+
+        const filter = btn.textContent?.toLowerCase().trim()
+
+        // Filter rows
+        taskRows.forEach((row) => {
+          const statusBadge = row.querySelector(".status-badge")
+          const status = statusBadge?.textContent?.toLowerCase().trim()
+
+          let show = false
+          if (filter === "all") {
+            show = true
+          } else if (filter === "in progress" && status === "in progress") {
+            show = true
+          } else if (filter === "pending" && status === "pending") {
+            show = true
+          } else if (filter === "completed" && status === "completed") {
+            show = true
+          }
+
+          ;(row as HTMLElement).style.display = show ? "" : "none"
+        })
+      })
+    })
+  }
+
+  // Initialize on load
+  initTaskTable()
+
+  // Re-initialize when navigating with View Transitions
+  document.addEventListener("astro:page-load", initTaskTable)
+</script>

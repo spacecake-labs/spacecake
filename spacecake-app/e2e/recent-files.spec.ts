@@ -1,3 +1,4 @@
+import { stubDialog } from "electron-playwright-helpers"
 import fs from "fs"
 import path from "path"
 
@@ -8,7 +9,6 @@ import {
   locateSidebarItem,
   pressQuickOpen,
 } from "@/../e2e/utils"
-import { stubDialog } from "electron-playwright-helpers"
 
 test.describe("recent files", () => {
   test("should list recent files and persist them across reloads", async ({
@@ -20,7 +20,7 @@ test.describe("recent files", () => {
     for (const file of filesToCopy) {
       fs.copyFileSync(
         path.join(__dirname, "..", "tests", "fixtures", file),
-        path.join(tempTestDir, file)
+        path.join(tempTestDir, file),
       )
     }
 
@@ -36,7 +36,7 @@ test.describe("recent files", () => {
     // 3. Open a few files to make them "recent"
     await locateSidebarItem(window, "core.py").click({ delay: 200 })
     await expect(
-      window.getByRole("heading", { name: "A file to test block parsing." })
+      window.getByRole("heading", { name: "A file to test block parsing." }),
     ).toBeVisible()
 
     await locateSidebarItem(window, "_README.md").click({ delay: 200 })
@@ -45,7 +45,7 @@ test.describe("recent files", () => {
     await locateSidebarItem(window, "google-doc.py").click({ delay: 200 })
 
     await expect(
-      window.getByRole("heading", { name: "A one-line summary of the module" })
+      window.getByRole("heading", { name: "A one-line summary of the module" }),
     ).toBeVisible()
 
     await window.waitForTimeout(1000)
@@ -73,9 +73,7 @@ test.describe("recent files", () => {
 
     const presistedFiles = locateQuickOpenList(window)
 
-    expect(await presistedFiles.first().textContent()).toContain(
-      "google-doc.py"
-    )
+    expect(await presistedFiles.first().textContent()).toContain("google-doc.py")
     expect(await presistedFiles.nth(1).textContent()).toContain("_README.md")
     expect(await presistedFiles.nth(2).textContent()).toContain("core.py")
   })
@@ -95,9 +93,7 @@ test.describe("recent files", () => {
 
     const recentFiles = locateQuickOpenList(window)
     await expect(recentFiles).toHaveCount(1)
-    expect(await recentFiles.first().textContent()).toContain(
-      "getting-started.md"
-    )
+    expect(await recentFiles.first().textContent()).toContain("getting-started.md")
 
     // 3. Close Quick Open
     await quickOpenInput.press("Escape")
@@ -110,9 +106,7 @@ test.describe("recent files", () => {
     await textbox.press("Enter", { delay: 100 })
 
     // 6. Wait for the new file to appear in the sidebar
-    await expect(
-      locateSidebarItem(window, "test-recent-file.txt")
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "test-recent-file.txt")).toBeVisible()
 
     // 7. Open the file to make it "recent"
     await locateSidebarItem(window, "test-recent-file.txt").click()
@@ -124,9 +118,7 @@ test.describe("recent files", () => {
 
     const recentFilesAfterCreate = locateQuickOpenList(window)
     await expect(recentFilesAfterCreate).toHaveCount(2)
-    expect(await recentFilesAfterCreate.first().textContent()).toContain(
-      "test-recent-file.txt"
-    )
+    expect(await recentFilesAfterCreate.first().textContent()).toContain("test-recent-file.txt")
 
     // 9. Close Quick Open
     await quickOpenInput.press("Escape")
@@ -137,9 +129,7 @@ test.describe("recent files", () => {
     await window.reload()
 
     // 11. Verify workspace reopens
-    await expect(
-      locateSidebarItem(window, "test-recent-file.txt")
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "test-recent-file.txt")).toBeVisible()
 
     // 12. Open Quick Open and verify recent file persists after reload
     await pressQuickOpen(window)
@@ -147,9 +137,7 @@ test.describe("recent files", () => {
 
     const recentFilesAfterReload = locateQuickOpenList(window)
     await expect(recentFilesAfterReload).toHaveCount(2)
-    expect(await recentFilesAfterReload.first().textContent()).toContain(
-      "test-recent-file.txt"
-    )
+    expect(await recentFilesAfterReload.first().textContent()).toContain("test-recent-file.txt")
 
     // 13. Close Quick Open
     await quickOpenInput.press("Escape")
@@ -163,9 +151,7 @@ test.describe("recent files", () => {
     await window.getByRole("button", { name: "delete" }).click()
 
     // 16. Verify the file is removed from the UI
-    await expect(
-      locateSidebarItem(window, "test-recent-file.txt")
-    ).not.toBeVisible()
+    await expect(locateSidebarItem(window, "test-recent-file.txt")).not.toBeVisible()
 
     // 17. Open Quick Open and verify recent files list only has getting-started.md
     await pressQuickOpen(window)
@@ -173,9 +159,7 @@ test.describe("recent files", () => {
 
     const recentFilesAfterDelete = locateQuickOpenList(window)
     await expect(recentFilesAfterDelete).toHaveCount(1)
-    expect(await recentFilesAfterDelete.first().textContent()).toContain(
-      "getting-started.md"
-    )
+    expect(await recentFilesAfterDelete.first().textContent()).toContain("getting-started.md")
 
     // 18. Close Quick Open
     await quickOpenInput.press("Escape")
@@ -184,9 +168,7 @@ test.describe("recent files", () => {
     await window.reload()
 
     // 20. Verify workspace reopens
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    await expect(window.getByRole("button", { name: "create file or folder" })).toBeVisible()
 
     // 21. Open Quick Open and verify recent files list still has getting-started.md
     await pressQuickOpen(window)
@@ -194,9 +176,7 @@ test.describe("recent files", () => {
 
     const recentFilesAfterFinalReload = locateQuickOpenList(window)
     await expect(recentFilesAfterFinalReload).toHaveCount(1)
-    expect(await recentFilesAfterFinalReload.first().textContent()).toContain(
-      "getting-started.md"
-    )
+    expect(await recentFilesAfterFinalReload.first().textContent()).toContain("getting-started.md")
   })
 
   test("recent files are workspace-specific and persist across workspace switches", async ({
@@ -213,13 +193,13 @@ test.describe("recent files", () => {
     // Only copy one file to each workspace to keep recent files list simple
     fs.copyFileSync(
       path.join(__dirname, "..", "tests", "fixtures", "core.py"),
-      path.join(workspace1Path, "core.py")
+      path.join(workspace1Path, "core.py"),
     )
 
     // Copy different file to workspace2
     fs.copyFileSync(
       path.join(__dirname, "..", "tests", "fixtures", "google-doc.py"),
-      path.join(workspace2Path, "google-doc.py")
+      path.join(workspace2Path, "google-doc.py"),
     )
 
     const window = await electronApp.firstWindow()
@@ -247,9 +227,7 @@ test.describe("recent files", () => {
     const recentFilesWorkspace1 = locateQuickOpenList(window)
 
     await expect(recentFilesWorkspace1).toHaveCount(1)
-    expect(await recentFilesWorkspace1.first().textContent()).toContain(
-      "core.py"
-    )
+    expect(await recentFilesWorkspace1.first().textContent()).toContain("core.py")
 
     // 6. Close Quick Open
     await quickOpenInput.press("Escape")
@@ -283,9 +261,7 @@ test.describe("recent files", () => {
     const recentFilesWorkspace2 = locateQuickOpenList(window)
 
     await expect(recentFilesWorkspace2).toHaveCount(1)
-    expect(await recentFilesWorkspace2.first().textContent()).toContain(
-      "google-doc.py"
-    )
+    expect(await recentFilesWorkspace2.first().textContent()).toContain("google-doc.py")
 
     // 12. Close Quick Open
     await quickOpenInput.press("Escape")
@@ -305,18 +281,12 @@ test.describe("recent files", () => {
 
     const recentFilesWorkspace1Final = locateQuickOpenList(window)
     await expect(recentFilesWorkspace1Final).toHaveCount(1)
-    expect(await recentFilesWorkspace1Final.first().textContent()).toContain(
-      "core.py"
-    )
+    expect(await recentFilesWorkspace1Final.first().textContent()).toContain("core.py")
 
     // 15. Verify that workspace2's file is NOT in workspace1's recent files
     const allRecentFiles = await recentFilesWorkspace1Final.all()
-    const fileNames = await Promise.all(
-      allRecentFiles.map((file) => file.textContent())
-    )
+    const fileNames = await Promise.all(allRecentFiles.map((file) => file.textContent()))
     // Check that no recent file contains "google-doc.py" in its name
-    expect(fileNames.some((name) => name?.includes("google-doc.py"))).toBe(
-      false
-    )
+    expect(fileNames.some((name) => name?.includes("google-doc.py"))).toBe(false)
   })
 })

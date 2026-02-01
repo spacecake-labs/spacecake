@@ -1,11 +1,12 @@
-import migration0000 from "@/drizzle/0000_natural_rogue.sql?raw"
-import migration0001 from "@/drizzle/0001_add_workspace_layout.sql?raw"
-import migration0002 from "@/drizzle/0002_pane_items.sql?raw"
-import { Database, makeDatabaseService, PgliteError } from "@/services/database"
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
 import { drizzle } from "drizzle-orm/pglite"
 import { Context, Effect, Layer } from "effect"
+
+import migration0000 from "@/drizzle/0000_natural_rogue.sql?raw"
+import migration0001 from "@/drizzle/0001_add_workspace_layout.sql?raw"
+import migration0002 from "@/drizzle/0002_pane_items.sql?raw"
+import { Database, makeDatabaseService, PgliteError } from "@/services/database"
 
 // Cache the migrated database state as a Blob
 let cachedDataDir: Blob | null = null
@@ -58,10 +59,8 @@ export const makeTestDatabaseLayer = () =>
 
       const orm = drizzle({ client, casing: "snake_case" })
 
-      return makeDatabaseService(client, orm) as Context.Tag.Service<
-        typeof Database
-      >
-    })
+      return makeDatabaseService(client, orm) as Context.Tag.Service<typeof Database>
+    }),
   )
 
 /**

@@ -1,9 +1,9 @@
 import { useAtomValue } from "jotai"
 import { Terminal } from "lucide-react"
 
+import { useTheme } from "@/components/theme-provider"
 import { terminalProfileLoadedAtom } from "@/lib/atoms/atoms"
 import { cn } from "@/lib/utils"
-import { useTheme } from "@/components/theme-provider"
 
 interface TerminalStatusBadgeProps {
   className?: string

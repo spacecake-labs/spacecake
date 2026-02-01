@@ -1,14 +1,15 @@
-import { useCallback } from "react"
-import { Database } from "@/services/database"
-import { RuntimeClient } from "@/services/runtime-client"
 import { Effect } from "effect"
 import { useSetAtom, useStore } from "jotai"
+import { useCallback } from "react"
 
 import type { FileTreeEvent, WorkspaceInfo } from "@/types/workspace"
-import { AbsolutePath } from "@/types/workspace"
+
+import { useRoute } from "@/hooks/use-route"
 import { fileTreeEventAtom, sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import { handleFileEvent } from "@/lib/file-event-handler"
-import { useRoute } from "@/hooks/use-route"
+import { Database } from "@/services/database"
+import { RuntimeClient } from "@/services/runtime-client"
+import { AbsolutePath } from "@/types/workspace"
 
 export const useFileEventHandler = (workspacePath: WorkspaceInfo["path"]) => {
   const setFileTreeEvent = useSetAtom(fileTreeEventAtom)
@@ -20,10 +21,10 @@ export const useFileEventHandler = (workspacePath: WorkspaceInfo["path"]) => {
         Effect.gen(function* () {
           const db = yield* Database
           yield* db.deleteFile(filePath)
-        }).pipe(Effect.tapErrorCause(Effect.logError))
+        }).pipe(Effect.tapErrorCause(Effect.logError)),
       )
     },
-    [workspacePath]
+    [workspacePath],
   )
 
   const route = useRoute()
@@ -35,15 +36,8 @@ export const useFileEventHandler = (workspacePath: WorkspaceInfo["path"]) => {
       // This ensures we always get the latest values without causing re-renders
       const fileTree = store.get(sortedFileTreeAtom)
 
-      handleFileEvent(
-        event,
-        currentPath,
-        setFileTreeEvent,
-        workspacePath,
-        fileTree,
-        deleteFile
-      )
+      handleFileEvent(event, currentPath, setFileTreeEvent, workspacePath, fileTree, deleteFile)
     },
-    [setFileTreeEvent, store, workspacePath, deleteFile, currentPath]
+    [setFileTreeEvent, store, workspacePath, deleteFile, currentPath],
   )
 }

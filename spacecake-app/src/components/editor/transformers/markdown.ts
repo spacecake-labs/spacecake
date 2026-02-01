@@ -33,26 +33,16 @@ import {
   LexicalNode,
 } from "lexical"
 
-import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
-import {
-  $createCodeBlockNode,
-  $isCodeBlockNode,
-} from "@/components/editor/nodes/code-node"
+import { $createCodeBlockNode, $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { delimitedNode } from "@/components/editor/nodes/delimited-node"
 import {
   $createFrontmatterNode,
   $isFrontmatterNode,
   FrontmatterNode,
 } from "@/components/editor/nodes/frontmatter-node"
-import {
-  $createImageNode,
-  $isImageNode,
-  ImageNode,
-} from "@/components/editor/nodes/image-node"
-import {
-  $createMermaidNode,
-  $isMermaidNode,
-} from "@/components/editor/nodes/mermaid-node"
+import { $createImageNode, $isImageNode, ImageNode } from "@/components/editor/nodes/image-node"
+import { $createMermaidNode, $isMermaidNode } from "@/components/editor/nodes/mermaid-node"
+import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
 
 export function createCodeTransformer(): MultilineElementTransformer {
   return {
@@ -73,11 +63,7 @@ export function createCodeTransformer(): MultilineElementTransformer {
       }
       const languageForMarkdown = language === "plaintext" ? "" : language
       return (
-        "```" +
-        (languageForMarkdown || "") +
-        (textContent ? "\n" + textContent : "") +
-        "\n" +
-        "```"
+        "```" + (languageForMarkdown || "") + (textContent ? "\n" + textContent : "") + "\n" + "```"
       )
     },
     replace: (rootNode, _children, startMatch, endMatch, linesInBetween) => {
@@ -97,10 +83,7 @@ export function createCodeTransformer(): MultilineElementTransformer {
         }
 
         // Filter out all end lines that are length 0 until we find the last line with content
-        while (
-          linesInBetween.length > 0 &&
-          !linesInBetween[linesInBetween.length - 1].length
-        ) {
+        while (linesInBetween.length > 0 && !linesInBetween[linesInBetween.length - 1].length) {
           linesInBetween.pop()
         }
       }
@@ -132,7 +115,7 @@ export function createCodeTransformer(): MultilineElementTransformer {
           Promise.resolve(
             setTimeout(() => {
               mermaidNode.select()
-            }, 0)
+            }, 0),
           )
         }
         return
@@ -150,7 +133,7 @@ export function createCodeTransformer(): MultilineElementTransformer {
             // src: "",
             // block: node.getBlock(),
           }),
-        delimitedString
+        delimitedString,
       )
 
       if (!rootNode.getParent()) {
@@ -168,7 +151,7 @@ export function createCodeTransformer(): MultilineElementTransformer {
         Promise.resolve(
           setTimeout(() => {
             codeNode.select()
-          }, 0)
+          }, 0),
         )
       }
     },
@@ -196,14 +179,7 @@ export function createFrontmatterTransformer(): MultilineElementTransformer {
       optional: true,
       regExp: /^---$/,
     },
-    replace: (
-      rootNode,
-      _children,
-      _startMatch,
-      endMatch,
-      linesInBetween,
-      _isImport
-    ) => {
+    replace: (rootNode, _children, _startMatch, endMatch, linesInBetween, _isImport) => {
       // CRITICAL: Validate position - must be at document start
       const root = $getRoot()
       const firstChild = root.getFirstChild()
@@ -211,9 +187,7 @@ export function createFrontmatterTransformer(): MultilineElementTransformer {
       // Only allow frontmatter at the very beginning
       // Check if rootNode is the first child or if we're replacing the first element
       const isAtDocumentStart =
-        firstChild === null ||
-        firstChild === rootNode ||
-        rootNode.getIndexWithinParent() === 0
+        firstChild === null || firstChild === rootNode || rootNode.getIndexWithinParent() === 0
 
       if (!isAtDocumentStart) {
         // Don't convert to frontmatter if not at start
@@ -232,10 +206,7 @@ export function createFrontmatterTransformer(): MultilineElementTransformer {
         while (linesInBetween.length > 0 && !linesInBetween[0].length) {
           linesInBetween.shift()
         }
-        while (
-          linesInBetween.length > 0 &&
-          !linesInBetween[linesInBetween.length - 1].length
-        ) {
+        while (linesInBetween.length > 0 && !linesInBetween[linesInBetween.length - 1].length) {
           linesInBetween.pop()
         }
       }
@@ -265,7 +236,7 @@ export function createFrontmatterTransformer(): MultilineElementTransformer {
         Promise.resolve(
           setTimeout(() => {
             frontmatterNode.select()
-          }, 0)
+          }, 0),
         )
       }
     },
@@ -350,9 +321,7 @@ export const TABLE: ElementTransformer = {
         // It's TableCellNode so it's just to make flow happy
         if ($isTableCellNode(cell)) {
           rowOutput.push(
-            $convertToMarkdownString(MARKDOWN_TRANSFORMERS, cell)
-              .replace(/\n/g, "\\n")
-              .trim()
+            $convertToMarkdownString(MARKDOWN_TRANSFORMERS, cell).replace(/\n/g, "\\n").trim(),
           )
           if (cell.__headerState === TableCellHeaderStates.ROW) {
             isHeaderRow = true
@@ -388,10 +357,7 @@ export const TABLE: ElementTransformer = {
         if (!$isTableCellNode(cell)) {
           return
         }
-        cell.setHeaderStyles(
-          TableCellHeaderStates.ROW,
-          TableCellHeaderStates.ROW
-        )
+        cell.setHeaderStyles(TableCellHeaderStates.ROW, TableCellHeaderStates.ROW)
       })
 
       // Remove line
@@ -449,10 +415,7 @@ export const TABLE: ElementTransformer = {
     }
 
     const previousSibling = parentNode.getPreviousSibling()
-    if (
-      $isTableNode(previousSibling) &&
-      getTableColumnsSize(previousSibling) === maxCells
-    ) {
+    if ($isTableNode(previousSibling) && getTableColumnsSize(previousSibling) === maxCells) {
       previousSibling.append(...table.getChildren())
       parentNode.remove()
     } else {
@@ -485,14 +448,15 @@ const mapToTableCells = (textContent: string): Array<TableCellNode> | null => {
 }
 
 // Filter out conflicting code transformers
-const MULTILINE_ELEMENT_TRANSFORMERS_FILTERED =
-  MULTILINE_ELEMENT_TRANSFORMERS.filter((transformer) => {
+const MULTILINE_ELEMENT_TRANSFORMERS_FILTERED = MULTILINE_ELEMENT_TRANSFORMERS.filter(
+  (transformer) => {
     return !(
       "replace" in transformer &&
       typeof transformer.replace === "function" &&
       transformer.replace.toString().includes("$createCodeNode")
     )
-  })
+  },
+)
 
 export const MARKDOWN_TRANSFORMERS = [
   createFrontmatterTransformer(), // Must be first to check position before other transformers

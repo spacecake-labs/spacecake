@@ -1,17 +1,13 @@
+import { Effect } from "effect"
+import { BrowserWindow, dialog, ipcMain, shell } from "electron"
 import fsNode from "fs/promises"
 import path from "path"
 
-import {
-  ClaudeSettingsFile,
-  type StatuslineConfigStatus,
-} from "@/services/claude-settings-file"
+import { ClaudeSettingsFile, type StatuslineConfigStatus } from "@/services/claude-settings-file"
 import { ClaudeTaskListService } from "@/services/claude-task-list"
 import { FileSystem, type FileSystemError } from "@/services/file-system"
 import { SpacecakeHome } from "@/services/spacecake-home"
 import { Terminal } from "@/services/terminal"
-import { Effect } from "effect"
-import { BrowserWindow, dialog, ipcMain, shell } from "electron"
-
 import { left, right, type Either } from "@/types/adt"
 import { ClaudeTaskError } from "@/types/claude-task"
 import { AbsolutePath, FileContent } from "@/types/workspace"
@@ -37,9 +33,7 @@ type SerializedClaudeTaskError = {
   path: string | undefined
 }
 
-const serializeTaskError = (
-  error: ClaudeTaskError
-): SerializedClaudeTaskError => ({
+const serializeTaskError = (error: ClaudeTaskError): SerializedClaudeTaskError => ({
   _tag: error._tag,
   description: error.description,
   path: error.path,
@@ -55,80 +49,77 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
 
     ipcMain.handle(
       "read-file",
-      (
-        _,
-        filePath: AbsolutePath
-      ): Promise<Either<SerializedFileSystemError, FileContent>> =>
+      (_, filePath: AbsolutePath): Promise<Either<SerializedFileSystemError, FileContent>> =>
         Effect.runPromise(
           Effect.match(fs.readTextFile(filePath), {
             onFailure: (error) => left(serializeError(error)),
             onSuccess: (file) => right(file),
-          })
-        )
+          }),
+        ),
     )
     ipcMain.handle("save-file", (_, path, content) =>
       Effect.runPromise(
         Effect.match(fs.writeTextFile(path, content), {
           onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
-        })
-      )
+        }),
+      ),
     )
     ipcMain.handle("create-folder", (_, folderPath: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.createFolder(folderPath), {
           onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
-        })
-      )
+        }),
+      ),
     )
     ipcMain.handle("remove", (_, path: AbsolutePath, recursive?: boolean) =>
       Effect.runPromise(
         Effect.match(fs.remove(path, recursive), {
           onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
-        })
-      )
+        }),
+      ),
     )
     ipcMain.handle("rename", (_, path: AbsolutePath, newPath: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.rename(path, newPath), {
           onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
-        })
-      )
+        }),
+      ),
     )
     ipcMain.handle("path-exists", (_, path: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.exists(path), {
           onFailure: (error) => left(serializeError(error)),
           onSuccess: (exists) => right(exists),
-        })
-      )
+        }),
+      ),
     )
     ipcMain.handle("read-directory", (_, path: string) =>
       Effect.runPromise(
         Effect.match(fs.readDirectory(path), {
           onFailure: (error) => left(serializeError(error)),
           onSuccess: (tree) => right(tree),
-        })
-      )
+        }),
+      ),
     )
     ipcMain.handle("start-watcher", (_, path: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.startWatcher(path), {
           onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
-        })
-      )
+        }),
+      ),
     )
     ipcMain.handle("stop-watcher", (_, path: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.stopWatcher(path), {
           onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
-        })
-      )
+        }),
+      ),
     )
     ipcMain.handle("show-open-dialog", (event, options) => {
       const win = BrowserWindow.fromWebContents(event.sender)
@@ -144,26 +135,22 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     ipcMain.handle("get-home-folder-path", () => home.homeDir)
 
     // Terminal IPC handlers
-    ipcMain.handle(
-      "terminal:create",
-      (_, id: string, cols: number, rows: number, cwd?: string) =>
-        Effect.runPromise(
-          Effect.match(terminal.create(id, cols, rows, cwd), {
-            onFailure: (error) => left(error),
-            onSuccess: () => right(undefined),
-          })
-        )
+    ipcMain.handle("terminal:create", (_, id: string, cols: number, rows: number, cwd?: string) =>
+      Effect.runPromise(
+        Effect.match(terminal.create(id, cols, rows, cwd), {
+          onFailure: (error) => left(error),
+          onSuccess: () => right(undefined),
+        }),
+      ),
     )
 
-    ipcMain.handle(
-      "terminal:resize",
-      (_, id: string, cols: number, rows: number) =>
-        Effect.runPromise(
-          Effect.match(terminal.resize(id, cols, rows), {
-            onFailure: (error) => left(error),
-            onSuccess: () => right(undefined),
-          })
-        )
+    ipcMain.handle("terminal:resize", (_, id: string, cols: number, rows: number) =>
+      Effect.runPromise(
+        Effect.match(terminal.resize(id, cols, rows), {
+          onFailure: (error) => left(error),
+          onSuccess: () => right(undefined),
+        }),
+      ),
     )
 
     ipcMain.handle("terminal:write", (_, id: string, data: string) =>
@@ -171,8 +158,8 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         Effect.match(terminal.write(id, data), {
           onFailure: (error) => left(error),
           onSuccess: () => right(undefined),
-        })
-      )
+        }),
+      ),
     )
 
     ipcMain.handle("terminal:kill", (_, id: string) =>
@@ -180,28 +167,23 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         Effect.match(terminal.kill(id), {
           onFailure: (error) => left(error),
           onSuccess: () => right(undefined),
-        })
-      )
+        }),
+      ),
     )
 
     // Claude Tasks IPC handlers
-    ipcMain.handle(
-      "claude:tasks:start-watching",
-      async (_, sessionId?: string) => {
-        try {
-          await taskList.startWatching(sessionId)
-          return right(undefined)
-        } catch (error) {
-          return left(
-            serializeTaskError(
-              error instanceof ClaudeTaskError
-                ? error
-                : new ClaudeTaskError(String(error))
-            )
-          )
-        }
+    ipcMain.handle("claude:tasks:start-watching", async (_, sessionId?: string) => {
+      try {
+        await taskList.startWatching(sessionId)
+        return right(undefined)
+      } catch (error) {
+        return left(
+          serializeTaskError(
+            error instanceof ClaudeTaskError ? error : new ClaudeTaskError(String(error)),
+          ),
+        )
       }
-    )
+    })
 
     ipcMain.handle("claude:tasks:list", (_, sessionId?: string) => {
       try {
@@ -210,10 +192,8 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       } catch (error) {
         return left(
           serializeTaskError(
-            error instanceof ClaudeTaskError
-              ? error
-              : new ClaudeTaskError(String(error))
-          )
+            error instanceof ClaudeTaskError ? error : new ClaudeTaskError(String(error)),
+          ),
         )
       }
     })
@@ -225,10 +205,8 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       } catch (error) {
         return left(
           serializeTaskError(
-            error instanceof ClaudeTaskError
-              ? error
-              : new ClaudeTaskError(String(error))
-          )
+            error instanceof ClaudeTaskError ? error : new ClaudeTaskError(String(error)),
+          ),
         )
       }
     })
@@ -241,8 +219,8 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
           Effect.match(settingsFile.getStatuslineStatus(), {
             onFailure: (error) => left(serializeError(error)),
             onSuccess: (status) => right(status),
-          })
-        )
+          }),
+        ),
     )
 
     ipcMain.handle(
@@ -252,8 +230,8 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
           Effect.match(settingsFile.configureForSpacecake(), {
             onFailure: (error) => left(serializeError(error)),
             onSuccess: () => right(undefined),
-          })
-        )
+          }),
+        ),
     )
 
     ipcMain.handle(
@@ -263,49 +241,43 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
           Effect.match(settingsFile.updateStatusline(null), {
             onFailure: (error) => left(serializeError(error)),
             onSuccess: () => right(undefined),
-          })
-        )
+          }),
+        ),
     )
 
     // Ensure plansDirectory is set in project-level .claude/settings.json
-    ipcMain.handle(
-      "claude:project-settings:ensure-plans-dir",
-      async (_, workspacePath: string) => {
+    ipcMain.handle("claude:project-settings:ensure-plans-dir", async (_, workspacePath: string) => {
+      try {
+        const claudeDir = path.join(workspacePath, ".claude")
+        const settingsPath = path.join(claudeDir, "settings.json")
+
+        // Ensure .claude/ directory exists
+        await fsNode.mkdir(claudeDir, { recursive: true })
+
+        // Read existing settings or start with empty object
+        let settings: Record<string, unknown> = {}
         try {
-          const claudeDir = path.join(workspacePath, ".claude")
-          const settingsPath = path.join(claudeDir, "settings.json")
-
-          // Ensure .claude/ directory exists
-          await fsNode.mkdir(claudeDir, { recursive: true })
-
-          // Read existing settings or start with empty object
-          let settings: Record<string, unknown> = {}
-          try {
-            const content = await fsNode.readFile(settingsPath, "utf-8")
-            settings = JSON.parse(content)
-          } catch {
-            // File doesn't exist or invalid JSON — start fresh
-          }
-
-          // Only write if plansDirectory is not already configured
-          if (!settings.plansDirectory) {
-            settings.plansDirectory = ".claude/plans"
-            await fsNode.writeFile(
-              settingsPath,
-              JSON.stringify(settings, null, 2)
-            )
-          }
-
-          return right(undefined)
-        } catch (error) {
-          return left({
-            _tag: "UnknownFSError" as const,
-            path: workspacePath,
-            description: String(error),
-          })
+          const content = await fsNode.readFile(settingsPath, "utf-8")
+          settings = JSON.parse(content)
+        } catch {
+          // File doesn't exist or invalid JSON — start fresh
         }
+
+        // Only write if plansDirectory is not already configured
+        if (!settings.plansDirectory) {
+          settings.plansDirectory = ".claude/plans"
+          await fsNode.writeFile(settingsPath, JSON.stringify(settings, null, 2))
+        }
+
+        return right(undefined)
+      } catch (error) {
+        return left({
+          _tag: "UnknownFSError" as const,
+          path: workspacePath,
+          description: String(error),
+        })
       }
-    )
+    })
 
     return {}
   }),

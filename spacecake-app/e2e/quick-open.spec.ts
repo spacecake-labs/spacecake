@@ -5,29 +5,11 @@ import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("quick open feature", () => {
-  test("quick open and navigate to files", async ({
-    electronApp,
-    tempTestDir,
-  }, testInfo) => {
+  test("quick open and navigate to files", async ({ electronApp, tempTestDir }, testInfo) => {
     // Define source paths for fixture files
-    const fixtureReadme = path.join(
-      process.cwd(),
-      "tests",
-      "fixtures",
-      "_README.md"
-    )
-    const fixtureCorePy = path.join(
-      process.cwd(),
-      "tests",
-      "fixtures",
-      "core.py"
-    )
-    const fixtureGoogleDocPy = path.join(
-      process.cwd(),
-      "tests",
-      "fixtures",
-      "google-doc.py"
-    )
+    const fixtureReadme = path.join(process.cwd(), "tests", "fixtures", "_README.md")
+    const fixtureCorePy = path.join(process.cwd(), "tests", "fixtures", "core.py")
+    const fixtureGoogleDocPy = path.join(process.cwd(), "tests", "fixtures", "google-doc.py")
 
     // Define target paths within tempTestDir
     const targetReadme = path.join(tempTestDir, "README.md")
@@ -67,10 +49,7 @@ test.describe("quick open feature", () => {
     // Try using the keyboard shortcut
     await window.keyboard.press("ControlOrMeta+p")
 
-    const quickOpenInput = window
-      .getByRole("dialog", { name: "quick open" })
-      .locator("div")
-      .nth(1)
+    const quickOpenInput = window.getByRole("dialog", { name: "quick open" }).locator("div").nth(1)
     await expect(quickOpenInput).toBeVisible()
     await quickOpenInput.pressSequentially("README.md", { delay: 100 })
 
@@ -81,7 +60,7 @@ test.describe("quick open feature", () => {
     await expect(
       window.getByRole("heading", {
         name: "An Example README File to Test Parsing",
-      })
+      }),
     ).toBeVisible()
 
     // --- Test core.py (one level nested) ---
@@ -95,7 +74,7 @@ test.describe("quick open feature", () => {
     await expect(
       window.getByRole("heading", {
         name: "A file to test block parsing.",
-      })
+      }),
     ).toBeVisible()
 
     // --- Test google-doc.py (two levels nested) ---
@@ -110,7 +89,7 @@ test.describe("quick open feature", () => {
     await expect(
       window.getByRole("heading", {
         name: "A one-line summary of the module or program, terminated by a period.",
-      })
+      }),
     ).toBeVisible()
   })
 })

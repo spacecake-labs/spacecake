@@ -2,8 +2,6 @@
  * @vitest-environment jsdom
  */
 
-import * as React from "react"
-import { act } from "react"
 import { $convertFromMarkdownString } from "@lexical/markdown"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
@@ -16,16 +14,18 @@ import {
   $isTextNode,
   $setSelection,
 } from "lexical"
+import * as React from "react"
+import { act } from "react"
 import { describe, expect, it, vi } from "vitest"
 
-import {
-  createRichViewClaudeSelection,
-  createSourceViewClaudeSelection,
-} from "@/lib/selection-utils"
 import { ContentEditable } from "@/components/editor/content-editable"
 import { editorConfig } from "@/components/editor/editor"
 import { initializeUnitTest } from "@/components/editor/test-utils"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
+import {
+  createRichViewClaudeSelection,
+  createSourceViewClaudeSelection,
+} from "@/lib/selection-utils"
 
 // Mock web-tree-sitter and language parser as in previous setup
 vi.mock("web-tree-sitter", () => {
@@ -61,9 +61,7 @@ vi.mock("@/lib/parser/languages", () => {
 const Plugins = React.memo(function Plugins() {
   return (
     <RichTextPlugin
-      contentEditable={
-        <ContentEditable placeholder={""} className="ContentEditable__root" />
-      }
+      contentEditable={<ContentEditable placeholder={""} className="ContentEditable__root" />}
       ErrorBoundary={LexicalErrorBoundary}
     />
   )
@@ -280,7 +278,7 @@ describe("selection-utils", () => {
               () => {
                 $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -298,7 +296,7 @@ describe("selection-utils", () => {
                   }
                 }
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -320,7 +318,7 @@ describe("selection-utils", () => {
               () => {
                 $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -338,7 +336,7 @@ describe("selection-utils", () => {
                   }
                 }
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -360,7 +358,7 @@ describe("selection-utils", () => {
               () => {
                 $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -391,7 +389,7 @@ describe("selection-utils", () => {
                   }
                 }
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -413,7 +411,7 @@ describe("selection-utils", () => {
               () => {
                 $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -438,7 +436,7 @@ describe("selection-utils", () => {
                   }
                 }
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -463,7 +461,7 @@ describe("selection-utils", () => {
               () => {
                 $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -490,14 +488,14 @@ describe("selection-utils", () => {
                       rangeSelection.focus.set(
                         lastText.getKey(),
                         lastText.getTextContentSize(),
-                        "text"
+                        "text",
                       )
                       $setSelection(rangeSelection)
                     }
                   }
                 }
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -517,7 +515,7 @@ describe("selection-utils", () => {
               () => {
                 $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -535,7 +533,7 @@ describe("selection-utils", () => {
                   }
                 }
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -557,7 +555,7 @@ describe("selection-utils", () => {
               () => {
                 $convertFromMarkdownString(content, MARKDOWN_TRANSFORMERS)
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -571,10 +569,7 @@ describe("selection-utils", () => {
                   const firstElement = children[0]
                   const lastElement = children[children.length - 1]
 
-                  if (
-                    $isElementNode(firstElement) &&
-                    $isElementNode(lastElement)
-                  ) {
+                  if ($isElementNode(firstElement) && $isElementNode(lastElement)) {
                     const firstText = firstElement.getFirstChild()
                     const lastText = lastElement.getLastChild()
 
@@ -584,14 +579,14 @@ describe("selection-utils", () => {
                       rangeSelection.focus.set(
                         lastText.getKey(),
                         lastText.getTextContentSize(),
-                        "text"
+                        "text",
                       )
                       $setSelection(rangeSelection)
                     }
                   }
                 }
               },
-              { discrete: true }
+              { discrete: true },
             )
           })
 
@@ -605,7 +600,7 @@ describe("selection-utils", () => {
         })
       },
       editorConfig,
-      <Plugins />
+      <Plugins />,
     )
   })
 })

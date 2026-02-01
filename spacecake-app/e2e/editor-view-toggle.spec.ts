@@ -62,25 +62,17 @@ This is a **markdown** file.
     await expect(editor).toBeVisible()
 
     // Should start in rich view
-    await expect(
-      page.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
-    await expect(
-      page.getByRole("heading", { name: "fibonacci" }).first()
-    ).toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to source view" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "fibonacci" }).first()).toBeVisible()
 
     // Toggle to source view
     await page.getByRole("link", { name: "switch to source view" }).click()
-    await expect(
-      page.getByRole("link", { name: "switch to rich view" })
-    ).toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).toBeVisible()
     await expect(page.getByText('"""Module docstring"""')).toBeVisible()
 
     // Toggle back to rich view
     await page.getByRole("link", { name: "switch to rich view" }).click()
-    await expect(
-      page.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to source view" })).toBeVisible()
 
     // =========================================================================
     // Test 2: Python with markdown directives toggle
@@ -89,12 +81,8 @@ This is a **markdown** file.
     await expect(editor).toBeVisible()
 
     // Verify markdown directives are rendered in rich view
-    await expect(
-      page.getByRole("heading", { name: "main section" })
-    ).toBeVisible()
-    await expect(
-      page.getByText("this is a paragraph with").first()
-    ).toBeVisible()
+    await expect(page.getByRole("heading", { name: "main section" })).toBeVisible()
+    await expect(page.getByText("this is a paragraph with").first()).toBeVisible()
 
     // Toggle to source view
     await page.getByRole("link", { name: "switch to source view" }).click()
@@ -109,9 +97,7 @@ This is a **markdown** file.
     await locateSidebarItem(page, "test.md").click()
     await expect(editor).toBeVisible()
 
-    await expect(
-      page.getByRole("heading", { name: "Test Document" })
-    ).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Test Document" })).toBeVisible()
 
     // Toggle to source view
     await page.getByRole("link", { name: "switch to source view" }).click()
@@ -128,12 +114,8 @@ This is a **markdown** file.
     await expect(page.getByText(textContent)).toBeVisible()
 
     // Verify no toggle buttons
-    await expect(
-      page.getByRole("link", { name: "switch to source view" })
-    ).not.toBeVisible()
-    await expect(
-      page.getByRole("link", { name: "switch to rich view" })
-    ).not.toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to source view" })).not.toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).not.toBeVisible()
   })
 
   test("view preference persists across file switches and saves", async ({
@@ -162,21 +144,15 @@ This is a **markdown** file.
     await locateSidebarItem(page, "file1.py").click()
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
     await page.getByRole("link", { name: "switch to source view" }).click()
-    await expect(
-      page.getByRole("link", { name: "switch to rich view" })
-    ).toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).toBeVisible()
 
     // Open second file - should be in rich view (default)
     await locateSidebarItem(page, "file2.py").click()
-    await expect(
-      page.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to source view" })).toBeVisible()
 
     // Switch back to first file - should still be in source view
     await locateSidebarItem(page, "file1.py").click()
-    await expect(
-      page.getByRole("link", { name: "switch to rich view" })
-    ).toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).toBeVisible()
 
     // =========================================================================
     // Test 2: Source view persists through save operations
@@ -190,15 +166,11 @@ This is a **markdown** file.
 
     // Switch to source view
     await page.getByRole("link", { name: "switch to source view" }).click()
-    await expect(
-      page.getByRole("link", { name: "switch to rich view" })
-    ).toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).toBeVisible()
 
     // Save without changes - view should persist
     await editor.press("ControlOrMeta+s", { delay: 500 })
-    await expect(
-      page.getByRole("link", { name: "switch to rich view" })
-    ).toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).toBeVisible()
 
     // Add content and save
     await page.getByText(header).click({ delay: 100 })
@@ -210,15 +182,11 @@ This is a **markdown** file.
     await editor.press("ControlOrMeta+s", { delay: 500 })
 
     // Still in source view after save
-    await expect(
-      page.getByRole("link", { name: "switch to rich view" })
-    ).toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).toBeVisible()
     await expect(page.getByText("## New Section Added")).toBeVisible()
 
     // Toggle to rich view to verify content
     await page.getByRole("link", { name: "switch to rich view" }).click()
-    await expect(
-      page.getByRole("heading", { name: "New Section Added" })
-    ).toBeVisible()
+    await expect(page.getByRole("heading", { name: "New Section Added" })).toBeVisible()
   })
 })

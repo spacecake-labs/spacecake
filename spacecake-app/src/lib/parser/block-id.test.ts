@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest"
 
 import type { Block, PyBlock } from "@/types/parser"
-import { anonymousName, namedBlock } from "@/types/parser"
+
 import { blockId } from "@/lib/parser/block-id"
+import { anonymousName, namedBlock } from "@/types/parser"
 
 describe("blockId", () => {
   it("should generate correct ID for function blocks", () => {

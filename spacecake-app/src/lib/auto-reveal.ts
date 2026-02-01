@@ -1,5 +1,5 @@
-import { AbsolutePath } from "@/types/workspace"
 import { toRelativePath } from "@/lib/utils"
+import { AbsolutePath } from "@/types/workspace"
 
 /**
  * Extracts all parent folder paths from a file path that need to be expanded
@@ -11,7 +11,7 @@ import { toRelativePath } from "@/lib/utils"
  */
 export function getFoldersToExpand(
   filePath: AbsolutePath,
-  workspacePath: AbsolutePath
+  workspacePath: AbsolutePath,
 ): AbsolutePath[] {
   // Convert to relative path and split into segments
   const relativePath = toRelativePath(workspacePath, filePath)
@@ -42,7 +42,7 @@ export function getFoldersToExpand(
  */
 export function mergeExpandedFolders(
   userExpandedFolders: Record<string, boolean>,
-  foldersToAutoReveal: string[]
+  foldersToAutoReveal: string[],
 ): Record<string, boolean> {
   const merged = { ...userExpandedFolders }
 

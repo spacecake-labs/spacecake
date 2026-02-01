@@ -7,10 +7,7 @@
  * @param maxUnique - Maximum unique logs to log before suppressing all (default: 5)
  * @returns Cleanup function to restore original console.log
  */
-export function suppressDuplicateWarnings(
-  pattern: RegExp,
-  maxUnique: number = 5
-): () => void {
+export function suppressDuplicateWarnings(pattern: RegExp, maxUnique: number = 5): () => void {
   const seen = new Set<string>()
   const originalLog = console.log
 

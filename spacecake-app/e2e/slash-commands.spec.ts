@@ -26,9 +26,7 @@ test.describe("slash commands e2e", () => {
     await expect(editor).toBeVisible()
 
     // verify we're in rich view
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
+    await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
 
     const heading = window.getByRole("heading", {
       name: "An Example README File to Test Parsing",
@@ -44,9 +42,7 @@ test.describe("slash commands e2e", () => {
 
     await expect(window.getByRole("option", { name: "code" })).toBeVisible()
     await expect(window.getByRole("option", { name: "text" })).toBeVisible()
-    await expect(
-      window.getByRole("option", { name: "heading 1" })
-    ).toBeVisible()
+    await expect(window.getByRole("option", { name: "heading 1" })).toBeVisible()
 
     // dismiss menu
     await window.keyboard.press("Escape", { delay: 100 })
@@ -65,14 +61,10 @@ test.describe("slash commands e2e", () => {
     await expect(window.getByRole("option", { name: "code" })).toBeVisible()
     await window.keyboard.press("Enter", { delay: 100 })
 
-    const newCodeBlock = editor
-      .locator('[data-block-id="anonymous-code"]')
-      .first()
+    const newCodeBlock = editor.locator('[data-block-id="anonymous-code"]').first()
     await expect(newCodeBlock).toBeVisible()
     await window.keyboard.type("print('second code block')", { delay: 100 })
-    await expect(
-      newCodeBlock.getByText("print('second code block')")
-    ).toBeVisible()
+    await expect(newCodeBlock.getByText("print('second code block')")).toBeVisible()
 
     // =========================================================================
     // Test 3: Insert h1 heading with slash command
@@ -81,14 +73,10 @@ test.describe("slash commands e2e", () => {
     await window.keyboard.press("ArrowDown", { delay: 100 })
     await window.keyboard.press("/", { delay: 200 })
 
-    await window
-      .getByRole("option", { name: "heading 1 #" })
-      .click({ delay: 100 })
+    await window.getByRole("option", { name: "heading 1 #" }).click({ delay: 100 })
     await window.keyboard.type("TEST_HEADING", { delay: 100 })
 
-    await expect(
-      window.getByRole("heading", { name: "TEST_HEADING" })
-    ).toBeVisible()
+    await expect(window.getByRole("heading", { name: "TEST_HEADING" })).toBeVisible()
 
     // =========================================================================
     // Test 4: Insert paragraph with slash command
@@ -100,15 +88,10 @@ test.describe("slash commands e2e", () => {
     await window.getByRole("option", { name: "text" }).click({ delay: 100 })
     await window.keyboard.type("TEST_PARA", { delay: 100 })
 
-    await expect(
-      window.getByRole("paragraph").filter({ hasText: "TEST_PARA" })
-    ).toBeVisible()
+    await expect(window.getByRole("paragraph").filter({ hasText: "TEST_PARA" })).toBeVisible()
   })
 
-  test("slash commands in Python files", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
+  test("slash commands in Python files", async ({ electronApp, tempTestDir }) => {
     const window = await electronApp.firstWindow()
 
     // copy the core.py fixture into the temp workspace
@@ -126,9 +109,7 @@ test.describe("slash commands e2e", () => {
     await expect(editor).toBeVisible()
 
     // verify we're in rich view
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
+    await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
 
     const moduleBlock = editor.locator('[data-block-id*="core.py-module"]')
     const codeSection = moduleBlock.locator('[data-section="code"]')
@@ -153,8 +134,6 @@ test.describe("slash commands e2e", () => {
     await window.keyboard.type(" def test_function():\n    return True", {
       delay: 100,
     })
-    await expect(
-      codeBlock.getByText("def test_function():\n    return True")
-    ).toBeVisible()
+    await expect(codeBlock.getByText("def test_function():\n    return True")).toBeVisible()
   })
 })

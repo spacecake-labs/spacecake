@@ -1,12 +1,11 @@
 import { Schema } from "effect"
 
-import { ContextLanguageSchema } from "@/types/language"
 import type { FileContent } from "@/types/workspace"
 
+import { ContextLanguageSchema } from "@/types/language"
+
 // Discriminated union for block names
-export type BlockName =
-  | { kind: "anonymous"; value: "anonymous" }
-  | { kind: "named"; value: string }
+export type BlockName = { kind: "anonymous"; value: "anonymous" } | { kind: "named"; value: string }
 
 // Helper constructors
 export const anonymousName = (): BlockName => ({
@@ -20,12 +19,10 @@ export const namedBlock = (value: string): BlockName => ({
 
 // Type guards
 export const isAnonymousName = (
-  name: BlockName
-): name is { kind: "anonymous"; value: "anonymous" } =>
-  name.kind === "anonymous"
-export const isNamedBlock = (
-  name: BlockName
-): name is { kind: "named"; value: string } => name.kind === "named"
+  name: BlockName,
+): name is { kind: "anonymous"; value: "anonymous" } => name.kind === "anonymous"
+export const isNamedBlock = (name: BlockName): name is { kind: "named"; value: string } =>
+  name.kind === "named"
 
 export interface Block<TKind = string> {
   kind: TKind
@@ -52,7 +49,7 @@ export const PyDocableKindSchema = Schema.Union(
   Schema.Literal("async method"),
   Schema.Literal("decorated class"),
   Schema.Literal("decorated function"),
-  Schema.Literal("decorated method")
+  Schema.Literal("decorated method"),
 )
 export type PyDocableKind = typeof PyDocableKindSchema.Type
 
@@ -60,7 +57,7 @@ export type PyDocableKind = typeof PyDocableKindSchema.Type
 export const PyNonDocableKindSchema = Schema.Union(
   Schema.Literal("import"),
   Schema.Literal("main"),
-  Schema.Literal("misc")
+  Schema.Literal("misc"),
 )
 export type PyNonDocableKind = typeof PyNonDocableKindSchema.Type
 
@@ -75,15 +72,13 @@ export const PyBlockKindSchema = Schema.Union(
   Schema.Struct({
     kind: Schema.Literal("non-docable"),
     value: PyNonDocableKindSchema,
-  })
+  }),
 )
 export type PyBlockKind = typeof PyBlockKindSchema.Type
 
 // Helper types for async and decorated variants
-export type PyAsyncKind =
-  `async ${Extract<PyDocableKind, "function" | "method">}`
-export type PyDecoratedKind =
-  `decorated ${Extract<PyDocableKind, "class" | "function" | "method">}`
+export type PyAsyncKind = `async ${Extract<PyDocableKind, "function" | "method">}`
+export type PyDecoratedKind = `decorated ${Extract<PyDocableKind, "class" | "function" | "method">}`
 
 type DocableBlock = Block & {
   kind: PyDocableKind
@@ -99,19 +94,19 @@ export type PyBlock = DocableBlock | NonDocableBlock | Block<MdBlockKind>
 // markdown block type
 export const ContextBlockKindSchema = Schema.Union(
   Schema.Literal("block"),
-  Schema.Literal("inline")
+  Schema.Literal("inline"),
 )
 export type ContextBlockKind = typeof ContextBlockKindSchema.Type
 
 export const ContextBlockSchema = Schema.TemplateLiteral(
   ContextLanguageSchema,
   " ",
-  ContextBlockKindSchema
+  ContextBlockKindSchema,
 )
 export type ContextBlock = typeof ContextBlockSchema.Type
 
 export const MdBlockSchema = ContextBlockSchema.pipe(
-  Schema.pickLiteral("markdown block", "markdown inline")
+  Schema.pickLiteral("markdown block", "markdown inline"),
 )
 export type MdBlockKind = typeof MdBlockSchema.Type
 
@@ -133,10 +128,7 @@ export const DelimitedStringSchema = Schema.Struct({
 export type DelimitedString = typeof DelimitedStringSchema.Type
 
 // StringDelimiters schema and type (reusing DelimitedString structure)
-export const StringDelimitersSchema = DelimitedStringSchema.pick(
-  "prefix",
-  "suffix"
-)
+export const StringDelimitersSchema = DelimitedStringSchema.pick("prefix", "suffix")
 export type StringDelimiters = typeof StringDelimitersSchema.Type
 
 // Regex delimiters schema and type - same structure, different value types
@@ -159,10 +151,7 @@ export const BlockCommentSchema = Schema.Struct({
 })
 export type BlockComment = typeof BlockCommentSchema.Type
 
-export const CommentSyntaxSchema = Schema.Union(
-  InlineCommentSchema,
-  BlockCommentSchema
-)
+export const CommentSyntaxSchema = Schema.Union(InlineCommentSchema, BlockCommentSchema)
 export type CommentSyntax = typeof CommentSyntaxSchema.Type
 
 // New: Comment syntax map where keys are comment kinds

@@ -1,13 +1,9 @@
 import { useParams, useSearch } from "@tanstack/react-router"
 import { Schema } from "effect"
 
-import {
-  AbsolutePath,
-  RouteContext,
-  RouteParamsSchema,
-} from "@/types/workspace"
 import { decodeBase64Url } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
+import { AbsolutePath, RouteContext, RouteParamsSchema } from "@/types/workspace"
 
 /**
  * Hook to get the current editor context from the router.

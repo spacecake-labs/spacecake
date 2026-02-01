@@ -2,19 +2,19 @@
  * @vitest-environment jsdom
  */
 
-import * as React from "react"
-import { act } from "react"
 import { $convertFromMarkdownString } from "@lexical/markdown"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin"
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
+import * as React from "react"
+import { act } from "react"
 import { describe, expect, it, vi } from "vitest"
 
-import { serializeEditorToMarkdown } from "@/lib/editor"
 import { ContentEditable } from "@/components/editor/content-editable"
 import { editorConfig } from "@/components/editor/editor"
 import { initializeUnitTest } from "@/components/editor/test-utils"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
+import { serializeEditorToMarkdown } from "@/lib/editor"
 
 vi.mock("web-tree-sitter", () => {
   return {
@@ -103,19 +103,11 @@ describe("Markdown isomorphism", () => {
 
         await act(async () => {
           testEnv.editor.update(
-            () =>
-              $convertFromMarkdownString(
-                text,
-                MARKDOWN_TRANSFORMERS,
-                undefined,
-                true
-              ),
-            { discrete: true }
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
           )
         })
-        const result = serializeEditorToMarkdown(
-          testEnv.editor.getEditorState()
-        )
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
         expect(result).toBe(text)
       })
 
@@ -128,19 +120,11 @@ describe("Markdown isomorphism", () => {
 
         await act(async () => {
           testEnv.editor.update(
-            () =>
-              $convertFromMarkdownString(
-                text,
-                MARKDOWN_TRANSFORMERS,
-                undefined,
-                true
-              ),
-            { discrete: true }
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
           )
         })
-        const result = serializeEditorToMarkdown(
-          testEnv.editor.getEditorState()
-        )
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
         expect(result).toBe(text)
       })
 
@@ -159,19 +143,11 @@ Here's a simple flow showing how data moves through the system.`
 
         await act(async () => {
           testEnv.editor.update(
-            () =>
-              $convertFromMarkdownString(
-                text,
-                MARKDOWN_TRANSFORMERS,
-                undefined,
-                true
-              ),
-            { discrete: true }
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
           )
         })
-        const result = serializeEditorToMarkdown(
-          testEnv.editor.getEditorState()
-        )
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
         expect(result).toBe(text)
       })
 
@@ -200,23 +176,15 @@ Check out [the docs](https://example.com/docs) for more info.`
 
         await act(async () => {
           testEnv.editor.update(
-            () =>
-              $convertFromMarkdownString(
-                text,
-                MARKDOWN_TRANSFORMERS,
-                undefined,
-                true
-              ),
-            { discrete: true }
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
           )
         })
-        const result = serializeEditorToMarkdown(
-          testEnv.editor.getEditorState()
-        )
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
         expect(result).toBe(text)
       })
     },
     editorConfig,
-    <Plugins />
+    <Plugins />,
   )
 })

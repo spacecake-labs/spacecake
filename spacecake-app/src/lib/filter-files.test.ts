@@ -1,18 +1,14 @@
 import { describe, expect, it } from "vitest"
 
 import type { RecentFile } from "@/types/storage"
-import {
-  AbsolutePath,
-  FileType,
-  type File,
-  type QuickOpenFileItem,
-} from "@/types/workspace"
+
 import {
   createQuickOpenItems,
   RECENCY_BOOST,
   sortFilesByMatchingScore,
   sortFilesByRecency,
 } from "@/lib/filter-files"
+import { AbsolutePath, FileType, type File, type QuickOpenFileItem } from "@/types/workspace"
 
 describe("sortFilesByMatchingScore", () => {
   const mockFile = (path: AbsolutePath): File => ({
@@ -143,10 +139,7 @@ describe("sortFilesByMatchingScore with recency", () => {
   })
 
   it("should boost recent files in search results", () => {
-    const items = [
-      mockItem("/workspace/file1.txt"),
-      mockItem("/workspace/file2.txt"),
-    ]
+    const items = [mockItem("/workspace/file1.txt"), mockItem("/workspace/file2.txt")]
     const recentPaths = new Set(["/workspace/file2.txt"])
 
     const result = sortFilesByMatchingScore(items, "file", recentPaths)
@@ -161,10 +154,7 @@ describe("sortFilesByMatchingScore with recency", () => {
     // This is the key test: exact match should beat a poor fuzzy match
     // even if the fuzzy match was recently opened
     // Both files end in .md so they both match the query "md"
-    const items = [
-      mockItem("/workspace/.app/getting-started.md"),
-      mockItem("/workspace/README.md"),
-    ]
+    const items = [mockItem("/workspace/.app/getting-started.md"), mockItem("/workspace/README.md")]
     const recentPaths = new Set(["/workspace/.app/getting-started.md"])
 
     // Query "readme" - README.md matches much better than getting-started.md
@@ -179,10 +169,7 @@ describe("sortFilesByMatchingScore with recency", () => {
   it("should only return exact match when query matches one file exactly", () => {
     // Searching for exact filename should only return that file,
     // not a recently opened file that doesn't match
-    const items = [
-      mockItem("/workspace/.app/getting-started.md"),
-      mockItem("/workspace/README.md"),
-    ]
+    const items = [mockItem("/workspace/.app/getting-started.md"), mockItem("/workspace/README.md")]
     const recentPaths = new Set(["/workspace/.app/getting-started.md"])
 
     const result = sortFilesByMatchingScore(items, "README.md", recentPaths)
@@ -237,17 +224,9 @@ describe("createQuickOpenItems", () => {
       mockItem("/workspace/file2.txt"),
       mockItem("/workspace/file3.txt"),
     ]
-    const recentFiles = [
-      mockRecentFile("file2.txt", 2000),
-      mockRecentFile("file1.txt", 1000),
-    ]
+    const recentFiles = [mockRecentFile("file2.txt", 2000), mockRecentFile("file1.txt", 1000)]
 
-    const result = createQuickOpenItems(
-      allFiles,
-      recentFiles,
-      "",
-      workspacePath
-    )
+    const result = createQuickOpenItems(allFiles, recentFiles, "", workspacePath)
 
     expect(result).toHaveLength(2)
     expect(result[0].file.name).toBe("file2.txt") // Most recent first
@@ -265,12 +244,7 @@ describe("createQuickOpenItems", () => {
       mockRecentFile("getting-started.md", 3000), // Recently opened
     ]
 
-    const result = createQuickOpenItems(
-      allFiles,
-      recentFiles,
-      "README",
-      workspacePath
-    )
+    const result = createQuickOpenItems(allFiles, recentFiles, "README", workspacePath)
 
     // README.md should come first because it's a much better match
     // even though getting-started.md was recently opened
@@ -279,18 +253,10 @@ describe("createQuickOpenItems", () => {
   })
 
   it("should boost recent file when match quality is similar", () => {
-    const allFiles = [
-      mockItem("/workspace/file-alpha.txt"),
-      mockItem("/workspace/file-beta.txt"),
-    ]
+    const allFiles = [mockItem("/workspace/file-alpha.txt"), mockItem("/workspace/file-beta.txt")]
     const recentFiles = [mockRecentFile("file-beta.txt", 2000)]
 
-    const result = createQuickOpenItems(
-      allFiles,
-      recentFiles,
-      "file",
-      workspacePath
-    )
+    const result = createQuickOpenItems(allFiles, recentFiles, "file", workspacePath)
 
     expect(result).toHaveLength(2)
     // Both match "file" similarly, but file-beta is recent so it should be first
@@ -305,12 +271,7 @@ describe("createQuickOpenItems", () => {
     ]
     const recentFiles = [mockRecentFile("ignored-but-recent.txt", 2000)]
 
-    const result = createQuickOpenItems(
-      allFiles,
-      recentFiles,
-      "txt",
-      workspacePath
-    )
+    const result = createQuickOpenItems(allFiles, recentFiles, "txt", workspacePath)
 
     const names = result.map((r) => r.file.name)
     expect(names).toContain("normal.txt")

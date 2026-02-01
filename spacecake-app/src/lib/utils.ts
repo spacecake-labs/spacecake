@@ -76,7 +76,7 @@ export function debounce(fn: () => void, waitMs: number) {
 export function parentFolderName(
   filePath: AbsolutePath,
   workspacePath: AbsolutePath,
-  fileName: string
+  fileName: string,
 ): string {
   const relativePath = toRelativePath(workspacePath, filePath)
   return relativePath.replace(fileName, "").replace(/\/$/, "")
@@ -148,18 +148,10 @@ function trimPath(path: string) {
   return trimPathRight(trimPathLeft(path))
 }
 
-export function toAbsolutePath(
-  workspacePath: AbsolutePath,
-  filePath: RelativePath
-): AbsolutePath {
-  return AbsolutePath(
-    `${trimPathRight(workspacePath)}/${trimPathLeft(filePath)}`
-  )
+export function toAbsolutePath(workspacePath: AbsolutePath, filePath: RelativePath): AbsolutePath {
+  return AbsolutePath(`${trimPathRight(workspacePath)}/${trimPathLeft(filePath)}`)
 }
 
-export function toRelativePath(
-  workspacePath: AbsolutePath,
-  filePath: AbsolutePath
-): RelativePath {
+export function toRelativePath(workspacePath: AbsolutePath, filePath: AbsolutePath): RelativePath {
   return RelativePath(trimPath(filePath.replace(workspacePath, "")))
 }

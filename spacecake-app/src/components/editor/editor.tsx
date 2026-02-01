@@ -1,28 +1,10 @@
-import * as React from "react"
-import {
-  RouteContext,
-  useEditor,
-  type CancelDebounceRef,
-} from "@/contexts/editor-context"
-import { useFocusablePanel } from "@/contexts/focus-manager"
-import {
-  InitialConfigType,
-  LexicalComposer,
-} from "@lexical/react/LexicalComposer"
+import { InitialConfigType, LexicalComposer } from "@lexical/react/LexicalComposer"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { EditorRefPlugin } from "@lexical/react/LexicalEditorRefPlugin"
 import { useAtomValue } from "jotai"
-import {
-  COMMAND_PRIORITY_NORMAL,
-  type EditorState,
-  type SerializedEditorState,
-} from "lexical"
+import { COMMAND_PRIORITY_NORMAL, type EditorState, type SerializedEditorState } from "lexical"
+import * as React from "react"
 
-import { type EditorExtendedSelection } from "@/types/claude-code"
-import { type ChangeType, type SerializedSelection } from "@/types/lexical"
-import { AbsolutePath } from "@/types/workspace"
-import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
-import { debounce } from "@/lib/utils"
 import { nodes } from "@/components/editor/nodes"
 import { Plugins } from "@/components/editor/plugins"
 import {
@@ -31,6 +13,13 @@ import {
 } from "@/components/editor/plugins/codemirror-editor"
 import { OnChangePlugin } from "@/components/editor/plugins/on-change"
 import { editorTheme } from "@/components/editor/theme"
+import { RouteContext, useEditor, type CancelDebounceRef } from "@/contexts/editor-context"
+import { useFocusablePanel } from "@/contexts/focus-manager"
+import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { debounce } from "@/lib/utils"
+import { type EditorExtendedSelection } from "@/types/claude-code"
+import { type ChangeType, type SerializedSelection } from "@/types/lexical"
+import { AbsolutePath } from "@/types/workspace"
 
 interface EditorProps {
   editorConfig: InitialConfigType
@@ -68,7 +57,7 @@ function CodeMirrorSelectionPlugin({
         })
         return true
       },
-      COMMAND_PRIORITY_NORMAL
+      COMMAND_PRIORITY_NORMAL,
     )
   }, [editor, onSelection])
 
@@ -101,7 +90,7 @@ export function Editor({
     "editor",
     React.useCallback(() => {
       editorRef.current?.getRootElement()?.focus()
-    }, [editorRef])
+    }, [editorRef]),
   )
 
   const onChangeRef = React.useRef<EditorProps["onChange"]>(onChange)
@@ -122,7 +111,7 @@ export function Editor({
         lastStateRef.current = null
         lastChangeTypeRef.current = "selection"
       }
-    }, 250)
+    }, 250),
   ).current
 
   // Expose the debounce cancel function through context
@@ -148,9 +137,7 @@ export function Editor({
         initialConfig={{
           ...editorConfig,
           ...(editorState ? { editorState } : {}),
-          ...(editorSerializedState
-            ? { editorState: JSON.stringify(editorSerializedState) }
-            : {}),
+          ...(editorSerializedState ? { editorState: JSON.stringify(editorSerializedState) } : {}),
         }}
       >
         <Plugins />

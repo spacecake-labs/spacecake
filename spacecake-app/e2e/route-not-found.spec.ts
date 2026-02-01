@@ -25,9 +25,9 @@ test.describe("route not found", () => {
       await window.reload()
 
       // verify the "workspace not accessible" message appears
-      await expect(
-        window.getByText(`workspace not accessible:\n${tempTestDir}`)
-      ).toBeVisible({ timeout: 10000 })
+      await expect(window.getByText(`workspace not accessible:\n${tempTestDir}`)).toBeVisible({
+        timeout: 10000,
+      })
     } finally {
       // always restore permissions for cleanup
       fs.chmodSync(tempTestDir, 0o755)
@@ -56,7 +56,7 @@ test.describe("route not found", () => {
     await expect(
       window.getByRole("heading", {
         name: "An Example README File to Test Parsing",
-      })
+      }),
     ).toBeVisible()
 
     // delete the file (not the directory)
@@ -64,9 +64,7 @@ test.describe("route not found", () => {
 
     await window.reload()
 
-    await expect(
-      window.getByText(`file not found:\n${testFilePath}`)
-    ).toBeVisible()
+    await expect(window.getByText(`file not found:\n${testFilePath}`)).toBeVisible()
   })
 
   test("should show 'workspace not found' message when workspace path does not exist", async ({
@@ -88,8 +86,6 @@ test.describe("route not found", () => {
     // but may be necessary for some of the watcher backends
     await window.reload()
 
-    await expect(
-      window.getByText(`workspace not found:\n${tempTestDir}`)
-    ).toBeVisible()
+    await expect(window.getByText(`workspace not found:\n${tempTestDir}`)).toBeVisible()
   })
 })

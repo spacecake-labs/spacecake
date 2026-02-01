@@ -33,9 +33,7 @@ def my_function():
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
     // verify we're in rich view (not source view)
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
+    await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
 
     await expect(window.getByText("import os")).toBeVisible()
     await expect(window.getByText("def my_function():")).toBeVisible()
@@ -49,10 +47,7 @@ def my_function():
     await window.keyboard.press("Enter", { delay: 100 })
     await window.keyboard.press("Enter", { delay: 100 })
 
-    await window.keyboard.type(
-      "class MyClass:\n\ndef __init__(self):\n    pass",
-      { delay: 100 }
-    )
+    await window.keyboard.type("class MyClass:\n\ndef __init__(self):\n    pass", { delay: 100 })
 
     await expect(window.getByText("class MyClass:")).toBeVisible()
 
@@ -72,10 +67,7 @@ def my_function():
     await window.keyboard.press("Enter", { delay: 100 })
     await window.keyboard.press("Enter", { delay: 100 })
 
-    await window.keyboard.type(
-      "class AnotherClass:\n\ndef method(self):\n    pass",
-      { delay: 100 }
-    )
+    await window.keyboard.type("class AnotherClass:\n\ndef method(self):\n    pass", { delay: 100 })
 
     await expect(window.getByText("class AnotherClass:")).toBeVisible()
 
@@ -84,12 +76,8 @@ def my_function():
     // trigger split via save
     await window.keyboard.press("ControlOrMeta+s", { delay: 300 })
 
-    const anotherClassBlock = editor.locator(
-      '[data-block-id="anotherclass-class"]'
-    )
+    const anotherClassBlock = editor.locator('[data-block-id="anotherclass-class"]')
     await expect(anotherClassBlock).toBeVisible()
-    await expect(
-      anotherClassBlock.getByText("class AnotherClass:")
-    ).toBeVisible()
+    await expect(anotherClassBlock.getByText("class AnotherClass:")).toBeVisible()
   })
 })

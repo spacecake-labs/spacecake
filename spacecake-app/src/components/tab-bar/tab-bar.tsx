@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef } from "react"
-import type { PaneMachineRef } from "@/machines/pane"
-import { PaneItemWithFile, PanePrimaryKey } from "@/schema/pane"
 import { useSearch } from "@tanstack/react-router"
+import { useCallback, useEffect, useRef } from "react"
 
+import type { PaneMachineRef } from "@/machines/pane"
 import type { OpenFileSource } from "@/types/claude-code"
-import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
-import { Tabs, TabsList } from "@/components/ui/tabs"
+
 import { TabItem } from "@/components/tab-bar/tab-item"
+import { Tabs, TabsList } from "@/components/ui/tabs"
+import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
+import { PaneItemWithFile, PanePrimaryKey } from "@/schema/pane"
 
 interface TabBarProps {
   paneId: PanePrimaryKey
@@ -44,9 +45,7 @@ export function TabBar({ paneId, machine }: TabBarProps) {
     if (!activePaneItemId || !scrollContainerRef.current) return
 
     const scrollToActive = () => {
-      const activeTab = scrollContainerRef.current?.querySelector(
-        `[data-state="active"]`
-      )
+      const activeTab = scrollContainerRef.current?.querySelector(`[data-state="active"]`)
       if (activeTab) {
         activeTab.scrollIntoView({
           behavior: "smooth",
@@ -74,7 +73,7 @@ export function TabBar({ paneId, machine }: TabBarProps) {
       if (!item) return
       machine.send({ type: "pane.item.activate", item })
     },
-    [machine, items]
+    [machine, items],
   )
 
   const handleClose = useCallback(
@@ -87,7 +86,7 @@ export function TabBar({ paneId, machine }: TabBarProps) {
         isClosingActiveTab: item.id === activePaneItemId,
       })
     },
-    [machine, activePaneItemId]
+    [machine, activePaneItemId],
   )
 
   // Don't render if loading or no tabs

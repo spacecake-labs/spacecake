@@ -1,10 +1,11 @@
-import { ReactNode, useEffect, useRef } from "react"
-import type { PaneMachineRef } from "@/machines/pane"
 import { atom, useAtomValue, useSetAtom } from "jotai"
+import { ReactNode, useEffect, useRef } from "react"
 
+import type { PaneMachineRef } from "@/machines/pane"
 import type { ClaudeCodeStatus } from "@/types/claude-code"
-import { AbsolutePath } from "@/types/workspace"
+
 import { claudeStatuslineAtom } from "@/lib/atoms/atoms"
+import { AbsolutePath } from "@/types/workspace"
 
 // Atoms for Claude integration state
 export const claudeStatusAtom = atom<ClaudeCodeStatus>("disconnected")
@@ -64,7 +65,7 @@ export function ClaudeIntegrationProvider({
           filePath: AbsolutePath(payload.filePath),
           source: payload.source,
         })
-      })
+      }),
     )
 
     return () => cleanups.forEach((c) => c())

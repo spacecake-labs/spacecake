@@ -1,10 +1,9 @@
+import { Effect } from "effect"
+import { BrowserWindow } from "electron"
 import path from "node:path"
 
 import defaultShell from "@/main-process/default-shell"
 import { SpacecakeHome } from "@/services/spacecake-home"
-import { Effect } from "effect"
-import { BrowserWindow } from "electron"
-
 import { TerminalError } from "@/types/terminal"
 
 type PtyModule = typeof import("@lydell/node-pty")
@@ -34,9 +33,7 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
     // Finalizer to kill all pty processes on shutdown
     yield* Effect.addFinalizer(() =>
       Effect.sync(() => {
-        console.log(
-          `Terminal service: cleaning up ${terminals.size} terminals...`
-        )
+        console.log(`Terminal service: cleaning up ${terminals.size} terminals...`)
         for (const [id, term] of terminals) {
           try {
             term.kill()
@@ -46,14 +43,14 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           }
         }
         terminals.clear()
-      })
+      }),
     )
 
     const create = (
       id: string,
       cols: number,
       rows: number,
-      cwd: string = process.env.HOME || process.env.USERPROFILE || ""
+      cwd: string = process.env.HOME || process.env.USERPROFILE || "",
     ) =>
       Effect.tryPromise({
         try: async () => {
@@ -127,8 +124,7 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           const term = terminals.get(id)
           if (term) term.resize(cols, rows)
         },
-        catch: (error) =>
-          new TerminalError({ message: `failed to resize terminal: ${error}` }),
+        catch: (error) => new TerminalError({ message: `failed to resize terminal: ${error}` }),
       })
 
     const write = (id: string, data: string) =>
@@ -152,8 +148,7 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             terminals.delete(id)
           }
         },
-        catch: (error) =>
-          new TerminalError({ message: `failed to kill terminal: ${error}` }),
+        catch: (error) => new TerminalError({ message: `failed to kill terminal: ${error}` }),
       })
 
     return { create, resize, write, kill }

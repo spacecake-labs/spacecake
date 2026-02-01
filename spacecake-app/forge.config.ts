@@ -1,22 +1,19 @@
-import { cp, mkdir } from "node:fs/promises"
-import path from "path"
+import type { ForgeConfig } from "@electron-forge/shared-types"
 
 import { MakerDeb } from "@electron-forge/maker-deb"
 import { MakerZIP } from "@electron-forge/maker-zip"
 // import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives"
 import { FusesPlugin } from "@electron-forge/plugin-fuses"
 import { VitePlugin } from "@electron-forge/plugin-vite"
-import type { ForgeConfig } from "@electron-forge/shared-types"
 import { FuseV1Options, FuseVersion } from "@electron/fuses"
+import { cp, mkdir } from "node:fs/promises"
+import path from "path"
 
 /* The customisation is necessary for @parcel/watcher.
 Source: https://www.danielcorin.com/posts/2024/challenges-building-an-electron-app/
 */
 
-function getPlatformArchSpecificPackages(
-  platform: string,
-  arch: string
-): string[] {
+function getPlatformArchSpecificPackages(platform: string, arch: string): string[] {
   const universalPackages = [
     "@parcel/watcher",
     "@lydell/node-pty",
@@ -32,10 +29,7 @@ function getPlatformArchSpecificPackages(
     "node-addon-api",
   ]
 
-  const platformArchSpecificPackages: Record<
-    string,
-    Record<string, string[]>
-  > = {
+  const platformArchSpecificPackages: Record<string, Record<string, string[]>> = {
     darwin: {
       arm64: ["@parcel/watcher-darwin-arm64", "@lydell/node-pty-darwin-arm64"],
       x64: ["@parcel/watcher-darwin-x64", "@lydell/node-pty-darwin-x64"],
@@ -61,17 +55,8 @@ const commonLinuxConfig = {
 
 const config: ForgeConfig = {
   hooks: {
-    async packageAfterCopy(
-      _forgeConfig,
-      buildPath,
-      _electronVersion,
-      platform,
-      arch
-    ) {
-      const requiredNativePackages = getPlatformArchSpecificPackages(
-        platform,
-        arch
-      )
+    async packageAfterCopy(_forgeConfig, buildPath, _electronVersion, platform, arch) {
+      const requiredNativePackages = getPlatformArchSpecificPackages(platform, arch)
 
       const sourceNodeModulesPath = path.resolve(__dirname, "node_modules")
       const destNodeModulesPath = path.resolve(buildPath, "node_modules")
@@ -87,7 +72,7 @@ const config: ForgeConfig = {
             preserveTimestamps: true,
             filter: (src) => !src.includes(path.join("node_modules", ".bin")),
           })
-        })
+        }),
       )
 
       // Bundle the CLI binary into the app's resources/bin directory
@@ -97,14 +82,12 @@ const config: ForgeConfig = {
       try {
         await mkdir(path.dirname(cliBinaryDest), { recursive: true })
         await cp(cliBinarySource, cliBinaryDest, { preserveTimestamps: true })
-        console.log(
-          `Bundled CLI binary: ${cliBinarySource} -> ${cliBinaryDest}`
-        )
+        console.log(`Bundled CLI binary: ${cliBinarySource} -> ${cliBinaryDest}`)
       } catch {
         console.warn(
           "CLI binary not found at",
           cliBinarySource,
-          "— skipping. Run `cd cli && bun run build` first."
+          "— skipping. Run `cd cli && bun run build` first.",
         )
       }
     },
@@ -198,9 +181,7 @@ function maybeMac() {
   }
 
   if (!process.env.APPLE_SIGN_ID) {
-    console.warn(
-      "Should be signing, but environment variable APPLE_SIGN_ID is missing!"
-    )
+    console.warn("Should be signing, but environment variable APPLE_SIGN_ID is missing!")
     return
   }
 
@@ -215,23 +196,17 @@ function maybeMac() {
   }
 
   if (!process.env.APPLE_ID) {
-    console.warn(
-      "Should be notarizing, but environment variable APPLE_ID is missing!"
-    )
+    console.warn("Should be notarizing, but environment variable APPLE_ID is missing!")
     return
   }
 
   if (!process.env.APPLE_PASSWORD) {
-    console.warn(
-      "Should be notarizing, but environment variable APPLE_PASSWORD is missing!"
-    )
+    console.warn("Should be notarizing, but environment variable APPLE_PASSWORD is missing!")
     return
   }
 
   if (!process.env.APPLE_TEAM_ID) {
-    console.warn(
-      "Should be notarizing, but environment variable APPLE_TEAM_ID is missing!"
-    )
+    console.warn("Should be notarizing, but environment variable APPLE_TEAM_ID is missing!")
     return
   }
 

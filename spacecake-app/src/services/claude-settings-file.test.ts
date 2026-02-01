@@ -1,5 +1,10 @@
+import { FileSystem as EffectFileSystem } from "@effect/platform"
+import { NodeFileSystem } from "@effect/platform-node"
+import { it } from "@effect/vitest"
+import { Effect, Layer, Option } from "effect"
 import fs from "node:fs"
 import path from "node:path"
+import { describe, expect } from "vitest"
 
 import { WatcherService } from "@/main-process/watcher"
 import { ClaudeConfig } from "@/services/claude-config"
@@ -10,11 +15,6 @@ import {
 import { FileSystem } from "@/services/file-system"
 import { GitIgnoreLive } from "@/services/git-ignore-parser"
 import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
-import { FileSystem as EffectFileSystem } from "@effect/platform"
-import { NodeFileSystem } from "@effect/platform-node"
-import { it } from "@effect/vitest"
-import { Effect, Layer, Option } from "effect"
-import { describe, expect } from "vitest"
 
 const SPACECAKE_SCRIPT_PATH = "/test/.spacecake/.app/hooks/statusline.sh"
 
@@ -45,7 +45,7 @@ const FileSystemTestLayer = FileSystem.Default.pipe(
   Layer.provide(NodeFileSystem.layer),
   Layer.provide(GitIgnoreLive),
   Layer.provide(MockWatcherService),
-  Layer.provide(SpacecakeHomeTestLayer)
+  Layer.provide(SpacecakeHomeTestLayer),
 )
 
 describe("ClaudeSettingsFile", () => {
@@ -58,7 +58,7 @@ describe("ClaudeSettingsFile", () => {
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
           FileSystemTestLayer,
-          SpacecakeHomeTestLayer
+          SpacecakeHomeTestLayer,
         )
 
         const result = yield* Effect.gen(function* () {
@@ -67,7 +67,7 @@ describe("ClaudeSettingsFile", () => {
         }).pipe(Effect.provide(testLayer))
 
         expect(result).toBeNull()
-      }).pipe(Effect.provide(NodeFileSystem.layer))
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
 
     it.scoped("returns parsed settings when file exists with valid JSON", () =>
@@ -80,15 +80,12 @@ describe("ClaudeSettingsFile", () => {
           statusLine: { command: "/path/to/script.sh" },
           otherSetting: "value",
         }
-        fs.writeFileSync(
-          path.join(tempDir, "settings.json"),
-          JSON.stringify(settings)
-        )
+        fs.writeFileSync(path.join(tempDir, "settings.json"), JSON.stringify(settings))
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
           FileSystemTestLayer,
-          SpacecakeHomeTestLayer
+          SpacecakeHomeTestLayer,
         )
 
         const result = yield* Effect.gen(function* () {
@@ -97,7 +94,7 @@ describe("ClaudeSettingsFile", () => {
         }).pipe(Effect.provide(testLayer))
 
         expect(result).toEqual(settings)
-      }).pipe(Effect.provide(NodeFileSystem.layer))
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
 
     it.scoped("returns empty object when file contains invalid JSON", () =>
@@ -106,15 +103,12 @@ describe("ClaudeSettingsFile", () => {
         const tempDir = yield* effectFs.makeTempDirectoryScoped()
 
         // Write invalid JSON
-        fs.writeFileSync(
-          path.join(tempDir, "settings.json"),
-          "{ invalid json }"
-        )
+        fs.writeFileSync(path.join(tempDir, "settings.json"), "{ invalid json }")
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
           FileSystemTestLayer,
-          SpacecakeHomeTestLayer
+          SpacecakeHomeTestLayer,
         )
 
         const result = yield* Effect.gen(function* () {
@@ -123,7 +117,7 @@ describe("ClaudeSettingsFile", () => {
         }).pipe(Effect.provide(testLayer))
 
         expect(result).toEqual({})
-      }).pipe(Effect.provide(NodeFileSystem.layer))
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
 
     it.scoped("returns empty object when file is empty", () =>
@@ -137,7 +131,7 @@ describe("ClaudeSettingsFile", () => {
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
           FileSystemTestLayer,
-          SpacecakeHomeTestLayer
+          SpacecakeHomeTestLayer,
         )
 
         const result = yield* Effect.gen(function* () {
@@ -146,7 +140,7 @@ describe("ClaudeSettingsFile", () => {
         }).pipe(Effect.provide(testLayer))
 
         expect(result).toEqual({})
-      }).pipe(Effect.provide(NodeFileSystem.layer))
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
   })
 
@@ -159,7 +153,7 @@ describe("ClaudeSettingsFile", () => {
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
           FileSystemTestLayer,
-          SpacecakeHomeTestLayer
+          SpacecakeHomeTestLayer,
         )
 
         const result = yield* Effect.gen(function* () {
@@ -172,169 +166,156 @@ describe("ClaudeSettingsFile", () => {
           isSpacecake: false,
           isInlineSpacecake: false,
         })
-      }).pipe(Effect.provide(NodeFileSystem.layer))
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
 
-    it.scoped(
-      "returns not configured when file exists but has no statusLine field",
-      () =>
-        Effect.gen(function* () {
-          const effectFs = yield* EffectFileSystem.FileSystem
-          const tempDir = yield* effectFs.makeTempDirectoryScoped()
+    it.scoped("returns not configured when file exists but has no statusLine field", () =>
+      Effect.gen(function* () {
+        const effectFs = yield* EffectFileSystem.FileSystem
+        const tempDir = yield* effectFs.makeTempDirectoryScoped()
 
-          fs.writeFileSync(
-            path.join(tempDir, "settings.json"),
-            JSON.stringify({ otherSetting: "value" })
-          )
+        fs.writeFileSync(
+          path.join(tempDir, "settings.json"),
+          JSON.stringify({ otherSetting: "value" }),
+        )
 
-          const testLayer = makeClaudeSettingsFileTestLayer(
-            makeTestClaudeConfigLayer(tempDir),
-            FileSystemTestLayer,
-            SpacecakeHomeTestLayer
-          )
+        const testLayer = makeClaudeSettingsFileTestLayer(
+          makeTestClaudeConfigLayer(tempDir),
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer,
+        )
 
-          const result = yield* Effect.gen(function* () {
-            const service = yield* ClaudeSettingsFile
-            return yield* service.getStatuslineStatus()
-          }).pipe(Effect.provide(testLayer))
+        const result = yield* Effect.gen(function* () {
+          const service = yield* ClaudeSettingsFile
+          return yield* service.getStatuslineStatus()
+        }).pipe(Effect.provide(testLayer))
 
-          expect(result).toEqual({
-            configured: false,
-            isSpacecake: false,
-            isInlineSpacecake: false,
-          })
-        }).pipe(Effect.provide(NodeFileSystem.layer))
+        expect(result).toEqual({
+          configured: false,
+          isSpacecake: false,
+          isInlineSpacecake: false,
+        })
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
 
-    it.scoped(
-      "returns not configured when statusLine exists but command is empty",
-      () =>
-        Effect.gen(function* () {
-          const effectFs = yield* EffectFileSystem.FileSystem
-          const tempDir = yield* effectFs.makeTempDirectoryScoped()
+    it.scoped("returns not configured when statusLine exists but command is empty", () =>
+      Effect.gen(function* () {
+        const effectFs = yield* EffectFileSystem.FileSystem
+        const tempDir = yield* effectFs.makeTempDirectoryScoped()
 
-          fs.writeFileSync(
-            path.join(tempDir, "settings.json"),
-            JSON.stringify({ statusLine: {} })
-          )
+        fs.writeFileSync(path.join(tempDir, "settings.json"), JSON.stringify({ statusLine: {} }))
 
-          const testLayer = makeClaudeSettingsFileTestLayer(
-            makeTestClaudeConfigLayer(tempDir),
-            FileSystemTestLayer,
-            SpacecakeHomeTestLayer
-          )
+        const testLayer = makeClaudeSettingsFileTestLayer(
+          makeTestClaudeConfigLayer(tempDir),
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer,
+        )
 
-          const result = yield* Effect.gen(function* () {
-            const service = yield* ClaudeSettingsFile
-            return yield* service.getStatuslineStatus()
-          }).pipe(Effect.provide(testLayer))
+        const result = yield* Effect.gen(function* () {
+          const service = yield* ClaudeSettingsFile
+          return yield* service.getStatuslineStatus()
+        }).pipe(Effect.provide(testLayer))
 
-          expect(result).toEqual({
-            configured: false,
-            isSpacecake: false,
-            isInlineSpacecake: false,
-            command: undefined,
-          })
-        }).pipe(Effect.provide(NodeFileSystem.layer))
+        expect(result).toEqual({
+          configured: false,
+          isSpacecake: false,
+          isInlineSpacecake: false,
+          command: undefined,
+        })
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
 
-    it.scoped(
-      "returns configured but not spacecake when command points elsewhere",
-      () =>
-        Effect.gen(function* () {
-          const effectFs = yield* EffectFileSystem.FileSystem
-          const tempDir = yield* effectFs.makeTempDirectoryScoped()
+    it.scoped("returns configured but not spacecake when command points elsewhere", () =>
+      Effect.gen(function* () {
+        const effectFs = yield* EffectFileSystem.FileSystem
+        const tempDir = yield* effectFs.makeTempDirectoryScoped()
 
-          const otherCommand = "/other/path/to/script.sh"
-          fs.writeFileSync(
-            path.join(tempDir, "settings.json"),
-            JSON.stringify({ statusLine: { command: otherCommand } })
-          )
+        const otherCommand = "/other/path/to/script.sh"
+        fs.writeFileSync(
+          path.join(tempDir, "settings.json"),
+          JSON.stringify({ statusLine: { command: otherCommand } }),
+        )
 
-          const testLayer = makeClaudeSettingsFileTestLayer(
-            makeTestClaudeConfigLayer(tempDir),
-            FileSystemTestLayer,
-            SpacecakeHomeTestLayer
-          )
+        const testLayer = makeClaudeSettingsFileTestLayer(
+          makeTestClaudeConfigLayer(tempDir),
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer,
+        )
 
-          const result = yield* Effect.gen(function* () {
-            const service = yield* ClaudeSettingsFile
-            return yield* service.getStatuslineStatus()
-          }).pipe(Effect.provide(testLayer))
+        const result = yield* Effect.gen(function* () {
+          const service = yield* ClaudeSettingsFile
+          return yield* service.getStatuslineStatus()
+        }).pipe(Effect.provide(testLayer))
 
-          expect(result).toEqual({
-            configured: true,
-            isSpacecake: false,
-            isInlineSpacecake: false,
-            command: otherCommand,
-          })
-        }).pipe(Effect.provide(NodeFileSystem.layer))
+        expect(result).toEqual({
+          configured: true,
+          isSpacecake: false,
+          isInlineSpacecake: false,
+          command: otherCommand,
+        })
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
 
-    it.scoped(
-      "returns isInlineSpacecake for old inline bash -c config with spacecake.sock",
-      () =>
-        Effect.gen(function* () {
-          const effectFs = yield* EffectFileSystem.FileSystem
-          const tempDir = yield* effectFs.makeTempDirectoryScoped()
+    it.scoped("returns isInlineSpacecake for old inline bash -c config with spacecake.sock", () =>
+      Effect.gen(function* () {
+        const effectFs = yield* EffectFileSystem.FileSystem
+        const tempDir = yield* effectFs.makeTempDirectoryScoped()
 
-          const inlineCommand =
-            'bash -c \'socketPath="${HOME}/.claude/spacecake.sock"; [ -S "$socketPath" ] || exit 0; curl -s -X POST -H "Content-Type: application/json" -d @- --unix-socket "$socketPath" --max-time 2 http://localhost/statusline >/dev/null 2>&1; exit 0\''
-          fs.writeFileSync(
-            path.join(tempDir, "settings.json"),
-            JSON.stringify({ statusLine: { command: inlineCommand } })
-          )
+        const inlineCommand =
+          'bash -c \'socketPath="${HOME}/.claude/spacecake.sock"; [ -S "$socketPath" ] || exit 0; curl -s -X POST -H "Content-Type: application/json" -d @- --unix-socket "$socketPath" --max-time 2 http://localhost/statusline >/dev/null 2>&1; exit 0\''
+        fs.writeFileSync(
+          path.join(tempDir, "settings.json"),
+          JSON.stringify({ statusLine: { command: inlineCommand } }),
+        )
 
-          const testLayer = makeClaudeSettingsFileTestLayer(
-            makeTestClaudeConfigLayer(tempDir),
-            FileSystemTestLayer,
-            SpacecakeHomeTestLayer
-          )
+        const testLayer = makeClaudeSettingsFileTestLayer(
+          makeTestClaudeConfigLayer(tempDir),
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer,
+        )
 
-          const result = yield* Effect.gen(function* () {
-            const service = yield* ClaudeSettingsFile
-            return yield* service.getStatuslineStatus()
-          }).pipe(Effect.provide(testLayer))
+        const result = yield* Effect.gen(function* () {
+          const service = yield* ClaudeSettingsFile
+          return yield* service.getStatuslineStatus()
+        }).pipe(Effect.provide(testLayer))
 
-          expect(result).toEqual({
-            configured: true,
-            isSpacecake: false,
-            isInlineSpacecake: true,
-            command: inlineCommand,
-          })
-        }).pipe(Effect.provide(NodeFileSystem.layer))
+        expect(result).toEqual({
+          configured: true,
+          isSpacecake: false,
+          isInlineSpacecake: true,
+          command: inlineCommand,
+        })
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
 
-    it.scoped(
-      "returns configured and isSpacecake when command points to spacecake script",
-      () =>
-        Effect.gen(function* () {
-          const effectFs = yield* EffectFileSystem.FileSystem
-          const tempDir = yield* effectFs.makeTempDirectoryScoped()
+    it.scoped("returns configured and isSpacecake when command points to spacecake script", () =>
+      Effect.gen(function* () {
+        const effectFs = yield* EffectFileSystem.FileSystem
+        const tempDir = yield* effectFs.makeTempDirectoryScoped()
 
-          fs.writeFileSync(
-            path.join(tempDir, "settings.json"),
-            JSON.stringify({ statusLine: { command: SPACECAKE_SCRIPT_PATH } })
-          )
+        fs.writeFileSync(
+          path.join(tempDir, "settings.json"),
+          JSON.stringify({ statusLine: { command: SPACECAKE_SCRIPT_PATH } }),
+        )
 
-          const testLayer = makeClaudeSettingsFileTestLayer(
-            makeTestClaudeConfigLayer(tempDir),
-            FileSystemTestLayer,
-            SpacecakeHomeTestLayer
-          )
+        const testLayer = makeClaudeSettingsFileTestLayer(
+          makeTestClaudeConfigLayer(tempDir),
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer,
+        )
 
-          const result = yield* Effect.gen(function* () {
-            const service = yield* ClaudeSettingsFile
-            return yield* service.getStatuslineStatus()
-          }).pipe(Effect.provide(testLayer))
+        const result = yield* Effect.gen(function* () {
+          const service = yield* ClaudeSettingsFile
+          return yield* service.getStatuslineStatus()
+        }).pipe(Effect.provide(testLayer))
 
-          expect(result).toEqual({
-            configured: true,
-            isSpacecake: true,
-            isInlineSpacecake: false,
-            command: SPACECAKE_SCRIPT_PATH,
-          })
-        }).pipe(Effect.provide(NodeFileSystem.layer))
+        expect(result).toEqual({
+          configured: true,
+          isSpacecake: true,
+          isInlineSpacecake: false,
+          command: SPACECAKE_SCRIPT_PATH,
+        })
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
   })
 
@@ -348,15 +329,12 @@ describe("ClaudeSettingsFile", () => {
           otherSetting: "value",
           anotherSetting: { nested: true },
         }
-        fs.writeFileSync(
-          path.join(tempDir, "settings.json"),
-          JSON.stringify(existingSettings)
-        )
+        fs.writeFileSync(path.join(tempDir, "settings.json"), JSON.stringify(existingSettings))
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
           FileSystemTestLayer,
-          SpacecakeHomeTestLayer
+          SpacecakeHomeTestLayer,
         )
 
         yield* Effect.gen(function* () {
@@ -367,44 +345,38 @@ describe("ClaudeSettingsFile", () => {
           })
         }).pipe(Effect.provide(testLayer))
 
-        const written = JSON.parse(
-          fs.readFileSync(path.join(tempDir, "settings.json"), "utf8")
-        )
+        const written = JSON.parse(fs.readFileSync(path.join(tempDir, "settings.json"), "utf8"))
         expect(written).toEqual({
           ...existingSettings,
           statusLine: { type: "command", command: "/new/script.sh" },
         })
-      }).pipe(Effect.provide(NodeFileSystem.layer))
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
 
-    it.scoped(
-      "creates settings file with statusLine when file does not exist",
-      () =>
-        Effect.gen(function* () {
-          const effectFs = yield* EffectFileSystem.FileSystem
-          const tempDir = yield* effectFs.makeTempDirectoryScoped()
+    it.scoped("creates settings file with statusLine when file does not exist", () =>
+      Effect.gen(function* () {
+        const effectFs = yield* EffectFileSystem.FileSystem
+        const tempDir = yield* effectFs.makeTempDirectoryScoped()
 
-          const testLayer = makeClaudeSettingsFileTestLayer(
-            makeTestClaudeConfigLayer(tempDir),
-            FileSystemTestLayer,
-            SpacecakeHomeTestLayer
-          )
+        const testLayer = makeClaudeSettingsFileTestLayer(
+          makeTestClaudeConfigLayer(tempDir),
+          FileSystemTestLayer,
+          SpacecakeHomeTestLayer,
+        )
 
-          yield* Effect.gen(function* () {
-            const service = yield* ClaudeSettingsFile
-            yield* service.updateStatusline({
-              type: "command",
-              command: "/new/script.sh",
-            })
-          }).pipe(Effect.provide(testLayer))
-
-          const written = JSON.parse(
-            fs.readFileSync(path.join(tempDir, "settings.json"), "utf8")
-          )
-          expect(written).toEqual({
-            statusLine: { type: "command", command: "/new/script.sh" },
+        yield* Effect.gen(function* () {
+          const service = yield* ClaudeSettingsFile
+          yield* service.updateStatusline({
+            type: "command",
+            command: "/new/script.sh",
           })
-        }).pipe(Effect.provide(NodeFileSystem.layer))
+        }).pipe(Effect.provide(testLayer))
+
+        const written = JSON.parse(fs.readFileSync(path.join(tempDir, "settings.json"), "utf8"))
+        expect(written).toEqual({
+          statusLine: { type: "command", command: "/new/script.sh" },
+        })
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
 
     it.scoped("removes statusLine when passed null", () =>
@@ -416,15 +388,12 @@ describe("ClaudeSettingsFile", () => {
           statusLine: { command: "/old/script.sh" },
           otherSetting: "value",
         }
-        fs.writeFileSync(
-          path.join(tempDir, "settings.json"),
-          JSON.stringify(existingSettings)
-        )
+        fs.writeFileSync(path.join(tempDir, "settings.json"), JSON.stringify(existingSettings))
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
           FileSystemTestLayer,
-          SpacecakeHomeTestLayer
+          SpacecakeHomeTestLayer,
         )
 
         yield* Effect.gen(function* () {
@@ -432,14 +401,12 @@ describe("ClaudeSettingsFile", () => {
           yield* service.updateStatusline(null)
         }).pipe(Effect.provide(testLayer))
 
-        const written = JSON.parse(
-          fs.readFileSync(path.join(tempDir, "settings.json"), "utf8")
-        )
+        const written = JSON.parse(fs.readFileSync(path.join(tempDir, "settings.json"), "utf8"))
         expect(written).toEqual({
           statusLine: null,
           otherSetting: "value",
         })
-      }).pipe(Effect.provide(NodeFileSystem.layer))
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
   })
 
@@ -452,7 +419,7 @@ describe("ClaudeSettingsFile", () => {
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
           FileSystemTestLayer,
-          SpacecakeHomeTestLayer
+          SpacecakeHomeTestLayer,
         )
 
         yield* Effect.gen(function* () {
@@ -460,13 +427,11 @@ describe("ClaudeSettingsFile", () => {
           yield* service.configureForSpacecake()
         }).pipe(Effect.provide(testLayer))
 
-        const written = JSON.parse(
-          fs.readFileSync(path.join(tempDir, "settings.json"), "utf8")
-        )
+        const written = JSON.parse(fs.readFileSync(path.join(tempDir, "settings.json"), "utf8"))
         expect(written).toEqual({
           statusLine: { type: "command", command: SPACECAKE_SCRIPT_PATH },
         })
-      }).pipe(Effect.provide(NodeFileSystem.layer))
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
 
     it.scoped("overwrites existing statusLine configuration", () =>
@@ -479,13 +444,13 @@ describe("ClaudeSettingsFile", () => {
           JSON.stringify({
             statusLine: { command: "/other/script.sh" },
             preserved: "setting",
-          })
+          }),
         )
 
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
           FileSystemTestLayer,
-          SpacecakeHomeTestLayer
+          SpacecakeHomeTestLayer,
         )
 
         yield* Effect.gen(function* () {
@@ -493,14 +458,12 @@ describe("ClaudeSettingsFile", () => {
           yield* service.configureForSpacecake()
         }).pipe(Effect.provide(testLayer))
 
-        const written = JSON.parse(
-          fs.readFileSync(path.join(tempDir, "settings.json"), "utf8")
-        )
+        const written = JSON.parse(fs.readFileSync(path.join(tempDir, "settings.json"), "utf8"))
         expect(written).toEqual({
           statusLine: { type: "command", command: SPACECAKE_SCRIPT_PATH },
           preserved: "setting",
         })
-      }).pipe(Effect.provide(NodeFileSystem.layer))
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
   })
 
@@ -513,7 +476,7 @@ describe("ClaudeSettingsFile", () => {
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
           FileSystemTestLayer,
-          SpacecakeHomeTestLayer
+          SpacecakeHomeTestLayer,
         )
 
         const newSettings = { customKey: "customValue" }
@@ -528,7 +491,7 @@ describe("ClaudeSettingsFile", () => {
 
         const written = JSON.parse(fs.readFileSync(settingsPath, "utf8"))
         expect(written).toEqual(newSettings)
-      }).pipe(Effect.provide(NodeFileSystem.layer))
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
 
     it.scoped("formats JSON with 2-space indentation", () =>
@@ -539,7 +502,7 @@ describe("ClaudeSettingsFile", () => {
         const testLayer = makeClaudeSettingsFileTestLayer(
           makeTestClaudeConfigLayer(tempDir),
           FileSystemTestLayer,
-          SpacecakeHomeTestLayer
+          SpacecakeHomeTestLayer,
         )
 
         yield* Effect.gen(function* () {
@@ -547,13 +510,10 @@ describe("ClaudeSettingsFile", () => {
           yield* service.write({ key: "value" })
         }).pipe(Effect.provide(testLayer))
 
-        const content = fs.readFileSync(
-          path.join(tempDir, "settings.json"),
-          "utf8"
-        )
+        const content = fs.readFileSync(path.join(tempDir, "settings.json"), "utf8")
         // Check that it's formatted with 2-space indentation
         expect(content).toBe('{\n  "key": "value"\n}')
-      }).pipe(Effect.provide(NodeFileSystem.layer))
+      }).pipe(Effect.provide(NodeFileSystem.layer)),
     )
   })
 })

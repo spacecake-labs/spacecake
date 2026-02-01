@@ -1,16 +1,12 @@
-import { paneItemTable, paneTable, type PaneItemSelect } from "@/schema"
-import { EditorPrimaryKey } from "@/schema/editor"
-import { FilePrimaryKey } from "@/schema/file"
-import {
-  PaneItemPrimaryKey,
-  PanePrimaryKey,
-  type PaneSelect,
-} from "@/schema/pane"
-import { type WorkspaceSelect } from "@/schema/workspace"
-import { Database } from "@/services/database"
 import { asc, eq } from "drizzle-orm"
 import { Effect } from "effect"
 
+import { paneItemTable, paneTable, type PaneItemSelect } from "@/schema"
+import { EditorPrimaryKey } from "@/schema/editor"
+import { FilePrimaryKey } from "@/schema/file"
+import { PaneItemPrimaryKey, PanePrimaryKey, type PaneSelect } from "@/schema/pane"
+import { type WorkspaceSelect } from "@/schema/workspace"
+import { Database } from "@/services/database"
 import { ViewKind } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 
@@ -94,13 +90,12 @@ export const setupPaneWithTabs = (tabCount: number) =>
 
       // Re-fetch pane to get updated active_pane_item_id
       const rows = yield* db.query((_) =>
-        _.select().from(paneTable).where(eq(paneTable.id, pane.id))
+        _.select().from(paneTable).where(eq(paneTable.id, pane.id)),
       )
       if (rows.length > 0) {
         finalPane = {
           ...pane,
-          active_pane_item_id: rows[0]
-            .active_pane_item_id as PaneItemPrimaryKey | null,
+          active_pane_item_id: rows[0].active_pane_item_id as PaneItemPrimaryKey | null,
         }
       }
     }
@@ -126,7 +121,7 @@ export const getPaneItemsOrderedByPosition = (paneId: PanePrimaryKey) =>
       _.select()
         .from(paneItemTable)
         .where(eq(paneItemTable.pane_id, paneId))
-        .orderBy(asc(paneItemTable.position))
+        .orderBy(asc(paneItemTable.position)),
     )
   })
 
@@ -138,8 +133,6 @@ export const getPane = (paneId: PanePrimaryKey) =>
   Effect.gen(function* () {
     const db = yield* Database
 
-    const rows = yield* db.query((_) =>
-      _.select().from(paneTable).where(eq(paneTable.id, paneId))
-    )
+    const rows = yield* db.query((_) => _.select().from(paneTable).where(eq(paneTable.id, paneId)))
     return rows.length > 0 ? rows[0] : null
   })

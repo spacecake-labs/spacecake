@@ -1,8 +1,8 @@
 import React from "react"
 
-import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
 import { DeleteButton } from "@/components/delete-button"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface BlockHeaderProps {
   title: string | React.ReactNode
@@ -21,8 +21,7 @@ export function BlockHeader({
   onDelete,
   className,
 }: BlockHeaderProps) {
-  const titleElement =
-    typeof title === "string" && title === "anonymous" ? null : title
+  const titleElement = typeof title === "string" && title === "anonymous" ? null : title
 
   const badgeElement =
     typeof badge === "string" ? (
@@ -37,23 +36,17 @@ export function BlockHeader({
     <div
       className={cn(
         "flex items-center justify-between border-b bg-muted/30 px-4 py-1.5 rounded-t-lg",
-        className
+        className,
       )}
     >
       <div className="flex items-center gap-2 flex-wrap">
         {emoji && <span className="text-sm">{emoji}</span>}
-        <h3 className="font-semibold text-foreground text-sm leading-tight">
-          {titleElement}
-        </h3>
+        <h3 className="font-semibold text-foreground text-sm leading-tight">{titleElement}</h3>
         {badgeElement}
       </div>
       <div className="flex items-center gap-2">
         {rightActions}
-        <DeleteButton
-          onDelete={onDelete}
-          data-testid="block-delete-button"
-          title="delete block"
-        />
+        <DeleteButton onDelete={onDelete} data-testid="block-delete-button" title="delete block" />
       </div>
     </div>
   )

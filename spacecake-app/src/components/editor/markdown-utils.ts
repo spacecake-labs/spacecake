@@ -1,20 +1,11 @@
-import {
-  $convertFromMarkdownString,
-  $convertToMarkdownString,
-} from "@lexical/markdown"
+import { $convertFromMarkdownString, $convertToMarkdownString } from "@lexical/markdown"
 import { ElementNode } from "lexical"
 
-import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
-import {
-  addPythonMdocPrefixes,
-  stripPythonMdocPrefixes,
-} from "@/lib/parser/python/utils"
 import { $createContainerNode } from "@/components/editor/nodes/container-node"
-import {
-  $getDelimiters,
-  delimitedNode,
-} from "@/components/editor/nodes/delimited-node"
+import { $getDelimiters, delimitedNode } from "@/components/editor/nodes/delimited-node"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
+import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
+import { addPythonMdocPrefixes, stripPythonMdocPrefixes } from "@/lib/parser/python/utils"
 
 export function mdBlockToNode(text: string) {
   const delimitedString = delimitWithSpaceConsumer(text)
@@ -26,7 +17,7 @@ export function mdBlockToNode(text: string) {
     stripPythonMdocPrefixes(delimitedString.between),
     MARKDOWN_TRANSFORMERS,
     container,
-    true
+    true,
   )
   return delimitedNode(() => container, delimitedString)
 }
@@ -38,9 +29,7 @@ export function emptyMdNode() {
 
 export function nodeToMdBlock(node: ElementNode) {
   const delimiters = $getDelimiters(node)
-  const content = addPythonMdocPrefixes(
-    $convertToMarkdownString(MARKDOWN_TRANSFORMERS, node, true)
-  )
+  const content = addPythonMdocPrefixes($convertToMarkdownString(MARKDOWN_TRANSFORMERS, node, true))
   return `${delimiters.prefix}${content}${delimiters.suffix}`
 }
 

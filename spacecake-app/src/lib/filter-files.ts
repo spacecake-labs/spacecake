@@ -1,12 +1,9 @@
 import type { RecentFile } from "@/types/storage"
-import type {
-  AbsolutePath,
-  FileType,
-  QuickOpenFileItem,
-} from "@/types/workspace"
-import { ZERO_HASH } from "@/types/workspace"
+import type { AbsolutePath, FileType, QuickOpenFileItem } from "@/types/workspace"
+
 import { commandScore } from "@/lib/command-score"
 import { parentFolderName } from "@/lib/utils"
+import { ZERO_HASH } from "@/types/workspace"
 
 // Recency boost: recent files get a 15% score boost.
 // This means a recent file will only beat a non-recent file
@@ -16,7 +13,7 @@ export const RECENCY_BOOST = 1.15
 export function sortFilesByMatchingScore(
   files: QuickOpenFileItem[],
   searchQuery: string,
-  recentPaths?: Set<string>
+  recentPaths?: Set<string>,
 ): QuickOpenFileItem[] {
   if (!searchQuery) return []
 
@@ -41,13 +38,13 @@ export function createQuickOpenItems(
   allFileItems: QuickOpenFileItem[],
   recentFiles: readonly RecentFile[],
   searchQuery: string,
-  workspacePath: AbsolutePath
+  workspacePath: AbsolutePath,
 ): QuickOpenFileItem[] {
   const recentPaths = new Set(recentFiles.map((f) => f.path))
 
   // Filter out gitignored files, unless they're recently opened
   const visibleFileItems = allFileItems.filter(
-    (item) => !item.file.isGitIgnored || recentPaths.has(item.file.path)
+    (item) => !item.file.isGitIgnored || recentPaths.has(item.file.path),
   )
 
   // If no search, show recent files only (sorted by most recent first)
@@ -61,11 +58,7 @@ export function createQuickOpenItems(
         fileType: recentFile.fileType as FileType,
         cid: ZERO_HASH,
       },
-      displayPath: parentFolderName(
-        recentFile.path,
-        workspacePath,
-        recentFile.name
-      ),
+      displayPath: parentFolderName(recentFile.path, workspacePath, recentFile.name),
     }))
   }
 

@@ -1,32 +1,23 @@
+import { Effect, Fiber, Layer } from "effect"
+import { Provider } from "jotai"
 /**
  * @vitest-environment jsdom
  */
 import path from "path"
-
 import * as React from "react"
 import { act } from "react"
+import { createRoot } from "react-dom/client"
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import WebSocket from "ws"
+
 import type { PaneMachineRef } from "@/machines/pane"
+
+import { ClaudeStatusBadge } from "@/components/claude-status-badge"
 import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
 import { makeClaudeCodeServer } from "@/services/claude-code-server"
 import { makeClaudeConfigTestLayer } from "@/services/claude-config"
 import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
-import { Effect, Fiber, Layer } from "effect"
-import { Provider } from "jotai"
-import { createRoot } from "react-dom/client"
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest"
-import WebSocket from "ws"
-
-import { ClaudeStatusBadge } from "@/components/claude-status-badge"
 
 // Mock pane machine for tests
 const mockPaneMachine = {
@@ -70,10 +61,7 @@ const originalConsoleError = console.error
 beforeAll(() => {
   console.error = (...args: unknown[]) => {
     const message = args[0]
-    if (
-      typeof message === "string" &&
-      message.includes("was not wrapped in act")
-    ) {
+    if (typeof message === "string" && message.includes("was not wrapped in act")) {
       return
     }
     originalConsoleError.apply(console, args)
@@ -161,14 +149,11 @@ const mockClaudeHooksServer = {
   onStatuslineUpdate: vi.fn(() => () => {}),
 }
 
-const FileSystemTestLayer = Layer.succeed(
-  FileSystem,
-  mockFileSystem as FileSystem
-)
+const FileSystemTestLayer = Layer.succeed(FileSystem, mockFileSystem as FileSystem)
 
 const ClaudeHooksServerTestLayer = Layer.succeed(
   ClaudeHooksServer,
-  mockClaudeHooksServer as unknown as ClaudeHooksServer
+  mockClaudeHooksServer as unknown as ClaudeHooksServer,
 )
 
 describe("ClaudeStatusBadge Integration", () => {
@@ -210,15 +195,15 @@ describe("ClaudeStatusBadge Integration", () => {
                 Layer.mergeAll(
                   makeClaudeConfigTestLayer("/tmp/test-claude"),
                   FileSystemTestLayer,
-                  ClaudeHooksServerTestLayer
-                )
+                  ClaudeHooksServerTestLayer,
+                ),
               ),
               Effect.tap((server) =>
-                Effect.promise(() => server.ensureStarted(["/test/workspace"]))
+                Effect.promise(() => server.ensureStarted(["/test/workspace"])),
               ),
-              Effect.flatMap(() => Effect.never)
-            )
-          ).pipe(Effect.fork)
+              Effect.flatMap(() => Effect.never),
+            ),
+          ).pipe(Effect.fork),
         )
 
         // 2. Render the Component
@@ -237,12 +222,12 @@ describe("ClaudeStatusBadge Integration", () => {
                   >
                     <ClaudeStatusBadge />
                   </ClaudeIntegrationProvider>
-                </Provider>
+                </Provider>,
               )
             })
             // Wait for the provider to set up listeners after ensureServer resolves
             await new Promise((resolve) => setTimeout(resolve, 50))
-          })
+          }),
         )
 
         // Wait for server to be ready (port assigned) so we can connect
@@ -254,7 +239,7 @@ describe("ClaudeStatusBadge Integration", () => {
               attempts++
             }
             if (!lockFileData) throw new Error("Server failed to start")
-          })
+          }),
         )
 
         // 4. Simulate Claude Code connecting via WebSocket
@@ -269,7 +254,7 @@ describe("ClaudeStatusBadge Integration", () => {
           Effect.async<void, Error>((resume) => {
             ws.on("open", () => resume(Effect.succeed(undefined)))
             ws.on("error", (err) => resume(Effect.fail(err)))
-          })
+          }),
         )
 
         // 5. Send 'initialize' message -> Expect 'connecting' (yellow)
@@ -291,14 +276,12 @@ describe("ClaudeStatusBadge Integration", () => {
           Effect.promise(async () => {
             await vi.waitFor(
               () => {
-                const badge = container?.querySelector(
-                  "div[data-ide-status='connecting']"
-                )
+                const badge = container?.querySelector("div[data-ide-status='connecting']")
                 expect(badge).toBeTruthy()
               },
-              { timeout: 2000 }
+              { timeout: 2000 },
             )
-          })
+          }),
         )
 
         // 6. Send 'ide_connected' message -> Expect 'connected' (green)
@@ -313,14 +296,12 @@ describe("ClaudeStatusBadge Integration", () => {
           Effect.promise(async () => {
             await vi.waitFor(
               () => {
-                const badge = container?.querySelector(
-                  "div[data-ide-status='connected']"
-                )
+                const badge = container?.querySelector("div[data-ide-status='connected']")
                 expect(badge).toBeTruthy()
               },
-              { timeout: 2000 }
+              { timeout: 2000 },
             )
-          })
+          }),
         )
 
         // 7. Interrupt the server fiber -> Expect 'disconnected'
@@ -331,14 +312,12 @@ describe("ClaudeStatusBadge Integration", () => {
           Effect.promise(async () => {
             await vi.waitFor(
               () => {
-                const badge = container?.querySelector(
-                  "div[data-ide-status='disconnected']"
-                )
+                const badge = container?.querySelector("div[data-ide-status='disconnected']")
                 expect(badge).toBeTruthy()
               },
-              { timeout: 2000 }
+              { timeout: 2000 },
             )
-          })
+          }),
         )
 
         ws.close()
@@ -346,8 +325,8 @@ describe("ClaudeStatusBadge Integration", () => {
         Effect.catchAllCause((cause) => {
           console.error("TEST FAILURE CAUSE:", cause.toString())
           return Effect.fail(cause)
-        })
-      )
+        }),
+      ),
     )
   })
 })

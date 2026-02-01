@@ -1,5 +1,8 @@
-import { FileSystemError } from "@/services/file-system"
+import type { DisplayStatusline } from "@/lib/statusline-parser"
+import type { ClaudeTask, ClaudeTaskError } from "@/types/claude-task"
+import type { AbsolutePath, FileContent, FileTree, FileTreeEvent } from "@/types/workspace"
 
+import { FileSystemError } from "@/services/file-system"
 import { type Either } from "@/types/adt"
 import {
   AtMentionedPayload,
@@ -7,15 +10,7 @@ import {
   OpenFilePayload,
   SelectionChangedPayload,
 } from "@/types/claude-code"
-import type { ClaudeTask, ClaudeTaskError } from "@/types/claude-task"
 import { TerminalError } from "@/types/terminal"
-import type {
-  AbsolutePath,
-  FileContent,
-  FileTree,
-  FileTreeEvent,
-} from "@/types/workspace"
-import type { DisplayStatusline } from "@/lib/statusline-parser"
 
 /** Status of the statusline configuration */
 export interface StatuslineConfigStatus {
@@ -36,16 +31,10 @@ export interface ElectronAPI {
     notifyAtMentioned: (payload: AtMentionedPayload) => Promise<void>
     onStatusChange: (handler: (status: ClaudeCodeStatus) => void) => () => void
     onOpenFile: (handler: (payload: OpenFilePayload) => void) => () => void
-    onStatuslineUpdate: (
-      handler: (statusline: DisplayStatusline) => void
-    ) => () => void
+    onStatuslineUpdate: (handler: (statusline: DisplayStatusline) => void) => () => void
     tasks: {
-      startWatching: (
-        sessionId?: string
-      ) => Promise<Either<ClaudeTaskError, void>>
-      list: (
-        sessionId?: string
-      ) => Promise<Either<ClaudeTaskError, ClaudeTask[]>>
+      startWatching: (sessionId?: string) => Promise<Either<ClaudeTaskError, void>>
+      list: (sessionId?: string) => Promise<Either<ClaudeTaskError, ClaudeTask[]>>
       stopWatching: () => Promise<Either<ClaudeTaskError, void>>
       onChange: (handler: () => void) => () => void
     }
@@ -63,38 +52,17 @@ export interface ElectronAPI {
     filePaths: string[]
   }>
   openExternal: (url: string) => Promise<void>
-  readFile: (
-    filePath: AbsolutePath
-  ) => Promise<Either<FileSystemError, FileContent>>
+  readFile: (filePath: AbsolutePath) => Promise<Either<FileSystemError, FileContent>>
 
-  createFolder: (
-    folderPath: AbsolutePath
-  ) => Promise<Either<FileSystemError, undefined>>
-  rename: (
-    path: AbsolutePath,
-    newPath: AbsolutePath
-  ) => Promise<Either<FileSystemError, undefined>>
-  remove: (
-    path: AbsolutePath,
-    recursive?: boolean
-  ) => Promise<Either<FileSystemError, undefined>>
-  saveFile: (
-    filePath: AbsolutePath,
-    content: string
-  ) => Promise<Either<FileSystemError, undefined>>
-  readDirectory: (
-    dirPath: AbsolutePath
-  ) => Promise<Either<FileSystemError, FileTree>>
-  startWatcher: (
-    path: AbsolutePath
-  ) => Promise<Either<FileSystemError, undefined>>
-  stopWatcher: (
-    workspacePath: AbsolutePath
-  ) => Promise<Either<FileSystemError, undefined>>
+  createFolder: (folderPath: AbsolutePath) => Promise<Either<FileSystemError, undefined>>
+  rename: (path: AbsolutePath, newPath: AbsolutePath) => Promise<Either<FileSystemError, undefined>>
+  remove: (path: AbsolutePath, recursive?: boolean) => Promise<Either<FileSystemError, undefined>>
+  saveFile: (filePath: AbsolutePath, content: string) => Promise<Either<FileSystemError, undefined>>
+  readDirectory: (dirPath: AbsolutePath) => Promise<Either<FileSystemError, FileTree>>
+  startWatcher: (path: AbsolutePath) => Promise<Either<FileSystemError, undefined>>
+  stopWatcher: (workspacePath: AbsolutePath) => Promise<Either<FileSystemError, undefined>>
   onFileEvent: (handler: (event: FileTreeEvent) => void) => () => void
-  ensurePlansDirectory: (
-    workspacePath: string
-  ) => Promise<Either<FileSystemError, undefined>>
+  ensurePlansDirectory: (workspacePath: string) => Promise<Either<FileSystemError, undefined>>
   notifyFileClosed: (filePath: string) => Promise<void>
   updateCliWorkspaces: (workspaceFolders: string[]) => Promise<void>
   isPlaywright: boolean
@@ -106,17 +74,10 @@ export interface ElectronAPI {
     id: string,
     cols: number,
     rows: number,
-    cwd?: string
+    cwd?: string,
   ) => Promise<Either<TerminalError, void>>
-  resizeTerminal: (
-    id: string,
-    cols: number,
-    rows: number
-  ) => Promise<Either<TerminalError, void>>
-  writeTerminal: (
-    id: string,
-    data: string
-  ) => Promise<Either<TerminalError, void>>
+  resizeTerminal: (id: string, cols: number, rows: number) => Promise<Either<TerminalError, void>>
+  writeTerminal: (id: string, data: string) => Promise<Either<TerminalError, void>>
   killTerminal: (id: string) => Promise<Either<TerminalError, void>>
   onTerminalOutput: (handler: (id: string, data: string) => void) => () => void
 }

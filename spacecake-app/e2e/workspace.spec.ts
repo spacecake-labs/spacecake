@@ -2,11 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
-import {
-  locateSidebarItem,
-  locateTab,
-  locateTabCloseButton,
-} from "@/../e2e/utils"
+import { locateSidebarItem, locateTab, locateTabCloseButton } from "@/../e2e/utils"
 
 test.describe("spacecake app", () => {
   test("open electron app", async ({ electronApp }, testInfo) => {
@@ -25,9 +21,7 @@ test.describe("spacecake app", () => {
 
     // app auto-opens to home folder (tempTestDir via SPACECAKE_HOME) with getting-started.md
     // verify the workspace loaded (sidebar visible with create file button)
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    await expect(window.getByRole("button", { name: "create file or folder" })).toBeVisible()
 
     // verify getting-started.md is open in the editor
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
@@ -133,24 +127,12 @@ test.describe("spacecake app", () => {
     fs.mkdirSync(nestedFolderPath, { recursive: true })
 
     // Create files at root level: folder, file, file
-    fs.writeFileSync(
-      path.join(tempTestDir, "root-file-1.txt"),
-      "root-file-1-content"
-    )
-    fs.writeFileSync(
-      path.join(tempTestDir, "root-file-2.txt"),
-      "root-file-2-content"
-    )
+    fs.writeFileSync(path.join(tempTestDir, "root-file-1.txt"), "root-file-1-content")
+    fs.writeFileSync(path.join(tempTestDir, "root-file-2.txt"), "root-file-2-content")
 
     // Create files inside the nested folder
-    fs.writeFileSync(
-      path.join(nestedFolderPath, "nested-file-1.txt"),
-      "nested-file-1-content"
-    )
-    fs.writeFileSync(
-      path.join(nestedFolderPath, "nested-file-2.txt"),
-      "nested-file-2-content"
-    )
+    fs.writeFileSync(path.join(nestedFolderPath, "nested-file-1.txt"), "nested-file-1-content")
+    fs.writeFileSync(path.join(nestedFolderPath, "nested-file-2.txt"), "nested-file-2-content")
 
     testInfo.annotations.push({
       type: "info",
@@ -207,9 +189,7 @@ test.describe("spacecake app", () => {
     await window.getByRole("menuitem", { name: "new file" }).click()
 
     // Verify the folder auto-expanded and input field is visible
-    await expect(
-      window.getByRole("textbox", { name: "filename.txt" })
-    ).toBeVisible()
+    await expect(window.getByRole("textbox", { name: "filename.txt" })).toBeVisible()
 
     // Create the file
     const fileInput = window.getByRole("textbox", { name: "filename.txt" })
@@ -227,9 +207,7 @@ test.describe("spacecake app", () => {
     await window.getByRole("menuitem", { name: "new folder" }).click()
 
     // Verify the folder auto-expanded and input field is visible
-    await expect(
-      window.getByRole("textbox", { name: "folder name" })
-    ).toBeVisible()
+    await expect(window.getByRole("textbox", { name: "folder name" })).toBeVisible()
 
     // Create the folder
     const folderInput = window.getByRole("textbox", { name: "folder name" })
@@ -325,18 +303,10 @@ test.describe("spacecake app", () => {
     await expect(locateSidebarItem(window, "grandchild-folder")).toBeVisible()
 
     // Verify all files were actually created in the filesystem
-    expect(fs.existsSync(path.join(parentFolderPath, "parent-file.txt"))).toBe(
-      true
-    )
-    expect(fs.existsSync(path.join(parentFolderPath, "new-child-folder"))).toBe(
-      true
-    )
-    expect(fs.existsSync(path.join(childFolderPath, "child-file.txt"))).toBe(
-      true
-    )
-    expect(fs.existsSync(path.join(childFolderPath, "grandchild-folder"))).toBe(
-      true
-    )
+    expect(fs.existsSync(path.join(parentFolderPath, "parent-file.txt"))).toBe(true)
+    expect(fs.existsSync(path.join(parentFolderPath, "new-child-folder"))).toBe(true)
+    expect(fs.existsSync(path.join(childFolderPath, "child-file.txt"))).toBe(true)
+    expect(fs.existsSync(path.join(childFolderPath, "grandchild-folder"))).toBe(true)
 
     testInfo.annotations.push({
       type: "info",
@@ -385,24 +355,18 @@ test.describe("spacecake app", () => {
     await locateSidebarItem(window, "file-to-delete.txt").hover()
     await window.getByTestId("more-options-file-to-delete.txt").click()
 
-    await window
-      .getByRole("menuitem", { name: "delete" })
-      .click({ force: true })
+    await window.getByRole("menuitem", { name: "delete" }).click({ force: true })
 
     // Verify delete confirmation dialog appears
+    await expect(window.getByRole("dialog", { name: "delete file" })).toBeVisible()
     await expect(
-      window.getByRole("dialog", { name: "delete file" })
-    ).toBeVisible()
-    await expect(
-      window.getByText("are you sure you want to delete 'file-to-delete.txt'?")
+      window.getByText("are you sure you want to delete 'file-to-delete.txt'?"),
     ).toBeVisible()
 
     // Cancel the delete
     await window.getByRole("button", { name: "cancel" }).click()
 
-    await expect(
-      window.getByRole("dialog", { name: "delete file" })
-    ).not.toBeVisible()
+    await expect(window.getByRole("dialog", { name: "delete file" })).not.toBeVisible()
 
     // Verify the file is still there
     await expect(locateSidebarItem(window, "file-to-delete.txt")).toBeVisible()
@@ -410,24 +374,18 @@ test.describe("spacecake app", () => {
     // Now actually delete the file
     await locateSidebarItem(window, "file-to-delete.txt").hover()
     await window.getByTestId("more-options-file-to-delete.txt").click()
-    await window
-      .getByRole("menuitem", { name: "delete" })
-      .click({ force: true })
+    await window.getByRole("menuitem", { name: "delete" }).click({ force: true })
     await expect(
-      window.getByText("are you sure you want to delete 'file-to-delete.txt'?")
+      window.getByText("are you sure you want to delete 'file-to-delete.txt'?"),
     ).toBeVisible()
 
     // Confirm the delete
     await window.getByRole("button", { name: "delete" }).click({ force: true })
 
-    await expect(
-      window.getByRole("dialog", { name: "delete file" })
-    ).not.toBeVisible()
+    await expect(window.getByRole("dialog", { name: "delete file" })).not.toBeVisible()
 
     // Verify the file is removed from the UI
-    await expect(
-      locateSidebarItem(window, "file-to-delete.txt")
-    ).not.toBeVisible()
+    await expect(locateSidebarItem(window, "file-to-delete.txt")).not.toBeVisible()
 
     // Verify the file was actually deleted from the filesystem
     expect(fs.existsSync(testFilePath)).toBe(false)
@@ -435,26 +393,18 @@ test.describe("spacecake app", () => {
     // Test deleting an empty folder
     await locateSidebarItem(window, "empty-folder").hover()
     await window.getByTestId("more-options-empty-folder").click()
-    await window
-      .getByRole("menuitem", { name: "delete" })
-      .click({ force: true })
+    await window.getByRole("menuitem", { name: "delete" }).click({ force: true })
 
     // Verify delete confirmation dialog appears with folder message
+    await expect(window.getByRole("dialog", { name: "delete folder" })).toBeVisible()
     await expect(
-      window.getByRole("dialog", { name: "delete folder" })
-    ).toBeVisible()
-    await expect(
-      window.getByText(
-        "are you sure you want to delete 'empty-folder' and its contents?"
-      )
+      window.getByText("are you sure you want to delete 'empty-folder' and its contents?"),
     ).toBeVisible()
 
     // Confirm the delete
     await window.getByRole("button", { name: "delete" }).click({ force: true })
 
-    await expect(
-      window.getByRole("dialog", { name: "delete folder" })
-    ).not.toBeVisible()
+    await expect(window.getByRole("dialog", { name: "delete folder" })).not.toBeVisible()
 
     // Verify the folder is removed from the UI
     await expect(locateSidebarItem(window, "empty-folder")).not.toBeVisible()
@@ -464,31 +414,21 @@ test.describe("spacecake app", () => {
 
     // Test deleting a folder with files (recursive delete)
     await window.getByTestId("more-options-folder-with-files").click()
-    await window
-      .getByRole("menuitem", { name: "delete" })
-      .click({ force: true })
+    await window.getByRole("menuitem", { name: "delete" }).click({ force: true })
 
     // Verify delete confirmation dialog appears with folder message
+    await expect(window.getByRole("dialog", { name: "delete folder" })).toBeVisible()
     await expect(
-      window.getByRole("dialog", { name: "delete folder" })
-    ).toBeVisible()
-    await expect(
-      window.getByText(
-        "are you sure you want to delete 'folder-with-files' and its contents?"
-      )
+      window.getByText("are you sure you want to delete 'folder-with-files' and its contents?"),
     ).toBeVisible()
 
     // Confirm the delete
     await window.getByRole("button", { name: "delete" }).click({ force: true })
 
-    await expect(
-      window.getByRole("dialog", { name: "delete folder" })
-    ).not.toBeVisible()
+    await expect(window.getByRole("dialog", { name: "delete folder" })).not.toBeVisible()
 
     // Verify the folder is removed from the UI
-    await expect(
-      locateSidebarItem(window, "folder-with-files")
-    ).not.toBeVisible()
+    await expect(locateSidebarItem(window, "folder-with-files")).not.toBeVisible()
 
     // Verify the folder and all its contents were actually deleted from the filesystem
     expect(fs.existsSync(folderWithFilesPath)).toBe(false)
@@ -499,15 +439,11 @@ test.describe("spacecake app", () => {
 
     testInfo.annotations.push({
       type: "info",
-      description:
-        "Successfully completed delete functionality tests including folder deletion",
+      description: "Successfully completed delete functionality tests including folder deletion",
     })
   })
 
-  test("previously opened workspace reopens on launch", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
+  test("previously opened workspace reopens on launch", async ({ electronApp, tempTestDir }) => {
     // 1. Setup: Create a file in the temp dir
     const testFilePath = path.join(tempTestDir, "persistent-file.txt")
     fs.writeFileSync(testFilePath, "hello persistence")
@@ -532,15 +468,10 @@ test.describe("spacecake app", () => {
     await expect(locateSidebarItem(window, "persistent-file.txt")).toBeVisible()
 
     // Verify the workspace loaded (create file button visible means we're in a workspace)
-    await expect(
-      window.getByRole("button", { name: "create file or folder" })
-    ).toBeVisible()
+    await expect(window.getByRole("button", { name: "create file or folder" })).toBeVisible()
   })
 
-  test("previously opened file reopens on launch", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
+  test("previously opened file reopens on launch", async ({ electronApp, tempTestDir }) => {
     // 1. Setup: Create a file in the temp dir
     const testFilePath = path.join(tempTestDir, "persistent-file.md")
     fs.writeFileSync(testFilePath, "hello persistence")
@@ -595,9 +526,7 @@ test.describe("spacecake app", () => {
     await locateSidebarItem(window, "level2")
       .locator("svg:first-child") // click the chevron
       .click({ delay: 100 })
-    await locateSidebarItem(window, "level3")
-      .locator("svg:first-child")
-      .click({ delay: 100 })
+    await locateSidebarItem(window, "level3").locator("svg:first-child").click({ delay: 100 })
 
     // 4. Open the deeply nested file (click left side to avoid more-options overlay)
     await locateSidebarItem(window, "deep-file.txt").click({
@@ -625,10 +554,7 @@ test.describe("spacecake app", () => {
     await expect(locateSidebarItem(window, "level3")).toBeVisible()
   })
 
-  test("autofocus and type in new file", async ({
-    electronApp,
-    tempTestDir,
-  }, testInfo) => {
+  test("autofocus and type in new file", async ({ electronApp, tempTestDir }, testInfo) => {
     // 1. Setup: Create a test file in the temp dir
     const testFilePath = path.join(tempTestDir, "existing-file.txt")
     fs.writeFileSync(testFilePath, "existing content")
@@ -656,18 +582,18 @@ test.describe("spacecake app", () => {
 
     // 8. Verify the text was typed into the editor (not just the sidebar)
     // We'll look for the text in a paragraph element within the editor
-    await expect(
-      window.getByTestId("lexical-editor").getByRole("paragraph")
-    ).toContainText("Hello, autofocus!")
+    await expect(window.getByTestId("lexical-editor").getByRole("paragraph")).toContainText(
+      "Hello, autofocus!",
+    )
 
     await window.waitForTimeout(1000)
 
     await window.keyboard.press("ControlOrMeta+s", { delay: 100 })
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
-    await expect(
-      window.getByTestId("lexical-editor").getByRole("paragraph")
-    ).toContainText("Hello, autofocus!")
+    await expect(window.getByTestId("lexical-editor").getByRole("paragraph")).toContainText(
+      "Hello, autofocus!",
+    )
 
     // 9. Verify the file was actually created in the filesystem
     const expectedFilePath = path.join(tempTestDir, "test-autofocus.md")
@@ -725,8 +651,7 @@ test.describe("spacecake app", () => {
 
     testInfo.annotations.push({
       type: "info",
-      description:
-        "Successfully verified dot files are visible after external creation",
+      description: "Successfully verified dot files are visible after external creation",
     })
   })
 
@@ -807,18 +732,14 @@ test.describe("spacecake app", () => {
     await window.getByRole("menuitem", { name: "revert" }).click()
 
     // 8. Verify revert confirmation dialog appears
+    await expect(window.getByRole("dialog", { name: "revert file" })).toBeVisible()
     await expect(
-      window.getByRole("dialog", { name: "revert file" })
-    ).toBeVisible()
-    await expect(
-      window.getByText("are you sure you want to revert 'test-revert.md'?")
+      window.getByText("are you sure you want to revert 'test-revert.md'?"),
     ).toBeVisible()
 
     // 9. Cancel the revert - should remain dirty with edited content
     await window.getByRole("button", { name: "cancel" }).click()
-    await expect(
-      window.getByRole("dialog", { name: "revert file" })
-    ).not.toBeVisible()
+    await expect(window.getByRole("dialog", { name: "revert file" })).not.toBeVisible()
     await expect(dirtyRow).toBeVisible()
     await expect(editor.getByText("Original content EDITED")).toBeVisible()
 

@@ -16,9 +16,7 @@ export function useTheme(): {
 
 function resolveTheme(theme: Theme): Exclude<Theme, "system"> {
   if (theme === "system") {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light"
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
   }
   return theme
 }

@@ -1,11 +1,7 @@
 import { Option, Schema } from "effect"
 import { $getState, $setState, createState, LexicalNode } from "lexical"
 
-import {
-  DelimitedString,
-  StringDelimiters,
-  StringDelimitersSchema,
-} from "@/types/parser"
+import { DelimitedString, StringDelimiters, StringDelimitersSchema } from "@/types/parser"
 
 const delimitedState = createState("delimited", {
   parse: (v: unknown) =>
@@ -14,13 +10,13 @@ const delimitedState = createState("delimited", {
       (): StringDelimiters => ({
         prefix: "",
         suffix: "",
-      })
+      }),
     ),
 })
 
 export const delimitedNode = <T extends LexicalNode>(
   nodeCreator: (content: string) => T,
-  delimitedString: DelimitedString
+  delimitedString: DelimitedString,
 ): T => {
   const delimiters: StringDelimiters = {
     prefix: delimitedString.prefix,

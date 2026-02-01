@@ -1,17 +1,12 @@
-import { useEffect, useRef } from "react"
-import * as React from "react"
 import { Link } from "@tanstack/react-router"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { ChevronRight, Loader2, MoreHorizontal, Plus, X } from "lucide-react"
+import { useEffect, useRef } from "react"
+import * as React from "react"
 
-import { AbsolutePath, File, Folder, WorkspaceInfo } from "@/types/workspace"
-import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
-import type { FlatFileTreeItem } from "@/lib/atoms/file-tree"
-import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
-import { supportedViews } from "@/lib/language-support"
-import { cn, encodeBase64Url } from "@/lib/utils"
-import { getNavItemIcon } from "@/lib/workspace"
 import type { WorkspaceCache } from "@/hooks/use-workspace-cache"
+import type { FlatFileTreeItem } from "@/lib/atoms/file-tree"
+
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -21,11 +16,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import {
-  SidebarMenuAction,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar"
+import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
+import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
+import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { supportedViews } from "@/lib/language-support"
+import { cn, encodeBase64Url } from "@/lib/utils"
+import { getNavItemIcon } from "@/lib/workspace"
+import { AbsolutePath, File, Folder, WorkspaceInfo } from "@/types/workspace"
 
 // Component for the rename input field
 function RenameInput({
@@ -68,9 +65,7 @@ function RenameInput({
         />
       </SidebarMenuButton>
       {validationError && (
-        <div className="px-3 py-1 text-xs text-destructive">
-          {validationError}
-        </div>
+        <div className="px-3 py-1 text-xs text-destructive">{validationError}</div>
       )}
     </div>
   )
@@ -94,9 +89,7 @@ function ItemDropdownMenu({
 }) {
   if (isRenaming) return null
 
-  const [isCreatingInContext, setIsCreatingInContext] = useAtom(
-    isCreatingInContextAtom
-  )
+  const [isCreatingInContext, setIsCreatingInContext] = useAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
 
   // Check if file is dirty (only for files)
@@ -185,14 +178,8 @@ function ItemDropdownMenu({
 }
 
 // Component for the workspace-level dropdown menu (plus icon)
-export function WorkspaceDropdownMenu({
-  workspace,
-}: {
-  workspace: WorkspaceInfo
-}) {
-  const [isCreatingInContext, setIsCreatingInContext] = useAtom(
-    isCreatingInContextAtom
-  )
+export function WorkspaceDropdownMenu({ workspace }: { workspace: WorkspaceInfo }) {
+  const [isCreatingInContext, setIsCreatingInContext] = useAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
 
   const startCreatingFile = () => {
@@ -212,8 +199,7 @@ export function WorkspaceDropdownMenu({
     setContextItemName("")
   }
 
-  const isCreatingInWorkspace =
-    isCreatingInContext?.parentPath === workspace?.path
+  const isCreatingInWorkspace = isCreatingInContext?.parentPath === workspace?.path
 
   return (
     <>
@@ -272,14 +258,11 @@ function FileRowLink({
   cacheMap: WorkspaceCache
 }) {
   const state = useAtomValue(fileStateAtomFamily(item.path)).value
-  const statusText =
-    state === "Dirty" ? "dirty" : state === "Conflict" ? "conflict" : "clean"
+  const statusText = state === "Dirty" ? "dirty" : state === "Conflict" ? "conflict" : "clean"
   const title = `${item.name} (${statusText})`
 
   const filePathEncoded = encodeBase64Url(AbsolutePath(item.path))
-  const workspaceIdEncoded = workspace?.path
-    ? encodeBase64Url(workspace.path)
-    : ""
+  const workspaceIdEncoded = workspace?.path ? encodeBase64Url(workspace.path) : ""
 
   const canToggleViews = supportedViews(item.fileType).size > 1
   const cacheEntry = cacheMap.get(item.path)
@@ -289,11 +272,7 @@ function FileRowLink({
 
   const Icon = getNavItemIcon(item)
   const iconClass =
-    state === "Dirty"
-      ? "text-warning"
-      : state === "Conflict"
-        ? "text-destructive"
-        : ""
+    state === "Dirty" ? "text-warning" : state === "Conflict" ? "text-destructive" : ""
 
   return (
     <Link
@@ -306,16 +285,10 @@ function FileRowLink({
       className="w-full"
       title={title}
     >
-      <SidebarMenuButton
-        isActive={isSelected}
-        onClick={() => {}}
-        className="cursor-pointer"
-      >
+      <SidebarMenuButton isActive={isSelected} onClick={() => {}} className="cursor-pointer">
         <Icon className={iconClass} />
         <span className="truncate">{item.name}</span>
-        {cached && state === "ExternalChange" && (
-          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-        )}
+        {cached && state === "ExternalChange" && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
       </SidebarMenuButton>
     </Link>
   )
@@ -343,7 +316,7 @@ export interface TreeRowProps {
       path: string
       value: string
       originalValue?: string
-    } | null
+    } | null,
   ) => void
   onRename: () => void
   onRenameKeyDown: (e: React.KeyboardEvent) => void
@@ -439,10 +412,7 @@ export const TreeRow = React.memo(function TreeRow({
           ...style,
           paddingLeft: `${indentPx}px`,
         }}
-        className={cn(
-          isGitIgnored && "opacity-50",
-          isSystemFolder && "text-muted-foreground"
-        )}
+        className={cn(isGitIgnored && "opacity-50", isSystemFolder && "text-muted-foreground")}
       >
         {isRenaming ? (
           <RenameInput
@@ -457,9 +427,7 @@ export const TreeRow = React.memo(function TreeRow({
             onClick={() => onFolderToggle(filePath)}
             className="cursor-pointer"
           >
-            <ChevronRight
-              className={`transition-transform ${isExpanded ? "rotate-90" : ""}`}
-            />
+            <ChevronRight className={`transition-transform ${isExpanded ? "rotate-90" : ""}`} />
             {React.createElement(getNavItemIcon(item))}
             <span className="truncate">{item.name}</span>
           </SidebarMenuButton>

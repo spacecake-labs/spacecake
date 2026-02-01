@@ -2,14 +2,8 @@ import { createEditor, LexicalEditor } from "lexical"
 import { beforeEach, describe, expect, it } from "vitest"
 
 import { nodes } from "@/components/editor/nodes"
-import {
-  $createContainerNode,
-  ContainerNode,
-} from "@/components/editor/nodes/container-node"
-import {
-  $getDelimiters,
-  delimitedNode,
-} from "@/components/editor/nodes/delimited-node"
+import { $createContainerNode, ContainerNode } from "@/components/editor/nodes/container-node"
+import { $getDelimiters, delimitedNode } from "@/components/editor/nodes/delimited-node"
 
 describe("ContainerNode isomorphism", () => {
   let editor: LexicalEditor

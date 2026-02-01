@@ -1,0 +1,692 @@
+---
+/**
+ * Layout for comparison/SEO pages
+ * Structure based on high-ranking comparison sites (G2, Wirecutter, NerdWallet)
+ *
+ * Key SEO elements:
+ * - Schema.org Article + FAQ markup
+ * - Clear heading hierarchy
+ * - Last updated date (freshness signal)
+ * - Table of contents
+ * - FAQ section for rich snippets
+ */
+
+interface Props {
+  title: string
+  description: string
+  products: string[]
+  verdict: string
+  winner?: string
+  publishedAt: Date
+  updatedAt?: Date
+  author?: string
+  faq?: Array<{ question: string; answer: string }>
+  canonical?: string
+  noindex?: boolean
+}
+
+const {
+  title,
+  description,
+  products,
+  verdict,
+  winner,
+  publishedAt,
+  updatedAt,
+  author = "spacecake team",
+  faq,
+  canonical,
+  noindex = false,
+} = Astro.props
+
+const currentUrl = Astro.url.href
+const canonicalUrl = canonical || currentUrl
+
+// Format dates for display
+const formatDate = (date: Date) =>
+  date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+
+// Schema.org Article markup
+const articleSchema = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: title,
+  description: description,
+  author: {
+    "@type": "Organization",
+    name: author,
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "spacecake",
+    url: "https://spacecake.dev",
+  },
+  datePublished: publishedAt.toISOString(),
+  dateModified: (updatedAt || publishedAt).toISOString(),
+  mainEntityOfPage: canonicalUrl,
+}
+
+// FAQ Schema for rich snippets
+const faqSchema = faq?.length
+  ? {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faq.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer,
+        },
+      })),
+    }
+  : null
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Primary Meta Tags -->
+    <title>{title} | spacecake</title>
+    <meta name="title" content={`${title} | spacecake`} />
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <!-- Canonical -->
+    <link rel="canonical" href={canonicalUrl} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content={currentUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content="spacecake" />
+    <meta
+      property="article:published_time"
+      content={publishedAt.toISOString()}
+    />
+    {
+      updatedAt && (
+        <meta
+          property="article:modified_time"
+          content={updatedAt.toISOString()}
+        />
+      )
+    }
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <!-- Structured Data -->
+    <script
+      type="application/ld+json"
+      set:html={JSON.stringify(articleSchema)}
+    />
+    {
+      faqSchema && (
+        <script
+          type="application/ld+json"
+          set:html={JSON.stringify(faqSchema)}
+        />
+      )
+    }
+
+    <!-- Fonts (matching your theme) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Analytics -->
+    <script
+      src="https://analytics.ahrefs.com/analytics.js"
+      data-key="TJwISHtBcWir5M/lRBkKWw"
+      async></script>
+  </head>
+
+  <body>
+    <!-- Navigation -->
+    <nav class="nav">
+      <div class="nav-inner">
+        <a href="/" class="nav-logo">spacecake</a>
+        <div class="nav-links">
+          <a href="/getting-started">Docs</a>
+          <a href="/compare" class="active">Compare</a>
+          <a
+            href="https://github.com/spacecake-labs/spacecake"
+            target="_blank"
+            rel="noopener"
+          >
+            GitHub
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <article class="article">
+        <!-- Breadcrumbs -->
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
+          <a href="/">Home</a>
+          <span class="separator">/</span>
+          <a href="/compare">Compare</a>
+          <span class="separator">/</span>
+          <span class="current">{products.join(" vs ")}</span>
+        </nav>
+
+        <!-- Header -->
+        <header class="header">
+          <h1>{title}</h1>
+
+          <!-- Meta info -->
+          <div class="meta">
+            <span class="author">By {author}</span>
+            <span class="separator">|</span>
+            <time datetime={publishedAt.toISOString()}>
+              {formatDate(publishedAt)}
+            </time>
+            {
+              updatedAt && (
+                <>
+                  <span class="separator">|</span>
+                  <span class="updated">
+                    Updated:{" "}
+                    <time datetime={updatedAt.toISOString()}>
+                      {formatDate(updatedAt)}
+                    </time>
+                  </span>
+                </>
+              )
+            }
+          </div>
+
+          <!-- Quick Verdict Box -->
+          <div class="verdict-box">
+            <div class="verdict-label">Quick Verdict</div>
+            <p class="verdict-text">{verdict}</p>
+            {
+              winner && (
+                <div class="winner">
+                  <span class="winner-label">Winner:</span> {winner}
+                </div>
+              )
+            }
+          </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="content">
+          <slot />
+        </div>
+
+        <!-- FAQ Section -->
+        {
+          faq && faq.length > 0 && (
+            <section class="faq-section">
+              <h2>Frequently Asked Questions</h2>
+              <div class="faq-list">
+                {faq.map((item) => (
+                  <details class="faq-item">
+                    <summary>{item.question}</summary>
+                    <p>{item.answer}</p>
+                  </details>
+                ))}
+              </div>
+            </section>
+          )
+        }
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+          <h2>Ready to try spacecake?</h2>
+          <p>
+            The best way to experience AI-assisted coding is to try it yourself.
+          </p>
+          <a href="/getting-started" class="cta-button">Get Started Free</a>
+        </section>
+      </article>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <p>&copy; {new Date().getFullYear()} spacecake. All rights reserved.</p>
+        <div class="footer-links">
+          <a href="https://github.com/spacecake-labs/spacecake">GitHub</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  :root {
+    --font-sans:
+      "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --color-bg: #0a0a0a;
+    --color-bg-elevated: #141414;
+    --color-bg-muted: #1a1a1a;
+    --color-text: #fafafa;
+    --color-text-muted: #a1a1a1;
+    --color-border: #262626;
+    --color-accent: #10b981;
+    --color-accent-muted: rgba(16, 185, 129, 0.1);
+    --max-width: 48rem;
+    --nav-height: 4rem;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.6;
+  }
+
+  /* Navigation */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+    height: var(--nav-height);
+  }
+
+  .nav-inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-logo {
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .nav-links a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover,
+  .nav-links a.active {
+    color: var(--color-text);
+  }
+
+  /* Main */
+  .main {
+    min-height: calc(100vh - var(--nav-height) - 4rem);
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  .article {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  /* Breadcrumbs */
+  .breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-bottom: 2rem;
+  }
+
+  .breadcrumbs a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .breadcrumbs a:hover {
+    color: var(--color-text);
+  }
+
+  .breadcrumbs .separator {
+    opacity: 0.5;
+  }
+
+  .breadcrumbs .current {
+    color: var(--color-text);
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 3rem;
+  }
+
+  .header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+  }
+
+  @media (max-width: 640px) {
+    .header h1 {
+      font-size: 1.875rem;
+    }
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .meta .separator {
+    opacity: 0.5;
+  }
+
+  /* Verdict Box */
+  .verdict-box {
+    background: var(--color-accent-muted);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 0.5rem;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .verdict-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-accent);
+    margin-bottom: 0.5rem;
+  }
+
+  .verdict-text {
+    font-size: 1.125rem;
+    color: var(--color-text);
+  }
+
+  .winner {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(16, 185, 129, 0.2);
+    font-size: 0.9375rem;
+  }
+
+  .winner-label {
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
+  /* Content */
+  .content {
+    font-size: 1.0625rem;
+    line-height: 1.75;
+  }
+
+  .content :global(h2) {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    letter-spacing: -0.01em;
+  }
+
+  .content :global(h3) {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .content :global(p) {
+    margin-bottom: 1.25rem;
+    color: var(--color-text-muted);
+  }
+
+  .content :global(ul),
+  .content :global(ol) {
+    margin-bottom: 1.25rem;
+    padding-left: 1.5rem;
+    color: var(--color-text-muted);
+  }
+
+  .content :global(li) {
+    margin-bottom: 0.5rem;
+  }
+
+  .content :global(a) {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .content :global(a:hover) {
+    text-decoration: none;
+  }
+
+  .content :global(strong) {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  .content :global(code) {
+    font-family: "Geist Mono", monospace;
+    font-size: 0.875em;
+    background: var(--color-bg-muted);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+  }
+
+  .content :global(pre) {
+    background: var(--color-bg-muted);
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+  }
+
+  .content :global(pre code) {
+    background: none;
+    padding: 0;
+  }
+
+  .content :global(blockquote) {
+    border-left: 3px solid var(--color-accent);
+    padding-left: 1rem;
+    margin: 1.5rem 0;
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+
+  .content :global(hr) {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: 2.5rem 0;
+  }
+
+  /* Comparison Table Styles */
+  .content :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0 2rem;
+    font-size: 0.9375rem;
+  }
+
+  .content :global(th),
+  .content :global(td) {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .content :global(th) {
+    background: var(--color-bg-muted);
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .content :global(td) {
+    color: var(--color-text-muted);
+  }
+
+  .content :global(tr:hover td) {
+    background: var(--color-bg-elevated);
+  }
+
+  /* FAQ Section */
+  .faq-section {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .faq-section h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .faq-item {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  .faq-item summary {
+    padding: 1rem 1.25rem;
+    font-weight: 500;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-item summary::after {
+    content: "+";
+    font-size: 1.25rem;
+    color: var(--color-text-muted);
+    transition: transform 0.2s;
+  }
+
+  .faq-item[open] summary::after {
+    transform: rotate(45deg);
+  }
+
+  .faq-item p {
+    padding: 0 1.25rem 1rem;
+    color: var(--color-text-muted);
+  }
+
+  /* CTA Section */
+  .cta-section {
+    margin-top: 4rem;
+    padding: 2.5rem;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    text-align: center;
+  }
+
+  .cta-section h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .cta-section p {
+    color: var(--color-text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .cta-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    background: var(--color-accent);
+    color: #0a0a0a;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    transition: opacity 0.2s;
+  }
+
+  .cta-button:hover {
+    opacity: 0.9;
+  }
+
+  /* Footer */
+  .footer {
+    border-top: 1px solid var(--color-border);
+    padding: 1.5rem;
+  }
+
+  .footer-inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .footer-links a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+
+  .footer-links a:hover {
+    color: var(--color-text);
+  }
+</style>

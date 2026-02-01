@@ -1,7 +1,7 @@
-import { EditorPrimaryKeySchema } from "@/schema/editor"
-import { FilePrimaryKeySchema } from "@/schema/file"
 import { Schema } from "effect"
 
+import { EditorPrimaryKeySchema } from "@/schema/editor"
+import { FilePrimaryKeySchema } from "@/schema/file"
 import { ViewKindSchema } from "@/types/lexical"
 import { AbsolutePathSchema } from "@/types/workspace"
 

@@ -1,4 +1,3 @@
-import React, { JSX } from "react"
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
 import { mergeRegister } from "@lexical/utils"
 import {
@@ -17,9 +16,11 @@ import {
   SKIP_DOM_SELECTION_TAG,
   Spread,
 } from "lexical"
+import React, { JSX } from "react"
 
 import type { LanguageSpec } from "@/types/language"
 import type { Block } from "@/types/parser"
+
 import { CodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor"
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
@@ -80,7 +81,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
       node.__meta,
       node.__src,
       node.__block,
-      node.__key
+      node.__key,
     )
   }
 
@@ -114,7 +115,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     meta: string,
     src: string,
     block: Block,
-    key?: NodeKey
+    key?: NodeKey,
   ) {
     super(key)
     this.__code = code
@@ -257,8 +258,7 @@ export interface CodeBlockEditorContextValue {
   src: string
 }
 
-export const CodeBlockEditorContext =
-  React.createContext<CodeBlockEditorContextValue | null>(null)
+export const CodeBlockEditorContext = React.createContext<CodeBlockEditorContextValue | null>(null)
 
 const CodeBlockEditorContextProvider: React.FC<{
   parentEditor: LexicalEditor
@@ -346,8 +346,9 @@ const CodeBlockEditorContainer: React.FC<
     codeBlockNode: CodeBlockNode
   } & CodeBlockEditorProps
 > = (props) => {
-  const [isNodeSelected, setNodeSelected, clearNodeSelection] =
-    useLexicalNodeSelection(props.nodeKey)
+  const [isNodeSelected, setNodeSelected, clearNodeSelection] = useLexicalNodeSelection(
+    props.nodeKey,
+  )
 
   React.useEffect(() => {
     return mergeRegister(
@@ -371,8 +372,8 @@ const CodeBlockEditorContainer: React.FC<
 
           return false
         },
-        COMMAND_PRIORITY_LOW
-      )
+        COMMAND_PRIORITY_LOW,
+      ),
     )
   }, [clearNodeSelection, props.parentEditor, setNodeSelected, props.nodeKey])
 
@@ -396,9 +397,7 @@ const CodeBlockEditorContainer: React.FC<
 /**
  * Creates a CodeBlockNode.
  */
-export function $createCodeBlockNode(
-  options: Partial<CreateCodeBlockNodeOptions>
-): CodeBlockNode {
+export function $createCodeBlockNode(options: Partial<CreateCodeBlockNodeOptions>): CodeBlockNode {
   const language = (options.language ?? "") as CodeMirrorLanguage
   return $applyNodeReplacement(
     new CodeBlockNode(
@@ -413,17 +412,15 @@ export function $createCodeBlockNode(
         endByte: options.code?.length ?? 0,
         text: options.code ?? "",
         startLine: 1,
-      }
-    )
+      },
+    ),
   )
 }
 
 /**
  * Returns true if the given node is a CodeBlockNode.
  */
-export function $isCodeBlockNode(
-  node: LexicalNode | null | undefined
-): node is CodeBlockNode {
+export function $isCodeBlockNode(node: LexicalNode | null | undefined): node is CodeBlockNode {
   return node instanceof CodeBlockNode
 }
 

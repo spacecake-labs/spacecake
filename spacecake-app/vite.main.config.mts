@@ -1,5 +1,4 @@
 import path from "path"
-
 import { defineConfig } from "vite"
 
 const buildSourcemap =

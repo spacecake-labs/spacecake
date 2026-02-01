@@ -1,29 +1,22 @@
-import * as React from "react"
-import { useEditor } from "@/contexts/editor-context"
-import type { PaneMachineRef } from "@/machines/pane"
-import type { PaneItemPrimaryKey } from "@/schema/pane"
 import { useSearch } from "@tanstack/react-router"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import {
-  Check,
-  FileSearch,
-  FileWarning,
-  FolderSearch,
-  Loader2,
-  Save,
-  X,
-} from "lucide-react"
+import { Check, FileSearch, FileWarning, FolderSearch, Loader2, Save, X } from "lucide-react"
+import * as React from "react"
 
+import type { PaneMachineRef } from "@/machines/pane"
+import type { PaneItemPrimaryKey } from "@/schema/pane"
 import type { OpenFileSource } from "@/types/claude-code"
-import { RouteContext } from "@/types/workspace"
+
+import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
+import { ViewToggleButton } from "@/components/editor/view-toggle-button"
+import { Button } from "@/components/ui/button"
+import { CommandShortcut } from "@/components/ui/command"
+import { useEditor } from "@/contexts/editor-context"
 import { quickOpenMenuOpenAtom, saveResultAtom } from "@/lib/atoms/atoms"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { useOpenWorkspace } from "@/lib/open-workspace"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { CommandShortcut } from "@/components/ui/command"
-import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
-import { ViewToggleButton } from "@/components/editor/view-toggle-button"
+import { RouteContext } from "@/types/workspace"
 
 interface EditorToolbarProps {
   routeContext: RouteContext
@@ -31,11 +24,7 @@ interface EditorToolbarProps {
   activePaneItemId?: PaneItemPrimaryKey
 }
 
-export function EditorToolbar({
-  routeContext,
-  machine,
-  activePaneItemId,
-}: EditorToolbarProps) {
+export function EditorToolbar({ routeContext, machine, activePaneItemId }: EditorToolbarProps) {
   const { editorRef } = useEditor()
   const fileStateAtom = fileStateAtomFamily(routeContext.filePath)
   const fileState = useAtomValue(fileStateAtom).value
@@ -63,10 +52,7 @@ export function EditorToolbar({
     if (prev === "Saving" && fileState === "Clean") {
       setSaveResult("success")
       setTimeout(() => setSaveResult(null), 1500)
-    } else if (
-      prev === "Saving" &&
-      (fileState === "Dirty" || fileState === "Conflict")
-    ) {
+    } else if (prev === "Saving" && (fileState === "Dirty" || fileState === "Conflict")) {
       setSaveResult("error")
       setTimeout(() => setSaveResult(null), 1500)
     }

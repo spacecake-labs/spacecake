@@ -1,5 +1,6 @@
-import { LANGUAGE_SUPPORT, LanguageSpec } from "@/types/language"
 import type { ViewKind } from "@/types/lexical"
+
+import { LANGUAGE_SUPPORT, LanguageSpec } from "@/types/language"
 import { FileType } from "@/types/workspace"
 
 // pure functions with better naming

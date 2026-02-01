@@ -1,11 +1,8 @@
-import { useEffect } from "react"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { $getRoot } from "lexical"
+import { useEffect } from "react"
 
-import {
-  $isFrontmatterNode,
-  FrontmatterNode,
-} from "@/components/editor/nodes/frontmatter-node"
+import { $isFrontmatterNode, FrontmatterNode } from "@/components/editor/nodes/frontmatter-node"
 
 /**
  * Plugin to enforce frontmatter constraints:
@@ -31,9 +28,7 @@ export function FrontmatterPlugin(): null {
 
           if (newYaml.trim()) {
             // Only merge if the new node has content
-            const mergedYaml = existingYaml.trim()
-              ? existingYaml + "\n" + newYaml
-              : newYaml
+            const mergedYaml = existingYaml.trim() ? existingYaml + "\n" + newYaml : newYaml
             firstChild.setYaml(mergedYaml)
           }
 

@@ -1,7 +1,7 @@
-import { paneMachine, type PaneMachineInput } from "@/machines/pane"
-import { PanePrimaryKey } from "@/schema/pane"
 import { createActor, type Actor } from "xstate"
 
+import { paneMachine, type PaneMachineInput } from "@/machines/pane"
+import { PanePrimaryKey } from "@/schema/pane"
 import { AbsolutePath } from "@/types/workspace"
 
 /**
@@ -17,9 +17,7 @@ const paneMachineCache = new Map<string, PaneMachineActor>()
  * The machine serializes all pane operations (close, activate, open)
  * ensuring operations complete in order.
  */
-export function getOrCreatePaneMachine(
-  input: PaneMachineInput
-): PaneMachineActor {
+export function getOrCreatePaneMachine(input: PaneMachineInput): PaneMachineActor {
   const existingActor = paneMachineCache.get(input.paneId)
   if (existingActor) {
     return existingActor
@@ -37,7 +35,7 @@ export function getOrCreatePaneMachine(
 export const createPaneMachineInput = (
   paneId: PanePrimaryKey,
   workspacePath: AbsolutePath,
-  workspaceId: string
+  workspaceId: string,
 ): PaneMachineInput => ({
   paneId,
   workspacePath,

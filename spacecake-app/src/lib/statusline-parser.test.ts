@@ -1,16 +1,14 @@
 import { describe, expect, it } from "vitest"
 
-import { StatuslineInput } from "@/types/statusline"
 import {
   hasStatuslineData,
   parseStatuslineInput,
   parseStatuslineOutput,
 } from "@/lib/statusline-parser"
+import { StatuslineInput } from "@/types/statusline"
 
 // Helper to create valid StatuslineInput
-const createStatuslineInput = (
-  overrides?: Partial<StatuslineInput>
-): StatuslineInput => ({
+const createStatuslineInput = (overrides?: Partial<StatuslineInput>): StatuslineInput => ({
   hook_event_name: "Status",
   session_id: "test-session-id",
   transcript_path: "/path/to/transcript",
@@ -142,12 +140,7 @@ describe("statusline-parser", () => {
     })
 
     it("should handle various model names", () => {
-      const models = [
-        "Claude 3.5 Sonnet",
-        "Claude 3 Opus",
-        "Claude 3 Haiku",
-        "Custom Model Name",
-      ]
+      const models = ["Claude 3.5 Sonnet", "Claude 3 Opus", "Claude 3 Haiku", "Custom Model Name"]
 
       models.forEach((modelName) => {
         const input = createStatuslineInput({
@@ -332,12 +325,7 @@ describe("statusline-parser", () => {
     })
 
     it("should handle various model names", () => {
-      const models = [
-        "Claude 3.5 Sonnet",
-        "Claude 3 Opus",
-        "Claude 3 Haiku",
-        "Custom Model",
-      ]
+      const models = ["Claude 3.5 Sonnet", "Claude 3 Opus", "Claude 3 Haiku", "Custom Model"]
 
       models.forEach((modelName) => {
         const input = createStatuslineInput({

@@ -1,0 +1,344 @@
+---
+import { getCollection } from "astro:content"
+
+const compareEntries = await getCollection("compare")
+
+// Sort by updatedAt or publishedAt (most recent first)
+const sortedEntries = compareEntries.sort((a, b) => {
+  const dateA = a.data.updatedAt || a.data.publishedAt
+  const dateB = b.data.updatedAt || b.data.publishedAt
+  return dateB.getTime() - dateA.getTime()
+})
+
+const formatDate = (date: Date) =>
+  date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Coding Tool Comparisons | spacecake</title>
+    <meta
+      name="description"
+      content="In-depth comparisons of AI coding assistants including Claude Code, Codex, Gemini CLI, and more. Find the best tool for your development workflow."
+    />
+    <link rel="canonical" href={Astro.url.href} />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Analytics -->
+    <script
+      src="https://analytics.ahrefs.com/analytics.js"
+      data-key="TJwISHtBcWir5M/lRBkKWw"
+      async></script>
+  </head>
+
+  <body>
+    <!-- Navigation -->
+    <nav class="nav">
+      <div class="nav-inner">
+        <a href="/" class="nav-logo">spacecake</a>
+        <div class="nav-links">
+          <a href="/getting-started">Docs</a>
+          <a href="/compare" class="active">Compare</a>
+          <a
+            href="https://github.com/spacecake-labs/spacecake"
+            target="_blank"
+            rel="noopener"
+          >
+            GitHub
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <div class="container">
+        <!-- Header -->
+        <header class="header">
+          <h1>AI Coding Tool Comparisons</h1>
+          <p class="subtitle">
+            Honest, in-depth comparisons to help you choose the right AI coding
+            assistant for your workflow.
+          </p>
+        </header>
+
+        <!-- Articles Grid -->
+        <div class="articles-grid">
+          {
+            sortedEntries.map((entry) => (
+              <a href={`/compare/${entry.id}`} class="article-card">
+                <div class="article-meta">
+                  <span class="products">
+                    {entry.data.products.join(" vs ")}
+                  </span>
+                  <time
+                    datetime={(
+                      entry.data.updatedAt || entry.data.publishedAt
+                    ).toISOString()}
+                  >
+                    {formatDate(entry.data.updatedAt || entry.data.publishedAt)}
+                  </time>
+                </div>
+                <h2>{entry.data.title}</h2>
+                <p>{entry.data.description}</p>
+                {entry.data.winner && (
+                  <div class="winner-badge">Winner: {entry.data.winner}</div>
+                )}
+              </a>
+            ))
+          }
+        </div>
+
+        {
+          sortedEntries.length === 0 && (
+            <div class="empty-state">
+              <p>No comparisons yet. Check back soon!</p>
+            </div>
+          )
+        }
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <p>&copy; {new Date().getFullYear()} spacecake. All rights reserved.</p>
+        <div class="footer-links">
+          <a href="https://github.com/spacecake-labs/spacecake">GitHub</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  :root {
+    --font-sans:
+      "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --color-bg: #0a0a0a;
+    --color-bg-elevated: #141414;
+    --color-text: #fafafa;
+    --color-text-muted: #a1a1a1;
+    --color-border: #262626;
+    --color-accent: #10b981;
+    --max-width: 64rem;
+    --nav-height: 4rem;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.6;
+  }
+
+  /* Navigation */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+    height: var(--nav-height);
+  }
+
+  .nav-inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-logo {
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .nav-links a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover,
+  .nav-links a.active {
+    color: var(--color-text);
+  }
+
+  /* Main */
+  .main {
+    min-height: calc(100vh - var(--nav-height) - 4rem);
+    padding: 3rem 1.5rem 4rem;
+  }
+
+  .container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 3rem;
+  }
+
+  .header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+    color: var(--color-text-muted);
+    max-width: 40rem;
+  }
+
+  /* Articles Grid */
+  .articles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .article-card {
+    display: block;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    text-decoration: none;
+    transition:
+      border-color 0.2s,
+      transform 0.2s;
+  }
+
+  .article-card:hover {
+    border-color: #404040;
+    transform: translateY(-2px);
+  }
+
+  .article-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .products {
+    color: var(--color-accent);
+    font-weight: 500;
+  }
+
+  .article-meta time {
+    color: var(--color-text-muted);
+  }
+
+  .article-card h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+  }
+
+  .article-card p {
+    font-size: 0.9375rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .winner-badge {
+    margin-top: 1rem;
+    display: inline-flex;
+    padding: 0.25rem 0.625rem;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-accent);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--color-text-muted);
+  }
+
+  /* Footer */
+  .footer {
+    border-top: 1px solid var(--color-border);
+    padding: 1.5rem;
+  }
+
+  .footer-inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .footer-links a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+
+  .footer-links a:hover {
+    color: var(--color-text);
+  }
+
+  @media (max-width: 640px) {
+    .header h1 {
+      font-size: 1.875rem;
+    }
+
+    .articles-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
 
-import { cn } from "@/lib/utils"
 import { useTheme } from "@/components/theme-provider"
+import { cn } from "@/lib/utils"
 
 interface TerminalMountPointProps {
   containerEl: HTMLDivElement | null
@@ -14,11 +14,7 @@ const backgroundColors = {
   dark: "#0a0a0a",
 } as const
 
-export function TerminalMountPoint({
-  containerEl,
-  className,
-  onMount,
-}: TerminalMountPointProps) {
+export function TerminalMountPoint({ containerEl, className, onMount }: TerminalMountPointProps) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const { theme } = useTheme()
 

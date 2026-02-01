@@ -1,16 +1,14 @@
 import { useAtomValue } from "jotai"
 
+import { Badge } from "@/components/ui/badge"
 import { claudeStatuslineAtom } from "@/lib/atoms/atoms"
 import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
 
 interface ClaudeStatuslineBadgeProps {
   className?: string
 }
 
-export function ClaudeStatuslineBadge({
-  className,
-}: ClaudeStatuslineBadgeProps) {
+export function ClaudeStatuslineBadge({ className }: ClaudeStatuslineBadgeProps) {
   const statusline = useAtomValue(claudeStatuslineAtom)
 
   if (!statusline) return null

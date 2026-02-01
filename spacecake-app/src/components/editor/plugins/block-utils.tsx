@@ -1,10 +1,10 @@
 import { $getNodeByKey, LexicalEditor } from "lexical"
 
-import { PyBlock } from "@/types/parser"
-import { parseCodeBlocks } from "@/lib/parser/python/blocks"
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { maybeSplitBlock } from "@/components/editor/plugins/block-splitting"
 import { maybeUpdateDocstring } from "@/components/editor/plugins/docstring-update"
+import { parseCodeBlocks } from "@/lib/parser/python/blocks"
+import { PyBlock } from "@/types/parser"
 
 /**
  * Parse code into blocks - shared utility to avoid duplicate parsing
@@ -24,7 +24,7 @@ export async function getBlocks(code: string): Promise<PyBlock[]> {
 export async function maybeUpdateBlockAndDocstring(
   editor: LexicalEditor,
   nodeKey: string,
-  selectLastBlockOnSplit = false
+  selectLastBlockOnSplit = false,
 ) {
   // get the node first, outside of editor.update
   const node = editor.getEditorState().read(() => $getNodeByKey(nodeKey))

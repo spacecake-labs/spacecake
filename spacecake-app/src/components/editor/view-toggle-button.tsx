@@ -1,10 +1,10 @@
 import { Link } from "@tanstack/react-router"
 import { Code, Eye, Loader2 } from "lucide-react"
 
-import { RouteContext, RouteContextHelpers } from "@/types/workspace"
+import { Button } from "@/components/ui/button"
 import { supportedViews } from "@/lib/language-support"
 import { encodeBase64Url } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { RouteContext, RouteContextHelpers } from "@/types/workspace"
 
 interface ViewToggleButtonProps {
   routeContext: RouteContext
@@ -41,12 +41,8 @@ export function ViewToggleButton({ routeContext }: ViewToggleButtonProps) {
       variant="ghost"
       size="sm"
       className="h-7 px-2 text-xs cursor-pointer"
-      aria-label={
-        viewKind === "rich" ? "switch to source view" : "switch to rich view"
-      }
-      title={
-        viewKind === "rich" ? "switch to source view" : "switch to rich view"
-      }
+      aria-label={viewKind === "rich" ? "switch to source view" : "switch to rich view"}
+      title={viewKind === "rich" ? "switch to source view" : "switch to rich view"}
     >
       <Link
         to="/w/$workspaceId/f/$filePath"

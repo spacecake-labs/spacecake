@@ -1,5 +1,3 @@
-import { useEffect } from "react"
-import type { RouterContext } from "@/router"
 import { PGliteProvider } from "@electric-sql/pglite-react"
 import {
   createRootRouteWithContext,
@@ -9,9 +7,12 @@ import {
 } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import { usePostHog } from "posthog-js/react"
+import { useEffect } from "react"
 
-import { useOpenWorkspace } from "@/lib/open-workspace"
+import type { RouterContext } from "@/router"
+
 import { DatabaseContext } from "@/hooks/use-database"
+import { useOpenWorkspace } from "@/lib/open-workspace"
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,

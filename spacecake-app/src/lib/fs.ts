@@ -2,7 +2,7 @@ import type { ElectronAPI } from "@/types/electron"
 import type { AbsolutePath } from "@/types/workspace"
 
 export const openDirectory = async (
-  electronAPI: ElectronAPI = window.electronAPI
+  electronAPI: ElectronAPI = window.electronAPI,
 ): Promise<string | null> => {
   try {
     const result = await electronAPI.showOpenDialog({
@@ -22,48 +22,38 @@ export const openDirectory = async (
 
 export const createFolder = (
   folderPath: AbsolutePath,
-  electronAPI: ElectronAPI = window.electronAPI
+  electronAPI: ElectronAPI = window.electronAPI,
 ) => electronAPI.createFolder(folderPath)
 
-export const readFile = (
-  filePath: AbsolutePath,
-  electronAPI: ElectronAPI = window.electronAPI
-) => electronAPI.readFile(filePath)
+export const readFile = (filePath: AbsolutePath, electronAPI: ElectronAPI = window.electronAPI) =>
+  electronAPI.readFile(filePath)
 
 export const saveFile = (
   filePath: AbsolutePath,
   content: string,
-  electronAPI: ElectronAPI = window.electronAPI
+  electronAPI: ElectronAPI = window.electronAPI,
 ) => electronAPI.saveFile(filePath, content)
 
 export const rename = (
   path: AbsolutePath,
   newPath: AbsolutePath,
-  electronAPI: ElectronAPI = window.electronAPI
+  electronAPI: ElectronAPI = window.electronAPI,
 ) => electronAPI.rename(path, newPath)
 
 export const remove = (
   filePath: AbsolutePath,
   recursive?: boolean,
-  electronAPI: ElectronAPI = window.electronAPI
+  electronAPI: ElectronAPI = window.electronAPI,
 ) => electronAPI.remove(filePath, recursive)
 
-export const exists = (
-  path: AbsolutePath,
-  electronAPI: ElectronAPI = window.electronAPI
-) => electronAPI.exists(path)
+export const exists = (path: AbsolutePath, electronAPI: ElectronAPI = window.electronAPI) =>
+  electronAPI.exists(path)
 
-export const readDirectory = (
-  path: AbsolutePath,
-  electronAPI: ElectronAPI = window.electronAPI
-) => electronAPI.readDirectory(path)
+export const readDirectory = (path: AbsolutePath, electronAPI: ElectronAPI = window.electronAPI) =>
+  electronAPI.readDirectory(path)
 
-export const startWatcher = (
-  path: AbsolutePath,
-  electronAPI: ElectronAPI = window.electronAPI
-) => electronAPI.startWatcher(path)
+export const startWatcher = (path: AbsolutePath, electronAPI: ElectronAPI = window.electronAPI) =>
+  electronAPI.startWatcher(path)
 
-export const stopWatcher = (
-  path: AbsolutePath,
-  electronAPI: ElectronAPI = window.electronAPI
-) => electronAPI.stopWatcher(path)
+export const stopWatcher = (path: AbsolutePath, electronAPI: ElectronAPI = window.electronAPI) =>
+  electronAPI.stopWatcher(path)

@@ -1,11 +1,7 @@
 import { describe, expect, test } from "vitest"
 
+import { fileExtension, fileTypeFromFileName, fileTypeFromLanguage } from "@/lib/workspace"
 import { FileType } from "@/types/workspace"
-import {
-  fileExtension,
-  fileTypeFromFileName,
-  fileTypeFromLanguage,
-} from "@/lib/workspace"
 
 // fileTypeFromLanguage tests
 
@@ -57,12 +53,9 @@ describe("fileTypeFromLanguage", () => {
   test.each([
     ["unknown", FileType.Plaintext],
     ["", FileType.Plaintext],
-  ])(
-    "returns Plaintext for unsupported languages: %s",
-    (language, expectedType) => {
-      expect(fileTypeFromLanguage(language)).toBe(expectedType)
-    }
-  )
+  ])("returns Plaintext for unsupported languages: %s", (language, expectedType) => {
+    expect(fileTypeFromLanguage(language)).toBe(expectedType)
+  })
 })
 
 // fileExtension tests
@@ -97,12 +90,9 @@ describe("fileExtension", () => {
     ["test.bash", "bash"],
     ["test.ksh", "ksh"],
     ["test", null],
-  ])(
-    "returns correct extension for file: %s",
-    (fileName, expectedExtension) => {
-      expect(fileExtension(fileName)).toBe(expectedExtension)
-    }
-  )
+  ])("returns correct extension for file: %s", (fileName, expectedExtension) => {
+    expect(fileExtension(fileName)).toBe(expectedExtension)
+  })
 })
 
 // fileTypeFromFileName tests

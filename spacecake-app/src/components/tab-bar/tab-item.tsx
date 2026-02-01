@@ -1,15 +1,12 @@
-import { useState } from "react"
 import { Check, Copy, MoveHorizontal, X } from "lucide-react"
+import { useState } from "react"
 
 import type { OpenFileSource } from "@/types/claude-code"
-import { cn, condensePath } from "@/lib/utils"
+
 import { Button } from "@/components/ui/button"
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { TabsTrigger } from "@/components/ui/tabs"
+import { cn, condensePath } from "@/lib/utils"
 
 interface TabItemProps {
   id: string
@@ -20,14 +17,7 @@ interface TabItemProps {
   source?: OpenFileSource
 }
 
-export function TabItem({
-  id,
-  fileName,
-  filePath,
-  isActive,
-  onClose,
-  source,
-}: TabItemProps) {
+export function TabItem({ id, fileName, filePath, isActive, onClose, source }: TabItemProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopyPath = async (e: React.MouseEvent) => {
@@ -53,7 +43,7 @@ export function TabItem({
               "bg-transparent rounded-none rounded-t-md border border-transparent",
               "data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:border-b-background",
               "data-[state=active]:-mb-px data-[state=active]:shadow-none",
-              "data-[state=inactive]:hover:bg-muted/50"
+              "data-[state=inactive]:hover:bg-muted/50",
             )}
           >
             {source && (
@@ -93,7 +83,7 @@ export function TabItem({
                 "opacity-0 group-hover/tab:opacity-100",
                 "hover:bg-muted-foreground/20",
                 "transition-opacity",
-                isActive && "opacity-100"
+                isActive && "opacity-100",
               )}
               aria-label={`Close ${fileName}`}
             >
@@ -102,16 +92,10 @@ export function TabItem({
           </TabsTrigger>
         </span>
       </HoverCardTrigger>
-      <HoverCardContent
-        side="bottom"
-        align="start"
-        className="w-auto max-w-md p-2"
-      >
+      <HoverCardContent side="bottom" align="start" className="w-auto max-w-md p-2">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground truncate">
-              {condensePath(filePath)}
-            </span>
+            <span className="text-xs text-muted-foreground truncate">{condensePath(filePath)}</span>
             <Button
               variant="ghost"
               size="sm"
@@ -120,11 +104,7 @@ export function TabItem({
               aria-label="copy path"
               title="copy path"
             >
-              {copied ? (
-                <Check className="h-3 w-3 text-green-600" />
-              ) : (
-                <Copy className="h-3 w-3" />
-              )}
+              {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
             </Button>
           </div>
           {source && (

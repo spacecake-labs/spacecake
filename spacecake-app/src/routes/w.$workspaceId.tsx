@@ -3,24 +3,9 @@
  * If the workspace path is not valid, it redirects to the home route.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import {
-  FocusManagerProvider,
-  useFocusablePanel,
-  useFocusManager,
-} from "@/contexts/focus-manager"
-import { FileStateHydrationEvent } from "@/machines/file-tree"
-import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
-import { WorkspacePrimaryKey } from "@/schema/workspace"
-import type { DockPosition } from "@/schema/workspace-layout"
-import { Database } from "@/services/database"
-import { RuntimeClient } from "@/services/runtime-client"
-import {
-  createFileRoute,
-  ErrorComponent,
-  Outlet,
-  redirect,
-} from "@tanstack/react-router"
+import type { ImperativePanelHandle } from "react-resizable-panels"
+
+import { createFileRoute, ErrorComponent, Outlet, redirect } from "@tanstack/react-router"
 import { Effect, Match } from "effect"
 import { useAtom, useSetAtom } from "jotai"
 import {
@@ -32,46 +17,11 @@ import {
   PanelRight,
   X,
 } from "lucide-react"
-import type { ImperativePanelHandle } from "react-resizable-panels"
+import { useCallback, useEffect, useRef, useState } from "react"
 
-import { match } from "@/types/adt"
-import { AbsolutePath } from "@/types/workspace"
-import {
-  WorkspaceNotAccessible,
-  WorkspaceNotFound,
-} from "@/types/workspace-error"
-import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
-import { taskStatusFilterAtom } from "@/lib/atoms/claude-tasks"
-import { fileStateAtomFamily, setFileTreeAtom } from "@/lib/atoms/file-tree"
 import type { DockAction } from "@/lib/dock-transition"
-import {
-  clampSize,
-  DOCK_SIZE_CONSTRAINTS,
-  findPanel,
-  transition,
-} from "@/lib/dock-transition"
-import { exists, readDirectory } from "@/lib/fs"
-import { store } from "@/lib/store"
-import { cn, debounce, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
-import { WorkspaceWatcher } from "@/lib/workspace-watcher"
-import { useClaudeTaskWatcher } from "@/hooks/use-claude-task-watcher"
-import { useGhosttyEngine } from "@/hooks/use-ghostty-engine"
-import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
-import { usePaneMachine } from "@/hooks/use-pane-machine"
-import { useRoute } from "@/hooks/use-route"
-import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable"
-import { SidebarProvider, useSidebar } from "@/components/ui/sidebar"
+import type { DockPosition } from "@/schema/workspace-layout"
+
 import { AppSidebar } from "@/components/app-sidebar"
 import { DeleteButton } from "@/components/delete-button"
 import { EditorToolbar } from "@/components/editor/toolbar"
@@ -81,7 +31,38 @@ import { TabBar } from "@/components/tab-bar"
 import { TaskTable } from "@/components/task-table/task-table"
 import { TerminalMountPoint } from "@/components/terminal-mount-point"
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { WorkspaceStatusBar } from "@/components/workspace-status-bar"
+import { FocusManagerProvider, useFocusablePanel, useFocusManager } from "@/contexts/focus-manager"
+import { useClaudeTaskWatcher } from "@/hooks/use-claude-task-watcher"
+import { useGhosttyEngine } from "@/hooks/use-ghostty-engine"
+import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
+import { usePaneMachine } from "@/hooks/use-pane-machine"
+import { useRoute } from "@/hooks/use-route"
+import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
+import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
+import { taskStatusFilterAtom } from "@/lib/atoms/claude-tasks"
+import { fileStateAtomFamily, setFileTreeAtom } from "@/lib/atoms/file-tree"
+import { clampSize, DOCK_SIZE_CONSTRAINTS, findPanel, transition } from "@/lib/dock-transition"
+import { exists, readDirectory } from "@/lib/fs"
+import { store } from "@/lib/store"
+import { cn, debounce, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
+import { WorkspaceWatcher } from "@/lib/workspace-watcher"
+import { FileStateHydrationEvent } from "@/machines/file-tree"
+import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
+import { WorkspacePrimaryKey } from "@/schema/workspace"
+import { Database } from "@/services/database"
+import { RuntimeClient } from "@/services/runtime-client"
+import { match } from "@/types/adt"
+import { AbsolutePath } from "@/types/workspace"
+import { WorkspaceNotAccessible, WorkspaceNotFound } from "@/types/workspace-error"
 
 export const Route = createFileRoute("/w/$workspaceId")({
   beforeLoad: async ({ params, context }) => {
@@ -96,9 +77,9 @@ export const Route = createFileRoute("/w/$workspaceId")({
         const workspaceError = Match.value(error).pipe(
           Match.tag(
             "PermissionDeniedError",
-            () => new WorkspaceNotAccessible({ path: workspacePath })
+            () => new WorkspaceNotAccessible({ path: workspacePath }),
           ),
-          Match.orElse(() => new WorkspaceNotFound({ path: workspacePath }))
+          Match.orElse(() => new WorkspaceNotFound({ path: workspacePath })),
         )
         throw redirect({
           to: "/",
@@ -122,11 +103,11 @@ export const Route = createFileRoute("/w/$workspaceId")({
       db.upsertWorkspace({
         path: workspacePath,
         is_open: true,
-      })
+      }),
     )
 
     const pane = await RuntimeClient.runPromise(
-      db.upsertPane({ workspace_id: workspace.id, position: 0 })
+      db.upsertPane({ workspace_id: workspace.id, position: 0 }),
     )
 
     return {
@@ -154,14 +135,12 @@ export const Route = createFileRoute("/w/$workspaceId")({
               },
             })
           }),
-          Match.orElse((e) => console.error(e))
+          Match.orElse((e) => console.error(e)),
         )
       },
       onRight: async (tree) => {
         // hydrate file state machine atoms
-        const cache = await RuntimeClient.runPromise(
-          db.selectWorkspaceCache(workspace.path)
-        )
+        const cache = await RuntimeClient.runPromise(db.selectWorkspaceCache(workspace.path))
         cache.forEach((row) => {
           const event: FileStateHydrationEvent = {
             type: row.has_cached_state ? "file.dirty" : "file.clean",
@@ -203,11 +182,7 @@ function HeaderToolbar() {
   if (selectedFilePath && route && activePaneItemId) {
     return (
       <div className="app-no-drag flex items-center gap-3 px-4">
-        <EditorToolbar
-          routeContext={route}
-          machine={machine}
-          activePaneItemId={activePaneItemId}
-        />
+        <EditorToolbar routeContext={route} machine={machine} activePaneItemId={activePaneItemId} />
       </div>
     )
   }
@@ -223,11 +198,7 @@ function DockPositionDropdown({
   onDockChange: (dock: DockPosition) => void
 }) {
   const CurrentIcon =
-    currentDock === "left"
-      ? PanelLeft
-      : currentDock === "right"
-        ? PanelRight
-        : PanelBottom
+    currentDock === "left" ? PanelLeft : currentDock === "right" ? PanelRight : PanelBottom
 
   return (
     <DropdownMenu>
@@ -242,28 +213,19 @@ function DockPositionDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent align={currentDock === "right" ? "end" : "start"}>
         {currentDock !== "left" && (
-          <DropdownMenuItem
-            onClick={() => onDockChange("left")}
-            className="cursor-pointer"
-          >
+          <DropdownMenuItem onClick={() => onDockChange("left")} className="cursor-pointer">
             <PanelLeft className="h-4 w-4" />
             dock left
           </DropdownMenuItem>
         )}
         {currentDock !== "bottom" && (
-          <DropdownMenuItem
-            onClick={() => onDockChange("bottom")}
-            className="cursor-pointer"
-          >
+          <DropdownMenuItem onClick={() => onDockChange("bottom")} className="cursor-pointer">
             <PanelBottom className="h-4 w-4" />
             dock bottom
           </DropdownMenuItem>
         )}
         {currentDock !== "right" && (
-          <DropdownMenuItem
-            onClick={() => onDockChange("right")}
-            className="cursor-pointer"
-          >
+          <DropdownMenuItem onClick={() => onDockChange("right")} className="cursor-pointer">
             <PanelRight className="h-4 w-4" />
             dock right
           </DropdownMenuItem>
@@ -277,8 +239,7 @@ function LayoutContent() {
   const { workspace, paneId } = Route.useRouteContext()
   const { isMobile, open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null)
-  const verticalPanelGroupRef =
-    useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
+  const verticalPanelGroupRef = useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
   const { focus } = useFocusManager()
 
   // Pane machine for serializing tab operations
@@ -321,9 +282,7 @@ function LayoutContent() {
 
   // Register terminal focus callback
   const focusTerminal = useCallback(() => {
-    const terminalEl = document.querySelector(
-      '[data-testid="ghostty-terminal"]'
-    )
+    const terminalEl = document.querySelector('[data-testid="ghostty-terminal"]')
     // xterm.js uses a textarea for keyboard input, not the canvas
     const textarea = terminalEl?.querySelector("textarea")
     textarea?.focus()
@@ -393,10 +352,8 @@ function LayoutContent() {
   const terminalPanelRef = useRef<HTMLDivElement>(null)
 
   const taskPanelRef = useRef<HTMLDivElement>(null)
-  const taskPanelGroupRef =
-    useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
-  const taskBottomPanelGroupRef =
-    useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
+  const taskPanelGroupRef = useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
+  const taskBottomPanelGroupRef = useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
 
   // Helper to dispatch a dock action and persist the result
   const dispatch = useCallback(
@@ -407,17 +364,15 @@ function LayoutContent() {
         Effect.gen(function* () {
           const db = yield* Database
           yield* db.updateWorkspaceLayout(workspace.id, newLayout)
-        })
+        }),
       )
     },
-    [layout, workspace.id]
+    [layout, workspace.id],
   )
 
   // Helper to blur terminal focus (prevents aria-hidden focus warning when collapsing)
   const blurTerminal = useCallback(() => {
-    const terminalEl = document.querySelector(
-      '[data-testid="ghostty-terminal"]'
-    )
+    const terminalEl = document.querySelector('[data-testid="ghostty-terminal"]')
     if (!terminalEl) return
 
     // Check if focus is within the terminal (could be textarea, canvas container, or other elements)
@@ -433,7 +388,7 @@ function LayoutContent() {
       }
       dispatch({ kind: expanded ? "expand" : "collapse", panel: "terminal" })
     },
-    [dispatch, blurTerminal]
+    [dispatch, blurTerminal],
   )
 
   // Ctrl+` to toggle terminal (VS Code behavior)
@@ -447,9 +402,7 @@ function LayoutContent() {
         // The window capture handler already sees the original event first
         if (!e.isTrusted) return
 
-        const terminalEl = document.querySelector(
-          '[data-testid="ghostty-terminal"]'
-        )
+        const terminalEl = document.querySelector('[data-testid="ghostty-terminal"]')
         const isTerminalFocused = terminalEl?.contains(document.activeElement)
 
         if (isTerminalFocused && isTerminalExpanded) {
@@ -482,21 +435,21 @@ function LayoutContent() {
     (dock: DockPosition) => {
       dispatch({ kind: "move", panel: "terminal", to: dock })
     },
-    [dispatch]
+    [dispatch],
   )
 
   const setTaskExpanded = useCallback(
     (expanded: boolean) => {
       dispatch({ kind: expanded ? "expand" : "collapse", panel: "task" })
     },
-    [dispatch]
+    [dispatch],
   )
 
   const setTaskDock = useCallback(
     (dock: DockPosition) => {
       dispatch({ kind: "move", panel: "task", to: dock })
     },
-    [dispatch]
+    [dispatch],
   )
 
   const toggleTerminal = useCallback(() => {
@@ -533,7 +486,7 @@ function LayoutContent() {
         })
         pendingTerminalSizeRef.current = null
       }
-    }, 250)
+    }, 250),
   ).current
 
   // Handle terminal resize - debounce persistence to avoid excessive DB writes
@@ -548,7 +501,7 @@ function LayoutContent() {
         debouncedSaveTerminalSize.schedule()
       }
     },
-    [isTerminalExpanded, debouncedSaveTerminalSize, terminalDock]
+    [isTerminalExpanded, debouncedSaveTerminalSize, terminalDock],
   )
 
   // Reset task panel size when toggling collapse state or changing dock position
@@ -628,9 +581,7 @@ function LayoutContent() {
               <Outlet />
             </div>
           </main>
-          <WorkspaceStatusBar
-            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          />
+          <WorkspaceStatusBar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         </div>
       </ClaudeIntegrationProvider>
     )
@@ -654,10 +605,7 @@ function LayoutContent() {
       {/* Left side: terminal status + dock position */}
       <div className="flex items-center gap-2 min-w-0 overflow-hidden">
         <TerminalStatusBadge />
-        <DockPositionDropdown
-          currentDock={terminalDock}
-          onDockChange={setTerminalDock}
-        />
+        <DockPositionDropdown currentDock={terminalDock} onDockChange={setTerminalDock} />
       </div>
       {/* Right side: badges, task toggle, delete, collapse */}
       <div className="flex items-center gap-2 flex-shrink-0">
@@ -712,15 +660,10 @@ function LayoutContent() {
         <ListTodo
           className={cn(
             "h-3.5 w-3.5 shrink-0",
-            isTaskExpanded
-              ? "text-emerald-600 dark:text-emerald-400"
-              : "text-muted-foreground"
+            isTaskExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
           )}
         />
-        <DockPositionDropdown
-          currentDock={taskDock}
-          onDockChange={setTaskDock}
-        />
+        <DockPositionDropdown currentDock={taskDock} onDockChange={setTaskDock} />
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         {taskStatuses.map((status) => {
@@ -733,7 +676,7 @@ function LayoutContent() {
                 "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-colors cursor-pointer shrink-0",
                 isActive
                   ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
-                  : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300"
+                  : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300",
               )}
             >
               {status.label}
@@ -771,11 +714,7 @@ function LayoutContent() {
       minSize={30}
     >
       {taskDock === "bottom" ? (
-        <ResizablePanelGroup
-          ref={taskBottomPanelGroupRef}
-          direction="vertical"
-          className="h-full"
-        >
+        <ResizablePanelGroup ref={taskBottomPanelGroupRef} direction="vertical" className="h-full">
           <ResizablePanel
             id="editor-main-panel"
             order={1}
@@ -794,10 +733,7 @@ function LayoutContent() {
               </div>
             </main>
           </ResizablePanel>
-          <ResizableHandle
-            withHandle
-            className={isTaskCollapsed ? "invisible" : ""}
-          />
+          <ResizableHandle withHandle className={isTaskCollapsed ? "invisible" : ""} />
           <ResizablePanel
             id="task-panel-bottom"
             order={2}
@@ -811,7 +747,7 @@ function LayoutContent() {
               <div
                 className={cn(
                   "flex-1 min-h-0 min-w-0 overflow-hidden",
-                  isTaskCollapsed && "hidden"
+                  isTaskCollapsed && "hidden",
                 )}
               >
                 <TaskTable />
@@ -850,16 +786,10 @@ function LayoutContent() {
 
         {/* Terminal content area */}
         <div
-          className={cn(
-            "flex-1 min-h-0 min-w-0 overflow-hidden",
-            isTerminalCollapsed && "hidden"
-          )}
+          className={cn("flex-1 min-h-0 min-w-0 overflow-hidden", isTerminalCollapsed && "hidden")}
         >
           {isTerminalSessionActive && terminalContainerEl && (
-            <TerminalMountPoint
-              containerEl={terminalContainerEl}
-              onMount={handleTerminalMount}
-            />
+            <TerminalMountPoint containerEl={terminalContainerEl} onMount={handleTerminalMount} />
           )}
           {terminalError && (
             <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-100 px-4 py-2 text-sm font-mono">
@@ -922,29 +852,21 @@ function LayoutContent() {
                     defaultSize={isTaskCollapsed ? 0 : taskSize}
                     minSize={isTaskCollapsed ? 0 : 15}
                     maxSize={isTaskCollapsed ? 0 : 50}
-                    className={
-                      isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""
-                    }
+                    className={isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""}
                   >
-                    <div
-                      ref={taskPanelRef}
-                      className="flex h-full w-full flex-col"
-                    >
+                    <div ref={taskPanelRef} className="flex h-full w-full flex-col">
                       {!isTaskCollapsed && taskToolbarContent}
                       <div
                         className={cn(
                           "flex-1 min-h-0 min-w-0 overflow-hidden",
-                          isTaskCollapsed && "hidden"
+                          isTaskCollapsed && "hidden",
                         )}
                       >
                         <TaskTable />
                       </div>
                     </div>
                   </ResizablePanel>
-                  <ResizableHandle
-                    withHandle
-                    className={isTaskCollapsed ? "invisible" : ""}
-                  />
+                  <ResizableHandle withHandle className={isTaskCollapsed ? "invisible" : ""} />
                 </>
               )}
 
@@ -952,11 +874,7 @@ function LayoutContent() {
               <ResizablePanel
                 id="center-panel"
                 order={2}
-                defaultSize={
-                  isTaskCollapsed || taskDock === "bottom"
-                    ? 100
-                    : 100 - taskSize
-                }
+                defaultSize={isTaskCollapsed || taskDock === "bottom" ? 100 : 100 - taskSize}
                 minSize={30}
               >
                 <div className="h-full flex flex-col overflow-hidden">
@@ -991,29 +909,21 @@ function LayoutContent() {
               {/* Right task panel - full height */}
               {taskDock === "right" && (
                 <>
-                  <ResizableHandle
-                    withHandle
-                    className={isTaskCollapsed ? "invisible" : ""}
-                  />
+                  <ResizableHandle withHandle className={isTaskCollapsed ? "invisible" : ""} />
                   <ResizablePanel
                     id="task-panel-right"
                     order={3}
                     defaultSize={isTaskCollapsed ? 0 : taskSize}
                     minSize={isTaskCollapsed ? 0 : 15}
                     maxSize={isTaskCollapsed ? 0 : 50}
-                    className={
-                      isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""
-                    }
+                    className={isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""}
                   >
-                    <div
-                      ref={taskPanelRef}
-                      className="flex h-full w-full flex-col"
-                    >
+                    <div ref={taskPanelRef} className="flex h-full w-full flex-col">
                       {!isTaskCollapsed && taskToolbarContent}
                       <div
                         className={cn(
                           "flex-1 min-h-0 min-w-0 overflow-hidden",
-                          isTaskCollapsed && "hidden"
+                          isTaskCollapsed && "hidden",
                         )}
                       >
                         <TaskTable />
@@ -1049,15 +959,13 @@ function WorkspaceLayout() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const isNewFile =
-        (e.metaKey || e.ctrlKey) && (e.key === "n" || e.key === "N")
+      const isNewFile = (e.metaKey || e.ctrlKey) && (e.key === "n" || e.key === "N")
 
       if (isNewFile) {
         e.preventDefault()
         // if focused within CodeMirror, let its own handler dispatch the save event
         const target = e.target as EventTarget | null
-        const isInCodeMirror =
-          target instanceof Element && !!target.closest(".cm-editor")
+        const isInCodeMirror = target instanceof Element && !!target.closest(".cm-editor")
         if (isInCodeMirror) return
 
         // start creating a new file in the workspace root

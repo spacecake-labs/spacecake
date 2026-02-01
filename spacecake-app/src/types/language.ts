@@ -25,13 +25,11 @@ export const LanguageSchema = Schema.Union(
   Schema.Literal(FileType.Shell),
   Schema.Literal(FileType.Bash),
   Schema.Literal(FileType.Zsh),
-  Schema.Literal(FileType.XML)
+  Schema.Literal(FileType.XML),
 )
 export type Language = typeof LanguageSchema.Type
 
-export const ContextLanguageSchema = LanguageSchema.pipe(
-  Schema.pickLiteral(FileType.Markdown)
-)
+export const ContextLanguageSchema = LanguageSchema.pipe(Schema.pickLiteral(FileType.Markdown))
 export type ContextLanguage = typeof ContextLanguageSchema.Type
 
 export const LanguageSpecSchema = Schema.Struct({

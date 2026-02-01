@@ -1,6 +1,5 @@
-import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
-import { JsonValue } from "@/schema/drizzle-effect"
 import type { LexicalEditor } from "lexical"
+
 import {
   $createParagraphNode,
   $createTextNode,
@@ -13,7 +12,13 @@ import {
 import { beforeEach, describe, expect, it } from "vitest"
 
 import type { SerializedSelection } from "@/types/lexical"
-import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
+
+import { nodes } from "@/components/editor/nodes"
+import {
+  $createCodeBlockNode,
+  $isCodeBlockNode,
+  type CodeMirrorSelection,
+} from "@/components/editor/nodes/code-node"
 import {
   $restoreSelection,
   convertToSourceView,
@@ -21,12 +26,9 @@ import {
   serializeEditorToPython,
   serializeEditorToSource,
 } from "@/lib/editor"
-import { nodes } from "@/components/editor/nodes"
-import {
-  $createCodeBlockNode,
-  $isCodeBlockNode,
-  type CodeMirrorSelection,
-} from "@/components/editor/nodes/code-node"
+import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
+import { JsonValue } from "@/schema/drizzle-effect"
+import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
 
 describe("Editor Integration", () => {
   const mockPythonFile: EditorFile = {
@@ -111,12 +113,7 @@ class Calculator:
         anchor: { key: "1", offset: 0 },
         focus: { key: "1", offset: 0 },
       }
-      const config = getEditorConfig(
-        mockEditorState,
-        mockPythonFile,
-        "rich",
-        mockSelection
-      )
+      const config = getEditorConfig(mockEditorState, mockPythonFile, "rich", mockSelection)
 
       expect(config).not.toBeNull()
       expect(typeof config?.editorState).toBe("function")
@@ -144,10 +141,7 @@ class Calculator:
     })
 
     it("handles empty editor gracefully for JavaScript files", () => {
-      const result = serializeEditorToSource(
-        editor.getEditorState(),
-        FileType.JavaScript
-      )
+      const result = serializeEditorToSource(editor.getEditorState(), FileType.JavaScript)
       expect(result).toBe("")
     })
 
@@ -165,10 +159,7 @@ class Calculator:
         })
       })
 
-      const result = serializeEditorToSource(
-        editor.getEditorState(),
-        FileType.JavaScript
-      )
+      const result = serializeEditorToSource(editor.getEditorState(), FileType.JavaScript)
       expect(result).toBe("some text content")
     })
   })
@@ -259,7 +250,7 @@ class Calculator:
             root.append(paragraph)
             textNodeKey = textNode.getKey()
           },
-          { onUpdate: resolve }
+          { onUpdate: resolve },
         )
       })
 
@@ -279,7 +270,7 @@ class Calculator:
               expect(selection.focus.offset).toBe(5)
             }
           },
-          { onUpdate: resolve }
+          { onUpdate: resolve },
         )
       })
     })
@@ -309,7 +300,7 @@ class Calculator:
               getSelection: () => storedSelection,
             })
           },
-          { onUpdate: resolve }
+          { onUpdate: resolve },
         )
       })
 
@@ -329,7 +320,7 @@ class Calculator:
               expect(sel?.head).toBe(11)
             }
           },
-          { onUpdate: resolve }
+          { onUpdate: resolve },
         )
       })
     })
@@ -346,7 +337,7 @@ class Calculator:
             root.append(codeBlock)
             codeBlockKey = codeBlock.getKey()
           },
-          { onUpdate: resolve }
+          { onUpdate: resolve },
         )
       })
 
@@ -361,12 +352,12 @@ class Calculator:
                   focus: { key: codeBlockKey, offset: 2 },
                 })
               },
-              { onUpdate: resolve }
+              { onUpdate: resolve },
             )
           } catch (e) {
             reject(e)
           }
-        })
+        }),
       ).resolves.toBeUndefined()
     })
 
@@ -384,7 +375,7 @@ class Calculator:
           $restoreSelection({
             anchor: { key: "nonexistent", offset: 0 },
             focus: { key: "nonexistent", offset: 0 },
-          })
+          }),
         ).not.toThrow()
       })
     })

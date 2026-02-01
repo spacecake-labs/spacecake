@@ -7,15 +7,10 @@ import { createEditor, LexicalEditor } from "lexical"
 import { beforeEach, describe, expect, it } from "vitest"
 
 import type { Block } from "@/types/parser"
+
 import { nodes } from "@/components/editor/nodes"
-import {
-  $createContextNode,
-  ContextNode,
-} from "@/components/editor/nodes/context-node"
-import {
-  $getDelimiters,
-  delimitedNode,
-} from "@/components/editor/nodes/delimited-node"
+import { $createContextNode, ContextNode } from "@/components/editor/nodes/context-node"
+import { $getDelimiters, delimitedNode } from "@/components/editor/nodes/delimited-node"
 
 const mockBlock: Block<"doc"> = {
   kind: "doc",

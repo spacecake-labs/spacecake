@@ -1,10 +1,10 @@
-import { useEffect } from "react"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { useAtomValue } from "jotai"
+import { useEffect } from "react"
 
-import { AbsolutePath } from "@/types/workspace"
-import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { useRoute } from "@/hooks/use-route"
+import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { AbsolutePath } from "@/types/workspace"
 
 /**
  * Freezes the editor while saving or reparsing to prevent race conditions.

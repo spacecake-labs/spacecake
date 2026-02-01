@@ -1,11 +1,9 @@
-import {
-  type EditorSelectionUpdate,
-  type EditorStateUpdate,
-} from "@/schema/editor"
-import { Database } from "@/services/database"
-import { RuntimeClient } from "@/services/runtime-client"
 import { Effect } from "effect"
 import { assertEvent, fromPromise, setup, type ActorRefFrom } from "xstate"
+
+import { type EditorSelectionUpdate, type EditorStateUpdate } from "@/schema/editor"
+import { Database } from "@/services/database"
+import { RuntimeClient } from "@/services/runtime-client"
 
 export const fileMachine = setup({
   types: {
@@ -32,8 +30,8 @@ export const fileMachine = setup({
           Effect.gen(function* () {
             const db = yield* Database
             yield* db.updateEditorState(input.editorState)
-          }).pipe(Effect.tapErrorCause(Effect.logError))
-        )
+          }).pipe(Effect.tapErrorCause(Effect.logError)),
+        ),
     ),
     updateEditorSelection: fromPromise(
       ({
@@ -48,8 +46,8 @@ export const fileMachine = setup({
             const db = yield* Database
             // Assuming this method exists or will be created
             yield* db.updateEditorSelection(input.editorSelection)
-          }).pipe(Effect.tapErrorCause(Effect.logError))
-        )
+          }).pipe(Effect.tapErrorCause(Effect.logError)),
+        ),
     ),
   },
 }).createMachine({

@@ -12,12 +12,7 @@ export const DockablePanelKindSchema = Schema.Literal("terminal", "task")
 export type DockablePanelKind = typeof DockablePanelKindSchema.Type
 
 // All focusable panels (includes dockable panels plus editor/project)
-export const PanelKindSchema = Schema.Literal(
-  "terminal",
-  "task",
-  "editor",
-  "project"
-)
+export const PanelKindSchema = Schema.Literal("terminal", "task", "editor", "project")
 export type PanelKind = typeof PanelKindSchema.Type
 
 // ============================================

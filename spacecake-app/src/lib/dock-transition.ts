@@ -1,8 +1,4 @@
-import type {
-  DockablePanelKind,
-  DockPosition,
-  WorkspaceLayout,
-} from "@/schema/workspace-layout"
+import type { DockablePanelKind, DockPosition, WorkspaceLayout } from "@/schema/workspace-layout"
 
 // ============================================
 // Actions
@@ -20,10 +16,7 @@ export type DockAction =
 // ============================================
 
 /** Find which dock position a panel is assigned to, or null if not assigned. */
-export function findPanel(
-  layout: WorkspaceLayout,
-  panel: DockablePanelKind
-): DockPosition | null {
+export function findPanel(layout: WorkspaceLayout, panel: DockablePanelKind): DockPosition | null {
   if (layout.dock.left === panel) return "left"
   if (layout.dock.right === panel) return "right"
   if (layout.dock.bottom === panel) return "bottom"
@@ -42,10 +35,7 @@ export function findEmptyDock(layout: WorkspaceLayout): DockPosition | null {
 // Size Constraints
 // ============================================
 
-export const DOCK_SIZE_CONSTRAINTS: Record<
-  DockPosition,
-  { min: number; max: number }
-> = {
+export const DOCK_SIZE_CONSTRAINTS: Record<DockPosition, { min: number; max: number }> = {
   bottom: { min: 10, max: 70 },
   left: { min: 10, max: 40 },
   right: { min: 10, max: 50 },
@@ -61,10 +51,7 @@ export function clampSize(size: number, position: DockPosition): number {
 // Transition Function
 // ============================================
 
-export function transition(
-  layout: WorkspaceLayout,
-  action: DockAction
-): WorkspaceLayout {
+export function transition(layout: WorkspaceLayout, action: DockAction): WorkspaceLayout {
   switch (action.kind) {
     case "move": {
       const { panel, to } = action

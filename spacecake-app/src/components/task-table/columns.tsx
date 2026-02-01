@@ -1,23 +1,16 @@
 import type { ColumnDef } from "@tanstack/react-table"
 
 import type { ClaudeTask } from "@/types/claude-task"
+
 import { Badge } from "@/components/ui/badge"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 export const columns: ColumnDef<ClaudeTask>[] = [
   {
     accessorKey: "id",
     header: "task",
     cell: ({ row }) => {
-      return (
-        <span className="text-xs text-muted-foreground font-mono">
-          {row.getValue("id")}
-        </span>
-      )
+      return <span className="text-xs text-muted-foreground font-mono">{row.getValue("id")}</span>
     },
   },
   {
@@ -25,9 +18,7 @@ export const columns: ColumnDef<ClaudeTask>[] = [
     header: "title",
     cell: ({ row }) => {
       return (
-        <div className="max-w-[300px] truncate font-medium text-xs">
-          {row.getValue("subject")}
-        </div>
+        <div className="max-w-[300px] truncate font-medium text-xs">{row.getValue("subject")}</div>
       )
     },
   },
@@ -35,11 +26,7 @@ export const columns: ColumnDef<ClaudeTask>[] = [
     accessorKey: "status",
     header: "status",
     cell: ({ row }) => {
-      return (
-        <span className="text-xs text-muted-foreground">
-          {row.getValue("status")}
-        </span>
-      )
+      return <span className="text-xs text-muted-foreground">{row.getValue("status")}</span>
     },
   },
   {

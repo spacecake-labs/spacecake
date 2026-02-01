@@ -54,9 +54,7 @@ test.describe("frontmatter e2e", () => {
     await toggleButton.click()
 
     // Code editor should be hidden, table should be visible
-    await expect(
-      window.getByTestId("frontmatter-code-editor")
-    ).not.toBeVisible()
+    await expect(window.getByTestId("frontmatter-code-editor")).not.toBeVisible()
     await expect(window.getByTestId("frontmatter-table")).toBeVisible()
 
     // Verify property names appear in the table
@@ -77,9 +75,7 @@ test.describe("frontmatter e2e", () => {
     // Verify YAML content is still there
     const codeEditorAfter = window.getByTestId("frontmatter-code-editor")
     await expect(codeEditorAfter.locator(".cm-editor")).toContainText("title")
-    await expect(codeEditorAfter.locator(".cm-editor")).toContainText(
-      "My Document"
-    )
+    await expect(codeEditorAfter.locator(".cm-editor")).toContainText("My Document")
 
     // =========================================================================
     // Test 4: Delete frontmatter and create via slash command
@@ -118,7 +114,7 @@ version: 1.0.0
 # Hello World
 
 Some content here.
-`
+`,
     )
 
     await waitForWorkspace(window)

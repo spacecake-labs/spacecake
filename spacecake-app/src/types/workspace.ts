@@ -2,25 +2,21 @@
  * Workspace and file tree types
  */
 
-import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
-import { JsonValue } from "@/schema/drizzle-effect"
 import { Brand, Schema } from "effect"
 
-import { SerializedSelection, ViewKind, ViewKindSchema } from "@/types/lexical"
 import { encodeBase64Url } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
+import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
+import { JsonValue } from "@/schema/drizzle-effect"
+import { SerializedSelection, ViewKind, ViewKindSchema } from "@/types/lexical"
 
 export type RelativePath = string & Brand.Brand<"RelativePath">
 export const RelativePath = Brand.nominal<RelativePath>()
-export const RelativePathSchema = Schema.String.pipe(
-  Schema.fromBrand(RelativePath)
-)
+export const RelativePathSchema = Schema.String.pipe(Schema.fromBrand(RelativePath))
 
 export type AbsolutePath = string & Brand.Brand<"AbsolutePath">
 export const AbsolutePath = Brand.nominal<AbsolutePath>()
-export const AbsolutePathSchema = Schema.String.pipe(
-  Schema.fromBrand(AbsolutePath)
-)
+export const AbsolutePathSchema = Schema.String.pipe(Schema.fromBrand(AbsolutePath))
 
 export const FileTypeSchema = Schema.Union(
   Schema.Literal("markdown"),
@@ -45,7 +41,7 @@ export const FileTypeSchema = Schema.Union(
   Schema.Literal("shell"),
   Schema.Literal("bash"),
   Schema.Literal("zsh"),
-  Schema.Literal("xml")
+  Schema.Literal("xml"),
 )
 export type FileType = typeof FileTypeSchema.Type
 
@@ -178,11 +174,9 @@ export type RouteContext = typeof RouteContextSchema.Type
  * Helper functions for computed properties of RouteContext
  */
 export const RouteContextHelpers = {
-  workspaceName: (ctx: RouteContext) =>
-    ctx.workspaceId.split("/").pop() || "spacecake",
+  workspaceName: (ctx: RouteContext) => ctx.workspaceId.split("/").pop() || "spacecake",
   workspaceId: (ctx: RouteContext) => encodeBase64Url(ctx.workspaceId),
   fileName: (ctx: RouteContext) => ctx.filePath.split("/").pop() || "",
-  fileType: (ctx: RouteContext) =>
-    fileTypeFromExtension(ctx.filePath.split(".").pop() || ""),
+  fileType: (ctx: RouteContext) => fileTypeFromExtension(ctx.filePath.split(".").pop() || ""),
   workspacePath: (ctx: RouteContext) => encodeBase64Url(ctx.workspaceId),
 }

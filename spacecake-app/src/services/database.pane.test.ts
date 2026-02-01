@@ -1,3 +1,8 @@
+import { it } from "@effect/vitest"
+import { eq } from "drizzle-orm"
+import { Effect, Option } from "effect"
+import { beforeAll, describe, expect } from "vitest"
+
 import { paneItemTable } from "@/schema/drizzle"
 import { PaneItemPrimaryKey } from "@/schema/pane"
 import { Database } from "@/services/database"
@@ -6,15 +11,7 @@ import {
   getPaneItemsOrderedByPosition,
   setupPaneWithTabs,
 } from "@/services/test-utils/pane-factories"
-import {
-  initCachedDataDir,
-  TestDatabaseLayer,
-} from "@/services/test-utils/pane-test-layer"
-import { it } from "@effect/vitest"
-import { eq } from "drizzle-orm"
-import { Effect, Option } from "effect"
-import { beforeAll, describe, expect } from "vitest"
-
+import { initCachedDataDir, TestDatabaseLayer } from "@/services/test-utils/pane-test-layer"
 import { AbsolutePath } from "@/types/workspace"
 
 // Warm up the migration cache before tests run (avoids timeout on first test)
@@ -48,7 +45,7 @@ describe("activateEditorInPane", () => {
       expect(items.length).toBe(1)
       expect(items[0].id).toBe(paneItemId)
       expect(items[0].editor_id).toBe(editor.id)
-    }).pipe(Effect.provide(TestDatabaseLayer))
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 
   it.effect("reuses existing paneItem when editor already in pane", () =>
@@ -66,7 +63,7 @@ describe("activateEditorInPane", () => {
       // Should still only have one paneItem
       const items = yield* getPaneItemsOrderedByPosition(pane.id)
       expect(items.length).toBe(1)
-    }).pipe(Effect.provide(TestDatabaseLayer))
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 
   it.effect("sets pane.active_pane_item_id to activated item", () =>
@@ -89,7 +86,7 @@ describe("activateEditorInPane", () => {
 
       const updatedPane = yield* getPane(pane.id)
       expect(updatedPane?.active_pane_item_id).toBe(paneItemId)
-    }).pipe(Effect.provide(TestDatabaseLayer))
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 
   it.effect("assigns next position for new items", () =>
@@ -118,30 +115,28 @@ describe("activateEditorInPane", () => {
       expect(items[1].position).toBe(1)
       expect(items[2].position).toBe(2)
       expect(items[2].editor_id).toBe(editor.id)
-    }).pipe(Effect.provide(TestDatabaseLayer))
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 
-  it.effect(
-    "updates last_accessed_at on existing items without changing position",
-    () =>
-      Effect.gen(function* () {
-        const db = yield* Database
-        const { pane, editors, paneItems } = yield* setupPaneWithTabs(3)
+  it.effect("updates last_accessed_at on existing items without changing position", () =>
+    Effect.gen(function* () {
+      const db = yield* Database
+      const { pane, editors, paneItems } = yield* setupPaneWithTabs(3)
 
-        // Get original state of first pane item
-        const originalItem = paneItems[0]
+      // Get original state of first pane item
+      const originalItem = paneItems[0]
 
-        // Activate the first editor again (already has pane item at position 0)
-        yield* db.activateEditorInPane(editors[0].id, pane.id)
+      // Activate the first editor again (already has pane item at position 0)
+      yield* db.activateEditorInPane(editors[0].id, pane.id)
 
-        // Check position hasn't changed
-        const items = yield* getPaneItemsOrderedByPosition(pane.id)
-        const updatedItem = items.find((i) => i.id === originalItem.id)
-        expect(updatedItem?.position).toBe(0)
+      // Check position hasn't changed
+      const items = yield* getPaneItemsOrderedByPosition(pane.id)
+      const updatedItem = items.find((i) => i.id === originalItem.id)
+      expect(updatedItem?.position).toBe(0)
 
-        // last_accessed_at should still be set (it was updated during upsert)
-        expect(updatedItem?.last_accessed_at).toBeTruthy()
-      }).pipe(Effect.provide(TestDatabaseLayer))
+      // last_accessed_at should still be set (it was updated during upsert)
+      expect(updatedItem?.last_accessed_at).toBeTruthy()
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 })
 
@@ -152,15 +147,12 @@ describe("closePaneItemAndGetNext", () => {
       const { pane, paneItems } = yield* setupPaneWithTabs(3)
       const itemToClose = paneItems[1]
 
-      yield* db.closePaneItemAndGetNext(
-        itemToClose.id as PaneItemPrimaryKey,
-        false
-      )
+      yield* db.closePaneItemAndGetNext(itemToClose.id as PaneItemPrimaryKey, false)
 
       const items = yield* getPaneItemsOrderedByPosition(pane.id)
       expect(items.length).toBe(2)
       expect(items.find((i) => i.id === itemToClose.id)).toBeUndefined()
-    }).pipe(Effect.provide(TestDatabaseLayer))
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 
   it.effect("recompacts positions when closing middle tab", () =>
@@ -169,10 +161,7 @@ describe("closePaneItemAndGetNext", () => {
       const { pane, paneItems } = yield* setupPaneWithTabs(3)
 
       // Close middle tab (position 1)
-      yield* db.closePaneItemAndGetNext(
-        paneItems[1].id as PaneItemPrimaryKey,
-        false
-      )
+      yield* db.closePaneItemAndGetNext(paneItems[1].id as PaneItemPrimaryKey, false)
 
       const items = yield* getPaneItemsOrderedByPosition(pane.id)
       expect(items.length).toBe(2)
@@ -182,51 +171,43 @@ describe("closePaneItemAndGetNext", () => {
       // Verify correct items remain
       expect(items[0].id).toBe(paneItems[0].id)
       expect(items[1].id).toBe(paneItems[2].id)
-    }).pipe(Effect.provide(TestDatabaseLayer))
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 
-  it.effect(
-    "returns next active based on last_accessed_at when closing active",
-    () =>
-      Effect.gen(function* () {
-        const db = yield* Database
-        const { pane, paneItems } = yield* setupPaneWithTabs(3)
+  it.effect("returns next active based on last_accessed_at when closing active", () =>
+    Effect.gen(function* () {
+      const db = yield* Database
+      const { pane, paneItems } = yield* setupPaneWithTabs(3)
 
-        // Update access times with explicit timestamps to control ordering
-        const now = new Date()
-        const older = new Date(now.getTime() - 1000)
-        const newest = new Date(now.getTime() + 1000)
+      // Update access times with explicit timestamps to control ordering
+      const now = new Date()
+      const older = new Date(now.getTime() - 1000)
+      const newest = new Date(now.getTime() + 1000)
 
-        yield* db.query((_) =>
-          _.update(paneItemTable)
-            .set({ last_accessed_at: older.toISOString() })
-            .where(eq(paneItemTable.id, paneItems[0].id))
-        )
+      yield* db.query((_) =>
+        _.update(paneItemTable)
+          .set({ last_accessed_at: older.toISOString() })
+          .where(eq(paneItemTable.id, paneItems[0].id)),
+      )
 
-        yield* db.query((_) =>
-          _.update(paneItemTable)
-            .set({ last_accessed_at: newest.toISOString() })
-            .where(eq(paneItemTable.id, paneItems[1].id))
-        )
+      yield* db.query((_) =>
+        _.update(paneItemTable)
+          .set({ last_accessed_at: newest.toISOString() })
+          .where(eq(paneItemTable.id, paneItems[1].id)),
+      )
 
-        // Set paneItems[2] as active
-        yield* db.updatePaneActivePaneItem(
-          pane.id,
-          paneItems[2].id as PaneItemPrimaryKey
-        )
+      // Set paneItems[2] as active
+      yield* db.updatePaneActivePaneItem(pane.id, paneItems[2].id as PaneItemPrimaryKey)
 
-        // Close active tab (paneItems[2])
-        const result = yield* db.closePaneItemAndGetNext(
-          paneItems[2].id as PaneItemPrimaryKey,
-          true
-        )
+      // Close active tab (paneItems[2])
+      const result = yield* db.closePaneItemAndGetNext(paneItems[2].id as PaneItemPrimaryKey, true)
 
-        // Should return paneItems[1] as next active (most recently accessed remaining)
-        expect(Option.isSome(result)).toBe(true)
-        if (Option.isSome(result)) {
-          expect(result.value.id).toBe(paneItems[1].id)
-        }
-      }).pipe(Effect.provide(TestDatabaseLayer))
+      // Should return paneItems[1] as next active (most recently accessed remaining)
+      expect(Option.isSome(result)).toBe(true)
+      if (Option.isSome(result)) {
+        expect(result.value.id).toBe(paneItems[1].id)
+      }
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 
   it.effect("returns Option.none when closing last tab", () =>
@@ -234,17 +215,14 @@ describe("closePaneItemAndGetNext", () => {
       const db = yield* Database
       const { pane, paneItems } = yield* setupPaneWithTabs(1)
 
-      const result = yield* db.closePaneItemAndGetNext(
-        paneItems[0].id as PaneItemPrimaryKey,
-        true
-      )
+      const result = yield* db.closePaneItemAndGetNext(paneItems[0].id as PaneItemPrimaryKey, true)
 
       expect(Option.isNone(result)).toBe(true)
 
       // Pane should have no active item
       const updatedPane = yield* getPane(pane.id)
       expect(updatedPane?.active_pane_item_id).toBeNull()
-    }).pipe(Effect.provide(TestDatabaseLayer))
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 
   it.effect("does not change active pointer when closing non-active tab", () =>
@@ -253,16 +231,10 @@ describe("closePaneItemAndGetNext", () => {
       const { pane, paneItems } = yield* setupPaneWithTabs(3)
 
       // Set paneItems[0] as active
-      yield* db.updatePaneActivePaneItem(
-        pane.id,
-        paneItems[0].id as PaneItemPrimaryKey
-      )
+      yield* db.updatePaneActivePaneItem(pane.id, paneItems[0].id as PaneItemPrimaryKey)
 
       // Close non-active tab (paneItems[2])
-      const result = yield* db.closePaneItemAndGetNext(
-        paneItems[2].id as PaneItemPrimaryKey,
-        false
-      )
+      const result = yield* db.closePaneItemAndGetNext(paneItems[2].id as PaneItemPrimaryKey, false)
 
       // Should return none (we're not changing active)
       expect(Option.isNone(result)).toBe(true)
@@ -270,7 +242,7 @@ describe("closePaneItemAndGetNext", () => {
       // Active pointer should remain unchanged
       const updatedPane = yield* getPane(pane.id)
       expect(updatedPane?.active_pane_item_id).toBe(paneItems[0].id)
-    }).pipe(Effect.provide(TestDatabaseLayer))
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 })
 
@@ -285,7 +257,7 @@ describe("updatePaneItemAccessedAt", () => {
       yield* db.query((_) =>
         _.update(paneItemTable)
           .set({ last_accessed_at: oldTime })
-          .where(eq(paneItemTable.id, paneItems[0].id))
+          .where(eq(paneItemTable.id, paneItems[0].id)),
       )
 
       // Verify it was set
@@ -299,7 +271,7 @@ describe("updatePaneItemAccessedAt", () => {
 
       // Should be updated to a different (newer) timestamp
       expect(afterItems[0].last_accessed_at).not.toBe(oldTime)
-    }).pipe(Effect.provide(TestDatabaseLayer))
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 })
 
@@ -313,14 +285,11 @@ describe("updatePaneActivePaneItem", () => {
       expect(pane.active_pane_item_id).toBe(paneItems[0].id)
 
       // Update to paneItems[2]
-      yield* db.updatePaneActivePaneItem(
-        pane.id,
-        paneItems[2].id as PaneItemPrimaryKey
-      )
+      yield* db.updatePaneActivePaneItem(pane.id, paneItems[2].id as PaneItemPrimaryKey)
 
       const updatedPane = yield* getPane(pane.id)
       expect(updatedPane?.active_pane_item_id).toBe(paneItems[2].id)
-    }).pipe(Effect.provide(TestDatabaseLayer))
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 
   it.effect("can set active to null", () =>
@@ -336,7 +305,7 @@ describe("updatePaneActivePaneItem", () => {
 
       const updatedPane = yield* getPane(pane.id)
       expect(updatedPane?.active_pane_item_id).toBeNull()
-    }).pipe(Effect.provide(TestDatabaseLayer))
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 })
 
@@ -352,7 +321,7 @@ describe("selectActivePaneItemForPane", () => {
       if (Option.isSome(active)) {
         expect(active.value.id).toBe(paneItems[0].id)
       }
-    }).pipe(Effect.provide(TestDatabaseLayer))
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 
   it.effect("returns Option.none when no active item is set", () =>
@@ -363,6 +332,6 @@ describe("selectActivePaneItemForPane", () => {
       const active = yield* db.selectActivePaneItemForPane(pane.id)
 
       expect(Option.isNone(active)).toBe(true)
-    }).pipe(Effect.provide(TestDatabaseLayer))
+    }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 })

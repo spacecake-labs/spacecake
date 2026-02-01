@@ -1,16 +1,15 @@
+import { FileSystem as EffectFileSystem } from "@effect/platform"
+import { NodeFileSystem } from "@effect/platform-node"
+import { it } from "@effect/vitest"
+import { Effect, Layer } from "effect"
 import fs from "node:fs"
 import path from "node:path"
+import { describe, expect } from "vitest"
 
 import { WatcherService } from "@/main-process/watcher"
 import { FileMode, FileSystem } from "@/services/file-system"
 import { GitIgnoreLive } from "@/services/git-ignore-parser"
 import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
-import { FileSystem as EffectFileSystem } from "@effect/platform"
-import { NodeFileSystem } from "@effect/platform-node"
-import { it } from "@effect/vitest"
-import { Effect, Layer } from "effect"
-import { describe, expect } from "vitest"
-
 import { AbsolutePath } from "@/types/workspace"
 
 // Mock WatcherService - we're not testing watcher functionality here
@@ -33,8 +32,8 @@ const TestLayer = Layer.mergeAll(
     Layer.provide(NodeFileSystem.layer),
     Layer.provide(GitIgnoreLive),
     Layer.provide(MockWatcherService),
-    Layer.provide(SpacecakeHomeTestLayer)
-  )
+    Layer.provide(SpacecakeHomeTestLayer),
+  ),
 )
 
 describe("FileSystem service", () => {
@@ -52,7 +51,7 @@ describe("FileSystem service", () => {
         // Verify with Node's fs
         const content = fs.readFileSync(filePath, "utf8")
         expect(content).toBe("hello world")
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
 
     it.scoped("writes file with executable mode", () =>
@@ -75,7 +74,7 @@ describe("FileSystem service", () => {
         const stats = fs.statSync(filePath)
         const mode = stats.mode & 0o777
         expect(mode).toBe(0o755)
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
 
     it.scoped("writes file with private mode", () =>
@@ -94,7 +93,7 @@ describe("FileSystem service", () => {
         const stats = fs.statSync(filePath)
         const mode = stats.mode & 0o777
         expect(mode).toBe(0o600)
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
 
     it.scoped("overwrites existing file", () =>
@@ -110,7 +109,7 @@ describe("FileSystem service", () => {
 
         const content = fs.readFileSync(filePath, "utf8")
         expect(content).toBe("second content")
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
   })
 
@@ -132,7 +131,7 @@ describe("FileSystem service", () => {
         expect(result.name).toBe("test.txt")
         expect(result.path).toBe(filePath)
         expect(result.kind).toBe("file")
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
 
     it.scoped("returns NotFoundError for missing file", () =>
@@ -145,11 +144,11 @@ describe("FileSystem service", () => {
 
         const result = yield* fileSystem.readTextFile(filePath).pipe(
           Effect.map(() => "success" as const),
-          Effect.catchTag("NotFoundError", () => Effect.succeed("not-found"))
+          Effect.catchTag("NotFoundError", () => Effect.succeed("not-found")),
         )
 
         expect(result).toBe("not-found")
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
   })
 
@@ -166,7 +165,7 @@ describe("FileSystem service", () => {
 
         expect(fs.existsSync(folderPath)).toBe(true)
         expect(fs.statSync(folderPath).isDirectory()).toBe(true)
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
 
     it.scoped("creates nested directories with recursive option", () =>
@@ -181,7 +180,7 @@ describe("FileSystem service", () => {
 
         expect(fs.existsSync(nestedPath)).toBe(true)
         expect(fs.statSync(nestedPath).isDirectory()).toBe(true)
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
   })
 
@@ -198,7 +197,7 @@ describe("FileSystem service", () => {
         const result = yield* fileSystem.exists(filePath)
 
         expect(result).toBe(true)
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
 
     it.scoped("returns false for non-existent file", () =>
@@ -212,7 +211,7 @@ describe("FileSystem service", () => {
         const result = yield* fileSystem.exists(filePath)
 
         expect(result).toBe(false)
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
 
     it.scoped("returns true for existing directory", () =>
@@ -227,7 +226,7 @@ describe("FileSystem service", () => {
         const result = yield* fileSystem.exists(folderPath)
 
         expect(result).toBe(true)
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
   })
 
@@ -244,7 +243,7 @@ describe("FileSystem service", () => {
         yield* fileSystem.remove(filePath)
 
         expect(fs.existsSync(filePath)).toBe(false)
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
 
     it.scoped("removes directory recursively", () =>
@@ -260,7 +259,7 @@ describe("FileSystem service", () => {
         yield* fileSystem.remove(folderPath, true)
 
         expect(fs.existsSync(folderPath)).toBe(false)
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
   })
 
@@ -280,7 +279,7 @@ describe("FileSystem service", () => {
         expect(fs.existsSync(oldPath)).toBe(false)
         expect(fs.existsSync(newPath)).toBe(true)
         expect(fs.readFileSync(newPath, "utf8")).toBe("content")
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
 
     it.scoped("renames directory", () =>
@@ -298,7 +297,7 @@ describe("FileSystem service", () => {
         expect(fs.existsSync(oldPath)).toBe(false)
         expect(fs.existsSync(newPath)).toBe(true)
         expect(fs.statSync(newPath).isDirectory()).toBe(true)
-      }).pipe(Effect.provide(TestLayer))
+      }).pipe(Effect.provide(TestLayer)),
     )
   })
 })

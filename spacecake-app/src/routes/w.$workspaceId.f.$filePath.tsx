@@ -1,49 +1,35 @@
+import { createFileRoute, ErrorComponent, redirect } from "@tanstack/react-router"
+import { useActorRef } from "@xstate/react"
+import { Effect, Schema } from "effect"
+import { useSetAtom } from "jotai"
+import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 import { useEffect } from "react"
+
+import { Editor } from "@/components/editor/editor"
+import { LoadingAnimation } from "@/components/loading-animation"
+import { expandedFoldersAtom } from "@/lib/atoms/atoms"
+import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { getFoldersToExpand } from "@/lib/auto-reveal"
+import { createEditorConfigFromContent, createEditorConfigFromState } from "@/lib/editor"
+import { createRichViewClaudeSelection } from "@/lib/selection-utils"
+import { store } from "@/lib/store"
+import { decodeBase64Url } from "@/lib/utils"
 import { fileMachine } from "@/machines/manage-file"
 import { JsonValue } from "@/schema/drizzle-effect"
 import { EditorPrimaryKeySchema } from "@/schema/editor"
 import { Database } from "@/services/database"
 import { EditorManager } from "@/services/editor-manager"
 import { RuntimeClient } from "@/services/runtime-client"
-import {
-  createFileRoute,
-  ErrorComponent,
-  redirect,
-} from "@tanstack/react-router"
-import { useActorRef } from "@xstate/react"
-import { Effect, Schema } from "effect"
-import { useSetAtom } from "jotai"
-import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
-
 import { match } from "@/types/adt"
 import {
   type ClaudeSelection,
   type EditorExtendedSelection,
   type SelectionChangedPayload,
 } from "@/types/claude-code"
-import {
-  SerializedSelectionSchema,
-  ViewKindSchema,
-  type ChangeType,
-} from "@/types/lexical"
+import { SerializedSelectionSchema, ViewKindSchema, type ChangeType } from "@/types/lexical"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
-import { expandedFoldersAtom } from "@/lib/atoms/atoms"
-import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
-import { getFoldersToExpand } from "@/lib/auto-reveal"
-import {
-  createEditorConfigFromContent,
-  createEditorConfigFromState,
-} from "@/lib/editor"
-import { createRichViewClaudeSelection } from "@/lib/selection-utils"
-import { store } from "@/lib/store"
-import { decodeBase64Url } from "@/lib/utils"
-import { Editor } from "@/components/editor/editor"
-import { LoadingAnimation } from "@/components/loading-animation"
 
-const OpenFileSourceSchema = Schema.Union(
-  Schema.Literal("claude"),
-  Schema.Literal("cli")
-)
+const OpenFileSourceSchema = Schema.Union(Schema.Literal("claude"), Schema.Literal("cli"))
 
 const fileSearchSchema = Schema.Struct({
   view: Schema.optional(ViewKindSchema),
@@ -52,8 +38,7 @@ const fileSearchSchema = Schema.Struct({
 })
 
 export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
-  validateSearch: (search) =>
-    Schema.decodeUnknownSync(fileSearchSchema)(search),
+  validateSearch: (search) => Schema.decodeUnknownSync(fileSearchSchema)(search),
   loaderDeps: ({ search: { view, editorId } }) => ({ view, editorId }),
   loader: async ({ params, deps: { view, editorId }, context }) => {
     const { paneId, workspace } = context
@@ -83,7 +68,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           targetViewKind: view,
           editorId,
         })
-      })
+      }),
     )
 
     return match(initialState, {
@@ -102,7 +87,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           Effect.gen(function* () {
             const db = yield* Database
             yield* db.activateEditorInPane(result.content.data.editorId, paneId)
-          })
+          }),
         )
 
         // add view to search params if it is not present
@@ -121,18 +106,14 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 
         const editorConfig =
           result.content.kind === "state"
-            ? createEditorConfigFromState(
-                result.content.data.state,
-                result.content.data.selection
-              )
+            ? createEditorConfigFromState(result.content.data.state, result.content.data.selection)
             : createEditorConfigFromContent(
                 result.content.data,
                 result.viewKind,
-                result.content.data.selection
+                result.content.data.selection,
               )
 
-        const cid =
-          result.content.kind === "state" ? ZERO_HASH : result.content.data.cid
+        const cid = result.content.kind === "state" ? ZERO_HASH : result.content.data.cid
         const epoch = store.get(fileStateAtomFamily(filePath)).context.epoch
         const key = `${filePath}-${result.viewKind}-${cid}-${epoch}`
 
@@ -156,8 +137,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 })
 
 function FileLayout() {
-  const { filePath, editorConfig, key, editorId, fileId } =
-    Route.useLoaderData()
+  const { filePath, editorConfig, key, editorId, fileId } = Route.useLoaderData()
   const { db } = Route.useRouteContext()
   const { view: viewKind } = Route.useSearch()
 
@@ -166,10 +146,7 @@ function FileLayout() {
   const send = useActorRef(fileMachine).send
 
   // Helper to notify Claude Code of selection changes
-  const notifyClaudeCodeSelection = (
-    selectedText: string,
-    selection: ClaudeSelection
-  ) => {
+  const notifyClaudeCodeSelection = (selectedText: string, selection: ClaudeSelection) => {
     if (!window.electronAPI?.claude?.notifySelectionChanged) {
       return
     }
@@ -188,7 +165,7 @@ function FileLayout() {
     RuntimeClient.runPromise(
       db.updateFileAccessedAt({
         id: fileId,
-      })
+      }),
     )
   }, [fileId, db])
 
@@ -226,12 +203,9 @@ function FileLayout() {
 
               // Notify Claude Code of selection change
 
-              const selectedText = $isRangeSelection(selection)
-                ? selection.getTextContent()
-                : ""
+              const selectedText = $isRangeSelection(selection) ? selection.getTextContent() : ""
 
-              const claudeSelection =
-                createRichViewClaudeSelection(selectedText)
+              const claudeSelection = createRichViewClaudeSelection(selectedText)
 
               notifyClaudeCodeSelection(selectedText, claudeSelection)
             } else {
@@ -241,9 +215,7 @@ function FileLayout() {
                   type: "editor.state.update",
                   editorState: {
                     id: editorId,
-                    state: Schema.decodeUnknownSync(JsonValue)(
-                      editorState.toJSON()
-                    ),
+                    state: Schema.decodeUnknownSync(JsonValue)(editorState.toJSON()),
                     selection: serializedSelection,
                     view_kind: viewKind,
                   },
@@ -266,10 +238,7 @@ function FileLayout() {
               ? extendedSelection.claudeSelection
               : createRichViewClaudeSelection(extendedSelection.selectedText)
 
-          notifyClaudeCodeSelection(
-            extendedSelection.selectedText,
-            claudeSelection
-          )
+          notifyClaudeCodeSelection(extendedSelection.selectedText, claudeSelection)
         }}
       />
     </>

@@ -1,24 +1,20 @@
+import { Brand, Schema } from "effect"
+
 import { paneItemTable, paneTable } from "@/schema/drizzle"
 import { createInsertSchema, createSelectSchema } from "@/schema/drizzle-effect"
 import { EditorPrimaryKeySchema } from "@/schema/editor"
-import { Brand, Schema } from "effect"
-
 import { ViewKindSchema } from "@/types/lexical"
 import { AbsolutePathSchema } from "@/types/workspace"
 
 // Pane Primary Key
 export type PanePrimaryKey = string & Brand.Brand<"PanePrimaryKey">
 export const PanePrimaryKey = Brand.nominal<PanePrimaryKey>()
-export const PanePrimaryKeySchema = Schema.String.pipe(
-  Schema.fromBrand(PanePrimaryKey)
-)
+export const PanePrimaryKeySchema = Schema.String.pipe(Schema.fromBrand(PanePrimaryKey))
 
 // Pane Item Primary Key
 export type PaneItemPrimaryKey = string & Brand.Brand<"PaneItemPrimaryKey">
 export const PaneItemPrimaryKey = Brand.nominal<PaneItemPrimaryKey>()
-export const PaneItemPrimaryKeySchema = Schema.String.pipe(
-  Schema.fromBrand(PaneItemPrimaryKey)
-)
+export const PaneItemPrimaryKeySchema = Schema.String.pipe(Schema.fromBrand(PaneItemPrimaryKey))
 
 // Pane schemas
 export const PaneInsertSchema = createInsertSchema(paneTable, {

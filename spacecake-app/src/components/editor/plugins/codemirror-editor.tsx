@@ -1,39 +1,27 @@
-import React from "react"
 import { indentWithTab } from "@codemirror/commands"
 import { markdown } from "@codemirror/lang-markdown"
 import { yamlFrontmatter } from "@codemirror/lang-yaml"
 import { foldEffect } from "@codemirror/language"
 import { languages } from "@codemirror/language-data"
-import {
-  Compartment,
-  EditorSelection,
-  EditorState,
-  Extension,
-} from "@codemirror/state"
+import { Compartment, EditorSelection, EditorState, Extension } from "@codemirror/state"
 import { EditorView, keymap, lineNumbers } from "@codemirror/view"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { basicSetup } from "codemirror"
-import {
-  $addUpdateTag,
-  createCommand,
-  LexicalCommand,
-  SKIP_DOM_SELECTION_TAG,
-} from "lexical"
+import { $addUpdateTag, createCommand, LexicalCommand, SKIP_DOM_SELECTION_TAG } from "lexical"
+import React from "react"
 
 import type { ClaudeSelection } from "@/types/claude-code"
 import type { LanguageSpec } from "@/types/language"
 import type { Block } from "@/types/parser"
-import { extractCodeMirrorSelectionInfo } from "@/lib/selection-utils"
-import { debounce } from "@/lib/utils"
+
 import { CodeBlock } from "@/components/code-block"
-import {
-  CodeBlockNode,
-  useCodeBlockEditorContext,
-} from "@/components/editor/nodes/code-node"
+import { CodeBlockNode, useCodeBlockEditorContext } from "@/components/editor/nodes/code-node"
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { useNavigation } from "@/components/editor/plugins/use-navigation"
 import { githubDark, githubLight } from "@/components/editor/themes"
 import { useTheme } from "@/components/theme-provider"
+import { extractCodeMirrorSelectionInfo } from "@/lib/selection-utils"
+import { debounce } from "@/lib/utils"
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
 
@@ -82,9 +70,7 @@ interface CodeMirrorEditorProps {
 const EMPTY_VALUE = "__EMPTY_VALUE__"
 
 // Function to get language support extension dynamically
-export const getLanguageSupport = async (
-  language: string
-): Promise<Extension | null> => {
+export const getLanguageSupport = async (language: string): Promise<Extension | null> => {
   if (!language || language === EMPTY_VALUE) return null
 
   // Special case: markdown with YAML frontmatter support
@@ -95,11 +81,7 @@ export const getLanguageSupport = async (
   }
 
   const languageData = languages.find((l) => {
-    return (
-      l.name === language ||
-      l.alias.includes(language) ||
-      l.extensions.includes(language)
-    )
+    return l.name === language || l.alias.includes(language) || l.extensions.includes(language)
   })
 
   if (languageData) {
@@ -162,10 +144,7 @@ const foldDocstrings = (view: EditorView, block: Block) => {
 }
 
 // Base editor component for reuse by code and mermaid nodes
-export const BaseCodeMirrorEditor = React.forwardRef<
-  HTMLDivElement,
-  BaseCodeMirrorEditorProps
->(
+export const BaseCodeMirrorEditor = React.forwardRef<HTMLDivElement, BaseCodeMirrorEditorProps>(
   (
     {
       language,
@@ -178,7 +157,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<
       additionalExtensions,
       mermaidNode,
     },
-    ref
+    ref,
   ) => {
     const editorViewRef = React.useRef<EditorView | null>(null)
     const elRef = React.useRef<HTMLDivElement | null>(null)
@@ -191,7 +170,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<
     // use empty array as default, but stable across renders
     const stableAdditionalExtensions = React.useMemo(
       () => additionalExtensions ?? [],
-      [additionalExtensions]
+      [additionalExtensions],
     )
 
     const { theme } = useTheme()
@@ -205,7 +184,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<
           const latest = view.state.doc.toString()
           onCodeChangeRef.current(latest)
         }
-      }, debounceMs)
+      }, debounceMs),
     )
 
     const flushPending = React.useCallback(() => {
@@ -233,9 +212,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<
             const anchor = Math.min(selection.anchor, docLength)
             const head = Math.min(selection.head, docLength)
             view.dispatch({
-              selection: EditorSelection.create([
-                EditorSelection.range(anchor, head),
-              ]),
+              selection: EditorSelection.create([EditorSelection.range(anchor, head)]),
             })
             view.focus()
           }
@@ -280,9 +257,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<
           keymap.of([indentWithTab]),
           navigationKeymap,
           EditorView.lineWrapping,
-          themeCompartment.current.of(
-            theme === "dark" ? githubDark : githubLight
-          ),
+          themeCompartment.current.of(theme === "dark" ? githubDark : githubLight),
           focusedActiveLineTheme,
           foldPlaceholderTheme,
           ...stableAdditionalExtensions,
@@ -335,7 +310,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<
     }, [theme])
 
     return <div ref={elRef} />
-  }
+  },
 )
 BaseCodeMirrorEditor.displayName = "BaseCodeMirrorEditor"
 
@@ -384,9 +359,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           const anchor = Math.min(selection.anchor, docLength)
           const head = Math.min(selection.head, docLength)
           view.dispatch({
-            selection: EditorSelection.create([
-              EditorSelection.range(anchor, head),
-            ]),
+            selection: EditorSelection.create([EditorSelection.range(anchor, head)]),
           })
           view.focus()
         }
@@ -419,7 +392,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         const latest = view.state.doc.toString()
         setCodeRef.current(latest)
       }
-    }, debounceMs)
+    }, debounceMs),
   )
 
   // Store latest selection for debounced dispatch
@@ -434,8 +407,11 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       const sel = pendingSelectionRef.current
       const view = editorViewRef.current
       if (sel && view) {
-        const { selectedText, claudeSelection } =
-          extractCodeMirrorSelectionInfo(view.state, sel.anchor, sel.head)
+        const { selectedText, claudeSelection } = extractCodeMirrorSelectionInfo(
+          view.state,
+          sel.anchor,
+          sel.head,
+        )
 
         editor.dispatchCommand(CODEMIRROR_SELECTION_COMMAND, {
           nodeKey,
@@ -445,7 +421,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           claudeSelection,
         })
       }
-    }, debounceMs)
+    }, debounceMs),
   )
 
   const flushPending = React.useCallback(() => {
@@ -477,9 +453,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           : []),
         keymap.of([indentWithTab]),
         EditorView.lineWrapping,
-        themeCompartment.current.of(
-          theme === "dark" ? githubDark : githubLight
-        ),
+        themeCompartment.current.of(theme === "dark" ? githubDark : githubLight),
         focusedActiveLineTheme,
         foldPlaceholderTheme,
         EditorView.updateListener.of((update) => {

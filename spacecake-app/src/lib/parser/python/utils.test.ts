@@ -95,9 +95,7 @@ describe("delimitPythonDocString", () => {
 
 describe("stripPythonCommentPrefixes", () => {
   it("should strip comment prefixes", () => {
-    const result = stripPythonCommentPrefixes(
-      "# This is a comment\n\n# Two lines\n#No space"
-    )
+    const result = stripPythonCommentPrefixes("# This is a comment\n\n# Two lines\n#No space")
     expect(result).toBe("This is a comment\n\nTwo lines\nNo space")
   })
 
@@ -132,9 +130,7 @@ describe("stripPythonCommentPrefixes", () => {
   })
 
   it("should preserve non-comment lines", () => {
-    const result = stripPythonCommentPrefixes(
-      "def func():\n    # comment\n    return True"
-    )
+    const result = stripPythonCommentPrefixes("def func():\n    # comment\n    return True")
     expect(result).toBe("def func():\n    # comment\n    return True")
   })
 })
@@ -166,16 +162,12 @@ describe("stripPythonMdocPrefixes", () => {
   })
 
   it("should preserve regular comments", () => {
-    const result = stripPythonMdocPrefixes(
-      "# regular comment\n#🍰 mdoc content"
-    )
+    const result = stripPythonMdocPrefixes("# regular comment\n#🍰 mdoc content")
     expect(result).toBe("# regular comment\nmdoc content")
   })
 
   it("should handle mixed content", () => {
-    const result = stripPythonMdocPrefixes(
-      "code\n#🍰 mdoc\nmore code\n#🍰 more mdoc"
-    )
+    const result = stripPythonMdocPrefixes("code\n#🍰 mdoc\nmore code\n#🍰 more mdoc")
     expect(result).toBe("code\nmdoc\nmore code\nmore mdoc")
   })
 })

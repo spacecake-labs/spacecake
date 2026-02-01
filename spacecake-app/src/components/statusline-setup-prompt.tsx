@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef } from "react"
-import { claudeServerReadyAtom } from "@/providers/claude-integration-provider"
 import { atom, useAtomValue, useSetAtom } from "jotai"
+import { useCallback, useEffect, useRef } from "react"
 
-import { match } from "@/types/adt"
 import type { StatuslineConfigStatus } from "@/types/electron"
+
+import { claudeServerReadyAtom } from "@/providers/claude-integration-provider"
+import { match } from "@/types/adt"
 
 /** Conflict info when another tool owns the statusline */
 export interface StatuslineConflict {
@@ -44,8 +45,7 @@ export function useStatuslineAutoSetup() {
 
     window.electronAPI.claude.statusline.read().then((result) => {
       match(result, {
-        onLeft: (err) =>
-          console.error("failed to read statusline config:", err),
+        onLeft: (err) => console.error("failed to read statusline config:", err),
         onRight: (config: StatuslineConfigStatus) => {
           if (!config.configured || config.isInlineSpacecake) {
             // Not configured, or old inline spacecake config — silently set up

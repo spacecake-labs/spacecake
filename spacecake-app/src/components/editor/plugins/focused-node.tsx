@@ -1,10 +1,7 @@
-import { useEffect, useRef } from "react"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
-import {
-  addClassNamesToElement,
-  removeClassNamesFromElement,
-} from "@lexical/utils"
+import { addClassNamesToElement, removeClassNamesFromElement } from "@lexical/utils"
 import { $getSelection, $isParagraphNode, $isRangeSelection } from "lexical"
+import { useEffect, useRef } from "react"
 
 const FOCUSED_NODE_CLASS = "focused-node"
 const WAS_FOCUSED_NODE_CLASS = "was-focused-node"
@@ -32,14 +29,8 @@ export function FocusedNodePlugin(): null {
         if (!$isRangeSelection(selection)) {
           // clear focus if no selection
           if (previouslyFocusedDomRef.current) {
-            removeClassNamesFromElement(
-              previouslyFocusedDomRef.current,
-              FOCUSED_NODE_CLASS
-            )
-            addClassNamesToElement(
-              previouslyFocusedDomRef.current,
-              WAS_FOCUSED_NODE_CLASS
-            )
+            removeClassNamesFromElement(previouslyFocusedDomRef.current, FOCUSED_NODE_CLASS)
+            addClassNamesToElement(previouslyFocusedDomRef.current, WAS_FOCUSED_NODE_CLASS)
             previouslyFocusedDomRef.current = null
           }
           return
@@ -47,21 +38,13 @@ export function FocusedNodePlugin(): null {
 
         const anchor = selection.anchor
         const anchorNode = anchor.getNode()
-        const focusedParagraph = $isParagraphNode(anchorNode)
-          ? anchorNode
-          : anchorNode.getParent()
+        const focusedParagraph = $isParagraphNode(anchorNode) ? anchorNode : anchorNode.getParent()
 
         if (!$isParagraphNode(focusedParagraph)) {
           // not a paragraph, clear previous
           if (previouslyFocusedDomRef.current) {
-            removeClassNamesFromElement(
-              previouslyFocusedDomRef.current,
-              FOCUSED_NODE_CLASS
-            )
-            addClassNamesToElement(
-              previouslyFocusedDomRef.current,
-              WAS_FOCUSED_NODE_CLASS
-            )
+            removeClassNamesFromElement(previouslyFocusedDomRef.current, FOCUSED_NODE_CLASS)
+            addClassNamesToElement(previouslyFocusedDomRef.current, WAS_FOCUSED_NODE_CLASS)
             previouslyFocusedDomRef.current = null
           }
           return
@@ -76,18 +59,9 @@ export function FocusedNodePlugin(): null {
         }
 
         // remove class from previous element
-        if (
-          previouslyFocusedDomRef.current &&
-          previouslyFocusedDomRef.current !== focusedDom
-        ) {
-          removeClassNamesFromElement(
-            previouslyFocusedDomRef.current,
-            FOCUSED_NODE_CLASS
-          )
-          addClassNamesToElement(
-            previouslyFocusedDomRef.current,
-            WAS_FOCUSED_NODE_CLASS
-          )
+        if (previouslyFocusedDomRef.current && previouslyFocusedDomRef.current !== focusedDom) {
+          removeClassNamesFromElement(previouslyFocusedDomRef.current, FOCUSED_NODE_CLASS)
+          addClassNamesToElement(previouslyFocusedDomRef.current, WAS_FOCUSED_NODE_CLASS)
         }
 
         // add class to current element

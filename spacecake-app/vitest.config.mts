@@ -1,5 +1,4 @@
 import path from "path"
-
 import { coverageConfigDefaults, defineConfig } from "vitest/config"
 
 export default defineConfig({
@@ -14,12 +13,7 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     coverage: {
       reporter: ["text", "json", "html"],
-      exclude: [
-        "**/*.config.*",
-        "**/scripts/",
-        "**/*.tsx",
-        ...coverageConfigDefaults.exclude,
-      ],
+      exclude: ["**/*.config.*", "**/scripts/", "**/*.tsx", ...coverageConfigDefaults.exclude],
     },
     clearMocks: true,
   },

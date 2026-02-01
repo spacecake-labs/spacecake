@@ -28,7 +28,7 @@ const makeBackend = Effect.sync(() => {
                           method: "watch",
                           pathOrDescriptor: path,
                           cause,
-                        })
+                        }),
                       )
                     } else {
                       emit.chunk(
@@ -51,14 +51,14 @@ const makeBackend = Effect.sync(() => {
                                 })
                               }
                             }
-                          })
-                        )
+                          }),
+                        ),
                       )
                     }
                   },
                   {
                     ignore: WATCHER_IGNORE_PATTERNS,
-                  }
+                  },
                 ),
               catch: (cause) =>
                 new Error.SystemError({
@@ -69,10 +69,10 @@ const makeBackend = Effect.sync(() => {
                   cause,
                 }),
             }),
-            (sub) => Effect.promise(() => sub.unsubscribe())
-          )
-        )
-      )
+            (sub) => Effect.promise(() => sub.unsubscribe()),
+          ),
+        ),
+      ),
     )
 
   return FileSystem.WatchBackend.of({

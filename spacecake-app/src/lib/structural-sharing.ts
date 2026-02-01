@@ -25,9 +25,7 @@ export function replaceEqualDeep<T>(a: unknown, b: T, depth = 0): T {
   const aSize = aItems.length
   const bItems = array ? (b as unknown[]) : Object.keys(b as object)
   const bSize = bItems.length
-  const copy: unknown[] | Record<string, unknown> = array
-    ? new Array(bSize)
-    : {}
+  const copy: unknown[] | Record<string, unknown> = array ? new Array(bSize) : {}
 
   let equalItems = 0
 

@@ -112,7 +112,7 @@ const editorTheme = EditorView.theme(
       },
     },
   },
-  { dark: false }
+  { dark: false },
 )
 
 const highlightStyle = HighlightStyle.define([
@@ -227,7 +227,4 @@ const highlightStyle = HighlightStyle.define([
   { tag: tags.changed, color: "#953800" },
 ])
 
-export const githubLight: Extension = [
-  editorTheme,
-  syntaxHighlighting(highlightStyle),
-]
+export const githubLight: Extension = [editorTheme, syntaxHighlighting(highlightStyle)]

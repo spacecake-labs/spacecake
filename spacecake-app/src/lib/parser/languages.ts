@@ -1,5 +1,4 @@
 import path from "path"
-
 import { Language, Parser } from "web-tree-sitter"
 
 export type LanguageName = "python" | "javascript" | "typescript" | "json"
