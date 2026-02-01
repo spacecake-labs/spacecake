@@ -1,20 +1,38 @@
 ---
+interface Props {
+  embedded?: boolean
+}
 
+const { embedded = false } = Astro.props
 ---
 
-<div class="relative w-full max-w-[500px] mx-auto">
+<div class:list={["relative w-full mx-auto", { "max-w-[500px]": !embedded }]}>
   <div
-    class="task-table-container bg-[#0c0c0c] border border-zinc-700 rounded-lg overflow-hidden shadow-xl"
+    class:list={[
+      "task-table-container bg-[#0c0c0c] overflow-hidden",
+      { "border border-zinc-700 rounded-lg shadow-xl": !embedded },
+    ]}
   >
-    <!-- Header Bar -->
+    <!-- Toolbar -->
     <div
-      class="flex items-center justify-between px-4 py-1.5 border-b border-zinc-800 bg-[#0a0a0a]"
+      class="toolbar-row flex items-center justify-between px-4 border-b border-zinc-800 bg-[#0a0a0a]"
     >
-      <div class="flex items-center gap-2 text-xs font-mono">
+      <!-- Filter buttons on left -->
+      <div class="filter-bar flex items-center gap-2">
+        <button class="filter-btn active">all</button>
+        <button class="filter-btn">pending</button>
+        <button class="filter-btn">in progress</button>
+        <button class="filter-btn">completed</button>
+      </div>
+
+      <!-- Tasks badge on right -->
+      <div
+        class="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/25 rounded px-2 py-0.5"
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
+          width="12"
+          height="12"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -27,44 +45,42 @@
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
           ></path>
         </svg>
-        <span class="text-zinc-400">tasks</span>
+        <span class="text-emerald-400 text-xs font-mono whitespace-nowrap"
+          >tasks</span
+        >
       </div>
-    </div>
-
-    <!-- Filter Bar -->
-    <div
-      class="flex items-center gap-2 px-4 py-2 border-b border-zinc-800 bg-[#0a0a0a]"
-    >
-      <button class="filter-btn active">all</button>
-      <button class="filter-btn">pending</button>
-      <button class="filter-btn">in progress</button>
-      <button class="filter-btn">completed</button>
     </div>
 
     <!-- Table Content -->
     <div
-      class="table-content bg-[#0a0a0a] p-4 font-mono text-sm overflow-x-auto"
+      class="table-content bg-[#0a0a0a] p-2 font-mono text-xs overflow-x-auto"
     >
       <table class="w-full">
         <thead>
           <tr class="text-zinc-500 text-xs tracking-wider">
-            <th class="text-left py-2 px-2 font-medium">task</th>
-            <th class="text-left py-2 px-2 font-medium">title</th>
-            <th class="text-left py-2 px-2 font-medium">status</th>
+            <th class="text-left py-1.5 px-2 font-medium">task</th>
+            <th class="text-left py-1.5 px-2 font-medium">title</th>
+            <th class="text-left py-1.5 px-2 font-medium">status</th>
+            <th class="text-left py-1.5 px-2 font-medium">owner</th>
           </tr>
         </thead>
         <tbody class="task-rows">
           <tr class="task-row border-t border-zinc-800/50">
-            <td class="py-3 px-2 text-zinc-500">1</td>
-            <td class="py-3 px-2 text-zinc-200">create database schema</td>
-            <td class="py-3 px-2">
+            <td class="py-1.5 px-2 text-zinc-500">1</td>
+            <td class="py-1.5 px-2 text-zinc-200 text-xs"
+              >create database schema</td
+            >
+            <td class="py-1.5 px-2">
               <span class="status-badge completed">completed</span>
             </td>
+            <td class="py-1.5 px-2 text-zinc-400 text-xs">agent-1</td>
           </tr>
           <tr class="task-row border-t border-zinc-800/50 in-progress-row">
-            <td class="py-3 px-2 text-zinc-500">2</td>
-            <td class="py-3 px-2 text-zinc-200">build api endpoints</td>
-            <td class="py-3 px-2">
+            <td class="py-1.5 px-2 text-zinc-500">2</td>
+            <td class="py-1.5 px-2 text-zinc-200 text-xs"
+              >build api endpoints</td
+            >
+            <td class="py-1.5 px-2">
               <span class="status-badge in-progress">
                 <span class="status-dot-wrapper">
                   <span class="status-dot"></span>
@@ -73,20 +89,25 @@
                 in progress
               </span>
             </td>
+            <td class="py-1.5 px-2 text-zinc-400 text-xs">agent-2</td>
           </tr>
           <tr class="task-row border-t border-zinc-800/50">
-            <td class="py-3 px-2 text-zinc-500">3</td>
-            <td class="py-3 px-2 text-zinc-200">add unit tests</td>
-            <td class="py-3 px-2">
+            <td class="py-1.5 px-2 text-zinc-500">3</td>
+            <td class="py-1.5 px-2 text-zinc-200 text-xs">add unit tests</td>
+            <td class="py-1.5 px-2">
               <span class="status-badge pending">pending</span>
             </td>
+            <td class="py-1.5 px-2 text-zinc-500 text-xs">—</td>
           </tr>
           <tr class="task-row border-t border-zinc-800/50">
-            <td class="py-3 px-2 text-zinc-500">4</td>
-            <td class="py-3 px-2 text-zinc-200">update documentation</td>
-            <td class="py-3 px-2">
+            <td class="py-1.5 px-2 text-zinc-500">4</td>
+            <td class="py-1.5 px-2 text-zinc-200 text-xs"
+              >update documentation</td
+            >
+            <td class="py-1.5 px-2">
               <span class="status-badge pending">pending</span>
             </td>
+            <td class="py-1.5 px-2 text-zinc-500 text-xs">—</td>
           </tr>
         </tbody>
       </table>
@@ -117,14 +138,32 @@
 
   /* Fixed height for table content to prevent resize on filter */
   .table-content {
-    height: 240px;
+    height: 170px;
     overflow: hidden;
+  }
+
+  /* Toolbar row - matches height of editor/terminal toolbars */
+  .toolbar-row {
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  /* Filter bar - allow horizontal scroll on small screens */
+  .filter-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .filter-bar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
   }
 
   /* Filter buttons */
   .filter-btn {
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.375rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
     font-size: 0.75rem;
     font-family: var(--sl-font-mono) !important;
     color: #a1a1aa; /* zinc-400 */
@@ -132,6 +171,8 @@
     border: 1px solid transparent;
     cursor: pointer;
     transition: all 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .filter-btn:hover {
@@ -156,6 +197,42 @@
     font-family: var(--sl-font-mono) !important;
     font-weight: 500;
     text-transform: lowercase;
+    white-space: nowrap;
+  }
+
+  /* Hide task number and owner columns on small screens */
+  @media (max-width: 500px) {
+    .task-table-container th:first-child,
+    .task-table-container td:first-child,
+    .task-table-container th:last-child,
+    .task-table-container td:last-child {
+      display: none;
+    }
+
+    /* Hide "completed" filter on very small screens */
+    .filter-btn:nth-child(4) {
+      display: none;
+    }
+
+    /* Hide tasks badge on mobile */
+    .toolbar-row > .flex:last-child {
+      display: none;
+    }
+  }
+
+  /* Truncate title column */
+  .task-table-container td:nth-child(2) {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 500px) {
+    .task-table-container td:nth-child(2) {
+      max-width: none;
+      white-space: normal;
+    }
   }
 
   .status-badge.completed {

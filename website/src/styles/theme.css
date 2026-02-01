@@ -4,6 +4,30 @@
 /* JetBrains Mono for terminal */
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap");
 
+/* Override Starlight content width for splash pages */
+:root {
+  --sl-content-width: 100rem;
+}
+
+/* Make the container wider when hero is present (splash/home page) */
+.content-panel:has(.hero) {
+  max-width: 100% !important;
+  padding-inline: 0.5rem !important;
+  padding-top: 0 !important;
+}
+
+.content-panel:has(.hero) .sl-container {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Wider content on laptop screens */
+@media (min-width: 70rem) {
+  .content-panel:has(.hero) {
+    padding-inline: 0 !important;
+  }
+}
+
 /* Dark mode colors. */
 :root {
   /* Font */

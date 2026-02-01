@@ -2,8 +2,10 @@
 .vscode
 .claude
 .notes
+CLAUDE.md
 GEMINI.md
 .gemini*
+.playwright-cli
 
 # Private experimental code
 recorder/

@@ -74,7 +74,7 @@ const { title = data.title, tagline } = data.hero || {}
   >
     <!-- Section Header -->
     <div class="text-left lg:text-center space-y-4">
-      <h2 class="text-4xl font-bold text-white">built for the terminal</h2>
+      <h2 class="text-4xl font-bold section-heading">built for the terminal</h2>
       <p class="text-zinc-400 text-lg max-w-2xl mx-auto">
         track your context window and usage cost in real time
       </p>
@@ -90,7 +90,7 @@ const { title = data.title, tagline } = data.hero || {}
             integrated terminal
           </span>
         </div>
-        <h3 class="text-3xl font-bold text-white">
+        <h3 class="text-3xl font-bold section-heading">
           everything you need in one glance
         </h3>
         <p class="text-zinc-400 text-lg leading-relaxed">
@@ -124,7 +124,7 @@ const { title = data.title, tagline } = data.hero || {}
   >
     <!-- Section Header -->
     <div class="text-left lg:text-center space-y-4">
-      <h2 class="text-4xl font-bold text-white">monitor claude tasks</h2>
+      <h2 class="text-4xl font-bold section-heading">monitor claude tasks</h2>
       <p class="text-zinc-400 text-lg max-w-2xl mx-auto">
         see what Claude is working on in real time
       </p>
@@ -140,7 +140,7 @@ const { title = data.title, tagline } = data.hero || {}
             task table
           </span>
         </div>
-        <h3 class="text-3xl font-bold text-white">keep agents on track</h3>
+        <h3 class="text-3xl font-bold section-heading">keep agents on track</h3>
         <p class="text-zinc-400 text-lg leading-relaxed">
           Claude creates tasks as it works
         </p>
@@ -171,21 +171,27 @@ const { title = data.title, tagline } = data.hero || {}
   @layer starlight.core {
     .hero {
       display: grid;
-      align-items: center;
+      align-items: start;
       gap: 2rem;
       padding-bottom: 1rem;
       width: 100%;
-      padding-inline: 1.5rem;
+      max-width: 1800px;
+      margin-inline: auto;
+      padding-inline: 2rem;
     }
 
     .hero > img,
-    .hero > .hero-html,
-    .hero > .editor-preview {
+    .hero > .hero-html {
       object-fit: contain;
       width: 100%;
       max-width: 600px;
       height: auto;
       margin-inline: 0;
+    }
+
+    .hero > .editor-preview {
+      width: 100%;
+      max-width: 100%;
     }
 
     .stack {
@@ -202,12 +208,14 @@ const { title = data.title, tagline } = data.hero || {}
     }
 
     .copy > * {
-      max-width: 50ch;
+      max-width: 100%;
     }
 
     .rotating-text-wrapper {
       margin-top: -1rem;
       margin-bottom: 1rem;
+      width: 100%;
+      min-width: max-content;
     }
 
     .badges-container {
@@ -278,8 +286,7 @@ const { title = data.title, tagline } = data.hero || {}
       line-height: var(--sl-line-height-headings);
       font-weight: 600;
       color: var(--sl-color-white);
-      max-width: 15ch;
-      text-wrap: balance;
+      max-width: 100%;
     }
 
     .tagline {
@@ -331,10 +338,18 @@ const { title = data.title, tagline } = data.hero || {}
     .terminal-feature {
       grid-column: 1 / -1;
       margin-top: 4rem !important;
+      max-width: 1200px;
+      margin-inline: auto;
     }
 
     .terminal-feature.task-feature {
-      margin-top: 12rem !important;
+      margin-top: 4rem !important;
+    }
+
+    @media (min-width: 70rem) {
+      .terminal-feature.task-feature {
+        margin-top: 12rem !important;
+      }
     }
 
     /* Override Starlight spacing for terminal feature section */
@@ -366,6 +381,14 @@ const { title = data.title, tagline } = data.hero || {}
     .terminal-feature h3 {
       margin: 0 !important;
       padding: 0 !important;
+    }
+
+    .section-heading {
+      color: white;
+    }
+
+    :global([data-theme="light"]) .section-heading {
+      color: var(--sl-color-text);
     }
 
     .terminal-feature p {
@@ -400,26 +423,32 @@ const { title = data.title, tagline } = data.hero || {}
       padding: 0 !important;
     }
 
-    @media (min-width: 60rem) {
+    @media (min-width: 70rem) {
       .hero {
-        grid-template-columns: 1fr 1fr;
-        gap: 3%;
-        padding-block: clamp(2.5rem, calc(1rem + 10vmin), 10rem);
+        grid-template-columns: 1fr 1.8fr;
+        gap: 3rem;
+        padding-block-start: 2rem;
+        padding-block-end: 1rem;
+        padding-inline: 5rem;
         align-items: start;
       }
 
       .hero > img,
-      .hero > .hero-html,
-      .hero > .editor-preview {
+      .hero > .hero-html {
         width: 100%;
         max-width: none;
         align-self: start;
       }
 
+      .hero > .editor-preview {
+        width: 100%;
+        max-width: none;
+      }
+
       .stack {
         text-align: start;
         align-items: flex-start;
-        max-width: 38rem;
+        max-width: none;
       }
 
       .copy {
@@ -436,6 +465,13 @@ const { title = data.title, tagline } = data.hero || {}
         flex-wrap: wrap;
         justify-content: flex-start;
         align-items: flex-start;
+      }
+    }
+
+    /* Larger padding only on very large screens */
+    @media (min-width: 100rem) {
+      .hero {
+        padding-inline: 3rem;
       }
     }
   }

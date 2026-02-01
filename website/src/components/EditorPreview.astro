@@ -1,244 +1,376 @@
 ---
-
+import TaskTablePreview from "./TaskTablePreview.astro"
 ---
 
-<div class="relative w-full max-w-[600px] mx-auto">
-  <!-- Editor Window -->
+<div class="relative w-full mx-auto">
+  <!-- Single container with outer border -->
   <div
-    class="rounded-lg overflow-hidden border border-zinc-700 bg-[#1a1a1a] shadow-2xl mockup-container antialiased"
+    class="rounded-lg overflow-hidden border border-zinc-700 bg-[#0a0a0a] shadow-2xl mockup-container antialiased"
   >
-    <div class="px-4 py-2 bg-[#0a0a0a] border-b border-zinc-800">
-      <div class="font-mono text-xs text-zinc-500">.claude/skills/rust.md</div>
-    </div>
-
-    <div class="p-6 bg-[#0f0f0f] space-y-3">
-      <!-- Rendered Markdown Heading -->
-      <h1 class="text-white text-3xl font-bold">Rewrite in Rust</h1>
-
-      <!-- Rendered Markdown Subheading -->
-      <!-- <h2 class="text-white text-xl font-semibold">Instructions</h2> -->
-
-      <!-- Rendered Markdown Paragraph -->
-      <p class="text-zinc-300 text-base">Make no mistakes.</p>
-
-      <!-- Code Block with Toolbar -->
-      <div class="mt-3">
-        <!-- Code Block Toolbar -->
+    <div class="editor-layout">
+      <!-- Markdown Editor Panel -->
+      <div class="markdown-panel">
+        <!-- Tab Bar -->
         <div
-          class="flex items-center justify-between px-2 py-1 bg-[#121212] border border-zinc-700 rounded-t-lg"
+          class="tab-bar flex items-center bg-[#0a0a0a] border-b border-zinc-800"
         >
-          <div class="flex items-center px-2 gap-2">
-            <div class="w-2 h-2 rounded-full bg-blue-500"></div>
-            <!-- <svg
+          <button
+            class="editor-tab active flex items-center gap-2 px-3 py-2 text-xs font-medium cursor-pointer transition-colors"
+            data-tab="skills"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="tab-icon"
+            >
+              <path
+                d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+              ></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            <span class="tab-filename">ship-faster.md</span>
+          </button>
+          <button
+            class="editor-tab flex items-center gap-2 px-3 py-2 text-xs font-medium cursor-pointer transition-colors"
+            data-tab="claude"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="tab-icon"
+            >
+              <path
+                d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+              ></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            <span class="tab-filename">CLAUDE.md</span>
+          </button>
+        </div>
+
+        <!-- Tab Content: Ship Faster -->
+        <div class="tab-content active" data-content="skills">
+          <div class="markdown-content p-5 flex-1 text-zinc-200">
+            <h1 class="text-white font-semibold text-3xl mb-2">ship faster</h1>
+
+            <p class="leading-7 mt-2 text-sm">
+              write markdown plans.<br />explain code with diagrams.
+            </p>
+
+            <!-- Flowchart -->
+            <div class="mt-6">
+              <div
+                class="flex items-center justify-end px-3 py-1 bg-[#121212] border border-zinc-700 rounded-t"
+              >
+                <span class="text-zinc-400 text-xs font-mono">mermaid</span>
+              </div>
+
+              <div
+                class="mermaid-preview p-3 bg-[#0a0a0a] rounded-b border border-t-0 border-zinc-700"
+              >
+                <div
+                  class="mermaid-diagram flex flex-col items-center gap-1 text-xs font-mono"
+                >
+                  <div
+                    class="px-3 py-1 bg-[#0a0a0a] border border-zinc-600 rounded text-white"
+                  >
+                    research
+                  </div>
+                  <div class="w-px h-2 bg-zinc-600"></div>
+                  <div
+                    class="px-3 py-1 bg-[#0a0a0a] border border-zinc-600 rounded text-white"
+                  >
+                    plan
+                  </div>
+                  <div class="w-px h-2 bg-zinc-600"></div>
+                  <div
+                    class="px-3 py-1 bg-emerald-500/20 border border-emerald-500/40 rounded text-emerald-400"
+                  >
+                    implement
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Checklist -->
+            <div class="mt-6 space-y-2 text-sm">
+              <div class="checklist-item checked">
+                <span class="checkbox"></span>
+                <span>write specs, not code</span>
+              </div>
+              <div class="checklist-item checked">
+                <span class="checkbox"></span>
+                <span>track progress visually</span>
+              </div>
+              <div class="checklist-item">
+                <span class="checkbox"></span>
+                <span>ship faster</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Content: CLAUDE.md -->
+        <div class="tab-content" data-content="claude">
+          <div class="markdown-content p-5 flex-1 text-zinc-200">
+            <h1 class="text-white font-semibold text-3xl mb-2">your rules</h1>
+
+            <p class="leading-7 mt-2 text-sm">
+              define your stack.<br />own your conventions.
+            </p>
+
+            <!-- JSON Code Block (using mermaid-preview for consistent height) -->
+            <div class="mt-6">
+              <div
+                class="flex items-center justify-end px-3 py-1 bg-[#121212] border border-zinc-700 rounded-t"
+              >
+                <span class="text-zinc-400 text-xs font-mono">json</span>
+              </div>
+
+              <div
+                class="mermaid-preview p-3 bg-[#0a0a0a] rounded-b border border-t-0 border-zinc-700"
+              >
+                <div
+                  class="mermaid-diagram flex flex-col items-center gap-1 text-xs font-mono"
+                >
+                  <div
+                    class="px-3 py-1 bg-[#0a0a0a] border border-zinc-600 rounded text-emerald-400"
+                  >
+                    "stack": "next.js"
+                  </div>
+                  <div class="w-px h-2 bg-zinc-600"></div>
+                  <div
+                    class="px-3 py-1 bg-[#0a0a0a] border border-zinc-600 rounded text-emerald-400"
+                  >
+                    "style": "functional"
+                  </div>
+                  <div class="w-px h-2 bg-zinc-600"></div>
+                  <div
+                    class="px-3 py-1 bg-[#0a0a0a] border border-zinc-600 rounded text-emerald-400"
+                  >
+                    "tests": "vitest"
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Inline code rules -->
+            <div class="mt-6 space-y-2 text-sm">
+              <div class="flex items-center gap-2">
+                <span class="text-zinc-500">•</span>
+                <span class="text-zinc-300">write pure functions</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-zinc-500">•</span>
+                <span class="text-zinc-300">test everything</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-zinc-500">•</span>
+                <span class="text-zinc-300">make no mistakes</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Terminal Panel -->
+      <div class="terminal-panel">
+        <div
+          class="toolbar-row flex items-center justify-between px-4 bg-[#0a0a0a] border-b border-zinc-800"
+        >
+          <div class="flex items-center gap-2 text-xs font-mono">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
               width="12"
               height="12"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
-              class="text-zinc-400"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-emerald-400 w-4 h-4"
+              ><polyline points="4 17 10 11 4 5"></polyline><line
+                x1="12"
+                y1="19"
+                x2="20"
+                y2="19"></line></svg
             >
-              <path d="M16 18L22 12L16 6M8 6L2 12L8 18"></path>
-            </svg> -->
-            <!-- <div
-              class="bg-zinc-800/50 text-zinc-300 px-1.5 py-0.5 rounded text-[10px] font-mono"
-            >
-              code
-            </div> -->
+            <!-- <span class="text-zinc-400"> terminal </span> -->
           </div>
-          <div class="flex items-center gap-2">
-            <button
-              class="typescript-btn flex items-center gap-1.5 bg-zinc-800/70 hover:bg-zinc-800 border border-zinc-700 text-white rounded transition-colors cursor-pointer"
+          <div class="toolbar-badges">
+            <div
+              class="toolbar-badge toolbar-badge-secondary flex items-center border border-zinc-700/50 rounded px-2 py-0.5"
             >
-              typescript
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                class="text-zinc-400"
+              <span class="text-zinc-400 text-xs font-mono whitespace-nowrap"
+                >🧠 67%</span
               >
-                <path d="M4 6l4 4 4-4H4z"></path>
-              </svg>
-            </button>
-            <button
-              class="text-zinc-500 hover:text-white transition-colors p-0.5 cursor-pointer"
+            </div>
+
+            <div
+              class="toolbar-badge toolbar-badge-secondary flex items-center border border-zinc-700/50 rounded px-2 py-0.5"
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+              <span class="text-zinc-400 text-xs font-mono whitespace-nowrap"
+                >💰 $4.20</span
               >
-                <path
-                  d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
-                ></path>
-              </svg>
-            </button>
+            </div>
+
+            <div
+              class="toolbar-badge toolbar-badge-primary flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/25 rounded px-2 py-0.5"
+            >
+              <div
+                class="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0"
+              >
+              </div>
+              <span class="text-emerald-400 text-xs font-mono whitespace-nowrap"
+                >opus 4.5</span
+              >
+            </div>
           </div>
         </div>
 
-        <!-- Code Block Content -->
-        <div
-          class="code-content px-0 py-2 font-mono text-xs bg-[#0f0f0f] rounded-b-lg border border-t-0 border-zinc-700 leading-relaxed"
-        >
-          <div>
-            <!-- Line 1 -->
-            <div class="flex gap-3">
-              <span class="text-zinc-600 text-right w-6 select-none">1</span>
-              <div style="padding-left: 0px">
-                <span class="text-[#ff7b72]">import</span> &#123; <span
-                  class="text-[#e6edf3]">ToolLoopAgent</span
-                > &#125; <span class="text-[#ff7b72]">from</span>
-                <span class="text-[#a5d6ff]">'ai'</span>;
-              </div>
+        <div class="p-4 text-xs space-y-3 font-jetbrains flex-1 bg-[#0a0a0a]">
+          <div class="border border-orange-500 rounded p-3 space-y-2">
+            <div class="text-orange-400 border-b border-orange-900 pb-2">
+              ━━━━━ Claude Code ━━━━━━━━━━━━━━━━━━
             </div>
-            <!-- Line 2 -->
-            <div class="flex gap-3">
-              <span class="text-zinc-600 text-right w-6 select-none">2</span>
-              <div style="padding-left: 0px">
-                <span class="text-zinc-600"></span>
+            <div class="space-y-1 text-zinc-300">
+              <div class="text-white font-medium">Welcome back Taylor!</div>
+              <div class="flex items-center gap-2">
+                <div class="text-orange-400 text-base">🦀</div>
+                <div class="text-xs text-zinc-500">Opus 4.5 · Claude Pro</div>
               </div>
-            </div>
-            <!-- Line 3 -->
-            <div class="flex gap-3">
-              <span class="text-zinc-600 text-right w-6 select-none">3</span>
-              <div style="padding-left: 0px">
-                <span class="text-[#ff7b72]">const</span>
-                <span class="text-[#e6edf3]">agent</span> = <span
-                  class="text-[#ff7b72]">new</span
+              <div class="text-xs text-zinc-500 terminal-path-text">
+                <span class="block truncate"
+                  >taylor@spacecake.ai's Organization</span
                 >
-                <span class="text-[#ffa657]">ToolLoopAgent</span>(&#123;
+                <span class="block truncate">~/Documents/GitHub/spacecake/</span
+                >
               </div>
             </div>
-            <!-- Line 4 -->
-            <div class="flex gap-3">
-              <span class="text-zinc-600 text-right w-6 select-none">4</span>
-              <div style="padding-left: 24px">
-                <span class="text-[#79c0ff]">model</span>: <span
-                  class="text-[#a5d6ff]">"anthropic/claude-opus-4.5"</span
-                >,
+            <div class="border-t border-orange-900 pt-2 space-y-1">
+              <div class="text-emerald-400 text-xs font-medium">
+                Tips for getting started
               </div>
-            </div>
-            <!-- Line 5 -->
-            <div class="flex gap-3">
-              <span class="text-zinc-600 text-right w-6 select-none">5</span>
-              <div style="padding-left: 24px">
-                <span class="text-[#79c0ff]">instructions</span>: <span
-                  class="text-[#a5d6ff]"
-                  >"When you move, fall like a thunderbolt."</span
-                >,
+              <div class="text-zinc-500 text-xs">
+                Run ./init to create a CLAUDE.md file with instructions for
+                Claude
               </div>
-            </div>
-            <!-- Line 6 -->
-            <div class="flex gap-3">
-              <span class="text-zinc-600 text-right w-6 select-none">6</span>
-              <div style="padding-left: 0px">&#125;);</div>
+              <div class="text-xs mt-2">
+                <span class="text-orange-400">Recent activity</span>
+                <div class="text-zinc-600">No recent activity</div>
+              </div>
             </div>
           </div>
+
+          <!-- Terminal Prompt with Typing Animation -->
+          <div class="flex items-center gap-2 text-zinc-400">
+            <span class="text-purple-400 font-bold">❯</span>
+            <span class="text-orange-400">■</span>
+            <span class="text-zinc-400" id="terminal-text"></span>
+            <span
+              class="inline-block w-2 h-4 bg-white opacity-100"
+              id="terminal-cursor"></span>
+          </div>
+
+          <div class="text-zinc-600 text-xs pt-2">? for shortcuts</div>
         </div>
       </div>
     </div>
 
-    <!-- Terminal Section -->
-    <div class="border-t border-zinc-800 bg-[#0a0a0a]">
-      <div
-        class="flex items-center justify-between px-4 py-1.5 border-b border-zinc-800"
-      >
-        <div class="flex items-center gap-2 text-xs font-mono">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="text-emerald-400 w-4 h-4"
-            ><polyline points="4 17 10 11 4 5"></polyline><line
-              x1="12"
-              y1="19"
-              x2="20"
-              y2="19"></line></svg
-          >
-          <!-- <span class="text-zinc-400"> terminal </span> -->
-        </div>
-        <div class="flex items-center gap-2">
-          <div
-            class="flex items-center border border-zinc-700 rounded px-2 py-0.5"
-          >
-            <span class="text-zinc-400 text-xs font-mono">🧠 67%</span>
-          </div>
-
-          <div
-            class="flex items-center border border-zinc-700 rounded px-2 py-0.5"
-          >
-            <span class="text-zinc-400 text-xs font-mono">💰 $4.20</span>
-          </div>
-
-          <div
-            class="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-500/30 rounded px-2 py-0.5"
-          >
-            <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
-            <span class="text-emerald-400 text-xs font-mono">opus 4.5</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-4 text-xs space-y-3 font-jetbrains">
-        <div class="border border-orange-500 rounded p-3 space-y-2">
-          <div class="text-orange-400 border-b border-orange-900 pb-2">
-            ━━━━━ Claude Code ━━━━━━━━━━━━━━━━━━
-          </div>
-          <div class="space-y-1 text-zinc-300">
-            <div class="text-white font-medium">Welcome back Taylor!</div>
-            <div class="flex items-center gap-2">
-              <div class="text-orange-400 text-base">🦀</div>
-              <div class="text-xs text-zinc-500">Opus 4.5 · Claude Pro</div>
-            </div>
-            <div class="text-xs text-zinc-500">
-              taylor@spacecake.ai's Organization
-              <br />
-              ~/Documents/GitHub/spacecake/
-            </div>
-          </div>
-          <div class="border-t border-orange-900 pt-2 space-y-1">
-            <div class="text-emerald-400 text-xs font-medium">
-              Tips for getting started
-            </div>
-            <div class="text-zinc-500 text-xs">
-              Run ./init to create a CLAUDE.md file with instructions for Claude
-            </div>
-            <div class="text-xs mt-2">
-              <span class="text-orange-400">Recent activity</span>
-              <div class="text-zinc-600">No recent activity</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Terminal Prompt with Typing Animation -->
-        <div class="flex items-center gap-2 text-zinc-400">
-          <span class="text-purple-400 font-bold">❯</span>
-          <span class="text-orange-400">■</span>
-          <span class="text-zinc-400" id="terminal-text"></span>
-          <span
-            class="inline-block w-2 h-4 bg-white opacity-100"
-            id="terminal-cursor"></span>
-        </div>
-
-        <div class="text-zinc-600 text-xs pt-2">? for shortcuts</div>
-      </div>
+    <!-- Task Table - Desktop Only -->
+    <div class="task-panel-desktop">
+      <TaskTablePreview embedded />
     </div>
   </div>
 </div>
 
 <style>
+  /* Task panel - hidden on mobile, shown on desktop */
+  .task-panel-desktop {
+    display: none;
+    border-top: 1px solid #3f3f46; /* zinc-700 */
+  }
+
+  @media (min-width: 550px) {
+    .task-panel-desktop {
+      display: block;
+    }
+  }
+
+  /* Side-by-side layout for markdown and terminal panels */
+  .editor-layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .markdown-panel,
+  .terminal-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .markdown-panel {
+    border-bottom: 1px solid #3f3f46; /* zinc-700 */
+  }
+
+  /* Content areas fill available space */
+  .markdown-content {
+    background: #0a0a0a;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Fixed height container for tab content to prevent size changes */
+  .tab-content.active {
+    min-height: 320px;
+  }
+
+  /* Toolbar rows must be exactly the same height */
+  .toolbar-row {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 550px) {
+    .editor-layout {
+      flex-direction: row;
+      align-items: stretch;
+    }
+
+    .editor-layout > * {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .markdown-panel {
+      border-bottom: none;
+      border-right: 1px solid #3f3f46; /* zinc-700 */
+    }
+
+    /* Ensure both panels have equal height */
+    .markdown-panel,
+    .terminal-panel {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
   /* Override Starlight typography styles */
   .mockup-container {
     font-family: var(--sl-font);
@@ -291,6 +423,10 @@
     margin-top: 0.25rem !important;
   }
 
+  .mockup-container .mt-6 {
+    margin-top: 1.5rem !important;
+  }
+
   .mockup-container .mt-3 {
     margin-top: 0.75rem !important;
   }
@@ -320,6 +456,154 @@
     font-size: 11px !important;
     line-height: 1 !important;
     padding: 3px 8px !important;
+  }
+
+  .toolbar-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+
+  .toolbar-badge {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* Hide secondary badges at narrow widths */
+  @media (max-width: 1600px) {
+    .toolbar-badge-secondary {
+      display: none;
+    }
+  }
+
+  /* Terminal panel text truncation */
+  .terminal-path-text {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .terminal-path-text .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .terminal-path-text .block {
+    display: block;
+  }
+
+  /* Tab bar styling */
+  .tab-bar {
+    height: 32px;
+    border-bottom: 1px solid #27272a; /* zinc-800 */
+    flex-shrink: 0;
+  }
+
+  .editor-tab {
+    height: 100%;
+    background: transparent;
+    color: #71717a; /* zinc-500 */
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+
+  .editor-tab:hover {
+    color: #a1a1aa; /* zinc-400 */
+    background: rgba(63, 63, 70, 0.3); /* zinc-700/30 */
+  }
+
+  .editor-tab.active {
+    color: #e4e4e7; /* zinc-200 */
+    background: #0a0a0a;
+    border-bottom: 2px solid oklch(0.6963 0.0866 40.28); /* brand color */
+  }
+
+  .editor-tab .tab-icon {
+    opacity: 0.6;
+  }
+
+  .editor-tab.active .tab-icon {
+    opacity: 1;
+    color: oklch(0.6963 0.0866 40.28); /* brand color */
+  }
+
+  .tab-filename {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .editor-tab {
+    font-family: var(--sl-font-mono) !important;
+    font-size: 10px !important;
+    padding: 6px 10px !important;
+  }
+
+  .editor-tab svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  /* Tab content visibility */
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  /* Mermaid diagram styling */
+  .mermaid-preview {
+    min-height: 100px;
+  }
+
+  .mermaid-diagram {
+    font-family: var(--sl-font-mono);
+  }
+
+  /* Checklist styling */
+  .checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-left: 0.5rem;
+  }
+
+  .checklist-item .checkbox {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 4px;
+    border: 1px solid #3f3f46;
+    background: rgba(63, 63, 70, 0.3);
+    flex-shrink: 0;
+  }
+
+  .checklist-item.checked .checkbox {
+    background: rgb(16 185 129 / 0.2); /* emerald-500/20 */
+    border-color: rgb(16 185 129 / 0.4); /* emerald-500/40 */
+    position: relative;
+  }
+
+  .checklist-item.checked .checkbox::after {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgb(52 211 153); /* emerald-400 */
+    font-size: 0.65rem;
+    font-weight: bold;
+  }
+
+  .checklist-item.checked span:last-child {
+    color: #71717a;
   }
 </style>
 
@@ -361,9 +645,37 @@
     }, 500)
   }
 
+  function initTabs() {
+    const tabs = document.querySelectorAll(".editor-tab")
+    const contents = document.querySelectorAll(".tab-content")
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const tabId = tab.getAttribute("data-tab")
+
+        // Update active tab
+        tabs.forEach((t) => t.classList.remove("active"))
+        tab.classList.add("active")
+
+        // Update visible content
+        contents.forEach((content) => {
+          if (content.getAttribute("data-content") === tabId) {
+            content.classList.add("active")
+          } else {
+            content.classList.remove("active")
+          }
+        })
+      })
+    })
+  }
+
   // Initialize on load
   initTerminal()
+  initTabs()
 
   // Re-initialize when navigating with View Transitions
-  document.addEventListener("astro:page-load", initTerminal)
+  document.addEventListener("astro:page-load", () => {
+    initTerminal()
+    initTabs()
+  })
 </script>
