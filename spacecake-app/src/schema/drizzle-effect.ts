@@ -12,45 +12,41 @@ import { Schema } from "effect"
 // Core utility types - simplified
 type Columns<TTable extends Drizzle.Table> = TTable["_"]["columns"]
 
-type ColumnSchema<TColumn extends Drizzle.Column> =
-  TColumn["dataType"] extends "custom"
-    ? Schema.Schema<any>
-    : TColumn["dataType"] extends "json"
-      ? Schema.Schema<JsonValue>
-      : TColumn extends { enumValues: [string, ...string[]] }
-        ? Drizzle.Equal<
-            TColumn["enumValues"],
-            [string, ...string[]]
-          > extends true
-          ? Schema.Schema<string>
-          : Schema.Schema<TColumn["enumValues"][number]>
-        : TColumn["dataType"] extends "bigint"
-          ? Schema.Schema<bigint, bigint>
-          : TColumn["dataType"] extends "number"
-            ? TColumn["columnType"] extends `PgBigInt${number}`
-              ? Schema.Schema<bigint, number>
-              : Schema.Schema<number, number>
-            : TColumn["columnType"] extends "PgNumeric"
-              ? Schema.Schema<number, string>
-              : TColumn["columnType"] extends "PgUUID"
-                ? Schema.Schema<string>
-                : TColumn["columnType"] extends "PgDate"
+type ColumnSchema<TColumn extends Drizzle.Column> = TColumn["dataType"] extends "custom"
+  ? Schema.Schema<any>
+  : TColumn["dataType"] extends "json"
+    ? Schema.Schema<JsonValue>
+    : TColumn extends { enumValues: [string, ...string[]] }
+      ? Drizzle.Equal<TColumn["enumValues"], [string, ...string[]]> extends true
+        ? Schema.Schema<string>
+        : Schema.Schema<TColumn["enumValues"][number]>
+      : TColumn["dataType"] extends "bigint"
+        ? Schema.Schema<bigint, bigint>
+        : TColumn["dataType"] extends "number"
+          ? TColumn["columnType"] extends `PgBigInt${number}`
+            ? Schema.Schema<bigint, number>
+            : Schema.Schema<number, number>
+          : TColumn["columnType"] extends "PgNumeric"
+            ? Schema.Schema<number, string>
+            : TColumn["columnType"] extends "PgUUID"
+              ? Schema.Schema<string>
+              : TColumn["columnType"] extends "PgDate"
+                ? TColumn extends { mode: "string" }
+                  ? Schema.Schema<string, string>
+                  : Schema.Schema<Date, string>
+                : TColumn["columnType"] extends "PgTimestamp"
                   ? TColumn extends { mode: "string" }
                     ? Schema.Schema<string, string>
                     : Schema.Schema<Date, string>
-                  : TColumn["columnType"] extends "PgTimestamp"
-                    ? TColumn extends { mode: "string" }
-                      ? Schema.Schema<string, string>
-                      : Schema.Schema<Date, string>
-                    : TColumn["dataType"] extends "string"
-                      ? Schema.Schema<string, string>
-                      : TColumn["dataType"] extends "boolean"
-                        ? Schema.Schema<boolean>
-                        : TColumn["dataType"] extends "date"
-                          ? TColumn extends { mode: "string" }
-                            ? Schema.Schema<string>
-                            : Schema.Schema<Date>
-                          : Schema.Schema<any>
+                  : TColumn["dataType"] extends "string"
+                    ? Schema.Schema<string, string>
+                    : TColumn["dataType"] extends "boolean"
+                      ? Schema.Schema<boolean>
+                      : TColumn["dataType"] extends "date"
+                        ? TColumn extends { mode: "string" }
+                          ? Schema.Schema<string>
+                          : Schema.Schema<Date>
+                        : Schema.Schema<any>
 
 // Simplified JSON types to prevent inference explosion
 export type JsonPrimitive = string | number | boolean | null
@@ -70,7 +66,7 @@ export const JsonValue = Schema.Union(
   Schema.Boolean,
   Schema.Null,
   Schema.Record({ key: Schema.String, value: Schema.Unknown }),
-  Schema.Array(Schema.Unknown)
+  Schema.Array(Schema.Unknown),
 ) satisfies Schema.Schema<JsonValue>
 
 // For cases where you need full JSON validation, use this explicit version
@@ -82,8 +78,8 @@ export const StrictJsonValue = Schema.suspend(
       Schema.Boolean,
       Schema.Null,
       Schema.Record({ key: Schema.String, value: StrictJsonValue }),
-      Schema.Array(StrictJsonValue)
-    )
+      Schema.Array(StrictJsonValue),
+    ),
 )
 
 // Simplified refinement types
@@ -91,9 +87,7 @@ type RefineFunction<TTable extends Drizzle.Table> = (schemas: {
   [K in keyof Columns<TTable>]: Schema.Schema<any>
 }) => Schema.Schema<any>
 
-type RefineArg<TTable extends Drizzle.Table> =
-  | Schema.Schema<any>
-  | RefineFunction<TTable>
+type RefineArg<TTable extends Drizzle.Table> = Schema.Schema<any> | RefineFunction<TTable>
 
 // Clean refinement type without ugly satisfies
 type TableRefine<TTable extends Drizzle.Table> = {
@@ -126,10 +120,9 @@ type InsertProperty<
       >
     : ColumnSchema<TColumn>
 
-type SelectProperty<TColumn extends Drizzle.Column> =
-  TColumn["_"]["notNull"] extends false
-    ? Schema.Schema<Schema.Schema.Type<ColumnSchema<TColumn>> | null>
-    : ColumnSchema<TColumn>
+type SelectProperty<TColumn extends Drizzle.Column> = TColumn["_"]["notNull"] extends false
+  ? Schema.Schema<Schema.Schema.Type<ColumnSchema<TColumn>> | null>
+  : ColumnSchema<TColumn>
 
 // Base schema builders
 type InsertColumnSchemas<TTable extends Drizzle.Table> = {
@@ -141,15 +134,13 @@ type SelectColumnSchemas<TTable extends Drizzle.Table> = {
 }
 
 // Refined schema builders - controlled complexity
-type BuildInsertSchema<
-  TTable extends Drizzle.Table,
-  TRefine = {},
-> = Schema.Struct<InsertColumnSchemas<TTable> & TRefine>
+type BuildInsertSchema<TTable extends Drizzle.Table, TRefine = {}> = Schema.Struct<
+  InsertColumnSchemas<TTable> & TRefine
+>
 
-type BuildSelectSchema<
-  TTable extends Drizzle.Table,
-  TRefine = {},
-> = Schema.Struct<SelectColumnSchemas<TTable> & TRefine>
+type BuildSelectSchema<TTable extends Drizzle.Table, TRefine = {}> = Schema.Struct<
+  SelectColumnSchemas<TTable> & TRefine
+>
 
 // Clean API functions
 export function createInsertSchema<
@@ -159,42 +150,29 @@ export function createInsertSchema<
   const columns = Drizzle.getTableColumns(table)
   const columnEntries = Object.entries(columns)
 
-  let schemaEntries: Record<
-    string,
-    Schema.Schema.All | Schema.PropertySignature.All
-  > = Object.fromEntries(
-    columnEntries.map(([name, column]) => [name, mapColumnToSchema(column)])
-  )
+  let schemaEntries: Record<string, Schema.Schema.All | Schema.PropertySignature.All> =
+    Object.fromEntries(columnEntries.map(([name, column]) => [name, mapColumnToSchema(column)]))
 
   // Apply refinements
   if (refine) {
-    const refinedEntries = Object.entries(refine).map(
-      ([name, refineColumn]) => [
-        name,
-        typeof refineColumn === "function" &&
-        !Schema.isSchema(refineColumn) &&
-        !Schema.isPropertySignature(refineColumn)
-          ? refineColumn(schemaEntries as any)
-          : refineColumn,
-      ]
-    )
+    const refinedEntries = Object.entries(refine).map(([name, refineColumn]) => [
+      name,
+      typeof refineColumn === "function" &&
+      !Schema.isSchema(refineColumn) &&
+      !Schema.isPropertySignature(refineColumn)
+        ? refineColumn(schemaEntries as any)
+        : refineColumn,
+    ])
 
-    schemaEntries = Object.assign(
-      schemaEntries,
-      Object.fromEntries(refinedEntries)
-    )
+    schemaEntries = Object.assign(schemaEntries, Object.fromEntries(refinedEntries))
   }
 
   // Apply insert-specific optionality rules
   for (const [name, column] of columnEntries) {
     if (!column.notNull) {
-      schemaEntries[name] = Schema.optional(
-        Schema.NullOr(schemaEntries[name] as Schema.Schema.All)
-      )
+      schemaEntries[name] = Schema.optional(Schema.NullOr(schemaEntries[name] as Schema.Schema.All))
     } else if (column.hasDefault) {
-      schemaEntries[name] = Schema.optional(
-        schemaEntries[name] as Schema.Schema.All
-      )
+      schemaEntries[name] = Schema.optional(schemaEntries[name] as Schema.Schema.All)
     }
   }
 
@@ -208,38 +186,27 @@ export function createSelectSchema<
   const columns = Drizzle.getTableColumns(table)
   const columnEntries = Object.entries(columns)
 
-  let schemaEntries: Record<
-    string,
-    Schema.Schema.All | Schema.PropertySignature.All
-  > = Object.fromEntries(
-    columnEntries.map(([name, column]) => [name, mapColumnToSchema(column)])
-  )
+  let schemaEntries: Record<string, Schema.Schema.All | Schema.PropertySignature.All> =
+    Object.fromEntries(columnEntries.map(([name, column]) => [name, mapColumnToSchema(column)]))
 
   // Apply refinements
   if (refine) {
-    const refinedEntries = Object.entries(refine).map(
-      ([name, refineColumn]) => [
-        name,
-        typeof refineColumn === "function" &&
-        !Schema.isSchema(refineColumn) &&
-        !Schema.isPropertySignature(refineColumn)
-          ? refineColumn(schemaEntries as any)
-          : refineColumn,
-      ]
-    )
+    const refinedEntries = Object.entries(refine).map(([name, refineColumn]) => [
+      name,
+      typeof refineColumn === "function" &&
+      !Schema.isSchema(refineColumn) &&
+      !Schema.isPropertySignature(refineColumn)
+        ? refineColumn(schemaEntries as any)
+        : refineColumn,
+    ])
 
-    schemaEntries = Object.assign(
-      schemaEntries,
-      Object.fromEntries(refinedEntries)
-    )
+    schemaEntries = Object.assign(schemaEntries, Object.fromEntries(refinedEntries))
   }
 
   // Apply select-specific nullability rules
   for (const [name, column] of columnEntries) {
     if (!column.notNull) {
-      schemaEntries[name] = Schema.NullOr(
-        schemaEntries[name] as Schema.Schema.All
-      )
+      schemaEntries[name] = Schema.NullOr(schemaEntries[name] as Schema.Schema.All)
     }
   }
 
@@ -260,9 +227,7 @@ function mapColumnToSchema(column: Drizzle.Column): Schema.Schema<any, any> {
   let type: Schema.Schema<any, any> | undefined
 
   if (isWithEnum(column)) {
-    type = column.enumValues.length
-      ? Schema.Literal(...column.enumValues)
-      : Schema.String
+    type = column.enumValues.length ? Schema.Literal(...column.enumValues) : Schema.String
   }
 
   if (!type) {
@@ -273,9 +238,7 @@ function mapColumnToSchema(column: Drizzle.Column): Schema.Schema<any, any> {
     } else if (column.dataType === "json") {
       type = JsonValue
     } else if (column.dataType === "array") {
-      type = Schema.Array(
-        mapColumnToSchema((column as DrizzlePg.PgArray<any, any>).baseColumn)
-      )
+      type = Schema.Array(mapColumnToSchema((column as DrizzlePg.PgArray<any, any>).baseColumn))
     } else if (column.dataType === "number") {
       type = Schema.Number
     } else if (column.dataType === "bigint") {
@@ -283,26 +246,17 @@ function mapColumnToSchema(column: Drizzle.Column): Schema.Schema<any, any> {
     } else if (column.dataType === "boolean") {
       type = Schema.Boolean
     } else if (column.dataType === "date") {
-      type =
-        hasMode(column) && column.mode === "string"
-          ? Schema.String
-          : Schema.DateFromSelf
+      type = hasMode(column) && column.mode === "string" ? Schema.String : Schema.DateFromSelf
     } else if (column.dataType === "string") {
       // Additional check: if it's a PgTimestamp or PgDate masquerading as string
       if (Drizzle.is(column, DrizzlePg.PgTimestamp)) {
-        type =
-          hasMode(column) && column.mode === "string"
-            ? Schema.String
-            : Schema.DateFromSelf
+        type = hasMode(column) && column.mode === "string" ? Schema.String : Schema.DateFromSelf
       } else if (Drizzle.is(column, DrizzlePg.PgTimestampString)) {
         // PgTimestampString can return either Date objects or strings depending on query context
         // Use a union to handle both cases
         type = Schema.Union(Schema.String, Schema.DateFromSelf)
       } else if (Drizzle.is(column, DrizzlePg.PgDate)) {
-        type =
-          hasMode(column) && column.mode === "string"
-            ? Schema.String
-            : Schema.DateFromSelf
+        type = hasMode(column) && column.mode === "string" ? Schema.String : Schema.DateFromSelf
       } else {
         let sType = Schema.String
         if (
@@ -329,11 +283,7 @@ function mapColumnToSchema(column: Drizzle.Column): Schema.Schema<any, any> {
 }
 
 function isWithEnum(
-  column: Drizzle.Column
+  column: Drizzle.Column,
 ): column is typeof column & { enumValues: [string, ...string[]] } {
-  return (
-    "enumValues" in column &&
-    Array.isArray(column.enumValues) &&
-    column.enumValues.length > 0
-  )
+  return "enumValues" in column && Array.isArray(column.enumValues) && column.enumValues.length > 0
 }

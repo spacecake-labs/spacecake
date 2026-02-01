@@ -1,5 +1,4 @@
 import process from "node:process"
-
 import { shellPath } from "shell-path"
 import stripAnsi from "strip-ansi"
 
@@ -13,12 +12,9 @@ export async function fixPath() {
 
     process.env.PATH =
       (pathEnv ? stripAnsi(pathEnv) : undefined) ||
-      [
-        "./node_modules/.bin",
-        "/.nodebrew/current/bin",
-        "/usr/local/bin",
-        process.env.PATH,
-      ].join(":")
+      ["./node_modules/.bin", "/.nodebrew/current/bin", "/usr/local/bin", process.env.PATH].join(
+        ":",
+      )
   } catch (e) {
     console.error("failed to fix path:", e)
   }

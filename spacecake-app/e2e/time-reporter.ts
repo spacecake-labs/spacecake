@@ -1,9 +1,4 @@
-import type {
-  FullResult,
-  Reporter,
-  TestCase,
-  TestResult,
-} from "@playwright/test/reporter"
+import type { FullResult, Reporter, TestCase, TestResult } from "@playwright/test/reporter"
 
 class TimeReporter implements Reporter {
   onTestEnd(_test: TestCase, result: TestResult) {

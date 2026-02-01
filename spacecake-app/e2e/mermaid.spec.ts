@@ -5,10 +5,7 @@ import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("mermaid e2e", () => {
-  test("open markdown file and render mermaid diagram", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
+  test("open markdown file and render mermaid diagram", async ({ electronApp, tempTestDir }) => {
     const window = await electronApp.firstWindow()
 
     // copy mermaid.md fixture into the temp workspace
@@ -23,9 +20,7 @@ test.describe("mermaid e2e", () => {
     await locateSidebarItem(window, "mermaid.md").click()
 
     // verify we're in rich view (not source view)
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
+    await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
@@ -33,19 +28,14 @@ test.describe("mermaid e2e", () => {
     await expect(
       window.getByRole("heading", {
         name: "Mermaid Diagram Test",
-      })
+      }),
     ).toBeVisible()
 
     // verify that the mermaid diagram is rendered as an svg
-    await expect(
-      window.getByTestId("mermaid-diagram").locator("svg")
-    ).toBeVisible()
+    await expect(window.getByTestId("mermaid-diagram").locator("svg")).toBeVisible()
   })
 
-  test("create mermaid node by typing markdown shortcut", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
+  test("create mermaid node by typing markdown shortcut", async ({ electronApp, tempTestDir }) => {
     const window = await electronApp.firstWindow()
 
     // create a new markdown file
@@ -113,7 +103,7 @@ test.describe("mermaid e2e", () => {
     // verify the original diagram code is still there
     const codeEditorAfter = window.getByTestId("mermaid-code-editor")
     await expect(codeEditorAfter.locator(".cm-editor")).toContainText(
-      "graph TD;\n    A-->B;\n    B-->C;"
+      "graph TD;\n    A-->B;\n    B-->C;",
     )
 
     // test deleting the mermaid node

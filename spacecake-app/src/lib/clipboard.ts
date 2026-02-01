@@ -1,7 +1,4 @@
-import {
-  Clipboard,
-  layer as ClipboardLayer,
-} from "@effect/platform-browser/Clipboard"
+import { Clipboard, layer as ClipboardLayer } from "@effect/platform-browser/Clipboard"
 import { Effect, Layer } from "effect"
 
 import { TerminalWriter, TerminalWriterLive } from "@/lib/terminal-writer"
@@ -13,9 +10,7 @@ import { TerminalWriter, TerminalWriterLive } from "@/lib/terminal-writer"
 export const hasImageInClipboard = Effect.gen(function* () {
   const clipboard = yield* Clipboard
   const items = yield* clipboard.read
-  return Array.from(items).some((item) =>
-    item.types.some((t) => t.startsWith("image/"))
-  )
+  return Array.from(items).some((item) => item.types.some((t) => t.startsWith("image/")))
 }).pipe(Effect.catchAll(() => Effect.succeed(false)))
 
 /**
@@ -37,7 +32,4 @@ export const handleImagePaste = (terminalId: string) =>
  * Live layer for terminal clipboard operations.
  * Composed once at module level for use in the renderer.
  */
-export const TerminalClipboardLive = Layer.mergeAll(
-  ClipboardLayer,
-  TerminalWriterLive
-)
+export const TerminalClipboardLive = Layer.mergeAll(ClipboardLayer, TerminalWriterLive)

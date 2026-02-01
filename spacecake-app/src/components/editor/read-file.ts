@@ -11,18 +11,15 @@ import {
 } from "lexical"
 import { toast } from "sonner"
 
-import { INITIAL_LOAD_TAG, SerializedSelection } from "@/types/lexical"
 import type { PyBlock } from "@/types/parser"
-import { EditorFile, FileType } from "@/types/workspace"
-import {
-  $restoreNodeSelection,
-  $restoreSelection,
-  convertToSourceView,
-} from "@/lib/editor"
-import { parsePythonContentStreaming } from "@/lib/parser/python/blocks"
+
 import { delimitPyBlock } from "@/components/editor/block-utils"
 import { emptyMdNode, mdBlockToNode } from "@/components/editor/markdown-utils"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
+import { $restoreNodeSelection, $restoreSelection, convertToSourceView } from "@/lib/editor"
+import { parsePythonContentStreaming } from "@/lib/parser/python/blocks"
+import { INITIAL_LOAD_TAG, SerializedSelection } from "@/types/lexical"
+import { EditorFile, FileType } from "@/types/workspace"
 
 /**
  * Converts Python blocks into Lexical nodes with progressive rendering
@@ -32,10 +29,8 @@ export async function convertPythonBlocksToLexical(
   editor: LexicalEditor,
   selection: SerializedSelection | null = null,
   nodeSelection: NodeSelection | null = null,
-  streamParser: (
-    file: EditorFile
-  ) => AsyncGenerator<PyBlock> = parsePythonContentStreaming,
-  onComplete?: () => void
+  streamParser: (file: EditorFile) => AsyncGenerator<PyBlock> = parsePythonContentStreaming,
+  onComplete?: () => void,
 ) {
   try {
     // Start with an empty editor
@@ -47,7 +42,7 @@ export async function convertPythonBlocksToLexical(
         // nodes start again from zero
         resetRandomKey()
       },
-      { tag: INITIAL_LOAD_TAG }
+      { tag: INITIAL_LOAD_TAG },
     )
     // Parse blocks progressively, updating per block
     let parsedBlockCount = 0
@@ -57,10 +52,7 @@ export async function convertPythonBlocksToLexical(
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           const root = $getRoot()
 
-          if (
-            block.kind === "markdown inline" ||
-            block.kind === "markdown block"
-          ) {
+          if (block.kind === "markdown inline" || block.kind === "markdown block") {
             root.append(mdBlockToNode(block.text))
           } else {
             const delimitedNode = delimitPyBlock(block, file.path)
@@ -75,7 +67,7 @@ export async function convertPythonBlocksToLexical(
             $restoreNodeSelection(nodeSelection)
           }
         },
-        { tag: INITIAL_LOAD_TAG }
+        { tag: INITIAL_LOAD_TAG },
       )
       parsedBlockCount++
     }
@@ -90,7 +82,7 @@ export async function convertPythonBlocksToLexical(
           paragraph.append($createTextNode(file.content))
           root.append(paragraph)
         },
-        { tag: INITIAL_LOAD_TAG }
+        { tag: INITIAL_LOAD_TAG },
       )
     }
 
@@ -107,7 +99,7 @@ export async function convertPythonBlocksToLexical(
         paragraph.append($createTextNode(file.content))
         root.append(paragraph)
       },
-      { tag: INITIAL_LOAD_TAG }
+      { tag: INITIAL_LOAD_TAG },
     )
 
     onComplete?.()
@@ -122,7 +114,7 @@ export function getInitialEditorStateFromContent(
   file: EditorFile,
   viewKind: "rich" | "source",
   selection: SerializedSelection | null = null,
-  onComplete?: () => void
+  onComplete?: () => void,
 ) {
   return (editor: LexicalEditor) => {
     /*
@@ -149,7 +141,7 @@ export function getInitialEditorStateFromContent(
         undefined,
         undefined,
 
-        onComplete
+        onComplete,
       )
     } else if (file.fileType === FileType.Markdown) {
       // Markdown defaults to rich view (rendered markdown) when viewKind is "rich" or undefined
@@ -157,12 +149,7 @@ export function getInitialEditorStateFromContent(
         () => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           if (file.content.trim()) {
-            $convertFromMarkdownString(
-              file.content,
-              MARKDOWN_TRANSFORMERS,
-              undefined,
-              true
-            )
+            $convertFromMarkdownString(file.content, MARKDOWN_TRANSFORMERS, undefined, true)
           } else {
             // Empty markdown file - create empty paragraph
             const root = $getRoot()
@@ -174,7 +161,7 @@ export function getInitialEditorStateFromContent(
             $restoreSelection(selection)
           }
         },
-        { tag: INITIAL_LOAD_TAG }
+        { tag: INITIAL_LOAD_TAG },
       )
     } else if (file.fileType === FileType.Plaintext) {
       // Plaintext files go to plaintext view
@@ -192,7 +179,7 @@ export function getInitialEditorStateFromContent(
             $restoreSelection(selection)
           }
         },
-        { tag: INITIAL_LOAD_TAG }
+        { tag: INITIAL_LOAD_TAG },
       )
     } else {
       // All other programming languages (JS, TS, JSX, TSX) go to source view

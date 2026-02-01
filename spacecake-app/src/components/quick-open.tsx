@@ -1,15 +1,10 @@
-import * as React from "react"
-import type { PaneMachineRef } from "@/machines/pane"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { atom, useAtom, useAtomValue } from "jotai"
 import { File as FileIcon } from "lucide-react"
+import * as React from "react"
 
-import { AbsolutePath, File, WorkspaceInfo } from "@/types/workspace"
-import { fileTreeAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
-import { getQuickOpenFileItems } from "@/lib/atoms/file-tree"
-import { createQuickOpenItems } from "@/lib/filter-files"
-import { fileTypeFromFileName } from "@/lib/workspace"
-import { useRecentFiles } from "@/hooks/use-recent-files"
+import type { PaneMachineRef } from "@/machines/pane"
+
 import {
   CommandDialog,
   CommandEmpty,
@@ -17,6 +12,12 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
+import { useRecentFiles } from "@/hooks/use-recent-files"
+import { fileTreeAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
+import { getQuickOpenFileItems } from "@/lib/atoms/file-tree"
+import { createQuickOpenItems } from "@/lib/filter-files"
+import { fileTypeFromFileName } from "@/lib/workspace"
+import { AbsolutePath, File, WorkspaceInfo } from "@/types/workspace"
 
 const quickOpenSearchAtom = atom("")
 const quickOpenParentAtom = atom<HTMLDivElement | null>(null)
@@ -62,19 +63,12 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
           path: filePath,
           name: fileName,
           fileType: fileTypeFromFileName(file.path),
-          lastAccessed: file.last_accessed_at
-            ? new Date(file.last_accessed_at).getTime()
-            : 0,
+          lastAccessed: file.last_accessed_at ? new Date(file.last_accessed_at).getTime() : 0,
           workspacePath: workspacePath,
         }
       })
 
-      return createQuickOpenItems(
-        allFileItems,
-        recentFilesList,
-        search,
-        workspacePath
-      )
+      return createQuickOpenItems(allFileItems, recentFilesList, search, workspacePath)
     }
     return []
   }, [search, allFileItems, recentFiles, workspacePath])
@@ -110,11 +104,7 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
       title="quick open"
       className="top-4 translate-y-0"
     >
-      <CommandInput
-        placeholder="search files..."
-        value={search}
-        onValueChange={setSearch}
-      />
+      <CommandInput placeholder="search files..." value={search} onValueChange={setSearch} />
       <CommandList ref={setParent}>
         {rowVirtualizer.getVirtualItems().length === 0 && search ? (
           <CommandEmpty>no results found</CommandEmpty>
@@ -145,9 +135,7 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
               >
                 <FileIcon className="mr-2 h-4 w-4" />
                 <span>{item.file.name}</span>
-                <span className="text-muted-foreground ml-auto text-xs">
-                  {item.displayPath}
-                </span>
+                <span className="text-muted-foreground ml-auto text-xs">{item.displayPath}</span>
               </CommandItem>
             )
           })}

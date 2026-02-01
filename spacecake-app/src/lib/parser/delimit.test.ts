@@ -198,13 +198,10 @@ describe("delimitString", () => {
     })
 
     it("should handle regex special characters in content", () => {
-      const result = delimitString(
-        '"""Content with [regex] (special) chars"""',
-        {
-          prefix: '"""',
-          suffix: '"""',
-        }
-      )
+      const result = delimitString('"""Content with [regex] (special) chars"""', {
+        prefix: '"""',
+        suffix: '"""',
+      })
 
       expect(result.between).toBe("Content with [regex] (special) chars")
     })

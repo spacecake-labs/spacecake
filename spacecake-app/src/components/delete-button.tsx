@@ -1,8 +1,8 @@
-import React from "react"
 import { Trash2 } from "lucide-react"
+import React from "react"
 
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 interface DeleteButtonProps {
   onDelete?: () => void
@@ -30,7 +30,7 @@ export function DeleteButton({
         disabled || !onDelete
           ? "cursor-not-allowed opacity-50"
           : "cursor-pointer hover:text-destructive",
-        className
+        className,
       )}
       data-testid={testId}
       title={title}

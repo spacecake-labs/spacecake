@@ -3,7 +3,6 @@ import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
-
 import { LANGUAGE_SUPPORT } from "@/types/language"
 
 test.describe("code block language dropdown e2e", () => {
@@ -14,10 +13,7 @@ test.describe("code block language dropdown e2e", () => {
     const window = await electronApp.firstWindow()
 
     // copy fixtures into the temp workspace
-    const plaintextFixturePath = path.join(
-      process.cwd(),
-      "tests/fixtures/plaintext-code-block.md"
-    )
+    const plaintextFixturePath = path.join(process.cwd(), "tests/fixtures/plaintext-code-block.md")
     const plaintextDestPath = path.join(tempTestDir, "plaintext-code-block.md")
     fs.copyFileSync(plaintextFixturePath, plaintextDestPath)
 
@@ -33,19 +29,13 @@ test.describe("code block language dropdown e2e", () => {
     // =========================================================================
     await locateSidebarItem(window, "plaintext-code-block.md").click()
 
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
+    await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     const codeBlock = window.locator(".cm-editor")
-    await expect(
-      codeBlock.getByText('console.log("This is plaintext")').first()
-    ).toBeVisible()
+    await expect(codeBlock.getByText('console.log("This is plaintext")').first()).toBeVisible()
 
-    const languageSelect = window
-      .getByRole("combobox")
-      .filter({ hasText: "plaintext" })
+    const languageSelect = window.getByRole("combobox").filter({ hasText: "plaintext" })
     await expect(languageSelect).toBeVisible()
     await expect(languageSelect).toBeEnabled()
 
@@ -58,7 +48,7 @@ test.describe("code block language dropdown e2e", () => {
       const optionName = languageSpec.name.toLowerCase()
       await expect(
         window.getByRole("option", { name: optionName, exact: true }),
-        `language option "${optionName}" should be visible in dropdown`
+        `language option "${optionName}" should be visible in dropdown`,
       ).toBeVisible()
     }
 
@@ -67,9 +57,7 @@ test.describe("code block language dropdown e2e", () => {
     // =========================================================================
     await window.getByRole("option", { name: "python" }).click()
 
-    const updatedLanguageSelect = window
-      .getByRole("combobox")
-      .filter({ hasText: "python" })
+    const updatedLanguageSelect = window.getByRole("combobox").filter({ hasText: "python" })
     await expect(updatedLanguageSelect).toBeVisible()
     await expect(updatedLanguageSelect).toHaveText(/python/i)
 
@@ -78,14 +66,10 @@ test.describe("code block language dropdown e2e", () => {
     // =========================================================================
     await locateSidebarItem(window, "core.py").click()
 
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
+    await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    const pythonLanguageSelect = window
-      .locator('button[role="combobox"]')
-      .first()
+    const pythonLanguageSelect = window.locator('button[role="combobox"]').first()
     await expect(pythonLanguageSelect).toBeVisible()
     await expect(pythonLanguageSelect).toBeDisabled()
   })

@@ -1,14 +1,14 @@
+import { Effect, Layer } from "effect"
 import fs from "node:fs"
 import http from "node:http"
 import os from "node:os"
 import path from "node:path"
-
-import { FileSystem } from "@/services/file-system"
-import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
-import { Effect, Layer } from "effect"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { OpenFilePayload } from "@/types/claude-code"
+
+import { FileSystem } from "@/services/file-system"
+import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
 
 // ---------------------------------------------------------------------------
 // Electron mock — capture ipcMain.handle calls + spy on webContents.send
@@ -19,28 +19,18 @@ interface IpcEvent {
 }
 
 const mocks = vi.hoisted(() => ({
-  ipcHandlers: new Map<
-    string,
-    (event: IpcEvent, ...args: unknown[]) => unknown
-  >(),
+  ipcHandlers: new Map<string, (event: IpcEvent, ...args: unknown[]) => unknown>(),
   webContentsSend: vi.fn(),
 }))
 
 vi.mock("electron", () => ({
   BrowserWindow: {
-    getAllWindows: vi.fn(() => [
-      { webContents: { send: mocks.webContentsSend } },
-    ]),
+    getAllWindows: vi.fn(() => [{ webContents: { send: mocks.webContentsSend } }]),
   },
   ipcMain: {
-    handle: vi.fn(
-      (
-        channel: string,
-        listener: (event: IpcEvent, ...args: unknown[]) => unknown
-      ) => {
-        mocks.ipcHandlers.set(channel, listener)
-      }
-    ),
+    handle: vi.fn((channel: string, listener: (event: IpcEvent, ...args: unknown[]) => unknown) => {
+      mocks.ipcHandlers.set(channel, listener)
+    }),
   },
 }))
 
@@ -92,7 +82,7 @@ afterEach(() => {
 const createTestLayer = () =>
   Layer.mergeAll(
     Layer.succeed(FileSystem, mockFileSystem as FileSystem),
-    makeSpacecakeHomeTestLayer({ homeDir: testDir })
+    makeSpacecakeHomeTestLayer({ homeDir: testDir }),
   )
 
 const runTestServer = (workspaceFolders: string[] = ["/ws/primary"]) =>
@@ -119,7 +109,7 @@ const runTestServer = (workspaceFolders: string[] = ["/ws/primary"]) =>
 const makeRequest = (
   method: string,
   urlPath: string,
-  body?: string
+  body?: string,
 ): Promise<{ statusCode: number; body: JsonResponse }> =>
   new Promise((resolve, reject) => {
     const options: http.RequestOptions = {
@@ -162,8 +152,8 @@ describe("CliServer", () => {
           const res = yield* Effect.promise(() => makeRequest("GET", "/health"))
           expect(res.statusCode).toBe(200)
           expect(res.body).toEqual({ status: "ok" })
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -179,8 +169,8 @@ describe("CliServer", () => {
               "/open",
               JSON.stringify({
                 files: [{ path: "/ws/primary/src/index.ts", line: 10, col: 5 }],
-              })
-            )
+              }),
+            ),
           )
 
           expect(res.statusCode).toBe(200)
@@ -193,10 +183,10 @@ describe("CliServer", () => {
               filePath: "/ws/primary/src/index.ts",
               line: 10,
               col: 5,
-            } satisfies OpenFilePayload)
+            } satisfies OpenFilePayload),
           )
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -212,8 +202,8 @@ describe("CliServer", () => {
               "/open",
               JSON.stringify({
                 files: [{ path: "/ws/secondary/lib/foo.ts" }],
-              })
-            )
+              }),
+            ),
           )
 
           expect(res.statusCode).toBe(200)
@@ -221,10 +211,10 @@ describe("CliServer", () => {
             "claude:open-file",
             expect.objectContaining({
               workspacePath: "/ws/secondary",
-            })
+            }),
           )
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -240,8 +230,8 @@ describe("CliServer", () => {
               "/open",
               JSON.stringify({
                 files: [{ path: "/other/place/file.ts" }],
-              })
-            )
+              }),
+            ),
           )
 
           expect(res.statusCode).toBe(200)
@@ -249,10 +239,10 @@ describe("CliServer", () => {
             "claude:open-file",
             expect.objectContaining({
               workspacePath: "/ws/primary",
-            })
+            }),
           )
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -268,14 +258,14 @@ describe("CliServer", () => {
               "/open",
               JSON.stringify({
                 files: [{ path: "/any/file.ts" }],
-              })
-            )
+              }),
+            ),
           )
 
           expect(res.statusCode).toBe(503)
           expect(res.body).toEqual({ error: "No workspace open" })
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -285,14 +275,12 @@ describe("CliServer", () => {
         Effect.gen(function* () {
           yield* runTestServer()
 
-          const res = yield* Effect.promise(() =>
-            makeRequest("POST", "/open", "not valid json{")
-          )
+          const res = yield* Effect.promise(() => makeRequest("POST", "/open", "not valid json{"))
 
           expect(res.statusCode).toBe(400)
           expect(res.body).toEqual({ error: "Invalid JSON" })
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -303,13 +291,13 @@ describe("CliServer", () => {
           yield* runTestServer()
 
           const res = yield* Effect.promise(() =>
-            makeRequest("POST", "/open", JSON.stringify({ wait: true }))
+            makeRequest("POST", "/open", JSON.stringify({ wait: true })),
           )
 
           expect(res.statusCode).toBe(400)
           expect(res.body).toEqual({ error: "Missing 'files' array" })
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -326,7 +314,7 @@ describe("CliServer", () => {
             JSON.stringify({
               files: [{ path: "/ws/primary/src/index.ts" }],
               wait: true,
-            })
+            }),
           )
 
           // Give the server a moment to register the waiter
@@ -340,8 +328,8 @@ describe("CliServer", () => {
           const res = yield* Effect.promise(() => responsePromise)
           expect(res.statusCode).toBe(200)
           expect(res.body).toEqual({ closed: true })
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -351,14 +339,12 @@ describe("CliServer", () => {
         Effect.gen(function* () {
           yield* runTestServer()
 
-          const res = yield* Effect.promise(() =>
-            makeRequest("GET", "/nonexistent")
-          )
+          const res = yield* Effect.promise(() => makeRequest("GET", "/nonexistent"))
 
           expect(res.statusCode).toBe(404)
           expect(res.body).toEqual({ error: "Not found" })
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -366,17 +352,15 @@ describe("CliServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          const server = yield* makeCliServer.pipe(
-            Effect.provide(createTestLayer())
-          )
+          const server = yield* makeCliServer.pipe(Effect.provide(createTestLayer()))
 
           expect(server.isStarted()).toBe(false)
 
           yield* Effect.promise(() => server.ensureStarted(["/ws/primary"]))
 
           expect(server.isStarted()).toBe(true)
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -397,8 +381,8 @@ describe("CliServer", () => {
               "/open",
               JSON.stringify({
                 files: [{ path: "/ws/new/file.ts" }],
-              })
-            )
+              }),
+            ),
           )
 
           expect(res.statusCode).toBe(200)
@@ -406,10 +390,10 @@ describe("CliServer", () => {
             "claude:open-file",
             expect.objectContaining({
               workspacePath: "/ws/new",
-            })
+            }),
           )
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -429,15 +413,15 @@ describe("CliServer", () => {
             JSON.stringify({
               files: [{ path: "/ws/primary/src/index.ts" }],
               wait: true,
-            })
+            }),
           )
 
           // Give server time to register waiter
           yield* Effect.promise(() => new Promise((r) => setTimeout(r, 200)))
 
           // Scope exits here → finalizer should resolve pending waiters with 503
-        })
-      )
+        }),
+      ),
     )
 
     // Now the scope has closed — the response should have been resolved by the finalizer

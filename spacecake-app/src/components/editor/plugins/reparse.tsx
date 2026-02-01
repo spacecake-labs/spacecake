@@ -1,13 +1,13 @@
-import { useEffect } from "react"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { useAtomValue, useSetAtom } from "jotai"
 import { $getRoot } from "lexical"
+import { useEffect } from "react"
 
-import { AbsolutePath } from "@/types/workspace"
-import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
-import { useRoute } from "@/hooks/use-route"
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { maybeUpdateBlockAndDocstring } from "@/components/editor/plugins/block-utils"
+import { useRoute } from "@/hooks/use-route"
+import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { AbsolutePath } from "@/types/workspace"
 
 /**
  * Listens for when file state machine enters Reparsing state.
@@ -65,14 +65,7 @@ export function ReparsePlugin() {
     return () => {
       isMounted = false
     }
-  }, [
-    fileState?.value,
-    route?.fileType,
-    route?.viewKind,
-    editor,
-    filePath,
-    sendFileState,
-  ])
+  }, [fileState?.value, route?.fileType, route?.viewKind, editor, filePath, sendFileState])
 
   return null
 }

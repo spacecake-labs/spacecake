@@ -1,14 +1,7 @@
+import { _electron, test as base, ElectronApplication, expect, Page } from "@playwright/test"
 import fs from "fs"
 import os from "os"
 import path from "path"
-
-import {
-  _electron,
-  test as base,
-  ElectronApplication,
-  expect,
-  Page,
-} from "@playwright/test"
 import treeKill from "tree-kill"
 
 export type TestFixtures = {
@@ -19,10 +12,7 @@ export const test = base.extend<TestFixtures>({
   // eslint-disable-next-line no-empty-pattern
   tempTestDir: async ({}, use, testInfo) => {
     const testOutputRoot = path.join(process.cwd(), "test-output")
-    const workerTempRoot = path.join(
-      testOutputRoot,
-      `worker-${testInfo.workerIndex}`
-    )
+    const workerTempRoot = path.join(testOutputRoot, `worker-${testInfo.workerIndex}`)
     fs.mkdirSync(workerTempRoot, { recursive: true })
     const tempDir = fs.mkdtempSync(path.join(workerTempRoot, "spacecake-e2e-"))
 
@@ -148,9 +138,7 @@ export { expect }
  */
 export async function waitForWorkspace(page: Page) {
   // wait for the workspace to load (indicated by the create file button appearing)
-  await expect(
-    page.getByRole("button", { name: "create file or folder" })
-  ).toBeVisible()
+  await expect(page.getByRole("button", { name: "create file or folder" })).toBeVisible()
 }
 
 /**
@@ -162,7 +150,7 @@ export async function waitForWorkspace(page: Page) {
  */
 export async function expectAllNonEmptyLinesVisible(
   page: Page,
-  absoluteFilePath: string
+  absoluteFilePath: string,
 ): Promise<void> {
   const content = fs.readFileSync(absoluteFilePath, "utf-8")
   const lines = content.split("\n")

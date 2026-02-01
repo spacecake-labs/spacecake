@@ -1,4 +1,5 @@
 import type { Table } from "@tanstack/react-table"
+
 import { X } from "lucide-react"
 
 const statuses = [
@@ -11,9 +12,7 @@ interface DataTableToolbarProps<TData> {
   table: Table<TData>
 }
 
-export function DataTableToolbar<TData>({
-  table,
-}: DataTableToolbarProps<TData>) {
+export function DataTableToolbar<TData>({ table }: DataTableToolbarProps<TData>) {
   const statusColumn = table.getColumn("status")
   const filterValue = (statusColumn?.getFilterValue() as string[]) ?? []
   const isFiltered = filterValue.length > 0

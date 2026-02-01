@@ -1,5 +1,5 @@
 import type { JSX } from "react"
-import * as React from "react"
+
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
 import { mergeRegister } from "@lexical/utils"
 import { mermaid } from "codemirror-lang-mermaid"
@@ -20,15 +20,8 @@ import {
   Spread,
 } from "lexical"
 import { Code2, Eye } from "lucide-react"
+import * as React from "react"
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { BlockHeader } from "@/components/editor/block-header"
 import {
   CodeBlockEditorContext,
@@ -37,6 +30,9 @@ import {
 } from "@/components/editor/nodes/code-node"
 import MermaidDiagram from "@/components/editor/nodes/mermaid-diagram"
 import { BaseCodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor"
+import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 
 // WeakMap to store focus managers for mermaid block nodes
 const focusManagerMap = new WeakMap<MermaidNode, CodeMirrorFocusManager>()
@@ -93,11 +89,7 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
     }
   }
 
-  constructor(
-    diagram: string,
-    key?: NodeKey,
-    viewMode: "diagram" | "code" = "diagram"
-  ) {
+  constructor(diagram: string, key?: NodeKey, viewMode: "diagram" | "code" = "diagram") {
     super(key)
     this.__diagram = diagram
     this.__viewMode = viewMode
@@ -191,9 +183,11 @@ interface MermaidEditorContextProviderProps {
   children: React.ReactNode
 }
 
-const MermaidEditorContextProvider: React.FC<
-  MermaidEditorContextProviderProps
-> = ({ parentEditor, nodeKey, children }) => {
+const MermaidEditorContextProvider: React.FC<MermaidEditorContextProviderProps> = ({
+  parentEditor,
+  nodeKey,
+  children,
+}) => {
   const contextValue = React.useMemo(() => {
     return {
       lexicalNode: null as never,
@@ -232,8 +226,7 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
   mermaidNode,
   nodeKey,
 }) => {
-  const [isNodeSelected, setNodeSelected, clearNodeSelection] =
-    useLexicalNodeSelection(nodeKey)
+  const [isNodeSelected, setNodeSelected, clearNodeSelection] = useLexicalNodeSelection(nodeKey)
 
   const viewMode = mermaidNode.__viewMode
   const diagram = mermaidNode.__diagram
@@ -255,8 +248,8 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
 
           return false
         },
-        COMMAND_PRIORITY_LOW
-      )
+        COMMAND_PRIORITY_LOW,
+      ),
     )
   }, [clearNodeSelection, parentEditor, setNodeSelected, nodeKey])
 
@@ -270,7 +263,7 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
         }
       })
     },
-    [parentEditor, nodeKey]
+    [parentEditor, nodeKey],
   )
 
   const handleToggleViewMode = React.useCallback(() => {
@@ -306,11 +299,7 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
             className="h-6 w-6 p-0 cursor-pointer"
             data-testid="mermaid-toggle-view-mode"
           >
-            {viewMode === "diagram" ? (
-              <Code2 className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
+            {viewMode === "diagram" ? <Code2 className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
@@ -324,7 +313,7 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
     <div
       className={cn(
         "group relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
-        "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+        "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
       )}
       data-testid="mermaid-node"
     >
@@ -337,15 +326,9 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
       />
 
       {/* Content area */}
-      <div
-        className="overflow-hidden rounded-b-lg"
-        data-testid="mermaid-node-content"
-      >
+      <div className="overflow-hidden rounded-b-lg" data-testid="mermaid-node-content">
         {viewMode === "code" ? (
-          <MermaidEditorContextProvider
-            parentEditor={parentEditor}
-            nodeKey={nodeKey}
-          >
+          <MermaidEditorContextProvider parentEditor={parentEditor} nodeKey={nodeKey}>
             <div data-testid="mermaid-code-editor">
               <BaseCodeMirrorEditor
                 language={mermaidLanguageExtension}
@@ -373,8 +356,6 @@ export function $createMermaidNode({
   return $applyNodeReplacement(new MermaidNode(diagram, key, viewMode))
 }
 
-export function $isMermaidNode(
-  node: LexicalNode | null | undefined
-): node is MermaidNode {
+export function $isMermaidNode(node: LexicalNode | null | undefined): node is MermaidNode {
   return node instanceof MermaidNode
 }

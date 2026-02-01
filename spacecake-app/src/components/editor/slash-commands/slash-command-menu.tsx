@@ -1,3 +1,5 @@
+import { SlashCommandOption } from "@/components/editor/slash-commands/slash-command-options"
+import { TypographyInlineCode } from "@/components/typography"
 import {
   Command,
   CommandEmpty,
@@ -8,8 +10,6 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command"
-import { SlashCommandOption } from "@/components/editor/slash-commands/slash-command-options"
-import { TypographyInlineCode } from "@/components/typography"
 
 interface SlashCommandMenuProps {
   options: SlashCommandOption[]

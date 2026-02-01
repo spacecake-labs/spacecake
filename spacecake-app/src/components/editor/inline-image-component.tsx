@@ -1,13 +1,9 @@
-import type { JSX } from "react"
 import type { BaseSelection, LexicalEditor, NodeKey } from "lexical"
+import type { JSX } from "react"
 
-import type { Position } from "@/components/editor/nodes/inline-image-node"
+import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin"
 
 import "@/components/editor/inline-image-node.css"
-
-import * as React from "react"
-import { Suspense, useCallback, useEffect, useRef, useState } from "react"
-import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin"
 import { ClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
@@ -28,7 +24,13 @@ import {
   KEY_ESCAPE_COMMAND,
   SELECTION_CHANGE_COMMAND,
 } from "lexical"
+import * as React from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 
+import type { Position } from "@/components/editor/nodes/inline-image-node"
+
+import { ContentEditable } from "@/components/editor/content-editable"
+import { InlineImageNode } from "@/components/editor/nodes/inline-image-node"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -46,8 +48,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ContentEditable } from "@/components/editor/content-editable"
-import { InlineImageNode } from "@/components/editor/nodes/inline-image-node"
 
 const imageCache = new Set()
 
@@ -166,10 +166,7 @@ export function UpdateInlineImageDialog({
       </div>
 
       <DialogFooter>
-        <Button
-          data-test-id="image-modal-file-upload-btn"
-          onClick={() => handleOnConfirm()}
-        >
+        <Button data-test-id="image-modal-file-upload-btn" onClick={() => handleOnConfirm()}>
           Confirm
         </Button>
       </DialogFooter>
@@ -198,8 +195,7 @@ export default function InlineImageComponent({
 }): JSX.Element {
   const imageRef = useRef<null | HTMLImageElement>(null)
   const buttonRef = useRef<HTMLButtonElement | null>(null)
-  const [isSelected, setSelected, clearSelection] =
-    useLexicalNodeSelection(nodeKey)
+  const [isSelected, setSelected, clearSelection] = useLexicalNodeSelection(nodeKey)
   const [editor] = useLexicalComposerContext()
   const [selection, setSelection] = useState<BaseSelection | null>(null)
   const activeEditorRef = useRef<LexicalEditor | null>(null)
@@ -221,10 +217,7 @@ export default function InlineImageComponent({
           event.preventDefault()
           caption.focus()
           return true
-        } else if (
-          buttonElem !== null &&
-          buttonElem !== document.activeElement
-        ) {
+        } else if (buttonElem !== null && buttonElem !== document.activeElement) {
           event.preventDefault()
           buttonElem.focus()
           return true
@@ -232,15 +225,12 @@ export default function InlineImageComponent({
       }
       return false
     },
-    [caption, isSelected, showCaption]
+    [caption, isSelected, showCaption],
   )
 
   const $onEscape = useCallback(
     (event: KeyboardEvent) => {
-      if (
-        activeEditorRef.current === caption ||
-        buttonRef.current === event.target
-      ) {
+      if (activeEditorRef.current === caption || buttonRef.current === event.target) {
         $setSelection(null)
         editor.update(() => {
           setSelected(true)
@@ -253,7 +243,7 @@ export default function InlineImageComponent({
       }
       return false
     },
-    [caption, editor, setSelected]
+    [caption, editor, setSelected],
   )
 
   useEffect(() => {
@@ -270,7 +260,7 @@ export default function InlineImageComponent({
           activeEditorRef.current = activeEditor
           return false
         },
-        COMMAND_PRIORITY_LOW
+        COMMAND_PRIORITY_LOW,
       ),
       editor.registerCommand<MouseEvent>(
         CLICK_COMMAND,
@@ -288,7 +278,7 @@ export default function InlineImageComponent({
 
           return false
         },
-        COMMAND_PRIORITY_LOW
+        COMMAND_PRIORITY_LOW,
       ),
       editor.registerCommand(
         DRAGSTART_COMMAND,
@@ -301,28 +291,16 @@ export default function InlineImageComponent({
           }
           return false
         },
-        COMMAND_PRIORITY_LOW
+        COMMAND_PRIORITY_LOW,
       ),
       editor.registerCommand(KEY_ENTER_COMMAND, $onEnter, COMMAND_PRIORITY_LOW),
-      editor.registerCommand(
-        KEY_ESCAPE_COMMAND,
-        $onEscape,
-        COMMAND_PRIORITY_LOW
-      )
+      editor.registerCommand(KEY_ESCAPE_COMMAND, $onEscape, COMMAND_PRIORITY_LOW),
     )
     return () => {
       isMounted = false
       unregister()
     }
-  }, [
-    clearSelection,
-    editor,
-    isSelected,
-    nodeKey,
-    $onEnter,
-    $onEscape,
-    setSelected,
-  ])
+  }, [clearSelection, editor, isSelected, nodeKey, $onEnter, $onEscape, setSelected])
 
   const draggable = isSelected && $isNodeSelection(selection)
   const isFocused = isSelected && isEditable
@@ -339,9 +317,7 @@ export default function InlineImageComponent({
           )}
           <LazyImage
             className={
-              isFocused
-                ? `focused ${$isNodeSelection(selection) ? "draggable" : ""}`
-                : null
+              isFocused ? `focused ${$isNodeSelection(selection) ? "draggable" : ""}` : null
             }
             src={src}
             altText={altText}

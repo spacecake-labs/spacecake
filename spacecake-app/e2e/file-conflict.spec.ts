@@ -28,25 +28,17 @@ test("clean file, no conflict: external file change updates editor via watcher",
   // overwrite core.py on disk: add a comment at the start of the dataclass block
   const original = fs.readFileSync(destPath, "utf8")
   const insertion = "# updated: hello from watcher\n"
-  const updated = original.replace(
-    /(@dataclass\nclass Person:[\s\S]*?\n)/,
-    (m) => insertion + m
-  )
+  const updated = original.replace(/(@dataclass\nclass Person:[\s\S]*?\n)/, (m) => insertion + m)
   fs.writeFileSync(destPath, updated, "utf8")
 
   await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
   // wait for watcher to reconcile and the new comment to appear in the dataclass block
-  const dataclassBlock = window
-    .locator('[data-block-id="person-dataclass"]')
-    .first()
+  const dataclassBlock = window.locator('[data-block-id="person-dataclass"]').first()
   await expect(dataclassBlock).toBeVisible()
   // assert the updated text appears somewhere in editors
   await expect(
-    window
-      .locator(".cm-content")
-      .filter({ hasText: "updated: hello from watcher" })
-      .first()
+    window.locator(".cm-content").filter({ hasText: "updated: hello from watcher" }).first(),
   ).toBeVisible()
 })
 
@@ -68,9 +60,7 @@ test("dirty file, external change, keep mine: dirty indicator remains and conten
   await locateSidebarItem(window, "core.py").click()
 
   // click on the person-dataclass block to expand/show it
-  const personBlock = window
-    .locator('[data-block-id="person-dataclass"]')
-    .first()
+  const personBlock = window.locator('[data-block-id="person-dataclass"]').first()
   await personBlock.click()
 
   // ensure content is visible
@@ -93,7 +83,7 @@ test("dirty file, external change, keep mine: dirty indicator remains and conten
   const externalInsertion = "# external change: from filesystem\n"
   const updated = original.replace(
     /(@dataclass\nclass Person:[\s\S]*?\n)/,
-    (m) => externalInsertion + m
+    (m) => externalInsertion + m,
   )
   fs.writeFileSync(destPath, updated, "utf8")
 
@@ -130,9 +120,7 @@ test("dirty file, external change, keep theirs: file reloads with original conte
   await locateSidebarItem(window, "core.py").click()
 
   // click on the person-dataclass block to expand/show it
-  const personBlock = window
-    .locator('[data-block-id="person-dataclass"]')
-    .first()
+  const personBlock = window.locator('[data-block-id="person-dataclass"]').first()
   await personBlock.click()
 
   // ensure content is visible
@@ -161,7 +149,7 @@ test("dirty file, external change, keep theirs: file reloads with original conte
   const externalInsertion = "# external change: this should appear\n"
   const updated = original.replace(
     /(@dataclass\nclass Person:[\s\S]*?\n)/,
-    (m) => externalInsertion + m
+    (m) => externalInsertion + m,
   )
   fs.writeFileSync(destPath, updated, "utf8")
 
@@ -177,10 +165,6 @@ test("dirty file, external change, keep theirs: file reloads with original conte
   await expect(window.getByTitle("core.py (clean)")).toBeVisible()
 
   // verify the editor content is now the external change (not our edit)
-  await expect(editorContent).toContainText(
-    "external change: this should appear"
-  )
-  await expect(editorContent).not.toContainText(
-    "# my edit that will be discarded"
-  )
+  await expect(editorContent).toContainText("external change: this should appear")
+  await expect(editorContent).not.toContainText("# my edit that will be discarded")
 })

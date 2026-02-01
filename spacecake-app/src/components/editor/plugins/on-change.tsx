@@ -6,10 +6,11 @@
  *
  */
 
-import { useLayoutEffect } from "react"
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import type { EditorState, LexicalEditor } from "lexical"
+
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { HISTORY_MERGE_TAG } from "lexical"
+import { useLayoutEffect } from "react"
 
 import { INITIAL_LOAD_TAG, type ChangeType } from "@/types/lexical"
 
@@ -24,7 +25,7 @@ export function OnChangePlugin({
     editorState: EditorState,
     editor: LexicalEditor,
     tags: Set<string>,
-    changeType: ChangeType
+    changeType: ChangeType,
   ) => void
 }): null {
   const [editor] = useLexicalComposerContext()
@@ -32,13 +33,7 @@ export function OnChangePlugin({
   useLayoutEffect(() => {
     if (onChange) {
       return editor.registerUpdateListener(
-        ({
-          editorState,
-          dirtyElements,
-          dirtyLeaves,
-          prevEditorState,
-          tags,
-        }) => {
+        ({ editorState, dirtyElements, dirtyLeaves, prevEditorState, tags }) => {
           if (
             tags.has(FOCUS_TAG) ||
             tags.has(HISTORY_MERGE_TAG) ||
@@ -49,15 +44,12 @@ export function OnChangePlugin({
             return
           }
 
-          const isSelectionChange =
-            dirtyElements.size === 0 && dirtyLeaves.size === 0
+          const isSelectionChange = dirtyElements.size === 0 && dirtyLeaves.size === 0
 
-          const changeType: ChangeType = isSelectionChange
-            ? "selection"
-            : "content"
+          const changeType: ChangeType = isSelectionChange ? "selection" : "content"
 
           onChange(editorState, editor, tags, changeType)
-        }
+        },
       )
     }
   }, [editor, onChange])

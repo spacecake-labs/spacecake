@@ -1,11 +1,8 @@
 import { useMemo } from "react"
-import { PanePrimaryKey } from "@/schema/pane"
 
+import { createPaneMachineInput, getOrCreatePaneMachine } from "@/lib/atoms/pane"
+import { PanePrimaryKey } from "@/schema/pane"
 import { AbsolutePath } from "@/types/workspace"
-import {
-  createPaneMachineInput,
-  getOrCreatePaneMachine,
-} from "@/lib/atoms/pane"
 
 /**
  * Hook that provides access to the pane machine.
@@ -15,13 +12,10 @@ import {
 export function usePaneMachine(
   paneId: PanePrimaryKey,
   workspacePath: AbsolutePath,
-  workspaceId: string
+  workspaceId: string,
 ) {
   const input = createPaneMachineInput(paneId, workspacePath, workspaceId)
-  const machine = useMemo(
-    () => getOrCreatePaneMachine(input),
-    [paneId, workspacePath, workspaceId]
-  )
+  const machine = useMemo(() => getOrCreatePaneMachine(input), [paneId, workspacePath, workspaceId])
 
   return machine
 }

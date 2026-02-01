@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useRef } from "react"
 import type { LexicalEditor } from "lexical"
+
+import React, { createContext, useContext, useRef } from "react"
 
 export interface CancelDebounceRef {
   current: () => void

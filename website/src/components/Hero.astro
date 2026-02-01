@@ -5,6 +5,7 @@ import EditorPreview from "./EditorPreview.astro"
 import GitHubDownloadButton from "./GitHubDownloadButton.astro"
 import PlatformDownloads from "./PlatformDownloads.astro"
 import RotatingText from "./RotatingText.astro"
+import TaskTablePreview from "./TaskTablePreview.astro"
 import TerminalPreview from "./TerminalPreview.astro"
 
 // https://github.com/withastro/starlight/blob/main/packages/starlight/constants.ts
@@ -113,6 +114,54 @@ const { title = data.title, tagline } = data.hero || {}
 
       <div style="min-width: 0;">
         <TerminalPreview />
+      </div>
+    </div>
+  </div>
+
+  <!-- Task Tracking Feature -->
+  <div
+    class="terminal-feature task-feature col-span-full w-full mt-48 space-y-16 overflow-hidden"
+  >
+    <!-- Section Header -->
+    <div class="text-left lg:text-center space-y-4">
+      <h2 class="text-4xl font-bold text-white">monitor claude tasks</h2>
+      <p class="text-zinc-400 text-lg max-w-2xl mx-auto">
+        see what Claude is working on in real time
+      </p>
+    </div>
+
+    <!-- Task Table Feature -->
+    <div class="grid lg:grid-cols-2 gap-12 items-center">
+      <div class="space-y-6" style="min-width: 0;">
+        <div class="inline-block">
+          <span
+            class="inline-flex items-center px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-mono text-xs font-medium"
+          >
+            task table
+          </span>
+        </div>
+        <h3 class="text-3xl font-bold text-white">keep agents on track</h3>
+        <p class="text-zinc-400 text-lg leading-relaxed">
+          Claude creates tasks as it works
+        </p>
+        <ul class="space-y-3 text-zinc-400">
+          <li class="flex items-start gap-3">
+            <span class="text-emerald-500 mt-1">&#10003;</span>
+            <span>see pending, in-progress, and completed tasks</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="text-emerald-500 mt-1">&#10003;</span>
+            <span>filter by status to focus on what matters</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="text-emerald-500 mt-1">&#10003;</span>
+            <span>tasks sync automatically with claude code</span>
+          </li>
+        </ul>
+      </div>
+
+      <div style="min-width: 0;">
+        <TaskTablePreview />
       </div>
     </div>
   </div>
@@ -282,6 +331,10 @@ const { title = data.title, tagline } = data.hero || {}
     .terminal-feature {
       grid-column: 1 / -1;
       margin-top: 4rem !important;
+    }
+
+    .terminal-feature.task-feature {
+      margin-top: 12rem !important;
     }
 
     /* Override Starlight spacing for terminal feature section */

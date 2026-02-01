@@ -2,22 +2,19 @@
  * @vitest-environment jsdom
  */
 
-import * as React from "react"
-import { act } from "react"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin"
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
+import * as React from "react"
+import { act } from "react"
 import { describe, expect, it, vi } from "vitest"
 
-import { anonymousName, Block } from "@/types/parser"
 import { ContentEditable } from "@/components/editor/content-editable"
 import { editorConfig } from "@/components/editor/editor"
-import {
-  mdBlockToNode,
-  nodeToMdBlock,
-} from "@/components/editor/markdown-utils"
+import { mdBlockToNode, nodeToMdBlock } from "@/components/editor/markdown-utils"
 import { initializeUnitTest } from "@/components/editor/test-utils"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
+import { anonymousName, Block } from "@/types/parser"
 
 vi.mock("web-tree-sitter", () => {
   return {
@@ -122,6 +119,6 @@ describe("Python mdoc isomorphism", () => {
       })
     },
     editorConfig,
-    <Plugins />
+    <Plugins />,
   )
 })

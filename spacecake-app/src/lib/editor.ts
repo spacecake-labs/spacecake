@@ -1,4 +1,3 @@
-import { JsonValue } from "@/schema/drizzle-effect"
 import { $isListNode } from "@lexical/list"
 import { $convertToMarkdownString } from "@lexical/markdown"
 import { InitialConfigType } from "@lexical/react/LexicalComposer"
@@ -18,23 +17,22 @@ import {
   type EditorState,
 } from "lexical"
 
-import { type SerializedSelection } from "@/types/lexical"
 import type { EditorFile, FileType } from "@/types/workspace"
-import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
+
 import { editorConfig } from "@/components/editor/editor"
 import { nodeToMdBlock } from "@/components/editor/markdown-utils"
-import {
-  $createCodeBlockNode,
-  $isCodeBlockNode,
-} from "@/components/editor/nodes/code-node"
+import { $createCodeBlockNode, $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { $isContainerNode } from "@/components/editor/nodes/container-node"
 import { $getDelimitedString } from "@/components/editor/nodes/delimited-node"
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
+import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
+import { JsonValue } from "@/schema/drizzle-effect"
+import { type SerializedSelection } from "@/types/lexical"
 
 export const createEditorConfigFromState = (
   serializedState: JsonValue,
-  initialSelection: SerializedSelection | null = null
+  initialSelection: SerializedSelection | null = null,
 ): InitialConfigType => {
   if (initialSelection) {
     return {
@@ -49,12 +47,9 @@ export const createEditorConfigFromState = (
         */
         resetRandomKey()
 
-        const parsedEditorState = editor.parseEditorState(
-          JSON.stringify(serializedState),
-          () => {
-            $restoreSelection(initialSelection)
-          }
-        )
+        const parsedEditorState = editor.parseEditorState(JSON.stringify(serializedState), () => {
+          $restoreSelection(initialSelection)
+        })
         editor.setEditorState(parsedEditorState)
       },
     }
@@ -70,7 +65,7 @@ export const createEditorConfigFromState = (
 export const createEditorConfigFromContent = (
   file: EditorFile,
   viewKind: "rich" | "source",
-  selection: SerializedSelection | null = null
+  selection: SerializedSelection | null = null,
 ): InitialConfigType => {
   return {
     ...editorConfig,
@@ -83,7 +78,7 @@ export const getEditorConfig = (
   editorState: JsonValue | null,
   fileBuffer: EditorFile | null,
   viewKind: "rich" | "source" = "rich",
-  initialSelection: SerializedSelection | null = null
+  initialSelection: SerializedSelection | null = null,
 ): InitialConfigType | null => {
   if (editorState) {
     return createEditorConfigFromState(editorState, initialSelection)
@@ -168,10 +163,7 @@ export function serializeEditorToMarkdown(editorState: EditorState): string {
  * Serialize the editor state to a string based on the file type.
  * This is the single entry point for serialization.
  */
-export function serializeEditorToSource(
-  editorState: EditorState,
-  fileType: FileType
-): string {
+export function serializeEditorToSource(editorState: EditorState, fileType: FileType): string {
   if (fileType === "python") {
     return serializeEditorToPython(editorState)
   }
@@ -192,7 +184,7 @@ export function convertToSourceView(
   content: string,
   file: EditorFile,
   editor: LexicalEditor,
-  selection: SerializedSelection | null = null
+  selection: SerializedSelection | null = null,
 ) {
   const language = fileTypeToCodeMirrorLanguage(file.fileType)
 
@@ -216,10 +208,7 @@ export function convertToSourceView(
   })
 }
 
-export function serializeFromCache(
-  data: JsonValue,
-  fileType: FileType
-): string {
+export function serializeFromCache(data: JsonValue, fileType: FileType): string {
   const editor = createEditor({
     namespace: editorConfig.namespace,
     nodes: editorConfig.nodes,
@@ -260,12 +249,12 @@ export function $restoreSelection(selection: SerializedSelection | null) {
   rangeSelection.anchor.set(
     selection.anchor.key,
     selection.anchor.offset,
-    $isElementNode(anchorNode) ? "element" : "text"
+    $isElementNode(anchorNode) ? "element" : "text",
   )
   rangeSelection.focus.set(
     selection.focus.key,
     selection.focus.offset,
-    $isElementNode(focusNode) ? "element" : "text"
+    $isElementNode(focusNode) ? "element" : "text",
   )
   $setSelection(rangeSelection)
 }

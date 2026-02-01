@@ -1,4 +1,3 @@
-import React from "react"
 import { EditorView, keymap } from "@codemirror/view"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import {
@@ -12,12 +11,13 @@ import {
   LexicalNode,
   SKIP_DOM_SELECTION_TAG,
 } from "lexical"
+import React from "react"
 
-import { debounce } from "@/lib/utils"
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { $isFrontmatterNode } from "@/components/editor/nodes/frontmatter-node"
 import { $isMermaidNode } from "@/components/editor/nodes/mermaid-node"
 import { maybeUpdateBlockAndDocstring } from "@/components/editor/plugins/block-utils"
+import { debounce } from "@/lib/utils"
 
 export function useNavigation(nodeKey: string) {
   const [editor] = useLexicalComposerContext()
@@ -25,7 +25,7 @@ export function useNavigation(nodeKey: string) {
   const debouncedUpdate = React.useRef(
     debounce(() => {
       maybeUpdateBlockAndDocstring(editor, nodeKey)
-    }, 250)
+    }, 250),
   )
 
   // Helper functions for CodeMirror position detection
@@ -65,11 +65,7 @@ export function useNavigation(nodeKey: string) {
 
     // Apply selection outside the transaction
     if (nextNode) {
-      if (
-        $isCodeBlockNode(nextNode) ||
-        $isMermaidNode(nextNode) ||
-        $isFrontmatterNode(nextNode)
-      ) {
+      if ($isCodeBlockNode(nextNode) || $isMermaidNode(nextNode) || $isFrontmatterNode(nextNode)) {
         editor.update(() => {
           const selection = $createNodeSelection()
           selection.add(nextNode!.getKey())
@@ -104,11 +100,7 @@ export function useNavigation(nodeKey: string) {
 
     // Apply selection outside the transaction
     if (prevNode) {
-      if (
-        $isCodeBlockNode(prevNode) ||
-        $isMermaidNode(prevNode) ||
-        $isFrontmatterNode(prevNode)
-      ) {
+      if ($isCodeBlockNode(prevNode) || $isMermaidNode(prevNode) || $isFrontmatterNode(prevNode)) {
         editor.update(() => {
           const selection = $createNodeSelection()
           selection.add(prevNode!.getKey())

@@ -7,14 +7,10 @@
  */
 
 import type { JSX } from "react"
+
 import { useCallback, useMemo, useState } from "react"
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function useModal(): [
   JSX.Element | null,
@@ -51,7 +47,7 @@ export default function useModal(): [
     (
       title: string,
       getContent: (onClose: () => void) => JSX.Element,
-      closeOnClickOutside = false
+      closeOnClickOutside = false,
     ) => {
       setModalContent({
         closeOnClickOutside,
@@ -59,7 +55,7 @@ export default function useModal(): [
         title,
       })
     },
-    [onClose]
+    [onClose],
   )
 
   return [modal, showModal]

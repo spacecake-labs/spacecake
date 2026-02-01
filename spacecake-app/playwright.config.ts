@@ -1,9 +1,7 @@
+import { defineConfig } from "@playwright/test"
 import fs from "fs"
 
-import { defineConfig } from "@playwright/test"
-
-const isContainer =
-  fs.existsSync("/.dockerenv") || fs.existsSync("/run/.containerenv")
+const isContainer = fs.existsSync("/.dockerenv") || fs.existsSync("/run/.containerenv")
 
 /**
  * See https://playwright.dev/docs/test-configuration.

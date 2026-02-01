@@ -1,15 +1,13 @@
-import * as fs from "node:fs/promises"
-import * as Path from "node:path"
-
 import { Context, Effect, Layer } from "effect"
 import ignore from "ignore"
+import * as fs from "node:fs/promises"
+import * as Path from "node:path"
 
 export interface GitIgnoreConfig {
   readonly extraPatterns: readonly string[]
 }
 
-export const GitIgnoreConfig =
-  Context.GenericTag<GitIgnoreConfig>("GitIgnoreConfig")
+export const GitIgnoreConfig = Context.GenericTag<GitIgnoreConfig>("GitIgnoreConfig")
 
 export class GitIgnore extends Effect.Service<GitIgnore>()("GitIgnore", {
   effect: Effect.gen(function* () {
@@ -20,10 +18,7 @@ export class GitIgnore extends Effect.Service<GitIgnore>()("GitIgnore", {
     // Cache: Root Path -> Global patterns (.git/info/exclude)
     const globalPatternsCache = new Map<string, string[]>()
 
-    const processPatterns = (
-      rawPatterns: string[],
-      relativeBaseDir: string
-    ): string[] => {
+    const processPatterns = (rawPatterns: string[], relativeBaseDir: string): string[] => {
       return rawPatterns
         .map((p) => p.trimStart())
         .filter((p) => p !== "" && !p.startsWith("#"))
@@ -80,15 +75,11 @@ export class GitIgnore extends Effect.Service<GitIgnore>()("GitIgnore", {
 
         if (!content) return []
 
-        const isExcludeFile = patternsFilePath.endsWith(
-          Path.join(".git", "info", "exclude")
-        )
+        const isExcludeFile = patternsFilePath.endsWith(Path.join(".git", "info", "exclude"))
 
         const relativeBaseDir = isExcludeFile
           ? "."
-          : Path.dirname(Path.relative(root, patternsFilePath))
-              .split(Path.sep)
-              .join(Path.posix.sep)
+          : Path.dirname(Path.relative(root, patternsFilePath)).split(Path.sep).join(Path.posix.sep)
 
         const rawPatterns = content.split("\n")
         return processPatterns(rawPatterns, relativeBaseDir)
@@ -222,10 +213,7 @@ export class GitIgnore extends Effect.Service<GitIgnore>()("GitIgnore", {
         })
 
         if (exists) {
-          const gitIgnorePatterns = yield* loadPatternsForFile(
-            root,
-            gitignorePath
-          )
+          const gitIgnorePatterns = yield* loadPatternsForFile(root, gitignorePath)
           patterns.push(...gitIgnorePatterns)
         }
 
@@ -240,5 +228,5 @@ export class GitIgnore extends Effect.Service<GitIgnore>()("GitIgnore", {
 
 export const GitIgnoreLive = Layer.provide(
   GitIgnore.Default,
-  Layer.succeed(GitIgnoreConfig, { extraPatterns: [] })
+  Layer.succeed(GitIgnoreConfig, { extraPatterns: [] }),
 )

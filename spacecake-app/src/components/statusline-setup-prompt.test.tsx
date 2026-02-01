@@ -1,19 +1,20 @@
+import { createStore, Provider, useAtomValue } from "jotai"
 /**
  * @vitest-environment jsdom
  */
 import * as React from "react"
 import { act } from "react"
-import type { FileSystemError } from "@/services/file-system"
-import { createStore, Provider, useAtomValue } from "jotai"
 import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { left, right } from "@/types/adt"
+import type { FileSystemError } from "@/services/file-system"
 import type { ElectronAPI, StatuslineConfigStatus } from "@/types/electron"
+
 import {
   statuslineConflictAtom,
   useStatuslineAutoSetup,
 } from "@/components/statusline-setup-prompt"
+import { left, right } from "@/types/adt"
 
 // vi.hoisted runs before vi.mock hoisting, so the atom is available.
 const { mockServerReadyAtom } = vi.hoisted(() => {
@@ -54,7 +55,7 @@ const createMockElectronAPI = (overrides: {
         read: vi.fn(async () => {
           if (overrides.readError) {
             return left<FileSystemError, StatuslineConfigStatus>(
-              overrides.readError as FileSystemError
+              overrides.readError as FileSystemError,
             )
           }
           return right<FileSystemError, StatuslineConfigStatus>(
@@ -62,14 +63,12 @@ const createMockElectronAPI = (overrides: {
               configured: false,
               isSpacecake: false,
               isInlineSpacecake: false,
-            }
+            },
           )
         }),
         update: vi.fn(async () => {
           if (overrides.updateError) {
-            return left<FileSystemError, void>(
-              overrides.updateError as FileSystemError
-            )
+            return left<FileSystemError, void>(overrides.updateError as FileSystemError)
           }
           return right<FileSystemError, void>(overrides.updateResult)
         }),
@@ -83,8 +82,7 @@ const createMockElectronAPI = (overrides: {
 /**
  * Helper to wait for async effects to settle
  */
-const waitForEffects = () =>
-  act(() => new Promise((resolve) => setTimeout(resolve, 50)))
+const waitForEffects = () => act(() => new Promise((resolve) => setTimeout(resolve, 50)))
 
 /** Thin wrapper component that calls the hook and renders nothing */
 function AutoSetupHarness() {
@@ -125,7 +123,7 @@ describe("useStatuslineAutoSetup", () => {
       root.render(
         <Provider store={store}>
           <AutoSetupHarness />
-        </Provider>
+        </Provider>,
       )
     })
   }
@@ -160,8 +158,7 @@ describe("useStatuslineAutoSetup", () => {
         configured: true,
         isSpacecake: false,
         isInlineSpacecake: true,
-        command:
-          "bash -c 'socketPath=\"${HOME}/.claude/spacecake.sock\"; exit 0'",
+        command: "bash -c 'socketPath=\"${HOME}/.claude/spacecake.sock\"; exit 0'",
       },
     })
     window.electronAPI = mockApi
@@ -189,7 +186,7 @@ describe("useStatuslineAutoSetup", () => {
         <Provider store={store}>
           <AutoSetupHarness />
           <ConflictReader onConflict={(v) => (latestConflict = v)} />
-        </Provider>
+        </Provider>,
       )
     })
     await setServerReady()
@@ -215,7 +212,7 @@ describe("useStatuslineAutoSetup", () => {
         <Provider store={store}>
           <AutoSetupHarness />
           <ConflictReader onConflict={(v) => (latestConflict = v)} />
-        </Provider>
+        </Provider>,
       )
     })
     await setServerReady()
@@ -236,7 +233,7 @@ describe("useStatuslineAutoSetup", () => {
 
     expect(consoleSpy).toHaveBeenCalledWith(
       "failed to read statusline config:",
-      expect.objectContaining({ description: "Permission denied" })
+      expect.objectContaining({ description: "Permission denied" }),
     )
 
     consoleSpy.mockRestore()

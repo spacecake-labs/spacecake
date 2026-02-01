@@ -1,17 +1,17 @@
+import { Effect, Layer } from "effect"
 import * as fs from "node:fs/promises"
 import * as os from "node:os"
 import * as path from "node:path"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { GitIgnore, GitIgnoreConfig } from "@/services/git-ignore-parser"
-import { Effect, Layer } from "effect"
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 describe("GitIgnore", () => {
   let projectRoot: string
 
   const GitIgnoreTest = Layer.provide(
     GitIgnore.Default,
-    Layer.succeed(GitIgnoreConfig, { extraPatterns: [] })
+    Layer.succeed(GitIgnoreConfig, { extraPatterns: [] }),
   )
 
   async function createTestFile(filePath: string, content = "") {
@@ -61,16 +61,10 @@ node_modules/
         const gitIgnore = yield* GitIgnore
         const ignored1 = yield* gitIgnore.isIgnored(
           projectRoot,
-          path.join("node_modules", "some-lib")
+          path.join("node_modules", "some-lib"),
         )
-        const ignored2 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          path.join("src", "app.log")
-        )
-        const ignored3 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          path.join("dist", "index.js")
-        )
+        const ignored2 = yield* gitIgnore.isIgnored(projectRoot, path.join("src", "app.log"))
+        const ignored3 = yield* gitIgnore.isIgnored(projectRoot, path.join("dist", "index.js"))
         const ignored4 = yield* gitIgnore.isIgnored(projectRoot, ".env")
         const ignored5 = yield* gitIgnore.isIgnored(projectRoot, "src/index.js")
 
@@ -90,14 +84,8 @@ node_modules/
 
       const program = Effect.gen(function* () {
         const gitIgnore = yield* GitIgnore
-        const ignored1 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          path.join("temp", "file.txt")
-        )
-        const ignored2 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          path.join("src", "file.tmp")
-        )
+        const ignored1 = yield* gitIgnore.isIgnored(projectRoot, path.join("temp", "file.txt"))
+        const ignored2 = yield* gitIgnore.isIgnored(projectRoot, path.join("src", "file.tmp"))
         const ignored3 = yield* gitIgnore.isIgnored(projectRoot, "src/file.js")
 
         return { ignored1, ignored2, ignored3 }
@@ -128,13 +116,10 @@ src/*.tmp
       const program = Effect.gen(function* () {
         const gitIgnore = yield* GitIgnore
         const ignored1 = yield* gitIgnore.isIgnored(projectRoot, ".git")
-        const ignored2 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          path.join(".git", "config")
-        )
+        const ignored2 = yield* gitIgnore.isIgnored(projectRoot, path.join(".git", "config"))
         const ignored3 = yield* gitIgnore.isIgnored(
           projectRoot,
-          path.join(projectRoot, ".git", "HEAD")
+          path.join(projectRoot, ".git", "HEAD"),
         )
 
         return { ignored1, ignored2, ignored3 }
@@ -151,22 +136,13 @@ src/*.tmp
         const gitIgnore = yield* GitIgnore
         const ignored1 = yield* gitIgnore.isIgnored(
           projectRoot,
-          path.join("node_modules", "package", "index.js")
+          path.join("node_modules", "package", "index.js"),
         )
         const ignored2 = yield* gitIgnore.isIgnored(projectRoot, "app.log")
-        const ignored3 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          path.join("logs", "app.log")
-        )
-        const ignored4 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          path.join("dist", "bundle.js")
-        )
+        const ignored3 = yield* gitIgnore.isIgnored(projectRoot, path.join("logs", "app.log"))
+        const ignored4 = yield* gitIgnore.isIgnored(projectRoot, path.join("dist", "bundle.js"))
         const ignored5 = yield* gitIgnore.isIgnored(projectRoot, ".env")
-        const ignored6 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          path.join("config", ".env")
-        )
+        const ignored6 = yield* gitIgnore.isIgnored(projectRoot, path.join("config", ".env"))
 
         return { ignored1, ignored2, ignored3, ignored4, ignored5, ignored6 }
       }).pipe(Effect.provide(GitIgnoreTest))
@@ -183,14 +159,8 @@ src/*.tmp
     it("should ignore files with path-specific patterns", async () => {
       const program = Effect.gen(function* () {
         const gitIgnore = yield* GitIgnore
-        const ignored1 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          path.join("src", "temp.tmp")
-        )
-        const ignored2 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          path.join("other", "temp.tmp")
-        )
+        const ignored1 = yield* gitIgnore.isIgnored(projectRoot, path.join("src", "temp.tmp"))
+        const ignored2 = yield* gitIgnore.isIgnored(projectRoot, path.join("other", "temp.tmp"))
 
         return { ignored1, ignored2 }
       }).pipe(Effect.provide(GitIgnoreTest))
@@ -203,10 +173,7 @@ src/*.tmp
     it("should handle negation patterns", async () => {
       const program = Effect.gen(function* () {
         const gitIgnore = yield* GitIgnore
-        return yield* gitIgnore.isIgnored(
-          projectRoot,
-          path.join("src", "important.tmp")
-        )
+        return yield* gitIgnore.isIgnored(projectRoot, path.join("src", "important.tmp"))
       }).pipe(Effect.provide(GitIgnoreTest))
 
       const result = await Effect.runPromise(program.pipe(Effect.orDie))
@@ -216,10 +183,7 @@ src/*.tmp
     it("should not ignore files that do not match patterns", async () => {
       const program = Effect.gen(function* () {
         const gitIgnore = yield* GitIgnore
-        const ignored1 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          path.join("src", "index.ts")
-        )
+        const ignored1 = yield* gitIgnore.isIgnored(projectRoot, path.join("src", "index.ts"))
         const ignored2 = yield* gitIgnore.isIgnored(projectRoot, "README.md")
 
         return { ignored1, ignored2 }
@@ -257,11 +221,11 @@ src/*.tmp
         const gitIgnore = yield* GitIgnore
         const ignored1 = yield* gitIgnore.isIgnored(
           projectRoot,
-          path.join("node_modules", "some-package")
+          path.join("node_modules", "some-package"),
         )
         const ignored2 = yield* gitIgnore.isIgnored(
           projectRoot,
-          path.join("..", "some", "other", "file.txt")
+          path.join("..", "some", "other", "file.txt"),
         )
 
         return { ignored1, ignored2 }
@@ -339,7 +303,7 @@ src/*.tmp
 
       const root = projectRoot
       const result = await Effect.runPromise(
-        program.pipe(Effect.provide(GitIgnoreTest), Effect.orDie)
+        program.pipe(Effect.provide(GitIgnoreTest), Effect.orDie),
       )
 
       expect(result.ignored1).toBe(true)
@@ -370,10 +334,7 @@ src/*.tmp
       const program = Effect.gen(function* () {
         const gitIgnore = yield* GitIgnore
         const ignored1 = yield* gitIgnore.isIgnored(projectRoot, "a/b/any.log")
-        const ignored2 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          "a/b/special.log"
-        )
+        const ignored2 = yield* gitIgnore.isIgnored(projectRoot, "a/b/special.log")
         return { ignored1, ignored2 }
       }).pipe(Effect.provide(GitIgnoreTest))
 
@@ -391,17 +352,11 @@ src/*.tmp
       const program = Effect.gen(function* () {
         const gitIgnore = yield* GitIgnore
         const ignored1 = yield* gitIgnore.isIgnored(projectRoot, "some.log")
-        const ignored2 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          "important.log"
-        )
-        const ignored3 = yield* gitIgnore.isIgnored(
-          projectRoot,
-          path.join("subdir", "some.log")
-        )
+        const ignored2 = yield* gitIgnore.isIgnored(projectRoot, "important.log")
+        const ignored3 = yield* gitIgnore.isIgnored(projectRoot, path.join("subdir", "some.log"))
         const ignored4 = yield* gitIgnore.isIgnored(
           projectRoot,
-          path.join("subdir", "important.log")
+          path.join("subdir", "important.log"),
         )
         return { ignored1, ignored2, ignored3, ignored4 }
       }).pipe(Effect.provide(GitIgnoreTest))
@@ -422,12 +377,10 @@ src/*.tmp
     it("should retrieve patterns from root .gitignore", async () => {
       await createTestFile(".gitignore", "node_modules/\n*.log")
 
-      const program: Effect.Effect<string[], never, never> = Effect.gen(
-        function* () {
-          const gitIgnore = yield* GitIgnore
-          return yield* gitIgnore.retrieveIgnorePatterns(projectRoot)
-        }
-      ).pipe(Effect.provide(GitIgnoreTest), Effect.orDie)
+      const program: Effect.Effect<string[], never, never> = Effect.gen(function* () {
+        const gitIgnore = yield* GitIgnore
+        return yield* gitIgnore.retrieveIgnorePatterns(projectRoot)
+      }).pipe(Effect.provide(GitIgnoreTest), Effect.orDie)
 
       const patterns = await Effect.runPromise(program)
       expect(patterns).toContain("node_modules/")

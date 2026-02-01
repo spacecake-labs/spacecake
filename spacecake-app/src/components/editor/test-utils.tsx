@@ -1,11 +1,11 @@
-import * as React from "react"
-import { act, createRef } from "react"
 import { InitialConfigType } from "@lexical/react/LexicalComposer"
 import {
   createLexicalComposerContext,
   LexicalComposerContext,
 } from "@lexical/react/LexicalComposerContext"
 import { createEditor, type LexicalEditor } from "lexical"
+import * as React from "react"
+import { act, createRef } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, vi, type Mock } from "vitest"
 
@@ -62,7 +62,7 @@ export class EventMock implements Event {
   initEvent(
     _type: string,
     _bubbles?: boolean | undefined,
-    _cancelable?: boolean | undefined
+    _cancelable?: boolean | undefined,
   ): void {
     throw new Error("Method not implemented.")
   }
@@ -122,7 +122,7 @@ export class KeyboardEventMock extends EventMock implements KeyboardEvent {
       ctrlKey?: boolean
       altKey?: boolean
       metaKey?: boolean
-    }
+    },
   ) {
     super()
     if (options) {
@@ -149,7 +149,7 @@ export class KeyboardEventMock extends EventMock implements KeyboardEvent {
     _ctrlKey?: boolean | undefined,
     _altKey?: boolean | undefined,
     _shiftKey?: boolean | undefined,
-    _metaKey?: boolean | undefined
+    _metaKey?: boolean | undefined,
   ): void {
     throw new Error("Method not implemented.")
   }
@@ -171,7 +171,7 @@ export class KeyboardEventMock extends EventMock implements KeyboardEvent {
     _bubblesArg?: boolean | undefined,
     _cancelableArg?: boolean | undefined,
     _viewArg?: Window | null | undefined,
-    _detailArg?: number | undefined
+    _detailArg?: number | undefined,
   ): void {
     throw new Error("Method not implemented.")
   }
@@ -273,7 +273,7 @@ export function initializeUnitTest(
     theme: {},
     onError: (_error: Error) => {},
   },
-  plugins?: React.ReactNode
+  plugins?: React.ReactNode,
 ) {
   const testEnv = {
     _container: null as HTMLDivElement | null,
@@ -321,9 +321,7 @@ export function initializeUnitTest(
     document.body.appendChild(testEnv.container)
     const ref = createRef<HTMLDivElement>()
 
-    const useLexicalEditor = (
-      rootElementRef: React.RefObject<null | HTMLDivElement>
-    ) => {
+    const useLexicalEditor = (rootElementRef: React.RefObject<null | HTMLDivElement>) => {
       const lexicalEditor = React.useMemo(() => {
         const { editorState: _editorState, ...rest } = editorConfig
         const createEditorConfig = {
@@ -343,10 +341,7 @@ export function initializeUnitTest(
 
     const Editor = () => {
       testEnv.editor = useLexicalEditor(ref)
-      const context = createLexicalComposerContext(
-        null,
-        editorConfig?.theme ?? {}
-      )
+      const context = createLexicalComposerContext(null, editorConfig?.theme ?? {})
       return (
         <LexicalComposerContext.Provider value={[testEnv.editor, context]}>
           <div ref={ref} contentEditable={true} />

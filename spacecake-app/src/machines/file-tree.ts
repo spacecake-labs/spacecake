@@ -1,6 +1,3 @@
-import { router } from "@/router"
-import { Database } from "@/services/database"
-import { RuntimeClient } from "@/services/runtime-client"
 import { Effect } from "effect"
 import { toast } from "sonner"
 import {
@@ -14,9 +11,12 @@ import {
   type SnapshotFrom,
 } from "xstate"
 
+import { saveFile } from "@/lib/fs"
+import { router } from "@/router"
+import { Database } from "@/services/database"
+import { RuntimeClient } from "@/services/runtime-client"
 import { type ViewKind } from "@/types/lexical"
 import { AbsolutePath, FileType } from "@/types/workspace"
-import { saveFile } from "@/lib/fs"
 
 type FileStateMachineContext = {
   filePath: AbsolutePath
@@ -66,18 +66,16 @@ export const fileStateMachine = setup({
   },
 
   actors: {
-    clearEditorStatesForFile: fromPromise(
-      ({ input }: { input: { filePath: AbsolutePath } }) =>
-        RuntimeClient.runPromise(
-          Effect.gen(function* () {
-            const db = yield* Database
-            yield* db.clearEditorStatesForFile(input.filePath)
-          }).pipe(Effect.tapErrorCause(Effect.logError))
-        )
+    clearEditorStatesForFile: fromPromise(({ input }: { input: { filePath: AbsolutePath } }) =>
+      RuntimeClient.runPromise(
+        Effect.gen(function* () {
+          const db = yield* Database
+          yield* db.clearEditorStatesForFile(input.filePath)
+        }).pipe(Effect.tapErrorCause(Effect.logError)),
+      ),
     ),
-    reloadRoute: fromPromise(
-      ({ input }: { input: { invalidateRoute: () => Promise<void> } }) =>
-        input.invalidateRoute()
+    reloadRoute: fromPromise(({ input }: { input: { invalidateRoute: () => Promise<void> } }) =>
+      input.invalidateRoute(),
     ),
     saveFile: fromPromise(
       async ({
@@ -99,7 +97,7 @@ export const fileStateMachine = setup({
           Effect.gen(function* () {
             const db = yield* Database
             yield* db.clearEditorStatesForFile(filePath)
-          }).pipe(Effect.tapErrorCause(Effect.logError))
+          }).pipe(Effect.tapErrorCause(Effect.logError)),
         )
 
         // Return info including viewKind for transition decision
@@ -109,7 +107,7 @@ export const fileStateMachine = setup({
           content,
           viewKind,
         }
-      }
+      },
     ),
   },
 }).createMachine({
@@ -180,10 +178,7 @@ export const fileStateMachine = setup({
                 }
               }
             }) => {
-              return (
-                context.fileType === FileType.Python &&
-                event.output.viewKind === "rich"
-              )
+              return context.fileType === FileType.Python && event.output.viewKind === "rich"
             },
           },
           {
@@ -250,10 +245,7 @@ export const fileStateMachine = setup({
 })
 
 export type FileStateEvent = EventFromLogic<typeof fileStateMachine>
-export type FileStateHydrationEvent = Extract<
-  FileStateEvent,
-  { type: "file.clean" | "file.dirty" }
->
+export type FileStateHydrationEvent = Extract<FileStateEvent, { type: "file.clean" | "file.dirty" }>
 
 type FileActorRef = ActorRefFrom<typeof fileStateMachine>
 

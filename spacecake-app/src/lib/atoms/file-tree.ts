@@ -1,5 +1,3 @@
-import { fileStateMachine } from "@/machines/file-tree"
-import { router } from "@/router"
 // hook to get file state only if it has been opened
 import { atom } from "jotai"
 import { atomFamily } from "jotai-family"
@@ -13,22 +11,21 @@ import type {
   QuickOpenFileItem,
   WorkspaceInfo,
 } from "@/types/workspace"
-import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
-import { WorkspaceNotFound } from "@/types/workspace-error"
-import {
-  expandedFoldersAtom,
-  fileTreeAtom,
-  isCreatingInContextAtom,
-} from "@/lib/atoms/atoms"
+
+import { expandedFoldersAtom, fileTreeAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 // Import expandedFoldersAtom
 import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
+import { fileStateMachine } from "@/machines/file-tree"
+import { router } from "@/router"
+import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
+import { WorkspaceNotFound } from "@/types/workspace-error"
 
 // helper function to find and update items in the tree
 const updateFileTree = (
   tree: FileTree,
   path: string, // Now absolute path
-  updater: (item: File | Folder) => File | Folder
+  updater: (item: File | Folder) => File | Folder,
 ): FileTree => {
   return tree.map((item) => {
     if (item.path === path) {
@@ -47,7 +44,7 @@ const updateFileTree = (
 const addItemToTree = (
   tree: FileTree,
   parentPath: string, // Now absolute path
-  itemToAdd: File | Folder
+  itemToAdd: File | Folder,
 ): FileTree => {
   return tree.map((item) => {
     if (item.kind === "folder" && item.path === parentPath) {
@@ -85,25 +82,20 @@ const removeItemFromTree = (tree: FileTree, path: string): FileTree => {
 const mergeTrees = (
   newTree: FileTree,
   oldTree: FileTree,
-  expandedFolders: { [path: string]: boolean }
+  expandedFolders: { [path: string]: boolean },
 ): FileTree => {
   return newTree.map((newItem) => {
     if (newItem.kind === "folder") {
       const oldItem = oldTree.find(
-        (item) => item.path === newItem.path && item.kind === "folder"
+        (item) => item.path === newItem.path && item.kind === "folder",
       ) as Folder | undefined
 
-      const isExpanded =
-        expandedFolders[newItem.path] || oldItem?.isExpanded || false
+      const isExpanded = expandedFolders[newItem.path] || oldItem?.isExpanded || false
 
       return {
         ...newItem,
         isExpanded,
-        children: mergeTrees(
-          newItem.children,
-          oldItem?.children || [],
-          expandedFolders
-        ),
+        children: mergeTrees(newItem.children, oldItem?.children || [], expandedFolders),
       }
     }
     return newItem
@@ -126,7 +118,7 @@ export const fileTreeEventAtom = atom(
     set,
     event: FileTreeEvent,
     workspacePath: WorkspaceInfo["path"],
-    deleteFile: (filePath: AbsolutePath) => Promise<void>
+    deleteFile: (filePath: AbsolutePath) => Promise<void>,
   ) => {
     if (!workspacePath) return
 
@@ -142,8 +134,7 @@ export const fileTreeEventAtom = atom(
 
     // For nested items, we need the parent path for tree operations
     const lastSlash = absolutePath.lastIndexOf("/")
-    const parentPath =
-      lastSlash === -1 ? null : absolutePath.substring(0, lastSlash)
+    const parentPath = lastSlash === -1 ? null : absolutePath.substring(0, lastSlash)
 
     switch (event.kind) {
       case "addFile":
@@ -156,9 +147,7 @@ export const fileTreeEventAtom = atom(
                 cid: ZERO_HASH,
                 kind: "file",
                 etag: event.etag,
-                fileType: fileTypeFromExtension(
-                  absolutePath.split(".").pop() || ""
-                ),
+                fileType: fileTypeFromExtension(absolutePath.split(".").pop() || ""),
                 // No isExpanded for files
               }
             : {
@@ -198,7 +187,7 @@ export const fileTreeEventAtom = atom(
                 etag: event.etag,
                 cid: event.cid, // Update the content hash
               }
-            : item
+            : item,
         )
         set(fileTreeAtom, newTree)
 
@@ -237,7 +226,7 @@ export const fileTreeEventAtom = atom(
         break
       }
     }
-  }
+  },
 )
 
 export const sortedFileTreeAtom = atom((get) => {
@@ -288,7 +277,7 @@ export const flattenFiles = (tree: FileTree): File[] => {
 // Function to get quick open file items for a specific workspace
 export const getQuickOpenFileItems = (
   workspacePath: WorkspaceInfo["path"],
-  fileTree: FileTree
+  fileTree: FileTree,
 ): QuickOpenFileItem[] => {
   if (!workspacePath) return []
 
@@ -302,7 +291,7 @@ export const getQuickOpenFileItems = (
 const createFileStateMachineAtom = (filePath: AbsolutePath) =>
   atomWithMachine(
     () => fileStateMachine,
-    () => ({ input: { filePath, fileType: fileTypeFromFileName(filePath) } })
+    () => ({ input: { filePath, fileType: fileTypeFromFileName(filePath) } }),
   )
 
 export const fileStateAtomFamily = atomFamily(createFileStateMachineAtom)
@@ -348,7 +337,7 @@ export type FlatTreeItem = FlatFileTreeItem | FlatCreationInputItem
  */
 export function flattenVisibleTree(
   tree: FileTree,
-  expandedFolders: Record<string, boolean>
+  expandedFolders: Record<string, boolean>,
 ): FlatTreeItem[] {
   const result: FlatTreeItem[] = []
 
@@ -402,8 +391,7 @@ export const flatVisibleTreeAtom = atom((get) => {
 
     // Find the index of the parent folder
     const parentIndex = flatTree.findIndex(
-      (flatItem) =>
-        flatItem.item.kind === "folder" && flatItem.item.path === parentPath
+      (flatItem) => flatItem.item.kind === "folder" && flatItem.item.path === parentPath,
     )
 
     if (parentIndex !== -1) {

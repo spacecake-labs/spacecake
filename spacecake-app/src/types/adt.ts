@@ -9,19 +9,15 @@ export const right = <A, B>(value: B): Either<A, B> => ({
   value,
 })
 
-export const isLeft = <A, B>(either: Either<A, B>): either is Left<A> =>
-  either._tag === "Left"
-export const isRight = <A, B>(either: Either<A, B>): either is Right<B> =>
-  either._tag === "Right"
+export const isLeft = <A, B>(either: Either<A, B>): either is Left<A> => either._tag === "Left"
+export const isRight = <A, B>(either: Either<A, B>): either is Right<B> => either._tag === "Right"
 
 export const match = <A, B, C, D>(
   either: Either<A, B>,
   handlers: {
     onLeft: (a: A) => C
     onRight: (b: B) => D
-  }
+  },
 ): C | D => {
-  return either._tag === "Left"
-    ? handlers.onLeft(either.value)
-    : handlers.onRight(either.value)
+  return either._tag === "Left" ? handlers.onLeft(either.value) : handlers.onRight(either.value)
 }

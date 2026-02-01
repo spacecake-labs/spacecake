@@ -61,9 +61,7 @@ export function hasStatuslineData(data: string): boolean {
  * Parse statusline input from Claude Code HTTP POST
  * Extracts display-relevant fields from full Claude Code schema
  */
-export function parseStatuslineInput(
-  input: StatuslineInput
-): DisplayStatusline {
+export function parseStatuslineInput(input: StatuslineInput): DisplayStatusline {
   return {
     model: input.model.display_name,
     contextUsagePercent: input.context_window.used_percentage,

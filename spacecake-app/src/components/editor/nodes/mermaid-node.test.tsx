@@ -2,13 +2,13 @@
  * @vitest-environment jsdom
  */
 
-import * as React from "react"
-import { act } from "react"
 import { $convertFromMarkdownString } from "@lexical/markdown"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin"
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
 import { $getRoot } from "lexical"
+import * as React from "react"
+import { act } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { ContentEditable } from "@/components/editor/content-editable"
@@ -89,12 +89,9 @@ graph TD;
 \`\`\`
 `
         await act(async () => {
-          testEnv.editor.update(
-            () => $convertFromMarkdownString(markdown, MARKDOWN_TRANSFORMERS),
-            {
-              discrete: true,
-            }
-          )
+          testEnv.editor.update(() => $convertFromMarkdownString(markdown, MARKDOWN_TRANSFORMERS), {
+            discrete: true,
+          })
         })
 
         testEnv.editor.getEditorState().read(() => {
@@ -106,6 +103,6 @@ graph TD;
       })
     },
     editorConfig,
-    <Plugins />
+    <Plugins />,
   )
 })

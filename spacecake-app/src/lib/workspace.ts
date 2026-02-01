@@ -1,11 +1,6 @@
-import {
-  BookMarked,
-  BookOpen,
-  Code,
-  FileText,
-  Folder as FolderIcon,
-} from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+
+import { BookMarked, BookOpen, Code, FileText, Folder as FolderIcon } from "lucide-react"
 
 import { File, FileType, Folder } from "@/types/workspace"
 

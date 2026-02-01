@@ -3,15 +3,18 @@
  * If a valid workspace path is found in storage, it redirects to the workspace route.
  */
 
-import { RuntimeClient } from "@/services/runtime-client"
-import {
-  createFileRoute,
-  ErrorComponent,
-  redirect,
-} from "@tanstack/react-router"
+import { createFileRoute, ErrorComponent, redirect } from "@tanstack/react-router"
 import { Match, Option, Schema } from "effect"
 import { AlertCircleIcon, FolderOpen, Loader2Icon } from "lucide-react"
 
+import { LoadingAnimation } from "@/components/loading-animation"
+import { ModeToggle } from "@/components/mode-toggle"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { exists } from "@/lib/fs"
+import { useOpenWorkspace } from "@/lib/open-workspace"
+import { encodeBase64Url } from "@/lib/utils"
+import { RuntimeClient } from "@/services/runtime-client"
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 import {
@@ -20,18 +23,11 @@ import {
   WorkspaceNotAccessible,
   WorkspaceNotFound,
 } from "@/types/workspace-error"
-import { exists } from "@/lib/fs"
-import { useOpenWorkspace } from "@/lib/open-workspace"
-import { encodeBase64Url } from "@/lib/utils"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
-import { LoadingAnimation } from "@/components/loading-animation"
-import { ModeToggle } from "@/components/mode-toggle"
 
 const SearchParamsSchema = Schema.standardSchemaV1(
   Schema.Struct({
     workspaceError: Schema.optional(WorkspaceErrorSchema),
-  })
+  }),
 )
 
 export const Route = createFileRoute("/")({
@@ -51,9 +47,7 @@ export const Route = createFileRoute("/")({
       return { workspaceError: Option.some(searchWorkspaceError) }
     }
 
-    const lastOpenedWorkspace = await RuntimeClient.runPromise(
-      db.selectLastOpenedWorkspace
-    )
+    const lastOpenedWorkspace = await RuntimeClient.runPromise(db.selectLastOpenedWorkspace)
     if (Option.isSome(lastOpenedWorkspace)) {
       const workspacePath = AbsolutePath(lastOpenedWorkspace.value.path)
       const pathExists = await exists(workspacePath)
@@ -63,9 +57,9 @@ export const Route = createFileRoute("/")({
           const workspaceError = Match.value(error).pipe(
             Match.tag(
               "PermissionDeniedError",
-              () => new WorkspaceNotAccessible({ path: workspacePath })
+              () => new WorkspaceNotAccessible({ path: workspacePath }),
             ),
-            Match.orElse(() => new WorkspaceNotFound({ path: workspacePath }))
+            Match.orElse(() => new WorkspaceNotFound({ path: workspacePath })),
           )
           return { workspaceError: Option.some(workspaceError) }
         },
@@ -78,9 +72,7 @@ export const Route = createFileRoute("/")({
             })
           }
           return {
-            workspaceError: Option.some(
-              new WorkspaceNotFound({ path: workspacePath })
-            ),
+            workspaceError: Option.some(new WorkspaceNotFound({ path: workspacePath })),
           }
         },
       })
@@ -106,8 +98,7 @@ function Index() {
 
   // Get workspace error from loader data or search params
   const workspaceError: WorkspaceError | null =
-    (loaderData?.workspaceError &&
-      Option.getOrNull(loaderData.workspaceError)) ??
+    (loaderData?.workspaceError && Option.getOrNull(loaderData.workspaceError)) ??
     searchData.workspaceError ??
     null
 
@@ -126,16 +117,11 @@ function Index() {
               <AlertDescription>
                 {Match.value(workspaceError).pipe(
                   Match.tag("WorkspaceNotFound", () => "workspace not found:"),
-                  Match.tag(
-                    "WorkspaceNotAccessible",
-                    () => "workspace not accessible:"
-                  ),
-                  Match.exhaustive
+                  Match.tag("WorkspaceNotAccessible", () => "workspace not accessible:"),
+                  Match.exhaustive,
                 )}
                 {"\n"}
-                <code className="font-mono text-xs break-all">
-                  {workspaceError.path}
-                </code>
+                <code className="font-mono text-xs break-all">{workspaceError.path}</code>
               </AlertDescription>
             </Alert>
           </div>
@@ -148,11 +134,7 @@ function Index() {
             onClick={handleOpenWorkspace}
             disabled={fileExplorerIsOpen}
           >
-            {fileExplorerIsOpen ? (
-              <Loader2Icon className="animate-spin" />
-            ) : (
-              <FolderOpen />
-            )}
+            {fileExplorerIsOpen ? <Loader2Icon className="animate-spin" /> : <FolderOpen />}
             open folder
           </Button>
         </div>

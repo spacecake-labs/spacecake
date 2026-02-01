@@ -3,6 +3,8 @@
  * It is kept here for future reference.
  */
 
+import type { DOMConversionMap, DOMExportOutput, EditorConfig } from "lexical"
+
 import { addClassNamesToElement } from "@lexical/utils"
 import {
   $applyNodeReplacement,
@@ -12,7 +14,6 @@ import {
   SerializedElementNode,
   Spread,
 } from "lexical"
-import type { DOMConversionMap, DOMExportOutput, EditorConfig } from "lexical"
 
 import type { Block } from "@/types/parser"
 
@@ -177,17 +178,13 @@ export class ContextNode extends ElementNode {
 /**
  * Creates a ContextNode.
  */
-export function $createContextNode(
-  options: CreateContextNodeOptions
-): ContextNode {
+export function $createContextNode(options: CreateContextNodeOptions): ContextNode {
   return $applyNodeReplacement(new ContextNode(options.block, options.src))
 }
 
 /**
  * Returns true if the given node is a ContextNode.
  */
-export function $isContextNode(
-  node: LexicalNode | null | undefined
-): node is ContextNode {
+export function $isContextNode(node: LexicalNode | null | undefined): node is ContextNode {
   return node instanceof ContextNode
 }

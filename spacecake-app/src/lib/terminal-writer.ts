@@ -15,6 +15,5 @@ export class TerminalWriter extends Context.Tag("TerminalWriter")<
  * Live implementation that uses the Electron IPC bridge.
  */
 export const TerminalWriterLive = Layer.succeed(TerminalWriter, {
-  write: (id, data) =>
-    Effect.sync(() => window.electronAPI.writeTerminal(id, data)),
+  write: (id, data) => Effect.sync(() => window.electronAPI.writeTerminal(id, data)),
 })

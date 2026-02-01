@@ -347,14 +347,9 @@ Keep explanations conversational. For complex concepts, use multiple analogies.
 
     editor.update(
       () => {
-        $convertFromMarkdownString(
-          markdownContent,
-          MARKDOWN_TRANSFORMERS,
-          undefined,
-          true
-        )
+        $convertFromMarkdownString(markdownContent, MARKDOWN_TRANSFORMERS, undefined, true)
       },
-      { discrete: true }
+      { discrete: true },
     )
 
     editor.getEditorState().read(() => {
@@ -386,9 +381,7 @@ Keep explanations conversational. For complex concepts, use multiple analogies.
 
       // Third child should be a paragraph with "When explaining code, always include:"
       expect(children[2].getType()).toBe("paragraph")
-      expect(children[2].getTextContent()).toBe(
-        "When explaining code, always include:"
-      )
+      expect(children[2].getTextContent()).toBe("When explaining code, always include:")
     })
   })
 
@@ -403,14 +396,9 @@ This is a test.
 
     editor.update(
       () => {
-        $convertFromMarkdownString(
-          markdownContent,
-          MARKDOWN_TRANSFORMERS,
-          undefined,
-          true
-        )
+        $convertFromMarkdownString(markdownContent, MARKDOWN_TRANSFORMERS, undefined, true)
       },
-      { discrete: true }
+      { discrete: true },
     )
 
     editor.getEditorState().read(() => {
@@ -442,14 +430,9 @@ Some paragraph content.
 
     editor.update(
       () => {
-        $convertFromMarkdownString(
-          markdownContent,
-          MARKDOWN_TRANSFORMERS,
-          undefined,
-          true
-        )
+        $convertFromMarkdownString(markdownContent, MARKDOWN_TRANSFORMERS, undefined, true)
       },
-      { discrete: true }
+      { discrete: true },
     )
 
     editor.getEditorState().read(() => {
@@ -481,14 +464,9 @@ Content after frontmatter.
 
     editor.update(
       () => {
-        $convertFromMarkdownString(
-          markdownContent,
-          MARKDOWN_TRANSFORMERS,
-          undefined,
-          true
-        )
+        $convertFromMarkdownString(markdownContent, MARKDOWN_TRANSFORMERS, undefined, true)
       },
-      { discrete: true }
+      { discrete: true },
     )
 
     editor.getEditorState().read(() => {

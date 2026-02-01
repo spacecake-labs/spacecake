@@ -1,16 +1,11 @@
+import * as ParcelWatcher from "@parcel/watcher"
+import { Effect, Option, Schema } from "effect"
+import { BrowserWindow } from "electron"
 import fs from "node:fs"
 import path from "node:path"
 
 import { ClaudeConfig } from "@/services/claude-config"
-import * as ParcelWatcher from "@parcel/watcher"
-import { Effect, Option, Schema } from "effect"
-import { BrowserWindow } from "electron"
-
-import {
-  ClaudeTaskError,
-  ClaudeTaskSchema,
-  type ClaudeTask,
-} from "@/types/claude-task"
+import { ClaudeTaskError, ClaudeTaskSchema, type ClaudeTask } from "@/types/claude-task"
 
 export class ClaudeTaskListService extends Effect.Service<ClaudeTaskListService>()(
   "ClaudeTaskListService",
@@ -34,8 +29,7 @@ export class ClaudeTaskListService extends Effect.Service<ClaudeTaskListService>
       /**
        * Get the tasks directory for a given list ID
        */
-      const getTasksPath = (listId: string): string =>
-        path.join(config.tasksDir, listId)
+      const getTasksPath = (listId: string): string => path.join(config.tasksDir, listId)
 
       /**
        * Read a single task file and parse it
@@ -105,14 +99,11 @@ export class ClaudeTaskListService extends Effect.Service<ClaudeTaskListService>
         // Ensure directory exists before watching
         fs.mkdirSync(tasksPath, { recursive: true })
 
-        subscription = await ParcelWatcher.subscribe(
-          tasksPath,
-          (_err, events) => {
-            const hasJsonChanges = events.some((e) => e.path.endsWith(".json"))
-            if (!hasJsonChanges) return
-            notifyChanged()
-          }
-        )
+        subscription = await ParcelWatcher.subscribe(tasksPath, (_err, events) => {
+          const hasJsonChanges = events.some((e) => e.path.endsWith(".json"))
+          if (!hasJsonChanges) return
+          notifyChanged()
+        })
       }
 
       /**
@@ -139,7 +130,7 @@ export class ClaudeTaskListService extends Effect.Service<ClaudeTaskListService>
       yield* Effect.addFinalizer(() =>
         Effect.promise(async () => {
           await stopWatching()
-        })
+        }),
       )
 
       return {
@@ -151,5 +142,5 @@ export class ClaudeTaskListService extends Effect.Service<ClaudeTaskListService>
       }
     }),
     dependencies: [ClaudeConfig.Default],
-  }
+  },
 ) {}

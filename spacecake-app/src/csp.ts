@@ -2,12 +2,7 @@
 export const CSP_CONFIG = {
   development: {
     "default-src": ["'self'"],
-    "script-src": [
-      "'self'",
-      "'unsafe-inline'",
-      "'wasm-unsafe-eval'",
-      "https://*.posthog.com",
-    ],
+    "script-src": ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", "https://*.posthog.com"],
     "style-src": ["'self'", "'unsafe-inline'", "https://*.posthog.com"],
     "img-src": ["'self'", "data:", "https:", "blob:", "https://*.posthog.com"],
     "connect-src": [
@@ -33,14 +28,7 @@ export const CSP_CONFIG = {
     "script-src": ["'self'", "'wasm-unsafe-eval'", "https://*.posthog.com"],
     "style-src": ["'self'", "'unsafe-inline'", "https://*.posthog.com"],
     "img-src": ["'self'", "data:", "https:", "https://*.posthog.com"],
-    "connect-src": [
-      "'self'",
-      "https:",
-      "wss:",
-      "wasm:",
-      "data:",
-      "https://*.posthog.com",
-    ],
+    "connect-src": ["'self'", "https:", "wss:", "wasm:", "data:", "https://*.posthog.com"],
     "font-src": ["'self'", "data:", "https:", "https://*.posthog.com"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
@@ -50,9 +38,7 @@ export const CSP_CONFIG = {
   },
 }
 
-export function buildCSPString(
-  environment: "development" | "production" = "development"
-): string {
+export function buildCSPString(environment: "development" | "production" = "development"): string {
   const config = CSP_CONFIG[environment]
   return Object.entries(config)
     .map(([key, values]) => `${key} ${values.join(" ")}`)

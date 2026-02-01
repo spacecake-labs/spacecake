@@ -2,21 +2,21 @@
  * @vitest-environment jsdom
  */
 
-import * as React from "react"
-import { act } from "react"
 import { $convertFromMarkdownString } from "@lexical/markdown"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin"
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
 import { $isTableNode, $isTableRowNode } from "@lexical/table"
 import { $getRoot } from "lexical"
+import * as React from "react"
+import { act } from "react"
 import { describe, expect, it, vi } from "vitest"
 
-import { serializeEditorToMarkdown } from "@/lib/editor"
 import { ContentEditable } from "@/components/editor/content-editable"
 import { editorConfig } from "@/components/editor/editor"
 import { initializeUnitTest } from "@/components/editor/test-utils"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
+import { serializeEditorToMarkdown } from "@/lib/editor"
 
 vi.mock("web-tree-sitter", () => {
   return {
@@ -83,14 +83,8 @@ describe("Table markdown transformer", () => {
 
         await act(async () => {
           testEnv.editor.update(
-            () =>
-              $convertFromMarkdownString(
-                withPipes,
-                MARKDOWN_TRANSFORMERS,
-                undefined,
-                true
-              ),
-            { discrete: true }
+            () => $convertFromMarkdownString(withPipes, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
           )
         })
 
@@ -113,20 +107,12 @@ describe("Table markdown transformer", () => {
 
         await act(async () => {
           testEnv.editor.update(
-            () =>
-              $convertFromMarkdownString(
-                text,
-                MARKDOWN_TRANSFORMERS,
-                undefined,
-                true
-              ),
-            { discrete: true }
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
           )
         })
 
-        const result = serializeEditorToMarkdown(
-          testEnv.editor.getEditorState()
-        )
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
         expect(result).toBe(text)
       })
 
@@ -139,14 +125,8 @@ describe("Table markdown transformer", () => {
 
         await act(async () => {
           testEnv.editor.update(
-            () =>
-              $convertFromMarkdownString(
-                text,
-                MARKDOWN_TRANSFORMERS,
-                undefined,
-                true
-              ),
-            { discrete: true }
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
           )
         })
 
@@ -173,14 +153,8 @@ describe("Table markdown transformer", () => {
 
         await act(async () => {
           testEnv.editor.update(
-            () =>
-              $convertFromMarkdownString(
-                text,
-                MARKDOWN_TRANSFORMERS,
-                undefined,
-                true
-              ),
-            { discrete: true }
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
           )
         })
 
@@ -222,20 +196,12 @@ describe("Table markdown transformer", () => {
 
         await act(async () => {
           testEnv.editor.update(
-            () =>
-              $convertFromMarkdownString(
-                text,
-                MARKDOWN_TRANSFORMERS,
-                undefined,
-                true
-              ),
-            { discrete: true }
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
           )
         })
 
-        const result = serializeEditorToMarkdown(
-          testEnv.editor.getEditorState()
-        )
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
         expect(result).toBe(text)
 
         // parse the result again and verify it matches (ensures deterministic output)
@@ -243,24 +209,17 @@ describe("Table markdown transformer", () => {
           testEnv.editor.update(
             () => {
               $getRoot().clear()
-              $convertFromMarkdownString(
-                result,
-                MARKDOWN_TRANSFORMERS,
-                undefined,
-                true
-              )
+              $convertFromMarkdownString(result, MARKDOWN_TRANSFORMERS, undefined, true)
             },
-            { discrete: true }
+            { discrete: true },
           )
         })
 
-        const secondResult = serializeEditorToMarkdown(
-          testEnv.editor.getEditorState()
-        )
+        const secondResult = serializeEditorToMarkdown(testEnv.editor.getEditorState())
         expect(secondResult).toBe(text)
       })
     },
     editorConfig,
-    <Plugins />
+    <Plugins />,
   )
 })

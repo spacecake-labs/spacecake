@@ -2,13 +2,12 @@ import { atom, WritableAtom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 import { SerializedEditorState } from "lexical"
 
-import type { ExpandedFolders, File, FileTree, Folder } from "@/types/workspace"
-import { AbsolutePath } from "@/types/workspace"
 import type { DisplayStatusline } from "@/lib/statusline-parser"
+import type { ExpandedFolders, File, FileTree, Folder } from "@/types/workspace"
 
-export function atomWithToggle(
-  initialValue?: boolean
-): WritableAtom<boolean, [boolean?], void> {
+import { AbsolutePath } from "@/types/workspace"
+
+export function atomWithToggle(initialValue?: boolean): WritableAtom<boolean, [boolean?], void> {
   const anAtom = atom(initialValue, (get, set, nextValue?: boolean) => {
     const update = nextValue ?? !get(anAtom)
     set(anAtom, update)

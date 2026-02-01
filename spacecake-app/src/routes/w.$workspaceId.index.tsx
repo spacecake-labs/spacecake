@@ -3,21 +3,21 @@
  *
  */
 
-import { useEffect, useRef } from "react"
-import { RuntimeClient } from "@/services/runtime-client"
 import { createFileRoute, ErrorComponent } from "@tanstack/react-router"
 import { Option } from "effect"
 import { AlertCircleIcon, CakeSlice } from "lucide-react"
+import { useEffect, useRef } from "react"
 
+import { LoadingAnimation } from "@/components/loading-animation"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CommandShortcut } from "@/components/ui/command"
+import { usePaneMachine } from "@/hooks/use-pane-machine"
+import { exists } from "@/lib/fs"
+import { condensePath, decodeBase64Url } from "@/lib/utils"
+import { RuntimeClient } from "@/services/runtime-client"
 import { match } from "@/types/adt"
 import { ViewKind } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
-import { exists } from "@/lib/fs"
-import { condensePath, decodeBase64Url } from "@/lib/utils"
-import { usePaneMachine } from "@/hooks/use-pane-machine"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CommandShortcut } from "@/components/ui/command"
-import { LoadingAnimation } from "@/components/loading-animation"
 
 type LoaderResult =
   | { kind: "empty" }
@@ -25,9 +25,7 @@ type LoaderResult =
   | { kind: "restore"; filePath: AbsolutePath; viewKind: ViewKind }
 
 export const Route = createFileRoute("/w/$workspaceId/")({
-  validateSearch: (
-    search: Record<string, unknown>
-  ): { notFoundFilePath?: string } => {
+  validateSearch: (search: Record<string, unknown>): { notFoundFilePath?: string } => {
     return {
       notFoundFilePath: search.notFoundFilePath as string | undefined,
     }
@@ -45,7 +43,7 @@ export const Route = createFileRoute("/w/$workspaceId/")({
     }
 
     const activeEditor = await RuntimeClient.runPromise(
-      db.selectActiveEditorForWorkspace(workspacePath)
+      db.selectActiveEditorForWorkspace(workspacePath),
     )
 
     if (Option.isSome(activeEditor)) {
@@ -116,9 +114,7 @@ function WorkspaceIndex() {
             <AlertCircleIcon />
             <AlertDescription>
               file not found:{"\n"}
-              <code className="font-mono text-xs break-all">
-                {data.filePath}
-              </code>
+              <code className="font-mono text-xs break-all">{data.filePath}</code>
             </AlertDescription>
           </Alert>
         </div>
@@ -133,9 +129,7 @@ function WorkspaceIndex() {
           <CakeSlice className="w-8 h-" />
         </div>
         <h1 className="text-2xl font-bold mb-2">spacecake</h1>
-        <p className="text-muted-foreground text-sm">
-          {condensePath(workspacePath)}
-        </p>
+        <p className="text-muted-foreground text-sm">{condensePath(workspacePath)}</p>
       </div>
       <h3 className="text-sm font-medium m-3">commands</h3>
       <div className="w-full max-w-sm mx-auto grid grid-cols-1 gap-2 text-sm">

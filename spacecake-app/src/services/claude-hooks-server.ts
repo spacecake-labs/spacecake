@@ -1,59 +1,47 @@
-import {
-  createServer,
-  IncomingMessage,
-  Server,
-  ServerResponse,
-} from "node:http"
+import { Effect } from "effect"
+import { createServer, IncomingMessage, Server, ServerResponse } from "node:http"
 
+import type { DisplayStatusline } from "@/lib/statusline-parser"
+
+import { parseStatuslineInput } from "@/lib/statusline-parser"
 import { ClaudeConfig } from "@/services/claude-config"
 import { FileSystem } from "@/services/file-system"
-import { Effect } from "effect"
-
 import { StatuslineInput } from "@/types/statusline"
-import type { DisplayStatusline } from "@/lib/statusline-parser"
-import { parseStatuslineInput } from "@/lib/statusline-parser"
 
 // Statusline service to manage subscribers and state
-export class StatuslineService extends Effect.Service<StatuslineService>()(
-  "StatuslineService",
-  {
-    effect: Effect.sync(() => {
-      let lastStatusline: DisplayStatusline | null = null
-      const updateCallbacks: Set<(data: DisplayStatusline) => void> = new Set()
+export class StatuslineService extends Effect.Service<StatuslineService>()("StatuslineService", {
+  effect: Effect.sync(() => {
+    let lastStatusline: DisplayStatusline | null = null
+    const updateCallbacks: Set<(data: DisplayStatusline) => void> = new Set()
 
-      return {
-        processStatusline: (input: StatuslineInput) => {
-          const statuslineData = parseStatuslineInput(input)
-          lastStatusline = statuslineData
+    return {
+      processStatusline: (input: StatuslineInput) => {
+        const statuslineData = parseStatuslineInput(input)
+        lastStatusline = statuslineData
 
-          // Call all registered callbacks
-          updateCallbacks.forEach((callback) => {
-            try {
-              callback(statuslineData)
-            } catch (err) {
-              console.error("Statusline Service: callback error", err)
-            }
-          })
-
-          return statuslineData
-        },
-        getLastStatusline: () => lastStatusline,
-        onStatuslineUpdate: (callback: (data: DisplayStatusline) => void) => {
-          updateCallbacks.add(callback)
-          return () => {
-            updateCallbacks.delete(callback)
+        // Call all registered callbacks
+        updateCallbacks.forEach((callback) => {
+          try {
+            callback(statuslineData)
+          } catch (err) {
+            console.error("Statusline Service: callback error", err)
           }
-        },
-      }
-    }),
-  }
-) {}
+        })
 
-const respondJson = (
-  res: ServerResponse,
-  statusCode: number,
-  data: unknown
-) => {
+        return statuslineData
+      },
+      getLastStatusline: () => lastStatusline,
+      onStatuslineUpdate: (callback: (data: DisplayStatusline) => void) => {
+        updateCallbacks.add(callback)
+        return () => {
+          updateCallbacks.delete(callback)
+        }
+      },
+    }
+  }),
+}) {}
+
+const respondJson = (res: ServerResponse, statusCode: number, data: unknown) => {
   res.writeHead(statusCode, { "Content-Type": "application/json" })
   res.end(JSON.stringify(data))
 }
@@ -61,15 +49,13 @@ const respondJson = (
 interface StatuslineServiceInstance {
   processStatusline: (input: StatuslineInput) => DisplayStatusline
   getLastStatusline: () => DisplayStatusline | null
-  onStatuslineUpdate: (
-    callback: (data: DisplayStatusline) => void
-  ) => () => void
+  onStatuslineUpdate: (callback: (data: DisplayStatusline) => void) => () => void
 }
 
 const handleRequest = async (
   req: IncomingMessage,
   res: ServerResponse,
-  service: StatuslineServiceInstance
+  service: StatuslineServiceInstance,
 ) => {
   try {
     // CORS headers
@@ -133,10 +119,7 @@ const handleRequest = async (
   }
 }
 
-const startServerEffect = (
-  socketPath: string,
-  service: StatuslineServiceInstance
-) =>
+const startServerEffect = (socketPath: string, service: StatuslineServiceInstance) =>
   Effect.async<Server, Error>((resume) => {
     const server = createServer((req, res) => {
       handleRequest(req, res, service).catch((err) => {
@@ -169,9 +152,7 @@ export interface ClaudeHooksServerService {
   readonly ensureStarted: () => Promise<string>
   readonly isStarted: () => boolean
   readonly getLastStatusline: () => DisplayStatusline | null
-  readonly onStatuslineUpdate: (
-    callback: (data: DisplayStatusline) => void
-  ) => () => void
+  readonly onStatuslineUpdate: (callback: (data: DisplayStatusline) => void) => () => void
 }
 
 export const makeClaudeHooksServer = Effect.gen(function* () {
@@ -196,9 +177,7 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
       .exists(socketPath)
       .pipe(Effect.catchAll(() => Effect.succeed(false)))
     if (socketExists) {
-      yield* fsService
-        .remove(socketPath)
-        .pipe(Effect.catchAll(() => Effect.void))
+      yield* fsService.remove(socketPath).pipe(Effect.catchAll(() => Effect.void))
     }
 
     // Start the server (waits until it's listening)
@@ -236,7 +215,7 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
       server.close(() => resume(Effect.void))
     }).pipe(
       Effect.andThen(fsService.remove(socketPath)),
-      Effect.catchAll(() => Effect.void)
+      Effect.catchAll(() => Effect.void),
     )
   })
 
@@ -248,14 +227,7 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
   } as const
 })
 
-export class ClaudeHooksServer extends Effect.Service<ClaudeHooksServer>()(
-  "ClaudeHooksServer",
-  {
-    scoped: makeClaudeHooksServer,
-    dependencies: [
-      ClaudeConfig.Default,
-      FileSystem.Default,
-      StatuslineService.Default,
-    ],
-  }
-) {}
+export class ClaudeHooksServer extends Effect.Service<ClaudeHooksServer>()("ClaudeHooksServer", {
+  scoped: makeClaudeHooksServer,
+  dependencies: [ClaudeConfig.Default, FileSystem.Default, StatuslineService.Default],
+}) {}

@@ -57,8 +57,6 @@ export function $createContainerNode(): ContainerNode {
   return new ContainerNode()
 }
 
-export function $isContainerNode(
-  node: LexicalNode | null | undefined
-): node is ContainerNode {
+export function $isContainerNode(node: LexicalNode | null | undefined): node is ContainerNode {
   return node instanceof ContainerNode
 }

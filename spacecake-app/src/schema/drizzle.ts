@@ -1,5 +1,3 @@
-import { type JsonValue } from "@/schema/drizzle-effect"
-import type { WorkspaceLayout } from "@/schema/workspace-layout"
 import { sql } from "drizzle-orm"
 import {
   boolean,
@@ -14,6 +12,9 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core"
 
+import type { WorkspaceLayout } from "@/schema/workspace-layout"
+
+import { type JsonValue } from "@/schema/drizzle-effect"
 import { SerializedSelection, ViewKindSchema } from "@/types/lexical"
 
 export const systemTable = pgTable("system", {
@@ -30,18 +31,13 @@ export const workspaceTable = pgTable(
     path: text("path").notNull(),
     is_open: boolean("is_open").notNull().default(false),
     layout: jsonb("layout").$type<WorkspaceLayout>(),
-    active_pane_id: uuid("active_pane_id").references(
-      (): AnyPgColumn => paneTable.id,
-      { onDelete: "set null" }
-    ),
-    created_at: timestamp("created_at", { mode: "string" })
-      .defaultNow()
-      .notNull(),
-    last_accessed_at: timestamp("last_accessed_at", { mode: "string" })
-      .defaultNow()
-      .notNull(),
+    active_pane_id: uuid("active_pane_id").references((): AnyPgColumn => paneTable.id, {
+      onDelete: "set null",
+    }),
+    created_at: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
+    last_accessed_at: timestamp("last_accessed_at", { mode: "string" }).defaultNow().notNull(),
   },
-  (table) => [uniqueIndex("workspace_path_idx").on(table.path)]
+  (table) => [uniqueIndex("workspace_path_idx").on(table.path)],
 )
 
 export const fileTable = pgTable(
@@ -53,13 +49,11 @@ export const fileTable = pgTable(
     path: text("path").notNull(),
     cid: text("cid").notNull(),
     mtime: timestamp("mtime", { mode: "string" }).notNull(),
-    created_at: timestamp("created_at", { mode: "string" })
-      .defaultNow()
-      .notNull(),
+    created_at: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
     // nullable to allow for preloading
     last_accessed_at: timestamp("last_accessed_at", { mode: "string" }),
   },
-  (table) => [uniqueIndex("file_path_idx").on(table.path)]
+  (table) => [uniqueIndex("file_path_idx").on(table.path)],
 )
 
 export const paneTable = pgTable(
@@ -74,21 +68,12 @@ export const paneTable = pgTable(
     position: integer("index").notNull(),
     active_pane_item_id: uuid("active_pane_item_id").references(
       (): AnyPgColumn => paneItemTable.id,
-      { onDelete: "set null" }
+      { onDelete: "set null" },
     ),
-    created_at: timestamp("created_at", { mode: "string" })
-      .defaultNow()
-      .notNull(),
-    last_accessed_at: timestamp("last_accessed_at", { mode: "string" })
-      .defaultNow()
-      .notNull(),
+    created_at: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
+    last_accessed_at: timestamp("last_accessed_at", { mode: "string" }).defaultNow().notNull(),
   },
-  (table) => [
-    uniqueIndex("pane_workspace_position_idx").on(
-      table.workspace_id,
-      table.position
-    ),
-  ]
+  (table) => [uniqueIndex("pane_workspace_position_idx").on(table.workspace_id, table.position)],
 )
 
 // must be exported for drizzle to recognise it
@@ -108,20 +93,13 @@ export const paneItemTable = pgTable(
       onDelete: "cascade",
     }),
     position: integer("index").notNull(),
-    last_accessed_at: timestamp("last_accessed_at", { mode: "string" })
-      .defaultNow()
-      .notNull(),
-    created_at: timestamp("created_at", { mode: "string" })
-      .defaultNow()
-      .notNull(),
+    last_accessed_at: timestamp("last_accessed_at", { mode: "string" }).defaultNow().notNull(),
+    created_at: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex("pane_item_pane_position_idx").on(
-      table.pane_id,
-      table.position
-    ),
+    uniqueIndex("pane_item_pane_position_idx").on(table.pane_id, table.position),
     uniqueIndex("pane_item_pane_editor_idx").on(table.pane_id, table.editor_id),
-  ]
+  ],
 )
 
 // must be exported for drizzle to recognise it
@@ -144,11 +122,7 @@ export const editorTable = pgTable(
     state: jsonb("state").$type<JsonValue>(),
     state_updated_at: timestamp("state_updated_at", { mode: "string" }),
     selection: jsonb("selection").$type<SerializedSelection>(),
-    created_at: timestamp("created_at", { mode: "string" })
-      .defaultNow()
-      .notNull(),
+    created_at: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
   },
-  (table) => [
-    uniqueIndex("editor_pane_file_idx").on(table.pane_id, table.file_id),
-  ]
+  (table) => [uniqueIndex("editor_pane_file_idx").on(table.pane_id, table.file_id)],
 )

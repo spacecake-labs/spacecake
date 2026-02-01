@@ -1,14 +1,14 @@
-import { EditorProvider } from "@/contexts/editor-context"
-import { router } from "@/router"
 import { RouterProvider } from "@tanstack/react-router"
 import { Provider } from "jotai"
 import { PostHogProvider } from "posthog-js/react"
 import ReactDOM from "react-dom/client"
 
+import { useTheme } from "@/components/theme-provider"
+import { EditorProvider } from "@/contexts/editor-context"
 import { initializeDatabase } from "@/lib/init-database"
 import posthog from "@/lib/posthog-client"
 import { store } from "@/lib/store"
-import { useTheme } from "@/components/theme-provider"
+import { router } from "@/router"
 
 // initialize database before rendering
 const db = await initializeDatabase()
@@ -32,5 +32,5 @@ root.render(
         <RootWithTheme />
       </EditorProvider>
     </PostHogProvider>
-  </Provider>
+  </Provider>,
 )

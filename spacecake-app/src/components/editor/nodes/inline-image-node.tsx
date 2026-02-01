@@ -6,12 +6,6 @@
  *
  */
 
-import type { JSX } from "react"
-import * as React from "react"
-import {
-  addClassNamesToElement,
-  removeClassNamesFromElement,
-} from "@lexical/utils"
 import type {
   DOMConversionMap,
   DOMConversionOutput,
@@ -25,12 +19,11 @@ import type {
   SerializedLexicalNode,
   Spread,
 } from "lexical"
-import {
-  $applyNodeReplacement,
-  createEditor,
-  DecoratorNode,
-  isHTMLElement,
-} from "lexical"
+import type { JSX } from "react"
+
+import { addClassNamesToElement, removeClassNamesFromElement } from "@lexical/utils"
+import { $applyNodeReplacement, createEditor, DecoratorNode, isHTMLElement } from "lexical"
+import * as React from "react"
 
 import InlineImageComponent from "@/components/editor/inline-image-component"
 
@@ -101,15 +94,12 @@ export class InlineImageNode extends DecoratorNode<JSX.Element> {
       node.__height,
       node.__showCaption,
       node.__caption,
-      node.__key
+      node.__key,
     )
   }
 
-  static importJSON(
-    serializedNode: SerializedInlineImageNode
-  ): InlineImageNode {
-    const { altText, height, width, src, showCaption, position } =
-      serializedNode
+  static importJSON(serializedNode: SerializedInlineImageNode): InlineImageNode {
+    const { altText, height, width, src, showCaption, position } = serializedNode
     return $createInlineImageNode({
       altText,
       height,
@@ -120,9 +110,7 @@ export class InlineImageNode extends DecoratorNode<JSX.Element> {
     }).updateFromJSON(serializedNode)
   }
 
-  updateFromJSON(
-    serializedNode: LexicalUpdateJSON<SerializedInlineImageNode>
-  ): this {
+  updateFromJSON(serializedNode: LexicalUpdateJSON<SerializedInlineImageNode>): this {
     const { caption } = serializedNode
     const node = super.updateFromJSON(serializedNode)
     const nestedEditor = node.__caption
@@ -150,7 +138,7 @@ export class InlineImageNode extends DecoratorNode<JSX.Element> {
     height?: "inherit" | number,
     showCaption?: boolean,
     caption?: LexicalEditor,
-    key?: NodeKey
+    key?: NodeKey,
   ) {
     super(key)
     this.__src = src
@@ -197,10 +185,7 @@ export class InlineImageNode extends DecoratorNode<JSX.Element> {
     writable.__altText = altText
   }
 
-  setWidthAndHeight(
-    width: "inherit" | number,
-    height: "inherit" | number
-  ): void {
+  setWidthAndHeight(width: "inherit" | number, height: "inherit" | number): void {
     const writable = this.getWritable()
     writable.__width = width
     writable.__height = height
@@ -242,10 +227,7 @@ export class InlineImageNode extends DecoratorNode<JSX.Element> {
 
   createDOM(config: EditorConfig): HTMLElement {
     const span = document.createElement("span")
-    for (const cls of [
-      config.theme.inlineImage,
-      getPositionClass(this.__position),
-    ]) {
+    for (const cls of [config.theme.inlineImage, getPositionClass(this.__position)]) {
       if (cls) {
         addClassNamesToElement(span, cls)
       }
@@ -289,21 +271,10 @@ export function $createInlineImageNode({
   key,
 }: InlineImagePayload): InlineImageNode {
   return $applyNodeReplacement(
-    new InlineImageNode(
-      src,
-      altText,
-      position,
-      width,
-      height,
-      showCaption,
-      caption,
-      key
-    )
+    new InlineImageNode(src, altText, position, width, height, showCaption, caption, key),
   )
 }
 
-export function $isInlineImageNode(
-  node: LexicalNode | null | undefined
-): node is InlineImageNode {
+export function $isInlineImageNode(node: LexicalNode | null | undefined): node is InlineImageNode {
   return node instanceof InlineImageNode
 }

@@ -1,18 +1,7 @@
-/*
-AppSidebar handles sidebar UI and folder expansion state.
-*/
-import iconSvg from "@/images/icon.svg"
 import { Link } from "@tanstack/react-router"
 import { useAtom } from "jotai"
 
-import {
-  AbsolutePath,
-  ExpandedFolders,
-  Folder,
-  WorkspaceInfo,
-} from "@/types/workspace"
-import { expandedFoldersAtom } from "@/lib/atoms/atoms"
-import { encodeBase64Url } from "@/lib/utils"
+import { NavMain } from "@/components/nav-main"
 import {
   Sidebar,
   SidebarContent,
@@ -22,7 +11,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { NavMain } from "@/components/nav-main"
+/*
+AppSidebar handles sidebar UI and folder expansion state.
+*/
+import iconSvg from "@/images/icon.svg"
+import { expandedFoldersAtom } from "@/lib/atoms/atoms"
+import { encodeBase64Url } from "@/lib/utils"
+import { AbsolutePath, ExpandedFolders, Folder, WorkspaceInfo } from "@/types/workspace"
 
 // import { NavProjects } from "@/components/nav-projects"
 // import { NavSecondary } from "@/components/nav-secondary"
@@ -34,23 +29,15 @@ interface AppSidebarProps {
   selectedFilePath?: AbsolutePath | null
 }
 
-export function AppSidebar({
-  onFileClick,
-  workspace,
-  selectedFilePath,
-}: AppSidebarProps) {
+export function AppSidebar({ onFileClick, workspace, selectedFilePath }: AppSidebarProps) {
   const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom)
 
-  const handleExpandFolder = async (
-    folderPath: Folder["path"],
-    forceExpand?: boolean
-  ) => {
+  const handleExpandFolder = async (folderPath: Folder["path"], forceExpand?: boolean) => {
     // Check if folder is currently expanded
     const isCurrentlyExpanded = !!expandedFolders[folderPath]
 
     // Determine if we should expand the folder
-    const shouldExpand =
-      forceExpand !== undefined ? forceExpand : !isCurrentlyExpanded
+    const shouldExpand = forceExpand !== undefined ? forceExpand : !isCurrentlyExpanded
 
     // Set expanded state using the actual path
     setExpandedFolders((prev: ExpandedFolders) => ({
@@ -83,9 +70,7 @@ export function AppSidebar({
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">spacecake</span>
-                  {workspace?.name && (
-                    <span className="truncate text-xs">{workspace.name}</span>
-                  )}
+                  {workspace?.name && <span className="truncate text-xs">{workspace.name}</span>}
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -110,9 +95,7 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton
               className="app-no-drag cursor-pointer"
-              onClick={() =>
-                window.electronAPI.openExternal("https://discord.gg/CwFnxfkGHB")
-              }
+              onClick={() => window.electronAPI.openExternal("https://discord.gg/CwFnxfkGHB")}
             >
               <svg
                 className="size-4"

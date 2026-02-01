@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
 
-import { FileType } from "@/types/workspace"
 import {
   fileTypeToCodeMirrorLanguage,
   languageSupport,
@@ -8,6 +7,7 @@ import {
   supportsRichView,
   supportsSourceView,
 } from "@/lib/language-support"
+import { FileType } from "@/types/workspace"
 
 describe("language support", () => {
   describe("python support", () => {
@@ -84,9 +84,7 @@ describe("language support", () => {
     })
 
     it("maps javascript to javascript", () => {
-      expect(fileTypeToCodeMirrorLanguage(FileType.JavaScript)).toBe(
-        "javascript"
-      )
+      expect(fileTypeToCodeMirrorLanguage(FileType.JavaScript)).toBe("javascript")
     })
 
     it("maps plaintext to plaintext", () => {

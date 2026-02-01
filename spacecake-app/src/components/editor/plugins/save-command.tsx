@@ -1,5 +1,3 @@
-import { useEffect } from "react"
-import { useEditor } from "@/contexts/editor-context"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { useSetAtom } from "jotai"
 import {
@@ -9,14 +7,16 @@ import {
   KEY_DOWN_COMMAND,
   LexicalCommand,
 } from "lexical"
+import { useEffect } from "react"
 
-import { AbsolutePath } from "@/types/workspace"
+import { useEditor } from "@/contexts/editor-context"
+import { useRoute } from "@/hooks/use-route"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { serializeEditorToSource } from "@/lib/editor"
 import { addPendingSave } from "@/lib/file-event-handler"
 import { fnv1a64Hex } from "@/lib/hash"
 import { fileTypeFromFileName } from "@/lib/workspace"
-import { useRoute } from "@/hooks/use-route"
+import { AbsolutePath } from "@/types/workspace"
 
 // Create the save command
 export const SAVE_FILE_COMMAND: LexicalCommand<void> = createCommand()
@@ -28,7 +28,7 @@ export function SaveCommandPlugin() {
   const sendFileState = useSetAtom(
     selectedFilePath
       ? fileStateAtomFamily(AbsolutePath(selectedFilePath))
-      : fileStateAtomFamily(AbsolutePath(""))
+      : fileStateAtomFamily(AbsolutePath("")),
   )
   const { cancelDebounce } = useEditor()
 
@@ -62,7 +62,7 @@ export function SaveCommandPlugin() {
         }
         return true // Mark as handled
       },
-      COMMAND_PRIORITY_EDITOR
+      COMMAND_PRIORITY_EDITOR,
     )
   }, [editor, sendFileState, selectedFilePath, cancelDebounce])
 
@@ -72,9 +72,7 @@ export function SaveCommandPlugin() {
     return editor.registerCommand(
       KEY_DOWN_COMMAND,
       (event: KeyboardEvent) => {
-        const isSave =
-          (event.metaKey || event.ctrlKey) &&
-          (event.key === "s" || event.key === "S")
+        const isSave = (event.metaKey || event.ctrlKey) && (event.key === "s" || event.key === "S")
 
         if (isSave) {
           event.preventDefault()
@@ -84,7 +82,7 @@ export function SaveCommandPlugin() {
 
         return false // Let other handlers process the event
       },
-      COMMAND_PRIORITY_HIGH
+      COMMAND_PRIORITY_HIGH,
     )
   }, [editor])
 
@@ -95,9 +93,7 @@ export function SaveCommandPlugin() {
       // Skip if already handled (e.g., by Lexical's KEY_DOWN_COMMAND)
       if (event.defaultPrevented) return
 
-      const isSave =
-        (event.metaKey || event.ctrlKey) &&
-        (event.key === "s" || event.key === "S")
+      const isSave = (event.metaKey || event.ctrlKey) && (event.key === "s" || event.key === "S")
 
       if (isSave) {
         event.preventDefault()

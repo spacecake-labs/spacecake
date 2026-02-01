@@ -1,17 +1,13 @@
+import { Effect, Layer } from "effect"
 import fs from "node:fs"
 import http from "node:http"
 import os from "node:os"
 import path from "node:path"
-
-import { makeClaudeConfigTestLayer } from "@/services/claude-config"
-import {
-  makeClaudeHooksServer,
-  StatuslineService,
-} from "@/services/claude-hooks-server"
-import { FileSystem } from "@/services/file-system"
-import { Effect, Layer } from "effect"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import { makeClaudeConfigTestLayer } from "@/services/claude-config"
+import { makeClaudeHooksServer, StatuslineService } from "@/services/claude-hooks-server"
+import { FileSystem } from "@/services/file-system"
 import { StatuslineInput } from "@/types/statusline"
 
 import statuslineFixture from "../../tests/fixtures/claude/statusline.json"
@@ -58,14 +54,14 @@ describe("ClaudeHooksServer", () => {
     return Layer.mergeAll(
       makeClaudeConfigTestLayer(testDir),
       Layer.succeed(FileSystem, mockFileSystem as FileSystem),
-      StatuslineService.Default
+      StatuslineService.Default,
     )
   }
 
   const makeRequest = (
     method: string,
     urlPath: string,
-    body?: string
+    body?: string,
   ): Promise<{ statusCode: number; body: JsonResponse }> => {
     return new Promise((resolve, reject) => {
       const options: http.RequestOptions = {
@@ -101,9 +97,7 @@ describe("ClaudeHooksServer", () => {
 
   const runTestServer = () => {
     return Effect.gen(function* (_) {
-      const server = yield* _(
-        makeClaudeHooksServer.pipe(Effect.provide(createTestLayer()))
-      )
+      const server = yield* _(makeClaudeHooksServer.pipe(Effect.provide(createTestLayer())))
 
       // Start the server
       yield* _(Effect.promise(() => server.ensureStarted()))
@@ -119,7 +113,7 @@ describe("ClaudeHooksServer", () => {
           if (!fs.existsSync(socketPath)) {
             throw new Error("Socket file not created")
           }
-        })
+        }),
       )
 
       return server
@@ -132,14 +126,12 @@ describe("ClaudeHooksServer", () => {
         Effect.gen(function* (_) {
           yield* _(runTestServer())
 
-          const response = yield* _(
-            Effect.promise(() => makeRequest("GET", "/health"))
-          )
+          const response = yield* _(Effect.promise(() => makeRequest("GET", "/health")))
 
           expect(response.statusCode).toBe(200)
           expect(response.body).toEqual({ status: "ok" })
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -149,14 +141,12 @@ describe("ClaudeHooksServer", () => {
         Effect.gen(function* (_) {
           yield* _(runTestServer())
 
-          const response = yield* _(
-            Effect.promise(() => makeRequest("GET", "/unknown"))
-          )
+          const response = yield* _(Effect.promise(() => makeRequest("GET", "/unknown")))
 
           expect(response.statusCode).toBe(404)
           expect(response.body).toEqual({ error: "Not found" })
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -170,14 +160,14 @@ describe("ClaudeHooksServer", () => {
 
           const response = yield* _(
             Effect.promise(() =>
-              makeRequest("POST", "/statusline", JSON.stringify(statuslineData))
-            )
+              makeRequest("POST", "/statusline", JSON.stringify(statuslineData)),
+            ),
           )
 
           expect(response.statusCode).toBe(200)
           expect(response.body).toEqual({ success: true })
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -193,15 +183,13 @@ describe("ClaudeHooksServer", () => {
           }
 
           const response = yield* _(
-            Effect.promise(() =>
-              makeRequest("POST", "/statusline", JSON.stringify(invalidData))
-            )
+            Effect.promise(() => makeRequest("POST", "/statusline", JSON.stringify(invalidData))),
           )
 
           expect(response.statusCode).toBe(400)
           expect(response.body).toEqual({ error: "Invalid statusline data" })
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -212,15 +200,13 @@ describe("ClaudeHooksServer", () => {
           yield* _(runTestServer())
 
           const response = yield* _(
-            Effect.promise(() =>
-              makeRequest("POST", "/statusline", "not valid json{")
-            )
+            Effect.promise(() => makeRequest("POST", "/statusline", "not valid json{")),
           )
 
           expect(response.statusCode).toBe(400)
           expect(response.body).toEqual({ error: "Failed to parse JSON" })
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -239,8 +225,8 @@ describe("ClaudeHooksServer", () => {
 
           yield* _(
             Effect.promise(() =>
-              makeRequest("POST", "/statusline", JSON.stringify(statuslineData))
-            )
+              makeRequest("POST", "/statusline", JSON.stringify(statuslineData)),
+            ),
           )
 
           // Wait for callback to be triggered
@@ -251,7 +237,7 @@ describe("ClaudeHooksServer", () => {
                 await new Promise((resolve) => setTimeout(resolve, 50))
                 attempts++
               }
-            })
+            }),
           )
 
           expect(receivedData.length).toBe(1)
@@ -260,8 +246,8 @@ describe("ClaudeHooksServer", () => {
             contextUsagePercent: 42.5,
             costUsd: 0.01234,
           })
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -276,12 +262,8 @@ describe("ClaudeHooksServer", () => {
 
           yield* _(
             Effect.promise(() =>
-              makeRequest(
-                "POST",
-                "/statusline",
-                JSON.stringify(validStatuslineInput)
-              )
-            )
+              makeRequest("POST", "/statusline", JSON.stringify(validStatuslineInput)),
+            ),
           )
 
           // Wait for processing
@@ -292,14 +274,14 @@ describe("ClaudeHooksServer", () => {
                 await new Promise((resolve) => setTimeout(resolve, 50))
                 attempts++
               }
-            })
+            }),
           )
 
           const lastStatusline = server.getLastStatusline()
           expect(lastStatusline).not.toBeNull()
           expect(lastStatusline?.model).toBe("Opus")
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -307,9 +289,7 @@ describe("ClaudeHooksServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* (_) {
-          const server = yield* _(
-            makeClaudeHooksServer.pipe(Effect.provide(createTestLayer()))
-          )
+          const server = yield* _(makeClaudeHooksServer.pipe(Effect.provide(createTestLayer())))
 
           // Before starting
           expect(server.isStarted()).toBe(false)
@@ -319,8 +299,8 @@ describe("ClaudeHooksServer", () => {
 
           // After starting
           expect(server.isStarted()).toBe(true)
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -342,21 +322,17 @@ describe("ClaudeHooksServer", () => {
 
           yield* _(
             Effect.promise(() =>
-              makeRequest("POST", "/statusline", JSON.stringify(statuslineData))
-            )
+              makeRequest("POST", "/statusline", JSON.stringify(statuslineData)),
+            ),
           )
 
           // Wait a bit to ensure callback would have been called
-          yield* _(
-            Effect.promise(
-              () => new Promise((resolve) => setTimeout(resolve, 100))
-            )
-          )
+          yield* _(Effect.promise(() => new Promise((resolve) => setTimeout(resolve, 100))))
 
           // Should not have received any data since we unsubscribed
           expect(receivedData.length).toBe(0)
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -366,13 +342,11 @@ describe("ClaudeHooksServer", () => {
         Effect.gen(function* (_) {
           yield* _(runTestServer())
 
-          const response = yield* _(
-            Effect.promise(() => makeRequest("OPTIONS", "/statusline"))
-          )
+          const response = yield* _(Effect.promise(() => makeRequest("OPTIONS", "/statusline")))
 
           expect(response.statusCode).toBe(200)
-        })
-      )
+        }),
+      ),
     )
   })
 })

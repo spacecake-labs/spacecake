@@ -26,9 +26,7 @@ export const SelectionChangedPayloadSchema = Schema.Struct({
   selection: ClaudeSelectionSchema,
 })
 
-export type SelectionChangedPayload = Schema.Schema.Type<
-  typeof SelectionChangedPayloadSchema
->
+export type SelectionChangedPayload = Schema.Schema.Type<typeof SelectionChangedPayloadSchema>
 
 export const AtMentionedPayloadSchema = Schema.Struct({
   filePath: Schema.String,
@@ -36,9 +34,7 @@ export const AtMentionedPayloadSchema = Schema.Struct({
   lineEnd: Schema.Number,
 })
 
-export type AtMentionedPayload = Schema.Schema.Type<
-  typeof AtMentionedPayloadSchema
->
+export type AtMentionedPayload = Schema.Schema.Type<typeof AtMentionedPayloadSchema>
 
 // openFile tool arguments from Claude Code
 export const OpenFileArgsSchema = Schema.Struct({
@@ -70,6 +66,4 @@ export const EditorExtendedSelectionSchema = Schema.Struct({
   claudeSelection: ClaudeSelectionSchema,
 })
 
-export type EditorExtendedSelection = Schema.Schema.Type<
-  typeof EditorExtendedSelectionSchema
->
+export type EditorExtendedSelection = Schema.Schema.Type<typeof EditorExtendedSelectionSchema>

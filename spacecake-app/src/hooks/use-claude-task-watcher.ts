@@ -1,9 +1,9 @@
-import { useEffect, useRef } from "react"
 import { useAtomValue, useSetAtom } from "jotai"
+import { useEffect, useRef } from "react"
 
-import { isRight } from "@/types/adt"
 import { claudeStatuslineAtom } from "@/lib/atoms/atoms"
 import { claudeTasksAtom } from "@/lib/atoms/claude-tasks"
+import { isRight } from "@/types/adt"
 
 /**
  * Watches the Claude Code task list for the current session.

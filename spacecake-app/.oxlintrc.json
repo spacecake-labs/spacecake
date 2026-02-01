@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import"],
+  "jsPlugins": ["eslint-plugin-no-relative-import-paths"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "no-unused-vars": ["warn", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_" }],
+    "no-relative-import-paths/no-relative-import-paths": [
+      "error",
+      { "allowSameFolder": false, "rootDir": "src", "prefix": "@" }
+    ]
+  },
+  "ignorePatterns": [".tanstack", ".vite", "tests/fixtures/**", "src/schema/drizzle-effect.ts"]
+}

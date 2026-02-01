@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import { $isCodeNode, CodeNode } from "@lexical/code"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import {
@@ -15,6 +14,7 @@ import {
   LexicalCommand,
   SKIP_DOM_SELECTION_TAG,
 } from "lexical"
+import { useEffect } from "react"
 
 /**
  * Handles arrow key navigation for code blocks in Lexical.
@@ -32,10 +32,7 @@ import {
 export function CodeBlockPlugin(): null {
   const [editor] = useLexicalComposerContext()
 
-  const insertParagraphBefore = (
-    codeNode: CodeNode,
-    event: KeyboardEvent | null
-  ) => {
+  const insertParagraphBefore = (codeNode: CodeNode, event: KeyboardEvent | null) => {
     event?.preventDefault()
 
     editor.update(() => {
@@ -48,10 +45,7 @@ export function CodeBlockPlugin(): null {
     return true
   }
 
-  const insertParagraphAfter = (
-    codeNode: CodeNode,
-    event: KeyboardEvent | null
-  ) => {
+  const insertParagraphAfter = (codeNode: CodeNode, event: KeyboardEvent | null) => {
     event?.preventDefault()
 
     editor.update(() => {
@@ -75,9 +69,7 @@ export function CodeBlockPlugin(): null {
 
         const anchor = selection.anchor
         const anchorNode = anchor.getNode()
-        const codeNode = $isCodeNode(anchorNode)
-          ? anchorNode
-          : anchorNode.getParent()
+        const codeNode = $isCodeNode(anchorNode) ? anchorNode : anchorNode.getParent()
 
         if (!$isCodeNode(codeNode)) {
           return false
@@ -88,10 +80,7 @@ export function CodeBlockPlugin(): null {
         const anchorTextLength = anchorNode.getTextContent().length
 
         // Handle end of code block (DOWN/RIGHT)
-        if (
-          command === KEY_ARROW_DOWN_COMMAND ||
-          command === KEY_ARROW_RIGHT_COMMAND
-        ) {
+        if (command === KEY_ARROW_DOWN_COMMAND || command === KEY_ARROW_RIGHT_COMMAND) {
           if (offset === anchorTextLength) {
             const codeChildren = codeNode.getChildren()
             const lastChild = codeChildren[codeChildren.length - 1]
@@ -110,10 +99,7 @@ export function CodeBlockPlugin(): null {
         }
 
         // Handle start of code block (UP/LEFT)
-        if (
-          command === KEY_ARROW_UP_COMMAND ||
-          command === KEY_ARROW_LEFT_COMMAND
-        ) {
+        if (command === KEY_ARROW_UP_COMMAND || command === KEY_ARROW_LEFT_COMMAND) {
           if (offset === 0) {
             const codeChildren = codeNode.getChildren()
             const firstChild = codeChildren[0]
@@ -133,7 +119,7 @@ export function CodeBlockPlugin(): null {
 
         return false
       },
-      COMMAND_PRIORITY_HIGH
+      COMMAND_PRIORITY_HIGH,
     )
   }
 

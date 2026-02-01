@@ -1,28 +1,11 @@
-import * as React from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { useAtom, useAtomValue, useSetAtom, useStore } from "jotai"
 import { FileWarning, Loader2Icon, RotateCcw, Trash2 } from "lucide-react"
+import * as React from "react"
 import { toast } from "sonner"
 
-import { match } from "@/types/adt"
 import type { File, Folder, WorkspaceInfo } from "@/types/workspace"
-import { AbsolutePath } from "@/types/workspace"
-import {
-  contextItemNameAtom,
-  deletionStateAtom,
-  editingItemAtom,
-  isCreatingInContextAtom,
-  revertStateAtom,
-} from "@/lib/atoms/atoms"
-import {
-  fileStateAtomFamily,
-  flatVisibleTreeAtom,
-  sortedFileTreeAtom,
-  type FlatFileTreeItem,
-} from "@/lib/atoms/file-tree"
-import { createFolder, remove, rename, saveFile } from "@/lib/fs"
-import { useRoute } from "@/hooks/use-route"
-import { useWorkspaceCache } from "@/hooks/use-workspace-cache"
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -41,6 +24,24 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { TreeRow, WorkspaceDropdownMenu } from "@/components/workspace-tree"
+import { useRoute } from "@/hooks/use-route"
+import { useWorkspaceCache } from "@/hooks/use-workspace-cache"
+import {
+  contextItemNameAtom,
+  deletionStateAtom,
+  editingItemAtom,
+  isCreatingInContextAtom,
+  revertStateAtom,
+} from "@/lib/atoms/atoms"
+import {
+  fileStateAtomFamily,
+  flatVisibleTreeAtom,
+  sortedFileTreeAtom,
+  type FlatFileTreeItem,
+} from "@/lib/atoms/file-tree"
+import { createFolder, remove, rename, saveFile } from "@/lib/fs"
+import { match } from "@/types/adt"
+import { AbsolutePath } from "@/types/workspace"
 
 interface NavMainProps {
   onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
@@ -95,9 +96,7 @@ export function NavMain({
   workspace,
 }: NavMainProps) {
   const [editingItem, setEditingItem] = useAtom(editingItemAtom)
-  const [isCreatingInContext, setIsCreatingInContext] = useAtom(
-    isCreatingInContextAtom
-  )
+  const [isCreatingInContext, setIsCreatingInContext] = useAtom(isCreatingInContextAtom)
   // Removed global subscription to contextItemNameAtom here
   const setContextItemName = useSetAtom(contextItemNameAtom)
   const [deletionState, setDeletionState] = useAtom(deletionStateAtom)
@@ -107,9 +106,7 @@ export function NavMain({
   const selectedFilePath = route?.filePath || null
 
   // Validation state for rename
-  const [validationError, setValidationError] = React.useState<string | null>(
-    null
-  )
+  const [validationError, setValidationError] = React.useState<string | null>(null)
 
   const sortedFileTree = useAtomValue(sortedFileTreeAtom)
   const flatVisibleTree = useAtomValue(flatVisibleTreeAtom)
@@ -127,8 +124,7 @@ export function NavMain({
 
   const { cacheMap } = useWorkspaceCache(workspace.path)
 
-  const isCreatingInWorkspace =
-    isCreatingInContext?.parentPath === workspace?.path
+  const isCreatingInWorkspace = isCreatingInContext?.parentPath === workspace?.path
 
   const handleCreateFile = React.useCallback(
     async (name: string) => {
@@ -147,12 +143,7 @@ export function NavMain({
         },
       })
     },
-    [
-      isCreatingInContext,
-      onFileClick,
-      setContextItemName,
-      setIsCreatingInContext,
-    ]
+    [isCreatingInContext, onFileClick, setContextItemName, setIsCreatingInContext],
   )
 
   const handleCreateFolder = React.useCallback(
@@ -171,31 +162,25 @@ export function NavMain({
         },
       })
     },
-    [isCreatingInContext, setContextItemName, setIsCreatingInContext]
+    [isCreatingInContext, setContextItemName, setIsCreatingInContext],
   )
 
   // Validate rename target - memoized
   const validateRenameTarget = React.useCallback(
-    (
-      newName: string,
-      currentPath: string,
-      originalName: string
-    ): string | null => {
+    (newName: string, currentPath: string, originalName: string): string | null => {
       if (!newName.trim()) return "name cannot be empty"
       if (newName.trim() === originalName) return null
 
       const currentDir = currentPath.substring(0, currentPath.lastIndexOf("/"))
       const newPath = `${currentDir}/${newName.trim()}`
 
-      const existingFile = sortedFileTree.find(
-        (f: File | Folder) => f.path === newPath
-      )
+      const existingFile = sortedFileTree.find((f: File | Folder) => f.path === newPath)
       if (existingFile) {
         return `'${newName.trim()}' already exists`
       }
       return null
     },
-    [sortedFileTree]
+    [sortedFileTree],
   )
 
   const handleFileClickCallback = React.useCallback(
@@ -204,7 +189,7 @@ export function NavMain({
         onFileClick(filePath)
       }
     },
-    [onFileClick]
+    [onFileClick],
   )
 
   const handleFolderToggleCallback = React.useCallback(
@@ -213,7 +198,7 @@ export function NavMain({
         onExpandFolder(folderPath)
       }
     },
-    [onExpandFolder]
+    [onExpandFolder],
   )
 
   const handleStartRenameCallback = React.useCallback(
@@ -228,7 +213,7 @@ export function NavMain({
         setValidationError(null)
       }
     },
-    [setEditingItem]
+    [setEditingItem],
   )
 
   const handleRenameCallback = React.useCallback(async () => {
@@ -248,11 +233,7 @@ export function NavMain({
       return
     }
 
-    const error = validateRenameTarget(
-      newName,
-      oldPath,
-      editingItem.originalValue || ""
-    )
+    const error = validateRenameTarget(newName, oldPath, editingItem.originalValue || "")
     if (error) {
       setValidationError(error)
       return
@@ -260,8 +241,7 @@ export function NavMain({
 
     const pathParts = oldPath.split("/")
     pathParts.pop()
-    const newPath =
-      pathParts.length > 0 ? `${pathParts.join("/")}/${newName}` : newName
+    const newPath = pathParts.length > 0 ? `${pathParts.join("/")}/${newName}` : newName
 
     const result = await rename(AbsolutePath(oldPath), AbsolutePath(newPath))
 
@@ -295,7 +275,7 @@ export function NavMain({
         setEditingItem(null)
       }
     },
-    [handleRenameCallback, setEditingItem]
+    [handleRenameCallback, setEditingItem],
   )
 
   const cancelRenameCallback = React.useCallback(() => {
@@ -310,15 +290,11 @@ export function NavMain({
         setEditingItem((prev) => (prev ? { ...prev, value } : null))
 
         // Validation needs state.
-        const error = validateRenameTarget(
-          value,
-          editingItem.path,
-          editingItem.originalValue || ""
-        )
+        const error = validateRenameTarget(value, editingItem.path, editingItem.originalValue || "")
         setValidationError(error)
       }
     },
-    [editingItem, setEditingItem, validateRenameTarget]
+    [editingItem, setEditingItem, validateRenameTarget],
   )
 
   const handleStartDeleteCallback = React.useCallback(
@@ -326,17 +302,14 @@ export function NavMain({
       setDeletionState({ item, isOpen: true, isDeleting: false })
     },
 
-    [setDeletionState]
+    [setDeletionState],
   )
 
   const handleConfirmDelete = async () => {
     if (!deletionState.item || !workspace?.path) return
 
     // prevent deletion of system folders
-    if (
-      deletionState.item.kind === "folder" &&
-      deletionState.item.isSystemFolder
-    ) {
+    if (deletionState.item.kind === "folder" && deletionState.item.isSystemFolder) {
       toast.error("system folders cannot be deleted")
       setDeletionState({ item: null, isOpen: false, isDeleting: false })
       return
@@ -347,7 +320,7 @@ export function NavMain({
     const itemToDelete = deletionState.item
     const result = await remove(
       AbsolutePath(itemToDelete.path),
-      deletionState.item.kind === "folder"
+      deletionState.item.kind === "folder",
     )
 
     match(result, {
@@ -376,7 +349,7 @@ export function NavMain({
         isReverting: false,
       })
     },
-    [setRevertState]
+    [setRevertState],
   )
 
   const store = useStore()
@@ -410,11 +383,7 @@ export function NavMain({
           {workspace?.path && <WorkspaceDropdownMenu workspace={workspace} />}
         </SidebarGroupLabel>
 
-        <div
-          ref={parentRef}
-          className="flex-1 overflow-auto"
-          style={{ contain: "strict" }}
-        >
+        <div ref={parentRef} className="flex-1 overflow-auto" style={{ contain: "strict" }}>
           <SidebarMenu>
             {isCreatingInWorkspace && workspace?.path && (
               <SidebarMenuItem>
@@ -458,9 +427,7 @@ export function NavMain({
                           transform: `translateY(${virtualItem.start}px)`,
                         }}
                       >
-                        <SidebarMenuItem
-                          style={{ paddingLeft: `${indentPx}px` }}
-                        >
+                        <SidebarMenuItem style={{ paddingLeft: `${indentPx}px` }}>
                           <CreationInput
                             kind={flatItem.item.creationKind}
                             onCreateFile={handleCreateFile}
@@ -553,8 +520,7 @@ export function NavMain({
             <DialogDescription>
               are you sure you want to delete '
               {deletionState.item &&
-              (deletionState.item.kind === "file" ||
-                deletionState.item.kind === "folder")
+              (deletionState.item.kind === "file" || deletionState.item.kind === "folder")
                 ? deletionState.item.name
                 : ""}
               '
@@ -605,8 +571,7 @@ export function NavMain({
           <DialogHeader>
             <DialogTitle>revert file</DialogTitle>
             <DialogDescription>
-              are you sure you want to revert '
-              {revertState.isOpen ? revertState.fileName : ""}'?
+              are you sure you want to revert '{revertState.isOpen ? revertState.fileName : ""}'?
               <br />
               all unsaved changes will be lost.
             </DialogDescription>

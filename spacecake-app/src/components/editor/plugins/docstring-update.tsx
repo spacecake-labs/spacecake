@@ -1,12 +1,12 @@
 import { $addUpdateTag, LexicalEditor, SKIP_DOM_SELECTION_TAG } from "lexical"
 
-import { PyBlock } from "@/types/parser"
 import { CodeBlockNode } from "@/components/editor/nodes/code-node"
+import { PyBlock } from "@/types/parser"
 
 export async function maybeUpdateDocstring(
   editor: LexicalEditor,
   node: CodeBlockNode,
-  blocks: PyBlock[]
+  blocks: PyBlock[],
 ) {
   // if we have exactly one block and it has docstring info, update the node
   if (blocks.length === 1) {

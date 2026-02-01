@@ -22,7 +22,7 @@ describe("WorkspaceError tagged classes", () => {
       })
       const result = Match.value(error).pipe(
         Match.tag("WorkspaceNotFound", (e) => `not found: ${e.path}`),
-        Match.orElse(() => "other")
+        Match.orElse(() => "other"),
       )
       expect(result).toBe("not found: /test/path")
     })
@@ -41,7 +41,7 @@ describe("WorkspaceError tagged classes", () => {
       })
       const result = Match.value(error).pipe(
         Match.tag("WorkspaceNotAccessible", (e) => `not accessible: ${e.path}`),
-        Match.orElse(() => "other")
+        Match.orElse(() => "other"),
       )
       expect(result).toBe("not accessible: /protected/path")
     })
@@ -89,9 +89,7 @@ describe("WorkspaceError tagged classes", () => {
         _tag: "UnknownError",
         path: "/test/path",
       }
-      expect(() =>
-        Schema.decodeUnknownSync(WorkspaceErrorSchema)(invalidInput)
-      ).toThrow()
+      expect(() => Schema.decodeUnknownSync(WorkspaceErrorSchema)(invalidInput)).toThrow()
     })
 
     test("fails to decode invalid structure", () => {
@@ -99,9 +97,7 @@ describe("WorkspaceError tagged classes", () => {
         _tag: "WorkspaceNotFound",
         // missing path
       }
-      expect(() =>
-        Schema.decodeUnknownSync(WorkspaceErrorSchema)(invalidInput)
-      ).toThrow()
+      expect(() => Schema.decodeUnknownSync(WorkspaceErrorSchema)(invalidInput)).toThrow()
     })
   })
 
@@ -111,15 +107,11 @@ describe("WorkspaceError tagged classes", () => {
         Match.value(error).pipe(
           Match.tag("WorkspaceNotFound", () => "not found"),
           Match.tag("WorkspaceNotAccessible", () => "not accessible"),
-          Match.orElse(() => "unknown")
+          Match.orElse(() => "unknown"),
         )
 
-      expect(handleError(new WorkspaceNotFound({ path: "/a" }))).toBe(
-        "not found"
-      )
-      expect(handleError(new WorkspaceNotAccessible({ path: "/b" }))).toBe(
-        "not accessible"
-      )
+      expect(handleError(new WorkspaceNotFound({ path: "/a" }))).toBe("not found")
+      expect(handleError(new WorkspaceNotAccessible({ path: "/b" }))).toBe("not accessible")
     })
   })
 })

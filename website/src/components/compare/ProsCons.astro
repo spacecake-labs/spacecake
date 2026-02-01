@@ -1,0 +1,140 @@
+---
+/**
+ * Pros and Cons component
+ * Clean two-column layout for listing advantages/disadvantages
+ */
+
+interface Props {
+  product: string
+  pros: string[]
+  cons: string[]
+}
+
+const { product, pros, cons } = Astro.props
+---
+
+<div class="pros-cons">
+  <h3 class="product-name">{product}</h3>
+  <div class="columns">
+    <div class="column pros">
+      <div class="column-header">
+        <span class="icon">+</span>
+        Pros
+      </div>
+      <ul>
+        {pros.map((pro) => <li>{pro}</li>)}
+      </ul>
+    </div>
+    <div class="column cons">
+      <div class="column-header">
+        <span class="icon">-</span>
+        Cons
+      </div>
+      <ul>
+        {cons.map((con) => <li>{con}</li>)}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<style>
+  .pros-cons {
+    margin: 2rem 0;
+    border: 1px solid #262626;
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  .product-name {
+    background: #1a1a1a;
+    padding: 1rem 1.25rem;
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #fafafa;
+    border-bottom: 1px solid #262626;
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (max-width: 640px) {
+    .columns {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .column {
+    padding: 1rem 1.25rem;
+  }
+
+  .column.pros {
+    border-right: 1px solid #262626;
+  }
+
+  @media (max-width: 640px) {
+    .column.pros {
+      border-right: none;
+      border-bottom: 1px solid #262626;
+    }
+  }
+
+  .column-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+  }
+
+  .pros .column-header {
+    color: #10b981;
+  }
+
+  .cons .column-header {
+    color: #ef4444;
+  }
+
+  .icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.875rem;
+  }
+
+  .pros .icon {
+    background: rgba(16, 185, 129, 0.2);
+  }
+
+  .cons .icon {
+    background: rgba(239, 68, 68, 0.2);
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  li {
+    padding: 0.375rem 0;
+    color: #a1a1a1;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  li::before {
+    content: "•";
+    margin-right: 0.5rem;
+    color: #525252;
+  }
+</style>

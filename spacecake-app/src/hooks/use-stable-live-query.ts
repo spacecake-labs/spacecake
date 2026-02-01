@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react"
-import { usePGlite } from "@electric-sql/pglite-react"
 import type { LiveQueryResults } from "@electric-sql/pglite/live"
+
+import { usePGlite } from "@electric-sql/pglite-react"
+import { useEffect, useRef, useState } from "react"
 
 import { replaceEqualDeep } from "@/lib/structural-sharing"
 
@@ -10,7 +11,7 @@ import { replaceEqualDeep } from "@/lib/structural-sharing"
  */
 export function useStableLiveQuery<T>(
   sql: string,
-  params?: unknown[]
+  params?: unknown[],
 ): LiveQueryResults<T> | undefined {
   const db = usePGlite()
   const [results, setResults] = useState<LiveQueryResults<T> | undefined>()
@@ -29,10 +30,7 @@ export function useStableLiveQuery<T>(
       }
 
       // Handle initial results
-      const initialShared = replaceEqualDeep(
-        prevResultsRef.current,
-        liveQuery.initialResults
-      )
+      const initialShared = replaceEqualDeep(prevResultsRef.current, liveQuery.initialResults)
       if (initialShared !== prevResultsRef.current) {
         prevResultsRef.current = initialShared
         setResults(initialShared)

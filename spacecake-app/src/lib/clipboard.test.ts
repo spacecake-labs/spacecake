@@ -17,27 +17,21 @@ const makeTestClipboardLayer = (items: ClipboardItems) =>
       readString: Effect.succeed(""),
       write: () => Effect.void,
       writeString: () => Effect.void,
-    })
+    }),
   )
 
 const makeFailingClipboardLayer = () =>
   Layer.succeed(
     Clipboard,
     makeClipboard({
-      read: Effect.fail(
-        new ClipboardError({ message: "Permission denied", cause: null })
-      ),
-      readString: Effect.fail(
-        new ClipboardError({ message: "Permission denied", cause: null })
-      ),
+      read: Effect.fail(new ClipboardError({ message: "Permission denied", cause: null })),
+      readString: Effect.fail(new ClipboardError({ message: "Permission denied", cause: null })),
       write: () => Effect.void,
       writeString: () => Effect.void,
-    })
+    }),
   )
 
-const makeTestTerminalWriterLayer = (
-  writes: Array<{ id: string; data: string }>
-) =>
+const makeTestTerminalWriterLayer = (writes: Array<{ id: string; data: string }>) =>
   Layer.succeed(TerminalWriter, {
     write: (id, data) =>
       Effect.sync(() => {
@@ -54,9 +48,7 @@ describe("clipboard", () => {
       const imageItem = new ClipboardItem({ "image/png": imageBlob })
       const layer = makeTestClipboardLayer([imageItem])
 
-      const result = await Effect.runPromise(
-        hasImageInClipboard.pipe(Effect.provide(layer))
-      )
+      const result = await Effect.runPromise(hasImageInClipboard.pipe(Effect.provide(layer)))
 
       expect(result).toBe(true)
     })
@@ -68,9 +60,7 @@ describe("clipboard", () => {
       const jpegItem = new ClipboardItem({ "image/jpeg": jpegBlob })
       const layer = makeTestClipboardLayer([jpegItem])
 
-      const result = await Effect.runPromise(
-        hasImageInClipboard.pipe(Effect.provide(layer))
-      )
+      const result = await Effect.runPromise(hasImageInClipboard.pipe(Effect.provide(layer)))
 
       expect(result).toBe(true)
     })
@@ -80,9 +70,7 @@ describe("clipboard", () => {
       const textItem = new ClipboardItem({ "text/plain": textBlob })
       const layer = makeTestClipboardLayer([textItem])
 
-      const result = await Effect.runPromise(
-        hasImageInClipboard.pipe(Effect.provide(layer))
-      )
+      const result = await Effect.runPromise(hasImageInClipboard.pipe(Effect.provide(layer)))
 
       expect(result).toBe(false)
     })
@@ -90,9 +78,7 @@ describe("clipboard", () => {
     it("returns false when clipboard is empty", async () => {
       const layer = makeTestClipboardLayer([])
 
-      const result = await Effect.runPromise(
-        hasImageInClipboard.pipe(Effect.provide(layer))
-      )
+      const result = await Effect.runPromise(hasImageInClipboard.pipe(Effect.provide(layer)))
 
       expect(result).toBe(false)
     })
@@ -100,9 +86,7 @@ describe("clipboard", () => {
     it("returns false when clipboard read fails", async () => {
       const layer = makeFailingClipboardLayer()
 
-      const result = await Effect.runPromise(
-        hasImageInClipboard.pipe(Effect.provide(layer))
-      )
+      const result = await Effect.runPromise(hasImageInClipboard.pipe(Effect.provide(layer)))
 
       expect(result).toBe(false)
     })
@@ -117,9 +101,7 @@ describe("clipboard", () => {
       })
       const layer = makeTestClipboardLayer([mixedItem])
 
-      const result = await Effect.runPromise(
-        hasImageInClipboard.pipe(Effect.provide(layer))
-      )
+      const result = await Effect.runPromise(hasImageInClipboard.pipe(Effect.provide(layer)))
 
       expect(result).toBe(true)
     })
@@ -134,11 +116,11 @@ describe("clipboard", () => {
       const imageItem = new ClipboardItem({ "image/png": imageBlob })
       const layer = Layer.mergeAll(
         makeTestClipboardLayer([imageItem]),
-        makeTestTerminalWriterLayer(writes)
+        makeTestTerminalWriterLayer(writes),
       )
 
       const result = await Effect.runPromise(
-        handleImagePaste("terminal-1").pipe(Effect.provide(layer))
+        handleImagePaste("terminal-1").pipe(Effect.provide(layer)),
       )
 
       expect(result).toBe(true)
@@ -151,11 +133,11 @@ describe("clipboard", () => {
       const textItem = new ClipboardItem({ "text/plain": textBlob })
       const layer = Layer.mergeAll(
         makeTestClipboardLayer([textItem]),
-        makeTestTerminalWriterLayer(writes)
+        makeTestTerminalWriterLayer(writes),
       )
 
       const result = await Effect.runPromise(
-        handleImagePaste("terminal-1").pipe(Effect.provide(layer))
+        handleImagePaste("terminal-1").pipe(Effect.provide(layer)),
       )
 
       expect(result).toBe(false)
@@ -164,13 +146,10 @@ describe("clipboard", () => {
 
     it("does not write to terminal when clipboard is empty", async () => {
       const writes: Array<{ id: string; data: string }> = []
-      const layer = Layer.mergeAll(
-        makeTestClipboardLayer([]),
-        makeTestTerminalWriterLayer(writes)
-      )
+      const layer = Layer.mergeAll(makeTestClipboardLayer([]), makeTestTerminalWriterLayer(writes))
 
       const result = await Effect.runPromise(
-        handleImagePaste("terminal-1").pipe(Effect.provide(layer))
+        handleImagePaste("terminal-1").pipe(Effect.provide(layer)),
       )
 
       expect(result).toBe(false)
@@ -179,13 +158,10 @@ describe("clipboard", () => {
 
     it("does not write to terminal when clipboard read fails", async () => {
       const writes: Array<{ id: string; data: string }> = []
-      const layer = Layer.mergeAll(
-        makeFailingClipboardLayer(),
-        makeTestTerminalWriterLayer(writes)
-      )
+      const layer = Layer.mergeAll(makeFailingClipboardLayer(), makeTestTerminalWriterLayer(writes))
 
       const result = await Effect.runPromise(
-        handleImagePaste("terminal-1").pipe(Effect.provide(layer))
+        handleImagePaste("terminal-1").pipe(Effect.provide(layer)),
       )
 
       expect(result).toBe(false)
@@ -200,12 +176,10 @@ describe("clipboard", () => {
       const imageItem = new ClipboardItem({ "image/png": imageBlob })
       const layer = Layer.mergeAll(
         makeTestClipboardLayer([imageItem]),
-        makeTestTerminalWriterLayer(writes)
+        makeTestTerminalWriterLayer(writes),
       )
 
-      await Effect.runPromise(
-        handleImagePaste("my-custom-terminal-id").pipe(Effect.provide(layer))
-      )
+      await Effect.runPromise(handleImagePaste("my-custom-terminal-id").pipe(Effect.provide(layer)))
 
       expect(writes).toEqual([{ id: "my-custom-terminal-id", data: "\x16" }])
     })

@@ -1,7 +1,7 @@
-import { PyBlock } from "@/types/parser"
-import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { delimitedNode } from "@/components/editor/nodes/delimited-node"
+import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
+import { PyBlock } from "@/types/parser"
 
 /**
  * Pure function that converts a Python block into a delimited Lexical node
@@ -17,6 +17,6 @@ export function delimitPyBlock(block: PyBlock, filePath: string) {
         src: filePath,
         block: block,
       }),
-    delimitedString
+    delimitedString,
   )
 }

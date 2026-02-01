@@ -1,12 +1,8 @@
 import { readFileSync } from "fs"
 import { join } from "path"
-
-import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { Language, Parser } from "web-tree-sitter"
 
-import { PyBlock } from "@/types/parser"
-import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
 import languages from "@/lib/parser/languages"
 import {
   blockKind,
@@ -17,6 +13,9 @@ import {
   parseCodeBlocks,
   parsePythonContentStreaming,
 } from "@/lib/parser/python/blocks"
+import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
+import { PyBlock } from "@/types/parser"
+import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
 
 let Python: Language
 
@@ -229,10 +228,7 @@ class Person:
   })
   describe("parseCodeBlocks", () => {
     it("should parse blocks from core.py", async () => {
-      const code = readFileSync(
-        join(__dirname, "../../../../tests/fixtures/core.py"),
-        "utf-8"
-      )
+      const code = readFileSync(join(__dirname, "../../../../tests/fixtures/core.py"), "utf-8")
 
       const blocks: PyBlock[] = []
       for await (const block of parseCodeBlocks(code, "test.py")) {
@@ -248,39 +244,35 @@ class Person:
       // import block
       expect(blocks[1].kind).toBe("import")
       expect(blocks[1].text).toBe(
-        "\n\nimport math\nimport pandas as pd\n\nfrom dataclasses import dataclass\nfrom datetime import datetime"
+        "\n\nimport math\nimport pandas as pd\n\nfrom dataclasses import dataclass\nfrom datetime import datetime",
       )
       expect(blocks[1].startLine).toBe(3)
 
       expect(blocks[2].kind).toBe("dataclass")
-      expect(blocks[2].text).toBe(
-        "\n\n\n@dataclass\nclass Person:\n    name: str\n    age: int"
-      )
+      expect(blocks[2].text).toBe("\n\n\n@dataclass\nclass Person:\n    name: str\n    age: int")
       expect(blocks[2].startLine).toBe(10)
 
       expect(blocks[3].kind).toBe("function")
       expect(blocks[3].text).toBe(
-        "\n\n\n# fibonacci function\ndef fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n - 1) + fibonacci(n - 2)"
+        "\n\n\n# fibonacci function\ndef fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n - 1) + fibonacci(n - 2)",
       )
       expect(blocks[3].startLine).toBe(16)
 
       expect(blocks[4].kind).toBe("class")
       expect(blocks[4].text).toBe(
-        "\n\n\nclass Calculator:\n    def add(self, a, b):\n        return a + b"
+        "\n\n\nclass Calculator:\n    def add(self, a, b):\n        return a + b",
       )
       expect(blocks[4].startLine).toBe(23)
 
       // Misc block between class and main
       expect(blocks[5].kind).toBe("misc")
       expect(blocks[5].name.kind).toBe("anonymous")
-      expect(blocks[5].text).toBe(
-        `\n\n\nmisc_var = True\nprint(f"here's a misc var: {misc_var}")`
-      )
+      expect(blocks[5].text).toBe(`\n\n\nmisc_var = True\nprint(f"here's a misc var: {misc_var}")`)
       expect(blocks[5].startLine).toBe(28)
 
       expect(blocks[6].kind).toBe("main")
       expect(blocks[6].text).toBe(
-        `\n\nif __name__ == "__main__":\n    text = input("echo: ")\n    print(text)`
+        `\n\nif __name__ == "__main__":\n    text = input("echo: ")\n    print(text)`,
       )
       expect(blocks[6].startLine).toBe(31)
     })
@@ -452,9 +444,7 @@ import pandas as pd
 
     // markdown block - all consecutive mdocstring comments should be in one block
     expect(blocks[2].kind).toBe("markdown block")
-    expect(blocks[2].text).toBe(
-      "\n\n#🍰 # a header\n#🍰 ## a subheader\n#🍰 a paragraph"
-    )
+    expect(blocks[2].text).toBe("\n\n#🍰 # a header\n#🍰 ## a subheader\n#🍰 a paragraph")
     expect(blocks[2].startLine).toBe(5)
   })
 

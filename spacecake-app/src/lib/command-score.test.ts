@@ -37,10 +37,7 @@ describe("commandScore", () => {
   })
 
   it("command score should include unix-style aliases in scoring", () => {
-    const scoreWithAliases = commandScore("delete file", "rm", [
-      "remove",
-      "file",
-    ])
+    const scoreWithAliases = commandScore("delete file", "rm", ["remove", "file"])
     const scoreWithoutAliases = commandScore("delete file", "rm", [])
     expect(scoreWithAliases).toBeGreaterThan(scoreWithoutAliases)
   })
@@ -190,11 +187,7 @@ describe("commandScore", () => {
     })
 
     it("should return 0 for completely unrelated files", () => {
-      const files = [
-        "src/components/Button.tsx",
-        "src/utils/helpers.ts",
-        "src/styles/globals.css",
-      ]
+      const files = ["src/components/Button.tsx", "src/utils/helpers.ts", "src/styles/globals.css"]
 
       const scores = files.map((file) => ({
         file,

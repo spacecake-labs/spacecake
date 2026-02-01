@@ -31,9 +31,7 @@ test.describe("ghostty terminal", () => {
     await expect(terminalElement).toBeVisible()
 
     // Wait for shell profile to be loaded (shell integration complete)
-    await expect(
-      window.getByRole("status", { name: "shell profile loaded" })
-    ).toBeVisible()
+    await expect(window.getByRole("status", { name: "shell profile loaded" })).toBeVisible()
     const deleteButton = window.getByTestId("terminal-delete-button")
 
     // Test: Hide and show terminal (toggle visibility)
@@ -119,9 +117,7 @@ test.describe("ghostty terminal", () => {
 
     await terminalToggle.click()
     await expect(terminalElement).toBeVisible()
-    await expect(
-      window.getByRole("status", { name: "shell profile loaded" })
-    ).toBeVisible()
+    await expect(window.getByRole("status", { name: "shell profile loaded" })).toBeVisible()
 
     // Verify it's a new session (variable is gone)
     // Use a marker command to distinguish the output - echo the variable with a prefix

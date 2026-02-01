@@ -20,10 +20,7 @@ import {
  * 3. Insert the new node after that block element
  * 4. This ensures we're inserting at the block level, not nested inside containers
  */
-export function insertBlockNode(
-  node: LexicalNode,
-  selection: RangeSelection
-): void {
+export function insertBlockNode(node: LexicalNode, selection: RangeSelection): void {
   let current: LexicalNode | null = selection.anchor.getNode()
 
   // walk up to find a direct child of the root

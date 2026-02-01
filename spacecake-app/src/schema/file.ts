@@ -1,19 +1,18 @@
+import { Brand, Schema } from "effect"
+
 import { fileTable } from "@/schema/drizzle"
 import { createInsertSchema, createSelectSchema } from "@/schema/drizzle-effect"
-import { Brand, Schema } from "effect"
 
 export type FilePrimaryKey = string & Brand.Brand<"FilePrimaryKey">
 export const FilePrimaryKey = Brand.nominal<FilePrimaryKey>()
-export const FilePrimaryKeySchema = Schema.String.pipe(
-  Schema.fromBrand(FilePrimaryKey)
-)
+export const FilePrimaryKeySchema = Schema.String.pipe(Schema.fromBrand(FilePrimaryKey))
 
 export const FileInsertSchema = createInsertSchema(fileTable)
 export type FileInsert = typeof FileInsertSchema.Type
 
 export const FileUpdateSchema = FileInsertSchema.omit("id").pipe(
   Schema.partial,
-  Schema.extend(Schema.Struct({ id: FilePrimaryKeySchema }))
+  Schema.extend(Schema.Struct({ id: FilePrimaryKeySchema })),
 )
 export type FileUpdate = Schema.Schema.Encoded<typeof FileUpdateSchema>
 

@@ -1,21 +1,18 @@
-import { router } from "@/router"
-import { EditorPrimaryKey } from "@/schema/editor"
-import {
-  PaneItemPrimaryKey,
-  PaneItemWithFile,
-  PanePrimaryKey,
-} from "@/schema/pane"
-import { Database } from "@/services/database"
-import { RuntimeClient } from "@/services/runtime-client"
 import { Effect, Option } from "effect"
 import { assertEvent, fromPromise, setup, type ActorRefFrom } from "xstate"
 
 import type { OpenFileSource } from "@/types/claude-code"
-import { ViewKind } from "@/types/lexical"
-import { AbsolutePath } from "@/types/workspace"
+
 import { supportsRichView } from "@/lib/language-support"
 import { encodeBase64Url } from "@/lib/utils"
 import { fileTypeFromFileName } from "@/lib/workspace"
+import { router } from "@/router"
+import { EditorPrimaryKey } from "@/schema/editor"
+import { PaneItemPrimaryKey, PaneItemWithFile, PanePrimaryKey } from "@/schema/pane"
+import { Database } from "@/services/database"
+import { RuntimeClient } from "@/services/runtime-client"
+import { ViewKind } from "@/types/lexical"
+import { AbsolutePath } from "@/types/workspace"
 
 // Context for the pane machine
 export interface PaneMachineContext {
@@ -74,11 +71,8 @@ export const paneMachine = setup({
         const nextActive = await RuntimeClient.runPromise(
           Effect.gen(function* () {
             const db = yield* Database
-            return yield* db.closePaneItemAndGetNext(
-              input.itemId,
-              input.isClosingActiveTab
-            )
-          }).pipe(Effect.tapErrorCause(Effect.logError))
+            return yield* db.closePaneItemAndGetNext(input.itemId, input.isClosingActiveTab)
+          }).pipe(Effect.tapErrorCause(Effect.logError)),
         )
 
         // If we closed the active tab, navigate to the next one
@@ -88,9 +82,7 @@ export const paneMachine = setup({
               to: "/w/$workspaceId/f/$filePath",
               params: {
                 workspaceId: input.workspaceId,
-                filePath: encodeBase64Url(
-                  AbsolutePath(nextActive.value.filePath)
-                ),
+                filePath: encodeBase64Url(AbsolutePath(nextActive.value.filePath)),
               },
               search: {
                 view: nextActive.value.viewKind,
@@ -106,7 +98,7 @@ export const paneMachine = setup({
           }
         }
         // If closing a non-active tab, no navigation needed
-      }
+      },
     ),
     activateItem: fromPromise(
       async ({
@@ -129,7 +121,7 @@ export const paneMachine = setup({
             // Update the pane's active item in the database
             yield* db.updatePaneActivePaneItem(input.paneId, input.item.id)
             yield* db.updatePaneItemAccessedAt(input.item.id)
-          }).pipe(Effect.tapErrorCause(Effect.logError))
+          }).pipe(Effect.tapErrorCause(Effect.logError)),
         )
 
         // Navigate to the activated item
@@ -144,7 +136,7 @@ export const paneMachine = setup({
             editorId: input.item.editorId,
           },
         })
-      }
+      },
     ),
     openFile: fromPromise(
       async ({
@@ -165,7 +157,7 @@ export const paneMachine = setup({
 
             // First upsert the file record
             const fileContent = yield* Effect.promise(() =>
-              window.electronAPI.readFile(input.filePath)
+              window.electronAPI.readFile(input.filePath),
             )
 
             if (fileContent._tag === "Left") {
@@ -183,9 +175,7 @@ export const paneMachine = setup({
             })
 
             // Check if we already have an editor for this file in this pane
-            const existingEditor = yield* db.selectLatestEditorStateForFile(
-              input.filePath
-            )
+            const existingEditor = yield* db.selectLatestEditorStateForFile(input.filePath)
 
             let editorId: EditorPrimaryKey
             let viewKind: ViewKind
@@ -197,9 +187,7 @@ export const paneMachine = setup({
             } else {
               // Create new editor
               const fileType = fileTypeFromFileName(input.filePath)
-              viewKind =
-                input.viewKind ??
-                (supportsRichView(fileType) ? "rich" : "source")
+              viewKind = input.viewKind ?? (supportsRichView(fileType) ? "rich" : "source")
 
               const editor = yield* db.upsertEditor({
                 pane_id: input.paneId,
@@ -213,7 +201,7 @@ export const paneMachine = setup({
             yield* db.activateEditorInPane(editorId, input.paneId)
 
             return Option.some({ editorId, viewKind })
-          }).pipe(Effect.tapErrorCause(Effect.logError))
+          }).pipe(Effect.tapErrorCause(Effect.logError)),
         )
 
         if (Option.isNone(result)) {
@@ -239,7 +227,7 @@ export const paneMachine = setup({
             source: input.source,
           },
         })
-      }
+      },
     ),
   },
 }).createMachine({

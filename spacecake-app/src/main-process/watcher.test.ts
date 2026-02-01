@@ -1,4 +1,3 @@
-import { convertToFileTreeEvent } from "@/main-process/watcher"
 import { FileSystem } from "@effect/platform"
 import * as PlatformError from "@effect/platform/Error"
 import { it } from "@effect/vitest"
@@ -18,6 +17,7 @@ import {
 } from "effect"
 import { afterEach, beforeEach, describe, expect, vi } from "vitest"
 
+import { convertToFileTreeEvent } from "@/main-process/watcher"
 import { AbsolutePath } from "@/types/workspace"
 
 // Mock BrowserWindow for tests
@@ -40,36 +40,34 @@ describe("watcher retry behavior", () => {
     vi.clearAllMocks()
   })
 
-  it.effect(
-    "retry schedule uses exponential backoff capped at 30 seconds",
-    () =>
-      Effect.gen(function* () {
-        // Create the same schedule as in the watcher
-        const retrySchedule = Schedule.exponential("1 second").pipe(
-          Schedule.jittered,
-          Schedule.union(Schedule.spaced("30 seconds"))
-        )
+  it.effect("retry schedule uses exponential backoff capped at 30 seconds", () =>
+    Effect.gen(function* () {
+      // Create the same schedule as in the watcher
+      const retrySchedule = Schedule.exponential("1 second").pipe(
+        Schedule.jittered,
+        Schedule.union(Schedule.spaced("30 seconds")),
+      )
 
-        // Run the schedule to collect delays
-        const delays = yield* Schedule.run(
-          Schedule.delays(retrySchedule),
-          Date.now(),
-          [1, 2, 3, 4, 5, 6, 7, 8] // 8 retry attempts
-        )
+      // Run the schedule to collect delays
+      const delays = yield* Schedule.run(
+        Schedule.delays(retrySchedule),
+        Date.now(),
+        [1, 2, 3, 4, 5, 6, 7, 8], // 8 retry attempts
+      )
 
-        const delayArray = Chunk.toArray(delays).map(Duration.toMillis)
+      const delayArray = Chunk.toArray(delays).map(Duration.toMillis)
 
-        // First delay should be around 1 second (with jitter)
-        expect(delayArray[0]).toBeGreaterThanOrEqual(0)
-        expect(delayArray[0]).toBeLessThanOrEqual(2000) // 1s + jitter
+      // First delay should be around 1 second (with jitter)
+      expect(delayArray[0]).toBeGreaterThanOrEqual(0)
+      expect(delayArray[0]).toBeLessThanOrEqual(2000) // 1s + jitter
 
-        // Delays should grow exponentially but cap at 30 seconds
-        // After enough iterations, all delays should be capped at 30s
-        const lastFewDelays = delayArray.slice(-3)
-        lastFewDelays.forEach((delay) => {
-          expect(delay).toBeLessThanOrEqual(30000)
-        })
+      // Delays should grow exponentially but cap at 30 seconds
+      // After enough iterations, all delays should be capped at 30s
+      const lastFewDelays = delayArray.slice(-3)
+      lastFewDelays.forEach((delay) => {
+        expect(delay).toBeLessThanOrEqual(30000)
       })
+    }),
   )
 
   it.effect("stream retry restarts after failure with delay", () =>
@@ -91,7 +89,7 @@ describe("watcher retry behavior", () => {
               method: "watch",
               pathOrDescriptor: "/test",
               cause: { message: "simulated failure" },
-            })
+            }),
           )
         }
 
@@ -100,13 +98,10 @@ describe("watcher retry behavior", () => {
 
       // Apply retry with a faster schedule for testing
       const retrySchedule = Schedule.exponential("100 millis").pipe(
-        Schedule.intersect(Schedule.recurs(3))
+        Schedule.intersect(Schedule.recurs(3)),
       )
 
-      const retriedEffect = watchEffect.pipe(
-        Effect.retry(retrySchedule),
-        Effect.fork
-      )
+      const retriedEffect = watchEffect.pipe(Effect.retry(retrySchedule), Effect.fork)
 
       // Run the effect
       const fiber = yield* retriedEffect
@@ -133,7 +128,7 @@ describe("watcher retry behavior", () => {
       expect(events).toContain("attempt-2")
       expect(events).toContain("attempt-3")
       expect(events).toContain("success")
-    }).pipe(Effect.provide(TestContext.TestContext))
+    }).pipe(Effect.provide(TestContext.TestContext)),
   )
 
   it.effect("convertToFileTreeEvent filters temp files", () =>
@@ -152,7 +147,7 @@ describe("watcher retry behavior", () => {
       expect(TEMP_FILE_RE.test("/path/file.ts")).toBe(false)
       expect(TEMP_FILE_RE.test("/path/file.py")).toBe(false)
       expect(TEMP_FILE_RE.test("/path/normal.txt")).toBe(false)
-    })
+    }),
   )
 
   it.effect("tapError logs before retry", () =>
@@ -172,16 +167,16 @@ describe("watcher retry behavior", () => {
         Effect.tapError((e) =>
           Effect.sync(() => {
             logs.push(`logged: ${e}`)
-          })
+          }),
         ),
-        Effect.retry(Schedule.recurs(2))
+        Effect.retry(Schedule.recurs(2)),
       )
 
       const result = yield* withLogging
 
       expect(result).toBe("success")
       expect(logs).toContain("logged: error-1")
-    })
+    }),
   )
 })
 
@@ -190,11 +185,7 @@ describe("watcher schedule properties", () => {
     Effect.gen(function* () {
       const schedule = Schedule.exponential("1 second")
 
-      const delays = yield* Schedule.run(
-        Schedule.delays(schedule),
-        Date.now(),
-        [1, 2, 3, 4, 5]
-      )
+      const delays = yield* Schedule.run(Schedule.delays(schedule), Date.now(), [1, 2, 3, 4, 5])
 
       const delayArray = Chunk.toArray(delays).map(Duration.toMillis)
 
@@ -204,7 +195,7 @@ describe("watcher schedule properties", () => {
       expect(delayArray[2]).toBe(4000)
       expect(delayArray[3]).toBe(8000)
       expect(delayArray[4]).toBe(16000)
-    })
+    }),
   )
 
   it.effect("union with spaced caps the delay", () =>
@@ -217,7 +208,7 @@ describe("watcher schedule properties", () => {
       const delays = yield* Schedule.run(
         Schedule.delays(capped),
         Date.now(),
-        [1, 2, 3, 4, 5, 6, 7, 8]
+        [1, 2, 3, 4, 5, 6, 7, 8],
       )
 
       const delayArray = Chunk.toArray(delays).map(Duration.toMillis)
@@ -231,7 +222,7 @@ describe("watcher schedule properties", () => {
       expect(delayArray[3]).toBe(5000)
       expect(delayArray[4]).toBe(5000)
       expect(delayArray[5]).toBe(5000)
-    })
+    }),
   )
 })
 
@@ -312,10 +303,7 @@ const notImplemented = (method: string) =>
   })
 
 // Helper to create File.Info
-const createFileInfo = (
-  type: "File" | "Directory",
-  size = 100
-): FileSystem.File.Info => ({
+const createFileInfo = (type: "File" | "Directory", size = 100): FileSystem.File.Info => ({
   type,
   mtime: Option.some(new Date()),
   atime: Option.some(new Date()),
@@ -344,11 +332,7 @@ describe("convertToFileTreeEvent behavior", () => {
       expect(result).not.toBeNull()
       expect(result?.kind).toBe("addFile")
       expect(result?.path).toBe("/workspace/test.ts")
-    }).pipe(
-      Effect.provide(
-        createMockFileSystem({ statResult: () => createFileInfo("File") })
-      )
-    )
+    }).pipe(Effect.provide(createMockFileSystem({ statResult: () => createFileInfo("File") }))),
   )
 
   it.effect("Create event for directory emits addFolder", () =>
@@ -361,10 +345,8 @@ describe("convertToFileTreeEvent behavior", () => {
       expect(result?.kind).toBe("addFolder")
       expect(result?.path).toBe("/workspace/src")
     }).pipe(
-      Effect.provide(
-        createMockFileSystem({ statResult: () => createFileInfo("Directory") })
-      )
-    )
+      Effect.provide(createMockFileSystem({ statResult: () => createFileInfo("Directory") })),
+    ),
   )
 
   it.effect("Update event for file emits contentChange", () =>
@@ -384,9 +366,9 @@ describe("convertToFileTreeEvent behavior", () => {
         createMockFileSystem({
           statResult: () => createFileInfo("File"),
           readFileStringResult: () => "file content",
-        })
-      )
-    )
+        }),
+      ),
+    ),
   )
 
   it.effect("Update event for directory returns null (skips)", () =>
@@ -398,10 +380,8 @@ describe("convertToFileTreeEvent behavior", () => {
       // Directories don't have content changes - should be skipped
       expect(result).toBeNull()
     }).pipe(
-      Effect.provide(
-        createMockFileSystem({ statResult: () => createFileInfo("Directory") })
-      )
-    )
+      Effect.provide(createMockFileSystem({ statResult: () => createFileInfo("Directory") })),
+    ),
   )
 
   it.effect("Create event with stat error returns null (graceful skip)", () =>
@@ -424,9 +404,9 @@ describe("convertToFileTreeEvent behavior", () => {
             pathOrDescriptor: "/workspace/deleted.ts",
             cause: new Error("ENOENT"),
           }),
-        })
-      )
-    )
+        }),
+      ),
+    ),
   )
 
   it.effect("temp file (.swp) returns null (filtered)", () =>
@@ -438,7 +418,7 @@ describe("convertToFileTreeEvent behavior", () => {
       const result = yield* convertToFileTreeEvent(event, WORKSPACE)
 
       expect(result).toBeNull()
-    }).pipe(Effect.provide(createMockFileSystem({})))
+    }).pipe(Effect.provide(createMockFileSystem({}))),
   )
 
   it.effect("path outside workspace returns null (filtered)", () =>
@@ -450,7 +430,7 @@ describe("convertToFileTreeEvent behavior", () => {
       const result = yield* convertToFileTreeEvent(event, WORKSPACE)
 
       expect(result).toBeNull()
-    }).pipe(Effect.provide(createMockFileSystem({})))
+    }).pipe(Effect.provide(createMockFileSystem({}))),
   )
 
   it.effect("Remove event for file emits unlinkFile", () =>
@@ -464,7 +444,7 @@ describe("convertToFileTreeEvent behavior", () => {
       expect(result).not.toBeNull()
       expect(result?.kind).toBe("unlinkFile")
       expect(result?.path).toBe("/workspace/deleted.ts")
-    }).pipe(Effect.provide(createMockFileSystem({})))
+    }).pipe(Effect.provide(createMockFileSystem({}))),
   )
 
   it.effect("Remove event for folder emits unlinkFolder", () =>
@@ -479,6 +459,6 @@ describe("convertToFileTreeEvent behavior", () => {
       expect(result).not.toBeNull()
       expect(result?.kind).toBe("unlinkFolder")
       expect(result?.path).toBe("/workspace/old-folder")
-    }).pipe(Effect.provide(createMockFileSystem({})))
+    }).pipe(Effect.provide(createMockFileSystem({}))),
   )
 })

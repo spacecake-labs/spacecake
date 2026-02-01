@@ -1,13 +1,12 @@
+import { Effect, Layer } from "effect"
 import path from "path"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import WebSocket from "ws"
 
 import { makeClaudeCodeServer } from "@/services/claude-code-server"
 import { makeClaudeConfigTestLayer } from "@/services/claude-config"
 import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
-import { Effect, Layer } from "effect"
-import { beforeEach, describe, expect, it, vi } from "vitest"
-import WebSocket from "ws"
-
 import { OpenFilePayload, SelectionChangedPayload } from "@/types/claude-code"
 
 interface IpcEvent {
@@ -46,9 +45,7 @@ const mocks = vi.hoisted(() => ({
 // Mock Electron
 vi.mock("electron", () => ({
   BrowserWindow: {
-    getAllWindows: vi.fn(() => [
-      { webContents: { send: mocks.webContentsSend } },
-    ]),
+    getAllWindows: vi.fn(() => [{ webContents: { send: mocks.webContentsSend } }]),
   },
   ipcMain: {
     handle: vi.fn((channel, listener) => {
@@ -106,19 +103,14 @@ describe("ClaudeCodeServer", () => {
     return Layer.mergeAll(
       makeClaudeConfigTestLayer("/tmp/test-claude"),
       Layer.succeed(FileSystem, mockFileSystem as FileSystem),
-      Layer.succeed(
-        ClaudeHooksServer,
-        mockClaudeHooksServer as unknown as ClaudeHooksServer
-      )
+      Layer.succeed(ClaudeHooksServer, mockClaudeHooksServer as unknown as ClaudeHooksServer),
     )
   }
 
   const runTestServer = () => {
     return Effect.gen(function* (_) {
       const scope = yield* _(Effect.scope)
-      const server = yield* _(
-        makeClaudeCodeServer.pipe(Effect.provide(createTestLayer()))
-      )
+      const server = yield* _(makeClaudeCodeServer.pipe(Effect.provide(createTestLayer())))
 
       // Actually start the server (it's lazy now)
       yield* _(Effect.promise(() => server.ensureStarted(["/test/workspace"])))
@@ -135,7 +127,7 @@ describe("ClaudeCodeServer", () => {
             attempts++
           }
           if (!lockFileData) throw new Error("Server failed to start")
-        })
+        }),
       )
 
       return {
@@ -163,13 +155,13 @@ describe("ClaudeCodeServer", () => {
             Effect.async<boolean, Error>((resume) => {
               ws.on("open", () => resume(Effect.succeed(true)))
               ws.on("error", (err) => resume(Effect.fail(err)))
-            })
+            }),
           )
 
           expect(connected).toBe(true)
           ws.close()
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -191,12 +183,12 @@ describe("ClaudeCodeServer", () => {
               // The server accepts the connection then closes it
               ws.on("close", (code) => resume(Effect.succeed(code)))
               ws.on("error", (err) => resume(Effect.fail(err)))
-            })
+            }),
           )
 
           expect(closeCode).toBe(1008)
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -212,12 +204,12 @@ describe("ClaudeCodeServer", () => {
             Effect.async<number, Error>((resume) => {
               ws.on("close", (code) => resume(Effect.succeed(code)))
               ws.on("error", (err) => resume(Effect.fail(err)))
-            })
+            }),
           )
 
           expect(closeCode).toBe(1008)
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -239,7 +231,7 @@ describe("ClaudeCodeServer", () => {
             Effect.async<void, Error>((resume) => {
               ws.on("open", () => resume(Effect.succeed(undefined)))
               ws.on("error", (err) => resume(Effect.fail(err)))
-            })
+            }),
           )
 
           // Prepare to receive message
@@ -274,8 +266,8 @@ describe("ClaudeCodeServer", () => {
           })
 
           ws.close()
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -297,7 +289,7 @@ describe("ClaudeCodeServer", () => {
             Effect.async<void, Error>((resume) => {
               ws.on("open", () => resume(Effect.succeed(undefined)))
               ws.on("error", (err) => resume(Effect.fail(err)))
-            })
+            }),
           )
 
           // Send initialize message - should trigger "connecting" status
@@ -320,20 +312,17 @@ describe("ClaudeCodeServer", () => {
               while (
                 !mocks.webContentsSend.mock.calls.some(
                   (args: readonly unknown[]) =>
-                    args[0] === "claude-code-status" && args[1] === "connecting"
+                    args[0] === "claude-code-status" && args[1] === "connecting",
                 ) &&
                 attempts < 20
               ) {
                 await new Promise((resolve) => setTimeout(resolve, 50))
                 attempts++
               }
-            })
+            }),
           )
 
-          expect(mocks.webContentsSend).toHaveBeenCalledWith(
-            "claude-code-status",
-            "connecting"
-          )
+          expect(mocks.webContentsSend).toHaveBeenCalledWith("claude-code-status", "connecting")
           mocks.webContentsSend.mockClear()
 
           // Send ide_connected message - should trigger "connected" status
@@ -352,24 +341,21 @@ describe("ClaudeCodeServer", () => {
               while (
                 !mocks.webContentsSend.mock.calls.some(
                   (args: readonly unknown[]) =>
-                    args[0] === "claude-code-status" && args[1] === "connected"
+                    args[0] === "claude-code-status" && args[1] === "connected",
                 ) &&
                 attempts < 20
               ) {
                 await new Promise((resolve) => setTimeout(resolve, 50))
                 attempts++
               }
-            })
+            }),
           )
 
-          expect(mocks.webContentsSend).toHaveBeenCalledWith(
-            "claude-code-status",
-            "connected"
-          )
+          expect(mocks.webContentsSend).toHaveBeenCalledWith("claude-code-status", "connected")
 
           ws.close()
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -391,7 +377,7 @@ describe("ClaudeCodeServer", () => {
             Effect.async<void, Error>((resume) => {
               ws.on("open", () => resume(Effect.succeed(undefined)))
               ws.on("error", (err) => resume(Effect.fail(err)))
-            })
+            }),
           )
 
           // Prepare to receive response
@@ -416,15 +402,13 @@ describe("ClaudeCodeServer", () => {
           expect(response.result.tools).toBeInstanceOf(Array)
           expect(response.result.tools.length).toBeGreaterThan(0)
 
-          const openFileTool = response.result.tools.find(
-            (t) => t.name === "openFile"
-          )
+          const openFileTool = response.result.tools.find((t) => t.name === "openFile")
           expect(openFileTool).toBeDefined()
           expect(openFileTool?.description).toContain("Open a file")
 
           ws.close()
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -446,7 +430,7 @@ describe("ClaudeCodeServer", () => {
             Effect.async<void, Error>((resume) => {
               ws.on("open", () => resume(Effect.succeed(undefined)))
               ws.on("error", (err) => resume(Effect.fail(err)))
-            })
+            }),
           )
 
           // Prepare to receive response
@@ -476,7 +460,7 @@ describe("ClaudeCodeServer", () => {
           expect(response.id).toBe(2)
           expect(response.result.isError).toBeUndefined()
           expect(response.result.content[0].text).toContain(
-            "Opened file: /test/workspace/src/index.ts"
+            "Opened file: /test/workspace/src/index.ts",
           )
 
           // Verify broadcast was sent
@@ -485,14 +469,14 @@ describe("ClaudeCodeServer", () => {
               let attempts = 0
               while (
                 !mocks.webContentsSend.mock.calls.some(
-                  (args: readonly unknown[]) => args[0] === "claude:open-file"
+                  (args: readonly unknown[]) => args[0] === "claude:open-file",
                 ) &&
                 attempts < 20
               ) {
                 await new Promise((resolve) => setTimeout(resolve, 50))
                 attempts++
               }
-            })
+            }),
           )
 
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
@@ -500,12 +484,12 @@ describe("ClaudeCodeServer", () => {
             expect.objectContaining({
               workspacePath: "/test/workspace",
               filePath: "/test/workspace/src/index.ts",
-            } satisfies OpenFilePayload)
+            } satisfies OpenFilePayload),
           )
 
           ws.close()
-        })
-      )
+        }),
+      ),
     )
   })
 
@@ -527,7 +511,7 @@ describe("ClaudeCodeServer", () => {
             Effect.async<void, Error>((resume) => {
               ws.on("open", () => resume(Effect.succeed(undefined)))
               ws.on("error", (err) => resume(Effect.fail(err)))
-            })
+            }),
           )
 
           // Prepare to receive response
@@ -556,13 +540,11 @@ describe("ClaudeCodeServer", () => {
           expect(response.jsonrpc).toBe("2.0")
           expect(response.id).toBe(3)
           expect(response.result.isError).toBe(true)
-          expect(response.result.content[0].text).toContain(
-            "not in any open workspace"
-          )
+          expect(response.result.content[0].text).toContain("not in any open workspace")
 
           ws.close()
-        })
-      )
+        }),
+      ),
     )
   })
 })

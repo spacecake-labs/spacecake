@@ -79,8 +79,7 @@ export const editorTheme: EditorThemeClasses = {
     underlineStrikethrough: "underline line-through",
   },
   image: "relative inline-block user-select-none cursor-default editor-image",
-  inlineImage:
-    "relative inline-block user-select-none cursor-default inline-editor-image",
+  inlineImage: "relative inline-block user-select-none cursor-default inline-editor-image",
   keyword: "text-purple-900 font-bold",
   // code: "EditorTheme__code",
   // codeHighlight: {
@@ -130,8 +129,7 @@ export const editorTheme: EditorThemeClasses = {
     "border border-primary border-solid block h-[calc(100%-2px)] w-[calc(100%-2px)] absolute -left-[1px] -top-[1px] z-10",
   tableCellResizer: "absolute -right-1 h-full w-2 cursor-ew-resize z-10 top-0",
   tableCellSelected: "bg-muted",
-  tableCellSortedIndicator:
-    "block opacity-50 absolute bottom-0 left-0 w-full h-1 bg-muted",
+  tableCellSortedIndicator: "block opacity-50 absolute bottom-0 left-0 w-full h-1 bg-muted",
   tableResizeRuler: "block absolute w-[1px] h-full bg-primary top-0",
   tableRowStriping:
     "m-0 p-0 border-b border-border bg-muted/40 hover:bg-muted/50 transition-colors",

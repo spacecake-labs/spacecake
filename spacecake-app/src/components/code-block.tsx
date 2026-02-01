@@ -1,14 +1,11 @@
 import React from "react"
 
+import type { CodeBlockEditorContextValue } from "@/components/editor/nodes/code-node"
 import type { LanguageSpec } from "@/types/language"
-import { LANGUAGE_SUPPORT } from "@/types/language"
 import type { Block } from "@/types/parser"
-import { FileType } from "@/types/workspace"
-import { blockId } from "@/lib/parser/block-id"
-import { delimitPythonDocString } from "@/lib/parser/python/utils"
-import { cn } from "@/lib/utils"
-import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace"
-import { useRoute } from "@/hooks/use-route"
+
+import { BlockHeader } from "@/components/editor/block-header"
+import { TypographyH3, TypographyP } from "@/components/typography"
 import {
   Select,
   SelectContent,
@@ -16,9 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { BlockHeader } from "@/components/editor/block-header"
-import type { CodeBlockEditorContextValue } from "@/components/editor/nodes/code-node"
-import { TypographyH3, TypographyP } from "@/components/typography"
+import { useRoute } from "@/hooks/use-route"
+import { blockId } from "@/lib/parser/block-id"
+import { delimitPythonDocString } from "@/lib/parser/python/utils"
+import { cn } from "@/lib/utils"
+import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace"
+import { LANGUAGE_SUPPORT } from "@/types/language"
+import { FileType } from "@/types/workspace"
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
 
@@ -48,39 +49,26 @@ export function CodeBlock({
   const route = useRoute()
 
   // can change language only if the file is markdown and in rich view
-  const canChangeLanguage =
-    route?.fileType === FileType.Markdown && route?.viewKind === "rich"
+  const canChangeLanguage = route?.fileType === FileType.Markdown && route?.viewKind === "rich"
 
   const code = block.text
   const blockName = block.name.value
   const title = blockName
   const badgeValue =
-    route?.viewKind === "source"
-      ? (route?.filePath?.split("/").pop() ?? block.kind)
-      : block.kind
+    route?.viewKind === "source" ? (route?.filePath?.split("/").pop() ?? block.kind) : block.kind
 
   const dataBlockId = blockId(block)
-  const doc =
-    language === "python" && block.doc
-      ? delimitPythonDocString(block.doc?.text)
-      : null
+  const doc = language === "python" && block.doc ? delimitPythonDocString(block.doc?.text) : null
 
   const firstLineBreak = doc?.between.indexOf("\n") ?? -1
-  const docHeader =
-    firstLineBreak === -1
-      ? doc?.between
-      : doc?.between.substring(0, firstLineBreak)
+  const docHeader = firstLineBreak === -1 ? doc?.between : doc?.between.substring(0, firstLineBreak)
   const docContent =
-    firstLineBreak === -1
-      ? null
-      : doc?.between.substring(firstLineBreak + 1).trimStart()
+    firstLineBreak === -1 ? null : doc?.between.substring(firstLineBreak + 1).trimStart()
 
-  const availableLanguages = Object.entries(LANGUAGE_SUPPORT).map(
-    ([fileType, spec]) => ({
-      value: fileType,
-      label: spec.name.toLowerCase(),
-    })
-  )
+  const availableLanguages = Object.entries(LANGUAGE_SUPPORT).map(([fileType, spec]) => ({
+    value: fileType,
+    label: spec.name.toLowerCase(),
+  }))
 
   const languageSelector = codeBlockContext && editable && (
     <Select
@@ -88,10 +76,7 @@ export function CodeBlock({
       onValueChange={codeBlockContext.setLanguage}
       disabled={!canChangeLanguage}
     >
-      <SelectTrigger
-        size="sm"
-        className="w-auto !px-2 !py-0.5 !h-auto !text-xs"
-      >
+      <SelectTrigger size="sm" className="w-auto !px-2 !py-0.5 !h-auto !text-xs">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -109,7 +94,7 @@ export function CodeBlock({
       className={cn(
         "group relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
         "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
-        className
+        className,
       )}
       data-block-id={dataBlockId}
     >

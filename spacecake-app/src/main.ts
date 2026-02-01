@@ -1,3 +1,7 @@
+import { Effect, Exit, Layer, ManagedRuntime } from "effect"
+import { app, BrowserWindow, session, shell } from "electron"
+import { installExtension, REACT_DEVELOPER_TOOLS } from "electron-devtools-installer"
+import started from "electron-squirrel-startup"
 import fs from "node:fs"
 import path from "node:path"
 
@@ -7,36 +11,21 @@ import { ClaudeCodeServer } from "@/services/claude-code-server"
 import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { CliServer } from "@/services/cli-server"
 import { Ipc } from "@/services/ipc"
-import {
-  ensureHomeFolderExists,
-  SpacecakeHome,
-} from "@/services/spacecake-home"
+import { ensureHomeFolderExists, SpacecakeHome } from "@/services/spacecake-home"
 import { setupUpdates } from "@/update"
-import { Effect, Exit, Layer, ManagedRuntime } from "effect"
-import { app, BrowserWindow, session, shell } from "electron"
-import {
-  installExtension,
-  REACT_DEVELOPER_TOOLS,
-} from "electron-devtools-installer"
-import started from "electron-squirrel-startup"
 
 const LEXICAL_DEVELOPER_TOOLS = "kgljmdocanfjckcgfpcpdoklodllfdpc"
 
 // fix for react dev tools service worker issue
-async function launchExtensionBackgroundWorkers(
-  sessionInstance = session.defaultSession
-) {
+async function launchExtensionBackgroundWorkers(sessionInstance = session.defaultSession) {
   const extensions = sessionInstance.extensions.getAllExtensions()
   return Promise.all(
     extensions.map(async (extension) => {
       const manifest = extension.manifest
-      if (
-        manifest.manifest_version === 3 &&
-        manifest?.background?.service_worker
-      ) {
+      if (manifest.manifest_version === 3 && manifest?.background?.service_worker) {
         await sessionInstance.serviceWorkers.startWorkerForScope(extension.url)
       }
-    })
+    }),
   )
 }
 
@@ -123,10 +112,7 @@ const createWindow = () => {
 
   mainWindow.once("closed", () => {
     windowCounter--
-    if (
-      windowCounter === 0 &&
-      (process.platform !== "darwin" || quitRequested)
-    ) {
+    if (windowCounter === 0 && (process.platform !== "darwin" || quitRequested)) {
       fireOnWillShutdown()
     }
   })
@@ -138,36 +124,27 @@ const createWindow = () => {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
   } else {
-    mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
-    )
+    mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`))
   }
 
   const cspString = buildCSPString(isDev ? "development" : "production")
-  mainWindow.webContents.session.webRequest.onHeadersReceived(
-    (details, callback) => {
-      if (
-        details.url.startsWith("devtools://") ||
-        details.url.startsWith("chrome-extension://")
-      ) {
-        callback({ responseHeaders: details.responseHeaders })
-        return
-      }
-
-      callback({
-        responseHeaders: {
-          ...details.responseHeaders,
-          "Content-Security-Policy": [cspString],
-        },
-      })
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    if (details.url.startsWith("devtools://") || details.url.startsWith("chrome-extension://")) {
+      callback({ responseHeaders: details.responseHeaders })
+      return
     }
-  )
+
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [cspString],
+      },
+    })
+  })
 
   if (isDev && (!isTest || showWindow)) {
     installExtension([REACT_DEVELOPER_TOOLS, LEXICAL_DEVELOPER_TOOLS])
-      .then(([react, lexical]) =>
-        console.log(`added extensions: ${react.name}, ${lexical.name}`)
-      )
+      .then(([react, lexical]) => console.log(`added extensions: ${react.name}, ${lexical.name}`))
       .then(async () => await launchExtensionBackgroundWorkers())
       .then(() => mainWindow.webContents.openDevTools())
       .catch((err) => console.log("an error occurred: ", err))
@@ -181,7 +158,7 @@ const AppLive = Layer.mergeAll(
   ClaudeCodeServer.Default,
   ClaudeHooksServer.Default,
   CliServer.Default,
-  SpacecakeHomeLive
+  SpacecakeHomeLive,
 ).pipe(Layer.provide(SpacecakeHomeLive), Layer.provide(Layer.scope))
 
 const AppRuntime = ManagedRuntime.make(AppLive)

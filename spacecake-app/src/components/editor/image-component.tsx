@@ -6,24 +6,10 @@
  *
  */
 
+import type { BaseSelection, LexicalCommand, LexicalEditor, NodeKey } from "lexical"
 import type { JSX } from "react"
-import type {
-  BaseSelection,
-  LexicalCommand,
-  LexicalEditor,
-  NodeKey,
-} from "lexical"
 
 import "@/components/editor/nodes/image-node.css"
-
-import React, {
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
-import brokenImage from "@/images/image-broken.svg"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { useLexicalEditable } from "@lexical/react/useLexicalEditable"
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
@@ -39,18 +25,18 @@ import {
   DRAGSTART_COMMAND,
   SELECTION_CHANGE_COMMAND,
 } from "lexical"
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react"
 
 import ImageResizer from "@/components/editor/image-resizer"
 import { $isImageNode } from "@/components/editor/nodes/image-node"
+import brokenImage from "@/images/image-broken.svg"
 
-export const RIGHT_CLICK_IMAGE_COMMAND: LexicalCommand<MouseEvent> =
-  createCommand("RIGHT_CLICK_IMAGE_COMMAND")
+export const RIGHT_CLICK_IMAGE_COMMAND: LexicalCommand<MouseEvent> = createCommand(
+  "RIGHT_CLICK_IMAGE_COMMAND",
+)
 
 // simple cache for image dimensions
-const imageDimensionsCache = new Map<
-  string,
-  { width: number; height: number }
->()
+const imageDimensionsCache = new Map<string, { width: number; height: number }>()
 
 function useSuspenseImage(src: string) {
   // check if we already have dimensions cached
@@ -186,8 +172,7 @@ export default function ImageComponent({
   captionsEnabled: boolean
 }): JSX.Element {
   const imageRef = useRef<null | HTMLImageElement>(null)
-  const [isSelected, setSelected, clearSelection] =
-    useLexicalNodeSelection(nodeKey)
+  const [isSelected, setSelected, clearSelection] = useLexicalNodeSelection(nodeKey)
   const [isResizing, setIsResizing] = useState<boolean>(false)
   const [editor] = useLexicalComposerContext()
   const [selection, setSelection] = useState<BaseSelection | null>(null)
@@ -213,7 +198,7 @@ export default function ImageComponent({
 
       return false
     },
-    [isResizing, isSelected, setSelected, clearSelection]
+    [isResizing, isSelected, setSelected, clearSelection],
   )
 
   const onRightClick = useCallback(
@@ -230,7 +215,7 @@ export default function ImageComponent({
         }
       })
     },
-    [editor]
+    [editor],
   )
 
   useEffect(() => {
@@ -250,18 +235,10 @@ export default function ImageComponent({
           activeEditorRef.current = activeEditor
           return false
         },
-        COMMAND_PRIORITY_LOW
+        COMMAND_PRIORITY_LOW,
       ),
-      editor.registerCommand<MouseEvent>(
-        CLICK_COMMAND,
-        onClick,
-        COMMAND_PRIORITY_LOW
-      ),
-      editor.registerCommand<MouseEvent>(
-        RIGHT_CLICK_IMAGE_COMMAND,
-        onClick,
-        COMMAND_PRIORITY_LOW
-      ),
+      editor.registerCommand<MouseEvent>(CLICK_COMMAND, onClick, COMMAND_PRIORITY_LOW),
+      editor.registerCommand<MouseEvent>(RIGHT_CLICK_IMAGE_COMMAND, onClick, COMMAND_PRIORITY_LOW),
       editor.registerCommand(
         DRAGSTART_COMMAND,
         (event) => {
@@ -273,8 +250,8 @@ export default function ImageComponent({
           }
           return false
         },
-        COMMAND_PRIORITY_LOW
-      )
+        COMMAND_PRIORITY_LOW,
+      ),
     )
 
     rootElement?.addEventListener("contextmenu", onRightClick)
@@ -295,10 +272,7 @@ export default function ImageComponent({
     setSelected,
   ])
 
-  const onResizeEnd = (
-    nextWidth: "inherit" | number,
-    nextHeight: "inherit" | number
-  ) => {
+  const onResizeEnd = (nextWidth: "inherit" | number, nextHeight: "inherit" | number) => {
     // Delay hiding the resize bars for click case
     setTimeout(() => {
       setIsResizing(false)
@@ -324,9 +298,7 @@ export default function ImageComponent({
         <div draggable={draggable}>
           <LazyImage
             className={
-              isFocused
-                ? `focused ${$isNodeSelection(selection) ? "draggable" : ""}`
-                : null
+              isFocused ? `focused ${$isNodeSelection(selection) ? "draggable" : ""}` : null
             }
             src={src}
             altText={altText}

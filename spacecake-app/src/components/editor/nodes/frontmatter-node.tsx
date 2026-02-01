@@ -1,5 +1,5 @@
 import type { JSX } from "react"
-import * as React from "react"
+
 import { yaml } from "@codemirror/lang-yaml"
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
 import { mergeRegister } from "@lexical/utils"
@@ -20,9 +20,16 @@ import {
   Spread,
 } from "lexical"
 import { Code2, Table2 } from "lucide-react"
+import * as React from "react"
 import YAML from "yaml"
 
-import { cn } from "@/lib/utils"
+import { BlockHeader } from "@/components/editor/block-header"
+import {
+  CodeBlockEditorContext,
+  type CodeBlockEditorContextValue,
+  type CodeMirrorFocusManager,
+} from "@/components/editor/nodes/code-node"
+import { BaseCodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -31,19 +38,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { BlockHeader } from "@/components/editor/block-header"
-import {
-  CodeBlockEditorContext,
-  type CodeBlockEditorContextValue,
-  type CodeMirrorFocusManager,
-} from "@/components/editor/nodes/code-node"
-import { BaseCodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 
 // WeakMap to store focus managers for frontmatter nodes
 const focusManagerMap = new WeakMap<FrontmatterNode, CodeMirrorFocusManager>()
@@ -88,9 +84,7 @@ export class FrontmatterNode extends DecoratorNode<JSX.Element> {
     return new FrontmatterNode(node.__yaml, node.__key, node.__viewMode)
   }
 
-  static importJSON(
-    serializedNode: SerializedFrontmatterNode
-  ): FrontmatterNode {
+  static importJSON(serializedNode: SerializedFrontmatterNode): FrontmatterNode {
     const { yaml, viewMode } = serializedNode
     return $createFrontmatterNode({ yaml, viewMode: viewMode ?? "table" })
   }
@@ -104,11 +98,7 @@ export class FrontmatterNode extends DecoratorNode<JSX.Element> {
     }
   }
 
-  constructor(
-    yaml: string,
-    key?: NodeKey,
-    viewMode: FrontmatterViewMode = "table"
-  ) {
+  constructor(yaml: string, key?: NodeKey, viewMode: FrontmatterViewMode = "table") {
     super(key)
     this.__yaml = yaml
     this.__viewMode = viewMode
@@ -224,9 +214,11 @@ interface FrontmatterEditorContextProviderProps {
   children: React.ReactNode
 }
 
-const FrontmatterEditorContextProvider: React.FC<
-  FrontmatterEditorContextProviderProps
-> = ({ parentEditor, nodeKey, children }) => {
+const FrontmatterEditorContextProvider: React.FC<FrontmatterEditorContextProviderProps> = ({
+  parentEditor,
+  nodeKey,
+  children,
+}) => {
   const contextValue = React.useMemo(() => {
     return {
       lexicalNode: null as never,
@@ -287,8 +279,7 @@ const FrontmatterTable: React.FC<FrontmatterTableProps> = ({ data, error }) => {
     if (value === null) return "null"
     if (value === undefined) return ""
     if (typeof value === "string") return value
-    if (typeof value === "number" || typeof value === "boolean")
-      return String(value)
+    if (typeof value === "number" || typeof value === "boolean") return String(value)
     // For arrays and objects, render as YAML string
     return YAML.stringify(value).trim()
   }
@@ -310,14 +301,11 @@ const FrontmatterTable: React.FC<FrontmatterTableProps> = ({ data, error }) => {
         <tbody>
           {Object.entries(data).map(([key, value]) => (
             <tr key={key} className="border-b last:border-0 hover:bg-muted/30">
-              <td className="px-4 py-2 font-mono text-xs text-muted-foreground align-top">
-                {key}
-              </td>
+              <td className="px-4 py-2 font-mono text-xs text-muted-foreground align-top">{key}</td>
               <td
                 className={cn(
                   "px-4 py-2 font-mono text-xs",
-                  isComplex(value) &&
-                    "whitespace-pre-wrap text-muted-foreground"
+                  isComplex(value) && "whitespace-pre-wrap text-muted-foreground",
                 )}
               >
                 {formatValue(value)}
@@ -330,11 +318,12 @@ const FrontmatterTable: React.FC<FrontmatterTableProps> = ({ data, error }) => {
   )
 }
 
-const FrontmatterNodeEditorContainer: React.FC<
-  FrontmatterNodeEditorContainerProps
-> = ({ parentEditor, frontmatterNode, nodeKey }) => {
-  const [isNodeSelected, setNodeSelected, clearNodeSelection] =
-    useLexicalNodeSelection(nodeKey)
+const FrontmatterNodeEditorContainer: React.FC<FrontmatterNodeEditorContainerProps> = ({
+  parentEditor,
+  frontmatterNode,
+  nodeKey,
+}) => {
+  const [isNodeSelected, setNodeSelected, clearNodeSelection] = useLexicalNodeSelection(nodeKey)
 
   const viewMode = frontmatterNode.__viewMode
   const yamlContent = frontmatterNode.__yaml
@@ -347,10 +336,7 @@ const FrontmatterNodeEditorContainer: React.FC<
         (event: MouseEvent) => {
           const frontmatterElem = parentEditor.getElementByKey(nodeKey)
 
-          if (
-            frontmatterElem &&
-            frontmatterElem.contains(event.target as Node)
-          ) {
+          if (frontmatterElem && frontmatterElem.contains(event.target as Node)) {
             if (!event.shiftKey) {
               clearNodeSelection()
             }
@@ -360,16 +346,10 @@ const FrontmatterNodeEditorContainer: React.FC<
 
           return false
         },
-        COMMAND_PRIORITY_LOW
-      )
+        COMMAND_PRIORITY_LOW,
+      ),
     )
-  }, [
-    clearNodeSelection,
-    parentEditor,
-    setNodeSelected,
-    nodeKey,
-    isNodeSelected,
-  ])
+  }, [clearNodeSelection, parentEditor, setNodeSelected, nodeKey, isNodeSelected])
 
   const handleCodeChange = React.useCallback(
     (code: string) => {
@@ -381,7 +361,7 @@ const FrontmatterNodeEditorContainer: React.FC<
         }
       })
     },
-    [parentEditor, nodeKey]
+    [parentEditor, nodeKey],
   )
 
   const handleToggleViewMode = React.useCallback(() => {
@@ -409,10 +389,7 @@ const FrontmatterNodeEditorContainer: React.FC<
   const rightActions = (
     <>
       <Select value="yaml" disabled>
-        <SelectTrigger
-          size="sm"
-          className="w-auto !px-2 !py-0.5 !h-auto !text-xs"
-        >
+        <SelectTrigger size="sm" className="w-auto !px-2 !py-0.5 !h-auto !text-xs">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -448,7 +425,7 @@ const FrontmatterNodeEditorContainer: React.FC<
     <div
       className={cn(
         "group relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
-        "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+        "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
       )}
       data-testid="frontmatter-node"
     >
@@ -461,15 +438,9 @@ const FrontmatterNodeEditorContainer: React.FC<
       />
 
       {/* Content area */}
-      <div
-        className="overflow-hidden rounded-b-lg"
-        data-testid="frontmatter-node-content"
-      >
+      <div className="overflow-hidden rounded-b-lg" data-testid="frontmatter-node-content">
         {viewMode === "code" ? (
-          <FrontmatterEditorContextProvider
-            parentEditor={parentEditor}
-            nodeKey={nodeKey}
-          >
+          <FrontmatterEditorContextProvider parentEditor={parentEditor} nodeKey={nodeKey}>
             <div data-testid="frontmatter-code-editor">
               <BaseCodeMirrorEditor
                 language={yamlLanguageExtension}
@@ -497,8 +468,6 @@ export function $createFrontmatterNode({
   return $applyNodeReplacement(new FrontmatterNode(yaml, key, viewMode))
 }
 
-export function $isFrontmatterNode(
-  node: LexicalNode | null | undefined
-): node is FrontmatterNode {
+export function $isFrontmatterNode(node: LexicalNode | null | undefined): node is FrontmatterNode {
   return node instanceof FrontmatterNode
 }

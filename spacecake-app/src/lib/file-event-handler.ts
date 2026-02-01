@@ -1,13 +1,8 @@
-import { match } from "@/types/adt"
-import type {
-  File,
-  FileTree,
-  FileTreeEvent,
-  Folder,
-  WorkspaceInfo,
-} from "@/types/workspace"
-import { AbsolutePath } from "@/types/workspace"
+import type { File, FileTree, FileTreeEvent, Folder, WorkspaceInfo } from "@/types/workspace"
+
 import { readFile } from "@/lib/fs"
+import { match } from "@/types/adt"
+import { AbsolutePath } from "@/types/workspace"
 
 // pending saves map: tracks files being saved by the app
 // key: absolute file path, value: content hash (cid)
@@ -26,10 +21,7 @@ export function addPendingSave(filePath: AbsolutePath, cid: string): void {
  * if found, removes the entry from the map and returns true.
  * otherwise, returns false.
  */
-function checkAndRemovePendingSave(
-  filePath: AbsolutePath,
-  onDiskCID: string
-): boolean {
+function checkAndRemovePendingSave(filePath: AbsolutePath, onDiskCID: string): boolean {
   const pendingCID = pendingSaves.get(filePath)
   if (pendingCID === onDiskCID) {
     pendingSaves.delete(filePath)
@@ -60,11 +52,11 @@ export const handleFileEvent = async (
   setFileTreeEvent: (
     event: FileTreeEvent,
     workspacePath: WorkspaceInfo["path"],
-    deleteFile: (filePath: AbsolutePath) => Promise<void>
+    deleteFile: (filePath: AbsolutePath) => Promise<void>,
   ) => void,
   workspacePath: WorkspaceInfo["path"],
   fileTree: FileTree,
-  deleteFile: (filePath: AbsolutePath) => Promise<void>
+  deleteFile: (filePath: AbsolutePath) => Promise<void>,
 ) => {
   let processedEvent = event
 
@@ -98,7 +90,7 @@ export const handleFileEvent = async (
     // check if this is an app-initiated save or a legit external change
     const isAppInitiatedSave = checkAndRemovePendingSave(
       AbsolutePath(processedEvent.path),
-      processedEvent.cid
+      processedEvent.cid,
     )
 
     // if it's an app-initiated save, don't dispatch the event
@@ -119,7 +111,7 @@ export const handleFileEvent = async (
         cid: processedEvent.cid,
       },
       workspacePath,
-      deleteFile
+      deleteFile,
     )
   } else {
     // Handle other file tree events

@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef } from "react"
 
+import { useFileEventHandler } from "@/hooks/use-file-event-handler"
+import { startWatcher, stopWatcher } from "@/lib/fs"
 import { match } from "@/types/adt"
 import { WorkspaceInfo } from "@/types/workspace"
-import { startWatcher, stopWatcher } from "@/lib/fs"
-import { useFileEventHandler } from "@/hooks/use-file-event-handler"
 
 interface WorkspaceWatcherProps {
   workspacePath: WorkspaceInfo["path"]
@@ -16,10 +16,7 @@ export function WorkspaceWatcher({ workspacePath }: WorkspaceWatcherProps) {
 
   useLayoutEffect(() => {
     // prevent duplicate listeners for the same workspace
-    if (
-      isListeningRef.current &&
-      currentWorkspaceRef.current === workspacePath
-    ) {
+    if (isListeningRef.current && currentWorkspaceRef.current === workspacePath) {
       return
     }
 

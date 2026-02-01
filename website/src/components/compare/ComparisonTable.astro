@@ -1,0 +1,157 @@
+---
+/**
+ * Comparison table component for side-by-side feature comparison
+ * Great for featured snippets in search results
+ */
+
+interface Feature {
+  name: string
+  values: (string | boolean)[]
+  highlight?: number // Index of the "winning" column
+}
+
+interface Props {
+  products: string[]
+  features: Feature[]
+}
+
+const { products, features } = Astro.props
+
+const renderValue = (value: string | boolean) => {
+  if (typeof value === "boolean") {
+    return value ? "✓" : "✗"
+  }
+  return value
+}
+
+const getValueClass = (
+  value: string | boolean,
+  highlight?: number,
+  index?: number
+) => {
+  const classes = ["value"]
+  if (typeof value === "boolean") {
+    classes.push(value ? "yes" : "no")
+  }
+  if (highlight !== undefined && index === highlight) {
+    classes.push("highlight")
+  }
+  return classes.join(" ")
+}
+---
+
+<div class="comparison-table-wrapper">
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th class="feature-header">Feature</th>
+        {products.map((product) => <th class="product-header">{product}</th>)}
+      </tr>
+    </thead>
+    <tbody>
+      {
+        features.map((feature) => (
+          <tr>
+            <td class="feature-name">{feature.name}</td>
+            {feature.values.map((value, index) => (
+              <td class={getValueClass(value, feature.highlight, index)}>
+                {renderValue(value)}
+              </td>
+            ))}
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .comparison-table-wrapper {
+    overflow-x: auto;
+    margin: 2rem 0;
+    border: 1px solid #262626;
+    border-radius: 0.5rem;
+  }
+
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+  }
+
+  th,
+  td {
+    padding: 0.875rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #262626;
+  }
+
+  th {
+    background: #1a1a1a;
+    font-weight: 600;
+    color: #fafafa;
+    white-space: nowrap;
+  }
+
+  .feature-header {
+    min-width: 200px;
+  }
+
+  .product-header {
+    text-align: center;
+    min-width: 140px;
+  }
+
+  .feature-name {
+    color: #a1a1a1;
+    font-weight: 500;
+  }
+
+  .value {
+    text-align: center;
+    color: #a1a1a1;
+  }
+
+  .value.yes {
+    color: #10b981;
+    font-weight: 600;
+    font-size: 1.125rem;
+  }
+
+  .value.no {
+    color: #ef4444;
+    font-size: 1.125rem;
+  }
+
+  .value.highlight {
+    background: rgba(16, 185, 129, 0.1);
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr:hover td {
+    background: #141414;
+  }
+
+  tr:hover .value.highlight {
+    background: rgba(16, 185, 129, 0.15);
+  }
+
+  @media (max-width: 640px) {
+    th,
+    td {
+      padding: 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .feature-header {
+      min-width: 140px;
+    }
+
+    .product-header {
+      min-width: 100px;
+    }
+  }
+</style>

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react"
+import type { MermaidConfig } from "mermaid"
+
 import { NodeKey } from "lexical"
 import { ChevronDown } from "lucide-react"
-import type { MermaidConfig } from "mermaid"
+import React, { useEffect, useState } from "react"
 
 import { useTheme } from "@/components/theme-provider"
 

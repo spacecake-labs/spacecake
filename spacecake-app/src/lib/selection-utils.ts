@@ -23,7 +23,7 @@ export interface CodeMirrorSelectionInfo {
 export const extractCodeMirrorSelectionInfo = (
   state: EditorState,
   anchor: number,
-  head: number
+  head: number,
 ): CodeMirrorSelectionInfo => {
   const from = Math.min(anchor, head)
   const to = Math.max(anchor, head)
@@ -49,9 +49,7 @@ export const extractCodeMirrorSelectionInfo = (
  * Since Rich View doesn't map 1:1 to source lines, we treat it as a single block
  * from (0, 0) to (0, length).
  */
-export const createRichViewClaudeSelection = (
-  text: string
-): ClaudeSelection => {
+export const createRichViewClaudeSelection = (text: string): ClaudeSelection => {
   const length = text.length
   return {
     start: { line: 0, character: 0 },

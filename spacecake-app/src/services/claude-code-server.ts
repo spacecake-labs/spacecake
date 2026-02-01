@@ -1,26 +1,22 @@
+import { Effect, Either, Schema } from "effect"
+import { BrowserWindow, ipcMain } from "electron"
 import crypto from "node:crypto"
 import path from "node:path"
+import { WebSocket, WebSocketServer } from "ws"
+
+import type { DisplayStatusline } from "@/lib/statusline-parser"
+import type { ClaudeCodeStatus, OpenFilePayload } from "@/types/claude-code"
 
 import { ClaudeConfig } from "@/services/claude-config"
 import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
-import { Effect, Either, Schema } from "effect"
-import { BrowserWindow, ipcMain } from "electron"
-import { WebSocket, WebSocketServer } from "ws"
-
-import type { ClaudeCodeStatus, OpenFilePayload } from "@/types/claude-code"
 import {
   AtMentionedPayloadSchema,
   OpenFileArgsSchema,
   SelectionChangedPayloadSchema,
 } from "@/types/claude-code"
-import {
-  JsonRpcMessageSchema,
-  ToolCallParamsSchema,
-  type JsonRpcResponse,
-} from "@/types/rpc"
+import { JsonRpcMessageSchema, ToolCallParamsSchema, type JsonRpcResponse } from "@/types/rpc"
 import { AbsolutePath } from "@/types/workspace"
-import type { DisplayStatusline } from "@/lib/statusline-parser"
 
 function broadcastClaudeCodeStatus(status: ClaudeCodeStatus) {
   BrowserWindow.getAllWindows().forEach((win) => {
@@ -43,8 +39,7 @@ function broadcastStatusline(statusline: DisplayStatusline) {
 // MCP tool definitions for tools/list response
 const OPEN_FILE_TOOL = {
   name: "openFile",
-  description:
-    "Open a file in the editor and optionally select a range of text",
+  description: "Open a file in the editor and optionally select a range of text",
   inputSchema: {
     type: "object" as const,
     properties: {
@@ -90,10 +85,7 @@ const PORT_RANGE_START = 10000
 const PORT_RANGE_END = 65535
 
 function getRandomPort(): number {
-  return (
-    Math.floor(Math.random() * (PORT_RANGE_END - PORT_RANGE_START + 1)) +
-    PORT_RANGE_START
-  )
+  return Math.floor(Math.random() * (PORT_RANGE_END - PORT_RANGE_START + 1)) + PORT_RANGE_START
 }
 
 export const makeClaudeCodeServer = Effect.gen(function* () {
@@ -135,7 +127,7 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
     Effect.retry({
       times: 10,
       while: (err: Error & { code?: string }) => err.code === "EADDRINUSE",
-    })
+    }),
   )
 
   const doStart = async (workspaceFolders: string[]): Promise<void> => {
@@ -151,12 +143,8 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
       broadcastStatusline(statusline)
     })
 
-    await Effect.runPromise(
-      fsService.createFolder(claudeConfig.ideDir, { recursive: true })
-    )
-    const lockFilePath = AbsolutePath(
-      path.join(claudeConfig.ideDir, `${port}.lock`)
-    )
+    await Effect.runPromise(fsService.createFolder(claudeConfig.ideDir, { recursive: true }))
+    const lockFilePath = AbsolutePath(path.join(claudeConfig.ideDir, `${port}.lock`))
 
     wss.on("connection", (ws, req) => {
       const authHeader = req.headers["x-claude-code-ide-authorization"]
@@ -181,20 +169,13 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
 
         const decoded = Schema.decodeUnknownEither(JsonRpcMessageSchema)(parsed)
         if (Either.isLeft(decoded)) {
-          console.error(
-            "claude code server: invalid json-rpc message",
-            decoded.left
-          )
+          console.error("claude code server: invalid json-rpc message", decoded.left)
           return
         }
 
         const data = decoded.right
         // Handle initialize request - broadcast "connecting" status
-        if (
-          data.method === "initialize" &&
-          data.id !== null &&
-          data.id !== undefined
-        ) {
+        if (data.method === "initialize" && data.id !== null && data.id !== undefined) {
           broadcastClaudeCodeStatus("connecting")
           const initResponse = {
             jsonrpc: "2.0",
@@ -221,11 +202,7 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
         }
 
         // Handle tools/list request - respond with available tools
-        if (
-          data.method === "tools/list" &&
-          data.id !== null &&
-          data.id !== undefined
-        ) {
+        if (data.method === "tools/list" && data.id !== null && data.id !== undefined) {
           const toolsListResponse = {
             jsonrpc: "2.0",
             id: data.id,
@@ -238,26 +215,15 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
         }
 
         // Handle tools/call request
-        if (
-          data.method === "tools/call" &&
-          data.id !== null &&
-          data.id !== undefined
-        ) {
-          const paramsDecoded = Schema.decodeUnknownEither(
-            ToolCallParamsSchema
-          )(data.params)
+        if (data.method === "tools/call" && data.id !== null && data.id !== undefined) {
+          const paramsDecoded = Schema.decodeUnknownEither(ToolCallParamsSchema)(data.params)
           if (Either.isLeft(paramsDecoded)) {
-            console.error(
-              "claude code server: invalid tools/call params",
-              paramsDecoded.left
-            )
+            console.error("claude code server: invalid tools/call params", paramsDecoded.left)
             const errorResponse = {
               jsonrpc: "2.0",
               id: data.id,
               result: {
-                content: [
-                  { type: "text", text: "Error: Invalid tool call params" },
-                ],
+                content: [{ type: "text", text: "Error: Invalid tool call params" }],
                 isError: true,
               },
             } satisfies JsonRpcResponse
@@ -268,21 +234,14 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
           const toolParams = paramsDecoded.right
 
           if (toolParams.name === "openFile") {
-            const argsDecoded = Schema.decodeUnknownEither(OpenFileArgsSchema)(
-              toolParams.arguments
-            )
+            const argsDecoded = Schema.decodeUnknownEither(OpenFileArgsSchema)(toolParams.arguments)
             if (Either.isLeft(argsDecoded)) {
-              console.error(
-                "claude code server: invalid openFile args",
-                argsDecoded.left
-              )
+              console.error("claude code server: invalid openFile args", argsDecoded.left)
               const errorResponse = {
                 jsonrpc: "2.0",
                 id: data.id,
                 result: {
-                  content: [
-                    { type: "text", text: "Error: Invalid openFile arguments" },
-                  ],
+                  content: [{ type: "text", text: "Error: Invalid openFile arguments" }],
                   isError: true,
                 },
               } satisfies JsonRpcResponse
@@ -294,14 +253,11 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
 
             // Find which workspace contains this file
             const matchingWorkspace = workspaceFolders.find((folder) =>
-              args.filePath.startsWith(folder)
+              args.filePath.startsWith(folder),
             )
 
             if (!matchingWorkspace) {
-              console.warn(
-                "claude code server: file not in any workspace",
-                args.filePath
-              )
+              console.warn("claude code server: file not in any workspace", args.filePath)
               const errorResponse = {
                 jsonrpc: "2.0",
                 id: data.id,
@@ -331,9 +287,7 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
               jsonrpc: "2.0",
               id: data.id,
               result: {
-                content: [
-                  { type: "text", text: `Opened file: ${args.filePath}` },
-                ],
+                content: [{ type: "text", text: `Opened file: ${args.filePath}` }],
               },
             } satisfies JsonRpcResponse
             ws.send(JSON.stringify(successResponse))
@@ -369,12 +323,8 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
     }
 
     try {
-      await Effect.runPromise(
-        fsService.writeTextFile(lockFilePath, JSON.stringify(lockData))
-      )
-      console.log(
-        `Claude Code Server listening on port ${port}, lock file: ${lockFilePath}`
-      )
+      await Effect.runPromise(fsService.writeTextFile(lockFilePath, JSON.stringify(lockData)))
+      console.log(`Claude Code Server listening on port ${port}, lock file: ${lockFilePath}`)
     } catch (error) {
       console.error("Failed to write lock file", error)
     }
@@ -418,23 +368,15 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
 
   // Register IPC handlers - these work whether server is started or not
   // They just no-op if server isn't running
-  ipcMain.handle(
-    "claude:ensure-server",
-    async (_, workspaceFolders: string[]) => {
-      await ensureStarted(workspaceFolders)
-    }
-  )
+  ipcMain.handle("claude:ensure-server", async (_, workspaceFolders: string[]) => {
+    await ensureStarted(workspaceFolders)
+  })
 
   ipcMain.handle("claude:selection-changed", (_, payload) => {
     if (!serverState) return
-    const decoded = Schema.decodeUnknownEither(SelectionChangedPayloadSchema)(
-      payload
-    )
+    const decoded = Schema.decodeUnknownEither(SelectionChangedPayloadSchema)(payload)
     if (Either.isLeft(decoded)) {
-      console.error(
-        "claude code server: invalid selection changed payload",
-        decoded.left
-      )
+      console.error("claude code server: invalid selection changed payload", decoded.left)
       return
     }
     broadcast("selection_changed", decoded.right)
@@ -442,14 +384,9 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
 
   ipcMain.handle("claude:at-mentioned", (_, payload) => {
     if (!serverState) return
-    const decoded = Schema.decodeUnknownEither(AtMentionedPayloadSchema)(
-      payload
-    )
+    const decoded = Schema.decodeUnknownEither(AtMentionedPayloadSchema)(payload)
     if (Either.isLeft(decoded)) {
-      console.error(
-        "claude code server: invalid at-mentioned payload",
-        decoded.left
-      )
+      console.error("claude code server: invalid at-mentioned payload", decoded.left)
       return
     }
     broadcast("at_mentioned", decoded.right)
@@ -476,7 +413,7 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
       if (exists) {
         yield* fsService.remove(serverState.lockFilePath)
       }
-    }).pipe(Effect.catchAll(() => Effect.void))
+    }).pipe(Effect.catchAll(() => Effect.void)),
   )
 
   return {
@@ -486,14 +423,7 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
   } as const
 })
 
-export class ClaudeCodeServer extends Effect.Service<ClaudeCodeServer>()(
-  "ClaudeCodeServer",
-  {
-    scoped: makeClaudeCodeServer,
-    dependencies: [
-      ClaudeConfig.Default,
-      ClaudeHooksServer.Default,
-      FileSystem.Default,
-    ],
-  }
-) {}
+export class ClaudeCodeServer extends Effect.Service<ClaudeCodeServer>()("ClaudeCodeServer", {
+  scoped: makeClaudeCodeServer,
+  dependencies: [ClaudeConfig.Default, ClaudeHooksServer.Default, FileSystem.Default],
+}) {}

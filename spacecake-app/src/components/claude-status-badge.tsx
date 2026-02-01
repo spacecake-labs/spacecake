@@ -1,14 +1,10 @@
-import { claudeStatusAtom } from "@/providers/claude-integration-provider"
 import { useAtomValue } from "jotai"
 
+import { useTheme } from "@/components/theme-provider"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { claudeStatuslineAtom } from "@/lib/atoms/atoms"
 import { cn } from "@/lib/utils"
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card"
-import { useTheme } from "@/components/theme-provider"
+import { claudeStatusAtom } from "@/providers/claude-integration-provider"
 
 interface ClaudeStatusBadgeProps {
   className?: string
@@ -93,23 +89,15 @@ export function ClaudeStatusBadge({ className }: ClaudeStatusBadgeProps) {
   const statuslineActive = statusline !== null
   const sessionActive = statusline?.sessionId != null
 
-  const activeCount = [ideConnected, statuslineActive, sessionActive].filter(
-    Boolean
-  ).length
+  const activeCount = [ideConnected, statuslineActive, sessionActive].filter(Boolean).length
   const aggregateColor: AggregateColor =
     activeCount === 3 ? "green" : activeCount > 0 ? "yellow" : "gray"
 
   const config =
-    theme === "light"
-      ? lightBadgeConfig[aggregateColor]
-      : darkBadgeConfig[aggregateColor]
+    theme === "light" ? lightBadgeConfig[aggregateColor] : darkBadgeConfig[aggregateColor]
 
   const ideStatusText =
-    status === "connected"
-      ? "connected"
-      : status === "connecting"
-        ? "connecting"
-        : "disconnected"
+    status === "connected" ? "connected" : status === "connecting" ? "connecting" : "disconnected"
 
   return (
     <HoverCard openDelay={200} closeDelay={100}>
@@ -119,7 +107,7 @@ export function ClaudeStatusBadge({ className }: ClaudeStatusBadgeProps) {
             "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium transition-all cursor-default",
             config.bgColor,
             config.borderColor,
-            className
+            className,
           )}
           data-ide-status={status}
         >
@@ -128,14 +116,14 @@ export function ClaudeStatusBadge({ className }: ClaudeStatusBadgeProps) {
               className={cn(
                 "size-1.5 rounded-full",
                 config.dotColor,
-                aggregateColor === "yellow" && "animate-pulse"
+                aggregateColor === "yellow" && "animate-pulse",
               )}
             />
             {aggregateColor === "yellow" && (
               <div
                 className={cn(
                   "absolute size-1.5 rounded-full animate-ping opacity-75",
-                  config.dotColor
+                  config.dotColor,
                 )}
               />
             )}

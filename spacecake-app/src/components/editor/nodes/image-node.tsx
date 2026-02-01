@@ -6,10 +6,6 @@
  *
  */
 
-import type { JSX } from "react"
-import * as React from "react"
-import { HashtagNode } from "@lexical/hashtag"
-import { LinkNode } from "@lexical/link"
 import type {
   DOMConversionMap,
   DOMConversionOutput,
@@ -23,6 +19,10 @@ import type {
   SerializedLexicalNode,
   Spread,
 } from "lexical"
+import type { JSX } from "react"
+
+import { HashtagNode } from "@lexical/hashtag"
+import { LinkNode } from "@lexical/link"
 import {
   $applyNodeReplacement,
   createEditor,
@@ -32,13 +32,12 @@ import {
   RootNode,
   TextNode,
 } from "lexical"
+import * as React from "react"
 
 import { EmojiNode } from "@/components/editor/nodes/emoji-node"
 import { KeywordNode } from "@/components/editor/nodes/keyword-node"
 
-const ImageComponent = React.lazy(
-  () => import("@/components/editor/image-component")
-)
+const ImageComponent = React.lazy(() => import("@/components/editor/image-component"))
 
 export interface ImagePayload {
   altText: string
@@ -109,13 +108,12 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
       node.__showCaption,
       node.__caption,
       node.__captionsEnabled,
-      node.__key
+      node.__key,
     )
   }
 
   static importJSON(serializedNode: SerializedImageNode): ImageNode {
-    const { altText, height, width, maxWidth, src, showCaption } =
-      serializedNode
+    const { altText, height, width, maxWidth, src, showCaption } = serializedNode
     return $createImageNode({
       altText,
       height,
@@ -165,7 +163,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
     showCaption?: boolean,
     caption?: LexicalEditor,
     captionsEnabled?: boolean,
-    key?: NodeKey
+    key?: NodeKey,
   ) {
     super(key)
     this.__src = src
@@ -205,10 +203,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
     }
   }
 
-  setWidthAndHeight(
-    width: "inherit" | number,
-    height: "inherit" | number
-  ): void {
+  setWidthAndHeight(width: "inherit" | number, height: "inherit" | number): void {
     const writable = this.getWritable()
     writable.__width = width
     writable.__height = height
@@ -282,13 +277,11 @@ export function $createImageNode({
       showCaption,
       caption,
       captionsEnabled,
-      key
-    )
+      key,
+    ),
   )
 }
 
-export function $isImageNode(
-  node: LexicalNode | null | undefined
-): node is ImageNode {
+export function $isImageNode(node: LexicalNode | null | undefined): node is ImageNode {
   return node instanceof ImageNode
 }

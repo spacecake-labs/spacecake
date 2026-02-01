@@ -1,23 +1,20 @@
 import { readFileSync } from "fs"
 import { join } from "path"
-
-import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import { describe, expect, it } from "vitest"
 
 import type { PyBlock } from "@/types/parser"
-import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
+
 import {
   parseCodeBlocks,
   parsePythonContentStreaming,
   serializeBlocksToPython,
 } from "@/lib/parser/python/blocks"
+import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
+import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
 
 describe("Python parser isomorphism", () => {
   it("tests that parse/serialize is isomorphic for core.py", async () => {
-    const code = readFileSync(
-      join(__dirname, "../../../../tests/fixtures/core.py"),
-      "utf-8"
-    )
+    const code = readFileSync(join(__dirname, "../../../../tests/fixtures/core.py"), "utf-8")
 
     // First parse
     const originalBlocks: PyBlock[] = []

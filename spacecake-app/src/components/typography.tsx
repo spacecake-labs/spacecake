@@ -1,8 +1,4 @@
-export function TypographyInlineCode({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export function TypographyInlineCode({ children }: { children: React.ReactNode }) {
   return (
     <code className="bg-muted rounded px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold">
       {children}
@@ -23,9 +19,5 @@ export function TypographyP({ children }: { children: React.ReactNode }) {
 }
 
 export function TypographyH3({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
-      {children}
-    </h3>
-  )
+  return <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">{children}</h3>
 }

@@ -64,9 +64,7 @@ test.describe("selection restoration", () => {
     await waitForWorkspace(window)
 
     // Wait for the test file to appear in file tree
-    await expect(
-      locateSidebarItem(window, "test-selection-reload.md")
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "test-selection-reload.md")).toBeVisible()
 
     // open the file
     await locateSidebarItem(window, "test-selection-reload.md").click()
@@ -86,9 +84,7 @@ test.describe("selection restoration", () => {
     await window.reload()
 
     // Wait for workspace to restore
-    await expect(
-      locateSidebarItem(window, "test-selection-reload.md")
-    ).toBeVisible()
+    await expect(locateSidebarItem(window, "test-selection-reload.md")).toBeVisible()
 
     // wait for editor to be visible again with our content (file should auto-restore)
     const editorAfterReload = window.getByTestId("lexical-editor")

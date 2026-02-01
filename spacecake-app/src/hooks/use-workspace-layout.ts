@@ -1,13 +1,13 @@
+import { Option, Schema } from "effect"
+
+import { useQuerySingle } from "@/hooks/use-query"
+import { workspaceLayoutQuery } from "@/lib/db/queries"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
 import {
   defaultWorkspaceLayout,
   WorkspaceLayoutRowSchema,
   WorkspaceLayoutSchema,
 } from "@/schema/workspace-layout"
-import { Option, Schema } from "effect"
-
-import { workspaceLayoutQuery } from "@/lib/db/queries"
-import { useQuerySingle } from "@/hooks/use-query"
 
 const decodeLayout = Schema.decodeUnknownOption(WorkspaceLayoutSchema)
 
@@ -19,7 +19,7 @@ const decodeLayout = Schema.decodeUnknownOption(WorkspaceLayoutSchema)
 export const useWorkspaceLayout = (workspaceId: WorkspacePrimaryKey) => {
   const { data, loading, error, empty } = useQuerySingle(
     (orm) => workspaceLayoutQuery(orm, workspaceId).toSQL(),
-    WorkspaceLayoutRowSchema
+    WorkspaceLayoutRowSchema,
   )
 
   const layout = data?.layout

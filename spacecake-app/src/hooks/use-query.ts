@@ -1,13 +1,6 @@
 import type { Query } from "drizzle-orm"
-import {
-  Data,
-  Either,
-  flow,
-  Match,
-  pipe,
-  Schema,
-  type ParseResult,
-} from "effect"
+
+import { Data, Either, flow, Match, pipe, Schema, type ParseResult } from "effect"
 
 import { useDatabase } from "@/hooks/use-database"
 import { useStableLiveQuery } from "@/hooks/use-stable-live-query"
@@ -19,7 +12,7 @@ class InvalidData extends Data.TaggedError("InvalidData")<{
 
 const useQueryEffect = <A, I>(
   query: (orm: ReturnType<typeof useDatabase>) => Query,
-  schema: Schema.Schema<A, I>
+  schema: Schema.Schema<A, I>,
 ) => {
   const orm = useDatabase()
   const { params, sql } = query(orm)
@@ -30,15 +23,13 @@ const useQueryEffect = <A, I>(
     Either.flatMap(
       flow(
         Schema.decodeEither(Schema.Array(schema)),
-        Either.mapLeft((parseError) => new InvalidData({ parseError }))
-      )
-    )
+        Either.mapLeft((parseError) => new InvalidData({ parseError })),
+      ),
+    ),
   )
 }
 
-export const useQuery = <A, I>(
-  ...args: Parameters<typeof useQueryEffect<A, I>>
-) => {
+export const useQuery = <A, I>(...args: Parameters<typeof useQueryEffect<A, I>>) => {
   const results = useQueryEffect(...args)
   return Either.match(results, {
     onLeft: (_) =>
@@ -56,7 +47,7 @@ export const useQuery = <A, I>(
             error: undefined,
             empty: false as const,
           }),
-        })
+        }),
       ),
     onRight: (rows) => ({
       data: rows,
@@ -67,9 +58,7 @@ export const useQuery = <A, I>(
   })
 }
 
-export const useQuerySingle = <A, I>(
-  ...args: Parameters<typeof useQueryEffect<A, I>>
-) => {
+export const useQuerySingle = <A, I>(...args: Parameters<typeof useQueryEffect<A, I>>) => {
   const results = useQueryEffect(...args)
   return Either.match(results, {
     onLeft: (_) =>
@@ -87,7 +76,7 @@ export const useQuerySingle = <A, I>(
             error: undefined,
             empty: false as const,
           }),
-        })
+        }),
       ),
     onRight: (rows) => {
       const head = rows[0]

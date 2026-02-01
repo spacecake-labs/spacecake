@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import {
   $getSelection,
@@ -13,6 +12,7 @@ import {
   KEY_ARROW_UP_COMMAND,
   LexicalCommand,
 } from "lexical"
+import { useEffect } from "react"
 
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { $isFrontmatterNode } from "@/components/editor/nodes/frontmatter-node"
@@ -25,15 +25,13 @@ export function NodeNavigationPlugin(): null {
     return editor.registerCommand(
       command,
       (event) => {
-        if (event && (event.metaKey || event.ctrlKey || event.altKey))
-          return false
+        if (event && (event.metaKey || event.ctrlKey || event.altKey)) return false
         const selection = $getSelection()
         if (!$isRangeSelection(selection)) return false
 
         // check if typeahead (slash command) menu is open
         const activeElement = document.activeElement
-        const hasTypeaheadMenu =
-          activeElement?.getAttribute("aria-controls") === "typeahead-menu"
+        const hasTypeaheadMenu = activeElement?.getAttribute("aria-controls") === "typeahead-menu"
         const hasActiveDescendant = activeElement
           ?.getAttribute("aria-activedescendant")
           ?.startsWith("typeahead-item-")
@@ -46,9 +44,7 @@ export function NodeNavigationPlugin(): null {
 
         const anchor = selection.anchor
         const anchorNode = anchor.getNode()
-        const paragraph = $isParagraphNode(anchorNode)
-          ? anchorNode
-          : anchorNode.getParent()
+        const paragraph = $isParagraphNode(anchorNode) ? anchorNode : anchorNode.getParent()
 
         if (!$isParagraphNode(paragraph)) return false
 
@@ -56,33 +52,22 @@ export function NodeNavigationPlugin(): null {
         const lastDescendant = paragraph.getLastDescendant()
         const isEmpty = paragraph.getTextContent().length === 0
         const isAtStart =
-          isEmpty ||
-          (anchor.offset === 0 &&
-            !!firstDescendant &&
-            anchorNode === firstDescendant)
+          isEmpty || (anchor.offset === 0 && !!firstDescendant && anchorNode === firstDescendant)
         const isAtEnd =
           isEmpty ||
           (!!lastDescendant &&
             anchorNode === lastDescendant &&
             anchor.offset === lastDescendant.getTextContent().length)
 
-        const isForward =
-          command === KEY_ARROW_DOWN_COMMAND ||
-          command === KEY_ARROW_RIGHT_COMMAND
+        const isForward = command === KEY_ARROW_DOWN_COMMAND || command === KEY_ARROW_RIGHT_COMMAND
         const shouldMove = (isForward && isAtEnd) || (!isForward && isAtStart)
         if (shouldMove) {
-          const sibling = isForward
-            ? paragraph.getNextSibling()
-            : paragraph.getPreviousSibling()
+          const sibling = isForward ? paragraph.getNextSibling() : paragraph.getPreviousSibling()
 
           if (!sibling) return false
 
           event?.preventDefault()
-          if (
-            $isCodeBlockNode(sibling) ||
-            $isMermaidNode(sibling) ||
-            $isFrontmatterNode(sibling)
-          ) {
+          if ($isCodeBlockNode(sibling) || $isMermaidNode(sibling) || $isFrontmatterNode(sibling)) {
             sibling.select()
           } else if ($isElementNode(sibling)) {
             if (isForward) sibling.selectStart()
@@ -96,7 +81,7 @@ export function NodeNavigationPlugin(): null {
 
         return false
       },
-      COMMAND_PRIORITY_HIGH
+      COMMAND_PRIORITY_HIGH,
     )
   }
 

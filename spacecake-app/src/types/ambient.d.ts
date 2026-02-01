@@ -9,7 +9,7 @@ declare module "write-file-atomic" {
   function writeFileAtomic(
     filename: string,
     data: string | Uint8Array,
-    options?: WriteFileAtomicOptions | BufferEncoding
+    options?: WriteFileAtomicOptions | BufferEncoding,
   ): Promise<void>
 
   export default writeFileAtomic

@@ -1,8 +1,8 @@
 import { EditorState, Extension } from "@codemirror/state"
 import { describe, expect, it } from "vitest"
 
-import { LANGUAGE_SUPPORT } from "@/types/language"
 import { getLanguageSupport } from "@/components/editor/plugins/codemirror-editor"
+import { LANGUAGE_SUPPORT } from "@/types/language"
 
 describe("CodeMirror language support", () => {
   it("all configured languages (except plaintext) have accessible CodeMirror support", async () => {
@@ -24,7 +24,7 @@ describe("CodeMirror language support", () => {
       // Verify extension is available
       expect(
         extension,
-        `${name} (${codemirrorName}) should have a valid CodeMirror extension`
+        `${name} (${codemirrorName}) should have a valid CodeMirror extension`,
       ).not.toBeNull()
 
       // Verify the extension is valid (can be used to create an EditorState)

@@ -1,9 +1,9 @@
 import { useAtomValue } from "jotai"
 
-import { claudeStatuslineAtom } from "@/lib/atoms/atoms"
-import { claudeTasksAtom } from "@/lib/atoms/claude-tasks"
 import { columns } from "@/components/task-table/columns"
 import { DataTable } from "@/components/task-table/data-table"
+import { claudeStatuslineAtom } from "@/lib/atoms/atoms"
+import { claudeTasksAtom } from "@/lib/atoms/claude-tasks"
 
 export function TaskTable() {
   const statusline = useAtomValue(claudeStatuslineAtom)

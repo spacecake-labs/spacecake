@@ -1,3 +1,6 @@
+import { Match } from "effect"
+import { describe, expect, test } from "vitest"
+
 import {
   AlreadyExistsError,
   FileSystemError,
@@ -5,8 +8,6 @@ import {
   PermissionDeniedError,
   UnknownFSError,
 } from "@/services/file-system"
-import { Match } from "effect"
-import { describe, expect, test } from "vitest"
 
 describe("FileSystemError tagged classes", () => {
   describe("NotFoundError", () => {
@@ -27,7 +28,7 @@ describe("FileSystemError tagged classes", () => {
       })
       const result = Match.value(error).pipe(
         Match.tag("NotFoundError", (e) => `not found: ${e.path}`),
-        Match.orElse(() => "other")
+        Match.orElse(() => "other"),
       )
       expect(result).toBe("not found: /test/path")
     })
@@ -50,11 +51,8 @@ describe("FileSystemError tagged classes", () => {
         description: "permission denied",
       })
       const result = Match.value(error).pipe(
-        Match.tag(
-          "PermissionDeniedError",
-          (e) => `permission denied: ${e.path}`
-        ),
-        Match.orElse(() => "other")
+        Match.tag("PermissionDeniedError", (e) => `permission denied: ${e.path}`),
+        Match.orElse(() => "other"),
       )
       expect(result).toBe("permission denied: /protected/path")
     })
@@ -78,7 +76,7 @@ describe("FileSystemError tagged classes", () => {
       })
       const result = Match.value(error).pipe(
         Match.tag("AlreadyExistsError", (e) => `already exists: ${e.path}`),
-        Match.orElse(() => "other")
+        Match.orElse(() => "other"),
       )
       expect(result).toBe("already exists: /existing/path")
     })
@@ -102,7 +100,7 @@ describe("FileSystemError tagged classes", () => {
       })
       const result = Match.value(error).pipe(
         Match.tag("UnknownFSError", (e) => `unknown: ${e.path}`),
-        Match.orElse(() => "other")
+        Match.orElse(() => "other"),
       )
       expect(result).toBe("unknown: /some/path")
     })
@@ -120,23 +118,21 @@ describe("FileSystemError tagged classes", () => {
       const handleError = (error: FileSystemError): string =>
         Match.value(error).pipe(
           Match.tag("PermissionDeniedError", () => "access denied"),
-          Match.orElse(() => "other error")
+          Match.orElse(() => "other error"),
         )
 
-      expect(
-        handleError(
-          new PermissionDeniedError({ description: "test", path: "/a" })
-        )
-      ).toBe("access denied")
-      expect(
-        handleError(new NotFoundError({ description: "test", path: "/a" }))
-      ).toBe("other error")
-      expect(
-        handleError(new AlreadyExistsError({ description: "test", path: "/a" }))
-      ).toBe("other error")
-      expect(
-        handleError(new UnknownFSError({ description: "test", path: "/a" }))
-      ).toBe("other error")
+      expect(handleError(new PermissionDeniedError({ description: "test", path: "/a" }))).toBe(
+        "access denied",
+      )
+      expect(handleError(new NotFoundError({ description: "test", path: "/a" }))).toBe(
+        "other error",
+      )
+      expect(handleError(new AlreadyExistsError({ description: "test", path: "/a" }))).toBe(
+        "other error",
+      )
+      expect(handleError(new UnknownFSError({ description: "test", path: "/a" }))).toBe(
+        "other error",
+      )
     })
 
     test("multiple Match.tag calls narrow types correctly", () => {
@@ -144,20 +140,14 @@ describe("FileSystemError tagged classes", () => {
         Match.value(error).pipe(
           Match.tag("NotFoundError", () => "not found"),
           Match.tag("PermissionDeniedError", () => "permission denied"),
-          Match.orElse(() => "other")
+          Match.orElse(() => "other"),
         )
 
-      expect(
-        handleError(new NotFoundError({ description: "test", path: "/a" }))
-      ).toBe("not found")
-      expect(
-        handleError(
-          new PermissionDeniedError({ description: "test", path: "/b" })
-        )
-      ).toBe("permission denied")
-      expect(
-        handleError(new AlreadyExistsError({ description: "test", path: "/c" }))
-      ).toBe("other")
+      expect(handleError(new NotFoundError({ description: "test", path: "/a" }))).toBe("not found")
+      expect(handleError(new PermissionDeniedError({ description: "test", path: "/b" }))).toBe(
+        "permission denied",
+      )
+      expect(handleError(new AlreadyExistsError({ description: "test", path: "/c" }))).toBe("other")
     })
   })
 })

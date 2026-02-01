@@ -1,10 +1,11 @@
-import { createContext, useContext } from "react"
-import { Database } from "@/services/database"
 import { Context } from "effect"
+import { createContext, useContext } from "react"
 
-export const DatabaseContext = createContext<
-  Context.Tag.Service<typeof Database>["orm"] | null
->(null)
+import { Database } from "@/services/database"
+
+export const DatabaseContext = createContext<Context.Tag.Service<typeof Database>["orm"] | null>(
+  null,
+)
 
 export const useDatabase = () => {
   const orm = useContext(DatabaseContext)

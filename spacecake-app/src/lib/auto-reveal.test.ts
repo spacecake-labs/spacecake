@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
-import { AbsolutePath } from "@/types/workspace"
 import { getFoldersToExpand, mergeExpandedFolders } from "@/lib/auto-reveal"
+import { AbsolutePath } from "@/types/workspace"
 
 describe("auto-reveal", () => {
   describe("getFoldersToExpand", () => {
@@ -43,15 +43,9 @@ describe("auto-reveal", () => {
         "/workspace/src": true,
         "/workspace/docs": false,
       }
-      const foldersToAutoReveal = [
-        "/workspace/src/components",
-        "/workspace/src/components/ui",
-      ]
+      const foldersToAutoReveal = ["/workspace/src/components", "/workspace/src/components/ui"]
 
-      const result = mergeExpandedFolders(
-        userExpandedFolders,
-        foldersToAutoReveal
-      )
+      const result = mergeExpandedFolders(userExpandedFolders, foldersToAutoReveal)
 
       expect(result).toEqual({
         "/workspace/src": true,
@@ -67,10 +61,7 @@ describe("auto-reveal", () => {
       }
       const foldersToAutoReveal = ["/workspace/src"]
 
-      const result = mergeExpandedFolders(
-        userExpandedFolders,
-        foldersToAutoReveal
-      )
+      const result = mergeExpandedFolders(userExpandedFolders, foldersToAutoReveal)
 
       expect(result).toEqual({
         "/workspace/src": false,

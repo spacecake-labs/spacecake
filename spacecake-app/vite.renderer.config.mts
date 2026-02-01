@@ -1,8 +1,7 @@
-import path from "path"
-
 import tailwindcss from "@tailwindcss/vite"
 import { tanstackRouter } from "@tanstack/router-plugin/vite"
 import react from "@vitejs/plugin-react"
+import path from "path"
 import { defineConfig } from "vite"
 import svgr from "vite-plugin-svgr"
 import topLevelAwait from "vite-plugin-top-level-await"
@@ -29,10 +28,7 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@assets": path.resolve(__dirname, "./assets"),
-      mermaid: path.join(
-        __dirname,
-        "node_modules/mermaid/dist/mermaid.esm.min.mjs"
-      ),
+      mermaid: path.join(__dirname, "node_modules/mermaid/dist/mermaid.esm.min.mjs"),
     },
   },
   assetsInclude: ["./src/drizzle/*.sql"],

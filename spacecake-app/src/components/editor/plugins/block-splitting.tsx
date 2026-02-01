@@ -7,15 +7,15 @@ import {
   SKIP_DOM_SELECTION_TAG,
 } from "lexical"
 
-import { PyBlock } from "@/types/parser"
 import { delimitPyBlock } from "@/components/editor/block-utils"
 import { CodeBlockNode } from "@/components/editor/nodes/code-node"
+import { PyBlock } from "@/types/parser"
 
 export async function maybeSplitBlock(
   editor: LexicalEditor,
   node: CodeBlockNode,
   blocks: PyBlock[],
-  selectLastBlock = false
+  selectLastBlock = false,
 ) {
   let lastNode: LexicalNode | null = null
 
@@ -38,7 +38,7 @@ export async function maybeSplitBlock(
 
         lastNode = currentNode
       },
-      { discrete: true }
+      { discrete: true },
     )
 
     // apply selection to the last block if requested
@@ -50,7 +50,7 @@ export async function maybeSplitBlock(
           $setSelection(selection)
           ;(lastNode as unknown as { select: () => void }).select()
         },
-        { discrete: true }
+        { discrete: true },
       )
     }
   }

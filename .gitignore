@@ -108,3 +108,6 @@ out/
 /blob-report/
 /playwright/.cache/
 /test-output/
+
+# Videos
+videos/

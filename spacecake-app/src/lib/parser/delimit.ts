@@ -1,8 +1,5 @@
-import type {
-  DelimitedString,
-  RegexDelimiters,
-  StringDelimiters,
-} from "@/types/parser"
+import type { DelimitedString, RegexDelimiters, StringDelimiters } from "@/types/parser"
+
 import { SPACE_CONSUMER_PATTERN } from "@/lib/parser/regex"
 
 function escapeRegex(text: string): string {
@@ -13,14 +10,11 @@ function escapeRegex(text: string): string {
  * Generic function: Parse text using delimiters to extract prefix, between, and after parts.
  * Pure function: string → StringDelimiters → DelimitedString
  */
-export function delimitString(
-  text: string,
-  delimiters: StringDelimiters
-): DelimitedString {
+export function delimitString(text: string, delimiters: StringDelimiters): DelimitedString {
   // The 's' flag allows the '.' to match newline characters.
   const pattern = new RegExp(
     `^(${escapeRegex(delimiters.prefix)})(.*)(${escapeRegex(delimiters.suffix)})$`,
-    "s"
+    "s",
   )
   const match = text.match(pattern)
 
@@ -44,14 +38,11 @@ export function delimitString(
  * Generic function: Parse text using regex delimiters to extract prefix, between, and after parts.
  * Pure function: string → RegexDelimiters → DelimitedString
  */
-export function delimitStringWithRegex(
-  text: string,
-  delimiters: RegexDelimiters
-): DelimitedString {
+export function delimitStringWithRegex(text: string, delimiters: RegexDelimiters): DelimitedString {
   // The 's' flag allows the '.' to match newline characters.
   const pattern = new RegExp(
     `^(${delimiters.prefix.source})(.*?)(${delimiters.suffix.source})$`,
-    "s"
+    "s",
   )
 
   const match = text.match(pattern)

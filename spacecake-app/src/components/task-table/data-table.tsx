@@ -1,4 +1,3 @@
-import { useMemo, useState } from "react"
 import {
   flexRender,
   getCoreRowModel,
@@ -10,8 +9,8 @@ import {
   type SortingState,
 } from "@tanstack/react-table"
 import { useAtomValue } from "jotai"
+import { useMemo, useState } from "react"
 
-import { taskStatusFilterAtom } from "@/lib/atoms/claude-tasks"
 import {
   Table,
   TableBody,
@@ -20,23 +19,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { taskStatusFilterAtom } from "@/lib/atoms/claude-tasks"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
 }
 
-export function DataTable<TData, TValue>({
-  columns,
-  data,
-}: DataTableProps<TData, TValue>) {
+export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const statusFilter = useAtomValue(taskStatusFilterAtom)
 
   const columnFilters: ColumnFiltersState = useMemo(
-    () =>
-      statusFilter.length > 0 ? [{ id: "status", value: statusFilter }] : [],
-    [statusFilter]
+    () => (statusFilter.length > 0 ? [{ id: "status", value: statusFilter }] : []),
+    [statusFilter],
   )
 
   const table = useReactTable({
@@ -62,10 +58,7 @@ export function DataTable<TData, TValue>({
                 <TableHead key={header.id}>
                   {header.isPlaceholder
                     ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
+                    : flexRender(header.column.columnDef.header, header.getContext())}
                 </TableHead>
               ))}
             </TableRow>

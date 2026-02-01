@@ -36,9 +36,7 @@ test.describe("Python docstring updating", () => {
 
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
+    await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
 
     const codeBlock1 = editor.locator('[data-block-id*="my_function-function"]')
     await expect(codeBlock1).toBeVisible()
@@ -66,9 +64,7 @@ test.describe("Python docstring updating", () => {
 
     await expect(editor).toBeVisible()
 
-    const codeBlock2 = editor.locator(
-      '[data-block-id*="another_function-function"]'
-    )
+    const codeBlock2 = editor.locator('[data-block-id*="another_function-function"]')
     await expect(codeBlock2).toBeVisible()
 
     const docSection2 = codeBlock2.locator('[data-section="doc"]')

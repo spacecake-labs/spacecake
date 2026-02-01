@@ -1,9 +1,6 @@
-import type {
-  DockablePanelKind,
-  DockPosition,
-  WorkspaceLayout,
-} from "@/schema/workspace-layout"
 import { describe, expect, it } from "vitest"
+
+import type { DockablePanelKind, DockPosition, WorkspaceLayout } from "@/schema/workspace-layout"
 
 import {
   clampSize,
@@ -22,9 +19,7 @@ const POSITIONS: DockPosition[] = ["left", "right", "bottom"]
 
 function makeLayout(
   dock: Record<DockPosition, DockablePanelKind | null>,
-  panels?: Partial<
-    Record<DockablePanelKind, { isExpanded: boolean; size: number }>
-  >
+  panels?: Partial<Record<DockablePanelKind, { isExpanded: boolean; size: number }>>,
 ): WorkspaceLayout {
   return {
     dock,
@@ -88,12 +83,9 @@ describe("findPanel", () => {
     dock: Record<DockPosition, DockablePanelKind | null>
     panel: DockablePanelKind
     expected: DockPosition | null
-  }[])(
-    "returns $expected for $panel with dock=$dock",
-    ({ dock, panel, expected }) => {
-      expect(findPanel(makeLayout(dock), panel)).toBe(expected)
-    }
-  )
+  }[])("returns $expected for $panel with dock=$dock", ({ dock, panel, expected }) => {
+    expect(findPanel(makeLayout(dock), panel)).toBe(expected)
+  })
 })
 
 // ============================================
@@ -140,7 +132,7 @@ describe("clampSize", () => {
         { pos, input: max + 10, expected: max, label: "above max" },
         { pos, input: mid, expected: mid, label: "within range" },
       ]
-    })
+    }),
   )("$pos: $label ($input -> $expected)", ({ pos, input, expected }) => {
     expect(clampSize(input, pos)).toBe(expected)
   })
@@ -158,8 +150,8 @@ describe("transition - move", () => {
         panel,
         source,
         target,
-      }))
-    )
+      })),
+    ),
   )
 
   describe("move to empty dock", () => {
@@ -167,8 +159,7 @@ describe("transition - move", () => {
       "$panel: $source -> $target (target empty)",
       ({ panel, source, target }) => {
         // Place panel at source, other panel elsewhere, target is null
-        const otherPanel: DockablePanelKind =
-          panel === "terminal" ? "task" : "terminal"
+        const otherPanel: DockablePanelKind = panel === "terminal" ? "task" : "terminal"
         const otherPos = POSITIONS.find((p) => p !== source && p !== target)!
         const dock = { left: null, right: null, bottom: null } as Record<
           DockPosition,
@@ -184,14 +175,13 @@ describe("transition - move", () => {
         expect(result.dock[source]).toBeNull()
         expect(result.dock[otherPos]).toBe(otherPanel)
         assertBijection(result)
-      }
+      },
     )
   })
 
   describe("move to occupied dock (swap)", () => {
     it.each(PANELS)("%s: swaps with the other panel", (panel) => {
-      const otherPanel: DockablePanelKind =
-        panel === "terminal" ? "task" : "terminal"
+      const otherPanel: DockablePanelKind = panel === "terminal" ? "task" : "terminal"
       // panel at bottom, other at right, left is null
       const layout = makeLayout({
         left: null,
@@ -208,18 +198,15 @@ describe("transition - move", () => {
   })
 
   describe("no-op cases", () => {
-    it.each(PANELS)(
-      "%s: move to same position returns same reference",
-      (panel) => {
-        const pos = findPanel(defaultLayout, panel)!
-        const result = transition(defaultLayout, {
-          kind: "move",
-          panel,
-          to: pos,
-        })
-        expect(result).toBe(defaultLayout)
-      }
-    )
+    it.each(PANELS)("%s: move to same position returns same reference", (panel) => {
+      const pos = findPanel(defaultLayout, panel)!
+      const result = transition(defaultLayout, {
+        kind: "move",
+        panel,
+        to: pos,
+      })
+      expect(result).toBe(defaultLayout)
+    })
   })
 
   it("preserves panel state after move", () => {
@@ -228,7 +215,7 @@ describe("transition - move", () => {
       {
         terminal: { isExpanded: true, size: 45 },
         task: { isExpanded: true, size: 25 },
-      }
+      },
     )
     const result = transition(layout, {
       kind: "move",
@@ -246,7 +233,7 @@ describe("transition - move", () => {
 
 describe("transition - expand/collapse/toggle", () => {
   const expandedCases = PANELS.flatMap((panel) =>
-    [true, false].map((isExpanded) => ({ panel, isExpanded }))
+    [true, false].map((isExpanded) => ({ panel, isExpanded })),
   )
 
   describe("toggle", () => {
@@ -259,7 +246,7 @@ describe("transition - expand/collapse/toggle", () => {
         const result = transition(layout, { kind: "toggle", panel })
         expect(result.panels[panel].isExpanded).toBe(!isExpanded)
         expect(result.panels[panel].size).toBe(25)
-      }
+      },
     )
   })
 
@@ -273,7 +260,7 @@ describe("transition - expand/collapse/toggle", () => {
         const result = transition(layout, { kind: "expand", panel })
         expect(result.panels[panel].isExpanded).toBe(true)
         expect(result.panels[panel].size).toBe(25)
-      }
+      },
     )
   })
 
@@ -287,33 +274,24 @@ describe("transition - expand/collapse/toggle", () => {
         const result = transition(layout, { kind: "collapse", panel })
         expect(result.panels[panel].isExpanded).toBe(false)
         expect(result.panels[panel].size).toBe(25)
-      }
+      },
     )
   })
 
-  it.each(PANELS)(
-    "%s: toggle/expand/collapse does not affect dock",
-    (panel) => {
-      for (const kind of ["toggle", "expand", "collapse"] as const) {
-        const result = transition(defaultLayout, { kind, panel })
-        expect(result.dock).toEqual(defaultLayout.dock)
-      }
+  it.each(PANELS)("%s: toggle/expand/collapse does not affect dock", (panel) => {
+    for (const kind of ["toggle", "expand", "collapse"] as const) {
+      const result = transition(defaultLayout, { kind, panel })
+      expect(result.dock).toEqual(defaultLayout.dock)
     }
-  )
+  })
 
-  it.each(PANELS)(
-    "%s: toggle/expand/collapse does not affect other panel",
-    (panel) => {
-      const otherPanel: DockablePanelKind =
-        panel === "terminal" ? "task" : "terminal"
-      for (const kind of ["toggle", "expand", "collapse"] as const) {
-        const result = transition(defaultLayout, { kind, panel })
-        expect(result.panels[otherPanel]).toEqual(
-          defaultLayout.panels[otherPanel]
-        )
-      }
+  it.each(PANELS)("%s: toggle/expand/collapse does not affect other panel", (panel) => {
+    const otherPanel: DockablePanelKind = panel === "terminal" ? "task" : "terminal"
+    for (const kind of ["toggle", "expand", "collapse"] as const) {
+      const result = transition(defaultLayout, { kind, panel })
+      expect(result.panels[otherPanel]).toEqual(defaultLayout.panels[otherPanel])
     }
-  )
+  })
 })
 
 // ============================================
@@ -328,14 +306,11 @@ describe("transition - resize", () => {
       size: 42,
     })
     expect(result.panels[panel].size).toBe(42)
-    expect(result.panels[panel].isExpanded).toBe(
-      defaultLayout.panels[panel].isExpanded
-    )
+    expect(result.panels[panel].isExpanded).toBe(defaultLayout.panels[panel].isExpanded)
   })
 
   it.each(PANELS)("%s: resize does not affect dock or other panel", (panel) => {
-    const otherPanel: DockablePanelKind =
-      panel === "terminal" ? "task" : "terminal"
+    const otherPanel: DockablePanelKind = panel === "terminal" ? "task" : "terminal"
     const result = transition(defaultLayout, {
       kind: "resize",
       panel,

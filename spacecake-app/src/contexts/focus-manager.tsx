@@ -1,10 +1,5 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-} from "react"
+import { createContext, useCallback, useContext, useEffect, useRef } from "react"
+
 import type { PanelKind } from "@/schema/workspace-layout"
 
 type FocusCallback = () => void
@@ -17,20 +12,13 @@ interface FocusManagerContextValue {
 
 const FocusManagerContext = createContext<FocusManagerContextValue | null>(null)
 
-export function FocusManagerProvider({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export function FocusManagerProvider({ children }: { children: React.ReactNode }) {
   const registry = useRef(new Map<PanelKind, FocusCallback>())
 
-  const register = useCallback(
-    (id: PanelKind, focus: FocusCallback): Unregister => {
-      registry.current.set(id, focus)
-      return () => registry.current.delete(id)
-    },
-    []
-  )
+  const register = useCallback((id: PanelKind, focus: FocusCallback): Unregister => {
+    registry.current.set(id, focus)
+    return () => registry.current.delete(id)
+  }, [])
 
   const focus = useCallback((id: PanelKind) => {
     registry.current.get(id)?.()
@@ -45,8 +33,7 @@ export function FocusManagerProvider({
 
 export function useFocusManager() {
   const ctx = useContext(FocusManagerContext)
-  if (!ctx)
-    throw new Error("useFocusManager must be used within FocusManagerProvider")
+  if (!ctx) throw new Error("useFocusManager must be used within FocusManagerProvider")
   return ctx
 }
 

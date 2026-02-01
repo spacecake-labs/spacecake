@@ -1,14 +1,15 @@
-import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import { $getRoot, createEditor, type ElementNode } from "lexical"
 import { describe, expect, it } from "vitest"
 
 import type { PyBlock } from "@/types/parser"
-import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
+
 import { nodes } from "@/components/editor/nodes"
 import {
   convertPythonBlocksToLexical,
   getInitialEditorStateFromContent,
 } from "@/components/editor/read-file"
+import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
+import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
 
 describe("read-file: convertPythonBlocksToLexical", () => {
   it("should convert python code to lexical nodes", async () => {
@@ -35,14 +36,7 @@ def my_function():
     expect(file.content === pythonCode, "file should have content")
     expect(file.fileType === FileType.Python, "file should be python type")
 
-    await convertPythonBlocksToLexical(
-      file,
-      editor,
-      null,
-      undefined,
-      undefined,
-      () => {}
-    )
+    await convertPythonBlocksToLexical(file, editor, null, undefined, undefined, () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -63,7 +57,7 @@ def my_function():
       // third child: function definition
       expect(children[2].getType()).toBe("codeblock")
       expect(children[2].getTextContent()).toBe(
-        "def my_function():\n    x = 1\n    y = 2\n    return x + y"
+        "def my_function():\n    x = 1\n    y = 2\n    return x + y",
       )
 
       // fourth child: empty paragraph
@@ -99,14 +93,7 @@ import pandas as pd
     expect(file.content === pythonCode, "file should have content")
     expect(file.fileType === FileType.Python, "file should be python type")
 
-    await convertPythonBlocksToLexical(
-      file,
-      editor,
-      null,
-      undefined,
-      undefined,
-      () => {}
-    )
+    await convertPythonBlocksToLexical(file, editor, null, undefined, undefined, () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -115,9 +102,7 @@ import pandas as pd
 
       // first child: heading with docstring
       expect(children[0].getType()).toBe("codeblock")
-      expect(children[0].getTextContent()).toBe(
-        '"""A file with markdown directives."""'
-      )
+      expect(children[0].getTextContent()).toBe('"""A file with markdown directives."""')
 
       // second child: empty paragraph
       expect(children[1].getType()).toBe("container")
@@ -174,14 +159,7 @@ import pandas as pd
       cid: "test-cid",
       selection: null,
     }
-    await convertPythonBlocksToLexical(
-      file,
-      editor,
-      null,
-      undefined,
-      undefined,
-      () => {}
-    )
+    await convertPythonBlocksToLexical(file, editor, null, undefined, undefined, () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -210,9 +188,7 @@ import pandas as pd
     }
 
     // create an async generator that throws an error
-    const failingParser = async function* (
-      file: EditorFile
-    ): AsyncGenerator<PyBlock> {
+    const failingParser = async function* (file: EditorFile): AsyncGenerator<PyBlock> {
       // this will never execute since we pass empty content, but satisfies the linter
       if (file.content) {
         yield {} as PyBlock
@@ -220,14 +196,7 @@ import pandas as pd
       throw new Error("parsing failed")
     }
 
-    await convertPythonBlocksToLexical(
-      file,
-      editor,
-      null,
-      undefined,
-      failingParser,
-      () => {}
-    )
+    await convertPythonBlocksToLexical(file, editor, null, undefined, failingParser, () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -264,12 +233,7 @@ def my_function():
 
     // Create a promise that resolves when the async operation completes
     const completionPromise = new Promise<void>((resolve) => {
-      const updateFunction = getInitialEditorStateFromContent(
-        file,
-        "rich",
-        null,
-        () => resolve()
-      )
+      const updateFunction = getInitialEditorStateFromContent(file, "rich", null, () => resolve())
 
       // Apply the update using the existing logic
       updateFunction(editor)
@@ -298,7 +262,7 @@ def my_function():
       // third child: function definition
       expect(children[2].getType()).toBe("codeblock")
       expect(children[2].getTextContent()).toBe(
-        "def my_function():\n    x = 1\n    y = 2\n    return x + y"
+        "def my_function():\n    x = 1\n    y = 2\n    return x + y",
       )
 
       // fourth child: empty paragraph

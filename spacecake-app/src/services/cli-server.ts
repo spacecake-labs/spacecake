@@ -1,3 +1,5 @@
+import { Effect } from "effect"
+import { BrowserWindow, ipcMain } from "electron"
 /**
  * CLI Server — Unix domain socket server for the `spacecake` CLI tool.
  *
@@ -8,20 +10,13 @@
  * When `wait: true`, holds the HTTP connection open until the file tab is
  * closed (signalled via IPC from the renderer).
  */
-import {
-  createServer,
-  IncomingMessage,
-  Server,
-  ServerResponse,
-} from "node:http"
+import { createServer, IncomingMessage, Server, ServerResponse } from "node:http"
 import path from "node:path"
+
+import type { OpenFilePayload } from "@/types/claude-code"
 
 import { FileSystem } from "@/services/file-system"
 import { SpacecakeHome } from "@/services/spacecake-home"
-import { Effect } from "effect"
-import { BrowserWindow, ipcMain } from "electron"
-
-import type { OpenFilePayload } from "@/types/claude-code"
 
 // --- Types ---
 
@@ -44,11 +39,7 @@ function broadcastOpenFile(payload: OpenFilePayload) {
 
 // --- HTTP helpers ---
 
-const respondJson = (
-  res: ServerResponse,
-  statusCode: number,
-  data: unknown
-) => {
+const respondJson = (res: ServerResponse, statusCode: number, data: unknown) => {
   res.writeHead(statusCode, { "Content-Type": "application/json" })
   res.end(JSON.stringify(data))
 }
@@ -85,7 +76,7 @@ function resolveWaiters(filePath: string) {
 async function handleRequest(
   req: IncomingMessage,
   res: ServerResponse,
-  workspaceFolders: string[]
+  workspaceFolders: string[],
 ) {
   try {
     // POST /open
@@ -114,8 +105,7 @@ async function handleRequest(
       for (const file of parsed.files) {
         const absPath = path.resolve(file.path)
         const matchingWorkspace =
-          workspaceFolders.find((folder) => absPath.startsWith(folder)) ??
-          primaryWorkspace
+          workspaceFolders.find((folder) => absPath.startsWith(folder)) ?? primaryWorkspace
 
         broadcastOpenFile({
           workspacePath: matchingWorkspace,
@@ -157,10 +147,7 @@ async function handleRequest(
 
 // --- Server start effect ---
 
-const startServerEffect = (
-  socketPath: string,
-  getWorkspaceFolders: () => string[]
-) =>
+const startServerEffect = (socketPath: string, getWorkspaceFolders: () => string[]) =>
   Effect.async<Server, Error>((resume) => {
     const server = createServer((req, res) => {
       handleRequest(req, res, getWorkspaceFolders()).catch((err) => {
@@ -227,15 +214,13 @@ export const makeCliServer = Effect.gen(function* () {
         .exists(socketPath)
         .pipe(Effect.catchAll(() => Effect.succeed(false)))
       if (socketExists) {
-        yield* fsService
-          .remove(socketPath)
-          .pipe(Effect.catchAll(() => Effect.void))
+        yield* fsService.remove(socketPath).pipe(Effect.catchAll(() => Effect.void))
       }
 
       // Start the server (waits until it's listening)
       const server = yield* startServerEffect(
         socketPath,
-        () => serverState?.workspaceFolders ?? workspaceFolders
+        () => serverState?.workspaceFolders ?? workspaceFolders,
       )
 
       serverState = { socketPath, server, workspaceFolders }

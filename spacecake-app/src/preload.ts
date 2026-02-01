@@ -1,14 +1,15 @@
 import { contextBridge, ipcRenderer } from "electron"
 
+import type { DisplayStatusline } from "@/lib/statusline-parser"
+import type { FileContent, FileTreeEvent } from "@/types/workspace"
+
 import {
   AtMentionedPayload,
   ClaudeCodeStatus,
   OpenFilePayload,
   SelectionChangedPayload,
 } from "@/types/claude-code"
-import type { FileContent, FileTreeEvent } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
-import type { DisplayStatusline } from "@/lib/statusline-parser"
 
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
@@ -24,30 +25,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
     notifyAtMentioned: (payload: AtMentionedPayload) =>
       ipcRenderer.invoke("claude:at-mentioned", payload),
     onStatusChange: (handler: (status: ClaudeCodeStatus) => void) => {
-      const listener = (
-        _e: Electron.IpcRendererEvent,
-        status: ClaudeCodeStatus
-      ) => {
+      const listener = (_e: Electron.IpcRendererEvent, status: ClaudeCodeStatus) => {
         handler(status)
       }
       ipcRenderer.on("claude-code-status", listener)
       return () => ipcRenderer.removeListener("claude-code-status", listener)
     },
     onOpenFile: (handler: (payload: OpenFilePayload) => void) => {
-      const listener = (
-        _e: Electron.IpcRendererEvent,
-        payload: OpenFilePayload
-      ) => {
+      const listener = (_e: Electron.IpcRendererEvent, payload: OpenFilePayload) => {
         handler(payload)
       }
       ipcRenderer.on("claude:open-file", listener)
       return () => ipcRenderer.removeListener("claude:open-file", listener)
     },
     onStatuslineUpdate: (handler: (statusline: DisplayStatusline) => void) => {
-      const listener = (
-        _e: Electron.IpcRendererEvent,
-        statusline: DisplayStatusline
-      ) => {
+      const listener = (_e: Electron.IpcRendererEvent, statusline: DisplayStatusline) => {
         handler(statusline)
       }
       ipcRenderer.on("statusline-update", listener)
@@ -56,14 +48,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     tasks: {
       startWatching: (sessionId?: string) =>
         ipcRenderer.invoke("claude:tasks:start-watching", sessionId),
-      list: (sessionId?: string) =>
-        ipcRenderer.invoke("claude:tasks:list", sessionId),
+      list: (sessionId?: string) => ipcRenderer.invoke("claude:tasks:list", sessionId),
       stopWatching: () => ipcRenderer.invoke("claude:tasks:stop-watching"),
       onChange: (handler: () => void) => {
         const listener = () => handler()
         ipcRenderer.on("claude:tasks:changed", listener)
-        return () =>
-          ipcRenderer.removeListener("claude:tasks:changed", listener)
+        return () => ipcRenderer.removeListener("claude:tasks:changed", listener)
       },
     },
     statusline: {
@@ -72,8 +62,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       remove: () => ipcRenderer.invoke("claude:statusline:remove"),
     },
   },
-  showOpenDialog: (options: unknown) =>
-    ipcRenderer.invoke("show-open-dialog", options),
+  showOpenDialog: (options: unknown) => ipcRenderer.invoke("show-open-dialog", options),
   openExternal: (url: string) => ipcRenderer.invoke("open-external", url),
   readDirectory: (dirPath: string) => {
     return ipcRenderer.invoke("read-directory", dirPath)
@@ -81,25 +70,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
   readFile: (filePath: AbsolutePath): Promise<FileContent> =>
     ipcRenderer.invoke("read-file", filePath),
 
-  createFolder: (folderPath: string) =>
-    ipcRenderer.invoke("create-folder", folderPath),
-  rename: (path: string, newPath: string) =>
-    ipcRenderer.invoke("rename", path, newPath),
+  createFolder: (folderPath: string) => ipcRenderer.invoke("create-folder", folderPath),
+  rename: (path: string, newPath: string) => ipcRenderer.invoke("rename", path, newPath),
   remove: (filePath: string, recursive?: boolean) =>
     ipcRenderer.invoke("remove", filePath, recursive),
   saveFile: (filePath: string, content: string) =>
     ipcRenderer.invoke("save-file", filePath, content),
   platform: process.platform,
-  getHomeFolderPath: (): Promise<string> =>
-    ipcRenderer.invoke("get-home-folder-path"),
+  getHomeFolderPath: (): Promise<string> => ipcRenderer.invoke("get-home-folder-path"),
   startWatcher: (path: string) => ipcRenderer.invoke("start-watcher", path),
-  stopWatcher: (workspacePath: string) =>
-    ipcRenderer.invoke("stop-watcher", workspacePath),
+  stopWatcher: (workspacePath: string) => ipcRenderer.invoke("stop-watcher", workspacePath),
   onFileEvent: (handler: (evt: FileTreeEvent) => void) => {
-    const listener = (
-      _e: Electron.IpcRendererEvent,
-      payload: FileTreeEvent
-    ) => {
+    const listener = (_e: Electron.IpcRendererEvent, payload: FileTreeEvent) => {
       handler(payload)
     }
     ipcRenderer.on("file-event", listener)
@@ -107,13 +89,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   // Project-level Claude settings
   ensurePlansDirectory: (workspacePath: string) =>
-    ipcRenderer.invoke(
-      "claude:project-settings:ensure-plans-dir",
-      workspacePath
-    ),
+    ipcRenderer.invoke("claude:project-settings:ensure-plans-dir", workspacePath),
   // CLI integration
-  notifyFileClosed: (filePath: string) =>
-    ipcRenderer.invoke("cli:file-closed", filePath),
+  notifyFileClosed: (filePath: string) => ipcRenderer.invoke("cli:file-closed", filePath),
   updateCliWorkspaces: (workspaceFolders: string[]) =>
     ipcRenderer.invoke("cli:update-workspaces", workspaceFolders),
   isPlaywright: process.env.IS_PLAYWRIGHT === "true",
@@ -122,14 +100,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("terminal:create", id, cols, rows, cwd),
   resizeTerminal: (id: string, cols: number, rows: number) =>
     ipcRenderer.invoke("terminal:resize", id, cols, rows),
-  writeTerminal: (id: string, data: string) =>
-    ipcRenderer.invoke("terminal:write", id, data),
+  writeTerminal: (id: string, data: string) => ipcRenderer.invoke("terminal:write", id, data),
   killTerminal: (id: string) => ipcRenderer.invoke("terminal:kill", id),
   onTerminalOutput: (handler: (id: string, data: string) => void) => {
-    const listener = (
-      _e: Electron.IpcRendererEvent,
-      payload: { id: string; data: string }
-    ) => {
+    const listener = (_e: Electron.IpcRendererEvent, payload: { id: string; data: string }) => {
       handler(payload.id, payload.data)
     }
     ipcRenderer.on("terminal:output", listener)

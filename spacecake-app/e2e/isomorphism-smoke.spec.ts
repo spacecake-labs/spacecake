@@ -32,16 +32,14 @@ test.describe("isomorphism smoke tests", () => {
     await locateSidebarItem(window, "_README.md").click()
 
     // verify we're in rich view and editor loaded
-    await expect(
-      window.getByRole("link", { name: "switch to source view" })
-    ).toBeVisible()
+    await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     // basic sanity check that content rendered
     await expect(
       window.getByRole("heading", {
         name: "An Example README File to Test Parsing",
-      })
+      }),
     ).toBeVisible()
 
     // save the file
@@ -78,7 +76,7 @@ test.describe("isomorphism smoke tests", () => {
     await expect(
       window.getByRole("heading", {
         name: "A file with markdown directives.",
-      })
+      }),
     ).toBeVisible()
 
     // save the file

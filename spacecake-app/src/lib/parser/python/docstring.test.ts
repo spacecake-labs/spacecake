@@ -2,10 +2,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { Language, Parser } from "web-tree-sitter"
 
 import languages from "@/lib/parser/languages"
-import {
-  dedentDocstring,
-  findDocstringNode,
-} from "@/lib/parser/python/docstring"
+import { dedentDocstring, findDocstringNode } from "@/lib/parser/python/docstring"
 
 let Python: Language
 
@@ -80,7 +77,7 @@ describe("Python docstring utilities", () => {
     This is the third line.
 `
       expect(dedentDocstring(docstring)).toBe(
-        "This is the second line of the docstring.\nThis is the third line."
+        "This is the second line of the docstring.\nThis is the third line.",
       )
     })
 
@@ -88,9 +85,7 @@ describe("Python docstring utilities", () => {
       const docstring = `
     This is the second line of the docstring.
     `
-      expect(dedentDocstring(docstring)).toBe(
-        "This is the second line of the docstring."
-      )
+      expect(dedentDocstring(docstring)).toBe("This is the second line of the docstring.")
     })
 
     it("handles example from specification - equivalent docstrings", () => {
@@ -118,7 +113,7 @@ describe("Python docstring utilities", () => {
       This is slightly indented.
 `
       expect(dedentDocstring(docstring)).toBe(
-        "This is the main line.\n    This is indented more.\nThis is back to normal.\n  This is slightly indented."
+        "This is the main line.\n    This is indented more.\nThis is back to normal.\n  This is slightly indented.",
       )
     })
 
@@ -127,9 +122,7 @@ describe("Python docstring utilities", () => {
 \tThis line has tabs.
 \t\tThis line has more tabs.
 `
-      expect(dedentDocstring(docstring)).toBe(
-        "This line has tabs.\n    This line has more tabs."
-      )
+      expect(dedentDocstring(docstring)).toBe("This line has tabs.\n    This line has more tabs.")
     })
 
     it("handles single line docstring", () => {

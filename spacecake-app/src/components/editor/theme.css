@@ -176,9 +176,7 @@ table.border-separate tr:last-child th {
 
 /* Rule 1: Collapse paragraphs never visited (keep in DOM for indicator) */
 .text-block
-  + .empty-para-collapsible:not(.focused-node):not(.was-focused-node):has(
-    > br:only-child
-  ) {
+  + .empty-para-collapsible:not(.focused-node):not(.was-focused-node):has(> br:only-child) {
   height: 0;
   overflow: visible;
   margin: 0;
@@ -224,9 +222,7 @@ table.border-separate tr:last-child th {
    Requires 1st para to have was-focused (user visited) and NOT be focused.
 */
 .text-block:has([data-lexical-text])
-  + .empty-para-collapsible.was-focused-node:not(.focused-node):has(
-    > br:only-child
-  )
+  + .empty-para-collapsible.was-focused-node:not(.focused-node):has(> br:only-child)
   + .empty-para-collapsible:has(> br:only-child)::after {
   content: "💨";
   position: absolute;
@@ -243,9 +239,7 @@ table.border-separate tr:last-child th {
 
 /* When 2nd para is also collapsed, offset poof down (same as icon) */
 .text-block:has([data-lexical-text])
-  + .empty-para-collapsible.was-focused-node:not(.focused-node):has(
-    > br:only-child
-  )
+  + .empty-para-collapsible.was-focused-node:not(.focused-node):has(> br:only-child)
   + .empty-para-collapsible:not(.focused-node):has(> br:only-child)::after {
   top: 0.875rem;
 }
@@ -288,10 +282,7 @@ table.border-separate tr:last-child th {
 }
 
 /* Rule 2: Animated collapse for paragraphs user visited (only after text-blocks) */
-.text-block
-  + .empty-para-collapsible.was-focused-node:not(.focused-node):has(
-    > br:only-child
-  ) {
+.text-block + .empty-para-collapsible.was-focused-node:not(.focused-node):has(> br:only-child) {
   position: relative;
   animation: collapse 0.6s ease-out forwards;
 }

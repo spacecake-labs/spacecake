@@ -1,5 +1,11 @@
 import { Node, Parser } from "web-tree-sitter"
 
+import type { EditorFile } from "@/types/workspace"
+
+import { fnv1a64Hex } from "@/lib/hash"
+import languages from "@/lib/parser/languages"
+import { dedentDocstring, findDocstringNode } from "@/lib/parser/python/docstring"
+import { filename } from "@/lib/utils"
 import {
   anonymousName,
   BlockName,
@@ -8,14 +14,6 @@ import {
   PyBlock,
   PyDecoratedKind,
 } from "@/types/parser"
-import type { EditorFile } from "@/types/workspace"
-import { fnv1a64Hex } from "@/lib/hash"
-import languages from "@/lib/parser/languages"
-import {
-  dedentDocstring,
-  findDocstringNode,
-} from "@/lib/parser/python/docstring"
-import { filename } from "@/lib/utils"
 
 const { Python } = await languages
 const parser = new Parser()
@@ -164,10 +162,7 @@ export function blockName(node: Node): BlockName {
   }
 }
 
-export async function* parseCodeBlocks(
-  code: string,
-  filePath?: string
-): AsyncGenerator<PyBlock> {
+export async function* parseCodeBlocks(code: string, filePath?: string): AsyncGenerator<PyBlock> {
   const tree = parser.parse(code)
   if (!tree) throw new Error("failed to parse code")
 
@@ -248,9 +243,7 @@ export async function* parseCodeBlocks(
     if (index === 0 && isDocstring(node)) {
       prevBlockEndByte = nodeEndIndex
       // Extract filename from path for module docstring naming
-      const moduleName = filePath
-        ? namedBlock(filename(filePath))
-        : anonymousName()
+      const moduleName = filePath ? namedBlock(filename(filePath)) : anonymousName()
       const moduleDocCid = computeCid("module", moduleName.value, node.text)
       yield {
         kind: "module",
@@ -286,9 +279,7 @@ export async function* parseCodeBlocks(
 
       // This is a misc node, so flush any pending blocks first.
       if (importNodes.length) {
-        const importBlock = emitImportBlock(
-          importNodes[importNodes.length - 1].endIndex
-        )
+        const importBlock = emitImportBlock(importNodes[importNodes.length - 1].endIndex)
         prevBlockEndByte = importBlock.endByte
         yield importBlock
       }
@@ -310,9 +301,7 @@ export async function* parseCodeBlocks(
     if (kind === "import") {
       // This is an import node, so flush any pending misc block first.
       if (miscNodes.length) {
-        const miscBlock = emitMiscBlock(
-          miscNodes[miscNodes.length - 1].endIndex
-        )
+        const miscBlock = emitMiscBlock(miscNodes[miscNodes.length - 1].endIndex)
         prevBlockEndByte = miscBlock.endByte
         yield miscBlock
       }
@@ -339,9 +328,7 @@ export async function* parseCodeBlocks(
     // This is a "real" block (e.g., function/class).
     // Flush any pending block, whichever it may be.
     if (importNodes.length) {
-      const importBlock = emitImportBlock(
-        importNodes[importNodes.length - 1].endIndex
-      )
+      const importBlock = emitImportBlock(importNodes[importNodes.length - 1].endIndex)
       prevBlockEndByte = importBlock.endByte
       yield importBlock
     }
@@ -362,9 +349,7 @@ export async function* parseCodeBlocks(
     const raw = code.slice(startByte, nodeEndIndex)
     const name = blockName(node)
 
-    const nodeFrom = commentNodes.length
-      ? commentNodes[0].startIndex
-      : node.startIndex
+    const nodeFrom = commentNodes.length ? commentNodes[0].startIndex : node.startIndex
 
     commentNodes = []
     prevBlockEndByte = nodeEndIndex
@@ -417,9 +402,7 @@ export async function* parseCodeBlocks(
     yield importBlock
   }
   if (miscNodes.length) {
-    const miscEndIndex = mdNodes.length
-      ? miscNodes[miscNodes.length - 1].endIndex
-      : code.length
+    const miscEndIndex = mdNodes.length ? miscNodes[miscNodes.length - 1].endIndex : code.length
     const miscBlock = emitMiscBlock(miscEndIndex)
     prevBlockEndByte = miscBlock.endByte
     yield miscBlock
@@ -435,9 +418,7 @@ export async function* parseCodeBlocks(
  * Parse Python content into blocks with error handling
  * Returns a generator that yields blocks as they're parsed
  */
-export async function* parsePythonContentStreaming(
-  file: EditorFile
-): AsyncGenerator<PyBlock> {
+export async function* parsePythonContentStreaming(file: EditorFile): AsyncGenerator<PyBlock> {
   try {
     let blockCount = 0
     for await (const block of parseCodeBlocks(file.content, file.path)) {
@@ -488,11 +469,7 @@ export function serializeBlocksToPython(blocks: PyBlock[]): string {
   return blocks.map((block) => block.text).join("")
 }
 
-function computeCid(
-  kind: string,
-  name: string,
-  normalizedText: string
-): string {
+function computeCid(kind: string, name: string, normalizedText: string): string {
   const sep = "\x1f"
   return fnv1a64Hex(kind + sep + name + sep + normalizedText)
 }

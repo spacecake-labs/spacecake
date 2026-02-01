@@ -26,15 +26,11 @@ test.describe("python markdown directives e2e", () => {
 
     // verify the markdown content is properly formatted
     // the header should be a proper heading element, not just text
-    const headerElement = window
-      .getByRole("heading", { name: "a header" })
-      .first()
+    const headerElement = window.getByRole("heading", { name: "a header" }).first()
     await expect(headerElement).toBeVisible()
 
     // verify the subheader is also properly formatted
-    const subheaderElement = window
-      .getByRole("heading", { name: "a subheader" })
-      .first()
+    const subheaderElement = window.getByRole("heading", { name: "a subheader" }).first()
     await expect(subheaderElement).toBeVisible()
 
     // verify the paragraph is properly formatted
@@ -59,10 +55,7 @@ test.describe("python markdown directives e2e", () => {
     await expect(window.getByText("a header updated").first()).toBeVisible()
   })
 
-  test("delete a code block from a python markdown file", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
+  test("delete a code block from a python markdown file", async ({ electronApp, tempTestDir }) => {
     const window = await electronApp.firstWindow()
 
     // copy md.py fixture into the temp workspace
