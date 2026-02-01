@@ -200,17 +200,29 @@ const { embedded = false } = Astro.props
     white-space: nowrap;
   }
 
-  /* Hide task number column on small screens */
-  @media (max-width: 400px) {
+  /* Hide task number and owner columns on small screens */
+  @media (max-width: 500px) {
     .task-table-container th:first-child,
-    .task-table-container td:first-child {
+    .task-table-container td:first-child,
+    .task-table-container th:last-child,
+    .task-table-container td:last-child {
+      display: none;
+    }
+
+    /* Hide "completed" filter on very small screens */
+    .filter-btn:nth-child(4) {
+      display: none;
+    }
+
+    /* Hide tasks badge on mobile */
+    .toolbar-row > .flex:last-child {
       display: none;
     }
   }
 
   /* Truncate title column */
   .task-table-container td:nth-child(2) {
-    max-width: 180px;
+    max-width: 150px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

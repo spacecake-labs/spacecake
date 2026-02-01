@@ -175,7 +175,7 @@ const { title = data.title, tagline } = data.hero || {}
       gap: 2rem;
       padding-bottom: 1rem;
       width: 100%;
-      max-width: 1600px;
+      max-width: 1800px;
       margin-inline: auto;
       padding-inline: 2rem;
     }
@@ -338,10 +338,18 @@ const { title = data.title, tagline } = data.hero || {}
     .terminal-feature {
       grid-column: 1 / -1;
       margin-top: 4rem !important;
+      max-width: 1200px;
+      margin-inline: auto;
     }
 
     .terminal-feature.task-feature {
-      margin-top: 12rem !important;
+      margin-top: 4rem !important;
+    }
+
+    @media (min-width: 70rem) {
+      .terminal-feature.task-feature {
+        margin-top: 12rem !important;
+      }
     }
 
     /* Override Starlight spacing for terminal feature section */
@@ -419,8 +427,9 @@ const { title = data.title, tagline } = data.hero || {}
       .hero {
         grid-template-columns: 1fr 1.8fr;
         gap: 3rem;
-        padding-block: clamp(2.5rem, calc(1rem + 10vmin), 10rem);
-        padding-inline: 3rem;
+        padding-block-start: 2rem;
+        padding-block-end: 1rem;
+        padding-inline: 5rem;
         align-items: start;
       }
 
@@ -456,6 +465,13 @@ const { title = data.title, tagline } = data.hero || {}
         flex-wrap: wrap;
         justify-content: flex-start;
         align-items: flex-start;
+      }
+    }
+
+    /* Larger padding only on very large screens */
+    @media (min-width: 100rem) {
+      .hero {
+        padding-inline: 3rem;
       }
     }
   }
