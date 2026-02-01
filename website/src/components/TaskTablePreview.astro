@@ -33,7 +33,7 @@
 
     <!-- Filter Bar -->
     <div
-      class="flex items-center gap-2 px-4 py-2 border-b border-zinc-800 bg-[#0a0a0a]"
+      class="filter-bar flex items-center gap-2 px-4 py-2 border-b border-zinc-800 bg-[#0a0a0a]"
     >
       <button class="filter-btn active">all</button>
       <button class="filter-btn">pending</button>
@@ -121,6 +121,18 @@
     overflow: hidden;
   }
 
+  /* Filter bar - allow horizontal scroll on small screens */
+  .filter-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .filter-bar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
+
   /* Filter buttons */
   .filter-btn {
     padding: 0.25rem 0.75rem;
@@ -132,6 +144,8 @@
     border: 1px solid transparent;
     cursor: pointer;
     transition: all 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .filter-btn:hover {
@@ -156,6 +170,30 @@
     font-family: var(--sl-font-mono) !important;
     font-weight: 500;
     text-transform: lowercase;
+    white-space: nowrap;
+  }
+
+  /* Hide task number column on small screens */
+  @media (max-width: 400px) {
+    .task-table-container th:first-child,
+    .task-table-container td:first-child {
+      display: none;
+    }
+  }
+
+  /* Truncate title column */
+  .task-table-container td:nth-child(2) {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 500px) {
+    .task-table-container td:nth-child(2) {
+      max-width: none;
+      white-space: normal;
+    }
   }
 
   .status-badge.completed {
