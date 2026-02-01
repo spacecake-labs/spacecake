@@ -27,6 +27,34 @@ export default defineConfig({
       title: "spacecake",
       head: [
         {
+          tag: "meta",
+          attrs: {
+            property: "og:title",
+            content: "the best interface for Claude Code",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            property: "og:description",
+            content: "run agents in the terminal. edit markdown visually.",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            name: "twitter:title",
+            content: "the best interface for Claude Code",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            name: "twitter:description",
+            content: "run agents in the terminal. edit markdown visually.",
+          },
+        },
+        {
           tag: "script",
           attrs: {
             src: "https://analytics.ahrefs.com/analytics.js",
