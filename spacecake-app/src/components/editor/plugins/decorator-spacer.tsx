@@ -3,6 +3,7 @@ import { $addUpdateTag, $getNodeByKey, $getRoot, SKIP_DOM_SELECTION_TAG } from "
 import { useEffect } from "react"
 
 import { emptyMdNode } from "@/components/editor/markdown-utils"
+import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { needsSpacer } from "@/components/editor/plugins/utils"
 import { INITIAL_LOAD_TAG } from "@/types/lexical"
 
@@ -11,8 +12,9 @@ import { INITIAL_LOAD_TAG } from "@/types/lexical"
  * Decorator nodes (code blocks, mermaid diagrams, images, etc) should be separated
  * to give users a natural place to add content between them.
  *
- * Uses two passes for safety: first collects node keys where spacers are needed,
- * then inserts them in a single transaction to avoid tree mutation issues.
+ * Detects source mode by checking if the first child is a CodeBlockNode with
+ * meta="source" (set by convertToSourceView). In source mode, only the source
+ * code block is kept; all other nodes are removed.
  */
 export function DecoratorSpacerPlugin(): null {
   const [editor] = useLexicalComposerContext()
@@ -32,22 +34,38 @@ export function DecoratorSpacerPlugin(): null {
       editorState.read(() => {
         const root = $getRoot()
         const children = root.getChildren()
+        if (children.length === 0) return
 
-        // collect consecutive decorator node pairs in a single pass
+        // Source mode: first child is code block with meta="source"
+        const firstChild = children[0]
+        const isSourceMode = $isCodeBlockNode(firstChild) && firstChild.getMeta() === "source"
+
+        if (isSourceMode) {
+          // Keep only the source code block, remove everything else
+          if (children.length > 1) {
+            editor.update(() => {
+              $addUpdateTag(SKIP_DOM_SELECTION_TAG)
+              for (let i = 1; i < children.length; i++) {
+                $getNodeByKey(children[i].getKey())?.remove()
+              }
+            })
+          }
+          return
+        }
+
+        // Rich mode: collect nodes needing spacers (single pass)
         const nodesToSpacerAfter: string[] = []
-        for (let i = 0; i < children.length - 1; i++) {
-          if (needsSpacer(children[i]) && needsSpacer(children[i + 1])) {
-            nodesToSpacerAfter.push(children[i].getKey())
+        for (let i = 0; i < children.length; i++) {
+          const child = children[i]
+          if (!needsSpacer(child)) continue
+
+          const nextChild = children[i + 1]
+          // Add spacer after decorator if: it's last, or next is also a decorator
+          if (!nextChild || needsSpacer(nextChild)) {
+            nodesToSpacerAfter.push(child.getKey())
           }
         }
 
-        // also check if the last node is a decorator node
-        const lastChild = root.getLastChild()
-        if (lastChild && needsSpacer(lastChild)) {
-          nodesToSpacerAfter.push(lastChild.getKey())
-        }
-
-        // insert spacers in a single update transaction
         if (nodesToSpacerAfter.length > 0) {
           editor.update(() => {
             $addUpdateTag(SKIP_DOM_SELECTION_TAG)

@@ -2,7 +2,13 @@ import { InitialConfigType, LexicalComposer } from "@lexical/react/LexicalCompos
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { EditorRefPlugin } from "@lexical/react/LexicalEditorRefPlugin"
 import { useAtomValue } from "jotai"
-import { COMMAND_PRIORITY_NORMAL, type EditorState, type SerializedEditorState } from "lexical"
+import {
+  COMMAND_PRIORITY_NORMAL,
+  type EditorState,
+  type SerializedEditorState,
+  $getRoot,
+  $isDecoratorNode,
+} from "lexical"
 import * as React from "react"
 
 import { nodes } from "@/components/editor/nodes"
@@ -89,7 +95,28 @@ export function Editor({
   useFocusablePanel(
     "editor",
     React.useCallback(() => {
-      editorRef.current?.getRootElement()?.focus()
+      const editor = editorRef.current
+      if (!editor) return
+
+      // Check if first child is a decorator node with a select() method
+      // This handles source mode (single CodeBlockNode) and documents starting with decorators
+      let focused = false
+      editor.read(() => {
+        const root = $getRoot()
+        const firstChild = root.getFirstChild()
+        if (firstChild && $isDecoratorNode(firstChild)) {
+          // Decorator nodes like CodeBlockNode, MermaidNode, FrontmatterNode have select()
+          if (typeof (firstChild as unknown as { select?: () => void }).select === "function") {
+            ;(firstChild as unknown as { select: () => void }).select()
+            focused = true
+          }
+        }
+      })
+
+      // Fall back to focusing the Lexical root element for regular text nodes
+      if (!focused) {
+        editor.getRootElement()?.focus()
+      }
     }, [editorRef]),
   )
 
