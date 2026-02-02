@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.44
+
+### Patch Changes
+
+- b906b38: Option to autosave files on edit.
+
 ## 0.1.0-alpha.43
 
 ### Patch Changes
