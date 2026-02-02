@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WWorkspaceIdRouteImport } from './routes/w.$workspaceId'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w.$workspaceId.index'
+import { Route as WWorkspaceIdSettingsRouteImport } from './routes/w.$workspaceId.settings'
 import { Route as WWorkspaceIdFFilePathRouteImport } from './routes/w.$workspaceId.f.$filePath'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const WWorkspaceIdIndexRoute = WWorkspaceIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => WWorkspaceIdRoute,
 } as any)
+const WWorkspaceIdSettingsRoute = WWorkspaceIdSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => WWorkspaceIdRoute,
+} as any)
 const WWorkspaceIdFFilePathRoute = WWorkspaceIdFFilePathRouteImport.update({
   id: '/f/$filePath',
   path: '/f/$filePath',
@@ -38,11 +44,13 @@ const WWorkspaceIdFFilePathRoute = WWorkspaceIdFFilePathRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
+  '/w/$workspaceId/settings': typeof WWorkspaceIdSettingsRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/w/$workspaceId/f/$filePath': typeof WWorkspaceIdFFilePathRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/w/$workspaceId/settings': typeof WWorkspaceIdSettingsRoute
   '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
   '/w/$workspaceId/f/$filePath': typeof WWorkspaceIdFFilePathRoute
 }
@@ -50,6 +58,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
+  '/w/$workspaceId/settings': typeof WWorkspaceIdSettingsRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/w/$workspaceId/f/$filePath': typeof WWorkspaceIdFFilePathRoute
 }
@@ -58,14 +67,20 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/w/$workspaceId'
+    | '/w/$workspaceId/settings'
     | '/w/$workspaceId/'
     | '/w/$workspaceId/f/$filePath'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/w/$workspaceId' | '/w/$workspaceId/f/$filePath'
+  to:
+    | '/'
+    | '/w/$workspaceId/settings'
+    | '/w/$workspaceId'
+    | '/w/$workspaceId/f/$filePath'
   id:
     | '__root__'
     | '/'
     | '/w/$workspaceId'
+    | '/w/$workspaceId/settings'
     | '/w/$workspaceId/'
     | '/w/$workspaceId/f/$filePath'
   fileRoutesById: FileRoutesById
@@ -98,6 +113,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
+    '/w/$workspaceId/settings': {
+      id: '/w/$workspaceId/settings'
+      path: '/settings'
+      fullPath: '/w/$workspaceId/settings'
+      preLoaderRoute: typeof WWorkspaceIdSettingsRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
     '/w/$workspaceId/f/$filePath': {
       id: '/w/$workspaceId/f/$filePath'
       path: '/f/$filePath'
@@ -109,11 +131,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface WWorkspaceIdRouteChildren {
+  WWorkspaceIdSettingsRoute: typeof WWorkspaceIdSettingsRoute
   WWorkspaceIdIndexRoute: typeof WWorkspaceIdIndexRoute
   WWorkspaceIdFFilePathRoute: typeof WWorkspaceIdFFilePathRoute
 }
 
 const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
+  WWorkspaceIdSettingsRoute: WWorkspaceIdSettingsRoute,
   WWorkspaceIdIndexRoute: WWorkspaceIdIndexRoute,
   WWorkspaceIdFFilePathRoute: WWorkspaceIdFFilePathRoute,
 }

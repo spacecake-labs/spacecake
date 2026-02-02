@@ -99,3 +99,17 @@ export const activePaneItemQuery = (orm: Orm, paneId: PanePrimaryKey) => {
     .from(paneTable)
     .where(eq(paneTable.id, paneId))
 }
+
+/**
+ * Constructs a query to fetch workspace settings data.
+ *
+ * Returns the settings column for the specified workspace.
+ */
+export const workspaceSettingsQuery = (orm: Orm, workspaceId: WorkspacePrimaryKey) => {
+  return orm
+    .select({
+      settings: workspaceTable.settings,
+    })
+    .from(workspaceTable)
+    .where(eq(workspaceTable.id, workspaceId))
+}

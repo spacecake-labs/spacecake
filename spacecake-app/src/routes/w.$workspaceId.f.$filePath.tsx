@@ -7,6 +7,7 @@ import { useEffect } from "react"
 
 import { Editor } from "@/components/editor/editor"
 import { LoadingAnimation } from "@/components/loading-animation"
+import { useWorkspaceSettings } from "@/hooks/use-workspace-settings"
 import { expandedFoldersAtom } from "@/lib/atoms/atoms"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
@@ -138,12 +139,16 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 
 function FileLayout() {
   const { filePath, editorConfig, key, editorId, fileId } = Route.useLoaderData()
-  const { db } = Route.useRouteContext()
+  const { db, workspace } = Route.useRouteContext()
   const { view: viewKind } = Route.useSearch()
 
   const sendFileState = useSetAtom(fileStateAtomFamily(filePath))
 
   const send = useActorRef(fileMachine).send
+
+  // Get workspace settings for autosave
+  const { settings } = useWorkspaceSettings(workspace.id)
+  const autosaveEnabled = settings.autosave === "on"
 
   // Helper to notify Claude Code of selection changes
   const notifyClaudeCodeSelection = (selectedText: string, selection: ClaudeSelection) => {
@@ -175,6 +180,7 @@ function FileLayout() {
         key={key}
         filePath={filePath}
         editorConfig={editorConfig}
+        autosaveEnabled={autosaveEnabled}
         onChange={(editorState: EditorState, changeType: ChangeType) => {
           editorState.read(() => {
             const selection = $getSelection()

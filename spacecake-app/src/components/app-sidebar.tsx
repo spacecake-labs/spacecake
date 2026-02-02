@@ -1,5 +1,6 @@
-import { Link } from "@tanstack/react-router"
+import { Link, useMatchRoute, useNavigate } from "@tanstack/react-router"
 import { useAtom } from "jotai"
+import { Settings } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import {
@@ -31,6 +32,9 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onFileClick, workspace, selectedFilePath }: AppSidebarProps) {
   const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom)
+  const navigate = useNavigate()
+  const matchRoute = useMatchRoute()
+  const isOnSettings = matchRoute({ to: "/w/$workspaceId/settings" })
 
   const handleExpandFolder = async (folderPath: Folder["path"], forceExpand?: boolean) => {
     // Check if folder is currently expanded
@@ -92,6 +96,23 @@ export function AppSidebar({ onFileClick, workspace, selectedFilePath }: AppSide
       </SidebarContent>
       <SidebarFooter className="pb-4">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              className="app-no-drag cursor-pointer"
+              data-active={isOnSettings ? "true" : undefined}
+              onClick={() => {
+                const workspaceId = encodeBase64Url(workspace.path)
+                if (isOnSettings) {
+                  navigate({ to: "/w/$workspaceId", params: { workspaceId } })
+                } else {
+                  navigate({ to: "/w/$workspaceId/settings", params: { workspaceId } })
+                }
+              }}
+            >
+              <Settings className="size-4" />
+              <span>settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               className="app-no-drag cursor-pointer"
