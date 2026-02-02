@@ -337,6 +337,7 @@ function LayoutContent() {
 
   const {
     containerEl: terminalContainerEl,
+    api: terminalApi,
     error: terminalError,
     fit: terminalFit,
   } = useGhosttyEngine({
@@ -344,6 +345,32 @@ function LayoutContent() {
     enabled: isTerminalSessionActive,
     cwd: workspace.path,
   })
+
+  // Toggle cursor blink based on terminal focus state
+  useEffect(() => {
+    if (!terminalApi || !terminalContainerEl) return
+
+    const handleFocusIn = () => terminalApi.setCursorBlink(true)
+    const handleFocusOut = (e: FocusEvent) => {
+      // Only disable blink if focus is leaving the container entirely
+      const relatedTarget = e.relatedTarget as Node | null
+      if (relatedTarget && terminalContainerEl.contains(relatedTarget)) return
+      terminalApi.setCursorBlink(false)
+    }
+
+    terminalContainerEl.addEventListener("focusin", handleFocusIn)
+    terminalContainerEl.addEventListener("focusout", handleFocusOut)
+
+    // Set initial state based on current focus
+    if (terminalContainerEl.contains(document.activeElement)) {
+      terminalApi.setCursorBlink(true)
+    }
+
+    return () => {
+      terminalContainerEl.removeEventListener("focusin", handleFocusIn)
+      terminalContainerEl.removeEventListener("focusout", handleFocusOut)
+    }
+  }, [terminalApi, terminalContainerEl])
 
   const handleTerminalMount = useCallback(() => {
     terminalFit()
