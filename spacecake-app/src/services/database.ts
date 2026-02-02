@@ -40,6 +40,11 @@ import {
 } from "@/schema"
 import { EditorPrimaryKey } from "@/schema/editor"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
+import {
+  defaultWorkspaceSettings,
+  WorkspaceSettingsSchema,
+  type WorkspaceSettings,
+} from "@/schema/workspace-settings"
 import { maybeSingleResult, singleResult } from "@/services/utils"
 import { AbsolutePath } from "@/types/workspace"
 
@@ -567,6 +572,31 @@ export const makeDatabaseService = <C extends PGlite>(client: C, orm: Orm) => {
     updateWorkspaceLayout: (workspaceId: WorkspacePrimaryKey, layout: WorkspaceLayout) =>
       query((_) =>
         _.update(workspaceTable).set({ layout }).where(eq(workspaceTable.id, workspaceId)),
+      ),
+
+    updateWorkspaceSettings: (workspaceId: WorkspacePrimaryKey, settings: WorkspaceSettings) =>
+      query((_) =>
+        _.update(workspaceTable).set({ settings }).where(eq(workspaceTable.id, workspaceId)),
+      ),
+
+    selectWorkspaceSettings: (workspaceId: WorkspacePrimaryKey) =>
+      query((_) =>
+        _.select({ settings: workspaceTable.settings })
+          .from(workspaceTable)
+          .where(eq(workspaceTable.id, workspaceId))
+          .limit(1),
+      ).pipe(
+        maybeSingleResult(),
+        Effect.map((maybe) =>
+          Option.match(maybe, {
+            onNone: () => defaultWorkspaceSettings,
+            onSome: (row) =>
+              Option.getOrElse(
+                Schema.decodeUnknownOption(WorkspaceSettingsSchema)(row.settings),
+                () => defaultWorkspaceSettings,
+              ),
+          }),
+        ),
       ),
 
     // selectRecentFiles: (workspacePath: AbsolutePath) =>

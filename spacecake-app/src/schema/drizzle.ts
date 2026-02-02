@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core"
 
 import type { WorkspaceLayout } from "@/schema/workspace-layout"
+import type { WorkspaceSettings } from "@/schema/workspace-settings"
 
 import { type JsonValue } from "@/schema/drizzle-effect"
 import { SerializedSelection, ViewKindSchema } from "@/types/lexical"
@@ -31,6 +32,7 @@ export const workspaceTable = pgTable(
     path: text("path").notNull(),
     is_open: boolean("is_open").notNull().default(false),
     layout: jsonb("layout").$type<WorkspaceLayout>(),
+    settings: jsonb("settings").$type<WorkspaceSettings>(),
     active_pane_id: uuid("active_pane_id").references((): AnyPgColumn => paneTable.id, {
       onDelete: "set null",
     }),

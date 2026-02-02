@@ -2,7 +2,13 @@ import { InitialConfigType, LexicalComposer } from "@lexical/react/LexicalCompos
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { EditorRefPlugin } from "@lexical/react/LexicalEditorRefPlugin"
 import { useAtomValue } from "jotai"
-import { COMMAND_PRIORITY_NORMAL, type EditorState, type SerializedEditorState } from "lexical"
+import {
+  COMMAND_PRIORITY_NORMAL,
+  type EditorState,
+  type SerializedEditorState,
+  $getRoot,
+  $isDecoratorNode,
+} from "lexical"
 import * as React from "react"
 
 import { nodes } from "@/components/editor/nodes"
@@ -12,6 +18,7 @@ import {
   type CodeMirrorSelectionPayload,
 } from "@/components/editor/plugins/codemirror-editor"
 import { OnChangePlugin } from "@/components/editor/plugins/on-change"
+import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { editorTheme } from "@/components/editor/theme"
 import { RouteContext, useEditor, type CancelDebounceRef } from "@/contexts/editor-context"
 import { useFocusablePanel } from "@/contexts/focus-manager"
@@ -26,6 +33,7 @@ interface EditorProps {
   editorState?: EditorState
   editorSerializedState?: SerializedEditorState
   filePath: AbsolutePath
+  autosaveEnabled?: boolean
 
   onChange: (editorState: EditorState, changeType: ChangeType) => void
   onCodeMirrorSelection?: (selection: EditorExtendedSelection) => void
@@ -78,18 +86,49 @@ export function Editor({
   editorState,
   editorSerializedState,
   filePath,
+  autosaveEnabled,
   onChange,
   onCodeMirrorSelection,
 }: EditorProps) {
   const context = React.useContext(RouteContext)
   const { editorRef } = useEditor()
   const fileState = useAtomValue(fileStateAtomFamily(filePath)).value
+  const isDirty = fileState === "Dirty"
+
+  // Keep refs for unmount cleanup (can't use hooks in cleanup)
+  const autosaveEnabledRef = React.useRef(autosaveEnabled)
+  const isDirtyRef = React.useRef(isDirty)
+  React.useEffect(() => {
+    autosaveEnabledRef.current = autosaveEnabled
+    isDirtyRef.current = isDirty
+  }, [autosaveEnabled, isDirty])
 
   // Register editor with focus manager for Cmd+1 / Ctrl+1 support
   useFocusablePanel(
     "editor",
     React.useCallback(() => {
-      editorRef.current?.getRootElement()?.focus()
+      const editor = editorRef.current
+      if (!editor) return
+
+      // Check if first child is a decorator node with a select() method
+      // This handles source mode (single CodeBlockNode) and documents starting with decorators
+      let focused = false
+      editor.read(() => {
+        const root = $getRoot()
+        const firstChild = root.getFirstChild()
+        if (firstChild && $isDecoratorNode(firstChild)) {
+          // Decorator nodes like CodeBlockNode, MermaidNode, FrontmatterNode have select()
+          if (typeof (firstChild as unknown as { select?: () => void }).select === "function") {
+            ;(firstChild as unknown as { select: () => void }).select()
+            focused = true
+          }
+        }
+      })
+
+      // Fall back to focusing the Lexical root element for regular text nodes
+      if (!focused) {
+        editor.getRootElement()?.focus()
+      }
     }, [editorRef]),
   )
 
@@ -103,6 +142,7 @@ export function Editor({
   // subsequent selection changes will not downgrade the change type.
   const lastChangeTypeRef = React.useRef<ChangeType>("selection")
 
+  // 250ms debounce for PGlite state backup (crash recovery)
   const debouncedOnChangeRef = React.useRef(
     debounce(() => {
       if (lastStateRef.current) {
@@ -114,20 +154,38 @@ export function Editor({
     }, 250),
   ).current
 
+  // 1000ms debounce for autosave to disk
+  const debouncedAutosaveRef = React.useRef(
+    debounce(() => {
+      editorRef.current?.dispatchCommand(SAVE_FILE_COMMAND, undefined)
+    }, 1000),
+  ).current
+
   // Expose the debounce cancel function through context
   React.useEffect(() => {
     if (context) {
       const cancelRef = context.cancelDebounceRef as CancelDebounceRef
       cancelRef.current = () => {
         debouncedOnChangeRef.cancel()
+        debouncedAutosaveRef.cancel()
       }
     }
-  }, [context, debouncedOnChangeRef])
+  }, [context, debouncedOnChangeRef, debouncedAutosaveRef])
 
   React.useEffect(() => {
     return () => {
-      debouncedOnChangeRef.flush()
-      debouncedOnChangeRef.cancel()
+      // On unmount, either save to disk (autosave) or flush to PGlite (crash recovery)
+      if (autosaveEnabledRef.current && isDirtyRef.current) {
+        // Autosave ON + dirty: save to disk (which clears PGlite anyway)
+        debouncedOnChangeRef.cancel()
+        debouncedAutosaveRef.cancel()
+        editorRef.current?.dispatchCommand(SAVE_FILE_COMMAND, undefined)
+      } else {
+        // Autosave OFF or clean: flush pending changes to PGlite for crash recovery
+        debouncedOnChangeRef.flush()
+        debouncedOnChangeRef.cancel()
+        debouncedAutosaveRef.cancel()
+      }
     }
   }, [])
 
@@ -157,6 +215,11 @@ export function Editor({
             // Don't debounce while saving or reparsing (editor is frozen anyway)
             if (fileState !== "Saving" && fileState !== "Reparsing") {
               debouncedOnChangeRef.schedule()
+
+              // Schedule autosave if enabled and content changed
+              if (changeType === "content" && autosaveEnabledRef.current) {
+                debouncedAutosaveRef.schedule()
+              }
             }
           }}
         />

@@ -6,6 +6,7 @@ import { Context, Effect, Layer } from "effect"
 import migration0000 from "@/drizzle/0000_natural_rogue.sql?raw"
 import migration0001 from "@/drizzle/0001_add_workspace_layout.sql?raw"
 import migration0002 from "@/drizzle/0002_pane_items.sql?raw"
+import migration0003 from "@/drizzle/0003_add_workspace_settings.sql?raw"
 import { Database, makeDatabaseService, PgliteError } from "@/services/database"
 
 // Cache the migrated database state as a Blob
@@ -23,6 +24,7 @@ export const initCachedDataDir = async (): Promise<Blob> => {
   await tempClient.exec(migration0000)
   await tempClient.exec(migration0001)
   await tempClient.exec(migration0002)
+  await tempClient.exec(migration0003)
 
   // Dump the migrated state
   cachedDataDir = await tempClient.dumpDataDir()

@@ -22,6 +22,7 @@ export interface TerminalAPI {
   getAllLines: () => string[]
   rows: number
   cols: number
+  setCursorBlink: (enabled: boolean) => void
 }
 
 interface UseGhosttyEngineOptions {
@@ -306,6 +307,9 @@ export function useGhosttyEngine({
           },
           get cols() {
             return term.cols
+          },
+          setCursorBlink: (enabled: boolean) => {
+            term.options.cursorBlink = enabled
           },
         }
 
