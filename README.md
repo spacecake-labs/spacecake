@@ -1,7 +1,7 @@
 # spacecake
 
-`spacecake` is an open-source desktop app for Claude Code.
-It combines an integrated terminal, visual markdown editor, and live task tracking.
+`spacecake` is an open-source desktop app for Claude Code.  
+It combines an integrated terminal, visual markdown editor, and live task tracking.  
 You can run agents, write specs, and see what's happening in one place.
 
 For full documentation, visit [spacecake.ai](https://www.spacecake.ai/getting-started).
@@ -36,7 +36,7 @@ Once installed, you'll be prompted to open a workspace. Select the root dir for 
 | `⌘O` | open workspace |
 | `⌘P` | quick open file |
 | `⌘N` | new file |
-| \`\` ctrl+\` \`\` | toggle terminal |
+| `` ctrl+` `` | toggle terminal |
 | `ctrl+G` | open plans |
 
 See the [full keyboard shortcuts list](https://www.spacecake.ai/getting-started#keyboard-shortcuts) for more.
