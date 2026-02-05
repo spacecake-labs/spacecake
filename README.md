@@ -27,7 +27,8 @@ Download an installer for your platform from the [latest release](https://github
 - **Linux**: Download the `.deb` file (for Debian-based distributions like Ubuntu) or `.AppImage` for other distros
 - **macOS (ZIP)**: Download the `.zip` file for manual installation
 
-Once installed, you'll be prompted to open a workspace. Select the root dir for your existing codebase.
+On first launch, spacecake opens the home folder (`~/.spacecake`) for general notes.  
+Press `⌘O` (macOS) or `ctrl+O` (Linux) to open your project as a workspace.
 
 #### keyboard shortcuts
 
