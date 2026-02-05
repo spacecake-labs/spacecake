@@ -95,6 +95,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateCliWorkspaces: (workspaceFolders: string[]) =>
     ipcRenderer.invoke("cli:update-workspaces", workspaceFolders),
   isPlaywright: process.env.IS_PLAYWRIGHT === "true",
+  // Git integration
+  git: {
+    getCurrentBranch: (workspacePath: string): Promise<string | null> =>
+      ipcRenderer.invoke("git:branch:current", workspacePath),
+    isGitRepo: (workspacePath: string): Promise<boolean> =>
+      ipcRenderer.invoke("git:is-repo", workspacePath),
+    startWatching: (workspacePath: string) =>
+      ipcRenderer.invoke("git:start-watching", workspacePath),
+    stopWatching: (workspacePath: string) => ipcRenderer.invoke("git:stop-watching", workspacePath),
+    onBranchChange: (callback: (data: { path: string }) => void) => {
+      const listener = (_: unknown, data: { path: string }) => callback(data)
+      ipcRenderer.on("git:branch:changed", listener)
+      return () => ipcRenderer.removeListener("git:branch:changed", listener)
+    },
+  },
   exists: (path: string) => ipcRenderer.invoke("path-exists", path),
   createTerminal: (id: string, cols: number, rows: number, cwd?: string) =>
     ipcRenderer.invoke("terminal:create", id, cols, rows, cwd),

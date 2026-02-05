@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import { Data, Schema } from "effect"
 
 // ============================================
 // Branded Types
@@ -34,10 +34,7 @@ export type ClaudeTask = typeof ClaudeTaskSchema.Type
 // Error
 // ============================================
 
-export class ClaudeTaskError {
-  readonly _tag = "ClaudeTaskError"
-  constructor(
-    public readonly description: string,
-    public readonly path?: string,
-  ) {}
-}
+export class ClaudeTaskError extends Data.TaggedError("ClaudeTaskError")<{
+  readonly description: string
+  readonly path?: string
+}> {}

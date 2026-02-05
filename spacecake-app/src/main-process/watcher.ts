@@ -111,8 +111,17 @@ export function convertToFileTreeEvent(
 // --- Watcher Service Definition ---
 
 export type WatcherCommand =
-  | { readonly _tag: "Start"; readonly path: AbsolutePath }
-  | { readonly _tag: "Stop"; readonly path: AbsolutePath }
+  | { readonly _tag: "StartWorkspace"; readonly path: AbsolutePath }
+  | { readonly _tag: "StopWorkspace"; readonly path: AbsolutePath }
+  | { readonly _tag: "StartFile"; readonly path: AbsolutePath; readonly channel: string }
+  | { readonly _tag: "StopFile"; readonly path: AbsolutePath }
+  | {
+      readonly _tag: "StartDir"
+      readonly path: AbsolutePath
+      readonly channel: string
+      readonly filter?: (path: string) => boolean
+    }
+  | { readonly _tag: "StopDir"; readonly path: AbsolutePath }
 
 export const WatcherFileSystemLive = Layer.provide(NodeFileSystem.layer, ParcelWatcher.layer)
 
@@ -121,20 +130,22 @@ export class WatcherService extends Effect.Service<WatcherService>()("app/Watche
   scoped: Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const commandQueue = yield* Queue.unbounded<WatcherCommand>()
-    const runningWatchers = new Map<AbsolutePath, Fiber.RuntimeFiber<void, PlatformError>>()
+    const workspaceWatchers = new Map<AbsolutePath, Fiber.RuntimeFiber<void, PlatformError>>()
+    const fileWatchers = new Map<AbsolutePath, Fiber.RuntimeFiber<void, PlatformError>>()
+    const dirWatchers = new Map<AbsolutePath, Fiber.RuntimeFiber<void, PlatformError>>()
 
     yield* Effect.log("watcher service started")
 
     const processCommands = Queue.take(commandQueue).pipe(
       Effect.flatMap((command) =>
         Match.value(command).pipe(
-          Match.when({ _tag: "Start" }, ({ path: watchPath }) =>
+          Match.when({ _tag: "StartWorkspace" }, ({ path: watchPath }) =>
             Effect.gen(function* () {
-              if (runningWatchers.has(watchPath)) {
-                return yield* Effect.log(`watcher for ${watchPath} already running`)
+              if (workspaceWatchers.has(watchPath)) {
+                return yield* Effect.log(`workspace watcher for ${watchPath} already running`)
               }
 
-              yield* Effect.log(`starting watcher for ${watchPath}`)
+              yield* Effect.log(`starting workspace watcher for ${watchPath}`)
 
               // Retry schedule: exponential backoff starting at 1s, with jitter,
               // capped at 30s between retries. Retries forever.
@@ -158,24 +169,105 @@ export class WatcherService extends Effect.Service<WatcherService>()("app/Watche
                   ),
                 ),
                 Effect.tapError((e) =>
-                  Effect.log(`watcher for ${watchPath} encountered error, will retry`, e),
+                  Effect.log(`workspace watcher for ${watchPath} encountered error, will retry`, e),
                 ),
                 Effect.retry(retrySchedule),
               )
 
               const fiber = yield* Effect.fork(watchStream)
-              runningWatchers.set(watchPath, fiber)
+              workspaceWatchers.set(watchPath, fiber)
             }),
           ),
-          Match.when({ _tag: "Stop" }, ({ path: watchPath }) =>
+          Match.when({ _tag: "StopWorkspace" }, ({ path: watchPath }) =>
             Effect.gen(function* () {
-              const fiber = runningWatchers.get(watchPath)
+              const fiber = workspaceWatchers.get(watchPath)
               if (!fiber) {
-                return yield* Effect.log(`no watcher found for ${watchPath} to stop.`)
+                return yield* Effect.log(`no workspace watcher found for ${watchPath}`)
               }
-              yield* Effect.log(`stopping watcher for ${watchPath}`)
+              yield* Effect.log(`stopping workspace watcher for ${watchPath}`)
               yield* Fiber.interrupt(fiber)
-              runningWatchers.delete(watchPath)
+              workspaceWatchers.delete(watchPath)
+            }),
+          ),
+          Match.when({ _tag: "StartFile" }, ({ path: filePath, channel }) =>
+            Effect.gen(function* () {
+              if (fileWatchers.has(filePath)) {
+                return yield* Effect.log(`file watcher already running for ${filePath}`)
+              }
+              yield* Effect.log(`starting file watcher for ${filePath}`)
+
+              const retrySchedule = Schedule.exponential("1 second").pipe(
+                Schedule.jittered,
+                Schedule.union(Schedule.spaced("30 seconds")),
+              )
+
+              const watchStream = fs.watch(filePath).pipe(
+                Stream.debounce("200 millis"),
+                Stream.runForEach(() =>
+                  Effect.sync(() => {
+                    BrowserWindow.getAllWindows().forEach((win) =>
+                      win.webContents.send(channel, { path: filePath }),
+                    )
+                  }),
+                ),
+                Effect.tapError((e) => Effect.log(`file watcher error for ${filePath}`, e)),
+                Effect.retry(retrySchedule),
+              )
+
+              const fiber = yield* Effect.fork(watchStream)
+              fileWatchers.set(filePath, fiber)
+            }),
+          ),
+          Match.when({ _tag: "StopFile" }, ({ path: filePath }) =>
+            Effect.gen(function* () {
+              const fiber = fileWatchers.get(filePath)
+              if (!fiber) {
+                return yield* Effect.log(`no file watcher for ${filePath}`)
+              }
+              yield* Effect.log(`stopping file watcher for ${filePath}`)
+              yield* Fiber.interrupt(fiber)
+              fileWatchers.delete(filePath)
+            }),
+          ),
+          Match.when({ _tag: "StartDir" }, ({ path: dirPath, channel, filter }) =>
+            Effect.gen(function* () {
+              if (dirWatchers.has(dirPath)) {
+                return yield* Effect.log(`dir watcher already running for ${dirPath}`)
+              }
+              yield* Effect.log(`starting dir watcher for ${dirPath} on channel ${channel}`)
+
+              const retrySchedule = Schedule.exponential("1 second").pipe(
+                Schedule.jittered,
+                Schedule.union(Schedule.spaced("30 seconds")),
+              )
+
+              const watchStream = fs.watch(dirPath, { recursive: true }).pipe(
+                Stream.filter((event) => (filter ? filter(event.path) : true)),
+                Stream.debounce("200 millis"),
+                Stream.runForEach((event) =>
+                  Effect.sync(() => {
+                    BrowserWindow.getAllWindows().forEach((win) =>
+                      win.webContents.send(channel, { path: event.path }),
+                    )
+                  }),
+                ),
+                Effect.tapError((e) => Effect.log(`dir watcher error for ${dirPath}`, e)),
+                Effect.retry(retrySchedule),
+              )
+
+              const fiber = yield* Effect.fork(watchStream)
+              dirWatchers.set(dirPath, fiber)
+            }),
+          ),
+          Match.when({ _tag: "StopDir" }, ({ path: dirPath }) =>
+            Effect.gen(function* () {
+              const fiber = dirWatchers.get(dirPath)
+              if (!fiber) {
+                return yield* Effect.log(`no dir watcher for ${dirPath}`)
+              }
+              yield* Effect.log(`stopping dir watcher for ${dirPath}`)
+              yield* Fiber.interrupt(fiber)
+              dirWatchers.delete(dirPath)
             }),
           ),
           Match.exhaustive,
@@ -192,20 +284,40 @@ export class WatcherService extends Effect.Service<WatcherService>()("app/Watche
       Effect.gen(function* () {
         yield* Effect.log("watcher service shutting down")
         yield* Queue.shutdown(commandQueue)
-        for (const [, fiber] of runningWatchers) {
+        for (const [, fiber] of workspaceWatchers) {
           yield* Fiber.interrupt(fiber)
         }
-        runningWatchers.clear()
+        for (const [, fiber] of fileWatchers) {
+          yield* Fiber.interrupt(fiber)
+        }
+        for (const [, fiber] of dirWatchers) {
+          yield* Fiber.interrupt(fiber)
+        }
+        workspaceWatchers.clear()
+        fileWatchers.clear()
+        dirWatchers.clear()
       }),
     )
 
     // Public interface
-    const start = (watchPath: AbsolutePath) =>
-      Queue.offer(commandQueue, { _tag: "Start", path: watchPath })
+    const startWorkspace = (watchPath: AbsolutePath) =>
+      Queue.offer(commandQueue, { _tag: "StartWorkspace", path: watchPath })
 
-    const stop = (watchPath: AbsolutePath) =>
-      Queue.offer(commandQueue, { _tag: "Stop", path: watchPath })
+    const stopWorkspace = (watchPath: AbsolutePath) =>
+      Queue.offer(commandQueue, { _tag: "StopWorkspace", path: watchPath })
 
-    return { start, stop } as const
+    const startFile = (filePath: AbsolutePath, channel: string) =>
+      Queue.offer(commandQueue, { _tag: "StartFile", path: filePath, channel })
+
+    const stopFile = (filePath: AbsolutePath) =>
+      Queue.offer(commandQueue, { _tag: "StopFile", path: filePath })
+
+    const startDir = (dirPath: AbsolutePath, channel: string, filter?: (path: string) => boolean) =>
+      Queue.offer(commandQueue, { _tag: "StartDir", path: dirPath, channel, filter })
+
+    const stopDir = (dirPath: AbsolutePath) =>
+      Queue.offer(commandQueue, { _tag: "StopDir", path: dirPath })
+
+    return { startWorkspace, stopWorkspace, startFile, stopFile, startDir, stopDir } as const
   }),
 }) {}

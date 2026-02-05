@@ -57,6 +57,13 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
   killTerminal: async () => right(undefined),
   onTerminalOutput: () => () => {},
   openExternal: async () => {},
+  git: {
+    getCurrentBranch: async () => null,
+    isGitRepo: async () => false,
+    startWatching: async () => right(undefined),
+    stopWatching: async () => right(undefined),
+    onBranchChange: () => () => {},
+  },
   ...overrides,
 })
 

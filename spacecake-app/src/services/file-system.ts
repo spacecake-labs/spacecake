@@ -260,23 +260,71 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
     }
 
     const startWatcher = (watchPath: AbsolutePath) =>
-      watcher.start(watchPath).pipe(
+      watcher.startWorkspace(watchPath).pipe(
         Effect.mapError(
           (error) =>
             new UnknownFSError({
               path: watchPath,
-              description: `failed to watch path: ${String(error)}`,
+              description: `failed to watch workspace: ${String(error)}`,
             }),
         ),
       )
 
     const stopWatcher = (watchPath: AbsolutePath) =>
-      watcher.stop(watchPath).pipe(
+      watcher.stopWorkspace(watchPath).pipe(
         Effect.mapError(
           (error) =>
             new UnknownFSError({
               path: watchPath,
-              description: `failed to stop watcher: ${String(error)}`,
+              description: `failed to stop workspace watcher: ${String(error)}`,
+            }),
+        ),
+      )
+
+    const startFileWatcher = (filePath: AbsolutePath, channel: string) =>
+      watcher.startFile(filePath, channel).pipe(
+        Effect.mapError(
+          (error) =>
+            new UnknownFSError({
+              path: filePath,
+              description: `failed to watch file: ${String(error)}`,
+            }),
+        ),
+      )
+
+    const stopFileWatcher = (filePath: AbsolutePath) =>
+      watcher.stopFile(filePath).pipe(
+        Effect.mapError(
+          (error) =>
+            new UnknownFSError({
+              path: filePath,
+              description: `failed to stop file watcher: ${String(error)}`,
+            }),
+        ),
+      )
+
+    const startDirWatcher = (
+      dirPath: AbsolutePath,
+      channel: string,
+      filter?: (path: string) => boolean,
+    ) =>
+      watcher.startDir(dirPath, channel, filter).pipe(
+        Effect.mapError(
+          (error) =>
+            new UnknownFSError({
+              path: dirPath,
+              description: `failed to watch directory: ${String(error)}`,
+            }),
+        ),
+      )
+
+    const stopDirWatcher = (dirPath: AbsolutePath) =>
+      watcher.stopDir(dirPath).pipe(
+        Effect.mapError(
+          (error) =>
+            new UnknownFSError({
+              path: dirPath,
+              description: `failed to stop directory watcher: ${String(error)}`,
             }),
         ),
       )
@@ -291,6 +339,10 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
       readDirectory,
       startWatcher,
       stopWatcher,
+      startFileWatcher,
+      stopFileWatcher,
+      startDirWatcher,
+      stopDirWatcher,
     } as const
   }),
 

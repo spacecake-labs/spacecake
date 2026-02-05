@@ -16,6 +16,11 @@ if (typeof window !== "undefined" && !posthog.__loaded) {
   posthog.register_once({
     app: "spacecake-desktop",
   })
+
+  // Fix for file:// protocol - provide host for cookieless server-side hash
+  if (window.location.protocol === "file:") {
+    posthog.register({ $host: "spacecake.ai" })
+  }
 }
 
 export default posthog

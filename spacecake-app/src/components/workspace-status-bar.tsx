@@ -4,6 +4,7 @@ import { useCallback, useState } from "react"
 
 import { ClaudeStatusBadge } from "@/components/claude-status-badge"
 import { ClaudeStatuslineBadge } from "@/components/claude-statusline-badge"
+import { GitBranchBadge } from "@/components/git-branch-badge"
 import { ModeToggle } from "@/components/mode-toggle"
 import {
   statuslineConflictAtom,
@@ -153,6 +154,7 @@ export function WorkspaceStatusBar({
             tasks
           </button>
         )}
+        <GitBranchBadge />
       </div>
 
       {/* Right side: Claude status + conflict indicator */}

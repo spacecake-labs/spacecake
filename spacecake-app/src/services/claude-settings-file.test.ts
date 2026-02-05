@@ -21,8 +21,12 @@ const SPACECAKE_SCRIPT_PATH = "/test/.spacecake/.app/hooks/statusline.sh"
 // Mock WatcherService - we're not testing watcher functionality here
 const MockWatcherService = Layer.succeed(WatcherService, {
   _tag: "app/WatcherService",
-  start: () => Effect.succeed(true),
-  stop: () => Effect.succeed(true),
+  startWorkspace: () => Effect.succeed(true),
+  stopWorkspace: () => Effect.succeed(true),
+  startFile: () => Effect.succeed(true),
+  stopFile: () => Effect.succeed(true),
+  startDir: () => Effect.succeed(true),
+  stopDir: () => Effect.succeed(true),
 } as WatcherService)
 
 const SpacecakeHomeTestLayer = makeSpacecakeHomeTestLayer({

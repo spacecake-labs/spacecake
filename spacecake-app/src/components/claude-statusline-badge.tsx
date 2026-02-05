@@ -13,31 +13,29 @@ export function ClaudeStatuslineBadge({ className }: ClaudeStatuslineBadgeProps)
 
   if (!statusline) return null
 
+  const parts = [statusline.model.toLowerCase()]
+
+  if (statusline.contextUsagePercent !== null) {
+    parts.push(`🧠 ${Math.round(statusline.contextUsagePercent)}%`)
+  }
+
+  parts.push(`💰 $${statusline.costUsd.toFixed(2)}`)
+
+  const titleParts = [
+    `model: ${statusline.model}`,
+    statusline.contextUsagePercent !== null
+      ? `context: ${Math.round(statusline.contextUsagePercent)}%`
+      : null,
+    `cost: $${statusline.costUsd.toFixed(2)}`,
+  ].filter(Boolean)
+
   return (
-    <div className={cn("inline-flex items-center gap-2", className)}>
-      <Badge
-        variant="outline"
-        className="text-xs font-mono text-muted-foreground"
-        title={`model: ${statusline.model}`}
-      >
-        {statusline.model.toLowerCase()}
-      </Badge>
-      {statusline.contextUsagePercent !== null && (
-        <Badge
-          variant="outline"
-          className="text-xs font-mono text-muted-foreground"
-          title={`context window used: ${Math.round(statusline.contextUsagePercent)}%`}
-        >
-          🧠 {Math.round(statusline.contextUsagePercent)}%
-        </Badge>
-      )}
-      <Badge
-        variant="outline"
-        className="text-xs font-mono text-muted-foreground"
-        title={`total cost (USD): $${statusline.costUsd.toFixed(2)}`}
-      >
-        💰 ${statusline.costUsd.toFixed(2)}
-      </Badge>
-    </div>
+    <Badge
+      variant="outline"
+      className={cn("text-xs font-mono text-muted-foreground", className)}
+      title={titleParts.join(" | ")}
+    >
+      {parts.join(" | ")}
+    </Badge>
   )
 }
