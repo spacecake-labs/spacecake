@@ -281,6 +281,28 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         ),
       )
 
+    const startFileWatcher = (filePath: AbsolutePath, channel: string) =>
+      watcher.startFile(filePath, channel).pipe(
+        Effect.mapError(
+          (error) =>
+            new UnknownFSError({
+              path: filePath,
+              description: `failed to watch file: ${String(error)}`,
+            }),
+        ),
+      )
+
+    const stopFileWatcher = (filePath: AbsolutePath) =>
+      watcher.stopFile(filePath).pipe(
+        Effect.mapError(
+          (error) =>
+            new UnknownFSError({
+              path: filePath,
+              description: `failed to stop file watcher: ${String(error)}`,
+            }),
+        ),
+      )
+
     return {
       readTextFile,
       writeTextFile,
@@ -291,6 +313,8 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
       readDirectory,
       startWatcher,
       stopWatcher,
+      startFileWatcher,
+      stopFileWatcher,
     } as const
   }),
 

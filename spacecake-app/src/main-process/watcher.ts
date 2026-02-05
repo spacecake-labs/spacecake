@@ -113,6 +113,8 @@ export function convertToFileTreeEvent(
 export type WatcherCommand =
   | { readonly _tag: "Start"; readonly path: AbsolutePath }
   | { readonly _tag: "Stop"; readonly path: AbsolutePath }
+  | { readonly _tag: "StartFile"; readonly path: AbsolutePath; readonly channel: string }
+  | { readonly _tag: "StopFile"; readonly path: AbsolutePath }
 
 export const WatcherFileSystemLive = Layer.provide(NodeFileSystem.layer, ParcelWatcher.layer)
 
@@ -122,6 +124,7 @@ export class WatcherService extends Effect.Service<WatcherService>()("app/Watche
     const fs = yield* FileSystem.FileSystem
     const commandQueue = yield* Queue.unbounded<WatcherCommand>()
     const runningWatchers = new Map<AbsolutePath, Fiber.RuntimeFiber<void, PlatformError>>()
+    const fileWatchers = new Map<AbsolutePath, Fiber.RuntimeFiber<void, PlatformError>>()
 
     yield* Effect.log("watcher service started")
 
@@ -178,6 +181,46 @@ export class WatcherService extends Effect.Service<WatcherService>()("app/Watche
               runningWatchers.delete(watchPath)
             }),
           ),
+          Match.when({ _tag: "StartFile" }, ({ path: filePath, channel }) =>
+            Effect.gen(function* () {
+              if (fileWatchers.has(filePath)) {
+                return yield* Effect.log(`file watcher already running for ${filePath}`)
+              }
+              yield* Effect.log(`starting file watcher for ${filePath}`)
+
+              const retrySchedule = Schedule.exponential("1 second").pipe(
+                Schedule.jittered,
+                Schedule.union(Schedule.spaced("30 seconds")),
+              )
+
+              const watchStream = fs.watch(filePath).pipe(
+                Stream.debounce("200 millis"),
+                Stream.runForEach(() =>
+                  Effect.sync(() => {
+                    BrowserWindow.getAllWindows().forEach((win) =>
+                      win.webContents.send(channel, { path: filePath }),
+                    )
+                  }),
+                ),
+                Effect.tapError((e) => Effect.log(`file watcher error for ${filePath}`, e)),
+                Effect.retry(retrySchedule),
+              )
+
+              const fiber = yield* Effect.fork(watchStream)
+              fileWatchers.set(filePath, fiber)
+            }),
+          ),
+          Match.when({ _tag: "StopFile" }, ({ path: filePath }) =>
+            Effect.gen(function* () {
+              const fiber = fileWatchers.get(filePath)
+              if (!fiber) {
+                return yield* Effect.log(`no file watcher for ${filePath}`)
+              }
+              yield* Effect.log(`stopping file watcher for ${filePath}`)
+              yield* Fiber.interrupt(fiber)
+              fileWatchers.delete(filePath)
+            }),
+          ),
           Match.exhaustive,
         ),
       ),
@@ -195,7 +238,11 @@ export class WatcherService extends Effect.Service<WatcherService>()("app/Watche
         for (const [, fiber] of runningWatchers) {
           yield* Fiber.interrupt(fiber)
         }
+        for (const [, fiber] of fileWatchers) {
+          yield* Fiber.interrupt(fiber)
+        }
         runningWatchers.clear()
+        fileWatchers.clear()
       }),
     )
 
@@ -206,6 +253,12 @@ export class WatcherService extends Effect.Service<WatcherService>()("app/Watche
     const stop = (watchPath: AbsolutePath) =>
       Queue.offer(commandQueue, { _tag: "Stop", path: watchPath })
 
-    return { start, stop } as const
+    const startFile = (filePath: AbsolutePath, channel: string) =>
+      Queue.offer(commandQueue, { _tag: "StartFile", path: filePath, channel })
+
+    const stopFile = (filePath: AbsolutePath) =>
+      Queue.offer(commandQueue, { _tag: "StopFile", path: filePath })
+
+    return { start, stop, startFile, stopFile } as const
   }),
 }) {}

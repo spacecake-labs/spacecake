@@ -17,6 +17,8 @@ const MockWatcherService = Layer.succeed(WatcherService, {
   _tag: "app/WatcherService",
   start: () => Effect.succeed(true),
   stop: () => Effect.succeed(true),
+  startFile: () => Effect.succeed(true),
+  stopFile: () => Effect.succeed(true),
 } as WatcherService)
 
 // Test layer with real filesystem but mocked watcher

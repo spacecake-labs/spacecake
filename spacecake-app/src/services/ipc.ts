@@ -6,6 +6,7 @@ import path from "path"
 import { ClaudeSettingsFile, type StatuslineConfigStatus } from "@/services/claude-settings-file"
 import { ClaudeTaskListService } from "@/services/claude-task-list"
 import { FileSystem, type FileSystemError } from "@/services/file-system"
+import { GitError, GitService } from "@/services/git"
 import { SpacecakeHome } from "@/services/spacecake-home"
 import { Terminal } from "@/services/terminal"
 import { left, right, type Either } from "@/types/adt"
@@ -46,6 +47,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     const taskList = yield* ClaudeTaskListService
     const settingsFile = yield* ClaudeSettingsFile
     const home = yield* SpacecakeHome
+    const git = yield* GitService
 
     ipcMain.handle(
       "read-file",
@@ -279,6 +281,40 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       }
     })
 
+    // Git IPC handlers
+    ipcMain.handle("git:branch:current", (_, workspacePath: string) =>
+      Effect.runPromise(
+        Effect.match(git.getCurrentBranch(workspacePath), {
+          onFailure: () => null,
+          onSuccess: (branch) => branch,
+        }),
+      ),
+    )
+
+    ipcMain.handle("git:is-repo", (_, workspacePath: string) =>
+      Effect.runPromise(git.isGitRepo(workspacePath)),
+    )
+
+    ipcMain.handle("git:start-watching", (_, workspacePath: string) =>
+      Effect.runPromise(
+        Effect.match(git.startWatching(workspacePath), {
+          onFailure: (error) =>
+            left({ _tag: "GitError" as const, description: (error as GitError).description }),
+          onSuccess: () => right(undefined),
+        }),
+      ),
+    )
+
+    ipcMain.handle("git:stop-watching", (_, workspacePath: string) =>
+      Effect.runPromise(
+        Effect.match(git.stopWatching(workspacePath), {
+          onFailure: (error) =>
+            left({ _tag: "GitError" as const, description: (error as GitError).description }),
+          onSuccess: () => right(undefined),
+        }),
+      ),
+    )
+
     return {}
   }),
   dependencies: [
@@ -286,5 +322,6 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     Terminal.Default,
     ClaudeTaskListService.Default,
     ClaudeSettingsFile.Default,
+    GitService.Default,
   ],
 }) {}

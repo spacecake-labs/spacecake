@@ -10,6 +10,7 @@ import { fixPath } from "@/main-process/fix-path"
 import { ClaudeCodeServer } from "@/services/claude-code-server"
 import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { CliServer } from "@/services/cli-server"
+import { GitService } from "@/services/git"
 import { Ipc } from "@/services/ipc"
 import { ensureHomeFolderExists, SpacecakeHome } from "@/services/spacecake-home"
 import { setupUpdates } from "@/update"
@@ -158,6 +159,7 @@ const AppLive = Layer.mergeAll(
   ClaudeCodeServer.Default,
   ClaudeHooksServer.Default,
   CliServer.Default,
+  GitService.Default,
   SpacecakeHomeLive,
 ).pipe(Layer.provide(SpacecakeHomeLive), Layer.provide(Layer.scope))
 
