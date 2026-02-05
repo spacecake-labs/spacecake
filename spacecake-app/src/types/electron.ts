@@ -80,6 +80,18 @@ export interface ElectronAPI {
   writeTerminal: (id: string, data: string) => Promise<Either<TerminalError, void>>
   killTerminal: (id: string) => Promise<Either<TerminalError, void>>
   onTerminalOutput: (handler: (id: string, data: string) => void) => () => void
+
+  git: {
+    getCurrentBranch: (workspacePath: string) => Promise<string | null>
+    isGitRepo: (workspacePath: string) => Promise<boolean>
+    startWatching: (
+      workspacePath: string,
+    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
+    stopWatching: (
+      workspacePath: string,
+    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
+    onBranchChange: (callback: (data: { path: string }) => void) => () => void
+  }
 }
 
 declare global {

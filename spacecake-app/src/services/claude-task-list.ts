@@ -112,16 +112,14 @@ export class ClaudeTaskListService extends Effect.Service<ClaudeTaskListService>
       const stopWatching = (): Effect.Effect<void, ClaudeTaskError> =>
         Effect.gen(function* () {
           if (currentWatchPath) {
-            yield* fileSystem
-              .stopDirWatcher(currentWatchPath)
-              .pipe(
-                Effect.mapError(
-                  (e) =>
-                    new ClaudeTaskError({
-                      description: `Failed to stop watcher: ${e.description}`,
-                    }),
-                ),
-              )
+            yield* fileSystem.stopDirWatcher(currentWatchPath).pipe(
+              Effect.mapError(
+                (e) =>
+                  new ClaudeTaskError({
+                    description: `Failed to stop watcher: ${e.description}`,
+                  }),
+              ),
+            )
             currentWatchPath = null
             currentListId = null
           }
