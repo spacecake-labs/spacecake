@@ -6,6 +6,15 @@ import { FileSystem, UnknownFSError } from "@/services/file-system"
 import { GitError, GitService } from "@/services/git"
 import { AbsolutePath } from "@/types/workspace"
 
+// Mock simple-git
+const mockCheckIsRepo = vi.fn()
+vi.mock("simple-git", () => ({
+  default: () => ({
+    checkIsRepo: mockCheckIsRepo,
+    branchLocal: vi.fn(),
+  }),
+}))
+
 describe("GitService", () => {
   // Mocks that can be configured per test
   let mockStartFileWatcher: ReturnType<typeof vi.fn>
@@ -16,6 +25,8 @@ describe("GitService", () => {
     // Reset mocks to default success behavior
     mockStartFileWatcher = vi.fn(() => Effect.succeed(true))
     mockStopFileWatcher = vi.fn(() => Effect.succeed(true))
+    // Default to being a git repo
+    mockCheckIsRepo.mockResolvedValue(true)
   })
 
   // Create mock FileSystem layer with current mock state
@@ -59,6 +70,19 @@ describe("GitService", () => {
           expect(result.left.description).toBe("Failed to watch git HEAD")
           expect(result.left.cause).toBeDefined()
         }
+      }).pipe(Effect.provide(createTestLayer()))
+    })
+
+    it.effect("does not start watcher when not a git repo", () => {
+      // Configure mock to return false (not a git repo)
+      mockCheckIsRepo.mockResolvedValue(false)
+
+      return Effect.gen(function* () {
+        const service = yield* GitService
+        yield* service.startWatching("/not/a/git/repo")
+
+        // Should not have called the file watcher
+        expect(mockStartFileWatcher).not.toHaveBeenCalled()
       }).pipe(Effect.provide(createTestLayer()))
     })
   })

@@ -39,16 +39,23 @@ const makeGitService = Effect.gen(function* () {
       catch: () => false,
     }).pipe(Effect.catchAll(() => Effect.succeed(false)))
 
-  const startWatching = (workspacePath: string) => {
-    const gitHeadPath = AbsolutePath(`${workspacePath}/.git/HEAD`)
-    return fs
-      .startFileWatcher(gitHeadPath, "git:branch:changed")
-      .pipe(
-        Effect.mapError((e) => new GitError({ description: "Failed to watch git HEAD", cause: e })),
-      )
-  }
+  const startWatching = (workspacePath: string) =>
+    Effect.gen(function* () {
+      const isRepo = yield* isGitRepo(workspacePath)
+      if (!isRepo) {
+        // Not a git repo - silently succeed without starting a watcher
+        return
+      }
+      const gitHeadPath = AbsolutePath(`${workspacePath}/.git/HEAD`)
+      yield* fs.startFileWatcher(gitHeadPath, "git:branch:changed")
+    }).pipe(
+      Effect.mapError((e) => new GitError({ description: "Failed to watch git HEAD", cause: e })),
+    )
 
   const stopWatching = (workspacePath: string) => {
+    // Always attempt to stop - don't check isGitRepo because:
+    // 1. The repo state may have changed since startWatching was called
+    // 2. The watcher service handles "no watcher found" gracefully
     const gitHeadPath = AbsolutePath(`${workspacePath}/.git/HEAD`)
     return fs
       .stopFileWatcher(gitHeadPath)
