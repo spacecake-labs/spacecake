@@ -174,18 +174,14 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     )
 
     // Claude Tasks IPC handlers
-    ipcMain.handle("claude:tasks:start-watching", async (_, sessionId?: string) => {
-      try {
-        await taskList.startWatching(sessionId)
-        return right(undefined)
-      } catch (error) {
-        return left(
-          serializeTaskError(
-            error instanceof ClaudeTaskError ? error : new ClaudeTaskError(String(error)),
-          ),
-        )
-      }
-    })
+    ipcMain.handle("claude:tasks:start-watching", (_, sessionId?: string) =>
+      Effect.runPromise(
+        Effect.match(taskList.startWatching(sessionId), {
+          onFailure: (error) => left(serializeTaskError(error)),
+          onSuccess: () => right(undefined),
+        }),
+      ),
+    )
 
     ipcMain.handle("claude:tasks:list", (_, sessionId?: string) => {
       try {
@@ -194,24 +190,22 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       } catch (error) {
         return left(
           serializeTaskError(
-            error instanceof ClaudeTaskError ? error : new ClaudeTaskError(String(error)),
+            error instanceof ClaudeTaskError
+              ? error
+              : new ClaudeTaskError({ description: String(error) }),
           ),
         )
       }
     })
 
-    ipcMain.handle("claude:tasks:stop-watching", async () => {
-      try {
-        await taskList.stopWatching()
-        return right(undefined)
-      } catch (error) {
-        return left(
-          serializeTaskError(
-            error instanceof ClaudeTaskError ? error : new ClaudeTaskError(String(error)),
-          ),
-        )
-      }
-    })
+    ipcMain.handle("claude:tasks:stop-watching", () =>
+      Effect.runPromise(
+        Effect.match(taskList.stopWatching(), {
+          onFailure: (error) => left(serializeTaskError(error)),
+          onSuccess: () => right(undefined),
+        }),
+      ),
+    )
 
     // Claude Statusline IPC handlers
     ipcMain.handle(
