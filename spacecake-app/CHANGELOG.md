@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.45
+
+### Patch Changes
+
+- 5f60d87: Git service and branch badge.
+
 ## 0.1.0-alpha.44
 
 ### Patch Changes
