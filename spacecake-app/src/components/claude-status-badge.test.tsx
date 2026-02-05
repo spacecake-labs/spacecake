@@ -94,6 +94,12 @@ Object.defineProperty(window, "electronAPI", {
       ensureServer: () => Promise.resolve(),
     },
     updateCliWorkspaces: () => Promise.resolve(),
+    git: {
+      getCurrentBranch: () => Promise.resolve("main"),
+      startWatching: () => {},
+      stopWatching: () => {},
+      onBranchChange: () => () => {},
+    },
   },
 })
 
