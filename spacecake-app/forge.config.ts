@@ -9,7 +9,8 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses"
 import { cp, mkdir } from "node:fs/promises"
 import path from "path"
 
-import packageJson from "@/../package.json"
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import packageJson from "./package.json"
 
 /* The customisation is necessary for @parcel/watcher.
 Source: https://www.danielcorin.com/posts/2024/challenges-building-an-electron-app/
