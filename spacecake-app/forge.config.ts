@@ -9,6 +9,8 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses"
 import { cp, mkdir } from "node:fs/promises"
 import path from "path"
 
+import packageJson from "@/../package.json"
+
 /* The customisation is necessary for @parcel/watcher.
 Source: https://www.danielcorin.com/posts/2024/challenges-building-an-electron-app/
 */
@@ -35,7 +37,7 @@ function getPlatformArchSpecificPackages(platform: string, arch: string): string
       x64: ["@parcel/watcher-darwin-x64", "@lydell/node-pty-darwin-x64"],
     },
     win32: {
-      x64: ["@parcel/watcher-win32-x64"],
+      x64: ["@parcel/watcher-win32-x64", "@lydell/node-pty-win32-x64"],
       arm64: ["@parcel/watcher-win32-arm64"],
     },
     linux: {
@@ -76,8 +78,9 @@ const config: ForgeConfig = {
       )
 
       // Bundle the CLI binary into the app's resources/bin directory
-      const cliBinarySource = path.resolve(__dirname, "../cli/dist/spacecake")
-      const cliBinaryDest = path.resolve(buildPath, "../bin/spacecake")
+      const ext = platform === "win32" ? ".exe" : ""
+      const cliBinarySource = path.resolve(__dirname, `../cli/dist/spacecake${ext}`)
+      const cliBinaryDest = path.resolve(buildPath, `../bin/spacecake${ext}`)
 
       try {
         await mkdir(path.dirname(cliBinaryDest), { recursive: true })
@@ -148,6 +151,18 @@ const config: ForgeConfig = {
       config: {
         icon: "./assets/icon.icns",
       },
+    },
+    {
+      name: "@electron-forge/maker-squirrel",
+      platforms: ["win32"],
+      config: (arch: string) => ({
+        name: "spacecake",
+        authors: packageJson.author.name,
+        exe: "spacecake.exe",
+        noMsi: true,
+        setupExe: `spacecake-${packageJson.version}-win32-${arch}-setup.exe`,
+        setupIcon: path.resolve(__dirname, "assets/icon.ico"),
+      }),
     },
     new MakerDeb({
       options: commonLinuxConfig,

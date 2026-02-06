@@ -36,6 +36,8 @@ jobs:
             arch: x64
           - os: ubuntu-latest
             arch: x64
+          - os: windows-latest
+            arch: x64
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -102,4 +104,8 @@ jobs:
 
       - name: Run tests (headful mac)
         if: startsWith(matrix.os, 'macos')
+        run: just test
+
+      - name: Run tests (headful windows)
+        if: startsWith(matrix.os, 'windows')
         run: just test
