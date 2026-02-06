@@ -409,6 +409,9 @@ importers:
       '@lydell/node-pty-linux-x64':
         specifier: 1.1.0
         version: 1.1.0
+      '@lydell/node-pty-win32-x64':
+        specifier: 1.2.0-beta.10
+        version: 1.2.0-beta.10
 
 packages:
 
@@ -1762,6 +1765,11 @@ packages:
 
   '@lydell/node-pty-win32-x64@1.1.0':
     resolution: {integrity: sha512-3N56BZ+WDFnUMYRtsrr7Ky2mhWGl9xXcyqR6cexfuCqcz9RNWL+KoXRv/nZylY5dYaXkft4JaR1uVu+roiZDAw==}
+    cpu: [x64]
+    os: [win32]
+
+  '@lydell/node-pty-win32-x64@1.2.0-beta.10':
+    resolution: {integrity: sha512-ExFgWrzyldNAMi45U9PLIOu+g/RatP+f0c/dZxaooifME6yLW32BoHveH26/TtoAjZyJrc2iL0u48pgnR1fzmg==}
     cpu: [x64]
     os: [win32]
 
@@ -9103,6 +9111,9 @@ snapshots:
     optional: true
 
   '@lydell/node-pty-win32-x64@1.1.0':
+    optional: true
+
+  '@lydell/node-pty-win32-x64@1.2.0-beta.10':
     optional: true
 
   '@lydell/node-pty@1.1.0':
