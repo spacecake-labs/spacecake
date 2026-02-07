@@ -40,6 +40,12 @@ vi.mock("electron", () => ({
 // Helpers & state
 // ---------------------------------------------------------------------------
 
+// Use path.resolve() for cross-platform compatibility.
+// On Windows, path.resolve("/ws/primary") → "D:\ws\primary"
+// On Unix, path.resolve("/ws/primary") → "/ws/primary"
+const WS_PRIMARY = path.resolve("/ws/primary")
+const WS_SECONDARY = path.resolve("/ws/secondary")
+
 interface JsonResponse {
   [key: string]: unknown
 }
@@ -91,7 +97,7 @@ const createTestLayer = () =>
     makeSpacecakeHomeTestLayer({ homeDir: testDir }),
   )
 
-const runTestServer = (workspaceFolders: string[] = ["/ws/primary"]) =>
+const runTestServer = (workspaceFolders: string[] = [WS_PRIMARY]) =>
   Effect.gen(function* () {
     const server = yield* makeCliServer.pipe(Effect.provide(createTestLayer()))
 
@@ -158,14 +164,15 @@ describe("CliServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* runTestServer(["/ws/primary"])
+          yield* runTestServer([WS_PRIMARY])
 
+          const filePath = path.join(WS_PRIMARY, "src", "index.ts")
           const res = yield* Effect.promise(() =>
             makeRequest(
               "POST",
               "/open",
               JSON.stringify({
-                files: [{ path: "/ws/primary/src/index.ts", line: 10, col: 5 }],
+                files: [{ path: filePath, line: 10, col: 5 }],
               }),
             ),
           )
@@ -176,8 +183,8 @@ describe("CliServer", () => {
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
             "claude:open-file",
             expect.objectContaining({
-              workspacePath: "/ws/primary",
-              filePath: "/ws/primary/src/index.ts",
+              workspacePath: WS_PRIMARY,
+              filePath: path.resolve(filePath),
               line: 10,
               col: 5,
             } satisfies OpenFilePayload),
@@ -191,14 +198,15 @@ describe("CliServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* runTestServer(["/ws/primary", "/ws/secondary"])
+          yield* runTestServer([WS_PRIMARY, WS_SECONDARY])
 
+          const filePath = path.join(WS_SECONDARY, "lib", "foo.ts")
           const res = yield* Effect.promise(() =>
             makeRequest(
               "POST",
               "/open",
               JSON.stringify({
-                files: [{ path: "/ws/secondary/lib/foo.ts" }],
+                files: [{ path: filePath }],
               }),
             ),
           )
@@ -207,7 +215,7 @@ describe("CliServer", () => {
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
             "claude:open-file",
             expect.objectContaining({
-              workspacePath: "/ws/secondary",
+              workspacePath: WS_SECONDARY,
             }),
           )
         }),
@@ -219,14 +227,15 @@ describe("CliServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* runTestServer(["/ws/primary", "/ws/secondary"])
+          yield* runTestServer([WS_PRIMARY, WS_SECONDARY])
 
+          const filePath = path.resolve("/other/place/file.ts")
           const res = yield* Effect.promise(() =>
             makeRequest(
               "POST",
               "/open",
               JSON.stringify({
-                files: [{ path: "/other/place/file.ts" }],
+                files: [{ path: filePath }],
               }),
             ),
           )
@@ -235,7 +244,7 @@ describe("CliServer", () => {
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
             "claude:open-file",
             expect.objectContaining({
-              workspacePath: "/ws/primary",
+              workspacePath: WS_PRIMARY,
             }),
           )
         }),
@@ -302,14 +311,17 @@ describe("CliServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* runTestServer(["/ws/primary"])
+          yield* runTestServer([WS_PRIMARY])
+
+          const filePath = path.join(WS_PRIMARY, "src", "index.ts")
+          const resolvedFilePath = path.resolve(filePath)
 
           // Fire the request (will block until the file is "closed")
           const responsePromise = makeRequest(
             "POST",
             "/open",
             JSON.stringify({
-              files: [{ path: "/ws/primary/src/index.ts" }],
+              files: [{ path: filePath }],
               wait: true,
             }),
           )
@@ -317,10 +329,10 @@ describe("CliServer", () => {
           // Give the server a moment to register the waiter
           yield* Effect.promise(() => new Promise((r) => setTimeout(r, 200)))
 
-          // Simulate renderer sending file-closed IPC
+          // Simulate renderer sending file-closed IPC (must use resolved path)
           const handler = mocks.ipcHandlers.get("cli:file-closed")
           expect(handler).toBeDefined()
-          handler!({}, "/ws/primary/src/index.ts")
+          handler!({}, resolvedFilePath)
 
           const res = yield* Effect.promise(() => responsePromise)
           expect(res.statusCode).toBe(200)
@@ -365,19 +377,23 @@ describe("CliServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* runTestServer(["/ws/old"])
+          const wsOld = path.resolve("/ws/old")
+          const wsNew = path.resolve("/ws/new")
+
+          yield* runTestServer([wsOld])
 
           // Simulate workspace update via IPC
           const handler = mocks.ipcHandlers.get("cli:update-workspaces")
           expect(handler).toBeDefined()
-          handler!({}, ["/ws/new"])
+          handler!({}, [wsNew])
 
+          const filePath = path.join(wsNew, "file.ts")
           const res = yield* Effect.promise(() =>
             makeRequest(
               "POST",
               "/open",
               JSON.stringify({
-                files: [{ path: "/ws/new/file.ts" }],
+                files: [{ path: filePath }],
               }),
             ),
           )
@@ -386,7 +402,7 @@ describe("CliServer", () => {
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
             "claude:open-file",
             expect.objectContaining({
-              workspacePath: "/ws/new",
+              workspacePath: wsNew,
             }),
           )
         }),
@@ -401,14 +417,16 @@ describe("CliServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* runTestServer(["/ws/primary"])
+          yield* runTestServer([WS_PRIMARY])
+
+          const filePath = path.join(WS_PRIMARY, "src", "index.ts")
 
           // Fire a wait request — won't resolve until file closed or server shuts down
           responsePromise = makeRequest(
             "POST",
             "/open",
             JSON.stringify({
-              files: [{ path: "/ws/primary/src/index.ts" }],
+              files: [{ path: filePath }],
               wait: true,
             }),
           )
