@@ -4,6 +4,20 @@ import path from "path"
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
+const isWindows = process.platform === "win32"
+
+// Platform-specific shell commands
+const shell = {
+  // Set environment variable and print current directory
+  setVarAndPwd: isWindows ? "set TEST_VAR=123 & cd" : "export TEST_VAR=123 && pwd",
+  // Echo the variable
+  echoVar: isWindows ? "echo %TEST_VAR%" : "echo $TEST_VAR",
+  // Echo with marker to detect if variable is set
+  echoMarker: isWindows ? "echo MARKER:%TEST_VAR%:END" : "echo MARKER:$TEST_VAR:END",
+  // Expected output when variable is unset (empty between markers)
+  markerUnset: isWindows ? "MARKER:%TEST_VAR%:END" : "MARKER::END",
+}
+
 test.describe("ghostty terminal", () => {
   test("toggle terminal visibility, interact with terminal, and verify session management", async ({
     electronApp,
@@ -81,7 +95,7 @@ test.describe("ghostty terminal", () => {
     // Test: Interact with terminal - set a variable and verify CWD
     await terminalElement.locator("textarea").focus()
     await window.waitForTimeout(100)
-    await window.keyboard.type("export TEST_VAR=123 && pwd", { delay: 50 })
+    await window.keyboard.type(shell.setVarAndPwd, { delay: 50 })
     await window.keyboard.press("Enter")
 
     let terminalContent = await window.evaluate(() => {
@@ -101,7 +115,7 @@ test.describe("ghostty terminal", () => {
     // Verify variable still exists (same session)
     await terminalElement.locator("textarea").focus()
     await window.waitForTimeout(100)
-    await window.keyboard.type("echo $TEST_VAR", { delay: 50 })
+    await window.keyboard.type(shell.echoVar, { delay: 50 })
     await window.keyboard.press("Enter")
 
     terminalContent = await window.evaluate(() => {
@@ -124,7 +138,7 @@ test.describe("ghostty terminal", () => {
     // If the variable is unset, we'll see just the prefix; if set, we'll see prefix+value
     await terminalElement.locator("textarea").focus()
     await window.waitForTimeout(100)
-    await window.keyboard.type("echo MARKER:$TEST_VAR:END", { delay: 50 })
+    await window.keyboard.type(shell.echoMarker, { delay: 50 })
     await window.keyboard.press("Enter")
 
     terminalContent = await window.evaluate(() => {
@@ -132,8 +146,9 @@ test.describe("ghostty terminal", () => {
       const api = (globalThis as any).__terminalAPI
       return api?.getAllLines().join("") as string | undefined
     })
-    // In a new session, the variable should be empty, so we expect MARKER::END
-    // We're explicitly checking for MARKER::END which proves the variable is not set
-    expect(terminalContent).toContain("MARKER::END")
+    // In a new session, the variable should be empty/unset
+    // On Windows CMD, %VAR% is echoed literally if unset, so we check for that
+    // On Unix, $VAR becomes empty, so we get MARKER::END
+    expect(terminalContent).toContain(shell.markerUnset)
   })
 })

@@ -1,8 +1,14 @@
+import { execSync } from "child_process"
 import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
+
+/** Normalize path to forward slashes (matches how the UI displays paths) */
+const normalizePath = (p: string) => p.replace(/\\/g, "/")
+
+const isWindows = process.platform === "win32"
 
 test.describe("route not found", () => {
   test("should show 'workspace not accessible' message when workspace has no read permissions", async ({
@@ -17,20 +23,32 @@ test.describe("route not found", () => {
     // wait for watcher to be ready
     await window.waitForTimeout(1000)
 
-    // remove read permissions from the workspace
-    fs.chmodSync(tempTestDir, 0o000)
+    if (isWindows) {
+      // Windows: use icacls to deny all access to Everyone
+      execSync(`icacls "${tempTestDir}" /deny Everyone:(OI)(CI)F`, { stdio: "ignore" })
+    } else {
+      // Unix: remove all permissions
+      fs.chmodSync(tempTestDir, 0o000)
+    }
 
     try {
       // reload the window - this should trigger the permission denied error
       await window.reload()
 
       // verify the "workspace not accessible" message appears
-      await expect(window.getByText(`workspace not accessible:\n${tempTestDir}`)).toBeVisible({
+      // Use normalized path because the UI normalizes paths to forward slashes
+      await expect(
+        window.getByText(`workspace not accessible:\n${normalizePath(tempTestDir)}`),
+      ).toBeVisible({
         timeout: 10000,
       })
     } finally {
       // always restore permissions for cleanup
-      fs.chmodSync(tempTestDir, 0o755)
+      if (isWindows) {
+        execSync(`icacls "${tempTestDir}" /grant Everyone:(OI)(CI)F`, { stdio: "ignore" })
+      } else {
+        fs.chmodSync(tempTestDir, 0o755)
+      }
     }
   })
 
@@ -64,7 +82,8 @@ test.describe("route not found", () => {
 
     await window.reload()
 
-    await expect(window.getByText(`file not found:\n${testFilePath}`)).toBeVisible()
+    // Use normalized path because the UI normalizes paths to forward slashes
+    await expect(window.getByText(`file not found:\n${normalizePath(testFilePath)}`)).toBeVisible()
   })
 
   test("should show 'workspace not found' message when workspace path does not exist", async ({
@@ -79,13 +98,21 @@ test.describe("route not found", () => {
     // wait for watcher to be ready
     await window.waitForTimeout(1000)
 
-    // delete the workspace directory
-    fs.rmSync(tempTestDir, { recursive: true, force: true, maxRetries: 5 })
+    // Stop the watcher before deleting to release file handles (required on Windows)
+    await window.evaluate((watchPath) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (window as any).electronAPI.stopWatcher(watchPath)
+    }, tempTestDir)
 
-    // isn't necessary for mac (FSEvents)
-    // but may be necessary for some of the watcher backends
+    // delete the workspace directory
+    fs.rmSync(tempTestDir, { recursive: true, force: true })
+
+    // reload the window - this should trigger the workspace not found error
     await window.reload()
 
-    await expect(window.getByText(`workspace not found:\n${tempTestDir}`)).toBeVisible()
+    // Use normalized path because the UI normalizes paths to forward slashes
+    await expect(
+      window.getByText(`workspace not found:\n${normalizePath(tempTestDir)}`),
+    ).toBeVisible()
   })
 })
