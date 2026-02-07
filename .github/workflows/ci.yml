@@ -84,6 +84,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y watchman
 
+      - name: Install Watchman (Windows)
+        if: startsWith(matrix.os, 'windows')
+        run: choco install watchman -y
+
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
