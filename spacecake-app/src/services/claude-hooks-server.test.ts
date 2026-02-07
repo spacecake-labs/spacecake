@@ -5,6 +5,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import { toIpcPath } from "@/lib/ipc-path"
 import { makeClaudeConfigTestLayer } from "@/services/claude-config"
 import { makeClaudeHooksServer, StatuslineService } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
@@ -30,7 +31,8 @@ describe("ClaudeHooksServer", () => {
   beforeEach(() => {
     // Create a unique temp directory for each test
     testDir = fs.mkdtempSync(path.join(os.tmpdir(), "claude-hooks-test-"))
-    socketPath = path.join(testDir, "spacecake.sock")
+    // Use toIpcPath for cross-platform compatibility (named pipes on Windows)
+    socketPath = toIpcPath(path.join(testDir, "spacecake.sock"))
 
     mockFileSystem = {
       createFolder: vi.fn(() => Effect.void),
@@ -42,10 +44,11 @@ describe("ClaudeHooksServer", () => {
   afterEach(() => {
     // Clean up test directory
     try {
-      if (fs.existsSync(socketPath)) {
+      // On Unix, clean up the socket file. On Windows, named pipes don't need cleanup.
+      if (process.platform !== "win32" && fs.existsSync(socketPath)) {
         fs.unlinkSync(socketPath)
       }
-      fs.rmdirSync(testDir)
+      fs.rmSync(testDir, { recursive: true, force: true })
     } catch {
       // Ignore cleanup errors
     }

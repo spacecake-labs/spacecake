@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { OpenFilePayload } from "@/types/claude-code"
 
+import { toIpcPath } from "@/lib/ipc-path"
 import { FileSystem } from "@/services/file-system"
 import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
 import { waitForServer } from "@/test-utils/platform"
@@ -56,7 +57,8 @@ beforeEach(async () => {
   testDir = fs.mkdtempSync(path.join(os.tmpdir(), "cli-server-test-"))
   appDir = path.join(testDir, ".app")
   fs.mkdirSync(appDir, { recursive: true })
-  socketPath = path.join(appDir, "cli.sock")
+  // Use toIpcPath for cross-platform compatibility (named pipes on Windows)
+  socketPath = toIpcPath(path.join(appDir, "cli.sock"))
 
   mockFileSystem = {
     createFolder: vi.fn(() => Effect.void),
@@ -73,7 +75,10 @@ beforeEach(async () => {
 
 afterEach(() => {
   try {
-    if (fs.existsSync(socketPath)) fs.unlinkSync(socketPath)
+    // On Unix, clean up the socket file. On Windows, named pipes don't need cleanup.
+    if (process.platform !== "win32" && fs.existsSync(socketPath)) {
+      fs.unlinkSync(socketPath)
+    }
     fs.rmSync(testDir, { recursive: true, force: true })
   } catch {
     // ignore cleanup errors
