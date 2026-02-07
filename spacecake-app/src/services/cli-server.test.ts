@@ -9,6 +9,7 @@ import type { OpenFilePayload } from "@/types/claude-code"
 
 import { FileSystem } from "@/services/file-system"
 import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
+import { waitForServer } from "@/test-utils/platform"
 
 // ---------------------------------------------------------------------------
 // Electron mock — capture ipcMain.handle calls + spy on webContents.send
@@ -91,17 +92,8 @@ const runTestServer = (workspaceFolders: string[] = ["/ws/primary"]) =>
 
     yield* Effect.promise(() => server.ensureStarted(workspaceFolders))
 
-    // Wait for socket to appear
-    yield* Effect.promise(async () => {
-      let attempts = 0
-      while (!fs.existsSync(socketPath) && attempts < 40) {
-        await new Promise((r) => setTimeout(r, 50))
-        attempts++
-      }
-      if (!fs.existsSync(socketPath)) {
-        throw new Error("Socket file not created")
-      }
-    })
+    // Wait for server to be listening (works with both Unix sockets and Windows named pipes)
+    yield* Effect.promise(() => waitForServer(socketPath))
 
     return server
   })

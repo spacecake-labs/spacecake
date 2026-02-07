@@ -16,7 +16,8 @@ import { FileSystem } from "@/services/file-system"
 import { GitIgnoreLive } from "@/services/git-ignore-parser"
 import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
 
-const SPACECAKE_SCRIPT_PATH = "/test/.spacecake/.app/hooks/statusline.sh"
+// Use path.join for cross-platform compatibility - on Windows paths use backslashes
+const SPACECAKE_SCRIPT_PATH = path.join("/test", ".spacecake", ".app", "hooks", "statusline.sh")
 
 // Mock WatcherService - we're not testing watcher functionality here
 const MockWatcherService = Layer.succeed(WatcherService, {

@@ -15,6 +15,7 @@ import {
   SpacecakeHome,
   type AppEnv,
 } from "@/services/spacecake-home"
+import { isWindows } from "@/test-utils/platform"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -236,6 +237,9 @@ describe("ensureHomeFolderExists", () => {
 
   it.scoped("writes statusline.sh with executable permissions", () =>
     Effect.gen(function* () {
+      // Windows doesn't support Unix permission modes
+      if (isWindows) return
+
       const effectFs = yield* EffectFileSystem.FileSystem
       const tempDir = yield* effectFs.makeTempDirectoryScoped()
       const homeDir = path.join(tempDir, ".spacecake")
@@ -318,6 +322,9 @@ describe("installCli — dev mode", () => {
 
   it.scoped("wrapper has executable permissions", () =>
     Effect.gen(function* () {
+      // Windows doesn't support Unix permission modes
+      if (isWindows) return
+
       const effectFs = yield* EffectFileSystem.FileSystem
       const tempDir = yield* effectFs.makeTempDirectoryScoped()
       const homeDir = path.join(tempDir, ".spacecake")

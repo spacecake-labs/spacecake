@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { makeClaudeConfigTestLayer } from "@/services/claude-config"
 import { makeClaudeHooksServer, StatuslineService } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
+import { waitForServer } from "@/test-utils/platform"
 import { StatuslineInput } from "@/types/statusline"
 
 import statuslineFixture from "../../tests/fixtures/claude/statusline.json"
@@ -102,19 +103,8 @@ describe("ClaudeHooksServer", () => {
       // Start the server
       yield* _(Effect.promise(() => server.ensureStarted()))
 
-      // Wait for socket file to exist
-      yield* _(
-        Effect.promise(async () => {
-          let attempts = 0
-          while (!fs.existsSync(socketPath) && attempts < 20) {
-            await new Promise((resolve) => setTimeout(resolve, 50))
-            attempts++
-          }
-          if (!fs.existsSync(socketPath)) {
-            throw new Error("Socket file not created")
-          }
-        }),
-      )
+      // Wait for server to be listening (works with both Unix sockets and Windows named pipes)
+      yield* _(Effect.promise(() => waitForServer(socketPath)))
 
       return server
     })

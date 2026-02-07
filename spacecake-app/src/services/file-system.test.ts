@@ -10,6 +10,7 @@ import { WatcherService } from "@/main-process/watcher"
 import { FileMode, FileSystem } from "@/services/file-system"
 import { GitIgnoreLive } from "@/services/git-ignore-parser"
 import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
+import { isWindows } from "@/test-utils/platform"
 import { AbsolutePath } from "@/types/workspace"
 
 // Mock WatcherService - we're not testing watcher functionality here
@@ -60,6 +61,9 @@ describe("FileSystem service", () => {
 
     it.scoped("writes file with executable mode", () =>
       Effect.gen(function* () {
+        // Windows doesn't support Unix permission modes
+        if (isWindows) return
+
         const effectFs = yield* EffectFileSystem.FileSystem
         const fileSystem = yield* FileSystem
 
@@ -83,6 +87,9 @@ describe("FileSystem service", () => {
 
     it.scoped("writes file with private mode", () =>
       Effect.gen(function* () {
+        // Windows doesn't support Unix permission modes
+        if (isWindows) return
+
         const effectFs = yield* EffectFileSystem.FileSystem
         const fileSystem = yield* FileSystem
 
