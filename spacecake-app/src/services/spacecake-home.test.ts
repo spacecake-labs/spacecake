@@ -6,6 +6,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { describe, expect } from "vitest"
 
+import { normalizePath } from "@/lib/utils"
 import {
   AppEnvTag,
   ensureHomeFolderExists,
@@ -47,7 +48,8 @@ describe("SpacecakeHome — path computation", () => {
       })
 
       const home = yield* SpacecakeHome.pipe(Effect.provide(layer))
-      expect(home.homeDir).toBe(path.join(tempDir, ".spacecake"))
+      // homeDir is normalized to forward slashes for cross-platform consistency
+      expect(home.homeDir).toBe(normalizePath(path.join(tempDir, ".spacecake")))
     }).pipe(Effect.provide(NodeFileSystem.layer)),
   )
 
@@ -70,7 +72,8 @@ describe("SpacecakeHome — path computation", () => {
         })
 
         const home = yield* SpacecakeHome.pipe(Effect.provide(layer))
-        expect(home.homeDir).toBe(customHome)
+        // homeDir is normalized to forward slashes for cross-platform consistency
+        expect(home.homeDir).toBe(normalizePath(customHome))
       } finally {
         if (prev === undefined) {
           delete process.env.SPACECAKE_HOME
