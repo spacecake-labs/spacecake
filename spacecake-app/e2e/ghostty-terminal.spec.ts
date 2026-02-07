@@ -6,6 +6,9 @@ import { locateSidebarItem } from "@/../e2e/utils"
 
 const isWindows = process.platform === "win32"
 
+// Windows CMD needs more time between keystrokes to avoid dropping characters
+const typeDelay = isWindows ? 100 : 50
+
 // Platform-specific shell commands
 const shell = {
   // Set environment variable and print current directory
@@ -95,7 +98,7 @@ test.describe("ghostty terminal", () => {
     // Test: Interact with terminal - set a variable and verify CWD
     await terminalElement.locator("textarea").focus()
     await window.waitForTimeout(100)
-    await window.keyboard.type(shell.setVarAndPwd, { delay: 50 })
+    await window.keyboard.type(shell.setVarAndPwd, { delay: typeDelay })
     await window.keyboard.press("Enter")
 
     let terminalContent = await window.evaluate(() => {
@@ -115,7 +118,7 @@ test.describe("ghostty terminal", () => {
     // Verify variable still exists (same session)
     await terminalElement.locator("textarea").focus()
     await window.waitForTimeout(100)
-    await window.keyboard.type(shell.echoVar, { delay: 50 })
+    await window.keyboard.type(shell.echoVar, { delay: typeDelay })
     await window.keyboard.press("Enter")
 
     terminalContent = await window.evaluate(() => {
@@ -138,7 +141,7 @@ test.describe("ghostty terminal", () => {
     // If the variable is unset, we'll see just the prefix; if set, we'll see prefix+value
     await terminalElement.locator("textarea").focus()
     await window.waitForTimeout(100)
-    await window.keyboard.type(shell.echoMarker, { delay: 50 })
+    await window.keyboard.type(shell.echoMarker, { delay: typeDelay })
     await window.keyboard.press("Enter")
 
     terminalContent = await window.evaluate(() => {

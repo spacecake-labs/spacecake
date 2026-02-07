@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { exists } from "@/lib/fs"
 import { useOpenWorkspace } from "@/lib/open-workspace"
-import { encodeBase64Url } from "@/lib/utils"
+import { encodeBase64Url, normalizePath } from "@/lib/utils"
 import { RuntimeClient } from "@/services/runtime-client"
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
@@ -121,7 +121,9 @@ function Index() {
                   Match.exhaustive,
                 )}
                 {"\n"}
-                <code className="font-mono text-xs break-all">{workspaceError.path}</code>
+                <code className="font-mono text-xs break-all">
+                  {normalizePath(workspaceError.path)}
+                </code>
               </AlertDescription>
             </Alert>
           </div>
