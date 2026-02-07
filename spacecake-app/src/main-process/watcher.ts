@@ -17,8 +17,9 @@ export function convertToFileTreeEvent(
   fileEvent: FileSystem.WatchEvent,
   workspacePath: AbsolutePath,
 ): Effect.Effect<FileTreeEvent | null, never, FileSystem.FileSystem> {
-  // Normalize the event path to forward slashes for cross-platform consistency
+  // Normalize both paths to forward slashes for cross-platform consistency
   const eventPath = normalizePath(fileEvent.path)
+  const normalizedWorkspacePath = normalizePath(workspacePath)
 
   const TEMP_FILE_RE = /\..*\.(sw[px])$|~$|\.subl.*\.tmp|\.\d+$/ // Regex to filter out common temporary files and atomic write artifacts
 
@@ -26,7 +27,7 @@ export function convertToFileTreeEvent(
     return Effect.succeed(null)
   }
 
-  if (!eventPath.startsWith(workspacePath)) {
+  if (!eventPath.startsWith(normalizedWorkspacePath)) {
     return Effect.succeed(null)
   }
 
