@@ -9,6 +9,7 @@ import type { File, FileContent, FileTree, Folder } from "@/types/workspace"
 
 import { fnv1a64Hex } from "@/lib/hash"
 import { EXCLUDED_ENTRIES } from "@/lib/ignore-patterns"
+import { normalizePath } from "@/lib/utils"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 import { WatcherFileSystemLive, WatcherService } from "@/main-process/watcher"
 import { GitIgnore, GitIgnoreLive } from "@/services/git-ignore-parser"
@@ -181,7 +182,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
             continue
           }
 
-          const fullPath = AbsolutePath(path.join(currentPath, entryName))
+          const fullPath = AbsolutePath(normalizePath(path.join(currentPath, entryName)))
 
           // Try to stat the entry - skip if it fails (broken symlink, permission denied, etc.)
           const statsResult = yield* _(fs.stat(fullPath).pipe(Effect.either))

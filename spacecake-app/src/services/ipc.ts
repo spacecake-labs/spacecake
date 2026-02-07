@@ -3,6 +3,7 @@ import { BrowserWindow, dialog, ipcMain, shell } from "electron"
 import fsNode from "fs/promises"
 import path from "path"
 
+import { normalizePath } from "@/lib/utils"
 import { ClaudeSettingsFile, type StatuslineConfigStatus } from "@/services/claude-settings-file"
 import { ClaudeTaskListService } from "@/services/claude-task-list"
 import { FileSystem, type FileSystemError } from "@/services/file-system"
@@ -101,7 +102,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     )
     ipcMain.handle("read-directory", (_, path: string) =>
       Effect.runPromise(
-        Effect.match(fs.readDirectory(path), {
+        Effect.match(fs.readDirectory(normalizePath(path)), {
           onFailure: (error) => left(serializeError(error)),
           onSuccess: (tree) => right(tree),
         }),
@@ -123,12 +124,15 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         }),
       ),
     )
-    ipcMain.handle("show-open-dialog", (event, options) => {
+    ipcMain.handle("show-open-dialog", async (event, options) => {
       const win = BrowserWindow.fromWebContents(event.sender)
-      if (win) {
-        return dialog.showOpenDialog(win, options)
-      } else {
-        return dialog.showOpenDialog(options)
+      const result = win
+        ? await dialog.showOpenDialog(win, options)
+        : await dialog.showOpenDialog(options)
+      // Normalize paths to forward slashes for cross-platform consistency
+      return {
+        ...result,
+        filePaths: result.filePaths.map(normalizePath),
       }
     })
 

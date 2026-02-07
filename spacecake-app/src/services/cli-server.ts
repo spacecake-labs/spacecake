@@ -16,6 +16,7 @@ import path from "node:path"
 import type { OpenFilePayload } from "@/types/claude-code"
 
 import { toIpcPath } from "@/lib/ipc-path"
+import { normalizePath } from "@/lib/utils"
 import { FileSystem } from "@/services/file-system"
 import { SpacecakeHome } from "@/services/spacecake-home"
 
@@ -104,7 +105,7 @@ async function handleRequest(
       }
 
       for (const file of parsed.files) {
-        const absPath = path.resolve(file.path)
+        const absPath = normalizePath(path.resolve(file.path))
         const matchingWorkspace =
           workspaceFolders.find((folder) => absPath.startsWith(folder)) ?? primaryWorkspace
 

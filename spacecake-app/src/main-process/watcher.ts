@@ -7,6 +7,7 @@ import { BrowserWindow } from "electron"
 import path from "path"
 
 import { fnv1a64Hex } from "@/lib/hash"
+import { normalizePath } from "@/lib/utils"
 import { fileTypeFromFileName } from "@/lib/workspace"
 import * as ParcelWatcher from "@/main-process/parcel-watcher"
 import { AbsolutePath, ETag, FileTreeEvent } from "@/types/workspace"
@@ -16,7 +17,8 @@ export function convertToFileTreeEvent(
   fileEvent: FileSystem.WatchEvent,
   workspacePath: AbsolutePath,
 ): Effect.Effect<FileTreeEvent | null, never, FileSystem.FileSystem> {
-  const { path: eventPath } = fileEvent
+  // Normalize the event path to forward slashes for cross-platform consistency
+  const eventPath = normalizePath(fileEvent.path)
 
   const TEMP_FILE_RE = /\..*\.(sw[px])$|~$|\.subl.*\.tmp|\.\d+$/ // Regex to filter out common temporary files and atomic write artifacts
 
@@ -29,15 +31,15 @@ export function convertToFileTreeEvent(
   }
 
   const match = Match.type<FileSystem.WatchEvent>().pipe(
-    Match.tag("Create", (event) =>
+    Match.tag("Create", () =>
       Effect.gen(function* (_) {
         const fs = yield* _(FileSystem.FileSystem)
-        const stats = yield* _(fs.stat(event.path))
+        const stats = yield* _(fs.stat(eventPath))
 
         if (stats.type === "Directory") {
           return {
             kind: "addFolder" as const,
-            path: AbsolutePath(event.path),
+            path: AbsolutePath(eventPath),
           }
         } else {
           const etag: ETag = {
@@ -46,7 +48,7 @@ export function convertToFileTreeEvent(
           }
           return {
             kind: "addFile" as const,
-            path: AbsolutePath(event.path),
+            path: AbsolutePath(eventPath),
             etag,
           }
         }
@@ -55,20 +57,20 @@ export function convertToFileTreeEvent(
         Effect.catchAll(() => Effect.succeed(null)),
       ),
     ),
-    Match.tag("Update", (event) =>
+    Match.tag("Update", () =>
       Effect.gen(function* (_) {
         const fs = yield* _(FileSystem.FileSystem)
 
         // Stat first to check if it's a directory
-        const stats = yield* _(fs.stat(event.path))
+        const stats = yield* _(fs.stat(eventPath))
 
         // Skip directories - they don't have "content changes"
         if (stats.type === "Directory") {
           return null
         }
 
-        const content = yield* _(fs.readFileString(event.path))
-        const fileName = path.basename(event.path)
+        const content = yield* _(fs.readFileString(eventPath))
+        const fileName = path.basename(eventPath)
         const fileType = fileTypeFromFileName(fileName)
         const cid = fnv1a64Hex(content)
         const etag: ETag = {
@@ -77,7 +79,7 @@ export function convertToFileTreeEvent(
         }
         return {
           kind: "contentChange" as const,
-          path: AbsolutePath(event.path),
+          path: AbsolutePath(eventPath),
           etag,
           content,
           fileType,
@@ -88,17 +90,17 @@ export function convertToFileTreeEvent(
         Effect.catchAll(() => Effect.succeed(null)),
       ),
     ),
-    Match.tag("Remove", (event) => {
-      const ext = path.extname(event.path)
+    Match.tag("Remove", () => {
+      const ext = path.extname(eventPath)
       if (ext) {
         return Effect.succeed({
           kind: "unlinkFile" as const,
-          path: AbsolutePath(event.path),
+          path: AbsolutePath(eventPath),
         })
       } else {
         return Effect.succeed({
           kind: "unlinkFolder" as const,
-          path: AbsolutePath(event.path),
+          path: AbsolutePath(eventPath),
         })
       }
     }),

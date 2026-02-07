@@ -7,6 +7,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Normalizes a file path to use forward slashes.
+ * This ensures consistent path handling across platforms.
+ * Node.js and Windows both accept forward slashes for file operations.
+ */
+export function normalizePath(filePath: string): string {
+  return filePath.replace(/\\/g, "/")
+}
+
 // safe base64url encoding/decoding for ids in routes
 export function encodeBase64Url(value: string): string {
   // prefer web apis in renderer
