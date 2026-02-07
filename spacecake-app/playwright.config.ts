@@ -17,7 +17,7 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI || isContainer ? 1 : undefined,
   // Stop tests after n failures
-  maxFailures: process.env.CI || process.env.IS_DEVCONTAINER ? 1 : undefined,
+  maxFailures: process.env.IS_DEVCONTAINER ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [["list"], ["./e2e/time-reporter"]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
