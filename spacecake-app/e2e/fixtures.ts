@@ -48,11 +48,9 @@ export const test = base.extend<TestFixtures>({
       timeout: 60000,
     })
 
-    // log electron process output
-    // app.process()?.stdout?.on("data", (data) => console.log(`stdout: ${data}`))
-    // app
-    //   .process()
-    //   ?.stderr?.on("data", (error) => console.log(`stderr: ${error}`))
+    // log electron process output (enabled for CI debugging)
+    app.process()?.stdout?.on("data", (data) => console.log(`stdout: ${data}`))
+    app.process()?.stderr?.on("data", (error) => console.log(`stderr: ${error}`))
 
     // clear localStorage before each test
     const page = await app.firstWindow()

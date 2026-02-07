@@ -115,3 +115,11 @@ jobs:
       - name: Run tests (headful windows)
         if: startsWith(matrix.os, 'windows')
         run: just test
+
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.arch }}
+          path: spacecake-app/test-results/
+          retention-days: 7

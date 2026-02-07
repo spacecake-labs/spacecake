@@ -23,6 +23,9 @@ test.describe("autosave", () => {
     await window.keyboard.press("End")
     await window.keyboard.type(" EDITED", { delay: 50 })
 
+    // Diagnostic: verify the edit actually appeared in the editor
+    await expect(window.getByText("EDITED")).toBeVisible({ timeout: 5000 })
+
     // Verify the file is dirty
     const dirtyRow = window.getByTitle("test-autosave-off.md (dirty)")
     await expect(dirtyRow).toBeVisible()
