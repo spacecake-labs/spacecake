@@ -98,7 +98,9 @@ async function handleRequest(
       }
 
       // Determine workspace for each file
-      const primaryWorkspace = workspaceFolders[0]
+      // Normalize workspace folders for consistent path comparison
+      const normalizedFolders = workspaceFolders.map(normalizePath)
+      const primaryWorkspace = normalizedFolders[0]
       if (!primaryWorkspace) {
         respondJson(res, 503, { error: "No workspace open" })
         return
@@ -107,7 +109,7 @@ async function handleRequest(
       for (const file of parsed.files) {
         const absPath = normalizePath(path.resolve(file.path))
         const matchingWorkspace =
-          workspaceFolders.find((folder) => absPath.startsWith(folder)) ?? primaryWorkspace
+          normalizedFolders.find((folder) => absPath.startsWith(folder)) ?? primaryWorkspace
 
         broadcastOpenFile({
           workspacePath: matchingWorkspace,

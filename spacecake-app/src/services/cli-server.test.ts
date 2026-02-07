@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { OpenFilePayload } from "@/types/claude-code"
 
 import { toIpcPath } from "@/lib/ipc-path"
+import { normalizePath } from "@/lib/utils"
 import { FileSystem } from "@/services/file-system"
 import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
 import { waitForServer } from "@/test-utils/platform"
@@ -183,8 +184,8 @@ describe("CliServer", () => {
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
             "claude:open-file",
             expect.objectContaining({
-              workspacePath: WS_PRIMARY,
-              filePath: path.resolve(filePath),
+              workspacePath: normalizePath(WS_PRIMARY),
+              filePath: normalizePath(path.resolve(filePath)),
               line: 10,
               col: 5,
             } satisfies OpenFilePayload),
@@ -215,7 +216,7 @@ describe("CliServer", () => {
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
             "claude:open-file",
             expect.objectContaining({
-              workspacePath: WS_SECONDARY,
+              workspacePath: normalizePath(WS_SECONDARY),
             }),
           )
         }),
@@ -244,7 +245,7 @@ describe("CliServer", () => {
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
             "claude:open-file",
             expect.objectContaining({
-              workspacePath: WS_PRIMARY,
+              workspacePath: normalizePath(WS_PRIMARY),
             }),
           )
         }),
@@ -314,7 +315,8 @@ describe("CliServer", () => {
           yield* runTestServer([WS_PRIMARY])
 
           const filePath = path.join(WS_PRIMARY, "src", "index.ts")
-          const resolvedFilePath = path.resolve(filePath)
+          // Use normalized path since CLI server normalizes paths internally
+          const resolvedFilePath = normalizePath(path.resolve(filePath))
 
           // Fire the request (will block until the file is "closed")
           const responsePromise = makeRequest(
@@ -329,7 +331,7 @@ describe("CliServer", () => {
           // Give the server a moment to register the waiter
           yield* Effect.promise(() => new Promise((r) => setTimeout(r, 200)))
 
-          // Simulate renderer sending file-closed IPC (must use resolved path)
+          // Simulate renderer sending file-closed IPC (must use normalized path)
           const handler = mocks.ipcHandlers.get("cli:file-closed")
           expect(handler).toBeDefined()
           handler!({}, resolvedFilePath)
@@ -402,7 +404,7 @@ describe("CliServer", () => {
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
             "claude:open-file",
             expect.objectContaining({
-              workspacePath: wsNew,
+              workspacePath: normalizePath(wsNew),
             }),
           )
         }),
