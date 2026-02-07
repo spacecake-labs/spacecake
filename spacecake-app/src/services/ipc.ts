@@ -108,17 +108,17 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         }),
       ),
     )
-    ipcMain.handle("start-watcher", (_, path: AbsolutePath) =>
+    ipcMain.handle("start-watcher", (_, watchPath: AbsolutePath) =>
       Effect.runPromise(
-        Effect.match(fs.startWatcher(path), {
+        Effect.match(fs.startWatcher(AbsolutePath(normalizePath(watchPath))), {
           onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
         }),
       ),
     )
-    ipcMain.handle("stop-watcher", (_, path: AbsolutePath) =>
+    ipcMain.handle("stop-watcher", (_, watchPath: AbsolutePath) =>
       Effect.runPromise(
-        Effect.match(fs.stopWatcher(path), {
+        Effect.match(fs.stopWatcher(AbsolutePath(normalizePath(watchPath))), {
           onFailure: (error) => left(serializeError(error)),
           onSuccess: () => right(undefined),
         }),

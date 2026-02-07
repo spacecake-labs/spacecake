@@ -1,6 +1,8 @@
 import type { ElectronAPI } from "@/types/electron"
 import type { AbsolutePath } from "@/types/workspace"
 
+import { normalizePath } from "@/lib/utils"
+
 export const openDirectory = async (
   electronAPI: ElectronAPI = window.electronAPI,
 ): Promise<string | null> => {
@@ -10,7 +12,8 @@ export const openDirectory = async (
     })
 
     if (!result.canceled && result.filePaths.length > 0) {
-      const selectedPath = result.filePaths[0]
+      // Normalize path to forward slashes for cross-platform consistency
+      const selectedPath = normalizePath(result.filePaths[0])
       return selectedPath
     }
     return null
