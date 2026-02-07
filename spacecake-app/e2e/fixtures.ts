@@ -32,98 +32,116 @@ export const test = base.extend<TestFixtures>({
     }
   },
 
-  electronApp: async ({ tempTestDir }, use, testInfo) => {
-    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "spacecake-e2e-data"))
+  electronApp: [
+    async ({ tempTestDir }, use, testInfo) => {
+      const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "spacecake-e2e-data"))
+      let app: ElectronApplication | null = null
 
-    const app = await _electron.launch({
-      args: [
-        ".vite/build/main.js",
-        `--user-data-dir=${dataDir}`, // isolate electron data per test
-      ],
-      env: {
-        ...process.env,
-        SPACECAKE_HOME: tempTestDir, // isolate home folder per test
-      },
-      cwd: process.cwd(),
-      timeout: 60000,
-    })
-
-    // log electron process output (enabled for CI debugging)
-    app.process()?.stdout?.on("data", (data) => console.log(`stdout: ${data}`))
-    app.process()?.stderr?.on("data", (error) => console.log(`stderr: ${error}`))
-
-    // clear localStorage before each test
-    const page = await app.firstWindow()
-    try {
-      await page.evaluate(() => {
-        localStorage.clear()
-      })
-
-      // disable animations and force-hide closed radix components to prevent
-      // race conditions where playwright checks visibility before the unmount
-      // animation finishes.
-      await page.addStyleTag({
-        content: `
-        *, *::before, *::after {
-          animation-duration: 0s !important;
-          transition-duration: 0s !important;
-        }
-        [data-slot="dialog-content"][data-state="closed"],
-        [data-slot="dialog-overlay"][data-state="closed"],
-        [data-slot="dropdown-menu-content"][data-state="closed"],
-        [data-slot="dropdown-menu-sub-content"][data-state="closed"] {
-          display: none !important;
-        }
-      `,
-      })
-    } catch (error) {
-      console.warn("could not clear localStorage or disable animations:", error)
-    }
-
-    await use(app)
-
-    // Gracefully exit with code 0 to prevent macOS "quit unexpectedly" dialog.
-    // app.close() alone may kill the process ungracefully, triggering the dialog.
-    try {
-      await app.evaluate(({ app }) => app.exit(0))
-    } catch {
-      // app may have already closed, ignore
-    }
-
-    // On Linux, graceful close can hang due to WebSocket cleanup issues.
-    // Use a timeout with force-kill fallback. Shorter timeout on CI since
-    // speed matters more than graceful cleanup there.
-    const closeTimeout = process.env.CI ? 1000 : 5000
-    let timeoutId: NodeJS.Timeout | null = null
-    const closePromise = app.close().finally(() => {
-      if (timeoutId) clearTimeout(timeoutId)
-    })
-    const timeoutPromise = new Promise<void>((resolve) => {
-      timeoutId = setTimeout(() => {
-        console.warn("app.close() timed out, force killing process tree")
+      const forceKillApp = () => {
+        if (!app) return
         try {
           const proc = app.process()
-          if (proc && proc.pid && !proc.killed) {
-            // Use tree-kill to kill the entire process tree (main + GPU/renderer helpers)
-            // This prevents orphaned Electron helper processes on macOS
+          if (proc?.pid && !proc.killed) {
             treeKill(proc.pid, "SIGKILL")
           }
         } catch {
-          // app already closed, ignore
+          // already dead, ignore
         }
-        resolve()
-      }, closeTimeout)
-    })
-    await Promise.race([closePromise, timeoutPromise])
+      }
 
-    if (fs.existsSync(dataDir)) {
-      fs.rmSync(dataDir, { recursive: true, force: true, maxRetries: 5 })
-      testInfo.annotations.push({
-        type: "info",
-        description: `cleaned up temp data directory: ${dataDir}`,
+      const cleanupDataDir = () => {
+        if (fs.existsSync(dataDir)) {
+          fs.rmSync(dataDir, { recursive: true, force: true, maxRetries: 5 })
+          testInfo.annotations.push({
+            type: "info",
+            description: `cleaned up temp data directory: ${dataDir}`,
+          })
+        }
+      }
+
+      try {
+        app = await _electron.launch({
+          args: [
+            ".vite/build/main.js",
+            `--user-data-dir=${dataDir}`, // isolate electron data per test
+          ],
+          env: {
+            ...process.env,
+            SPACECAKE_HOME: tempTestDir, // isolate home folder per test
+          },
+          cwd: process.cwd(),
+          timeout: 60000,
+        })
+
+        // log electron process output (uncomment for CI debugging)
+        // app.process()?.stdout?.on("data", (data) => console.log(`stdout: ${data}`))
+        // app.process()?.stderr?.on("data", (error) => console.log(`stderr: ${error}`))
+
+        // clear localStorage before each test
+        const page = await app.firstWindow()
+        try {
+          await page.evaluate(() => {
+            localStorage.clear()
+          })
+
+          // disable animations and force-hide closed radix components to prevent
+          // race conditions where playwright checks visibility before the unmount
+          // animation finishes.
+          await page.addStyleTag({
+            content: `
+          *, *::before, *::after {
+            animation-duration: 0s !important;
+            transition-duration: 0s !important;
+          }
+          [data-slot="dialog-content"][data-state="closed"],
+          [data-slot="dialog-overlay"][data-state="closed"],
+          [data-slot="dropdown-menu-content"][data-state="closed"],
+          [data-slot="dropdown-menu-sub-content"][data-state="closed"] {
+            display: none !important;
+          }
+        `,
+          })
+        } catch (error) {
+          console.warn("could not clear localStorage or disable animations:", error)
+        }
+      } catch (error) {
+        // Setup failed before use() — clean up to prevent leaked processes/dirs
+        forceKillApp()
+        cleanupDataDir()
+        throw error
+      }
+
+      await use(app)
+
+      // Gracefully exit with code 0 to prevent macOS "quit unexpectedly" dialog.
+      // app.close() alone may kill the process ungracefully, triggering the dialog.
+      try {
+        await app.evaluate(({ app }) => app.exit(0))
+      } catch {
+        // app may have already closed, ignore
+      }
+
+      // On Linux, graceful close can hang due to WebSocket cleanup issues.
+      // Use a timeout with force-kill fallback. Shorter timeout on CI since
+      // speed matters more than graceful cleanup there.
+      const closeTimeout = process.env.CI ? 1000 : 5000
+      let timeoutId: NodeJS.Timeout | null = null
+      const closePromise = app.close().finally(() => {
+        if (timeoutId) clearTimeout(timeoutId)
       })
-    }
-  },
+      const timeoutPromise = new Promise<void>((resolve) => {
+        timeoutId = setTimeout(() => {
+          console.warn("app.close() timed out, force killing process tree")
+          forceKillApp()
+          resolve()
+        }, closeTimeout)
+      })
+      await Promise.race([closePromise, timeoutPromise])
+
+      cleanupDataDir()
+    },
+    { timeout: 60_000 },
+  ],
 })
 
 export { expect }
