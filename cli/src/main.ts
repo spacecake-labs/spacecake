@@ -5,8 +5,8 @@
  * Usage:
  *   spacecake open [--wait/-w] [--line/-l N] [--column/-c N] <files...>
  *
- * Communicates with a running spacecake instance via a Unix domain socket
- * at ~/.spacecake/.app/cli.sock (or $SPACECAKE_IPC_HOOK).
+ * Communicates with a running spacecake instance via IPC
+ * (Unix socket on macOS/Linux, named pipe on Windows).
  */
 import os from "node:os"
 import path from "node:path"
@@ -15,6 +15,7 @@ import { Args, Command, Options } from "@effect/cli"
 import { BunContext, BunRuntime } from "@effect/platform-bun"
 import { Console, Effect, Option } from "effect"
 
+import { toIpcPath } from "./ipc-path.js"
 import { OpenRequestFailed, postOpen } from "./open.js"
 
 // ---------------------------------------------------------------------------
@@ -27,7 +28,7 @@ function getSocketPath(): string {
   }
   const home =
     process.env.SPACECAKE_HOME ?? path.join(os.homedir(), ".spacecake")
-  return path.join(home, ".app", "cli.sock")
+  return toIpcPath(path.join(home, ".app", "cli.sock"))
 }
 
 // ---------------------------------------------------------------------------
