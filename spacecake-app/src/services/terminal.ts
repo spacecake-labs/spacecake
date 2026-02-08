@@ -139,14 +139,42 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           }),
       })
 
+    // Timeout for waiting on process exit (Windows may need more time)
+    const KILL_TIMEOUT_MS = 3000
+
     const kill = (id: string) =>
-      Effect.try({
-        try: () => {
+      Effect.tryPromise({
+        try: async () => {
           const term = terminals.get(id)
-          if (term) {
+          if (!term) return
+
+          // Wait for the process to actually exit, with a timeout fallback.
+          // On Windows, directory handles aren't released until the process fully terminates.
+          // See: https://github.com/microsoft/node-pty/issues/647
+          await new Promise<void>((resolve) => {
+            let resolved = false
+            const cleanup = () => {
+              if (resolved) return
+              resolved = true
+              terminals.delete(id)
+              resolve()
+            }
+
+            // Set up timeout in case onExit never fires (known Windows issue)
+            const timeout = setTimeout(() => {
+              console.warn(`Terminal ${id}: kill timeout reached, proceeding anyway`)
+              cleanup()
+            }, KILL_TIMEOUT_MS)
+
+            // Wait for actual process exit
+            term.onExit(() => {
+              clearTimeout(timeout)
+              cleanup()
+            })
+
+            // Trigger the kill
             term.kill()
-            terminals.delete(id)
-          }
+          })
         },
         catch: (error) => new TerminalError({ message: `failed to kill terminal: ${error}` }),
       })

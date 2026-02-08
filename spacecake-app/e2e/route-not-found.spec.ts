@@ -1,4 +1,3 @@
-import { execSync } from "child_process"
 import fs from "fs"
 import path from "path"
 
@@ -9,39 +8,6 @@ import { locateSidebarItem } from "@/../e2e/utils"
 const normalizePath = (p: string) => p.replace(/\\/g, "/")
 
 const isWindows = process.platform === "win32"
-
-/**
- * On Windows, directory handles may not be released immediately after killing processes.
- * This helper retries rmSync with delays, and logs diagnostic info on failure.
- * See: https://github.com/microsoft/node-pty/issues/647
- */
-async function rmSyncWithRetry(dirPath: string, maxRetries = 5, delayMs = 500) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      fs.rmSync(dirPath, { recursive: true, force: true })
-      return
-    } catch (error) {
-      if (attempt === maxRetries) {
-        // Log diagnostic info on final failure (Windows only)
-        if (isWindows) {
-          try {
-            // Use PowerShell to find processes with handles to the directory
-            const cmd = `powershell -Command "Get-Process | ForEach-Object { $p = $_; try { $p.Modules | Where-Object { $_.FileName -like '${dirPath.replace(/\\/g, "\\\\")}*' } | ForEach-Object { Write-Output \\"$($p.Name) ($($p.Id)): $($_.FileName)\\" } } catch {} }"`
-            const output = execSync(cmd, { encoding: "utf8", timeout: 5000 })
-            if (output.trim()) {
-              console.error(`Processes with handles to ${dirPath}:`, output)
-            }
-          } catch {
-            // Diagnostic failed, ignore
-          }
-        }
-        throw error
-      }
-      // Wait before retrying
-      await new Promise((resolve) => setTimeout(resolve, delayMs))
-    }
-  }
-}
 
 test.describe("route not found", () => {
   test("should show 'workspace not accessible' message when workspace has no read permissions", async ({
@@ -133,20 +99,17 @@ test.describe("route not found", () => {
       return (window as any).electronAPI.stopWatcher(watchPath)
     }, tempTestDir)
 
-    // Kill the terminal before deleting - on Windows, a process's cwd locks the directory
+    // Kill the terminal and wait for process exit before deleting.
+    // On Windows, a process's cwd locks the directory until fully terminated.
+    // The killTerminal API now awaits the onExit event to ensure handles are released.
+    // See: https://github.com/microsoft/node-pty/issues/647
     await window.evaluate(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (window as any).electronAPI.killTerminal("main-terminal")
     })
 
-    // On Windows, give time for process handles to be released after kill
-    // See: https://github.com/microsoft/node-pty/issues/437
-    if (isWindows) {
-      await window.waitForTimeout(500)
-    }
-
-    // delete the workspace directory (with retry on Windows due to handle release delays)
-    await rmSyncWithRetry(tempTestDir)
+    // delete the workspace directory
+    fs.rmSync(tempTestDir, { recursive: true, force: true })
 
     // reload the window - this should trigger the workspace not found error
     await window.reload()
