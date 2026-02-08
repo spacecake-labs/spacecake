@@ -199,6 +199,28 @@ const setupProgram = Effect.gen(function* () {
 })
 
 async function main() {
+  // Silence write errors on broken stdout/stderr (e.g. Linux terminal closed
+  // after app launch). Without this, any console.log crashes the app.
+  // See: https://github.com/microsoft/vscode/pull/186717
+  function isBrokenStdoutError(e: unknown): boolean {
+    if (!e || typeof e !== "object") return false
+    const err = e as NodeJS.ErrnoException
+    return (err.code === "EPIPE" || err.code === "EIO") && err.syscall === "write"
+  }
+
+  process.stdout.on("error", () => {})
+  process.stderr.on("error", () => {})
+
+  process.on("uncaughtException", (error) => {
+    if (isBrokenStdoutError(error)) return
+    console.error("Uncaught exception in main process:", error)
+  })
+
+  process.on("unhandledRejection", (reason) => {
+    if (isBrokenStdoutError(reason)) return
+    console.error("Unhandled rejection in main process:", reason)
+  })
+
   app.addListener("before-quit", beforeQuitListener)
   app.addListener("window-all-closed", windowAllClosedListener)
 
