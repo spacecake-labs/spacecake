@@ -9,14 +9,6 @@ import { TerminalError } from "@/types/terminal"
 type PtyModule = typeof import("@lydell/node-pty")
 type IPty = Awaited<ReturnType<PtyModule["spawn"]>>
 
-const isWindows = process.platform === "win32"
-// On Windows, spawning a pty with a cwd locks that directory, preventing deletion/rename.
-// Workaround: spawn in System32 and cd to the desired directory after.
-// See: https://github.com/microsoft/node-pty/issues/647
-const WINDOWS_SYSTEM_DIR = process.env.SYSTEMROOT
-  ? path.join(process.env.SYSTEMROOT, "System32")
-  : "C:\\Windows\\System32"
-
 let ptyModule: PtyModule | null = null
 let ptyLoadError: Error | null = null
 
@@ -95,23 +87,13 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             CLAUDE_CODE_ACTION: "plan",
           }
 
-          // On Windows, spawn in System32 to avoid locking the user's directory
-          const spawnCwd = isWindows ? WINDOWS_SYSTEM_DIR : cwd
-
           const ptyProcess = pty.spawn(defaultShell, [], {
             name: "xterm-256color",
             cols,
             rows,
-            cwd: spawnCwd,
+            cwd,
             env,
           })
-
-          // On Windows, cd to the actual desired directory after spawning
-          if (isWindows && cwd !== spawnCwd) {
-            // Use cd /d to allow changing drives (e.g., from C: to D:)
-            ptyProcess.write(`cd /d "${cwd}"\r`)
-          }
-
           ptyProcess.onData((data) => {
             let output = data
 
