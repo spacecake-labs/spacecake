@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.46
+
+### Patch Changes
+
+- 78d6731: Feat: Windows build.
+
 ## 0.1.0-alpha.45
 
 ### Patch Changes
