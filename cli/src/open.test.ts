@@ -6,6 +6,7 @@ import path from "node:path"
 import { Effect, Exit } from "effect"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
+import { toIpcPath } from "./ipc-path.js"
 import { healthCheck, postOpen, SpacecakeNotRunning } from "./open.js"
 
 // ---------------------------------------------------------------------------
@@ -18,7 +19,8 @@ let testServer: http.Server | null = null
 
 beforeEach(() => {
   testDir = fs.mkdtempSync(path.join(os.tmpdir(), "cli-open-test-"))
-  socketPath = path.join(testDir, "test.sock")
+  // Use cross-platform IPC path (Unix socket on macOS/Linux, named pipe on Windows)
+  socketPath = toIpcPath(path.join(testDir, "test.sock"))
 })
 
 afterEach(async () => {
@@ -29,7 +31,11 @@ afterEach(async () => {
     testServer = null
   }
   try {
-    if (fs.existsSync(socketPath)) fs.unlinkSync(socketPath)
+    // On Windows, named pipes don't need file cleanup
+    // On Unix, clean up the socket file
+    if (process.platform !== "win32" && fs.existsSync(socketPath)) {
+      fs.unlinkSync(socketPath)
+    }
     fs.rmSync(testDir, { recursive: true, force: true })
   } catch {
     // ignore cleanup errors
@@ -37,8 +43,8 @@ afterEach(async () => {
 })
 
 /**
- * Spin up a throwaway http server on the temp unix socket.
- * Returns a function that resolves once the server is listening.
+ * Spin up a throwaway http server on the IPC path (Unix socket or named pipe).
+ * Returns a promise that resolves once the server is listening.
  */
 function startMockServer(
   handler: (req: http.IncomingMessage, res: http.ServerResponse) => void

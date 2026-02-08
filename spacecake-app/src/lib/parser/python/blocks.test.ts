@@ -14,6 +14,7 @@ import {
   parsePythonContentStreaming,
 } from "@/lib/parser/python/blocks"
 import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
+import { normalizeLineEndings } from "@/test-utils/platform"
 import { PyBlock } from "@/types/parser"
 import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
 
@@ -228,7 +229,10 @@ class Person:
   })
   describe("parseCodeBlocks", () => {
     it("should parse blocks from core.py", async () => {
-      const code = readFileSync(join(__dirname, "../../../../tests/fixtures/core.py"), "utf-8")
+      // Normalize line endings for cross-platform compatibility (git on Windows may convert LF to CRLF)
+      const code = normalizeLineEndings(
+        readFileSync(join(__dirname, "../../../../tests/fixtures/core.py"), "utf-8"),
+      )
 
       const blocks: PyBlock[] = []
       for await (const block of parseCodeBlocks(code, "test.py")) {

@@ -433,6 +433,23 @@ describe("convertToFileTreeEvent behavior", () => {
     }).pipe(Effect.provide(createMockFileSystem({}))),
   )
 
+  it.effect("Windows-style paths are normalized correctly", () =>
+    Effect.gen(function* () {
+      // Simulate Windows: workspace has backslashes, event has backslashes
+      const windowsWorkspace = AbsolutePath("D:\\a\\spacecake\\workspace")
+      const event = FileSystem.WatchEventCreate({
+        path: "D:\\a\\spacecake\\workspace\\test.ts",
+      })
+
+      const result = yield* convertToFileTreeEvent(event, windowsWorkspace)
+
+      expect(result).not.toBeNull()
+      expect(result?.kind).toBe("addFile")
+      // Path should be normalized to forward slashes
+      expect(result?.path).toBe("D:/a/spacecake/workspace/test.ts")
+    }).pipe(Effect.provide(createMockFileSystem({ statResult: () => createFileInfo("File") }))),
+  )
+
   it.effect("Remove event for file emits unlinkFile", () =>
     Effect.gen(function* () {
       const event = FileSystem.WatchEventRemove({

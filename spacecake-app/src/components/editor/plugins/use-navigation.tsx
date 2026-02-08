@@ -17,14 +17,25 @@ import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { $isFrontmatterNode } from "@/components/editor/nodes/frontmatter-node"
 import { $isMermaidNode } from "@/components/editor/nodes/mermaid-node"
 import { maybeUpdateBlockAndDocstring } from "@/components/editor/plugins/block-utils"
+import { useRoute } from "@/hooks/use-route"
 import { debounce } from "@/lib/utils"
+import { FileType } from "@/types/workspace"
 
 export function useNavigation(nodeKey: string) {
   const [editor] = useLexicalComposerContext()
+  const route = useRoute()
+
+  // Track route for use in debounced callback
+  const routeRef = React.useRef(route)
+  routeRef.current = route
 
   const debouncedUpdate = React.useRef(
     debounce(() => {
-      maybeUpdateBlockAndDocstring(editor, nodeKey)
+      // Only update blocks for Python files in rich view
+      const currentRoute = routeRef.current
+      if (currentRoute?.fileType === FileType.Python && currentRoute?.viewKind === "rich") {
+        maybeUpdateBlockAndDocstring(editor, nodeKey)
+      }
     }, 250),
   )
 
@@ -124,12 +135,20 @@ export function useNavigation(nodeKey: string) {
     debouncedUpdate.current.schedule()
   }, [editor, nodeKey])
 
+  // Check if navigation out of block should be prevented
+  // In source view for non-markdown files, there's only one code block so nowhere to navigate
+  const shouldPreventNavigationOut = () => {
+    const currentRoute = routeRef.current
+    return currentRoute?.viewKind === "source" && currentRoute?.fileType !== FileType.Markdown
+  }
+
   // Create CodeMirror keymap for navigation
   const navigationKeymap = React.useMemo(() => {
     return keymap.of([
       {
         key: "ArrowDown",
         run: (view) => {
+          if (shouldPreventNavigationOut()) return false
           const isLastLine = isOnLastDocLine(view)
           if (isLastLine) {
             view.contentDOM.blur()
@@ -142,6 +161,7 @@ export function useNavigation(nodeKey: string) {
       {
         key: "ArrowUp",
         run: (view) => {
+          if (shouldPreventNavigationOut()) return false
           const isFirstLine = isOnFirstDocLine(view)
           if (isFirstLine) {
             view.contentDOM.blur()
@@ -154,6 +174,7 @@ export function useNavigation(nodeKey: string) {
       {
         key: "ArrowRight",
         run: (view) => {
+          if (shouldPreventNavigationOut()) return false
           const isLastLine = isOnLastDocLine(view)
           const isLineEnd = isAtLineEnd(view)
           if (isLastLine && isLineEnd) {
@@ -167,6 +188,7 @@ export function useNavigation(nodeKey: string) {
       {
         key: "ArrowLeft",
         run: (view) => {
+          if (shouldPreventNavigationOut()) return false
           const isFirstLine = isOnFirstDocLine(view)
           const isLineStart = isAtLineStart(view)
           if (isFirstLine && isLineStart) {

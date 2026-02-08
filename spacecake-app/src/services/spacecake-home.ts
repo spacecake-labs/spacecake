@@ -3,6 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 
 import { GETTING_STARTED_CONTENT } from "@/guides/getting-started"
+import { normalizePath } from "@/lib/utils"
 
 /** rwxr-xr-x - executable scripts (mirrored from file-system.ts to avoid circular dep) */
 const EXECUTABLE_MODE = 0o755
@@ -65,9 +66,10 @@ exit 0
 export const makeSpacecakeHome = Effect.gen(function* () {
   const env = yield* AppEnvTag
 
-  const homeDir = process.env.SPACECAKE_HOME
-    ? process.env.SPACECAKE_HOME
-    : path.join(env.homePath, ".spacecake")
+  // Normalize to forward slashes for cross-platform consistency
+  const homeDir = normalizePath(
+    process.env.SPACECAKE_HOME ? process.env.SPACECAKE_HOME : path.join(env.homePath, ".spacecake"),
+  )
 
   const appDir = path.join(homeDir, ".app")
   const hooksDir = path.join(appDir, "hooks")

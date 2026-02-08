@@ -19,12 +19,14 @@ describe("GitService", () => {
   // Mocks that can be configured per test
   let mockStartFileWatcher: ReturnType<typeof vi.fn>
   let mockStopFileWatcher: ReturnType<typeof vi.fn>
+  let mockExists: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     vi.clearAllMocks()
     // Reset mocks to default success behavior
     mockStartFileWatcher = vi.fn(() => Effect.succeed(true))
     mockStopFileWatcher = vi.fn(() => Effect.succeed(true))
+    mockExists = vi.fn(() => Effect.succeed(true)) // Default: .git/HEAD exists
     // Default to being a git repo
     mockCheckIsRepo.mockResolvedValue(true)
   })
@@ -34,6 +36,7 @@ describe("GitService", () => {
     Layer.succeed(FileSystem, {
       startFileWatcher: (...args: unknown[]) => mockStartFileWatcher(...args),
       stopFileWatcher: (...args: unknown[]) => mockStopFileWatcher(...args),
+      exists: (...args: unknown[]) => mockExists(...args),
     } as unknown as FileSystem)
 
   // Use DefaultWithoutDependencies (built-in Effect.Service pattern for testing)
@@ -73,14 +76,16 @@ describe("GitService", () => {
       }).pipe(Effect.provide(createTestLayer()))
     })
 
-    it.effect("does not start watcher when not a git repo", () => {
-      // Configure mock to return false (not a git repo)
-      mockCheckIsRepo.mockResolvedValue(false)
+    it.effect("does not start watcher when .git/HEAD does not exist", () => {
+      // Configure mock to return false (.git/HEAD doesn't exist)
+      mockExists = vi.fn(() => Effect.succeed(false))
 
       return Effect.gen(function* () {
         const service = yield* GitService
         yield* service.startWatching("/not/a/git/repo")
 
+        // Should have checked if .git/HEAD exists
+        expect(mockExists).toHaveBeenCalledWith(AbsolutePath("/not/a/git/repo/.git/HEAD"))
         // Should not have called the file watcher
         expect(mockStartFileWatcher).not.toHaveBeenCalled()
       }).pipe(Effect.provide(createTestLayer()))

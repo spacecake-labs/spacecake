@@ -2,6 +2,8 @@ import { Config, Effect, Layer, Option } from "effect"
 import os from "node:os"
 import path from "node:path"
 
+import { toIpcPath } from "@/lib/ipc-path"
+
 /**
  * Service that provides the Claude configuration directory path.
  *
@@ -20,8 +22,8 @@ export class ClaudeConfig extends Effect.Service<ClaudeConfig>()("ClaudeConfig",
       configDir,
       /** IDE integration directory (e.g., ~/.claude/ide) */
       ideDir: path.join(configDir, "ide"),
-      /** Unix socket path for Claude hooks (e.g., ~/.claude/spacecake.sock) */
-      socketPath: path.join(configDir, "spacecake.sock"),
+      /** IPC path for Claude hooks (Unix socket on macOS/Linux, named pipe on Windows) */
+      socketPath: toIpcPath(path.join(configDir, "spacecake.sock")),
       /** Base tasks directory (e.g., ~/.claude/tasks) */
       tasksDir: path.join(configDir, "tasks"),
       /** Claude settings file path (e.g., ~/.claude/settings.json) */
@@ -39,7 +41,7 @@ export const makeClaudeConfigTestLayer = (configDir: string) =>
   Layer.succeed(ClaudeConfig, {
     configDir,
     ideDir: path.join(configDir, "ide"),
-    socketPath: path.join(configDir, "spacecake.sock"),
+    socketPath: toIpcPath(path.join(configDir, "spacecake.sock")),
     tasksDir: path.join(configDir, "tasks"),
     settingsPath: path.join(configDir, "settings.json"),
     taskListId: Option.none(),

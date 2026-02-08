@@ -17,14 +17,18 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI || isContainer ? 1 : undefined,
   // Stop tests after n failures
-  maxFailures: process.env.CI || process.env.IS_DEVCONTAINER ? 1 : undefined,
+  maxFailures: process.env.IS_DEVCONTAINER ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [["list"], ["./e2e/time-reporter"]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
+    /* Take screenshot on failure */
+    screenshot: "only-on-failure",
   },
+  /* Output directory for test artifacts (screenshots, traces, etc.) */
+  outputDir: "test-results",
   // timeout: 30_000,
   expect: {
     timeout: 10_000,

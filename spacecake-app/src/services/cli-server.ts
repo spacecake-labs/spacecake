@@ -1,9 +1,9 @@
 import { Effect } from "effect"
 import { BrowserWindow, ipcMain } from "electron"
 /**
- * CLI Server — Unix domain socket server for the `spacecake` CLI tool.
+ * CLI Server — IPC server for the `spacecake` CLI tool.
  *
- * Listens on ~/.spacecake/.app/cli.sock and handles:
+ * Listens on ~/.spacecake/.app/cli.sock (Unix) or named pipe (Windows) and handles:
  *   POST /open  — open files in the editor
  *   GET /health — health check
  *
@@ -15,6 +15,8 @@ import path from "node:path"
 
 import type { OpenFilePayload } from "@/types/claude-code"
 
+import { toIpcPath } from "@/lib/ipc-path"
+import { normalizePath } from "@/lib/utils"
 import { FileSystem } from "@/services/file-system"
 import { SpacecakeHome } from "@/services/spacecake-home"
 
@@ -96,16 +98,18 @@ async function handleRequest(
       }
 
       // Determine workspace for each file
-      const primaryWorkspace = workspaceFolders[0]
+      // Normalize workspace folders for consistent path comparison
+      const normalizedFolders = workspaceFolders.map(normalizePath)
+      const primaryWorkspace = normalizedFolders[0]
       if (!primaryWorkspace) {
         respondJson(res, 503, { error: "No workspace open" })
         return
       }
 
       for (const file of parsed.files) {
-        const absPath = path.resolve(file.path)
+        const absPath = normalizePath(path.resolve(file.path))
         const matchingWorkspace =
-          workspaceFolders.find((folder) => absPath.startsWith(folder)) ?? primaryWorkspace
+          normalizedFolders.find((folder) => absPath.startsWith(folder)) ?? primaryWorkspace
 
         broadcastOpenFile({
           workspacePath: matchingWorkspace,
@@ -207,7 +211,7 @@ export const makeCliServer = Effect.gen(function* () {
       const appDir = home.appDir
       yield* fsService.createFolder(appDir, { recursive: true })
 
-      const socketPath = path.join(appDir, "cli.sock")
+      const socketPath = toIpcPath(path.join(appDir, "cli.sock"))
 
       // Clean up any existing socket file (ignore if doesn't exist)
       const socketExists = yield* fsService

@@ -7,8 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { OpenFilePayload } from "@/types/claude-code"
 
+import { toIpcPath } from "@/lib/ipc-path"
+import { normalizePath } from "@/lib/utils"
 import { FileSystem } from "@/services/file-system"
 import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
+import { waitForServer } from "@/test-utils/platform"
 
 // ---------------------------------------------------------------------------
 // Electron mock — capture ipcMain.handle calls + spy on webContents.send
@@ -38,6 +41,12 @@ vi.mock("electron", () => ({
 // Helpers & state
 // ---------------------------------------------------------------------------
 
+// Use path.resolve() for cross-platform compatibility.
+// On Windows, path.resolve("/ws/primary") → "D:\ws\primary"
+// On Unix, path.resolve("/ws/primary") → "/ws/primary"
+const WS_PRIMARY = path.resolve("/ws/primary")
+const WS_SECONDARY = path.resolve("/ws/secondary")
+
 interface JsonResponse {
   [key: string]: unknown
 }
@@ -55,7 +64,8 @@ beforeEach(async () => {
   testDir = fs.mkdtempSync(path.join(os.tmpdir(), "cli-server-test-"))
   appDir = path.join(testDir, ".app")
   fs.mkdirSync(appDir, { recursive: true })
-  socketPath = path.join(appDir, "cli.sock")
+  // Use toIpcPath for cross-platform compatibility (named pipes on Windows)
+  socketPath = toIpcPath(path.join(appDir, "cli.sock"))
 
   mockFileSystem = {
     createFolder: vi.fn(() => Effect.void),
@@ -72,7 +82,10 @@ beforeEach(async () => {
 
 afterEach(() => {
   try {
-    if (fs.existsSync(socketPath)) fs.unlinkSync(socketPath)
+    // On Unix, clean up the socket file. On Windows, named pipes don't need cleanup.
+    if (process.platform !== "win32" && fs.existsSync(socketPath)) {
+      fs.unlinkSync(socketPath)
+    }
     fs.rmSync(testDir, { recursive: true, force: true })
   } catch {
     // ignore cleanup errors
@@ -85,23 +98,14 @@ const createTestLayer = () =>
     makeSpacecakeHomeTestLayer({ homeDir: testDir }),
   )
 
-const runTestServer = (workspaceFolders: string[] = ["/ws/primary"]) =>
+const runTestServer = (workspaceFolders: string[] = [WS_PRIMARY]) =>
   Effect.gen(function* () {
     const server = yield* makeCliServer.pipe(Effect.provide(createTestLayer()))
 
     yield* Effect.promise(() => server.ensureStarted(workspaceFolders))
 
-    // Wait for socket to appear
-    yield* Effect.promise(async () => {
-      let attempts = 0
-      while (!fs.existsSync(socketPath) && attempts < 40) {
-        await new Promise((r) => setTimeout(r, 50))
-        attempts++
-      }
-      if (!fs.existsSync(socketPath)) {
-        throw new Error("Socket file not created")
-      }
-    })
+    // Wait for server to be listening (works with both Unix sockets and Windows named pipes)
+    yield* Effect.promise(() => waitForServer(socketPath))
 
     return server
   })
@@ -161,14 +165,15 @@ describe("CliServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* runTestServer(["/ws/primary"])
+          yield* runTestServer([WS_PRIMARY])
 
+          const filePath = path.join(WS_PRIMARY, "src", "index.ts")
           const res = yield* Effect.promise(() =>
             makeRequest(
               "POST",
               "/open",
               JSON.stringify({
-                files: [{ path: "/ws/primary/src/index.ts", line: 10, col: 5 }],
+                files: [{ path: filePath, line: 10, col: 5 }],
               }),
             ),
           )
@@ -179,8 +184,8 @@ describe("CliServer", () => {
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
             "claude:open-file",
             expect.objectContaining({
-              workspacePath: "/ws/primary",
-              filePath: "/ws/primary/src/index.ts",
+              workspacePath: normalizePath(WS_PRIMARY),
+              filePath: normalizePath(path.resolve(filePath)),
               line: 10,
               col: 5,
             } satisfies OpenFilePayload),
@@ -194,14 +199,15 @@ describe("CliServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* runTestServer(["/ws/primary", "/ws/secondary"])
+          yield* runTestServer([WS_PRIMARY, WS_SECONDARY])
 
+          const filePath = path.join(WS_SECONDARY, "lib", "foo.ts")
           const res = yield* Effect.promise(() =>
             makeRequest(
               "POST",
               "/open",
               JSON.stringify({
-                files: [{ path: "/ws/secondary/lib/foo.ts" }],
+                files: [{ path: filePath }],
               }),
             ),
           )
@@ -210,7 +216,7 @@ describe("CliServer", () => {
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
             "claude:open-file",
             expect.objectContaining({
-              workspacePath: "/ws/secondary",
+              workspacePath: normalizePath(WS_SECONDARY),
             }),
           )
         }),
@@ -222,14 +228,15 @@ describe("CliServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* runTestServer(["/ws/primary", "/ws/secondary"])
+          yield* runTestServer([WS_PRIMARY, WS_SECONDARY])
 
+          const filePath = path.resolve("/other/place/file.ts")
           const res = yield* Effect.promise(() =>
             makeRequest(
               "POST",
               "/open",
               JSON.stringify({
-                files: [{ path: "/other/place/file.ts" }],
+                files: [{ path: filePath }],
               }),
             ),
           )
@@ -238,7 +245,7 @@ describe("CliServer", () => {
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
             "claude:open-file",
             expect.objectContaining({
-              workspacePath: "/ws/primary",
+              workspacePath: normalizePath(WS_PRIMARY),
             }),
           )
         }),
@@ -305,14 +312,18 @@ describe("CliServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* runTestServer(["/ws/primary"])
+          yield* runTestServer([WS_PRIMARY])
+
+          const filePath = path.join(WS_PRIMARY, "src", "index.ts")
+          // Use normalized path since CLI server normalizes paths internally
+          const resolvedFilePath = normalizePath(path.resolve(filePath))
 
           // Fire the request (will block until the file is "closed")
           const responsePromise = makeRequest(
             "POST",
             "/open",
             JSON.stringify({
-              files: [{ path: "/ws/primary/src/index.ts" }],
+              files: [{ path: filePath }],
               wait: true,
             }),
           )
@@ -320,10 +331,10 @@ describe("CliServer", () => {
           // Give the server a moment to register the waiter
           yield* Effect.promise(() => new Promise((r) => setTimeout(r, 200)))
 
-          // Simulate renderer sending file-closed IPC
+          // Simulate renderer sending file-closed IPC (must use normalized path)
           const handler = mocks.ipcHandlers.get("cli:file-closed")
           expect(handler).toBeDefined()
-          handler!({}, "/ws/primary/src/index.ts")
+          handler!({}, resolvedFilePath)
 
           const res = yield* Effect.promise(() => responsePromise)
           expect(res.statusCode).toBe(200)
@@ -368,19 +379,23 @@ describe("CliServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* runTestServer(["/ws/old"])
+          const wsOld = path.resolve("/ws/old")
+          const wsNew = path.resolve("/ws/new")
+
+          yield* runTestServer([wsOld])
 
           // Simulate workspace update via IPC
           const handler = mocks.ipcHandlers.get("cli:update-workspaces")
           expect(handler).toBeDefined()
-          handler!({}, ["/ws/new"])
+          handler!({}, [wsNew])
 
+          const filePath = path.join(wsNew, "file.ts")
           const res = yield* Effect.promise(() =>
             makeRequest(
               "POST",
               "/open",
               JSON.stringify({
-                files: [{ path: "/ws/new/file.ts" }],
+                files: [{ path: filePath }],
               }),
             ),
           )
@@ -389,7 +404,7 @@ describe("CliServer", () => {
           expect(mocks.webContentsSend).toHaveBeenCalledWith(
             "claude:open-file",
             expect.objectContaining({
-              workspacePath: "/ws/new",
+              workspacePath: normalizePath(wsNew),
             }),
           )
         }),
@@ -404,14 +419,16 @@ describe("CliServer", () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* runTestServer(["/ws/primary"])
+          yield* runTestServer([WS_PRIMARY])
+
+          const filePath = path.join(WS_PRIMARY, "src", "index.ts")
 
           // Fire a wait request — won't resolve until file closed or server shuts down
           responsePromise = makeRequest(
             "POST",
             "/open",
             JSON.stringify({
-              files: [{ path: "/ws/primary/src/index.ts" }],
+              files: [{ path: filePath }],
               wait: true,
             }),
           )

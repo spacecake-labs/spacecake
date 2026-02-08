@@ -41,12 +41,15 @@ const makeGitService = Effect.gen(function* () {
 
   const startWatching = (workspacePath: string) =>
     Effect.gen(function* () {
-      const isRepo = yield* isGitRepo(workspacePath)
-      if (!isRepo) {
-        // Not a git repo - silently succeed without starting a watcher
+      const gitHeadPath = AbsolutePath(`${workspacePath}/.git/HEAD`)
+      // Check if .git/HEAD exists at this path (not just if we're inside a git repo)
+      // simple-git's checkIsRepo returns true for subdirectories of a repo,
+      // but we only want to watch if .git/HEAD exists at the workspace root
+      const headExists = yield* fs.exists(gitHeadPath)
+      if (!headExists) {
+        // Not a git repo root - silently succeed without starting a watcher
         return
       }
-      const gitHeadPath = AbsolutePath(`${workspacePath}/.git/HEAD`)
       yield* fs.startFileWatcher(gitHeadPath, "git:branch:changed")
     }).pipe(
       Effect.mapError((e) => new GitError({ description: "Failed to watch git HEAD", cause: e })),

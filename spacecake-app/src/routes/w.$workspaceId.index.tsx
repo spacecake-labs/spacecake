@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CommandShortcut } from "@/components/ui/command"
 import { usePaneMachine } from "@/hooks/use-pane-machine"
 import { exists } from "@/lib/fs"
-import { condensePath, decodeBase64Url } from "@/lib/utils"
+import { condensePath, decodeBase64Url, normalizePath } from "@/lib/utils"
 import { RuntimeClient } from "@/services/runtime-client"
 import { match } from "@/types/adt"
 import { ViewKind } from "@/types/lexical"
@@ -114,7 +114,7 @@ function WorkspaceIndex() {
             <AlertCircleIcon />
             <AlertDescription>
               file not found:{"\n"}
-              <code className="font-mono text-xs break-all">{data.filePath}</code>
+              <code className="font-mono text-xs break-all">{normalizePath(data.filePath)}</code>
             </AlertDescription>
           </Alert>
         </div>

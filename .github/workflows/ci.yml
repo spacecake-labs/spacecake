@@ -36,6 +36,8 @@ jobs:
             arch: x64
           - os: ubuntu-latest
             arch: x64
+          - os: windows-latest
+            arch: x64
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -60,6 +62,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('spacecake-app/pnpm-lock.yaml') }}
+
       - name: Install Playwright browsers and dependencies
         run: npx playwright install --with-deps
 
@@ -75,6 +83,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y watchman
+
+      - name: Install Watchman (Windows)
+        if: startsWith(matrix.os, 'windows')
+        run: choco install watchman -y
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -103,3 +115,15 @@ jobs:
       - name: Run tests (headful mac)
         if: startsWith(matrix.os, 'macos')
         run: just test
+
+      - name: Run tests (headful windows)
+        if: startsWith(matrix.os, 'windows')
+        run: just test
+
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.arch }}
+          path: spacecake-app/test-results/
+          retention-days: 7

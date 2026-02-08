@@ -6,6 +6,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { describe, expect } from "vitest"
 
+import { normalizePath } from "@/lib/utils"
 import {
   AppEnvTag,
   ensureHomeFolderExists,
@@ -15,6 +16,7 @@ import {
   SpacecakeHome,
   type AppEnv,
 } from "@/services/spacecake-home"
+import { isWindows } from "@/test-utils/platform"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -46,7 +48,8 @@ describe("SpacecakeHome — path computation", () => {
       })
 
       const home = yield* SpacecakeHome.pipe(Effect.provide(layer))
-      expect(home.homeDir).toBe(path.join(tempDir, ".spacecake"))
+      // homeDir is normalized to forward slashes for cross-platform consistency
+      expect(home.homeDir).toBe(normalizePath(path.join(tempDir, ".spacecake")))
     }).pipe(Effect.provide(NodeFileSystem.layer)),
   )
 
@@ -69,7 +72,8 @@ describe("SpacecakeHome — path computation", () => {
         })
 
         const home = yield* SpacecakeHome.pipe(Effect.provide(layer))
-        expect(home.homeDir).toBe(customHome)
+        // homeDir is normalized to forward slashes for cross-platform consistency
+        expect(home.homeDir).toBe(normalizePath(customHome))
       } finally {
         if (prev === undefined) {
           delete process.env.SPACECAKE_HOME
@@ -236,6 +240,9 @@ describe("ensureHomeFolderExists", () => {
 
   it.scoped("writes statusline.sh with executable permissions", () =>
     Effect.gen(function* () {
+      // Windows doesn't support Unix permission modes
+      if (isWindows) return
+
       const effectFs = yield* EffectFileSystem.FileSystem
       const tempDir = yield* effectFs.makeTempDirectoryScoped()
       const homeDir = path.join(tempDir, ".spacecake")
@@ -318,6 +325,9 @@ describe("installCli — dev mode", () => {
 
   it.scoped("wrapper has executable permissions", () =>
     Effect.gen(function* () {
+      // Windows doesn't support Unix permission modes
+      if (isWindows) return
+
       const effectFs = yield* EffectFileSystem.FileSystem
       const tempDir = yield* effectFs.makeTempDirectoryScoped()
       const homeDir = path.join(tempDir, ".spacecake")
