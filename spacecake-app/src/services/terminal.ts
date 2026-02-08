@@ -139,45 +139,48 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           }),
       })
 
-    // Timeout for waiting on process exit (Windows may need more time)
-    const KILL_TIMEOUT_MS = 3000
+    // Wait for terminal process to exit using Effect.async for proper callback handling.
+    // On Windows, directory handles aren't released until the process fully terminates.
+    // See: https://github.com/microsoft/node-pty/issues/647
+    const waitForExit = (term: IPty) =>
+      Effect.async<void>((resume) => {
+        // Register exit handler - returns a disposable for cleanup
+        const disposable = term.onExit(() => {
+          resume(Effect.void)
+        })
+
+        // Return cleanup effect for interruption/timeout
+        return Effect.sync(() => {
+          disposable.dispose()
+        })
+      })
 
     const kill = (id: string) =>
-      Effect.tryPromise({
-        try: async () => {
-          const term = terminals.get(id)
-          if (!term) return
+      Effect.gen(function* () {
+        const term = terminals.get(id)
+        if (!term) return
 
-          // Wait for the process to actually exit, with a timeout fallback.
-          // On Windows, directory handles aren't released until the process fully terminates.
-          // See: https://github.com/microsoft/node-pty/issues/647
-          await new Promise<void>((resolve) => {
-            let resolved = false
-            const cleanup = () => {
-              if (resolved) return
-              resolved = true
-              terminals.delete(id)
-              resolve()
-            }
+        // Remove from map immediately to prevent double-kill attempts
+        terminals.delete(id)
 
-            // Set up timeout in case onExit never fires (known Windows issue)
-            const timeout = setTimeout(() => {
-              console.warn(`Terminal ${id}: kill timeout reached, proceeding anyway`)
-              cleanup()
-            }, KILL_TIMEOUT_MS)
+        // Trigger the kill
+        yield* Effect.sync(() => term.kill())
 
-            // Wait for actual process exit
-            term.onExit(() => {
-              clearTimeout(timeout)
-              cleanup()
-            })
-
-            // Trigger the kill
-            term.kill()
-          })
-        },
-        catch: (error) => new TerminalError({ message: `failed to kill terminal: ${error}` }),
-      })
+        // Wait for exit with timeout - if timeout occurs, proceed anyway
+        yield* waitForExit(term).pipe(
+          Effect.timeout("2 seconds"),
+          Effect.catchAll(() => {
+            console.warn(`Terminal ${id}: kill timeout reached, proceeding anyway`)
+            return Effect.void
+          }),
+        )
+      }).pipe(
+        // Handle any defects (e.g., terminal already dead) gracefully
+        Effect.catchAllDefect(() => Effect.void),
+        Effect.mapError(
+          (error) => new TerminalError({ message: `failed to kill terminal: ${error}` }),
+        ),
+      )
 
     return { create, resize, write, kill }
   }),
