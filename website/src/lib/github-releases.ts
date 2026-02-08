@@ -8,6 +8,7 @@ const platformPatterns: Record<string, string> = {
   "macos-x64": "x64.dmg",
   "debian-x64": "amd64.deb",
   "linux-x64": ".AppImage",
+  "windows-x64": "-setup.exe",
 }
 
 async function fetchLatestRelease() {
@@ -35,7 +36,12 @@ async function fetchLatestRelease() {
 }
 
 export async function getDownloadUrl(
-  platform: "macos-arm64" | "macos-x64" | "debian-x64" | "linux-x64"
+  platform:
+    | "macos-arm64"
+    | "macos-x64"
+    | "debian-x64"
+    | "linux-x64"
+    | "windows-x64"
 ): Promise<DownloadResult> {
   const pattern = platformPatterns[platform]
 

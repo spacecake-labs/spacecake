@@ -5,7 +5,12 @@ interface DownloadRow {
   platform: string
   architecture: string
   format: string
-  githubPlatform: "macos-arm64" | "macos-x64" | "debian-x64" | "linux-x64"
+  githubPlatform:
+    | "macos-arm64"
+    | "macos-x64"
+    | "debian-x64"
+    | "linux-x64"
+    | "windows-x64"
 }
 
 const downloadRows: DownloadRow[] = [
@@ -20,6 +25,12 @@ const downloadRows: DownloadRow[] = [
     architecture: "intel",
     format: "dmg",
     githubPlatform: "macos-x64",
+  },
+  {
+    platform: "Windows",
+    architecture: "x86-64",
+    format: "exe",
+    githubPlatform: "windows-x64",
   },
   {
     platform: "debian",
