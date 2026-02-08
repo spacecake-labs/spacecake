@@ -6,7 +6,7 @@ You can run agents, write specs, and see what's happening in one place.
 
 For full documentation, visit [spacecake.ai](https://www.spacecake.ai/getting-started).
 
-> ℹ️ `spacecake` is in public alpha. Supported platforms: macOS (Apple Silicon & Intel) and Linux (x64).
+> ℹ️ `spacecake` is in public alpha. Supported platforms: macOS (Apple Silicon & Intel), Windows (x64), and Linux (x64).
 > If you find any bugs, please open an issue in this repo or join us on [Discord](https://discord.com/invite/CwFnxfkGHB).
 
 ### 📦 project structure
@@ -24,11 +24,12 @@ This is a monorepo:
 Download an installer for your platform from the [latest release](https://github.com/spacecake-labs/spacecake/releases):
 
 - **macOS**: Download the `.dmg` file (arm64 for Apple Silicon, x64 for Intel)
+- **Windows**: Download the `.exe` installer
 - **Linux**: Download the `.deb` file (for Debian-based distributions like Ubuntu) or `.AppImage` for other distros
 - **macOS (ZIP)**: Download the `.zip` file for manual installation
 
-On first launch, spacecake opens the home folder (`~/.spacecake`) for general notes.  
-Press `⌘O` (macOS) or `ctrl+O` (Linux) to open your project as a workspace.
+On first launch, spacecake opens the home folder (`~/.spacecake`) for general notes.
+Press `⌘O` (macOS) or `ctrl+O` (Windows/Linux) to open your project as a workspace.
 
 #### keyboard shortcuts
 

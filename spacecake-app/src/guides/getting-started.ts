@@ -4,15 +4,15 @@ spacecake is a WYSIWYG markdown editor with an integrated terminal, built for Cl
 
 ## 📖 quick start
 
-- **open a project**: press \`⌘O\` (or \`ctrl+o\` on linux) to open your project's root directory
+- **open a project**: press \`⌘O\` (or \`ctrl+o\` on Windows/Linux) to open your project's root directory
 - **quick open**: press \`⌘P\` to search and open files
 - **create a new file**: press \`⌘N\` to create a new file
 - **toggle terminal**: press \`ctrl+\`\` to show/hide the terminal
 
 ## ⌨️ keyboard shortcuts
 
-| action | macos | linux |
-|--------|-------|-------|
+| action | macos | windows/linux |
+|--------|-------|---------------|
 | open/switch workspace | \`⌘O\` | \`ctrl+o\` |
 | quick open file | \`⌘P\` | \`ctrl+p\` |
 | new file | \`⌘N\` | \`ctrl+n\` |

@@ -5,14 +5,15 @@ description: Install `spacecake` and create your first technical spec.
 
 ## installation
 
-`spacecake` is available for macOS and Linux (Debian). download the latest release from the [homepage](/) or [GitHub](https://github.com/spacecake-labs/spacecake/releases).
+`spacecake` is available for macOS, Windows, and Linux. download the latest release from the [homepage](/) or [GitHub](https://github.com/spacecake-labs/spacecake/releases).
 
 you can also build from source by following the steps in the [release pipeline](https://github.com/spacecake-labs/spacecake/blob/main/.github/workflows/release.yml).
 
 ### step 1: download
 
 - **macOS**: download the `.dmg` file (arm64 for Apple Silicon, x64 for Intel) or `.zip` for manual installation
-- **Linux**: download the `.deb` file (for Debian-based distributions like Ubuntu)
+- **Windows**: download the `.exe` installer
+- **Linux**: download the `.deb` file (for Debian-based distributions like Ubuntu) or `.AppImage` for other distros
 
 ### step 2: install
 
@@ -28,6 +29,12 @@ you can also build from source by following the steps in the [release pipeline](
 2. move the extracted `spacecake.app` to your Applications folder
 3. launch `spacecake` from Applications or Spotlight (cmd+Space)
 
+**for EXE (Windows):**
+
+1. run the downloaded `.exe` installer
+2. follow the installation prompts (you may see a Windows SmartScreen warning since the installer isn't code-signed yet - click "More info" then "Run anyway" to proceed)
+3. launch `spacecake` from the Start menu or desktop shortcut
+
 **for DEB (Linux):**
 
 1. install the package: `sudo dpkg -i spacecake_*.deb`
@@ -35,7 +42,7 @@ you can also build from source by following the steps in the [release pipeline](
 
 ### step 3: open your first project
 
-when `spacecake` launches, you'll start in your home folder (`~/.spacecake`). press `⌘O` (or `ctrl+o` on linux) to open your project's root directory.
+when `spacecake` launches, you'll start in your home folder (`~/.spacecake`). press `⌘O` (or `ctrl+o` on Windows/Linux) to open your project's root directory.
 
 you can create notes and folders in your home folder, or open any project folder as a workspace anytime.
 
@@ -67,16 +74,16 @@ when enabled, changes are saved to disk automatically - no need to press `⌘S` 
 
 ### keyboard shortcuts
 
-| action                | macos     | linux     |
-| --------------------- | --------- | --------- |
-| open/switch workspace | `⌘O`      | `ctrl+o`  |
-| quick open file       | `⌘P`      | `ctrl+p`  |
-| new file              | `⌘N`      | `ctrl+n`  |
-| save file             | `⌘S`      | `ctrl+s`  |
-| close tab             | `⌘W`      | `ctrl+w`  |
-| toggle terminal       | `` ctrl+` `` | `` ctrl+` `` |
-| focus editor          | `⌘1`      | `ctrl+1`  |
-| refresh app           | `⌘R`      | `ctrl+r`  |
+| action                | macos        | windows/linux |
+| --------------------- | ------------ | ------------- |
+| open/switch workspace | `⌘O`         | `ctrl+o`      |
+| quick open file       | `⌘P`         | `ctrl+p`      |
+| new file              | `⌘N`         | `ctrl+n`      |
+| save file             | `⌘S`         | `ctrl+s`      |
+| close tab             | `⌘W`         | `ctrl+w`      |
+| toggle terminal       | `` ctrl+` `` | `` ctrl+` ``  |
+| focus editor          | `⌘1`         | `ctrl+1`      |
+| refresh app           | `⌘R`         | `ctrl+r`      |
 
 ## 🖥️ terminal
 
