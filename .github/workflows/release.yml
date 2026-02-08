@@ -74,6 +74,10 @@ jobs:
         working-directory: ./cli
         run: bun install --frozen-lockfile && bun run build
 
+      - name: Set HOME for Windows
+        if: runner.os == 'Windows'
+        run: echo "HOME=$env:USERPROFILE" >> $env:GITHUB_ENV
+
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt install -y squashfs-tools
