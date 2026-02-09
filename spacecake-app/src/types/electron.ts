@@ -93,6 +93,31 @@ export interface ElectronAPI {
       workspacePath: string,
     ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
     onBranchChange: (callback: (data: { path: string }) => void) => () => void
+    getStatus: (
+      workspacePath: string,
+    ) => Promise<
+      Either<
+        { _tag: "GitError"; description: string },
+        { modified: string[]; staged: string[]; untracked: string[]; deleted: string[] }
+      >
+    >
+    getFileDiff: (
+      workspacePath: string,
+      filePath: string,
+      baseRef?: string,
+      targetRef?: string,
+    ) => Promise<
+      Either<{ _tag: "GitError"; description: string }, { oldContent: string; newContent: string }>
+    >
+    getCommitLog: (
+      workspacePath: string,
+      limit?: number,
+    ) => Promise<
+      Either<
+        { _tag: "GitError"; description: string },
+        Array<{ hash: string; message: string; author: string; date: Date; files: string[] }>
+      >
+    >
   }
 }
 

@@ -8,11 +8,11 @@ export const DockPositionSchema = Schema.Literal("left", "right", "bottom")
 export type DockPosition = typeof DockPositionSchema.Type
 
 // Dockable panels that can be positioned in the dock and have tracked state
-export const DockablePanelKindSchema = Schema.Literal("terminal", "task")
+export const DockablePanelKindSchema = Schema.Literal("terminal", "task", "git")
 export type DockablePanelKind = typeof DockablePanelKindSchema.Type
 
 // All focusable panels (includes dockable panels plus editor/project)
-export const PanelKindSchema = Schema.Literal("terminal", "task", "editor", "project")
+export const PanelKindSchema = Schema.Literal("terminal", "task", "git", "editor", "project")
 export type PanelKind = typeof PanelKindSchema.Type
 
 // ============================================
@@ -43,6 +43,9 @@ export const PanelMapSchema = Schema.Struct({
   task: Schema.optionalWith(PanelStateSchema, {
     default: () => ({ isExpanded: false, size: 20 }),
   }),
+  git: Schema.optionalWith(PanelStateSchema, {
+    default: () => ({ isExpanded: false, size: 25 }),
+  }),
 })
 export type PanelMap = typeof PanelMapSchema.Type
 
@@ -62,6 +65,7 @@ export const WorkspaceLayoutSchema = Schema.Struct({
     default: () => ({
       terminal: { isExpanded: true, size: 30 },
       task: { isExpanded: false, size: 20 },
+      git: { isExpanded: false, size: 25 },
     }),
   }),
 })
@@ -79,6 +83,7 @@ export const defaultWorkspaceLayout: WorkspaceLayout = {
   panels: {
     terminal: { isExpanded: true, size: 30 },
     task: { isExpanded: false, size: 20 },
+    git: { isExpanded: false, size: 25 },
   },
 }
 
@@ -106,6 +111,10 @@ export const WorkspaceLayoutStrictSchema = Schema.Struct({
       size: Schema.Number,
     }),
     task: Schema.Struct({
+      isExpanded: Schema.Boolean,
+      size: Schema.Number,
+    }),
+    git: Schema.Struct({
       isExpanded: Schema.Boolean,
       size: Schema.Number,
     }),

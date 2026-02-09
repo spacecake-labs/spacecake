@@ -7,7 +7,7 @@ export const INITIAL_LOAD_TAG = "initial-load" as const
 export type InitialLoadTag = typeof INITIAL_LOAD_TAG
 
 // view kinds for editor modes
-export const ViewKindSchema = Schema.Literal("rich", "source")
+export const ViewKindSchema = Schema.Literal("rich", "source", "diff")
 
 export type ViewKind = typeof ViewKindSchema.Type
 

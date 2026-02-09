@@ -114,6 +114,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.on("git:branch:changed", listener)
       return () => ipcRenderer.removeListener("git:branch:changed", listener)
     },
+    getStatus: (workspacePath: string) => ipcRenderer.invoke("git:status", workspacePath),
+    getFileDiff: (workspacePath: string, filePath: string, baseRef?: string, targetRef?: string) =>
+      ipcRenderer.invoke("git:file-diff", workspacePath, filePath, baseRef, targetRef),
+    getCommitLog: (workspacePath: string, limit?: number) =>
+      ipcRenderer.invoke("git:commit-log", workspacePath, limit),
   },
   exists: (path: string) => ipcRenderer.invoke("path-exists", path),
   createTerminal: (id: string, cols: number, rows: number, cwd?: string) =>

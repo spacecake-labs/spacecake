@@ -65,6 +65,9 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
     startWatching: async () => right(undefined),
     stopWatching: async () => right(undefined),
     onBranchChange: () => () => {},
+    getStatus: async () => right({ modified: [], staged: [], untracked: [], deleted: [] }),
+    getFileDiff: async () => right({ oldContent: "", newContent: "" }),
+    getCommitLog: async () => right([]),
   },
   ...overrides,
 })

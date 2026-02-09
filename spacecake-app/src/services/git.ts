@@ -9,6 +9,26 @@ export class GitError extends Data.TaggedError("GitError")<{
   readonly cause?: unknown
 }> {}
 
+export type GitStatus = {
+  modified: string[]
+  staged: string[]
+  untracked: string[]
+  deleted: string[]
+}
+
+export type GitFileDiff = {
+  oldContent: string
+  newContent: string
+}
+
+export type GitCommit = {
+  hash: string
+  message: string
+  author: string
+  date: Date
+  files: string[]
+}
+
 const makeGitService = Effect.gen(function* () {
   const fs = yield* FileSystem
   const instances = new Map<string, SimpleGit>()
@@ -69,11 +89,89 @@ const makeGitService = Effect.gen(function* () {
       )
   }
 
+  const getStatus = (workspacePath: string): Effect.Effect<GitStatus, GitError> =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        const status = await git.status()
+        return {
+          modified: status.modified,
+          staged: status.staged,
+          untracked: status.not_added,
+          deleted: status.deleted,
+        }
+      },
+      catch: (e) => new GitError({ description: "Failed to get git status", cause: e }),
+    })
+
+  const getFileDiff = (
+    workspacePath: string,
+    filePath: string,
+    baseRef?: string,
+    targetRef?: string,
+  ): Effect.Effect<GitFileDiff, GitError> =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+
+        // Get old content (from baseRef, default HEAD)
+        let oldContent = ""
+        try {
+          const ref = baseRef ?? "HEAD"
+          oldContent = await git.show([`${ref}:${filePath}`])
+        } catch {
+          // File doesn't exist in base ref (new file)
+          oldContent = ""
+        }
+
+        // Get new content (from targetRef, default working directory)
+        let newContent = ""
+        if (targetRef) {
+          try {
+            newContent = await git.show([`${targetRef}:${filePath}`])
+          } catch {
+            newContent = ""
+          }
+        } else {
+          // Read from working directory
+          const fullPath = AbsolutePath(`${workspacePath}/${filePath}`)
+          const file = await Effect.runPromise(fs.readTextFile(fullPath))
+          newContent = file.content
+        }
+
+        return { oldContent, newContent }
+      },
+      catch: (e) => new GitError({ description: "Failed to get file diff", cause: e }),
+    })
+
+  const getCommitLog = (workspacePath: string, limit = 50): Effect.Effect<GitCommit[], GitError> =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        const log = await git.log({
+          maxCount: limit,
+          "--name-only": null, // Include file names
+        })
+
+        return log.all.map((commit) => ({
+          hash: commit.hash,
+          message: commit.message,
+          author: commit.author_name,
+          date: new Date(commit.date),
+          files: (commit.diff?.files ?? []).map((f) => f.file),
+        }))
+      },
+      catch: (e) => new GitError({ description: "Failed to get commit log", cause: e }),
+    })
+
   return {
     getCurrentBranch,
     isGitRepo,
     startWatching,
     stopWatching,
+    getStatus,
+    getFileDiff,
+    getCommitLog,
   } as const
 })
 

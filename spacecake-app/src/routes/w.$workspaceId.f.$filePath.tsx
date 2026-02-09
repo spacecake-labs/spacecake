@@ -105,12 +105,16 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           })
         }
 
+        // TODO: diff view needs its own code path that fetches git data
+        // For now, fall back to source mode for the underlying Lexical editor
+        const effectiveViewKind = result.viewKind === "diff" ? "source" : result.viewKind
+
         const editorConfig =
           result.content.kind === "state"
             ? createEditorConfigFromState(result.content.data.state, result.content.data.selection)
             : createEditorConfigFromContent(
                 result.content.data,
-                result.viewKind,
+                effectiveViewKind,
                 result.content.data.selection,
               )
 
