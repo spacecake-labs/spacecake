@@ -13,7 +13,7 @@ export function ClaudeStatuslineBadge({ className }: ClaudeStatuslineBadgeProps)
 
   if (!statusline) return null
 
-  const parts = [statusline.model.toLowerCase()]
+  const parts = [statusline.model]
 
   if (statusline.contextUsagePercent !== null) {
     parts.push(`🧠 ${Math.round(statusline.contextUsagePercent)}%`)

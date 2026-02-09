@@ -128,7 +128,7 @@ export function ClaudeStatusBadge({ className }: ClaudeStatusBadgeProps) {
               />
             )}
           </div>
-          <span className={cn("font-mono", config.textColor)}>claude</span>
+          <span className={cn("font-mono", config.textColor)}>Claude</span>
         </div>
       </HoverCardTrigger>
       <HoverCardContent side="top" align="end" className="w-52 p-3 space-y-2">
