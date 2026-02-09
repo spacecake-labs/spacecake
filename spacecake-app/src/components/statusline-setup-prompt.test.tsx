@@ -44,6 +44,7 @@ const createMockElectronAPI = (overrides: {
       onStatusChange: () => () => {},
       onOpenFile: () => () => {},
       onStatuslineUpdate: () => () => {},
+      onStatuslineCleared: () => () => {},
       ensureServer: async () => {},
       tasks: {
         startWatching: async () => right(undefined),

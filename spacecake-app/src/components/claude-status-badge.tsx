@@ -128,7 +128,7 @@ export function ClaudeStatusBadge({ className }: ClaudeStatusBadgeProps) {
               />
             )}
           </div>
-          <span className={cn("font-mono", config.textColor)}>claude</span>
+          <span className={cn("font-mono", config.textColor)}>Claude</span>
         </div>
       </HoverCardTrigger>
       <HoverCardContent side="top" align="end" className="w-52 p-3 space-y-2">
@@ -153,6 +153,16 @@ export function ClaudeStatusBadge({ className }: ClaudeStatusBadgeProps) {
           label="tasks"
           statusText={sessionActive ? "active" : "inactive"}
         />
+        {statusline?.sessionId && (
+          <div className="border-t border-border pt-1.5 mt-1">
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="text-muted-foreground">session</span>
+              <span className="font-mono text-muted-foreground">
+                {statusline.sessionId.slice(0, 8)}
+              </span>
+            </div>
+          </div>
+        )}
       </HoverCardContent>
     </HoverCard>
   )

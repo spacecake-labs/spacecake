@@ -90,10 +90,12 @@ Object.defineProperty(window, "electronAPI", {
         statuslineListeners.add(callback)
         return () => statuslineListeners.delete(callback)
       },
+      onStatuslineCleared: () => () => {},
       onOpenFile: () => () => {},
       ensureServer: () => Promise.resolve(),
     },
     updateCliWorkspaces: () => Promise.resolve(),
+    onIdeDisconnected: () => () => {},
     git: {
       getCurrentBranch: () => Promise.resolve("main"),
       startWatching: () => {},
@@ -153,6 +155,7 @@ const mockClaudeHooksServer = {
   isStarted: vi.fn(() => true),
   getLastStatusline: vi.fn(() => null),
   onStatuslineUpdate: vi.fn(() => () => {}),
+  onStatuslineCleared: vi.fn(() => () => {}),
 }
 
 const FileSystemTestLayer = Layer.succeed(FileSystem, mockFileSystem as FileSystem)

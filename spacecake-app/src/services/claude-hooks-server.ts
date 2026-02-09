@@ -13,13 +13,12 @@ export class StatuslineService extends Effect.Service<StatuslineService>()("Stat
   effect: Effect.sync(() => {
     let lastStatusline: DisplayStatusline | null = null
     const updateCallbacks: Set<(data: DisplayStatusline) => void> = new Set()
+    const clearCallbacks: Set<() => void> = new Set()
 
     return {
       processStatusline: (input: StatuslineInput) => {
         const statuslineData = parseStatuslineInput(input)
         lastStatusline = statuslineData
-
-        // Call all registered callbacks
         updateCallbacks.forEach((callback) => {
           try {
             callback(statuslineData)
@@ -27,14 +26,29 @@ export class StatuslineService extends Effect.Service<StatuslineService>()("Stat
             console.error("Statusline Service: callback error", err)
           }
         })
-
         return statuslineData
+      },
+      clearStatusline: () => {
+        lastStatusline = null
+        clearCallbacks.forEach((callback) => {
+          try {
+            callback()
+          } catch (err) {
+            console.error("Statusline Service: clear callback error", err)
+          }
+        })
       },
       getLastStatusline: () => lastStatusline,
       onStatuslineUpdate: (callback: (data: DisplayStatusline) => void) => {
         updateCallbacks.add(callback)
         return () => {
           updateCallbacks.delete(callback)
+        }
+      },
+      onStatuslineCleared: (callback: () => void) => {
+        clearCallbacks.add(callback)
+        return () => {
+          clearCallbacks.delete(callback)
         }
       },
     }
@@ -48,8 +62,10 @@ const respondJson = (res: ServerResponse, statusCode: number, data: unknown) => 
 
 interface StatuslineServiceInstance {
   processStatusline: (input: StatuslineInput) => DisplayStatusline
+  clearStatusline: () => void
   getLastStatusline: () => DisplayStatusline | null
   onStatuslineUpdate: (callback: (data: DisplayStatusline) => void) => () => void
+  onStatuslineCleared: (callback: () => void) => () => void
 }
 
 const handleRequest = async (
@@ -94,7 +110,8 @@ const handleRequest = async (
             return
           }
 
-          service.processStatusline(parsed as StatuslineInput)
+          const input = parsed as StatuslineInput
+          service.processStatusline(input)
           respondJson(res, 200, { success: true })
         } catch (err) {
           console.error("Statusline Server: failed to parse JSON", err)
@@ -153,6 +170,7 @@ export interface ClaudeHooksServerService {
   readonly isStarted: () => boolean
   readonly getLastStatusline: () => DisplayStatusline | null
   readonly onStatuslineUpdate: (callback: (data: DisplayStatusline) => void) => () => void
+  readonly onStatuslineCleared: (callback: () => void) => () => void
 }
 
 export const makeClaudeHooksServer = Effect.gen(function* () {
@@ -183,6 +201,17 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
     // Start the server (waits until it's listening)
     const server = yield* startServerEffect(socketPath, statuslineService)
 
+    // Clear statusline if the server crashes or closes unexpectedly
+    server.on("error", (err) => {
+      console.error("Claude Hooks Server: server error", err)
+      statuslineService.clearStatusline()
+      serverState = null
+    })
+    server.on("close", () => {
+      statuslineService.clearStatusline()
+      serverState = null
+    })
+
     serverState = { socketPath, server }
     return socketPath
   })
@@ -205,6 +234,10 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
     return statuslineService.onStatuslineUpdate(callback)
   }
 
+  const onStatuslineCleared = (callback: () => void) => {
+    return statuslineService.onStatuslineCleared(callback)
+  }
+
   // Finalizer to clean up on shutdown
   yield* Effect.addFinalizer(() => {
     if (!serverState) {
@@ -224,6 +257,7 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
     isStarted,
     getLastStatusline,
     onStatuslineUpdate,
+    onStatuslineCleared,
   } as const
 })
 

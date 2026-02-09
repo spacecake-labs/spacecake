@@ -4,6 +4,7 @@ import { PostHogProvider } from "posthog-js/react"
 import ReactDOM from "react-dom/client"
 
 import { useTheme } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
 import { EditorProvider } from "@/contexts/editor-context"
 import { initializeDatabase } from "@/lib/init-database"
 import posthog from "@/lib/posthog-client"
@@ -22,7 +23,12 @@ function RootWithTheme() {
   // but body works given our globals.css @custom-variant
   document.documentElement.classList.remove("light", "dark")
   document.documentElement.classList.add(theme)
-  return <RouterProvider router={router} context={{ db }} />
+  return (
+    <>
+      <RouterProvider router={router} context={{ db }} />
+      <Toaster />
+    </>
+  )
 }
 
 root.render(

@@ -29,6 +29,7 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
   effect: Effect.gen(function* () {
     const home = yield* SpacecakeHome
     const terminals = new Map<string, IPty>()
+    const ideDisconnectedSent = new Set<string>()
 
     // Finalizer to kill all pty processes on shutdown
     yield* Effect.addFinalizer(() =>
@@ -85,6 +86,9 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             VISUAL: "spacecake open --wait",
             // Claude Code defaults to plan mode when run inside spacecake
             CLAUDE_CODE_ACTION: "plan",
+            // Marks this terminal as owned by spacecake — the statusline hook
+            // script uses this to decide whether to POST to the socket
+            SPACECAKE_TERMINAL: "1",
           }
 
           const ptyProcess = pty.spawn(defaultShell, [], {
@@ -95,18 +99,15 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             env,
           })
           ptyProcess.onData((data) => {
-            let output = data
-
-            // Filter Claude Code's "IDE disconnected" message - it shows briefly
-            // during startup even when connection succeeds. Our status badge
-            // shows the actual connection state.
-            if (data.includes("IDE disconnected")) {
-              output = data.replace(/◯\s*IDE disconnected\r?\n?/g, "")
-              if (!output) return
+            if (data.includes("IDE disconnected") && !ideDisconnectedSent.has(id)) {
+              ideDisconnectedSent.add(id)
+              BrowserWindow.getAllWindows().forEach((win) => {
+                win.webContents.send("terminal:ide-disconnected")
+              })
             }
 
             BrowserWindow.getAllWindows().forEach((win) => {
-              win.webContents.send("terminal:output", { id, data: output })
+              win.webContents.send("terminal:output", { id, data })
             })
           })
 
@@ -162,6 +163,7 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
 
         // Remove from map immediately to prevent double-kill attempts
         terminals.delete(id)
+        ideDisconnectedSent.delete(id)
 
         // Trigger the kill
         yield* Effect.sync(() => term.kill())

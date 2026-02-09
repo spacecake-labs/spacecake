@@ -329,6 +329,90 @@ describe("ClaudeHooksServer", () => {
     )
   })
 
+  it("should fire onStatuslineCleared and null lastStatusline when server closes", async () => {
+    const cleared = { called: false, lastStatuslineInCallback: "not-checked" as unknown }
+
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const server = yield* _(runTestServer())
+
+          // Populate statusline
+          yield* _(
+            Effect.promise(() =>
+              makeRequest("POST", "/statusline", JSON.stringify(validStatuslineInput)),
+            ),
+          )
+
+          // Wait for it to be stored
+          yield* _(
+            Effect.promise(async () => {
+              let attempts = 0
+              while (server.getLastStatusline() === null && attempts < 20) {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+                attempts++
+              }
+            }),
+          )
+
+          expect(server.getLastStatusline()).not.toBeNull()
+
+          // Register clear callback
+          server.onStatuslineCleared(() => {
+            cleared.called = true
+            cleared.lastStatuslineInCallback = server.getLastStatusline()
+          })
+
+          // Scope exit will trigger finalizer → server.close() → close event → clearStatusline()
+        }),
+      ),
+    )
+
+    // After scope exits, the clear callback should have been called
+    expect(cleared.called).toBe(true)
+    // lastStatusline should be null inside the callback (cleared before callbacks fire)
+    expect(cleared.lastStatuslineInCallback).toBeNull()
+  })
+
+  it("should unsubscribe onStatuslineCleared callback when cleanup function is called", async () => {
+    const cleared = { called: false }
+
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const server = yield* _(runTestServer())
+
+          // Populate statusline
+          yield* _(
+            Effect.promise(() =>
+              makeRequest("POST", "/statusline", JSON.stringify(validStatuslineInput)),
+            ),
+          )
+
+          yield* _(
+            Effect.promise(async () => {
+              let attempts = 0
+              while (server.getLastStatusline() === null && attempts < 20) {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+                attempts++
+              }
+            }),
+          )
+
+          // Register and immediately unsubscribe
+          const unsubscribe = server.onStatuslineCleared(() => {
+            cleared.called = true
+          })
+          unsubscribe()
+
+          // Scope exit will close the server, but callback should not fire
+        }),
+      ),
+    )
+
+    expect(cleared.called).toBe(false)
+  })
+
   it("should handle OPTIONS request for CORS preflight", async () => {
     await Effect.runPromise(
       Effect.scoped(

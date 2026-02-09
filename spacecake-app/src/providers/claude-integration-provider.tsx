@@ -1,10 +1,11 @@
-import { atom, useAtomValue, useSetAtom } from "jotai"
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { ReactNode, useEffect, useRef } from "react"
+import { toast } from "sonner"
 
 import type { PaneMachineRef } from "@/machines/pane"
 import type { ClaudeCodeStatus } from "@/types/claude-code"
 
-import { claudeStatuslineAtom } from "@/lib/atoms/atoms"
+import { claudeStatuslineAtom, ideDisconnectedToastShownAtom } from "@/lib/atoms/atoms"
 import { gitBranchAtom } from "@/lib/atoms/git"
 import { AbsolutePath } from "@/types/workspace"
 
@@ -31,6 +32,7 @@ export function ClaudeIntegrationProvider({
   const serverReady = useAtomValue(claudeServerReadyAtom)
   const setServerReady = useSetAtom(claudeServerReadyAtom)
   const serverStarted = useRef(false)
+  const [ideToastShown, setIdeToastShown] = useAtom(ideDisconnectedToastShownAtom)
 
   // Start server when enabled
   useEffect(() => {
@@ -57,6 +59,8 @@ export function ClaudeIntegrationProvider({
     cleanups.push(window.electronAPI.claude.onStatusChange(setStatus))
 
     cleanups.push(window.electronAPI.claude.onStatuslineUpdate(setStatusline))
+
+    cleanups.push(window.electronAPI.claude.onStatuslineCleared(() => setStatusline(null)))
 
     cleanups.push(
       window.electronAPI.claude.onOpenFile((payload) => {
@@ -95,6 +99,20 @@ export function ClaudeIntegrationProvider({
       window.electronAPI.git.stopWatching(workspacePath)
     }
   }, [workspacePath, setGitBranch])
+
+  // Show a one-time toast when Claude Code prints "IDE disconnected" in the terminal
+  useEffect(() => {
+    if (ideToastShown) return
+
+    const cleanup = window.electronAPI.onIdeDisconnected(() => {
+      if (!ideToastShown) {
+        toast("ignore the 'IDE disconnected' warning from Claude")
+        setIdeToastShown(true)
+      }
+    })
+
+    return cleanup
+  }, [ideToastShown, setIdeToastShown])
 
   return children
 }
