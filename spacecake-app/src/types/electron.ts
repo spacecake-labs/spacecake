@@ -32,6 +32,7 @@ export interface ElectronAPI {
     onStatusChange: (handler: (status: ClaudeCodeStatus) => void) => () => void
     onOpenFile: (handler: (payload: OpenFilePayload) => void) => () => void
     onStatuslineUpdate: (handler: (statusline: DisplayStatusline) => void) => () => void
+    onStatuslineCleared: (handler: () => void) => () => void
     tasks: {
       startWatching: (sessionId?: string) => Promise<Either<ClaudeTaskError, void>>
       list: (sessionId?: string) => Promise<Either<ClaudeTaskError, ClaudeTask[]>>
@@ -80,6 +81,7 @@ export interface ElectronAPI {
   writeTerminal: (id: string, data: string) => Promise<Either<TerminalError, void>>
   killTerminal: (id: string) => Promise<Either<TerminalError, void>>
   onTerminalOutput: (handler: (id: string, data: string) => void) => () => void
+  onIdeDisconnected: (handler: () => void) => () => void
 
   git: {
     getCurrentBranch: (workspacePath: string) => Promise<string | null>

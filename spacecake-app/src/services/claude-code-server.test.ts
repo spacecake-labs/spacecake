@@ -99,6 +99,7 @@ describe("ClaudeCodeServer", () => {
       isStarted: vi.fn(() => true),
       getLastStatusline: vi.fn(() => null),
       onStatuslineUpdate: vi.fn(() => () => {}),
+      onStatuslineCleared: vi.fn(() => () => {}),
     }
     return Layer.mergeAll(
       makeClaudeConfigTestLayer("/tmp/test-claude"),
@@ -541,6 +542,113 @@ describe("ClaudeCodeServer", () => {
           expect(response.id).toBe(3)
           expect(response.result.isError).toBe(true)
           expect(response.result.content[0].text).toContain("not in any open workspace")
+
+          ws.close()
+        }),
+      ),
+    )
+  })
+
+  it("should respond to resources/list with empty resources", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const { lockFileData, port } = yield* _(runTestServer())
+          const expectedToken = lockFileData.authToken
+
+          const ws = new WebSocket(`ws://localhost:${port}`, {
+            headers: {
+              "x-claude-code-ide-authorization": expectedToken,
+            },
+          })
+
+          // Wait for connection
+          yield* _(
+            Effect.async<void, Error>((resume) => {
+              ws.on("open", () => resume(Effect.succeed(undefined)))
+              ws.on("error", (err) => resume(Effect.fail(err)))
+            }),
+          )
+
+          // Prepare to receive response
+          const responsePromise = new Promise<{
+            jsonrpc: string
+            id: number
+            result: { resources: unknown[] }
+          }>((resolve) => {
+            ws.once("message", (data) => {
+              resolve(JSON.parse(data.toString()))
+            })
+          })
+
+          // Send resources/list request
+          ws.send(
+            JSON.stringify({
+              method: "resources/list",
+              jsonrpc: "2.0",
+              id: 10,
+            }),
+          )
+
+          // Verify response
+          const response = yield* _(Effect.promise(() => responsePromise))
+          expect(response.jsonrpc).toBe("2.0")
+          expect(response.id).toBe(10)
+          expect(response.result.resources).toEqual([])
+
+          ws.close()
+        }),
+      ),
+    )
+  })
+
+  it("should respond with Method not found error for unknown methods with id", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const { lockFileData, port } = yield* _(runTestServer())
+          const expectedToken = lockFileData.authToken
+
+          const ws = new WebSocket(`ws://localhost:${port}`, {
+            headers: {
+              "x-claude-code-ide-authorization": expectedToken,
+            },
+          })
+
+          // Wait for connection
+          yield* _(
+            Effect.async<void, Error>((resume) => {
+              ws.on("open", () => resume(Effect.succeed(undefined)))
+              ws.on("error", (err) => resume(Effect.fail(err)))
+            }),
+          )
+
+          // Prepare to receive response
+          const responsePromise = new Promise<{
+            jsonrpc: string
+            id: number
+            error: { code: number; message: string }
+          }>((resolve) => {
+            ws.once("message", (data) => {
+              resolve(JSON.parse(data.toString()))
+            })
+          })
+
+          // Send unknown method request
+          ws.send(
+            JSON.stringify({
+              method: "some/unknown/method",
+              jsonrpc: "2.0",
+              id: 99,
+            }),
+          )
+
+          // Verify error response
+          const response = yield* _(Effect.promise(() => responsePromise))
+          expect(response.jsonrpc).toBe("2.0")
+          expect(response.id).toBe(99)
+          expect(response.error.code).toBe(-32601)
+          expect(response.error.message).toContain("Method not found")
 
           ws.close()
         }),

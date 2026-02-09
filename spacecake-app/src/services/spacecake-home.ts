@@ -43,6 +43,9 @@ export const AppEnvLive: Layer.Layer<AppEnvTag> = Layer.sync(AppEnvTag, () => {
 
 const STATUSLINE_SCRIPT = `#!/usr/bin/env bash
 # Sends Claude Code statusline data to spacecake (no output)
+# Only sends from spacecake's own terminal (SPACECAKE_TERMINAL env var)
+[ -z "\${SPACECAKE_TERMINAL}" ] && exit 0
+
 configDir="\${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 socketPath="\${configDir}/spacecake.sock"
 

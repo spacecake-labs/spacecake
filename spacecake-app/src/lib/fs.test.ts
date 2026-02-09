@@ -16,6 +16,7 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
     onStatusChange: () => () => {},
     onOpenFile: () => () => {},
     onStatuslineUpdate: () => () => {},
+    onStatuslineCleared: () => () => {},
     ensureServer: async () => {},
     tasks: {
       startWatching: async () => right(undefined),
@@ -56,6 +57,7 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
   writeTerminal: async () => right(undefined),
   killTerminal: async () => right(undefined),
   onTerminalOutput: () => () => {},
+  onIdeDisconnected: () => () => {},
   openExternal: async () => {},
   git: {
     getCurrentBranch: async () => null,

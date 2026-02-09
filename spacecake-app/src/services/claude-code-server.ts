@@ -36,6 +36,12 @@ function broadcastStatusline(statusline: DisplayStatusline) {
   })
 }
 
+function broadcastStatuslineCleared() {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    win.webContents.send("statusline-cleared")
+  })
+}
+
 // MCP tool definitions for tools/list response
 const OPEN_FILE_TOOL = {
   name: "openFile",
@@ -138,9 +144,12 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
     // (both are related to Claude Code sessions)
     await hooksServer.ensureStarted()
 
-    // Register statusline update callback to broadcast to renderer
+    // Register statusline callbacks to broadcast to renderer
     hooksServer.onStatuslineUpdate((statusline) => {
       broadcastStatusline(statusline)
+    })
+    hooksServer.onStatuslineCleared(() => {
+      broadcastStatuslineCleared()
     })
 
     await Effect.runPromise(fsService.createFolder(claudeConfig.ideDir, { recursive: true }))
@@ -186,7 +195,6 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
                 tools: {
                   listChanged: true,
                 },
-                resources: {},
               },
               serverInfo: { name: "spacecake", version: "1.0" },
             },
@@ -309,6 +317,33 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
             },
           } satisfies JsonRpcResponse
           ws.send(JSON.stringify(unknownToolResponse))
+          return
+        }
+
+        // Handle resources/list request - return empty resources (safety net)
+        if (data.method === "resources/list" && data.id !== null && data.id !== undefined) {
+          const resourcesListResponse = {
+            jsonrpc: "2.0",
+            id: data.id,
+            result: {
+              resources: [],
+            },
+          } satisfies JsonRpcResponse
+          ws.send(JSON.stringify(resourcesListResponse))
+          return
+        }
+
+        // Catch-all: respond with Method not found for any unhandled request expecting a response
+        if (data.id !== null && data.id !== undefined) {
+          const errorResponse = {
+            jsonrpc: "2.0",
+            id: data.id,
+            error: {
+              code: -32601,
+              message: `Method not found: ${data.method}`,
+            },
+          }
+          ws.send(JSON.stringify(errorResponse))
           return
         }
       })

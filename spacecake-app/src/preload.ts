@@ -45,6 +45,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.on("statusline-update", listener)
       return () => ipcRenderer.removeListener("statusline-update", listener)
     },
+    onStatuslineCleared: (handler: () => void) => {
+      const listener = () => handler()
+      ipcRenderer.on("statusline-cleared", listener)
+      return () => ipcRenderer.removeListener("statusline-cleared", listener)
+    },
     tasks: {
       startWatching: (sessionId?: string) =>
         ipcRenderer.invoke("claude:tasks:start-watching", sessionId),
@@ -123,5 +128,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     }
     ipcRenderer.on("terminal:output", listener)
     return () => ipcRenderer.removeListener("terminal:output", listener)
+  },
+  onIdeDisconnected: (handler: () => void) => {
+    const listener = () => handler()
+    ipcRenderer.on("terminal:ide-disconnected", listener)
+    return () => ipcRenderer.removeListener("terminal:ide-disconnected", listener)
   },
 })
