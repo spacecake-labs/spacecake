@@ -1,5 +1,12 @@
 # spacecake-app
 
+## 0.1.0-alpha.47
+
+### Patch Changes
+
+- c8c4358: Ignoring status line data from Claude sessions outside of spacecake.
+- 73962aa: Fix EIO error on linux.
+
 ## 0.1.0-alpha.46
 
 ### Patch Changes
