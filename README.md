@@ -31,6 +31,10 @@ Download an installer for your platform from the [latest release](https://github
 On first launch, spacecake opens the home folder (`~/.spacecake`) for general notes.
 Press `⌘O` (macOS) or `ctrl+O` (Windows/Linux) to open your project as a workspace.
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=spacecake-labs/spacecake&type=date&legend=top-left)](https://www.star-history.com/#spacecake-labs/spacecake&type=date&legend=top-left)
+
 #### keyboard shortcuts
 
 | shortcut | action |
