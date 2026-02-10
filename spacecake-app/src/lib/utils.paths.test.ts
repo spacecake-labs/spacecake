@@ -1,7 +1,35 @@
 import { describe, expect, it } from "vitest"
 
-import { condensePath, filename, toAbsolutePath, toRelativePath } from "@/lib/utils"
+import {
+  buildPathWithCli,
+  condensePath,
+  filename,
+  toAbsolutePath,
+  toRelativePath,
+} from "@/lib/utils"
 import { AbsolutePath, RelativePath } from "@/types/workspace"
+
+describe("buildPathWithCli", () => {
+  it("prepends cliBinDir with unix delimiter", () => {
+    expect(buildPathWithCli("/usr/local/bin", "/usr/bin:/bin", ":")).toBe(
+      "/usr/local/bin:/usr/bin:/bin",
+    )
+  })
+
+  it("prepends cliBinDir with windows delimiter", () => {
+    expect(buildPathWithCli("C:\\Program Files\\spacecake", "C:\\Windows", ";")).toBe(
+      "C:\\Program Files\\spacecake;C:\\Windows",
+    )
+  })
+
+  it("skips prepend when already present", () => {
+    expect(buildPathWithCli("/cli/bin", "/cli/bin:/usr/bin", ":")).toBe("/cli/bin:/usr/bin")
+  })
+
+  it("handles empty path", () => {
+    expect(buildPathWithCli("/cli/bin", "", ":")).toBe("/cli/bin:")
+  })
+})
 
 describe("condensePath", () => {
   it("should condense Windows path with backslashes", () => {

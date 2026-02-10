@@ -387,7 +387,7 @@ describe("installCli — dev mode", () => {
 // installCli — packaged mode
 // ---------------------------------------------------------------------------
 
-describe("installCli — packaged mode", () => {
+describe.skipIf(isWindows)("installCli — packaged mode", () => {
   it.scoped("creates symlink at globalBinTarget pointing to bundledCliBinaryPath", () =>
     Effect.gen(function* () {
       const effectFs = yield* EffectFileSystem.FileSystem

@@ -164,3 +164,12 @@ export function toAbsolutePath(workspacePath: AbsolutePath, filePath: RelativePa
 export function toRelativePath(workspacePath: AbsolutePath, filePath: AbsolutePath): RelativePath {
   return RelativePath(trimPath(filePath.replace(workspacePath, "")))
 }
+
+// prepend a directory to a PATH string if it's not already present
+export function buildPathWithCli(
+  cliBinDir: string,
+  currentPath: string,
+  delimiter: string,
+): string {
+  return currentPath.includes(cliBinDir) ? currentPath : `${cliBinDir}${delimiter}${currentPath}`
+}
