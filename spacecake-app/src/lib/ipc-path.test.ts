@@ -16,6 +16,18 @@ describe("toIpcPath", () => {
     it("handles paths without leading slash on Windows", () => {
       expect(toIpcPath("tmp/my.sock")).toBe("//./pipe/tmp/my.sock")
     })
+
+    it("normalizes Windows drive letter paths", () => {
+      expect(toIpcPath("C:\\Users\\user\\.claude\\spacecake.sock")).toBe(
+        "//./pipe/C/Users/user/.claude/spacecake.sock",
+      )
+    })
+
+    it("normalizes Windows drive letter with forward slashes", () => {
+      expect(toIpcPath("C:/Users/user/.claude/spacecake.sock")).toBe(
+        "//./pipe/C/Users/user/.claude/spacecake.sock",
+      )
+    })
   } else {
     it("returns the path unchanged on Unix", () => {
       expect(toIpcPath("/tmp/my.sock")).toBe("/tmp/my.sock")

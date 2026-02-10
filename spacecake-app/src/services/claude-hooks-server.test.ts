@@ -9,7 +9,7 @@ import { toIpcPath } from "@/lib/ipc-path"
 import { makeClaudeConfigTestLayer } from "@/services/claude-config"
 import { makeClaudeHooksServer, StatuslineService } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
-import { waitForServer } from "@/test-utils/platform"
+import { isWindows, waitForServer } from "@/test-utils/platform"
 import { StatuslineInput } from "@/types/statusline"
 
 import statuslineFixture from "../../tests/fixtures/claude/statusline.json"
@@ -27,17 +27,26 @@ describe("ClaudeHooksServer", () => {
   let testDir: string
   let socketPath: string
   let mockFileSystem: Partial<FileSystem>
+  // on windows, the server uses TCP — this will hold the port after server starts
+  let tcpPort: number | null = null
 
   beforeEach(() => {
     // Create a unique temp directory for each test
     testDir = fs.mkdtempSync(path.join(os.tmpdir(), "claude-hooks-test-"))
     // Use toIpcPath for cross-platform compatibility (named pipes on Windows)
     socketPath = toIpcPath(path.join(testDir, "spacecake.sock"))
+    tcpPort = null
 
     mockFileSystem = {
       createFolder: vi.fn(() => Effect.void),
       exists: vi.fn(() => Effect.succeed(false)),
       remove: vi.fn(() => Effect.void),
+      writeTextFile: vi.fn((_path: string, content: string) => {
+        // on windows, the hooks server writes the port file — capture the port
+        const port = parseInt(content, 10)
+        if (!isNaN(port)) tcpPort = port
+        return Effect.void
+      }),
     }
   })
 
@@ -68,12 +77,20 @@ describe("ClaudeHooksServer", () => {
     body?: string,
   ): Promise<{ statusCode: number; body: JsonResponse }> => {
     return new Promise((resolve, reject) => {
-      const options: http.RequestOptions = {
-        socketPath,
-        path: urlPath,
-        method,
-        headers: body ? { "Content-Type": "application/json" } : undefined,
-      }
+      const options: http.RequestOptions = isWindows
+        ? {
+            hostname: "127.0.0.1",
+            port: tcpPort!,
+            path: urlPath,
+            method,
+            headers: body ? { "Content-Type": "application/json" } : undefined,
+          }
+        : {
+            socketPath,
+            path: urlPath,
+            method,
+            headers: body ? { "Content-Type": "application/json" } : undefined,
+          }
 
       const req = http.request(options, (res) => {
         let data = ""
@@ -99,6 +116,28 @@ describe("ClaudeHooksServer", () => {
     })
   }
 
+  const waitForTcpServer = async (port: number, maxAttempts = 40): Promise<void> => {
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const req = http.get({ hostname: "127.0.0.1", port, path: "/health" }, (res) => {
+            res.resume()
+            resolve()
+          })
+          req.on("error", reject)
+          req.setTimeout(100, () => {
+            req.destroy()
+            reject(new Error("timeout"))
+          })
+        })
+        return
+      } catch {
+        await new Promise((r) => setTimeout(r, 50))
+      }
+    }
+    throw new Error(`TCP server not listening on port ${port}`)
+  }
+
   const runTestServer = () => {
     return Effect.gen(function* (_) {
       const server = yield* _(makeClaudeHooksServer.pipe(Effect.provide(createTestLayer())))
@@ -106,8 +145,13 @@ describe("ClaudeHooksServer", () => {
       // Start the server
       yield* _(Effect.promise(() => server.ensureStarted()))
 
-      // Wait for server to be listening (works with both Unix sockets and Windows named pipes)
-      yield* _(Effect.promise(() => waitForServer(socketPath)))
+      // Wait for server to be listening
+      if (isWindows) {
+        if (!tcpPort) throw new Error("TCP port not captured from writeTextFile mock")
+        yield* _(Effect.promise(() => waitForTcpServer(tcpPort!)))
+      } else {
+        yield* _(Effect.promise(() => waitForServer(socketPath)))
+      }
 
       return server
     })

@@ -71,7 +71,7 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           // /usr/local/bin symlink wasn't created (e.g. no permissions)
           const pathWithCli = currentPath.includes(cliBinDir)
             ? currentPath
-            : `${cliBinDir}:${currentPath}`
+            : `${cliBinDir}${path.delimiter}${currentPath}`
 
           const env = {
             ...(process.env as Record<string, string>),
