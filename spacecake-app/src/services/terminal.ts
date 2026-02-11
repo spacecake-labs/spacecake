@@ -2,6 +2,7 @@ import { Effect } from "effect"
 import { BrowserWindow } from "electron"
 import path from "node:path"
 
+import { buildPathWithCli } from "@/lib/utils"
 import defaultShell from "@/main-process/default-shell"
 import { SpacecakeHome } from "@/services/spacecake-home"
 import { TerminalError } from "@/types/terminal"
@@ -67,11 +68,9 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           const cliSocketPath = path.join(home.appDir, "cli.sock")
           const cliBinDir = home.cliBinDir
           const currentPath = process.env.PATH ?? ""
-          // Prepend CLI bin dir so `spacecake` is available even if
+          // prepend cli bin dir so `spacecake` is available even if
           // /usr/local/bin symlink wasn't created (e.g. no permissions)
-          const pathWithCli = currentPath.includes(cliBinDir)
-            ? currentPath
-            : `${cliBinDir}:${currentPath}`
+          const pathWithCli = buildPathWithCli(cliBinDir, currentPath, path.delimiter)
 
           const env = {
             ...(process.env as Record<string, string>),

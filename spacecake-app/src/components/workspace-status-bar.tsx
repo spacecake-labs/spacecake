@@ -12,6 +12,7 @@ import {
 } from "@/components/statusline-setup-prompt"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { WatchmanBadge } from "@/components/watchman-badge"
 import { cn } from "@/lib/utils"
 import { match } from "@/types/adt"
 
@@ -159,6 +160,7 @@ export function WorkspaceStatusBar({
 
       {/* Right side: Claude status + conflict indicator */}
       <div className="flex items-center gap-2 flex-shrink-0">
+        <WatchmanBadge className="text-xs" />
         <StatuslineConflictLink />
         <ClaudeStatusBadge className="text-xs" />
         <ClaudeStatuslineBadge className="text-xs" />

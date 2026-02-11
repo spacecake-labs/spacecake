@@ -1,5 +1,8 @@
+import type { AddressInfo } from "node:net"
+
 import { Effect } from "effect"
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http"
+import path from "node:path"
 
 import type { DisplayStatusline } from "@/lib/statusline-parser"
 
@@ -7,6 +10,9 @@ import { parseStatuslineInput } from "@/lib/statusline-parser"
 import { ClaudeConfig } from "@/services/claude-config"
 import { FileSystem } from "@/services/file-system"
 import { StatuslineInput } from "@/types/statusline"
+import { AbsolutePath } from "@/types/workspace"
+
+const isWindows = process.platform === "win32"
 
 // Statusline service to manage subscribers and state
 export class StatuslineService extends Effect.Service<StatuslineService>()("StatuslineService", {
@@ -165,6 +171,34 @@ const startServerEffect = (socketPath: string, service: StatuslineServiceInstanc
     })
   })
 
+const startServerTcpEffect = (service: StatuslineServiceInstance) =>
+  Effect.async<Server, Error>((resume) => {
+    const server = createServer((req, res) => {
+      handleRequest(req, res, service).catch((err) => {
+        console.error("Claude Hooks Server: unhandled request error", err)
+        respondJson(res, 500, { error: "Internal server error" })
+      })
+    })
+
+    const onListening = () => {
+      server.removeListener("error", onError)
+      resume(Effect.succeed(server))
+    }
+
+    const onError = (err: Error) => {
+      server.removeListener("listening", onListening)
+      resume(Effect.fail(err))
+    }
+
+    server.once("listening", onListening)
+    server.once("error", onError)
+    server.listen(0, "127.0.0.1")
+
+    return Effect.sync(() => {
+      server.close()
+    })
+  })
+
 export interface ClaudeHooksServerService {
   readonly ensureStarted: () => Promise<string>
   readonly isStarted: () => boolean
@@ -179,8 +213,9 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
   const statuslineService = yield* StatuslineService
 
   let serverState: {
-    socketPath: string
     server: Server
+    socketPath: string | null
+    portFilePath: string | null
   } | null = null
 
   let startPromise: Promise<string> | null = null
@@ -188,37 +223,68 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
   const doStart = Effect.gen(function* () {
     yield* fsService.createFolder(claudeConfig.configDir, { recursive: true })
 
-    const { socketPath } = claudeConfig
+    let server: Server
+    let listenAddress: string
 
-    // Clean up any existing socket file (ignore if doesn't exist)
-    const socketExists = yield* fsService
-      .exists(socketPath)
-      .pipe(Effect.catchAll(() => Effect.succeed(false)))
-    if (socketExists) {
-      yield* fsService.remove(socketPath).pipe(Effect.catchAll(() => Effect.void))
+    if (isWindows) {
+      // windows — listen on localhost TCP port (random)
+      server = yield* startServerTcpEffect(statuslineService)
+      const port = (server.address() as AddressInfo).port
+      const portFilePath = path.join(claudeConfig.configDir, "spacecake.port")
+      yield* fsService.writeTextFile(AbsolutePath(portFilePath), String(port))
+
+      // clear statusline if the server crashes or closes unexpectedly
+      server.on("error", (err) => {
+        console.error("Claude Hooks Server: server error", err)
+        statuslineService.clearStatusline()
+        serverState = null
+      })
+      server.on("close", () => {
+        statuslineService.clearStatusline()
+        serverState = null
+      })
+
+      serverState = { server, socketPath: null, portFilePath }
+      listenAddress = `tcp://127.0.0.1:${port}`
+    } else {
+      // unix — existing unix socket logic
+      const { socketPath } = claudeConfig
+
+      // clean up any existing socket file (ignore if doesn't exist)
+      const socketExists = yield* fsService
+        .exists(socketPath)
+        .pipe(Effect.catchAll(() => Effect.succeed(false)))
+      if (socketExists) {
+        yield* fsService.remove(socketPath).pipe(Effect.catchAll(() => Effect.void))
+      }
+
+      server = yield* startServerEffect(socketPath, statuslineService)
+
+      // clear statusline if the server crashes or closes unexpectedly
+      server.on("error", (err) => {
+        console.error("Claude Hooks Server: server error", err)
+        statuslineService.clearStatusline()
+        serverState = null
+      })
+      server.on("close", () => {
+        statuslineService.clearStatusline()
+        serverState = null
+      })
+
+      serverState = { server, socketPath, portFilePath: null }
+      listenAddress = socketPath
     }
 
-    // Start the server (waits until it's listening)
-    const server = yield* startServerEffect(socketPath, statuslineService)
-
-    // Clear statusline if the server crashes or closes unexpectedly
-    server.on("error", (err) => {
-      console.error("Claude Hooks Server: server error", err)
-      statuslineService.clearStatusline()
-      serverState = null
-    })
-    server.on("close", () => {
-      statuslineService.clearStatusline()
-      serverState = null
-    })
-
-    serverState = { socketPath, server }
-    return socketPath
+    return listenAddress
   })
 
   const ensureStarted = async (): Promise<string> => {
     if (serverState) {
-      return serverState.socketPath
+      if (serverState.socketPath) return serverState.socketPath
+      if (serverState.portFilePath) {
+        const port = (serverState.server.address() as AddressInfo).port
+        return `tcp://127.0.0.1:${port}`
+      }
     }
     if (!startPromise) {
       startPromise = Effect.runPromise(doStart)
@@ -238,16 +304,22 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
     return statuslineService.onStatuslineCleared(callback)
   }
 
-  // Finalizer to clean up on shutdown
+  // finalizer to clean up on shutdown
   yield* Effect.addFinalizer(() => {
     if (!serverState) {
       return Effect.void
     }
-    const { server, socketPath } = serverState
+    const { server, socketPath, portFilePath } = serverState
     return Effect.async<void, never>((resume) => {
       server.close(() => resume(Effect.void))
     }).pipe(
-      Effect.andThen(fsService.remove(socketPath)),
+      Effect.andThen(
+        socketPath
+          ? fsService.remove(socketPath)
+          : portFilePath
+            ? fsService.remove(portFilePath)
+            : Effect.void,
+      ),
       Effect.catchAll(() => Effect.void),
     )
   })

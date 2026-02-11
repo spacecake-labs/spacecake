@@ -28,6 +28,8 @@ Download an installer for your platform from the [latest release](https://github
 - **Linux**: Download the `.deb` file (for Debian-based distributions like Ubuntu) or `.AppImage` for other distros
 - **macOS (ZIP)**: Download the `.zip` file for manual installation
 
+> **linux & windows users**: for best file watching performance, install [watchman](https://facebook.github.io/watchman/docs/install). spacecake will show a tip in the status bar recommending this.
+
 On first launch, spacecake opens the home folder (`~/.spacecake`) for general notes.
 Press `⌘O` (macOS) or `ctrl+O` (Windows/Linux) to open your project as a workspace.
 

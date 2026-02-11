@@ -176,7 +176,7 @@ describe("SpacecakeHome — path computation", () => {
     }).pipe(Effect.provide(NodeFileSystem.layer)),
   )
 
-  it.scoped("statuslineScriptPath is appDir/hooks/statusline.sh", () =>
+  it.scoped("statuslineScriptPath has correct platform extension", () =>
     Effect.gen(function* () {
       const effectFs = yield* EffectFileSystem.FileSystem
       const tempDir = yield* effectFs.makeTempDirectoryScoped()
@@ -186,12 +186,13 @@ describe("SpacecakeHome — path computation", () => {
         homePath: tempDir,
         resourcesPath: "",
         cliSourceEntryPath: "",
-        globalBinTarget: "/usr/local/bin/spacecake",
+        globalBinTarget: isWindows ? "" : "/usr/local/bin/spacecake",
       })
 
       const home = yield* SpacecakeHome.pipe(Effect.provide(layer))
+      const expectedExt = isWindows ? "statusline.cmd" : "statusline.sh"
       expect(home.statuslineScriptPath).toBe(
-        path.join(tempDir, ".spacecake", ".app", "hooks", "statusline.sh"),
+        path.join(tempDir, ".spacecake", ".app", "hooks", expectedExt),
       )
     }).pipe(Effect.provide(NodeFileSystem.layer)),
   )
@@ -238,11 +239,8 @@ describe("ensureHomeFolderExists", () => {
     }).pipe(Effect.provide(NodeFileSystem.layer)),
   )
 
-  it.scoped("writes statusline.sh with executable permissions", () =>
+  it.scoped("writes platform-specific statusline scripts", () =>
     Effect.gen(function* () {
-      // Windows doesn't support Unix permission modes
-      if (isWindows) return
-
       const effectFs = yield* EffectFileSystem.FileSystem
       const tempDir = yield* effectFs.makeTempDirectoryScoped()
       const homeDir = path.join(tempDir, ".spacecake")
@@ -254,9 +252,18 @@ describe("ensureHomeFolderExists", () => {
 
       yield* ensureHomeFolderExists.pipe(Effect.provide(layer))
 
-      const stat = fs.statSync(path.join(homeDir, ".app", "hooks", "statusline.sh"))
-      // Check owner-executable bit
-      expect(stat.mode & 0o755).toBe(0o755)
+      const hooksDir = path.join(homeDir, ".app", "hooks")
+      if (isWindows) {
+        expect(fs.existsSync(path.join(hooksDir, "statusline.cmd"))).toBe(true)
+        expect(fs.existsSync(path.join(hooksDir, "statusline.ps1"))).toBe(true)
+        const ps1Content = fs.readFileSync(path.join(hooksDir, "statusline.ps1"), "utf-8")
+        expect(ps1Content).toContain("Invoke-RestMethod")
+      } else {
+        expect(fs.existsSync(path.join(hooksDir, "statusline.sh"))).toBe(true)
+        const stat = fs.statSync(path.join(hooksDir, "statusline.sh"))
+        // check owner-executable bit
+        expect(stat.mode & 0o755).toBe(0o755)
+      }
     }).pipe(Effect.provide(NodeFileSystem.layer)),
   )
 
@@ -284,7 +291,9 @@ describe("ensureHomeFolderExists", () => {
 // ---------------------------------------------------------------------------
 
 describe("installCli — dev mode", () => {
-  it.scoped("writes wrapper to appDir/bin/spacecake", () =>
+  const wrapperName = isWindows ? "spacecake.cmd" : "spacecake"
+
+  it.scoped("writes wrapper to appDir/bin", () =>
     Effect.gen(function* () {
       const effectFs = yield* EffectFileSystem.FileSystem
       const tempDir = yield* effectFs.makeTempDirectoryScoped()
@@ -298,7 +307,7 @@ describe("installCli — dev mode", () => {
 
       yield* installCli.pipe(Effect.provide(layer))
 
-      const wrapperPath = path.join(homeDir, ".app", "bin", "spacecake")
+      const wrapperPath = path.join(homeDir, ".app", "bin", wrapperName)
       expect(fs.existsSync(wrapperPath)).toBe(true)
     }).pipe(Effect.provide(NodeFileSystem.layer)),
   )
@@ -318,14 +327,14 @@ describe("installCli — dev mode", () => {
 
       yield* installCli.pipe(Effect.provide(layer))
 
-      const content = fs.readFileSync(path.join(homeDir, ".app", "bin", "spacecake"), "utf-8")
+      const content = fs.readFileSync(path.join(homeDir, ".app", "bin", wrapperName), "utf-8")
       expect(content).toContain(cliEntry)
     }).pipe(Effect.provide(NodeFileSystem.layer)),
   )
 
-  it.scoped("wrapper has executable permissions", () =>
+  it.scoped("wrapper has executable permissions (unix only)", () =>
     Effect.gen(function* () {
-      // Windows doesn't support Unix permission modes
+      // windows doesn't support Unix permission modes
       if (isWindows) return
 
       const effectFs = yield* EffectFileSystem.FileSystem
@@ -367,7 +376,7 @@ describe("installCli — dev mode", () => {
 
       yield* installCli.pipe(Effect.provide(layer2))
 
-      const content = fs.readFileSync(path.join(homeDir, ".app", "bin", "spacecake"), "utf-8")
+      const content = fs.readFileSync(path.join(homeDir, ".app", "bin", wrapperName), "utf-8")
       expect(content).toContain("/second/cli/main.ts")
       expect(content).not.toContain("/first/cli/main.ts")
     }).pipe(Effect.provide(NodeFileSystem.layer)),
@@ -378,7 +387,7 @@ describe("installCli — dev mode", () => {
 // installCli — packaged mode
 // ---------------------------------------------------------------------------
 
-describe("installCli — packaged mode", () => {
+describe.skipIf(isWindows)("installCli — packaged mode", () => {
   it.scoped("creates symlink at globalBinTarget pointing to bundledCliBinaryPath", () =>
     Effect.gen(function* () {
       const effectFs = yield* EffectFileSystem.FileSystem
