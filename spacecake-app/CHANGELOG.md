@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.48
+
+### Patch Changes
+
+- bdb38e1: Fix Windows compatibility: use path.delimiter for PATH separator, normalise drive letter paths in named pipes, add TCP-based hooks server with PowerShell statusline.
+
 ## 0.1.0-alpha.47
 
 ### Patch Changes
