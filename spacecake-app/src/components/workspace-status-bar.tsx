@@ -1,10 +1,9 @@
-import { useAtom } from "jotai"
-import { ListTodo, PanelLeft, Terminal, TriangleAlert } from "lucide-react"
+import { useAtom, useAtomValue } from "jotai"
+import { GitBranch, ListTodo, PanelLeft, Terminal, TriangleAlert } from "lucide-react"
 import { useCallback, useState } from "react"
 
 import { ClaudeStatusBadge } from "@/components/claude-status-badge"
 import { ClaudeStatuslineBadge } from "@/components/claude-statusline-badge"
-import { GitBranchBadge } from "@/components/git-branch-badge"
 import { ModeToggle } from "@/components/mode-toggle"
 import {
   statuslineConflictAtom,
@@ -12,6 +11,7 @@ import {
 } from "@/components/statusline-setup-prompt"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { gitBranchAtom } from "@/lib/atoms/git"
 import { cn } from "@/lib/utils"
 import { match } from "@/types/adt"
 
@@ -19,8 +19,10 @@ interface WorkspaceStatusBarProps {
   onToggleSidebar?: () => void
   isTerminalExpanded?: boolean
   isTaskExpanded?: boolean
+  isGitExpanded?: boolean
   onToggleTerminal?: () => void
   onToggleTask?: () => void
+  onToggleGit?: () => void
 }
 
 function StatuslineConflictLink() {
@@ -101,10 +103,13 @@ export function WorkspaceStatusBar({
   onToggleSidebar,
   isTerminalExpanded,
   isTaskExpanded,
+  isGitExpanded,
   onToggleTerminal,
   onToggleTask,
+  onToggleGit,
 }: WorkspaceStatusBarProps) {
   useStatuslineAutoSetup()
+  const gitBranch = useAtomValue(gitBranchAtom)
 
   return (
     <div className="h-8 w-full bg-background/50 border-t flex items-center justify-between px-4 text-xs shrink-0">
@@ -154,7 +159,22 @@ export function WorkspaceStatusBar({
             tasks
           </button>
         )}
-        <GitBranchBadge />
+        {onToggleGit && gitBranch && (
+          <button
+            onClick={onToggleGit}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-all cursor-pointer",
+              isGitExpanded
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
+                : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300",
+            )}
+            aria-label={isGitExpanded ? "hide git panel" : "show git panel"}
+            title={isGitExpanded ? "hide git panel" : "show git panel"}
+          >
+            <GitBranch className="h-3 w-3" />
+            {gitBranch}
+          </button>
+        )}
       </div>
 
       {/* Right side: Claude status + conflict indicator */}

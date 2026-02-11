@@ -24,6 +24,7 @@ import { nodeToMdBlock } from "@/components/editor/markdown-utils"
 import { $createCodeBlockNode, $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { $isContainerNode } from "@/components/editor/nodes/container-node"
 import { $getDelimitedString } from "@/components/editor/nodes/delimited-node"
+import { $createDiffBlockNode } from "@/components/editor/nodes/diff-node"
 import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
@@ -70,6 +71,29 @@ export const createEditorConfigFromContent = (
   return {
     ...editorConfig,
     editorState: getInitialEditorStateFromContent(file, viewKind, selection),
+  }
+}
+
+export interface DiffData {
+  oldContent: string
+  newContent: string
+  filePath: string
+  language: string
+}
+
+// Pure function to create editor config from diff data
+export const createEditorConfigFromDiff = (diffData: DiffData): InitialConfigType => {
+  return {
+    ...editorConfig,
+    editorState: (editor: LexicalEditor) => {
+      convertToDiffView(
+        diffData.oldContent,
+        diffData.newContent,
+        diffData.filePath,
+        diffData.language,
+        editor,
+      )
+    },
   }
 }
 
@@ -205,6 +229,32 @@ export function convertToSourceView(
     if (selection) {
       $restoreSelection(selection)
     }
+  })
+}
+
+/**
+ * Converts diff data to a single DiffBlockNode view
+ * This function is used for displaying git diffs in the Lexical editor
+ */
+export function convertToDiffView(
+  oldContent: string,
+  newContent: string,
+  filePath: string,
+  language: string,
+  editor: LexicalEditor,
+) {
+  editor.update(() => {
+    const root = $getRoot()
+    root.clear()
+
+    const diffNode = $createDiffBlockNode({
+      oldContent,
+      newContent,
+      language,
+      filePath,
+    })
+
+    root.append(diffNode)
   })
 }
 

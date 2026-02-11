@@ -3,7 +3,6 @@ import { ChevronDown, ChevronRight, File, GitCommit } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   GitCommit as GitCommitType,
@@ -13,6 +12,7 @@ import {
   gitStatusLoadingAtom,
 } from "@/lib/atoms/git"
 import { cn } from "@/lib/utils"
+import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 
 interface GitPanelProps {
@@ -78,13 +78,13 @@ function FileSection({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-medium hover:bg-accent rounded">
+      <CollapsibleTrigger className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-medium hover:bg-accent rounded cursor-pointer">
         {isOpen ? (
           <ChevronDown className="h-3.5 w-3.5" />
         ) : (
           <ChevronRight className="h-3.5 w-3.5" />
         )}
-        <span>{title}</span>
+        <span>{title.toLowerCase()}</span>
         <Badge variant="secondary" className="ml-auto text-xs">
           {files.length}
         </Badge>
@@ -129,32 +129,55 @@ export function GitPanel({ workspacePath, onFileClick }: GitPanelProps) {
   const [commits, setCommits] = useAtom(gitCommitsAtom)
   const [isLoading, setIsLoading] = useAtom(gitStatusLoadingAtom)
   const [showCommits, setShowCommits] = useState(false)
+  const [isGitRepo, setIsGitRepo] = useState<boolean | null>(null)
 
   const refreshStatus = useCallback(async () => {
     setIsLoading(true)
     try {
-      const result = await window.electronAPI.git.getStatus(workspacePath)
-      if ("right" in result) {
-        setStatus(result.right as GitStatus)
+      // First check if this is a git repo
+      const isRepo = await window.electronAPI.git.isGitRepo(workspacePath)
+      setIsGitRepo(isRepo)
+
+      if (!isRepo) {
+        setStatus(null)
+        setCommits([])
+        return
       }
 
+      const result = await window.electronAPI.git.getStatus(workspacePath)
+      match(result, {
+        onLeft: (err) => {
+          console.error("Git status error:", err)
+        },
+        onRight: (status) => {
+          setStatus(status as GitStatus)
+        },
+      })
+
       const logResult = await window.electronAPI.git.getCommitLog(workspacePath, 20)
-      if ("right" in logResult) {
-        // Convert date strings back to Date objects
-        const commits = (
-          logResult.right as Array<{
-            hash: string
-            message: string
-            author: string
-            date: Date | string
-            files: string[]
-          }>
-        ).map((c) => ({
-          ...c,
-          date: typeof c.date === "string" ? new Date(c.date) : c.date,
-        }))
-        setCommits(commits)
-      }
+      match(logResult, {
+        onLeft: (err) => {
+          console.error("Git log error:", err)
+        },
+        onRight: (commits) => {
+          // Convert date strings back to Date objects
+          const parsed = (
+            commits as Array<{
+              hash: string
+              message: string
+              author: string
+              date: Date | string
+              files: string[]
+            }>
+          ).map((c) => ({
+            ...c,
+            date: typeof c.date === "string" ? new Date(c.date) : c.date,
+          }))
+          setCommits(parsed)
+        },
+      })
+    } catch (err) {
+      console.error("Git refresh error:", err)
     } finally {
       setIsLoading(false)
     }
@@ -172,22 +195,13 @@ export function GitPanel({ workspacePath, onFileClick }: GitPanelProps) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-3 py-2 border-b flex items-center justify-between">
-        <h3 className="text-sm font-medium">Source Control</h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={refreshStatus}
-          disabled={isLoading}
-          className="h-6 px-2"
-        >
-          {isLoading ? "..." : "Refresh"}
-        </Button>
-      </div>
-
       <div className="flex-1 overflow-auto">
         <div className="p-2">
-          {totalChanges === 0 && !isLoading ? (
+          {isGitRepo === false ? (
+            <div className="text-sm text-muted-foreground text-center py-4">
+              no git repository found
+            </div>
+          ) : totalChanges === 0 && !isLoading ? (
             <div className="text-sm text-muted-foreground text-center py-4">No changes</div>
           ) : (
             <div className="space-y-1">
@@ -224,26 +238,28 @@ export function GitPanel({ workspacePath, onFileClick }: GitPanelProps) {
           )}
 
           {/* Commits section */}
-          <Collapsible open={showCommits} onOpenChange={setShowCommits} className="mt-4">
-            <CollapsibleTrigger className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-medium hover:bg-accent rounded">
-              {showCommits ? (
-                <ChevronDown className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5" />
-              )}
-              <span>Recent Commits</span>
-              <Badge variant="secondary" className="ml-auto text-xs">
-                {commits.length}
-              </Badge>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="ml-2 border-l pl-2 space-y-1">
-                {commits.map((commit) => (
-                  <CommitItem key={commit.hash} commit={commit} />
-                ))}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+          {isGitRepo && (
+            <Collapsible open={showCommits} onOpenChange={setShowCommits} className="mt-4">
+              <CollapsibleTrigger className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-medium hover:bg-accent rounded cursor-pointer">
+                {showCommits ? (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5" />
+                )}
+                <span>recent commits</span>
+                <Badge variant="secondary" className="ml-auto text-xs">
+                  {commits.length}
+                </Badge>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="ml-2 border-l pl-2 space-y-1">
+                  {commits.map((commit) => (
+                    <CommitItem key={commit.hash} commit={commit} />
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </div>
       </div>
     </div>

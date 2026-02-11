@@ -107,9 +107,6 @@ export const paneItemTable = pgTable(
 // must be exported for drizzle to recognise it
 export const ViewKindEnum = pgEnum("view_kind", ViewKindSchema.literals)
 
-// Diff kind enum for unified vs split view
-export const DiffKindEnum = pgEnum("diff_kind", ["unified", "split"])
-
 export const editorTable = pgTable(
   "editor",
   {
@@ -128,10 +125,6 @@ export const editorTable = pgTable(
     state_updated_at: timestamp("state_updated_at", { mode: "string" }),
     selection: jsonb("selection").$type<SerializedSelection>(),
     created_at: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
-    // Diff-specific columns (nullable, only used when view_kind='diff')
-    base_ref: text("base_ref"), // null = HEAD
-    target_ref: text("target_ref"), // null = working directory
-    diff_kind: DiffKindEnum("diff_kind"), // 'unified' | 'split'
   },
   (table) => [uniqueIndex("editor_pane_file_idx").on(table.pane_id, table.file_id)],
 )

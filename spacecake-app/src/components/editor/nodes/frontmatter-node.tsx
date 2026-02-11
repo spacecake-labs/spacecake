@@ -389,7 +389,7 @@ const FrontmatterNodeEditorContainer: React.FC<FrontmatterNodeEditorContainerPro
   const rightActions = (
     <>
       <Select value="yaml" disabled>
-        <SelectTrigger size="sm" className="w-auto !px-2 !py-0.5 !h-auto !text-xs">
+        <SelectTrigger size="sm" className="w-auto !px-2 !py-0.5 !h-auto !text-xs font-mono">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

@@ -101,7 +101,13 @@ const makeGitService = Effect.gen(function* () {
           deleted: status.deleted,
         }
       },
-      catch: (e) => new GitError({ description: "Failed to get git status", cause: e }),
+      catch: (e) => {
+        console.error("Git status error for path:", workspacePath, e)
+        return new GitError({
+          description: `Failed to get git status: ${e instanceof Error ? e.message : String(e)}`,
+          cause: e,
+        })
+      },
     })
 
   const getFileDiff = (
@@ -161,7 +167,13 @@ const makeGitService = Effect.gen(function* () {
           files: (commit.diff?.files ?? []).map((f) => f.file),
         }))
       },
-      catch: (e) => new GitError({ description: "Failed to get commit log", cause: e }),
+      catch: (e) => {
+        console.error("Git log error for path:", workspacePath, e)
+        return new GitError({
+          description: `Failed to get commit log: ${e instanceof Error ? e.message : String(e)}`,
+          cause: e,
+        })
+      },
     })
 
   return {

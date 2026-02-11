@@ -39,7 +39,11 @@ const editorTheme = EditorView.theme(
     "&": {
       color: colors.foreground,
       backgroundColor: colors.background,
-      fontSize: "12px",
+      fontSize: "13px",
+      fontFamily: "'JetBrains Mono', monospace",
+    },
+    ".cm-content, .cm-gutters": {
+      fontFamily: "'JetBrains Mono', monospace",
     },
     ".cm-content": {
       caretColor: colors.cursor,

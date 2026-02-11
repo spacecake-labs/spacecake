@@ -9,6 +9,7 @@ import { Klass, LexicalNode, LexicalNodeReplacement, ParagraphNode, TextNode } f
 
 import { CodeBlockNode } from "@/components/editor/nodes/code-node"
 import { ContainerNode } from "@/components/editor/nodes/container-node"
+import { DiffBlockNode } from "@/components/editor/nodes/diff-node"
 import { FrontmatterNode } from "@/components/editor/nodes/frontmatter-node"
 import { ImageNode } from "@/components/editor/nodes/image-node"
 import { InlineImageNode } from "@/components/editor/nodes/inline-image-node"
@@ -30,6 +31,7 @@ export const nodes: ReadonlyArray<Klass<LexicalNode> | LexicalNodeReplacement> =
   CodeNode,
   CodeBlockNode,
   CodeHighlightNode,
+  DiffBlockNode,
   AutoLinkNode,
   ImageNode,
   InlineImageNode,

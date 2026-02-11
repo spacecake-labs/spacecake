@@ -16,7 +16,7 @@ unit filter="":
 build:
     bun run build
 
-dev:
+start:
     bun run dev
 
 test:

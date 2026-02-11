@@ -35,6 +35,14 @@ const determineViewKind = (
   return supportsRichView(fileType) ? "rich" : "source"
 }
 
+// diff is a transient overlay, not persisted to the editor table
+const getPersistableViewKind = (viewKind: ViewKind, fileType: FileType): "source" | "rich" => {
+  if (viewKind === "diff") {
+    return supportsRichView(fileType) ? "rich" : "source"
+  }
+  return viewKind
+}
+
 export class EditorManager extends Effect.Service<EditorManager>()("EditorManager", {
   effect: Effect.gen(function* () {
     const db = yield* Database
@@ -137,7 +145,7 @@ export class EditorManager extends Effect.Service<EditorManager>()("EditorManage
           const editor = yield* db.upsertEditor({
             pane_id: props.paneId,
             file_id: maybeFile.value.fileId,
-            view_kind: viewKind,
+            view_kind: getPersistableViewKind(viewKind, fileType),
           })
 
           // Only restore selection if prior state had matching view kind
