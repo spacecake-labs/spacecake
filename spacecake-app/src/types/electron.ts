@@ -92,7 +92,9 @@ export interface ElectronAPI {
     stopWatching: (
       workspacePath: string,
     ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
-    onBranchChange: (callback: (data: { path: string }) => void) => () => void
+    onGitChange: (
+      callback: (data: { workspacePath: string; filePath: string }) => void,
+    ) => () => void
     getStatus: (
       workspacePath: string,
     ) => Promise<

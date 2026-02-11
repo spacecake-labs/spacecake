@@ -77,19 +77,19 @@ export function ClaudeIntegrationProvider({
     return () => cleanups.forEach((c) => c())
   }, [serverReady, setStatus, setStatusline, machine])
 
-  // Initialize git branch and set up watcher
+  // initialize git branch and set up watcher
   useEffect(() => {
     if (!workspacePath) return
 
-    // Get initial branch
+    // get initial branch
     window.electronAPI.git.getCurrentBranch(workspacePath).then(setGitBranch)
 
-    // Start watching for branch changes
+    // start watching for git changes
     window.electronAPI.git.startWatching(workspacePath)
 
-    // Listen for branch changes
-    const cleanup = window.electronAPI.git.onBranchChange(({ path }) => {
-      if (path === workspacePath) {
+    // listen for git changes
+    const cleanup = window.electronAPI.git.onGitChange(({ workspacePath: changedPath }) => {
+      if (changedPath === workspacePath) {
         window.electronAPI.git.getCurrentBranch(workspacePath).then(setGitBranch)
       }
     })

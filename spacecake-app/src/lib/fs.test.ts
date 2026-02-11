@@ -64,7 +64,7 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
     isGitRepo: async () => false,
     startWatching: async () => right(undefined),
     stopWatching: async () => right(undefined),
-    onBranchChange: () => () => {},
+    onGitChange: () => () => {},
     getStatus: async () => right({ modified: [], staged: [], untracked: [], deleted: [] }),
     getFileDiff: async () => right({ oldContent: "", newContent: "" }),
     getCommitLog: async () => right([]),

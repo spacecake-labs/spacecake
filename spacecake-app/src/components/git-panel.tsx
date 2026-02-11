@@ -184,8 +184,18 @@ export function GitPanel({ workspacePath, onFileClick }: GitPanelProps) {
   }, [workspacePath, setStatus, setCommits, setIsLoading])
 
   useEffect(() => {
+    // initial fetch
     refreshStatus()
-  }, [refreshStatus])
+
+    // subscribe to git changes
+    const cleanup = window.electronAPI.git.onGitChange(({ workspacePath: changedPath }) => {
+      if (changedPath === workspacePath) {
+        refreshStatus()
+      }
+    })
+
+    return cleanup
+  }, [workspacePath, refreshStatus])
 
   const totalChanges =
     (status?.modified.length ?? 0) +

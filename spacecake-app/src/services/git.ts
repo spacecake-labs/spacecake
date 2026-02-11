@@ -61,27 +61,36 @@ const makeGitService = Effect.gen(function* () {
 
   const startWatching = (workspacePath: string) =>
     Effect.gen(function* () {
-      const gitHeadPath = AbsolutePath(`${workspacePath}/.git/HEAD`)
-      // Check if .git/HEAD exists at this path (not just if we're inside a git repo)
+      const gitDir = AbsolutePath(`${workspacePath}/.git`)
+      // check if .git directory exists at this path (not just if we're inside a git repo)
       // simple-git's checkIsRepo returns true for subdirectories of a repo,
-      // but we only want to watch if .git/HEAD exists at the workspace root
-      const headExists = yield* fs.exists(gitHeadPath)
-      if (!headExists) {
-        // Not a git repo root - silently succeed without starting a watcher
+      // but we only want to watch if .git exists at the workspace root
+      const gitDirExists = yield* fs.exists(gitDir)
+      if (!gitDirExists) {
+        // not a git repo root - silently succeed without starting a watcher
         return
       }
-      yield* fs.startFileWatcher(gitHeadPath, "git:branch:changed")
+      // watch .git/ directory with filter for files that indicate git state changes
+      yield* fs.startDirWatcher(gitDir, "git:changed", (path) => {
+        return (
+          path.endsWith("/HEAD") || // branch switch
+          path.endsWith("/index") || // staging area
+          path.includes("/refs/") // commits, branches, stash
+        )
+      })
     }).pipe(
-      Effect.mapError((e) => new GitError({ description: "Failed to watch git HEAD", cause: e })),
+      Effect.mapError(
+        (e) => new GitError({ description: "Failed to watch git directory", cause: e }),
+      ),
     )
 
   const stopWatching = (workspacePath: string) => {
-    // Always attempt to stop - don't check isGitRepo because:
-    // 1. The repo state may have changed since startWatching was called
-    // 2. The watcher service handles "no watcher found" gracefully
-    const gitHeadPath = AbsolutePath(`${workspacePath}/.git/HEAD`)
+    // always attempt to stop - don't check isGitRepo because:
+    // 1. the repo state may have changed since startWatching was called
+    // 2. the watcher service handles "no watcher found" gracefully
+    const gitDir = AbsolutePath(`${workspacePath}/.git`)
     return fs
-      .stopFileWatcher(gitHeadPath)
+      .stopDirWatcher(gitDir)
       .pipe(
         Effect.mapError(
           (e) => new GitError({ description: "Failed to stop git watcher", cause: e }),
