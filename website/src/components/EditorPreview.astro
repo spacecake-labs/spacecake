@@ -235,7 +235,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
               >
               </div>
               <span class="text-emerald-400 text-xs font-mono whitespace-nowrap"
-                >opus 4.5</span
+                >Opus 4.5</span
               >
             </div>
           </div>
@@ -531,15 +531,12 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   }
 
   .tab-filename {
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .editor-tab {
     font-family: var(--sl-font-mono) !important;
-    font-size: 10px !important;
+    font-size: 0.75rem !important; /* text-xs to match badges */
     padding: 6px 10px !important;
   }
 
@@ -574,6 +571,8 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     align-items: center;
     gap: 0.5rem;
     padding-left: 0.5rem;
+    cursor: pointer;
+    user-select: none;
   }
 
   .checklist-item .checkbox {
@@ -669,13 +668,24 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     })
   }
 
+  function initChecklist() {
+    const checklistItems = document.querySelectorAll(".checklist-item")
+    checklistItems.forEach((item) => {
+      item.addEventListener("click", () => {
+        item.classList.toggle("checked")
+      })
+    })
+  }
+
   // Initialize on load
   initTerminal()
   initTabs()
+  initChecklist()
 
   // Re-initialize when navigating with View Transitions
   document.addEventListener("astro:page-load", () => {
     initTerminal()
     initTabs()
+    initChecklist()
   })
 </script>

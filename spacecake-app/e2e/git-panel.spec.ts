@@ -91,6 +91,9 @@ test.describe("git panel", () => {
     const newFile = path.join(tempTestDir, "created-during-test.md")
     fs.writeFileSync(newFile, "# initial content")
 
+    // give file watcher time to detect the change (especially needed on Windows)
+    await window.waitForTimeout(500)
+
     // wait for sidebar to show the new file
     await expect(locateSidebarItem(window, "created-during-test.md")).toBeVisible()
 

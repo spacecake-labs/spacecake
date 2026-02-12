@@ -85,6 +85,7 @@ export default defineConfig({
       components: {
         Hero: "./src/components/Hero.astro",
         Search: "./src/components/Search.astro",
+        SocialIcons: "./src/components/SocialIcons.astro",
       },
       customCss: ["./src/styles/global.css", "./src/styles/theme.css"],
     }),

@@ -1,0 +1,32 @@
+---
+import { Icon } from "@astrojs/starlight/components"
+
+const GITHUB_URL = "https://github.com/spacecake-labs/spacecake"
+---
+
+<a href={GITHUB_URL} rel="me" class="github-link">
+  <Icon name="github" />
+  <span class="github-text">GitHub</span>
+</a>
+
+<style>
+  .github-link {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    transition: opacity 0.15s;
+  }
+
+  .github-link:hover {
+    opacity: 0.66;
+  }
+
+  .github-text {
+    font-weight: 500;
+  }
+</style>
