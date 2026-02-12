@@ -9,7 +9,7 @@ import { EditorPrimaryKey } from "@/schema/editor"
 import { Database, PgliteError } from "@/services/database"
 import { FileSystemError } from "@/services/file-system"
 import { isLeft, isRight, left, right, type Either } from "@/types/adt"
-import { ViewKind } from "@/types/lexical"
+import { PersistableViewKind, ViewKind } from "@/types/lexical"
 import { AbsolutePath, FileType, type EditorCache, type EditorFile } from "@/types/workspace"
 
 // Note: Route loader is now read-only. Pane item creation is handled by the pane machine
@@ -36,7 +36,10 @@ const determineViewKind = (
 }
 
 // diff is a transient overlay, not persisted to the editor table
-const getPersistableViewKind = (viewKind: ViewKind, fileType: FileType): "source" | "rich" => {
+export const getPersistableViewKind = (
+  viewKind: ViewKind,
+  fileType: FileType,
+): PersistableViewKind => {
   if (viewKind === "diff") {
     return supportsRichView(fileType) ? "rich" : "source"
   }

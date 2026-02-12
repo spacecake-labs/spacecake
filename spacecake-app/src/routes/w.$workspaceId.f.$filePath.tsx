@@ -286,7 +286,8 @@ function FileLayout() {
               notifyClaudeCodeSelection(selectedText, claudeSelection)
             } else {
               sendFileState({ type: "file.edit" })
-              if (viewKind) {
+              // don't persist state for diff views (read-only overlay)
+              if (viewKind && viewKind !== "diff") {
                 send({
                   type: "editor.state.update",
                   editorState: {

@@ -14,6 +14,28 @@ import { GitPanel } from "@/components/git-panel"
 import { type Either, right } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 
+// mock useRoute hook and router - use vi.hoisted since vi.mock is hoisted
+const { mockNavigate, getMockRouteValue, setMockRouteValue } = vi.hoisted(() => {
+  let mockRouteValue: ReturnType<typeof import("@/hooks/use-route").useRoute> = null
+  return {
+    mockNavigate: vi.fn(),
+    getMockRouteValue: () => mockRouteValue,
+    setMockRouteValue: (value: typeof mockRouteValue) => {
+      mockRouteValue = value
+    },
+  }
+})
+
+vi.mock("@/hooks/use-route", () => ({
+  useRoute: () => getMockRouteValue(),
+}))
+
+vi.mock("@/router", () => ({
+  router: {
+    navigate: mockNavigate,
+  },
+}))
+
 type GitError = { _tag: "GitError"; description: string }
 const gitRight = <T,>(value: T): Either<GitError, T> => right(value)
 
@@ -89,6 +111,8 @@ describe("GitPanel", () => {
     document.body.appendChild(container)
     root = createRoot(container)
     store = createStore()
+    setMockRouteValue(null)
+    mockNavigate.mockClear()
   })
 
   afterEach(() => {
@@ -105,7 +129,10 @@ describe("GitPanel", () => {
     },
   ) {
     // attach mock to window
-    window.electronAPI = { git: gitApi } as unknown as ElectronAPI
+    window.electronAPI = {
+      git: gitApi,
+      onFileEvent: vi.fn(() => () => {}),
+    } as unknown as ElectronAPI
 
     act(() => {
       root.render(
@@ -257,6 +284,51 @@ describe("GitPanel", () => {
       "abc1234def5678",
     )
   })
+
+  it("navigates away from diff view when file is no longer in changes", async () => {
+    // set up route as viewing a diff for a file
+    setMockRouteValue({
+      workspaceId: TEST_WORKSPACE,
+      filePath: AbsolutePath("/test/workspace/src/removed.ts"),
+      viewKind: "diff",
+      fileType: "typescript",
+    })
+
+    // git status does NOT include the file we're viewing
+    const { api } = createMockGitAPI({
+      status: { modified: ["src/other.ts"], staged: [], untracked: [], deleted: [] },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // should have navigated away from the diff view
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "/w/$workspaceId/f/$filePath",
+        search: {},
+      }),
+    )
+  })
+
+  it("does not navigate when diff file is still in changes", async () => {
+    // set up route as viewing a diff for a file
+    setMockRouteValue({
+      workspaceId: TEST_WORKSPACE,
+      filePath: AbsolutePath("/test/workspace/src/modified.ts"),
+      viewKind: "diff",
+      fileType: "typescript",
+    })
+
+    // git status DOES include the file we're viewing
+    const { api } = createMockGitAPI({
+      status: { modified: ["src/modified.ts"], staged: [], untracked: [], deleted: [] },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // should NOT have navigated
+    expect(mockNavigate).not.toHaveBeenCalled()
+  })
 })
 
 describe("working tree files", () => {
@@ -278,7 +350,10 @@ describe("working tree files", () => {
   })
 
   function renderPanel(gitApi: ReturnType<typeof createMockGitAPI>["api"]) {
-    window.electronAPI = { git: gitApi } as unknown as ElectronAPI
+    window.electronAPI = {
+      git: gitApi,
+      onFileEvent: vi.fn(() => () => {}),
+    } as unknown as ElectronAPI
     act(() => {
       root.render(
         <Provider store={store}>
@@ -424,7 +499,10 @@ describe("commit files", () => {
   })
 
   function renderPanel(gitApi: ReturnType<typeof createMockGitAPI>["api"]) {
-    window.electronAPI = { git: gitApi } as unknown as ElectronAPI
+    window.electronAPI = {
+      git: gitApi,
+      onFileEvent: vi.fn(() => () => {}),
+    } as unknown as ElectronAPI
     act(() => {
       root.render(
         <Provider store={store}>
@@ -541,7 +619,10 @@ describe("commit selection", () => {
   ]
 
   function renderPanel(gitApi: ReturnType<typeof createMockGitAPI>["api"]) {
-    window.electronAPI = { git: gitApi } as unknown as ElectronAPI
+    window.electronAPI = {
+      git: gitApi,
+      onFileEvent: vi.fn(() => () => {}),
+    } as unknown as ElectronAPI
     act(() => {
       root.render(
         <Provider store={store}>

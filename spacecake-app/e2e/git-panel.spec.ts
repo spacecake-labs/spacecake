@@ -84,6 +84,45 @@ test.describe("git panel", () => {
     await window.getByRole("button", { name: "change git dock position" }).click()
     await window.getByText("dock left").click()
     await expect(window.locator("#git-panel-left")).toBeVisible()
+
+    // --- git panel refreshes when file is saved in editor ---
+
+    // create a new file externally (file watcher adds to sidebar)
+    const newFile = path.join(tempTestDir, "created-during-test.md")
+    fs.writeFileSync(newFile, "# initial content")
+
+    // wait for sidebar to show the new file
+    await expect(locateSidebarItem(window, "created-during-test.md")).toBeVisible({ timeout: 5000 })
+
+    // select working tree to see current changes
+    await window.getByText("working tree").click()
+
+    // verify the new file appears as untracked in git panel
+    await expect(window.getByText("created-during-test.md").first()).toBeVisible()
+    await expect(window.getByTitle("untracked").nth(1)).toBeVisible()
+
+    // open the file in editor
+    await locateSidebarItem(window, "created-during-test.md").click()
+    await expect(window.getByText("initial content")).toBeVisible()
+
+    // edit the file
+    await window.getByText("initial content").click()
+    await window.keyboard.press("End")
+    await window.keyboard.type(" EDITED", { delay: 50 })
+    await expect(window.getByText("EDITED")).toBeVisible()
+
+    // save with Cmd+S
+    await window.keyboard.press("ControlOrMeta+s")
+
+    // wait for save to complete
+    await window.waitForTimeout(500)
+
+    // verify file on disk was saved
+    const savedContent = fs.readFileSync(newFile, "utf-8")
+    expect(savedContent).toContain("EDITED")
+
+    // verify git panel still shows the file (refresh didn't break anything)
+    await expect(window.getByText("created-during-test.md").first()).toBeVisible()
   })
 
   test("non-git directory hides git toggle in status bar", async ({ electronApp, tempTestDir }) => {

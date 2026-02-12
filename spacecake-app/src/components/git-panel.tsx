@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
+import { useRoute } from "@/hooks/use-route"
 import {
   GitCommit as GitCommitType,
   gitCommitsAtom,
@@ -15,7 +16,9 @@ import {
   gitStatusLoadingAtom,
   selectedCommitAtom,
 } from "@/lib/atoms/git"
+import { encodeBase64Url } from "@/lib/utils"
 import { cn, condensePath } from "@/lib/utils"
+import { router } from "@/router"
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 
@@ -193,7 +196,7 @@ function WorkingTreeItem({
       ) : (
         <Circle className="h-2 w-2 text-muted-foreground flex-shrink-0" />
       )}
-      <span className="font-medium">working tree</span>
+      <span className="font-medium whitespace-nowrap">working tree</span>
     </button>
   )
 }
@@ -423,6 +426,61 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
 
     return cleanup
   }, [workspacePath, refreshStatus])
+
+  // subscribe to file-event for working tree changes
+  useEffect(() => {
+    let debounceTimer: NodeJS.Timeout
+
+    const cleanup = window.electronAPI.onFileEvent((event) => {
+      // only react to file content changes in this workspace
+      if (event.kind !== "contentChange") return
+      if (!event.path.startsWith(workspacePath)) return
+      // skip .git directory changes (already handled by git:changed)
+      if (event.path.includes("/.git/")) return
+
+      clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => refreshStatus(), 300)
+    })
+
+    return () => {
+      cleanup()
+      clearTimeout(debounceTimer)
+    }
+  }, [workspacePath, refreshStatus])
+
+  // get current route to detect stale diff views
+  const currentRoute = useRoute()
+
+  // navigate away from stale diff views when file is no longer in changes list
+  useEffect(() => {
+    if (!status || !currentRoute) return
+    if (currentRoute.viewKind !== "diff") return
+
+    // check if the current file is still in the working tree changes
+    const allChangedFiles = [
+      ...status.modified,
+      ...status.staged,
+      ...status.untracked,
+      ...status.deleted,
+    ]
+
+    // convert relative paths to absolute for comparison
+    const changedAbsolutePaths = allChangedFiles.map((f) => `${workspacePath}/${f}`)
+    const isFileStillChanged = changedAbsolutePaths.includes(currentRoute.filePath)
+
+    if (!isFileStillChanged) {
+      // navigate to the same file without the diff view
+      router.navigate({
+        to: "/w/$workspaceId/f/$filePath",
+        params: {
+          workspaceId: encodeBase64Url(currentRoute.workspaceId),
+          filePath: encodeBase64Url(currentRoute.filePath),
+        },
+        // remove view=diff by not passing it
+        search: {},
+      })
+    }
+  }, [status, currentRoute, workspacePath])
 
   const totalChanges =
     (status?.modified.length ?? 0) +
