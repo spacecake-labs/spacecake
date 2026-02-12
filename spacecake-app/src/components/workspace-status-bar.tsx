@@ -11,6 +11,7 @@ import {
 } from "@/components/statusline-setup-prompt"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { WatchmanBadge } from "@/components/watchman-badge"
 import { gitBranchAtom } from "@/lib/atoms/git"
 import { cn } from "@/lib/utils"
 import { match } from "@/types/adt"
