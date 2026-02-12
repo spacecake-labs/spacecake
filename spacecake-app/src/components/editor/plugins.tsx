@@ -33,7 +33,7 @@ export const Plugins = React.memo(function Plugins() {
           contentEditable={
             <ContentEditable
               placeholder={""}
-              className="ContentEditable__root absolute inset-0 overflow-auto px-8 py-4 focus:outline-none"
+              className="ContentEditable__root absolute inset-0 overflow-y-auto p-4 focus:outline-none [scrollbar-gutter:stable_both-edges]"
             />
           }
           ErrorBoundary={LexicalErrorBoundary}
