@@ -179,6 +179,7 @@ export function WorkspaceStatusBar({
 
       {/* Right side: Claude status + conflict indicator */}
       <div className="flex items-center gap-2 flex-shrink-0">
+        <WatchmanBadge className="text-xs" />
         <StatuslineConflictLink />
         <ClaudeStatusBadge className="text-xs" />
         <ClaudeStatuslineBadge className="text-xs" />

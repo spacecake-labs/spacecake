@@ -17,7 +17,13 @@ import { GitIgnoreLive } from "@/services/git-ignore-parser"
 import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
 
 // Use path.join for cross-platform compatibility - on Windows paths use backslashes
-const SPACECAKE_SCRIPT_PATH = path.join("/test", ".spacecake", ".app", "hooks", "statusline.sh")
+const SPACECAKE_SCRIPT_PATH = path.join(
+  "/test",
+  ".spacecake",
+  ".app",
+  "hooks",
+  process.platform === "win32" ? "statusline.cmd" : "statusline.sh",
+)
 
 // Mock WatcherService - we're not testing watcher functionality here
 const MockWatcherService = Layer.succeed(WatcherService, {

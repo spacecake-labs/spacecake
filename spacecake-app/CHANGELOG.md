@@ -1,5 +1,36 @@
 # spacecake-app
 
+## 0.1.0-alpha.48
+
+### Patch Changes
+
+- bdb38e1: Fix Windows compatibility: use path.delimiter for PATH separator, normalise drive letter paths in named pipes, add TCP-based hooks server with PowerShell statusline.
+
+## 0.1.0-alpha.47
+
+### Patch Changes
+
+- c8c4358: Ignoring status line data from Claude sessions outside of spacecake.
+- 73962aa: Fix EIO error on linux.
+
+## 0.1.0-alpha.46
+
+### Patch Changes
+
+- 78d6731: Feat: Windows build.
+
+## 0.1.0-alpha.45
+
+### Patch Changes
+
+- 5f60d87: Git service and branch badge.
+
+## 0.1.0-alpha.44
+
+### Patch Changes
+
+- b906b38: Option to autosave files on edit.
+
 ## 0.1.0-alpha.43
 
 ### Patch Changes

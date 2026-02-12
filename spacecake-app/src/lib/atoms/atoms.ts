@@ -88,3 +88,9 @@ export const ideDisconnectedToastShownAtom = atomWithStorage<boolean>(
   "spacecake-ide-disconnected-toast-shown",
   false,
 )
+
+// persisted dismiss flag for watchman recommendation badge
+export const watchmanBadgeDismissedAtom = atomWithStorage<boolean>(
+  "spacecake-watchman-badge-dismissed",
+  false,
+)

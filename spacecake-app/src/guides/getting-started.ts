@@ -93,6 +93,9 @@ press \`⌘R\` to refresh the app. if the issue persists in rich mode, switch to
 **debugging issues:**
 open Chrome DevTools from within \`spacecake\` to view console logs.
 
+**slow file watching on linux or windows?**
+spacecake uses @parcel/watcher for detecting file changes. on linux and windows, installing [watchman](https://facebook.github.io/watchman/) significantly improves file watching performance and reliability for large projects. spacecake will show a tip in the status bar recommending this. see the [watchman installation guide](https://facebook.github.io/watchman/docs/install) for setup instructions.
+
 ## 💬 feedback & issues
 
 have feedback, found a bug, or want to request a feature?

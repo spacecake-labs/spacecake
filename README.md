@@ -28,8 +28,20 @@ Download an installer for your platform from the [latest release](https://github
 - **Linux**: Download the `.deb` file (for Debian-based distributions like Ubuntu) or `.AppImage` for other distros
 - **macOS (ZIP)**: Download the `.zip` file for manual installation
 
+> **linux & windows users**: for best file watching performance, install [watchman](https://facebook.github.io/watchman/docs/install). spacecake will show a tip in the status bar recommending this.
+
 On first launch, spacecake opens the home folder (`~/.spacecake`) for general notes.
 Press `⌘O` (macOS) or `ctrl+O` (Windows/Linux) to open your project as a workspace.
+
+## Star History
+
+<a href="https://www.star-history.com/#spacecake-labs/spacecake&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=spacecake-labs/spacecake&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=spacecake-labs/spacecake&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=spacecake-labs/spacecake&type=date&legend=top-left" />
+ </picture>
+</a>
 
 #### keyboard shortcuts
 
