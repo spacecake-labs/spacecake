@@ -105,8 +105,7 @@ test.describe("git panel", () => {
     await locateSidebarItem(window, "created-during-test.md").click()
     await expect(window.getByText("initial content")).toBeVisible()
 
-    // edit the file
-    await window.getByText("initial content").click()
+    await window.getByText("initial content").click({ force: true })
     await window.keyboard.press("End")
     await window.keyboard.type(" EDITED", { delay: 50 })
     await expect(window.getByText("EDITED")).toBeVisible()
