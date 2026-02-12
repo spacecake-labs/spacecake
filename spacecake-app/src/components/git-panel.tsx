@@ -1,17 +1,21 @@
 import { useAtom } from "jotai"
-import { ChevronDown, ChevronRight, File } from "lucide-react"
+import { Check, ChevronDown, ChevronRight, Circle, Copy, File } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import {
   GitCommit as GitCommitType,
   gitCommitsAtom,
   GitStatus,
   gitStatusAtom,
   gitStatusLoadingAtom,
+  selectedCommitAtom,
 } from "@/lib/atoms/git"
-import { cn } from "@/lib/utils"
+import { cn, condensePath } from "@/lib/utils"
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 
@@ -21,54 +25,108 @@ interface GitPanelProps {
   onCommitFileClick?: (filePath: AbsolutePath, commitHash: string) => void
 }
 
+type FileStatus = "modified" | "staged" | "untracked" | "deleted" | "added"
+
+const statusColors: Record<FileStatus, string> = {
+  modified: "text-yellow-500",
+  staged: "text-green-500",
+  untracked: "text-blue-500",
+  deleted: "text-red-500",
+  added: "text-green-500",
+}
+
+const statusLabels: Record<FileStatus, string> = {
+  modified: "M",
+  staged: "S",
+  untracked: "U",
+  deleted: "D",
+  added: "A",
+}
+
 function FileItem({
   file,
+  fullPath,
   status,
   onClick,
 }: {
   file: string
-  status: "modified" | "staged" | "untracked" | "deleted"
+  fullPath: string
+  status?: FileStatus
   onClick?: () => void
 }) {
-  const statusColors = {
-    modified: "text-yellow-500",
-    staged: "text-green-500",
-    untracked: "text-blue-500",
-    deleted: "text-red-500",
-  }
+  const [copied, setCopied] = useState(false)
 
-  const statusLabels = {
-    modified: "M",
-    staged: "S",
-    untracked: "U",
-    deleted: "D",
+  const handleCopyPath = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    try {
+      await navigator.clipboard.writeText(fullPath)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("failed to copy path:", err)
+    }
   }
 
   return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-2 w-full px-2 py-1 text-sm hover:bg-accent rounded cursor-pointer text-left"
-    >
-      <File className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-      <span className="truncate flex-1">{file}</span>
-      <span className={cn("text-xs font-medium", statusColors[status])}>
-        {statusLabels[status]}
-      </span>
-    </button>
+    <HoverCard openDelay={300} closeDelay={100}>
+      <HoverCardTrigger asChild>
+        <button
+          onClick={onClick}
+          className="@container flex items-center gap-2 w-full px-2 py-1 text-sm hover:bg-accent rounded cursor-pointer text-left"
+        >
+          <File className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+          <span className="flex-1 min-w-0">
+            {/* wide: full path with rtl truncation fallback */}
+            <span
+              className="hidden @[300px]:block truncate"
+              style={{ direction: "rtl", textAlign: "left" }}
+            >
+              <span style={{ direction: "ltr", unicodeBidi: "embed" }}>{file}</span>
+            </span>
+            {/* narrow: condensed path with rtl truncation fallback */}
+            <span
+              className="block @[300px]:hidden truncate"
+              style={{ direction: "rtl", textAlign: "left" }}
+            >
+              <span style={{ direction: "ltr", unicodeBidi: "embed" }}>{condensePath(file)}</span>
+            </span>
+          </span>
+          {status && (
+            <span className={cn("text-xs font-medium flex-shrink-0", statusColors[status])}>
+              {statusLabels[status]}
+            </span>
+          )}
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent side="bottom" align="start" className="w-auto max-w-md p-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground break-all">{file}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopyPath}
+            className="h-6 w-6 p-0 cursor-pointer flex-shrink-0"
+            aria-label="copy path"
+            title="copy path"
+          >
+            {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
+          </Button>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
   )
 }
 
 function FileSection({
   title,
   files,
-  status,
   workspacePath,
   onFileClick,
   defaultOpen = true,
 }: {
   title: string
-  files: string[]
-  status: "modified" | "staged" | "untracked" | "deleted"
+  files: Array<{ path: string; status: FileStatus }>
   workspacePath: AbsolutePath
   onFileClick?: (filePath: AbsolutePath) => void
   defaultOpen?: boolean
@@ -92,21 +150,168 @@ function FileSection({
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="ml-2 border-l pl-2">
-          {files.map((file) => (
-            <FileItem
-              key={file}
-              file={file}
-              status={status}
-              onClick={() => onFileClick?.(AbsolutePath(`${workspacePath}/${file}`))}
-            />
-          ))}
+          {files.map((file) => {
+            const fullPath = `${workspacePath}/${file.path}`
+            return (
+              <FileItem
+                key={file.path}
+                file={file.path}
+                fullPath={fullPath}
+                status={file.status}
+                onClick={() => onFileClick?.(AbsolutePath(fullPath))}
+              />
+            )
+          })}
         </div>
       </CollapsibleContent>
     </Collapsible>
   )
 }
 
-function CommitItem({
+function WorkingTreeItem({
+  isSelected,
+  hasChanges,
+  onClick,
+}: {
+  isSelected: boolean
+  hasChanges: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent rounded cursor-pointer text-left",
+        isSelected && "bg-accent",
+      )}
+    >
+      {hasChanges ? (
+        <Circle className="h-2 w-2 fill-yellow-500 text-yellow-500 flex-shrink-0" />
+      ) : (
+        <Circle className="h-2 w-2 text-muted-foreground flex-shrink-0" />
+      )}
+      <span className="font-medium">working tree</span>
+    </button>
+  )
+}
+
+function CommitListItem({
+  commit,
+  isSelected,
+  onClick,
+}: {
+  commit: GitCommitType
+  isSelected: boolean
+  onClick: () => void
+}) {
+  const shortHash = commit.hash.substring(0, 7)
+  const formattedDate = new Date(commit.date).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  })
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full px-2 py-1.5 hover:bg-accent rounded cursor-pointer text-left text-sm",
+        isSelected && "bg-accent",
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-xs text-muted-foreground">{shortHash}</span>
+        <span className="text-xs text-muted-foreground ml-auto">{formattedDate}</span>
+      </div>
+      <p className="mt-0.5 text-sm truncate">{commit.message}</p>
+    </button>
+  )
+}
+
+function CommitPane({
+  commits,
+  selectedCommit,
+  hasChanges,
+  onSelectCommit,
+}: {
+  commits: GitCommitType[]
+  selectedCommit: string
+  hasChanges: boolean
+  onSelectCommit: (commitHash: string) => void
+}) {
+  return (
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">commits</div>
+      <div className="flex-1 overflow-auto p-1 space-y-0.5">
+        <WorkingTreeItem
+          isSelected={selectedCommit === "working-tree"}
+          hasChanges={hasChanges}
+          onClick={() => onSelectCommit("working-tree")}
+        />
+        {commits.map((commit) => (
+          <CommitListItem
+            key={commit.hash}
+            commit={commit}
+            isSelected={selectedCommit === commit.hash}
+            onClick={() => onSelectCommit(commit.hash)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function WorkingTreeFilesPane({
+  status,
+  workspacePath,
+  onFileClick,
+}: {
+  status: GitStatus | null
+  workspacePath: AbsolutePath
+  onFileClick?: (filePath: AbsolutePath) => void
+}) {
+  // staged files with "added" status (A)
+  const stagedFiles: Array<{ path: string; status: FileStatus }> =
+    status?.staged.map((path) => ({ path, status: "added" as FileStatus })) ?? []
+
+  // combine modified, untracked, deleted into "changes" section
+  const changesFiles: Array<{ path: string; status: FileStatus }> = [
+    ...(status?.modified.map((path) => ({ path, status: "modified" as FileStatus })) ?? []),
+    ...(status?.untracked.map((path) => ({ path, status: "untracked" as FileStatus })) ?? []),
+    ...(status?.deleted.map((path) => ({ path, status: "deleted" as FileStatus })) ?? []),
+  ]
+
+  const hasNoChanges = stagedFiles.length === 0 && changesFiles.length === 0
+
+  return (
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">
+        changed files
+      </div>
+      <div className="flex-1 overflow-auto p-1">
+        {hasNoChanges ? (
+          <div className="text-sm text-muted-foreground text-center py-4">no changes</div>
+        ) : (
+          <div className="space-y-1">
+            <FileSection
+              title="staged changes"
+              files={stagedFiles}
+              workspacePath={workspacePath}
+              onFileClick={onFileClick}
+            />
+            <FileSection
+              title="changes"
+              files={changesFiles}
+              workspacePath={workspacePath}
+              onFileClick={onFileClick}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function CommitFilesPane({
   commit,
   workspacePath,
   onFileClick,
@@ -115,44 +320,30 @@ function CommitItem({
   workspacePath: AbsolutePath
   onFileClick?: (filePath: AbsolutePath, commitHash: string) => void
 }) {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const shortHash = commit.hash.substring(0, 7)
-  const formattedDate = new Date(commit.date).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  })
-
   return (
-    <div className="text-sm">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-2 py-1.5 hover:bg-accent rounded cursor-pointer text-left"
-      >
-        <div className="flex items-center gap-2">
-          {isExpanded ? (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-          )}
-          <span className="font-mono text-xs text-muted-foreground">{shortHash}</span>
-          <span className="text-xs text-muted-foreground ml-auto">{formattedDate}</span>
-        </div>
-        <p className="mt-0.5 text-sm truncate pl-5.5">{commit.message}</p>
-      </button>
-      {isExpanded && commit.files.length > 0 && (
-        <div className="ml-4 border-l pl-2 space-y-0.5">
-          {commit.files.map((file) => (
-            <button
-              key={file}
-              onClick={() => onFileClick?.(AbsolutePath(`${workspacePath}/${file}`), commit.hash)}
-              className="flex items-center gap-2 w-full px-2 py-1 text-sm hover:bg-accent rounded cursor-pointer text-left"
-            >
-              <File className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="truncate flex-1">{file}</span>
-            </button>
-          ))}
-        </div>
-      )}
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">
+        changed files
+      </div>
+      <div className="flex-1 overflow-auto p-1">
+        {commit.files.length === 0 ? (
+          <div className="text-sm text-muted-foreground text-center py-4">no files</div>
+        ) : (
+          <div className="space-y-0.5">
+            {commit.files.map((file) => {
+              const fullPath = `${workspacePath}/${file}`
+              return (
+                <FileItem
+                  key={file}
+                  file={file}
+                  fullPath={fullPath}
+                  onClick={() => onFileClick?.(AbsolutePath(fullPath), commit.hash)}
+                />
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -160,14 +351,14 @@ function CommitItem({
 export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitPanelProps) {
   const [status, setStatus] = useAtom(gitStatusAtom)
   const [commits, setCommits] = useAtom(gitCommitsAtom)
-  const [isLoading, setIsLoading] = useAtom(gitStatusLoadingAtom)
-  const [showCommits, setShowCommits] = useState(false)
+  const [_isLoading, setIsLoading] = useAtom(gitStatusLoadingAtom)
+  const [selectedCommit, setSelectedCommit] = useAtom(selectedCommitAtom)
   const [isGitRepo, setIsGitRepo] = useState<boolean | null>(null)
 
   const refreshStatus = useCallback(async () => {
     setIsLoading(true)
     try {
-      // First check if this is a git repo
+      // first check if this is a git repo
       const isRepo = await window.electronAPI.git.isGitRepo(workspacePath)
       setIsGitRepo(isRepo)
 
@@ -193,7 +384,7 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
           console.error("Git log error:", err)
         },
         onRight: (commits) => {
-          // Convert date strings back to Date objects
+          // convert date strings back to Date objects
           const parsed = (
             commits as Array<{
               hash: string
@@ -236,80 +427,48 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
     (status?.untracked.length ?? 0) +
     (status?.deleted.length ?? 0)
 
-  return (
-    <div className="h-full flex flex-col">
-      <div className="flex-1 overflow-auto">
-        <div className="p-2">
-          {isGitRepo === false ? (
-            <div className="text-sm text-muted-foreground text-center py-4">
-              no git repository found
-            </div>
-          ) : totalChanges === 0 && !isLoading ? (
-            <div className="text-sm text-muted-foreground text-center py-4">No changes</div>
-          ) : (
-            <div className="space-y-1">
-              <FileSection
-                title="Staged Changes"
-                files={status?.staged ?? []}
-                status="staged"
-                workspacePath={workspacePath}
-                onFileClick={onFileClick}
-              />
-              <FileSection
-                title="Changes"
-                files={status?.modified ?? []}
-                status="modified"
-                workspacePath={workspacePath}
-                onFileClick={onFileClick}
-              />
-              <FileSection
-                title="Untracked"
-                files={status?.untracked ?? []}
-                status="untracked"
-                workspacePath={workspacePath}
-                onFileClick={onFileClick}
-                defaultOpen={false}
-              />
-              <FileSection
-                title="Deleted"
-                files={status?.deleted ?? []}
-                status="deleted"
-                workspacePath={workspacePath}
-                onFileClick={onFileClick}
-              />
-            </div>
-          )}
+  const selectedCommitData = commits.find((c) => c.hash === selectedCommit)
 
-          {/* Commits section */}
-          {isGitRepo && (
-            <Collapsible open={showCommits} onOpenChange={setShowCommits} className="mt-4">
-              <CollapsibleTrigger className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-medium hover:bg-accent rounded cursor-pointer">
-                {showCommits ? (
-                  <ChevronDown className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronRight className="h-3.5 w-3.5" />
-                )}
-                <span>recent commits</span>
-                <Badge variant="secondary" className="ml-auto text-xs">
-                  {commits.length}
-                </Badge>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="ml-2 border-l pl-2 space-y-1">
-                  {commits.map((commit) => (
-                    <CommitItem
-                      key={commit.hash}
-                      commit={commit}
-                      workspacePath={workspacePath}
-                      onFileClick={onCommitFileClick}
-                    />
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-        </div>
+  if (isGitRepo === false) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-sm text-muted-foreground">no git repository found</div>
       </div>
+    )
+  }
+
+  return (
+    <div className="h-full">
+      <ResizablePanelGroup direction="horizontal">
+        <ResizablePanel defaultSize={40} minSize={25}>
+          <CommitPane
+            commits={commits}
+            selectedCommit={selectedCommit}
+            hasChanges={totalChanges > 0}
+            onSelectCommit={setSelectedCommit}
+          />
+        </ResizablePanel>
+        <ResizableHandle />
+        <ResizablePanel defaultSize={60} minSize={30}>
+          {selectedCommit === "working-tree" ? (
+            <WorkingTreeFilesPane
+              status={status}
+              workspacePath={workspacePath}
+              onFileClick={onFileClick}
+            />
+          ) : selectedCommitData ? (
+            <CommitFilesPane
+              commit={selectedCommitData}
+              workspacePath={workspacePath}
+              onFileClick={onCommitFileClick}
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-sm text-muted-foreground">select a commit</div>
+            </div>
+          )}
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   )
 }

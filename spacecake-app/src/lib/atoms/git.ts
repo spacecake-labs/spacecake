@@ -23,3 +23,6 @@ export const gitCommitsAtom = atom<GitCommit[]>([])
 
 // Loading state for git status
 export const gitStatusLoadingAtom = atom<boolean>(false)
+
+// Selected commit in git panel: "working-tree" or a commit hash
+export const selectedCommitAtom = atom<string>("working-tree")

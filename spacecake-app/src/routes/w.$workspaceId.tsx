@@ -387,7 +387,6 @@ function LayoutContent() {
   const terminalPanelRef = useRef<HTMLDivElement>(null)
 
   const taskPanelRef = useRef<HTMLDivElement>(null)
-  const taskPanelGroupRef = useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
   const taskBottomPanelGroupRef = useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
 
   const gitPanelRef = useRef<HTMLDivElement>(null)
@@ -560,49 +559,55 @@ function LayoutContent() {
     [isTerminalExpanded, debouncedSaveTerminalSize, terminalDock],
   )
 
-  // Reset task panel size when toggling collapse state or changing dock position
+  // Reset bottom panel size when toggling collapse state
   useEffect(() => {
-    if (taskDock === "bottom") {
-      if (taskBottomPanelGroupRef.current) {
-        const layout = isTaskCollapsed ? [100, 0] : [100 - taskSize, taskSize]
-        taskBottomPanelGroupRef.current.setLayout(layout)
-      }
-      return
-    }
-    if (taskPanelGroupRef.current) {
-      const taskFirst = taskDock === "left"
-      const layout = isTaskCollapsed
-        ? taskFirst
-          ? [0, 100]
-          : [100, 0]
-        : taskFirst
-          ? [taskSize, 100 - taskSize]
-          : [100 - taskSize, taskSize]
-      taskPanelGroupRef.current.setLayout(layout)
-    }
-  }, [isTaskCollapsed, taskSize, taskDock])
+    if (!taskBottomPanelGroupRef.current) return
+    const bottomPanel = taskDock === "bottom" ? "task" : gitDock === "bottom" ? "git" : null
+    if (!bottomPanel) return
 
-  // Reset git panel size when toggling collapse state or changing dock position
+    const isCollapsed = bottomPanel === "task" ? isTaskCollapsed : isGitCollapsed
+    const size = bottomPanel === "task" ? taskSize : gitSize
+    const layout = isCollapsed ? [100, 0] : [100 - size, size]
+    taskBottomPanelGroupRef.current.setLayout(layout)
+  }, [isTaskCollapsed, isGitCollapsed, taskSize, gitSize, taskDock, gitDock])
+
+  // Reset outer panel group (gitPanelGroupRef) layout when dock positions or collapse states change
+  // This group can have 2-4 panels: [git-left?] [task-left?] [center] [task-right?] [git-right?]
   useEffect(() => {
-    if (gitDock === "bottom") {
-      if (taskBottomPanelGroupRef.current) {
-        const layout = isGitCollapsed ? [100, 0] : [100 - gitSize, gitSize]
-        taskBottomPanelGroupRef.current.setLayout(layout)
-      }
+    if (!gitPanelGroupRef.current) return
+    // skip if both git and task are at bottom (only center panel present)
+    if ((gitDock === "bottom" || gitDock === null) && (taskDock === "bottom" || taskDock === null))
       return
+
+    // build layout array based on which panels are present (in order)
+    const layout: number[] = []
+
+    // git-left (order 0)
+    if (gitDock === "left") {
+      layout.push(isGitCollapsed ? 0 : gitSize)
     }
-    if (gitPanelGroupRef.current) {
-      const gitFirst = gitDock === "left"
-      const layout = isGitCollapsed
-        ? gitFirst
-          ? [0, 100]
-          : [100, 0]
-        : gitFirst
-          ? [gitSize, 100 - gitSize]
-          : [100 - gitSize, gitSize]
-      gitPanelGroupRef.current.setLayout(layout)
+    // task-left (order 1)
+    if (taskDock === "left") {
+      layout.push(isTaskCollapsed ? 0 : taskSize)
     }
-  }, [isGitCollapsed, gitSize, gitDock])
+    // center is always present - will be calculated as remainder
+    const centerIndex = layout.length
+    layout.push(0) // placeholder
+    // task-right (order 3)
+    if (taskDock === "right") {
+      layout.push(isTaskCollapsed ? 0 : taskSize)
+    }
+    // git-right (order 4)
+    if (gitDock === "right") {
+      layout.push(isGitCollapsed ? 0 : gitSize)
+    }
+
+    // calculate center size as remainder
+    const usedSize = layout.reduce((sum, size) => sum + size, 0)
+    layout[centerIndex] = 100 - usedSize
+
+    gitPanelGroupRef.current.setLayout(layout)
+  }, [isGitCollapsed, isTaskCollapsed, gitSize, taskSize, gitDock, taskDock])
 
   // reset terminal panel size when toggling collapse state or changing dock position
   useEffect(() => {

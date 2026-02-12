@@ -56,7 +56,7 @@ export type PanelMap = typeof PanelMapSchema.Type
 export const WorkspaceLayoutSchema = Schema.Struct({
   dock: Schema.optionalWith(DockSchema, {
     default: () => ({
-      left: null as DockablePanelKind | null,
+      left: "git" as const,
       right: "terminal" as const,
       bottom: "task" as const,
     }),
@@ -76,7 +76,7 @@ export type WorkspaceLayout = typeof WorkspaceLayoutSchema.Type
  */
 export const defaultWorkspaceLayout: WorkspaceLayout = {
   dock: {
-    left: null,
+    left: "git",
     right: "terminal",
     bottom: "task",
   },
