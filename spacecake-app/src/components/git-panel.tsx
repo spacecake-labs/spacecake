@@ -1,4 +1,4 @@
-import { useAtom } from "jotai"
+import { useAtom, useSetAtom } from "jotai"
 import { Check, ChevronDown, ChevronRight, Circle, Copy, File } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 
@@ -93,7 +93,10 @@ function FileItem({
             </span>
           </span>
           {status && (
-            <span className={cn("text-xs font-medium flex-shrink-0", statusColors[status])}>
+            <span
+              className={cn("text-xs font-medium flex-shrink-0", statusColors[status])}
+              title={status}
+            >
               {statusLabels[status]}
             </span>
           )}
@@ -351,7 +354,7 @@ function CommitFilesPane({
 export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitPanelProps) {
   const [status, setStatus] = useAtom(gitStatusAtom)
   const [commits, setCommits] = useAtom(gitCommitsAtom)
-  const [_isLoading, setIsLoading] = useAtom(gitStatusLoadingAtom)
+  const setIsLoading = useSetAtom(gitStatusLoadingAtom)
   const [selectedCommit, setSelectedCommit] = useAtom(selectedCommitAtom)
   const [isGitRepo, setIsGitRepo] = useState<boolean | null>(null)
 

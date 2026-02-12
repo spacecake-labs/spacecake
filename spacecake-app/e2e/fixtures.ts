@@ -11,7 +11,10 @@ export type TestFixtures = {
 export const test = base.extend<TestFixtures>({
   // eslint-disable-next-line no-empty-pattern
   tempTestDir: async ({}, use, testInfo) => {
-    const testOutputRoot = path.join(process.cwd(), "test-output")
+    // use os.tmpdir() so temp dirs are never inside a git repo (matters for
+    // tests that assert non-git behavior). realpathSync resolves macOS symlinks
+    // (/var/folders → /private/var/folders) so file watcher paths match.
+    const testOutputRoot = path.join(fs.realpathSync(os.tmpdir()), "spacecake-e2e")
     const workerTempRoot = path.join(testOutputRoot, `worker-${testInfo.workerIndex}`)
     fs.mkdirSync(workerTempRoot, { recursive: true })
     const tempDir = fs.mkdtempSync(path.join(workerTempRoot, "spacecake-e2e-"))

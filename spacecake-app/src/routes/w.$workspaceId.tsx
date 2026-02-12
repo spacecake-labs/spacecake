@@ -21,7 +21,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import type { DockAction } from "@/lib/dock-transition"
-import type { DockPosition } from "@/schema/workspace-layout"
+import type { DockablePanelKind, DockPosition } from "@/schema/workspace-layout"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DeleteButton } from "@/components/delete-button"
@@ -195,9 +195,11 @@ function HeaderToolbar() {
 function DockPositionDropdown({
   currentDock,
   onDockChange,
+  label,
 }: {
   currentDock: DockPosition
   onDockChange: (dock: DockPosition) => void
+  label: DockablePanelKind
 }) {
   const CurrentIcon =
     currentDock === "left" ? PanelLeft : currentDock === "right" ? PanelRight : PanelBottom
@@ -207,8 +209,8 @@ function DockPositionDropdown({
       <DropdownMenuTrigger asChild>
         <button
           className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-0"
-          aria-label="change dock position"
-          title="change dock position"
+          aria-label={`change ${label} dock position`}
+          title={`change ${label} dock position`}
         >
           <CurrentIcon className="h-3.5 w-3.5" />
         </button>
@@ -700,7 +702,11 @@ function LayoutContent() {
       {/* Left side: terminal status + dock position */}
       <div className="flex items-center gap-2 min-w-0 overflow-hidden">
         <TerminalStatusBadge />
-        <DockPositionDropdown currentDock={terminalDock} onDockChange={setTerminalDock} />
+        <DockPositionDropdown
+          currentDock={terminalDock}
+          onDockChange={setTerminalDock}
+          label="terminal"
+        />
       </div>
       {/* Right side: badges, task toggle, delete, collapse */}
       <div className="flex items-center gap-2 flex-shrink-0">
@@ -758,7 +764,7 @@ function LayoutContent() {
             isTaskExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
           )}
         />
-        <DockPositionDropdown currentDock={taskDock} onDockChange={setTaskDock} />
+        <DockPositionDropdown currentDock={taskDock} onDockChange={setTaskDock} label="task" />
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         {taskStatuses.map((status) => {
@@ -812,7 +818,7 @@ function LayoutContent() {
             isGitExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
           )}
         />
-        <DockPositionDropdown currentDock={gitDock} onDockChange={setGitDock} />
+        <DockPositionDropdown currentDock={gitDock} onDockChange={setGitDock} label="git" />
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         <button
