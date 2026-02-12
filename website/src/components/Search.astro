@@ -1,0 +1,7 @@
+---
+import Default from "@astrojs/starlight/components/Search.astro"
+
+const isLanding = Astro.url.pathname === "/" || Astro.url.pathname === ""
+---
+
+{!isLanding && <Default {...Astro.props} />}

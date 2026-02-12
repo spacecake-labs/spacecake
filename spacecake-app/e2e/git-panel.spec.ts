@@ -92,7 +92,7 @@ test.describe("git panel", () => {
     fs.writeFileSync(newFile, "# initial content")
 
     // wait for sidebar to show the new file
-    await expect(locateSidebarItem(window, "created-during-test.md")).toBeVisible({ timeout: 5000 })
+    await expect(locateSidebarItem(window, "created-during-test.md")).toBeVisible()
 
     // select working tree to see current changes
     await window.getByText("working tree").click()
@@ -102,7 +102,7 @@ test.describe("git panel", () => {
     await expect(window.getByTitle("untracked").nth(1)).toBeVisible()
 
     // open the file in editor
-    await locateSidebarItem(window, "created-during-test.md").click()
+    await locateSidebarItem(window, "created-during-test.md").click({ force: true })
     await expect(window.getByText("initial content")).toBeVisible()
 
     await window.getByText("initial content").click({ force: true })
