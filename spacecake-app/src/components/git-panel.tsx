@@ -1,5 +1,5 @@
 import { useAtom } from "jotai"
-import { ChevronDown, ChevronRight, File, GitCommit } from "lucide-react"
+import { ChevronDown, ChevronRight, File } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -18,6 +18,7 @@ import { AbsolutePath } from "@/types/workspace"
 interface GitPanelProps {
   workspacePath: AbsolutePath
   onFileClick?: (filePath: AbsolutePath) => void
+  onCommitFileClick?: (filePath: AbsolutePath, commitHash: string) => void
 }
 
 function FileItem({
@@ -105,7 +106,16 @@ function FileSection({
   )
 }
 
-function CommitItem({ commit }: { commit: GitCommitType }) {
+function CommitItem({
+  commit,
+  workspacePath,
+  onFileClick,
+}: {
+  commit: GitCommitType
+  workspacePath: AbsolutePath
+  onFileClick?: (filePath: AbsolutePath, commitHash: string) => void
+}) {
+  const [isExpanded, setIsExpanded] = useState(false)
   const shortHash = commit.hash.substring(0, 7)
   const formattedDate = new Date(commit.date).toLocaleDateString(undefined, {
     month: "short",
@@ -113,18 +123,41 @@ function CommitItem({ commit }: { commit: GitCommitType }) {
   })
 
   return (
-    <div className="px-2 py-1.5 text-sm hover:bg-accent rounded">
-      <div className="flex items-center gap-2">
-        <GitCommit className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-        <span className="font-mono text-xs text-muted-foreground">{shortHash}</span>
-        <span className="text-xs text-muted-foreground ml-auto">{formattedDate}</span>
-      </div>
-      <p className="mt-0.5 text-sm truncate pl-5.5">{commit.message}</p>
+    <div className="text-sm">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full px-2 py-1.5 hover:bg-accent rounded cursor-pointer text-left"
+      >
+        <div className="flex items-center gap-2">
+          {isExpanded ? (
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+          )}
+          <span className="font-mono text-xs text-muted-foreground">{shortHash}</span>
+          <span className="text-xs text-muted-foreground ml-auto">{formattedDate}</span>
+        </div>
+        <p className="mt-0.5 text-sm truncate pl-5.5">{commit.message}</p>
+      </button>
+      {isExpanded && commit.files.length > 0 && (
+        <div className="ml-4 border-l pl-2 space-y-0.5">
+          {commit.files.map((file) => (
+            <button
+              key={file}
+              onClick={() => onFileClick?.(AbsolutePath(`${workspacePath}/${file}`), commit.hash)}
+              className="flex items-center gap-2 w-full px-2 py-1 text-sm hover:bg-accent rounded cursor-pointer text-left"
+            >
+              <File className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <span className="truncate flex-1">{file}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-export function GitPanel({ workspacePath, onFileClick }: GitPanelProps) {
+export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitPanelProps) {
   const [status, setStatus] = useAtom(gitStatusAtom)
   const [commits, setCommits] = useAtom(gitCommitsAtom)
   const [isLoading, setIsLoading] = useAtom(gitStatusLoadingAtom)
@@ -264,7 +297,12 @@ export function GitPanel({ workspacePath, onFileClick }: GitPanelProps) {
               <CollapsibleContent>
                 <div className="ml-2 border-l pl-2 space-y-1">
                   {commits.map((commit) => (
-                    <CommitItem key={commit.hash} commit={commit} />
+                    <CommitItem
+                      key={commit.hash}
+                      commit={commit}
+                      workspacePath={workspacePath}
+                      onFileClick={onCommitFileClick}
+                    />
                   ))}
                 </div>
               </CollapsibleContent>

@@ -38,6 +38,8 @@ export type PaneMachineEvent =
       filePath: AbsolutePath
       viewKind?: ViewKind
       source?: OpenFileSource
+      baseRef?: string
+      targetRef?: string
     }
 
 // Input to create the machine
@@ -148,6 +150,8 @@ export const paneMachine = setup({
           workspaceId: string
           paneId: PanePrimaryKey
           source?: OpenFileSource
+          baseRef?: string
+          targetRef?: string
         }
       }): Promise<void> => {
         // Create editor and pane item, then navigate
@@ -225,6 +229,8 @@ export const paneMachine = setup({
             view: result.value.viewKind,
             editorId: result.value.editorId,
             source: input.source,
+            baseRef: input.baseRef,
+            targetRef: input.targetRef,
           },
         })
       },
@@ -288,6 +294,8 @@ export const paneMachine = setup({
             workspaceId: context.workspaceId,
             paneId: context.paneId,
             source: event.source,
+            baseRef: event.baseRef,
+            targetRef: event.targetRef,
           }
         },
         onDone: "Idle",

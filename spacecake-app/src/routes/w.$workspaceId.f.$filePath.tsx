@@ -40,12 +40,19 @@ const fileSearchSchema = Schema.Struct({
   view: Schema.optional(ViewKindSchema),
   editorId: Schema.optional(EditorPrimaryKeySchema),
   source: Schema.optional(OpenFileSourceSchema),
+  baseRef: Schema.optional(Schema.String),
+  targetRef: Schema.optional(Schema.String),
 })
 
 export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   validateSearch: (search) => Schema.decodeUnknownSync(fileSearchSchema)(search),
-  loaderDeps: ({ search: { view, editorId } }) => ({ view, editorId }),
-  loader: async ({ params, deps: { view, editorId }, context }) => {
+  loaderDeps: ({ search: { view, editorId, baseRef, targetRef } }) => ({
+    view,
+    editorId,
+    baseRef,
+    targetRef,
+  }),
+  loader: async ({ params, deps: { view, editorId, baseRef, targetRef }, context }) => {
     const { paneId, workspace } = context
     const filePath = AbsolutePath(decodeBase64Url(params.filePath))
 
@@ -119,7 +126,12 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
             ? filePath.slice(workspace.path.length + 1)
             : filePath
 
-          const diffResult = await window.electronAPI.git.getFileDiff(workspace.path, relativePath)
+          const diffResult = await window.electronAPI.git.getFileDiff(
+            workspace.path,
+            relativePath,
+            baseRef,
+            targetRef,
+          )
 
           return match(diffResult, {
             onLeft: (error) => ({

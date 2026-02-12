@@ -636,10 +636,15 @@ function LayoutContent() {
   }
 
   // Git panel file clicks open in diff view mode
-  const handleGitFileClick = (filePath: AbsolutePath) => {
+  const handleGitFileClick = (filePath: AbsolutePath, baseRef?: string, targetRef?: string) => {
     if (workspace?.path) {
-      machine.send({ type: "pane.file.open", filePath, viewKind: "diff" })
+      machine.send({ type: "pane.file.open", filePath, viewKind: "diff", baseRef, targetRef })
     }
+  }
+
+  // Commit file clicks show diff for that specific commit vs its parent
+  const handleCommitFileClick = (filePath: AbsolutePath, commitHash: string) => {
+    handleGitFileClick(filePath, `${commitHash}^`, commitHash)
   }
 
   if (isMobile) {
@@ -890,7 +895,11 @@ function LayoutContent() {
                     isGitCollapsed && "hidden",
                   )}
                 >
-                  <GitPanel workspacePath={workspace.path} onFileClick={handleGitFileClick} />
+                  <GitPanel
+                    workspacePath={workspace.path}
+                    onFileClick={handleGitFileClick}
+                    onCommitFileClick={handleCommitFileClick}
+                  />
                 </div>
               </div>
             </ResizablePanel>
@@ -1003,7 +1012,11 @@ function LayoutContent() {
                           isGitCollapsed && "hidden",
                         )}
                       >
-                        <GitPanel workspacePath={workspace.path} onFileClick={handleGitFileClick} />
+                        <GitPanel
+                          workspacePath={workspace.path}
+                          onFileClick={handleGitFileClick}
+                          onCommitFileClick={handleCommitFileClick}
+                        />
                       </div>
                     </div>
                   </ResizablePanel>
@@ -1121,7 +1134,11 @@ function LayoutContent() {
                           isGitCollapsed && "hidden",
                         )}
                       >
-                        <GitPanel workspacePath={workspace.path} onFileClick={handleGitFileClick} />
+                        <GitPanel
+                          workspacePath={workspace.path}
+                          onFileClick={handleGitFileClick}
+                          onCommitFileClick={handleCommitFileClick}
+                        />
                       </div>
                     </div>
                   </ResizablePanel>
