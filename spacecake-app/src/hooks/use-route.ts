@@ -11,9 +11,9 @@ import { AbsolutePath, RouteContext, RouteParamsSchema } from "@/types/workspace
  */
 export function useRoute(): RouteContext | null {
   const params = useParams({ strict: false })
-  const view = useSearch({
+  const search = useSearch({
     strict: false,
-    select: ({ view }) => view,
+    select: ({ view, baseRef, targetRef }) => ({ view, baseRef, targetRef }),
   })
 
   try {
@@ -25,8 +25,10 @@ export function useRoute(): RouteContext | null {
       const context: RouteContext = {
         workspaceId: decodeBase64Url(paramsResult.workspaceId),
         filePath,
-        viewKind: view,
+        viewKind: search.view,
         fileType: fileTypeFromExtension(filePath.split(".").pop() ?? ""),
+        baseRef: search.baseRef,
+        targetRef: search.targetRef,
       }
       return context
     }
