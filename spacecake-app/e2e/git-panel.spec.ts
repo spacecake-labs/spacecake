@@ -98,8 +98,9 @@ test.describe("git panel", () => {
     await window.getByText("working tree").click()
 
     // verify the new file appears as untracked in git panel
-    await expect(window.getByText("created-during-test.md").first()).toBeVisible()
-    await expect(window.getByTitle("untracked").nth(1)).toBeVisible()
+    const gitPanel = window.locator("#git-panel-left")
+    await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
+    await expect(gitPanel.getByTitle("untracked").first()).toBeVisible()
 
     // open the file in editor
     await locateSidebarItem(window, "created-during-test.md").click({ force: true })
@@ -121,7 +122,7 @@ test.describe("git panel", () => {
     expect(savedContent).toContain("EDITED")
 
     // verify git panel still shows the file (refresh didn't break anything)
-    await expect(window.getByText("created-during-test.md").first()).toBeVisible()
+    await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
   })
 
   test("non-git directory hides git toggle in status bar", async ({ electronApp, tempTestDir }) => {

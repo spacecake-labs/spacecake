@@ -432,8 +432,6 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
     let debounceTimer: NodeJS.Timeout
 
     const cleanup = window.electronAPI.onFileEvent((event) => {
-      // only react to file content changes in this workspace
-      if (event.kind !== "contentChange") return
       if (!event.path.startsWith(workspacePath)) return
       // skip .git directory changes (already handled by git:changed)
       if (event.path.includes("/.git/")) return
