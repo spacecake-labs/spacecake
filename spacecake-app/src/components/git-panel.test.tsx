@@ -49,8 +49,6 @@ globalThis.ResizeObserver = class {
 /** flush async mount effects (useEffect + async callbacks) */
 const waitForEffects = () => act(() => new Promise((r) => setTimeout(r, 50)))
 
-type GitChangeListener = (data: { workspacePath: string; filePath: string }) => void
-
 function createMockGitAPI(
   overrides: {
     isGitRepo?: boolean
@@ -58,8 +56,6 @@ function createMockGitAPI(
     commits?: GitCommit[]
   } = {},
 ) {
-  const listeners = new Set<GitChangeListener>()
-
   const isGitRepo = vi.fn(async () => overrides.isGitRepo ?? true)
   const getStatus = vi.fn(async () =>
     gitRight(
@@ -72,30 +68,15 @@ function createMockGitAPI(
     ),
   )
   const getCommitLog = vi.fn(async () => gitRight(overrides.commits ?? []))
-  const onGitChange = vi.fn((cb: GitChangeListener) => {
-    listeners.add(cb)
-    return () => {
-      listeners.delete(cb)
-    }
-  })
 
   return {
     api: {
       isGitRepo,
       getStatus,
       getCommitLog,
-      onGitChange,
       getCurrentBranch: vi.fn(async () => "main"),
-      startWatching: vi.fn(async () => gitRight(undefined)),
-      stopWatching: vi.fn(async () => gitRight(undefined)),
       getFileDiff: vi.fn(async () => gitRight({ oldContent: "", newContent: "" })),
     } satisfies ElectronAPI["git"],
-    listeners,
-    _simulateGitChange: (workspacePath: string) => {
-      for (const cb of listeners) {
-        cb({ workspacePath, filePath: "" })
-      }
-    },
   }
 }
 
@@ -186,18 +167,6 @@ describe("GitPanel", () => {
     expect(api.isGitRepo).toHaveBeenCalledWith(TEST_WORKSPACE)
     expect(api.getStatus).toHaveBeenCalledWith(TEST_WORKSPACE)
     expect(api.getCommitLog).toHaveBeenCalledWith(TEST_WORKSPACE, 20)
-  })
-
-  it("subscribes to onGitChange; unsubscribes on unmount", async () => {
-    const { api, listeners } = createMockGitAPI()
-    renderPanel(api)
-    await waitForEffects()
-
-    expect(listeners.size).toBe(1)
-
-    // unmount
-    act(() => root.unmount())
-    expect(listeners.size).toBe(0)
   })
 
   it("yellow dot when changes exist", async () => {

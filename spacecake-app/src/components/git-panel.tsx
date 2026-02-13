@@ -1,6 +1,6 @@
 import { useAtom, useSetAtom } from "jotai"
 import { Check, ChevronDown, ChevronRight, Circle, Copy, File } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { useRoute } from "@/hooks/use-route"
 import {
+  gitBranchAtom,
   GitCommit as GitCommitType,
   gitCommitsAtom,
   GitStatus,
@@ -360,6 +361,8 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
   const setIsLoading = useSetAtom(gitStatusLoadingAtom)
   const [selectedCommit, setSelectedCommit] = useAtom(selectedCommitAtom)
   const [isGitRepo, setIsGitRepo] = useState<boolean | null>(null)
+  const setGitBranch = useSetAtom(gitBranchAtom)
+  const initialBranchFetched = useRef(false)
 
   const refreshStatus = useCallback(async () => {
     setIsLoading(true)
@@ -417,24 +420,34 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
     // initial fetch
     refreshStatus()
 
-    // subscribe to git changes
-    const cleanup = window.electronAPI.git.onGitChange(({ workspacePath: changedPath }) => {
-      if (changedPath === workspacePath) {
-        refreshStatus()
-      }
-    })
+    // fetch initial git branch (once per mount)
+    if (!initialBranchFetched.current) {
+      initialBranchFetched.current = true
+      window.electronAPI.git.getCurrentBranch(workspacePath).then(setGitBranch)
+    }
+  }, [workspacePath, refreshStatus, setGitBranch])
 
-    return cleanup
-  }, [workspacePath, refreshStatus])
-
-  // subscribe to file-event for working tree changes
+  // subscribe to file-event for all workspace changes (working tree + git state)
   useEffect(() => {
     let debounceTimer: NodeJS.Timeout
 
     const cleanup = window.electronAPI.onFileEvent((event) => {
       if (!event.path.startsWith(workspacePath)) return
-      // skip .git directory changes (already handled by git:changed)
-      if (event.path.includes("/.git/")) return
+
+      // check if this is a git state change we care about
+      const isGitStateChange =
+        event.path.includes("/.git/") &&
+        (event.path.endsWith("/HEAD") ||
+          event.path.endsWith("/index") ||
+          event.path.includes("/refs/"))
+
+      // skip other .git changes (logs, objects, etc.)
+      if (event.path.includes("/.git/") && !isGitStateChange) return
+
+      // refresh git branch when HEAD changes
+      if (event.path.endsWith("/.git/HEAD")) {
+        window.electronAPI.git.getCurrentBranch(workspacePath).then(setGitBranch)
+      }
 
       clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => refreshStatus(), 300)
@@ -444,7 +457,7 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
       cleanup()
       clearTimeout(debounceTimer)
     }
-  }, [workspacePath, refreshStatus])
+  }, [workspacePath, refreshStatus, setGitBranch])
 
   // get current route to detect stale diff views
   const currentRoute = useRoute()

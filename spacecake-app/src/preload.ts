@@ -106,21 +106,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("git:branch:current", workspacePath),
     isGitRepo: (workspacePath: string): Promise<boolean> =>
       ipcRenderer.invoke("git:is-repo", workspacePath),
-    startWatching: (workspacePath: string) =>
-      ipcRenderer.invoke("git:start-watching", workspacePath),
-    stopWatching: (workspacePath: string) => ipcRenderer.invoke("git:stop-watching", workspacePath),
-    onGitChange: (callback: (data: { workspacePath: string; filePath: string }) => void) => {
-      const listener = (_: unknown, data: { path: string }) => {
-        // extract workspace path from .git/ path
-        const gitIndex = data.path.indexOf("/.git/")
-        if (gitIndex !== -1) {
-          const workspacePath = data.path.substring(0, gitIndex)
-          callback({ workspacePath, filePath: data.path })
-        }
-      }
-      ipcRenderer.on("git:changed", listener)
-      return () => ipcRenderer.removeListener("git:changed", listener)
-    },
     getStatus: (workspacePath: string) => ipcRenderer.invoke("git:status", workspacePath),
     getFileDiff: (workspacePath: string, filePath: string, baseRef?: string, targetRef?: string) =>
       ipcRenderer.invoke("git:file-diff", workspacePath, filePath, baseRef, targetRef),

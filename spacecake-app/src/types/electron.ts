@@ -86,15 +86,6 @@ export interface ElectronAPI {
   git: {
     getCurrentBranch: (workspacePath: string) => Promise<string | null>
     isGitRepo: (workspacePath: string) => Promise<boolean>
-    startWatching: (
-      workspacePath: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
-    stopWatching: (
-      workspacePath: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
-    onGitChange: (
-      callback: (data: { workspacePath: string; filePath: string }) => void,
-    ) => () => void
     getStatus: (
       workspacePath: string,
     ) => Promise<

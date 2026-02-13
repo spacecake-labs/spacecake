@@ -293,26 +293,6 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       Effect.runPromise(git.isGitRepo(workspacePath)),
     )
 
-    ipcMain.handle("git:start-watching", (_, workspacePath: string) =>
-      Effect.runPromise(
-        Effect.match(git.startWatching(workspacePath), {
-          onFailure: (error) =>
-            left({ _tag: "GitError" as const, description: (error as GitError).description }),
-          onSuccess: () => right(undefined),
-        }),
-      ),
-    )
-
-    ipcMain.handle("git:stop-watching", (_, workspacePath: string) =>
-      Effect.runPromise(
-        Effect.match(git.stopWatching(workspacePath), {
-          onFailure: (error) =>
-            left({ _tag: "GitError" as const, description: (error as GitError).description }),
-          onSuccess: () => right(undefined),
-        }),
-      ),
-    )
-
     // Plain object representation of GitError for IPC serialization
     type SerializedGitError = {
       _tag: "GitError"
