@@ -463,9 +463,13 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
   const currentRoute = useRoute()
 
   // navigate away from stale diff views when file is no longer in changes list
+  // only applies to working tree diffs, not historical commit diffs
   useEffect(() => {
     if (!status || !currentRoute) return
     if (currentRoute.viewKind !== "diff") return
+
+    // historical commit diffs have baseRef/targetRef - don't close them based on working tree status
+    if (currentRoute.baseRef || currentRoute.targetRef) return
 
     // check if the current file is still in the working tree changes
     const allChangedFiles = [

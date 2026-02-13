@@ -298,6 +298,28 @@ describe("GitPanel", () => {
     // should NOT have navigated
     expect(mockNavigate).not.toHaveBeenCalled()
   })
+
+  it("does not navigate away from historical commit diff even when file not in working tree", async () => {
+    // set up route as viewing a historical commit diff (has baseRef/targetRef)
+    setMockRouteValue({
+      workspaceId: TEST_WORKSPACE,
+      filePath: AbsolutePath("/test/workspace/src/historical.ts"),
+      viewKind: "diff",
+      fileType: "typescript",
+      baseRef: "abc1234^",
+      targetRef: "abc1234",
+    })
+
+    // git status does NOT include this file (it's not in working tree changes)
+    const { api } = createMockGitAPI({
+      status: { modified: ["src/other.ts"], staged: [], untracked: [], deleted: [] },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // should NOT have navigated - historical commit diffs are not affected by working tree status
+    expect(mockNavigate).not.toHaveBeenCalled()
+  })
 })
 
 describe("working tree files", () => {

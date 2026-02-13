@@ -167,6 +167,8 @@ export const RouteContextSchema = Schema.Struct({
   filePath: AbsolutePathSchema,
   viewKind: Schema.optional(ViewKindSchema),
   fileType: FileTypeSchema,
+  baseRef: Schema.optional(Schema.String),
+  targetRef: Schema.optional(Schema.String),
 })
 export type RouteContext = typeof RouteContextSchema.Type
 
