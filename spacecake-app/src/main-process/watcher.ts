@@ -242,12 +242,13 @@ export class WatcherService extends Effect.Service<WatcherService>()("app/Watche
               )
 
               const watchStream = fs.watch(dirPath, { recursive: true }).pipe(
-                Stream.filter((event) => (filter ? filter(event.path) : true)),
+                Stream.filter((event) => (filter ? filter(normalizePath(event.path)) : true)),
                 Stream.debounce("200 millis"),
                 Stream.runForEach((event) =>
                   Effect.sync(() => {
+                    const normalizedPath = normalizePath(event.path)
                     BrowserWindow.getAllWindows().forEach((win) =>
-                      win.webContents.send(channel, { path: event.path }),
+                      win.webContents.send(channel, { path: normalizedPath }),
                     )
                   }),
                 ),
