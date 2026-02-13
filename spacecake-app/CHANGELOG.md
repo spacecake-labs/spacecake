@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.49
+
+### Patch Changes
+
+- b57eaac: Adding git panel with commit history, changes, and diff viewer.
+
 ## 0.1.0-alpha.48
 
 ### Patch Changes
