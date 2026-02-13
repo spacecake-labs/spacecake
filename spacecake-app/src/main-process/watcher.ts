@@ -161,8 +161,10 @@ export class WatcherService extends Effect.Service<WatcherService>()("app/Watche
               const watchStream = fs.watch(watchPath, { recursive: true }).pipe(
                 Stream.runForEach((fileEvent) =>
                   Effect.gen(function* () {
+                    console.log("[watcher] raw event:", fileEvent._tag, fileEvent.path)
                     const fileTreeEvent = yield* convertToFileTreeEvent(fileEvent, watchPath)
                     if (fileTreeEvent) {
+                      console.log("[watcher] sending file-event:", fileTreeEvent.kind, fileTreeEvent.path)
                       BrowserWindow.getAllWindows().forEach((win) =>
                         win.webContents.send("file-event", fileTreeEvent),
                       )
