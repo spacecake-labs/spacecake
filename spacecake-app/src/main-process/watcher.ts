@@ -28,6 +28,7 @@ export function convertToFileTreeEvent(
   }
 
   if (!eventPath.startsWith(normalizedWorkspacePath)) {
+    console.log("[watcher] path mismatch - event:", eventPath, "workspace:", normalizedWorkspacePath)
     return Effect.succeed(null)
   }
 
