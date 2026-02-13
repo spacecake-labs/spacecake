@@ -13,11 +13,12 @@ export const test = base.extend<TestFixtures>({
   tempTestDir: async ({}, use, testInfo) => {
     // use os.tmpdir() so temp dirs are never inside a git repo (matters for
     // tests that assert non-git behavior). realpathSync resolves macOS symlinks
-    // (/var/folders → /private/var/folders) so file watcher paths match.
+    // (/var/folders → /private/var/folders) and Windows short paths (RUNNER~1 →
+    // runneradmin) so file watcher paths match.
     const testOutputRoot = path.join(fs.realpathSync(os.tmpdir()), "spacecake-e2e")
     const workerTempRoot = path.join(testOutputRoot, `worker-${testInfo.workerIndex}`)
     fs.mkdirSync(workerTempRoot, { recursive: true })
-    const tempDir = fs.mkdtempSync(path.join(workerTempRoot, "spacecake-e2e-"))
+    const tempDir = fs.realpathSync(fs.mkdtempSync(path.join(workerTempRoot, "spacecake-e2e-")))
 
     testInfo.annotations.push({
       type: "info",
