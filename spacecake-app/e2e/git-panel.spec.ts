@@ -89,7 +89,7 @@ test.describe("git panel", () => {
 
     // give workspace watcher time to fully initialize after dock switching
     // (on Windows, the IPC listener may not be attached when events fire)
-    await window.waitForTimeout(500)
+    await window.waitForTimeout(1500)
 
     // create a new file externally (file watcher adds to sidebar)
     const newFile = path.join(tempTestDir, "created-during-test.md")
