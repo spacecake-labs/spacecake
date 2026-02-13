@@ -100,7 +100,7 @@ Object.defineProperty(window, "electronAPI", {
       getCurrentBranch: () => Promise.resolve("main"),
       startWatching: () => {},
       stopWatching: () => {},
-      onBranchChange: () => () => {},
+      onGitChange: () => () => {},
     },
   },
 })

@@ -16,7 +16,7 @@ import type { WorkspaceLayout } from "@/schema/workspace-layout"
 import type { WorkspaceSettings } from "@/schema/workspace-settings"
 
 import { type JsonValue } from "@/schema/drizzle-effect"
-import { SerializedSelection, ViewKindSchema } from "@/types/lexical"
+import { PersistableViewKindSchema, SerializedSelection } from "@/types/lexical"
 
 export const systemTable = pgTable("system", {
   version: integer().notNull().default(0),
@@ -105,7 +105,8 @@ export const paneItemTable = pgTable(
 )
 
 // must be exported for drizzle to recognise it
-export const ViewKindEnum = pgEnum("view_kind", ViewKindSchema.literals)
+// only persistable view kinds are stored in the database
+export const ViewKindEnum = pgEnum("view_kind", PersistableViewKindSchema.literals)
 
 export const editorTable = pgTable(
   "editor",

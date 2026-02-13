@@ -10,6 +10,7 @@ import { router } from "@/router"
 import { EditorPrimaryKey } from "@/schema/editor"
 import { PaneItemPrimaryKey, PaneItemWithFile, PanePrimaryKey } from "@/schema/pane"
 import { Database } from "@/services/database"
+import { getPersistableViewKind } from "@/services/editor-manager"
 import { RuntimeClient } from "@/services/runtime-client"
 import { ViewKind } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
@@ -38,6 +39,8 @@ export type PaneMachineEvent =
       filePath: AbsolutePath
       viewKind?: ViewKind
       source?: OpenFileSource
+      baseRef?: string
+      targetRef?: string
     }
 
 // Input to create the machine
@@ -148,6 +151,8 @@ export const paneMachine = setup({
           workspaceId: string
           paneId: PanePrimaryKey
           source?: OpenFileSource
+          baseRef?: string
+          targetRef?: string
         }
       }): Promise<void> => {
         // Create editor and pane item, then navigate
@@ -176,6 +181,7 @@ export const paneMachine = setup({
 
             // Check if we already have an editor for this file in this pane
             const existingEditor = yield* db.selectLatestEditorStateForFile(input.filePath)
+            const fileType = fileTypeFromFileName(input.filePath)
 
             let editorId: EditorPrimaryKey
             let viewKind: ViewKind
@@ -186,13 +192,12 @@ export const paneMachine = setup({
               viewKind = input.viewKind ?? existingEditor.value.view_kind
             } else {
               // Create new editor
-              const fileType = fileTypeFromFileName(input.filePath)
               viewKind = input.viewKind ?? (supportsRichView(fileType) ? "rich" : "source")
 
               const editor = yield* db.upsertEditor({
                 pane_id: input.paneId,
                 file_id: file.id,
-                view_kind: viewKind,
+                view_kind: getPersistableViewKind(viewKind, fileType),
               })
               editorId = editor.id
             }
@@ -225,6 +230,8 @@ export const paneMachine = setup({
             view: result.value.viewKind,
             editorId: result.value.editorId,
             source: input.source,
+            baseRef: input.baseRef,
+            targetRef: input.targetRef,
           },
         })
       },
@@ -288,6 +295,8 @@ export const paneMachine = setup({
             workspaceId: context.workspaceId,
             paneId: context.paneId,
             source: event.source,
+            baseRef: event.baseRef,
+            targetRef: event.targetRef,
           }
         },
         onDone: "Idle",

@@ -70,7 +70,6 @@ export default defineConfig({
           href: "https://github.com/spacecake-labs/spacecake",
         },
       ],
-      pagefind: false,
       sidebar: [
         {
           label: "📖",
@@ -85,6 +84,8 @@ export default defineConfig({
       ],
       components: {
         Hero: "./src/components/Hero.astro",
+        Search: "./src/components/Search.astro",
+        SocialIcons: "./src/components/SocialIcons.astro",
       },
       customCss: ["./src/styles/global.css", "./src/styles/theme.css"],
     }),

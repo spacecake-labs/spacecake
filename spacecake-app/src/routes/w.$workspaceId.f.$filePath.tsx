@@ -11,7 +11,11 @@ import { useWorkspaceSettings } from "@/hooks/use-workspace-settings"
 import { expandedFoldersAtom } from "@/lib/atoms/atoms"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
-import { createEditorConfigFromContent, createEditorConfigFromState } from "@/lib/editor"
+import {
+  createEditorConfigFromContent,
+  createEditorConfigFromDiff,
+  createEditorConfigFromState,
+} from "@/lib/editor"
 import { createRichViewClaudeSelection } from "@/lib/selection-utils"
 import { store } from "@/lib/store"
 import { decodeBase64Url } from "@/lib/utils"
@@ -36,12 +40,19 @@ const fileSearchSchema = Schema.Struct({
   view: Schema.optional(ViewKindSchema),
   editorId: Schema.optional(EditorPrimaryKeySchema),
   source: Schema.optional(OpenFileSourceSchema),
+  baseRef: Schema.optional(Schema.String),
+  targetRef: Schema.optional(Schema.String),
 })
 
 export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   validateSearch: (search) => Schema.decodeUnknownSync(fileSearchSchema)(search),
-  loaderDeps: ({ search: { view, editorId } }) => ({ view, editorId }),
-  loader: async ({ params, deps: { view, editorId }, context }) => {
+  loaderDeps: ({ search: { view, editorId, baseRef, targetRef } }) => ({
+    view,
+    editorId,
+    baseRef,
+    targetRef,
+  }),
+  loader: async ({ params, deps: { view, editorId, baseRef, targetRef }, context }) => {
     const { paneId, workspace } = context
     const filePath = AbsolutePath(decodeBase64Url(params.filePath))
 
@@ -105,6 +116,54 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           })
         }
 
+        const cid = result.content.kind === "state" ? ZERO_HASH : result.content.data.cid
+        const epoch = store.get(fileStateAtomFamily(filePath)).context.epoch
+        const key = `${filePath}-${result.viewKind}-${cid}-${epoch}`
+
+        // Handle diff view - fetch git diff data and create diff editor config
+        if (result.viewKind === "diff") {
+          const relativePath = filePath.startsWith(workspace.path + "/")
+            ? filePath.slice(workspace.path.length + 1)
+            : filePath
+
+          const diffResult = await window.electronAPI.git.getFileDiff(
+            workspace.path,
+            relativePath,
+            baseRef,
+            targetRef,
+          )
+
+          return match(diffResult, {
+            onLeft: (error) => ({
+              filePath,
+              editorConfig: null,
+              key,
+              editorId: result.content.data.editorId,
+              fileId: result.content.data.fileId,
+              diffError: error.description,
+            }),
+            onRight: (diff) => {
+              const extension = filePath.split(".").pop() || ""
+              const editorConfig = createEditorConfigFromDiff({
+                oldContent: diff.oldContent,
+                newContent: diff.newContent,
+                filePath,
+                language: extension,
+              })
+
+              return {
+                filePath,
+                editorConfig,
+                key,
+                editorId: result.content.data.editorId,
+                fileId: result.content.data.fileId,
+                diffError: null,
+              }
+            },
+          })
+        }
+
+        // Handle source/rich view
         const editorConfig =
           result.content.kind === "state"
             ? createEditorConfigFromState(result.content.data.state, result.content.data.selection)
@@ -114,16 +173,13 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
                 result.content.data.selection,
               )
 
-        const cid = result.content.kind === "state" ? ZERO_HASH : result.content.data.cid
-        const epoch = store.get(fileStateAtomFamily(filePath)).context.epoch
-        const key = `${filePath}-${result.viewKind}-${cid}-${epoch}`
-
         return {
           filePath,
           editorConfig,
           key,
           editorId: result.content.data.editorId,
           fileId: result.content.data.fileId,
+          diffError: null,
         }
       },
     })
@@ -138,7 +194,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 })
 
 function FileLayout() {
-  const { filePath, editorConfig, key, editorId, fileId } = Route.useLoaderData()
+  const { filePath, editorConfig, key, editorId, fileId, diffError } = Route.useLoaderData()
   const { db, workspace } = Route.useRouteContext()
   const { view: viewKind } = Route.useSearch()
 
@@ -146,9 +202,9 @@ function FileLayout() {
 
   const send = useActorRef(fileMachine).send
 
-  // Get workspace settings for autosave
+  // Get workspace settings for autosave (not used for diff view since it's read-only)
   const { settings } = useWorkspaceSettings(workspace.id)
-  const autosaveEnabled = settings.autosave === "on"
+  const autosaveEnabled = viewKind !== "diff" && settings.autosave === "on"
 
   // Helper to notify Claude Code of selection changes
   const notifyClaudeCodeSelection = (selectedText: string, selection: ClaudeSelection) => {
@@ -173,6 +229,20 @@ function FileLayout() {
       }),
     )
   }, [fileId, db])
+
+  // Handle diff error
+  if (diffError) {
+    return (
+      <div className="flex h-full items-center justify-center text-muted-foreground">
+        <p>failed to load diff: {diffError}</p>
+      </div>
+    )
+  }
+
+  // Handle missing editor config (shouldn't happen, but be safe)
+  if (!editorConfig) {
+    return <LoadingAnimation />
+  }
 
   return (
     <>
@@ -216,7 +286,8 @@ function FileLayout() {
               notifyClaudeCodeSelection(selectedText, claudeSelection)
             } else {
               sendFileState({ type: "file.edit" })
-              if (viewKind) {
+              // don't persist state for diff views (read-only overlay)
+              if (viewKind && viewKind !== "diff") {
                 send({
                   type: "editor.state.update",
                   editorState: {

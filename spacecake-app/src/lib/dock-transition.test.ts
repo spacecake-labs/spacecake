@@ -26,6 +26,7 @@ function makeLayout(
     panels: {
       terminal: { isExpanded: true, size: 30 },
       task: { isExpanded: false, size: 20 },
+      git: { isExpanded: false, size: 25 },
       ...panels,
     },
   }

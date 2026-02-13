@@ -118,7 +118,7 @@ test.describe("autosave", () => {
     await expect(dirtyRow2).toBeVisible()
 
     // Close the tab immediately (before autosave debounce)
-    await locateTabCloseButton(window, "file1.md").click()
+    await locateTabCloseButton(window, "file1.md").click({ force: true })
 
     // Tab should be closed
     await expect(locateTab(window, "file1.md")).not.toBeVisible()

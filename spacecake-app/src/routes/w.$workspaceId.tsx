@@ -11,6 +11,7 @@ import { useAtom, useSetAtom } from "jotai"
 import {
   ChevronDown,
   ChevronUp,
+  GitBranch,
   ListTodo,
   PanelBottom,
   PanelLeft,
@@ -20,11 +21,12 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import type { DockAction } from "@/lib/dock-transition"
-import type { DockPosition } from "@/schema/workspace-layout"
+import type { DockablePanelKind, DockPosition } from "@/schema/workspace-layout"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DeleteButton } from "@/components/delete-button"
 import { EditorToolbar } from "@/components/editor/toolbar"
+import { GitPanel } from "@/components/git-panel"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { QuickOpen } from "@/components/quick-open"
 import { TabBar } from "@/components/tab-bar"
@@ -193,9 +195,11 @@ function HeaderToolbar() {
 function DockPositionDropdown({
   currentDock,
   onDockChange,
+  label,
 }: {
   currentDock: DockPosition
   onDockChange: (dock: DockPosition) => void
+  label: DockablePanelKind
 }) {
   const CurrentIcon =
     currentDock === "left" ? PanelLeft : currentDock === "right" ? PanelRight : PanelBottom
@@ -205,8 +209,8 @@ function DockPositionDropdown({
       <DropdownMenuTrigger asChild>
         <button
           className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-0"
-          aria-label="change dock position"
-          title="change dock position"
+          aria-label={`change ${label} dock position`}
+          title={`change ${label} dock position`}
         >
           <CurrentIcon className="h-3.5 w-3.5" />
         </button>
@@ -321,6 +325,12 @@ function LayoutContent() {
   const isTaskCollapsed = !isTaskExpanded
   const [taskStatusFilter, setTaskStatusFilter] = useAtom(taskStatusFilterAtom)
 
+  // Git panel state
+  const gitDock = findPanel(layout, "git") ?? "left"
+  const isGitExpanded = layout.panels.git.isExpanded
+  const gitSize = clampSize(layout.panels.git.size, gitDock)
+  const isGitCollapsed = !isGitExpanded
+
   const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
   const shouldFocusTerminalRef = useRef(false)
 
@@ -379,8 +389,10 @@ function LayoutContent() {
   const terminalPanelRef = useRef<HTMLDivElement>(null)
 
   const taskPanelRef = useRef<HTMLDivElement>(null)
-  const taskPanelGroupRef = useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
   const taskBottomPanelGroupRef = useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
+
+  const gitPanelRef = useRef<HTMLDivElement>(null)
+  const gitPanelGroupRef = useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
 
   // Helper to dispatch a dock action and persist the result
   const dispatch = useCallback(
@@ -479,6 +491,20 @@ function LayoutContent() {
     [dispatch],
   )
 
+  const setGitExpanded = useCallback(
+    (expanded: boolean) => {
+      dispatch({ kind: expanded ? "expand" : "collapse", panel: "git" })
+    },
+    [dispatch],
+  )
+
+  const setGitDock = useCallback(
+    (dock: DockPosition) => {
+      dispatch({ kind: "move", panel: "git", to: dock })
+    },
+    [dispatch],
+  )
+
   const toggleTerminal = useCallback(() => {
     if (isTerminalCollapsed && !isTerminalSessionActive) {
       setIsTerminalSessionActive(true)
@@ -492,6 +518,10 @@ function LayoutContent() {
 
   const toggleTask = useCallback(() => {
     dispatch({ kind: "toggle", panel: "task" })
+  }, [dispatch])
+
+  const toggleGit = useCallback(() => {
+    dispatch({ kind: "toggle", panel: "git" })
   }, [dispatch])
 
   // Track pending terminal size for debounced saves
@@ -531,27 +561,55 @@ function LayoutContent() {
     [isTerminalExpanded, debouncedSaveTerminalSize, terminalDock],
   )
 
-  // Reset task panel size when toggling collapse state or changing dock position
+  // Reset bottom panel size when toggling collapse state
   useEffect(() => {
-    if (taskDock === "bottom") {
-      if (taskBottomPanelGroupRef.current) {
-        const layout = isTaskCollapsed ? [100, 0] : [100 - taskSize, taskSize]
-        taskBottomPanelGroupRef.current.setLayout(layout)
-      }
+    if (!taskBottomPanelGroupRef.current) return
+    const bottomPanel = taskDock === "bottom" ? "task" : gitDock === "bottom" ? "git" : null
+    if (!bottomPanel) return
+
+    const isCollapsed = bottomPanel === "task" ? isTaskCollapsed : isGitCollapsed
+    const size = bottomPanel === "task" ? taskSize : gitSize
+    const layout = isCollapsed ? [100, 0] : [100 - size, size]
+    taskBottomPanelGroupRef.current.setLayout(layout)
+  }, [isTaskCollapsed, isGitCollapsed, taskSize, gitSize, taskDock, gitDock])
+
+  // Reset outer panel group (gitPanelGroupRef) layout when dock positions or collapse states change
+  // This group can have 2-4 panels: [git-left?] [task-left?] [center] [task-right?] [git-right?]
+  useEffect(() => {
+    if (!gitPanelGroupRef.current) return
+    // skip if both git and task are at bottom (only center panel present)
+    if ((gitDock === "bottom" || gitDock === null) && (taskDock === "bottom" || taskDock === null))
       return
+
+    // build layout array based on which panels are present (in order)
+    const layout: number[] = []
+
+    // git-left (order 0)
+    if (gitDock === "left") {
+      layout.push(isGitCollapsed ? 0 : gitSize)
     }
-    if (taskPanelGroupRef.current) {
-      const taskFirst = taskDock === "left"
-      const layout = isTaskCollapsed
-        ? taskFirst
-          ? [0, 100]
-          : [100, 0]
-        : taskFirst
-          ? [taskSize, 100 - taskSize]
-          : [100 - taskSize, taskSize]
-      taskPanelGroupRef.current.setLayout(layout)
+    // task-left (order 1)
+    if (taskDock === "left") {
+      layout.push(isTaskCollapsed ? 0 : taskSize)
     }
-  }, [isTaskCollapsed, taskSize, taskDock])
+    // center is always present - will be calculated as remainder
+    const centerIndex = layout.length
+    layout.push(0) // placeholder
+    // task-right (order 3)
+    if (taskDock === "right") {
+      layout.push(isTaskCollapsed ? 0 : taskSize)
+    }
+    // git-right (order 4)
+    if (gitDock === "right") {
+      layout.push(isGitCollapsed ? 0 : gitSize)
+    }
+
+    // calculate center size as remainder
+    const usedSize = layout.reduce((sum, size) => sum + size, 0)
+    layout[centerIndex] = 100 - usedSize
+
+    gitPanelGroupRef.current.setLayout(layout)
+  }, [isGitCollapsed, isTaskCollapsed, gitSize, taskSize, gitDock, taskDock])
 
   // reset terminal panel size when toggling collapse state or changing dock position
   useEffect(() => {
@@ -584,6 +642,18 @@ function LayoutContent() {
     }
   }
 
+  // Git panel file clicks open in diff view mode
+  const handleGitFileClick = (filePath: AbsolutePath, baseRef?: string, targetRef?: string) => {
+    if (workspace?.path) {
+      machine.send({ type: "pane.file.open", filePath, viewKind: "diff", baseRef, targetRef })
+    }
+  }
+
+  // Commit file clicks show diff for that specific commit vs its parent
+  const handleCommitFileClick = (filePath: AbsolutePath, commitHash: string) => {
+    handleGitFileClick(filePath, `${commitHash}^`, commitHash)
+  }
+
   if (isMobile) {
     return (
       <ClaudeIntegrationProvider
@@ -604,7 +674,7 @@ function LayoutContent() {
               </div>
               <HeaderToolbar />
             </header>
-            <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
+            <div className="flex-1 min-h-0 overflow-hidden">
               <Outlet />
             </div>
           </main>
@@ -632,7 +702,11 @@ function LayoutContent() {
       {/* Left side: terminal status + dock position */}
       <div className="flex items-center gap-2 min-w-0 overflow-hidden">
         <TerminalStatusBadge />
-        <DockPositionDropdown currentDock={terminalDock} onDockChange={setTerminalDock} />
+        <DockPositionDropdown
+          currentDock={terminalDock}
+          onDockChange={setTerminalDock}
+          label="terminal"
+        />
       </div>
       {/* Right side: badges, task toggle, delete, collapse */}
       <div className="flex items-center gap-2 flex-shrink-0">
@@ -690,7 +764,7 @@ function LayoutContent() {
             isTaskExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
           )}
         />
-        <DockPositionDropdown currentDock={taskDock} onDockChange={setTaskDock} />
+        <DockPositionDropdown currentDock={taskDock} onDockChange={setTaskDock} label="task" />
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         {taskStatuses.map((status) => {
@@ -734,18 +808,51 @@ function LayoutContent() {
     </div>
   )
 
+  // Git toolbar content - h-10 + border-b to match editor header
+  const gitToolbarContent = (
+    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+        <GitBranch
+          className={cn(
+            "h-3.5 w-3.5 shrink-0",
+            isGitExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+          )}
+        />
+        <DockPositionDropdown currentDock={gitDock} onDockChange={setGitDock} label="git" />
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <button
+          onClick={() => setGitExpanded(!isGitExpanded)}
+          className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          aria-label={isGitCollapsed ? "show git" : "hide git"}
+        >
+          {isGitCollapsed ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+        </button>
+      </div>
+    </div>
+  )
+
+  // Determine which panel (if any) is docked at bottom
+  const bottomDockedPanel = taskDock === "bottom" ? "task" : gitDock === "bottom" ? "git" : null
+  const bottomPanelCollapsed = bottomDockedPanel === "task" ? isTaskCollapsed : isGitCollapsed
+  const bottomPanelSize = bottomDockedPanel === "task" ? taskSize : gitSize
+
   const editorPanel = (
     <ResizablePanel
       id="editor-panel"
       defaultSize={isTerminalCollapsed ? 100 : 100 - terminalSize}
       minSize={30}
     >
-      {taskDock === "bottom" ? (
+      {bottomDockedPanel ? (
         <ResizablePanelGroup ref={taskBottomPanelGroupRef} direction="vertical" className="h-full">
           <ResizablePanel
             id="editor-main-panel"
             order={1}
-            defaultSize={isTaskCollapsed ? 100 : 100 - taskSize}
+            defaultSize={bottomPanelCollapsed ? 100 : 100 - bottomPanelSize}
             minSize={30}
           >
             <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
@@ -755,32 +862,59 @@ function LayoutContent() {
                 </div>
                 <HeaderToolbar />
               </header>
-              <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
+              <div className="flex-1 min-h-0 overflow-hidden">
                 <Outlet />
               </div>
             </main>
           </ResizablePanel>
-          <ResizableHandle withHandle className={isTaskCollapsed ? "invisible" : ""} />
-          <ResizablePanel
-            id="task-panel-bottom"
-            order={2}
-            defaultSize={isTaskCollapsed ? 0 : taskSize}
-            minSize={isTaskCollapsed ? 0 : 15}
-            maxSize={isTaskCollapsed ? 0 : 50}
-            className={isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""}
-          >
-            <div ref={taskPanelRef} className="flex h-full w-full flex-col">
-              {!isTaskCollapsed && taskToolbarContent}
-              <div
-                className={cn(
-                  "flex-1 min-h-0 min-w-0 overflow-hidden",
-                  isTaskCollapsed && "hidden",
-                )}
-              >
-                <TaskTable />
+          <ResizableHandle withHandle className={bottomPanelCollapsed ? "invisible" : ""} />
+          {bottomDockedPanel === "task" ? (
+            <ResizablePanel
+              id="task-panel-bottom"
+              order={2}
+              defaultSize={isTaskCollapsed ? 0 : taskSize}
+              minSize={isTaskCollapsed ? 0 : 15}
+              maxSize={isTaskCollapsed ? 0 : 50}
+              className={isTaskCollapsed ? "grow-0! shrink-0! basis-auto!" : ""}
+            >
+              <div ref={taskPanelRef} className="flex h-full w-full flex-col">
+                {!isTaskCollapsed && taskToolbarContent}
+                <div
+                  className={cn(
+                    "flex-1 min-h-0 min-w-0 overflow-hidden",
+                    isTaskCollapsed && "hidden",
+                  )}
+                >
+                  <TaskTable />
+                </div>
               </div>
-            </div>
-          </ResizablePanel>
+            </ResizablePanel>
+          ) : (
+            <ResizablePanel
+              id="git-panel-bottom"
+              order={2}
+              defaultSize={isGitCollapsed ? 0 : gitSize}
+              minSize={isGitCollapsed ? 0 : 15}
+              maxSize={isGitCollapsed ? 0 : 50}
+              className={isGitCollapsed ? "grow-0! shrink-0! basis-auto!" : ""}
+            >
+              <div ref={gitPanelRef} className="flex h-full w-full flex-col">
+                {!isGitCollapsed && gitToolbarContent}
+                <div
+                  className={cn(
+                    "flex-1 min-h-0 min-w-0 overflow-hidden",
+                    isGitCollapsed && "hidden",
+                  )}
+                >
+                  <GitPanel
+                    workspacePath={workspace.path}
+                    onFileClick={handleGitFileClick}
+                    onCommitFileClick={handleCommitFileClick}
+                  />
+                </div>
+              </div>
+            </ResizablePanel>
+          )}
         </ResizablePanelGroup>
       ) : (
         <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
@@ -790,7 +924,7 @@ function LayoutContent() {
             </div>
             <HeaderToolbar />
           </header>
-          <div className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <Outlet />
           </div>
         </main>
@@ -866,10 +1000,41 @@ function LayoutContent() {
         >
           <div className="flex flex-col h-full bg-background rounded-xl shadow-sm overflow-hidden">
             <ResizablePanelGroup
-              ref={taskPanelGroupRef}
+              ref={gitPanelGroupRef}
               direction="horizontal"
               className="flex-1 min-h-0"
             >
+              {/* Left git panel - full height */}
+              {gitDock === "left" && (
+                <>
+                  <ResizablePanel
+                    id="git-panel-left"
+                    order={0}
+                    defaultSize={isGitCollapsed ? 0 : gitSize}
+                    minSize={isGitCollapsed ? 0 : 15}
+                    maxSize={isGitCollapsed ? 0 : 50}
+                    className={isGitCollapsed ? "grow-0! shrink-0! basis-auto!" : ""}
+                  >
+                    <div ref={gitPanelRef} className="flex h-full w-full flex-col">
+                      {!isGitCollapsed && gitToolbarContent}
+                      <div
+                        className={cn(
+                          "flex-1 min-h-0 min-w-0 overflow-hidden",
+                          isGitCollapsed && "hidden",
+                        )}
+                      >
+                        <GitPanel
+                          workspacePath={workspace.path}
+                          onFileClick={handleGitFileClick}
+                          onCommitFileClick={handleCommitFileClick}
+                        />
+                      </div>
+                    </div>
+                  </ResizablePanel>
+                  <ResizableHandle withHandle className={isGitCollapsed ? "invisible" : ""} />
+                </>
+              )}
+
               {/* Left task panel - full height */}
               {taskDock === "left" && (
                 <>
@@ -959,13 +1124,46 @@ function LayoutContent() {
                   </ResizablePanel>
                 </>
               )}
+
+              {/* Right git panel - full height */}
+              {gitDock === "right" && (
+                <>
+                  <ResizableHandle withHandle className={isGitCollapsed ? "invisible" : ""} />
+                  <ResizablePanel
+                    id="git-panel-right"
+                    order={4}
+                    defaultSize={isGitCollapsed ? 0 : gitSize}
+                    minSize={isGitCollapsed ? 0 : 15}
+                    maxSize={isGitCollapsed ? 0 : 50}
+                    className={isGitCollapsed ? "grow-0! shrink-0! basis-auto!" : ""}
+                  >
+                    <div ref={gitPanelRef} className="flex h-full w-full flex-col">
+                      {!isGitCollapsed && gitToolbarContent}
+                      <div
+                        className={cn(
+                          "flex-1 min-h-0 min-w-0 overflow-hidden",
+                          isGitCollapsed && "hidden",
+                        )}
+                      >
+                        <GitPanel
+                          workspacePath={workspace.path}
+                          onFileClick={handleGitFileClick}
+                          onCommitFileClick={handleCommitFileClick}
+                        />
+                      </div>
+                    </div>
+                  </ResizablePanel>
+                </>
+              )}
             </ResizablePanelGroup>
             <WorkspaceStatusBar
               onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
               isTerminalExpanded={isTerminalExpanded}
               isTaskExpanded={isTaskExpanded}
+              isGitExpanded={isGitExpanded}
               onToggleTerminal={toggleTerminal}
               onToggleTask={toggleTask}
+              onToggleGit={toggleGit}
             />
           </div>
         </ResizablePanel>

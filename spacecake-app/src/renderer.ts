@@ -26,5 +26,7 @@
  * ```
  */
 
+import "@fontsource-variable/geist"
+import "@fontsource/jetbrains-mono/400.css"
 import "@/styles/globals.css"
 import "@/app.tsx"

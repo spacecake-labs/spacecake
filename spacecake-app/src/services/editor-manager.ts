@@ -9,7 +9,7 @@ import { EditorPrimaryKey } from "@/schema/editor"
 import { Database, PgliteError } from "@/services/database"
 import { FileSystemError } from "@/services/file-system"
 import { isLeft, isRight, left, right, type Either } from "@/types/adt"
-import { ViewKind } from "@/types/lexical"
+import { PersistableViewKind, ViewKind } from "@/types/lexical"
 import { AbsolutePath, FileType, type EditorCache, type EditorFile } from "@/types/workspace"
 
 // Note: Route loader is now read-only. Pane item creation is handled by the pane machine
@@ -33,6 +33,17 @@ const determineViewKind = (
   if (targetViewKind) return targetViewKind
   if (isRight(maybeState)) return maybeState.value.viewKind
   return supportsRichView(fileType) ? "rich" : "source"
+}
+
+// diff is a transient overlay, not persisted to the editor table
+export const getPersistableViewKind = (
+  viewKind: ViewKind,
+  fileType: FileType,
+): PersistableViewKind => {
+  if (viewKind === "diff") {
+    return supportsRichView(fileType) ? "rich" : "source"
+  }
+  return viewKind
 }
 
 export class EditorManager extends Effect.Service<EditorManager>()("EditorManager", {
@@ -137,7 +148,7 @@ export class EditorManager extends Effect.Service<EditorManager>()("EditorManage
           const editor = yield* db.upsertEditor({
             pane_id: props.paneId,
             file_id: maybeFile.value.fileId,
-            view_kind: viewKind,
+            view_kind: getPersistableViewKind(viewKind, fileType),
           })
 
           // Only restore selection if prior state had matching view kind

@@ -6,7 +6,6 @@ import type { PaneMachineRef } from "@/machines/pane"
 import type { ClaudeCodeStatus } from "@/types/claude-code"
 
 import { claudeStatuslineAtom, ideDisconnectedToastShownAtom } from "@/lib/atoms/atoms"
-import { gitBranchAtom } from "@/lib/atoms/git"
 import { AbsolutePath } from "@/types/workspace"
 
 // Atoms for Claude integration state
@@ -28,7 +27,6 @@ export function ClaudeIntegrationProvider({
 }: ClaudeIntegrationProviderProps) {
   const setStatus = useSetAtom(claudeStatusAtom)
   const setStatusline = useSetAtom(claudeStatuslineAtom)
-  const setGitBranch = useSetAtom(gitBranchAtom)
   const serverReady = useAtomValue(claudeServerReadyAtom)
   const setServerReady = useSetAtom(claudeServerReadyAtom)
   const serverStarted = useRef(false)
@@ -76,29 +74,6 @@ export function ClaudeIntegrationProvider({
 
     return () => cleanups.forEach((c) => c())
   }, [serverReady, setStatus, setStatusline, machine])
-
-  // Initialize git branch and set up watcher
-  useEffect(() => {
-    if (!workspacePath) return
-
-    // Get initial branch
-    window.electronAPI.git.getCurrentBranch(workspacePath).then(setGitBranch)
-
-    // Start watching for branch changes
-    window.electronAPI.git.startWatching(workspacePath)
-
-    // Listen for branch changes
-    const cleanup = window.electronAPI.git.onBranchChange(({ path }) => {
-      if (path === workspacePath) {
-        window.electronAPI.git.getCurrentBranch(workspacePath).then(setGitBranch)
-      }
-    })
-
-    return () => {
-      cleanup()
-      window.electronAPI.git.stopWatching(workspacePath)
-    }
-  }, [workspacePath, setGitBranch])
 
   // Show a one-time toast when Claude Code prints "IDE disconnected" in the terminal
   useEffect(() => {

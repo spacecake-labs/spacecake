@@ -15,9 +15,18 @@ interface TabItemProps {
   isActive: boolean
   onClose: (e: React.MouseEvent) => void
   source?: OpenFileSource
+  commitHash?: string
 }
 
-export function TabItem({ id, fileName, filePath, isActive, onClose, source }: TabItemProps) {
+export function TabItem({
+  id,
+  fileName,
+  filePath,
+  isActive,
+  onClose,
+  source,
+  commitHash,
+}: TabItemProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopyPath = async (e: React.MouseEvent) => {
@@ -56,6 +65,11 @@ export function TabItem({ id, fileName, filePath, isActive, onClose, source }: T
               </span>
             )}
             <span className="truncate max-w-[120px]">{fileName}</span>
+            {commitHash && (
+              <span className="font-mono text-emerald-600 dark:text-emerald-400 shrink-0">
+                {commitHash.substring(0, 7)}
+              </span>
+            )}
             <span
               role="button"
               tabIndex={0}
@@ -107,6 +121,11 @@ export function TabItem({ id, fileName, filePath, isActive, onClose, source }: T
               {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
             </Button>
           </div>
+          {commitHash && (
+            <span className="text-xs flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-mono">
+              commit {commitHash.substring(0, 7)}
+            </span>
+          )}
           {source && (
             <span className="text-xs flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
               <span className="size-1.5 rounded-full bg-emerald-500" />

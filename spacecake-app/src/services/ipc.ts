@@ -7,7 +7,7 @@ import { normalizePath } from "@/lib/utils"
 import { ClaudeSettingsFile, type StatuslineConfigStatus } from "@/services/claude-settings-file"
 import { ClaudeTaskListService } from "@/services/claude-task-list"
 import { FileSystem, type FileSystemError } from "@/services/file-system"
-import { GitError, GitService } from "@/services/git"
+import { GitCommit, GitError, GitFileDiff, GitService, GitStatus } from "@/services/git"
 import { SpacecakeHome } from "@/services/spacecake-home"
 import { Terminal } from "@/services/terminal"
 import { left, right, type Either } from "@/types/adt"
@@ -293,24 +293,58 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       Effect.runPromise(git.isGitRepo(workspacePath)),
     )
 
-    ipcMain.handle("git:start-watching", (_, workspacePath: string) =>
-      Effect.runPromise(
-        Effect.match(git.startWatching(workspacePath), {
-          onFailure: (error) =>
-            left({ _tag: "GitError" as const, description: (error as GitError).description }),
-          onSuccess: () => right(undefined),
-        }),
-      ),
+    // Plain object representation of GitError for IPC serialization
+    type SerializedGitError = {
+      _tag: "GitError"
+      description: string
+    }
+
+    const serializeGitError = (error: GitError): SerializedGitError => ({
+      _tag: "GitError",
+      description: error.description,
+    })
+
+    ipcMain.handle(
+      "git:status",
+      (_, workspacePath: string): Promise<Either<SerializedGitError, GitStatus>> =>
+        Effect.runPromise(
+          Effect.match(git.getStatus(workspacePath), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: (status) => right(status),
+          }),
+        ),
     )
 
-    ipcMain.handle("git:stop-watching", (_, workspacePath: string) =>
-      Effect.runPromise(
-        Effect.match(git.stopWatching(workspacePath), {
-          onFailure: (error) =>
-            left({ _tag: "GitError" as const, description: (error as GitError).description }),
-          onSuccess: () => right(undefined),
-        }),
-      ),
+    ipcMain.handle(
+      "git:file-diff",
+      (
+        _,
+        workspacePath: string,
+        filePath: string,
+        baseRef?: string,
+        targetRef?: string,
+      ): Promise<Either<SerializedGitError, GitFileDiff>> =>
+        Effect.runPromise(
+          Effect.match(git.getFileDiff(workspacePath, filePath, baseRef, targetRef), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: (diff) => right(diff),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:commit-log",
+      (
+        _,
+        workspacePath: string,
+        limit?: number,
+      ): Promise<Either<SerializedGitError, GitCommit[]>> =>
+        Effect.runPromise(
+          Effect.match(git.getCommitLog(workspacePath, limit), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: (commits) => right(commits),
+          }),
+        ),
     )
 
     return {}

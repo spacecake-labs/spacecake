@@ -18,10 +18,14 @@ export function TabBar({ paneId, machine }: TabBarProps) {
   const { items, loading, empty } = usePaneItems(paneId)
   const activePaneItemId = useActivePaneItemId(paneId)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  // Get source from route search params for the active tab
+  // Get source and targetRef from route search params for the active tab
   const sourceFromRoute = useSearch({
     strict: false,
     select: (search) => search?.source as OpenFileSource | undefined,
+  })
+  const targetRefFromRoute = useSearch({
+    strict: false,
+    select: (search) => search?.targetRef as string | undefined,
   })
 
   // Handle horizontal scroll on wheel - must use native event for non-passive option
@@ -120,6 +124,7 @@ export function TabBar({ paneId, machine }: TabBarProps) {
                 isActive={isActive}
                 onClose={(e) => handleClose(e, item)}
                 source={isActive ? sourceFromRoute : undefined}
+                commitHash={isActive ? targetRefFromRoute : undefined}
               />
             )
           })}

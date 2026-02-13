@@ -106,14 +106,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("git:branch:current", workspacePath),
     isGitRepo: (workspacePath: string): Promise<boolean> =>
       ipcRenderer.invoke("git:is-repo", workspacePath),
-    startWatching: (workspacePath: string) =>
-      ipcRenderer.invoke("git:start-watching", workspacePath),
-    stopWatching: (workspacePath: string) => ipcRenderer.invoke("git:stop-watching", workspacePath),
-    onBranchChange: (callback: (data: { path: string }) => void) => {
-      const listener = (_: unknown, data: { path: string }) => callback(data)
-      ipcRenderer.on("git:branch:changed", listener)
-      return () => ipcRenderer.removeListener("git:branch:changed", listener)
-    },
+    getStatus: (workspacePath: string) => ipcRenderer.invoke("git:status", workspacePath),
+    getFileDiff: (workspacePath: string, filePath: string, baseRef?: string, targetRef?: string) =>
+      ipcRenderer.invoke("git:file-diff", workspacePath, filePath, baseRef, targetRef),
+    getCommitLog: (workspacePath: string, limit?: number) =>
+      ipcRenderer.invoke("git:commit-log", workspacePath, limit),
   },
   exists: (path: string) => ipcRenderer.invoke("path-exists", path),
   createTerminal: (id: string, cols: number, rows: number, cwd?: string) =>
