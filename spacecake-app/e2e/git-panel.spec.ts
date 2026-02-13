@@ -97,6 +97,9 @@ test.describe("git panel", () => {
     // select working tree to see current changes
     await window.getByText("working tree").click()
 
+    // small delay to allow git panel to refresh after working tree selection
+    await window.waitForTimeout(500)
+
     // verify the new file appears as untracked in git panel
     const gitPanel = window.locator("#git-panel-left")
     await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
