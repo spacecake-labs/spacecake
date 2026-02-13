@@ -87,10 +87,6 @@ test.describe("git panel", () => {
 
     // --- git panel refreshes when file is saved in editor ---
 
-    // give workspace watcher time to fully initialize after dock switching
-    // (on Windows, the IPC listener may not be attached when events fire)
-    await window.waitForTimeout(1500)
-
     // create a new file externally (file watcher adds to sidebar)
     const newFile = path.join(tempTestDir, "created-during-test.md")
     fs.writeFileSync(newFile, "# initial content")
