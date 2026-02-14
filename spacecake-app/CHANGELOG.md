@@ -1,5 +1,13 @@
 # spacecake-app
 
+## 0.1.0-alpha.50
+
+### Patch Changes
+
+- 1b0f265: Collapse unchanged sections in git diffs.
+- 1b0f265: Fix git panel docking.
+- 242279c: Ability to close tab by clicking middle button.
+
 ## 0.1.0-alpha.49
 
 ### Patch Changes
