@@ -1,4 +1,12 @@
-import type { DockablePanelKind, DockPosition, WorkspaceLayout } from "@/schema/workspace-layout"
+import type {
+  DockablePanelKind,
+  DockPosition,
+  FullDock,
+  WorkspaceLayout,
+} from "@/schema/workspace-layout"
+
+// layout where every dock position is occupied
+export type NormalizedWorkspaceLayout = Omit<WorkspaceLayout, "dock"> & { dock: FullDock }
 
 // ============================================
 // Actions
@@ -29,6 +37,40 @@ export function findEmptyDock(layout: WorkspaceLayout): DockPosition | null {
   if (layout.dock.right === null) return "right"
   if (layout.dock.bottom === null) return "bottom"
   return null
+}
+
+// ============================================
+// Normalization
+// ============================================
+
+const ALL_PANELS: DockablePanelKind[] = ["terminal", "task", "git"]
+const ALL_POSITIONS: DockPosition[] = ["left", "right", "bottom"]
+
+/**
+ * Ensure every dockable panel is assigned to a dock position.
+ * Older stored layouts may be missing "git" — this backfills
+ * any missing panel into the first empty slot.
+ */
+export function normalizeDock(layout: WorkspaceLayout): NormalizedWorkspaceLayout {
+  let dock = layout.dock
+  let changed = false
+
+  for (const panel of ALL_PANELS) {
+    if (findPanel({ ...layout, dock }, panel) !== null) continue
+    const emptySlot = ALL_POSITIONS.find((pos) => dock[pos] === null)
+    if (!emptySlot) break
+    dock = { ...dock, [emptySlot]: panel }
+    changed = true
+  }
+
+  return (changed ? { ...layout, dock } : layout) as NormalizedWorkspaceLayout
+}
+
+/** Type-safe dock position lookup for normalized layouts. */
+export function getDockPosition(dock: FullDock, panel: DockablePanelKind): DockPosition {
+  if (dock.left === panel) return "left"
+  if (dock.right === panel) return "right"
+  return "bottom"
 }
 
 // ============================================

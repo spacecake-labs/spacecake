@@ -26,6 +26,9 @@ export const DockSchema = Schema.Struct({
 })
 export type Dock = typeof DockSchema.Type
 
+// dock where every position is occupied (post-normalization)
+export type FullDock = Record<DockPosition, DockablePanelKind>
+
 // ============================================
 // Panel
 // ============================================

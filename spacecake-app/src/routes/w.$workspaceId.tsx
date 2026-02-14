@@ -52,7 +52,12 @@ import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { taskStatusFilterAtom } from "@/lib/atoms/claude-tasks"
 import { fileStateAtomFamily, setFileTreeAtom } from "@/lib/atoms/file-tree"
-import { clampSize, DOCK_SIZE_CONSTRAINTS, findPanel, transition } from "@/lib/dock-transition"
+import {
+  clampSize,
+  DOCK_SIZE_CONSTRAINTS,
+  getDockPosition,
+  transition,
+} from "@/lib/dock-transition"
 import { exists, readDirectory } from "@/lib/fs"
 import { store } from "@/lib/store"
 import { cn, debounce, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
@@ -313,20 +318,20 @@ function LayoutContent() {
 
   // Get layout from database with live updates
   const { layout } = useWorkspaceLayout(workspace.id)
-  const terminalDock = findPanel(layout, "terminal") ?? "bottom"
+  const terminalDock = getDockPosition(layout.dock, "terminal")
   const isTerminalExpanded = layout.panels.terminal.isExpanded
   const terminalSize = clampSize(layout.panels.terminal.size, terminalDock)
   const isTerminalCollapsed = !isTerminalExpanded
 
   // Task panel state
-  const taskDock = findPanel(layout, "task") ?? "right"
+  const taskDock = getDockPosition(layout.dock, "task")
   const isTaskExpanded = layout.panels.task.isExpanded
   const taskSize = clampSize(layout.panels.task.size, taskDock)
   const isTaskCollapsed = !isTaskExpanded
   const [taskStatusFilter, setTaskStatusFilter] = useAtom(taskStatusFilterAtom)
 
   // Git panel state
-  const gitDock = findPanel(layout, "git") ?? "left"
+  const gitDock = getDockPosition(layout.dock, "git")
   const isGitExpanded = layout.panels.git.isExpanded
   const gitSize = clampSize(layout.panels.git.size, gitDock)
   const isGitCollapsed = !isGitExpanded
