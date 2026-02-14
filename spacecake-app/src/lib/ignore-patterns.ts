@@ -11,8 +11,18 @@
  * Includes common development tool directories and system files.
  */
 export const WATCHER_IGNORE_PATTERNS: string[] = [
-  // Version control
-  "**/.git/**",
+  // version control - exclude noisy/large .git subdirectories but allow
+  // state-relevant files (HEAD, index, refs/) to trigger git panel updates
+  "**/.git/objects/**",
+  "**/.git/logs/**",
+  "**/.git/hooks/**",
+  "**/.git/info/**",
+  "**/.git/lfs/**",
+  "**/.git/worktrees/**",
+  "**/.git/modules/**",
+  "**/.git/COMMIT_EDITMSG",
+  "**/.git/MERGE_MSG",
+  "**/.git/description",
   "**/.svn/**",
   "**/.hg/**",
   "**/.jj/**",

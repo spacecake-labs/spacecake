@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest"
 
-import type { DockablePanelKind, DockPosition, WorkspaceLayout } from "@/schema/workspace-layout"
+import type {
+  DockablePanelKind,
+  DockPosition,
+  FullDock,
+  WorkspaceLayout,
+} from "@/schema/workspace-layout"
 
 import {
   clampSize,
   DOCK_SIZE_CONSTRAINTS,
   findEmptyDock,
   findPanel,
+  getDockPosition,
+  normalizeDock,
   transition,
 } from "@/lib/dock-transition"
 
@@ -14,7 +21,7 @@ import {
 // Test Helpers
 // ============================================
 
-const PANELS: DockablePanelKind[] = ["terminal", "task"]
+const PANELS: DockablePanelKind[] = ["terminal", "task", "git"]
 const POSITIONS: DockPosition[] = ["left", "right", "bottom"]
 
 function makeLayout(
@@ -33,20 +40,21 @@ function makeLayout(
 }
 
 const defaultLayout = makeLayout({
-  left: null,
+  left: "git",
   right: "terminal",
   bottom: "task",
 })
 
-/** Assert bijection: each panel in exactly one dock, exactly one dock is null. */
+/** Assert that every panel occupies exactly one dock position with no duplicates. */
 function assertBijection(layout: WorkspaceLayout) {
   const values = [layout.dock.left, layout.dock.right, layout.dock.bottom]
   const panels = values.filter((v): v is DockablePanelKind => v !== null)
-  expect(values.filter((v) => v === null)).toHaveLength(1)
-  expect(panels).toHaveLength(2)
-  expect(new Set(panels).size).toBe(2)
-  expect(panels).toContain("terminal")
-  expect(panels).toContain("task")
+  // no duplicate panels
+  expect(new Set(panels).size).toBe(panels.length)
+  // every panel is present
+  for (const panel of PANELS) {
+    expect(panels).toContain(panel)
+  }
 }
 
 // ============================================
@@ -86,6 +94,36 @@ describe("findPanel", () => {
     expected: DockPosition | null
   }[])("returns $expected for $panel with dock=$dock", ({ dock, panel, expected }) => {
     expect(findPanel(makeLayout(dock), panel)).toBe(expected)
+  })
+})
+
+// ============================================
+// getDockPosition
+// ============================================
+
+describe("getDockPosition", () => {
+  const normalized = normalizeDock(defaultLayout)
+
+  it.each(PANELS)("returns correct position for %s in default layout", (panel) => {
+    const expected = findPanel(defaultLayout, panel)
+    expect(getDockPosition(normalized.dock, panel)).toBe(expected)
+  })
+
+  it.each([
+    { dock: { left: "git", right: "task", bottom: "terminal" }, panel: "git", expected: "left" },
+    { dock: { left: "git", right: "task", bottom: "terminal" }, panel: "task", expected: "right" },
+    {
+      dock: { left: "git", right: "task", bottom: "terminal" },
+      panel: "terminal",
+      expected: "bottom",
+    },
+    { dock: { left: "task", right: "terminal", bottom: "git" }, panel: "git", expected: "bottom" },
+  ] as {
+    dock: FullDock
+    panel: DockablePanelKind
+    expected: DockPosition
+  }[])("returns $expected for $panel", ({ dock, panel, expected }) => {
+    expect(getDockPosition(dock, panel)).toBe(expected)
   })
 })
 
@@ -144,8 +182,8 @@ describe("clampSize", () => {
 // ============================================
 
 describe("transition - move", () => {
-  // Generate all (panel, source, target) combinations for move-to-empty
-  const moveToEmptyCases = PANELS.flatMap((panel) =>
+  // generate all (panel, source, target) combinations
+  const moveCases = PANELS.flatMap((panel) =>
     POSITIONS.flatMap((source) =>
       POSITIONS.filter((target) => target !== source).map((target) => ({
         panel,
@@ -155,45 +193,25 @@ describe("transition - move", () => {
     ),
   )
 
-  describe("move to empty dock", () => {
-    it.each(moveToEmptyCases)(
-      "$panel: $source -> $target (target empty)",
-      ({ panel, source, target }) => {
-        // Place panel at source, other panel elsewhere, target is null
-        const otherPanel: DockablePanelKind = panel === "terminal" ? "task" : "terminal"
-        const otherPos = POSITIONS.find((p) => p !== source && p !== target)!
-        const dock = { left: null, right: null, bottom: null } as Record<
-          DockPosition,
-          DockablePanelKind | null
-        >
-        dock[source] = panel
-        dock[otherPos] = otherPanel
+  describe("move swaps with occupant of target dock", () => {
+    it.each(moveCases)("$panel: $source -> $target", ({ panel, source, target }) => {
+      // build a full dock with panel at source
+      const others = PANELS.filter((p) => p !== panel)
+      const otherPositions = POSITIONS.filter((p) => p !== source)
+      const dock = { left: null, right: null, bottom: null } as Record<
+        DockPosition,
+        DockablePanelKind | null
+      >
+      dock[source] = panel
+      dock[otherPositions[0]] = others[0]
+      dock[otherPositions[1]] = others[1]
 
-        const layout = makeLayout(dock)
-        const result = transition(layout, { kind: "move", panel, to: target })
+      const layout = makeLayout(dock)
+      const targetOccupant = layout.dock[target]
+      const result = transition(layout, { kind: "move", panel, to: target })
 
-        expect(result.dock[target]).toBe(panel)
-        expect(result.dock[source]).toBeNull()
-        expect(result.dock[otherPos]).toBe(otherPanel)
-        assertBijection(result)
-      },
-    )
-  })
-
-  describe("move to occupied dock (swap)", () => {
-    it.each(PANELS)("%s: swaps with the other panel", (panel) => {
-      const otherPanel: DockablePanelKind = panel === "terminal" ? "task" : "terminal"
-      // panel at bottom, other at right, left is null
-      const layout = makeLayout({
-        left: null,
-        right: otherPanel,
-        bottom: panel,
-      })
-      const result = transition(layout, { kind: "move", panel, to: "right" })
-
-      expect(result.dock.right).toBe(panel)
-      expect(result.dock.bottom).toBe(otherPanel)
-      expect(result.dock.left).toBeNull()
+      expect(result.dock[target]).toBe(panel)
+      expect(result.dock[source]).toBe(targetOccupant)
       assertBijection(result)
     })
   })
@@ -212,7 +230,7 @@ describe("transition - move", () => {
 
   it("preserves panel state after move", () => {
     const layout = makeLayout(
-      { left: null, right: "task", bottom: "terminal" },
+      { left: "git", right: "task", bottom: "terminal" },
       {
         terminal: { isExpanded: true, size: 45 },
         task: { isExpanded: true, size: 25 },
@@ -286,11 +304,13 @@ describe("transition - expand/collapse/toggle", () => {
     }
   })
 
-  it.each(PANELS)("%s: toggle/expand/collapse does not affect other panel", (panel) => {
-    const otherPanel: DockablePanelKind = panel === "terminal" ? "task" : "terminal"
+  it.each(PANELS)("%s: toggle/expand/collapse does not affect other panels", (panel) => {
+    const otherPanels = PANELS.filter((p) => p !== panel)
     for (const kind of ["toggle", "expand", "collapse"] as const) {
       const result = transition(defaultLayout, { kind, panel })
-      expect(result.panels[otherPanel]).toEqual(defaultLayout.panels[otherPanel])
+      for (const other of otherPanels) {
+        expect(result.panels[other]).toEqual(defaultLayout.panels[other])
+      }
     }
   })
 })
@@ -310,15 +330,17 @@ describe("transition - resize", () => {
     expect(result.panels[panel].isExpanded).toBe(defaultLayout.panels[panel].isExpanded)
   })
 
-  it.each(PANELS)("%s: resize does not affect dock or other panel", (panel) => {
-    const otherPanel: DockablePanelKind = panel === "terminal" ? "task" : "terminal"
+  it.each(PANELS)("%s: resize does not affect dock or other panels", (panel) => {
+    const otherPanels = PANELS.filter((p) => p !== panel)
     const result = transition(defaultLayout, {
       kind: "resize",
       panel,
       size: 42,
     })
     expect(result.dock).toEqual(defaultLayout.dock)
-    expect(result.panels[otherPanel]).toEqual(defaultLayout.panels[otherPanel])
+    for (const other of otherPanels) {
+      expect(result.panels[other]).toEqual(defaultLayout.panels[other])
+    }
   })
 })
 
@@ -366,5 +388,46 @@ describe("bijection invariant", () => {
     expect(layout.panels.terminal.isExpanded).toBe(false)
     expect(layout.panels.task.isExpanded).toBe(true)
     expect(layout.panels.task.size).toBe(35)
+  })
+})
+
+// ============================================
+// normalizeDock
+// ============================================
+
+describe("normalizeDock", () => {
+  it("returns same reference when all panels are already assigned", () => {
+    const layout = makeLayout({ left: "git", right: "terminal", bottom: "task" })
+    expect(normalizeDock(layout)).toBe(layout)
+  })
+
+  it("backfills git into the empty slot (legacy 2-panel layout)", () => {
+    const layout = makeLayout({ left: null, right: "terminal", bottom: "task" })
+    const result = normalizeDock(layout)
+    expect(result.dock).toEqual({ left: "git", right: "terminal", bottom: "task" })
+    assertBijection(result)
+  })
+
+  it("backfills git when empty slot is right", () => {
+    const layout = makeLayout({ left: "task", right: null, bottom: "terminal" })
+    const result = normalizeDock(layout)
+    expect(result.dock).toEqual({ left: "task", right: "git", bottom: "terminal" })
+    assertBijection(result)
+  })
+
+  it("backfills git when empty slot is bottom", () => {
+    const layout = makeLayout({ left: "terminal", right: "task", bottom: null })
+    const result = normalizeDock(layout)
+    expect(result.dock).toEqual({ left: "terminal", right: "task", bottom: "git" })
+    assertBijection(result)
+  })
+
+  it("preserves panel state during normalization", () => {
+    const layout = makeLayout(
+      { left: null, right: "terminal", bottom: "task" },
+      { git: { isExpanded: true, size: 30 } },
+    )
+    const result = normalizeDock(layout)
+    expect(result.panels.git).toEqual({ isExpanded: true, size: 30 })
   })
 })

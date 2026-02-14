@@ -2,6 +2,7 @@ import { Option, Schema } from "effect"
 
 import { useQuerySingle } from "@/hooks/use-query"
 import { workspaceLayoutQuery } from "@/lib/db/queries"
+import { normalizeDock } from "@/lib/dock-transition"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
 import {
   defaultWorkspaceLayout,
@@ -22,9 +23,12 @@ export const useWorkspaceLayout = (workspaceId: WorkspacePrimaryKey) => {
     WorkspaceLayoutRowSchema,
   )
 
-  const layout = data?.layout
+  const decoded = data?.layout
     ? Option.getOrElse(decodeLayout(data.layout), () => defaultWorkspaceLayout)
     : defaultWorkspaceLayout
+
+  // backfill panels missing from older stored layouts (e.g. "git" added after initial release)
+  const layout = normalizeDock(decoded)
 
   return {
     layout,

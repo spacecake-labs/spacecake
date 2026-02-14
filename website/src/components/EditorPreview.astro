@@ -190,27 +190,49 @@ import TaskTablePreview from "./TaskTablePreview.astro"
         <div
           class="toolbar-row flex items-center justify-between px-4 bg-[#0a0a0a] border-b border-zinc-800"
         >
-          <div class="flex items-center gap-2 text-xs font-mono">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="text-emerald-400 w-4 h-4"
-              ><polyline points="4 17 10 11 4 5"></polyline><line
-                x1="12"
-                y1="19"
-                x2="20"
-                y2="19"></line></svg
+          <div class="dock-tabs flex items-center gap-1">
+            <button
+              class="dock-tab active"
+              data-dock="terminal"
+              title="terminal"
             >
-            <!-- <span class="text-zinc-400"> terminal </span> -->
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><polyline points="4 17 10 11 4 5"></polyline><line
+                  x1="12"
+                  y1="19"
+                  x2="20"
+                  y2="19"></line></svg
+              >
+            </button>
+            <button class="dock-tab" data-dock="git" title="git">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><line x1="6" y1="3" x2="6" y2="15"></line><circle
+                  cx="18"
+                  cy="6"
+                  r="3"></circle><circle cx="6" cy="18" r="3"></circle><path
+                  d="M18 9a9 9 0 0 1-9 9"></path></svg
+              >
+            </button>
           </div>
-          <div class="toolbar-badges">
+          <div class="dock-badges active" data-dock-badges="terminal">
             <div
               class="toolbar-badge toolbar-badge-secondary flex items-center border border-zinc-700/50 rounded px-2 py-0.5"
             >
@@ -239,53 +261,223 @@ import TaskTablePreview from "./TaskTablePreview.astro"
               >
             </div>
           </div>
+
+          <div class="dock-badges" data-dock-badges="git">
+            <div
+              class="toolbar-badge toolbar-badge-primary flex items-center gap-1.5 border border-zinc-700/50 rounded px-2 py-0.5"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="text-zinc-400"
+                ><line x1="6" y1="3" x2="6" y2="15"></line><circle
+                  cx="18"
+                  cy="6"
+                  r="3"></circle><circle cx="6" cy="18" r="3"></circle><path
+                  d="M18 9a9 9 0 0 1-9 9"></path></svg
+              >
+              <span class="text-zinc-400 text-xs font-mono whitespace-nowrap"
+                >main</span
+              >
+            </div>
+          </div>
         </div>
 
-        <div class="p-4 text-xs space-y-3 font-jetbrains flex-1 bg-[#0a0a0a]">
-          <div class="border border-orange-500 rounded p-3 space-y-2">
-            <div class="text-orange-400 border-b border-orange-900 pb-2">
-              ━━━━━ Claude Code ━━━━━━━━━━━━━━━━━━
+        <div class="dock-content active" data-dock-content="terminal">
+          <div class="p-4 text-xs space-y-3 font-jetbrains flex-1 bg-[#0a0a0a]">
+            <div class="border border-orange-500 rounded p-3 space-y-2">
+              <div class="text-orange-400 border-b border-orange-900 pb-2">
+                ━━━━━ Claude Code ━━━━━━━━━━━━━━━━━━
+              </div>
+              <div class="space-y-1 text-zinc-300">
+                <div class="text-white font-medium">Welcome back Taylor!</div>
+                <div class="flex items-center gap-2">
+                  <div class="text-orange-400 text-base">🦀</div>
+                  <div class="text-xs text-zinc-500">Opus 4.5 · Claude Pro</div>
+                </div>
+                <div class="text-xs text-zinc-500 terminal-path-text">
+                  <span class="block truncate"
+                    >taylor@spacecake.ai's Organization</span
+                  >
+                  <span class="block truncate"
+                    >~/Documents/GitHub/spacecake/</span
+                  >
+                </div>
+              </div>
+              <div class="border-t border-orange-900 pt-2 space-y-1">
+                <div class="text-emerald-400 text-xs font-medium">
+                  Tips for getting started
+                </div>
+                <div class="text-zinc-500 text-xs">
+                  Run ./init to create a CLAUDE.md file with instructions for
+                  Claude
+                </div>
+                <div class="text-xs mt-2">
+                  <span class="text-orange-400">Recent activity</span>
+                  <div class="text-zinc-600">No recent activity</div>
+                </div>
+              </div>
             </div>
-            <div class="space-y-1 text-zinc-300">
-              <div class="text-white font-medium">Welcome back Taylor!</div>
-              <div class="flex items-center gap-2">
-                <div class="text-orange-400 text-base">🦀</div>
-                <div class="text-xs text-zinc-500">Opus 4.5 · Claude Pro</div>
-              </div>
-              <div class="text-xs text-zinc-500 terminal-path-text">
-                <span class="block truncate"
-                  >taylor@spacecake.ai's Organization</span
-                >
-                <span class="block truncate">~/Documents/GitHub/spacecake/</span
-                >
+
+            <!-- Terminal Prompt with Typing Animation -->
+            <div class="flex items-center gap-2 text-zinc-400">
+              <span class="text-purple-400 font-bold">❯</span>
+              <span class="text-orange-400">■</span>
+              <span class="text-zinc-400" id="terminal-text"></span>
+              <span
+                class="inline-block w-2 h-4 bg-white opacity-100"
+                id="terminal-cursor"></span>
+            </div>
+
+            <div class="text-zinc-600 text-xs pt-2">? for shortcuts</div>
+          </div>
+        </div>
+
+        <div class="dock-content" data-dock-content="git">
+          <div class="git-panel-mockup font-jetbrains">
+            <!-- left: commits pane -->
+            <div class="git-commits-pane">
+              <div class="git-pane-header">commits</div>
+              <div class="git-pane-body">
+                <div class="git-commit-item selected">
+                  <div class="git-commit-row">
+                    <span class="git-dot git-dot-yellow"></span>
+                    <span class="git-commit-label">working tree</span>
+                  </div>
+                </div>
+                <div class="git-commit-item">
+                  <div class="git-commit-row">
+                    <span class="git-commit-hash">a1b2c3f</span>
+                    <span class="git-commit-date">Feb 14</span>
+                  </div>
+                  <div class="git-commit-msg">add task checklist</div>
+                </div>
+                <div class="git-commit-item">
+                  <div class="git-commit-row">
+                    <span class="git-commit-hash">8f2e1d4</span>
+                    <span class="git-commit-date">Feb 13</span>
+                  </div>
+                  <div class="git-commit-msg">add mermaid flowchart</div>
+                </div>
+                <div class="git-commit-item">
+                  <div class="git-commit-row">
+                    <span class="git-commit-hash">c7d9e2a</span>
+                    <span class="git-commit-date">Feb 12</span>
+                  </div>
+                  <div class="git-commit-msg">create project plan</div>
+                </div>
               </div>
             </div>
-            <div class="border-t border-orange-900 pt-2 space-y-1">
-              <div class="text-emerald-400 text-xs font-medium">
-                Tips for getting started
-              </div>
-              <div class="text-zinc-500 text-xs">
-                Run ./init to create a CLAUDE.md file with instructions for
-                Claude
-              </div>
-              <div class="text-xs mt-2">
-                <span class="text-orange-400">Recent activity</span>
-                <div class="text-zinc-600">No recent activity</div>
+
+            <!-- right: changed files pane -->
+            <div class="git-files-pane">
+              <div class="git-pane-header">changed files</div>
+              <div class="git-pane-body">
+                <div class="git-section">
+                  <div class="git-section-header">
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      ><polyline points="6 9 12 15 18 9"></polyline></svg
+                    >
+                    <span>staged changes</span>
+                    <span class="git-count-badge git-count-green">1</span>
+                  </div>
+                  <div class="git-section-files">
+                    <div class="git-file-item">
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="git-file-icon"
+                        ><path
+                          d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                        ></path><polyline points="14 2 14 8 20 8"
+                        ></polyline></svg
+                      >
+                      <span class="git-file-path">ship-faster.md</span>
+                      <span class="git-status-badge git-status-green">A</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="git-section">
+                  <div class="git-section-header">
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      ><polyline points="6 9 12 15 18 9"></polyline></svg
+                    >
+                    <span>changes</span>
+                    <span class="git-count-badge">2</span>
+                  </div>
+                  <div class="git-section-files">
+                    <div class="git-file-item">
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="git-file-icon"
+                        ><path
+                          d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                        ></path><polyline points="14 2 14 8 20 8"
+                        ></polyline></svg
+                      >
+                      <span class="git-file-path">CLAUDE.md</span>
+                      <span class="git-status-badge git-status-yellow">M</span>
+                    </div>
+                    <div class="git-file-item">
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="git-file-icon"
+                        ><path
+                          d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                        ></path><polyline points="14 2 14 8 20 8"
+                        ></polyline></svg
+                      >
+                      <span class="git-file-path">notes.md</span>
+                      <span class="git-status-badge git-status-blue">U</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-          <!-- Terminal Prompt with Typing Animation -->
-          <div class="flex items-center gap-2 text-zinc-400">
-            <span class="text-purple-400 font-bold">❯</span>
-            <span class="text-orange-400">■</span>
-            <span class="text-zinc-400" id="terminal-text"></span>
-            <span
-              class="inline-block w-2 h-4 bg-white opacity-100"
-              id="terminal-cursor"></span>
-          </div>
-
-          <div class="text-zinc-600 text-xs pt-2">? for shortcuts</div>
         </div>
       </div>
     </div>
@@ -604,6 +796,281 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   .checklist-item.checked span:last-child {
     color: #71717a;
   }
+
+  /* Dock switcher tabs */
+  .dock-tabs {
+    flex-shrink: 0;
+  }
+
+  .dock-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 24px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #71717a; /* zinc-500 */
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s;
+    padding: 0;
+  }
+
+  .dock-tab:hover {
+    color: #a1a1aa; /* zinc-400 */
+    background: rgba(63, 63, 70, 0.3);
+  }
+
+  .dock-tab.active {
+    color: #34d399; /* emerald-400 */
+    background: rgba(16, 185, 129, 0.1);
+  }
+
+  /* Dock badges show/hide */
+  .dock-badges {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+
+  .dock-badges.active {
+    display: flex;
+  }
+
+  /* Dock content show/hide */
+  .dock-content {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .dock-content.active {
+    display: flex;
+  }
+
+  /* Git panel mockup */
+  .git-panel-mockup {
+    display: flex;
+    flex: 1;
+    background: #0a0a0a;
+    font-size: 0.75rem;
+    min-height: 0;
+  }
+
+  .git-commits-pane {
+    display: flex;
+    flex-direction: column;
+    width: 40%;
+    border-right: 1px solid #27272a;
+    min-width: 0;
+  }
+
+  .git-files-pane {
+    display: flex;
+    flex-direction: column;
+    width: 60%;
+    min-width: 0;
+  }
+
+  .git-pane-header {
+    padding: 6px 12px;
+    color: #71717a;
+    font-size: 0.65rem;
+    text-transform: lowercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid #27272a;
+    flex-shrink: 0;
+  }
+
+  .git-pane-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  /* Commit items */
+  .git-commit-item {
+    padding: 6px 12px;
+    border-bottom: 1px solid #1a1a1e;
+    cursor: default;
+  }
+
+  .git-commit-item:hover {
+    background: rgba(63, 63, 70, 0.15);
+  }
+
+  .git-commit-item.selected {
+    background: rgba(16, 185, 129, 0.08);
+  }
+
+  .git-commit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .git-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .git-dot-yellow {
+    background: #eab308; /* yellow-500 */
+  }
+
+  .git-commit-label {
+    color: #e4e4e7;
+    font-weight: 500;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .git-commit-hash {
+    color: #52525b; /* zinc-600 */
+    font-family: var(--sl-font-mono) !important;
+  }
+
+  .git-commit-date {
+    color: #52525b;
+    font-size: 0.65rem;
+    flex-shrink: 0;
+  }
+
+  .git-commit-msg {
+    color: #a1a1aa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+
+  /* File sections */
+  .git-section {
+    border-bottom: 1px solid #1a1a1e;
+  }
+
+  .git-section-header {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    color: #a1a1aa;
+    font-size: 0.7rem;
+    font-weight: 500;
+    cursor: default;
+  }
+
+  .git-section-header svg {
+    color: #52525b;
+    flex-shrink: 0;
+  }
+
+  .git-count-badge {
+    margin-left: auto;
+    font-size: 0.6rem;
+    color: #71717a;
+    background: rgba(63, 63, 70, 0.3);
+    border-radius: 4px;
+    min-width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
+    box-sizing: border-box;
+  }
+
+  .git-count-green {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+  }
+
+  .git-section-files {
+    padding: 0 2px 4px 6px;
+  }
+
+  /* File items */
+  .git-file-item {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    min-width: 0;
+  }
+
+  .git-file-item:hover {
+    background: rgba(63, 63, 70, 0.15);
+  }
+
+  .git-file-icon {
+    color: #52525b;
+    flex-shrink: 0;
+  }
+
+  .git-file-path {
+    color: #d4d4d8;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.7rem;
+  }
+
+  .git-status-badge {
+    font-size: 0.6rem;
+    font-weight: 600;
+    font-family: var(--sl-font-mono) !important;
+    min-width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    line-height: 1;
+    box-sizing: border-box;
+  }
+
+  .git-status-green {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.15);
+  }
+
+  .git-status-yellow {
+    color: #eab308;
+    background: rgba(234, 179, 8, 0.15);
+  }
+
+  .git-status-blue {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.15);
+  }
+
+  .git-status-red {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+  }
+
+  /* Hide commit messages on very narrow widths */
+  @media (max-width: 400px) {
+    .git-commit-msg {
+      display: none;
+    }
+  }
 </style>
 
 <script>
@@ -677,15 +1144,61 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     })
   }
 
+  function initDockSwitcher() {
+    const dockTabs = document.querySelectorAll(".dock-tab")
+    const dockContents = document.querySelectorAll(".dock-content")
+    const dockBadges = document.querySelectorAll(".dock-badges")
+
+    dockTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const dockId = tab.getAttribute("data-dock")
+
+        // update active tab
+        dockTabs.forEach((t) => t.classList.remove("active"))
+        tab.classList.add("active")
+
+        // update visible content
+        dockContents.forEach((content) => {
+          if (content.getAttribute("data-dock-content") === dockId) {
+            content.classList.add("active")
+          } else {
+            content.classList.remove("active")
+          }
+        })
+
+        // update visible badges
+        dockBadges.forEach((badges) => {
+          if (badges.getAttribute("data-dock-badges") === dockId) {
+            badges.classList.add("active")
+          } else {
+            badges.classList.remove("active")
+          }
+        })
+
+        // handle terminal animation
+        if (dockId !== "terminal") {
+          // switching away from terminal — clear animations
+          if (typingInterval) clearInterval(typingInterval)
+          if (cursorInterval) clearInterval(cursorInterval)
+        } else {
+          // switching back to terminal — restart animation
+          initTerminal()
+        }
+      })
+    })
+  }
+
   // Initialize on load
   initTerminal()
   initTabs()
   initChecklist()
+  initDockSwitcher()
 
   // Re-initialize when navigating with View Transitions
   document.addEventListener("astro:page-load", () => {
     initTerminal()
     initTabs()
     initChecklist()
+    initDockSwitcher()
   })
 </script>
