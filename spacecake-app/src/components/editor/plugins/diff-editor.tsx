@@ -62,6 +62,7 @@ export const DiffEditor: React.FC<DiffEditorProps> = ({
           gutter: true, // Show change indicators in gutter
           syntaxHighlightDeletions: true,
           mergeControls: false, // Hide accept/reject buttons (read-only diff)
+          collapseUnchanged: {}, // Collapse unchanged sections with default margin/minSize
         }),
       ]
 
