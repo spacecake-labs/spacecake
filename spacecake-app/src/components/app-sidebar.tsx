@@ -1,6 +1,6 @@
-import { Link, useMatchRoute, useNavigate } from "@tanstack/react-router"
+import { useMatchRoute, useNavigate } from "@tanstack/react-router"
 import { useAtom } from "jotai"
-import { Settings } from "lucide-react"
+import { ChevronsUpDown, Settings } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import {
@@ -17,6 +17,7 @@ AppSidebar handles sidebar UI and folder expansion state.
 */
 import iconSvg from "@/images/icon.svg"
 import { expandedFoldersAtom } from "@/lib/atoms/atoms"
+import { useOpenWorkspace } from "@/lib/open-workspace"
 import { encodeBase64Url } from "@/lib/utils"
 import { AbsolutePath, ExpandedFolders, Folder, WorkspaceInfo } from "@/types/workspace"
 
@@ -35,6 +36,7 @@ export function AppSidebar({ onFileClick, workspace, selectedFilePath }: AppSide
   const navigate = useNavigate()
   const matchRoute = useMatchRoute()
   const isOnSettings = matchRoute({ to: "/w/$workspaceId/settings" })
+  const { handleOpenWorkspace } = useOpenWorkspace()
 
   const handleExpandFolder = async (folderPath: Folder["path"], forceExpand?: boolean) => {
     // Check if folder is currently expanded
@@ -55,26 +57,19 @@ export function AppSidebar({ onFileClick, workspace, selectedFilePath }: AppSide
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild className="app-no-drag">
-              <Link
-                to={workspace?.path ? "/w/$workspaceId" : "/"}
-                params={
-                  workspace?.path
-                    ? {
-                        workspaceId: encodeBase64Url(workspace.path),
-                      }
-                    : undefined
-                }
-                // preload="intent"
-              >
-                <div className="bg-transparent text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <img src={iconSvg} alt="spacecake" className="size-8" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">spacecake</span>
-                  {workspace?.name && <span className="truncate text-xs">{workspace.name}</span>}
-                </div>
-              </Link>
+            <SidebarMenuButton
+              size="lg"
+              className="app-no-drag cursor-pointer"
+              onClick={handleOpenWorkspace}
+            >
+              <div className="bg-transparent text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                <img src={iconSvg} alt="spacecake" className="size-8" />
+              </div>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">spacecake</span>
+                {workspace?.name && <span className="truncate text-xs">{workspace.name}</span>}
+              </div>
+              <ChevronsUpDown className="ml-auto size-4 opacity-50" />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -1,6 +1,6 @@
 import { useSearch } from "@tanstack/react-router"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { Check, FileSearch, FileWarning, FolderSearch, Loader2, Save, X } from "lucide-react"
+import { Check, FileWarning, Loader2, Save, X } from "lucide-react"
 import * as React from "react"
 
 import type { PaneMachineRef } from "@/machines/pane"
@@ -10,11 +10,9 @@ import type { OpenFileSource } from "@/types/claude-code"
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { ViewToggleButton } from "@/components/editor/view-toggle-button"
 import { Button } from "@/components/ui/button"
-import { CommandShortcut } from "@/components/ui/command"
 import { useEditor } from "@/contexts/editor-context"
-import { quickOpenMenuOpenAtom, saveResultAtom } from "@/lib/atoms/atoms"
+import { saveResultAtom } from "@/lib/atoms/atoms"
 import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
-import { useOpenWorkspace } from "@/lib/open-workspace"
 import { cn } from "@/lib/utils"
 import { RouteContext } from "@/types/workspace"
 
@@ -31,8 +29,6 @@ export function EditorToolbar({ routeContext, machine, activePaneItemId }: Edito
   const send = useSetAtom(fileStateAtom)
   const isSaving = fileState === "Saving"
   const isConflict = fileState === "Conflict"
-  const openQuickOpen = useSetAtom(quickOpenMenuOpenAtom)
-  const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
 
   // Get source from route search params
   const source = useSearch({
@@ -179,29 +175,6 @@ export function EditorToolbar({ routeContext, machine, activePaneItemId }: Edito
 
   return (
     <div className="flex items-center gap-3">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleOpenWorkspace}
-        disabled={fileExplorerIsOpen}
-        className="h-7 px-2 text-xs cursor-pointer"
-        aria-label="switch folder"
-        title="switch folder"
-      >
-        <FolderSearch className="h-3 w-3 mr-1" />
-        <CommandShortcut>⌘O</CommandShortcut>
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => openQuickOpen()}
-        className="h-7 px-2 text-xs cursor-pointer"
-        aria-label="search files"
-        title="search files"
-      >
-        <FileSearch className="h-3 w-3 mr-1" />
-        <CommandShortcut>⌘P</CommandShortcut>
-      </Button>
       <ViewToggleButton routeContext={routeContext} />
       <Button
         variant="ghost"
