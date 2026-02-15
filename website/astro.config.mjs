@@ -72,14 +72,25 @@ export default defineConfig({
       ],
       sidebar: [
         {
-          label: "📖",
+          label: "getting started",
           items: [
-            { label: "getting started", slug: "getting-started" },
+            { label: "installation", slug: "getting-started" },
+            { label: "editor basics", slug: "editor-basics" },
+          ],
+        },
+        {
+          label: "features",
+          items: [
+            { label: "writing markdown", slug: "writing-markdown" },
             {
               label: "claude code integration",
               slug: "claude-code-integration",
             },
           ],
+        },
+        {
+          label: "support",
+          items: [{ label: "troubleshooting", slug: "troubleshooting" }],
         },
       ],
       components: {

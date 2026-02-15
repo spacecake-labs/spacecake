@@ -52,6 +52,7 @@ import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { taskStatusFilterAtom } from "@/lib/atoms/claude-tasks"
 import { fileStateAtomFamily, setFileTreeAtom } from "@/lib/atoms/file-tree"
+import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
 import {
   clampSize,
   DOCK_SIZE_CONSTRAINTS,
@@ -156,6 +157,17 @@ export const Route = createFileRoute("/w/$workspaceId")({
         })
 
         store.set(setFileTreeAtom, tree)
+
+        // build quick-open file index in background (non-blocking)
+        window.electronAPI.listFiles(workspace.path).then((result) => {
+          match(result, {
+            onLeft: (error) => console.error("file index build failed:", error),
+            onRight: (files) => {
+              store.set(quickOpenIndexAtom, files)
+              store.set(quickOpenIndexReadyAtom, true)
+            },
+          })
+        })
       },
     })
 
@@ -335,6 +347,19 @@ function LayoutContent() {
   const isGitExpanded = layout.panels.git.isExpanded
   const gitSize = clampSize(layout.panels.git.size, gitDock)
   const isGitCollapsed = !isGitExpanded
+
+  // auto-collapse sidebar when a left-docked panel expands, restore when it collapses
+  const hasExpandedLeftPanel =
+    (gitDock === "left" && isGitExpanded) || (taskDock === "left" && isTaskExpanded)
+  const prevHasExpandedLeftPanelRef = useRef(hasExpandedLeftPanel)
+
+  useEffect(() => {
+    const prev = prevHasExpandedLeftPanelRef.current
+    prevHasExpandedLeftPanelRef.current = hasExpandedLeftPanel
+    if (prev === hasExpandedLeftPanel) return
+
+    setSidebarOpen(!hasExpandedLeftPanel)
+  }, [hasExpandedLeftPanel, setSidebarOpen])
 
   const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
   const shouldFocusTerminalRef = useRef(false)
@@ -973,7 +998,7 @@ function LayoutContent() {
       enabled={!isTerminalCollapsed}
       machine={machine}
     >
-      <ResizablePanelGroup direction="horizontal" className="h-screen">
+      <ResizablePanelGroup direction="horizontal" className="h-full">
         <ResizablePanel
           id="sidebar-panel"
           order={1}
@@ -993,10 +1018,7 @@ function LayoutContent() {
             selectedFilePath={selectedFilePath}
           />
         </ResizablePanel>
-        <ResizableHandle
-          withHandle
-          className={cn("w-0", !sidebarOpen && "[&>div]:translate-x-1.5")}
-        />
+        <ResizableHandle withHandle className={cn("w-0", !sidebarOpen && "hidden")} />
         <ResizablePanel
           id="main-content-panel"
           order={2}
@@ -1214,9 +1236,11 @@ function WorkspaceLayout() {
   if (!workspace?.path) {
     return (
       <>
-        <div className="flex h-screen overflow-hidden">
+        <div className="flex h-screen flex-col overflow-hidden">
+          {/* app-wide drag region for window traffic lights */}
+          <div className="app-drag h-4 shrink-0 bg-sidebar" />
           <FocusManagerProvider>
-            <SidebarProvider>
+            <SidebarProvider className="flex-1 min-h-0">
               <LayoutContent />
             </SidebarProvider>
           </FocusManagerProvider>
@@ -1227,9 +1251,11 @@ function WorkspaceLayout() {
   return (
     <>
       <WorkspaceWatcher workspacePath={workspace.path} />
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen flex-col overflow-hidden">
+        {/* app-wide drag region for window traffic lights */}
+        <div className="app-drag h-4 shrink-0 bg-sidebar" />
         <FocusManagerProvider>
-          <SidebarProvider>
+          <SidebarProvider className="flex-1 min-h-0">
             <LayoutContent />
           </SidebarProvider>
         </FocusManagerProvider>

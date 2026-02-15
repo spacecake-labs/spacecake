@@ -14,6 +14,7 @@ export function sortFilesByMatchingScore(
   files: QuickOpenFileItem[],
   searchQuery: string,
   recentPaths?: Set<string>,
+  maxResults: number = 100,
 ): QuickOpenFileItem[] {
   if (!searchQuery) return []
 
@@ -27,7 +28,7 @@ export function sortFilesByMatchingScore(
   }
 
   results.sort((a, b) => b.score - a.score)
-  return results.map((r) => r.item)
+  return results.slice(0, maxResults).map((r) => r.item)
 }
 
 export function sortFilesByRecency(recentFiles: RecentFile[]): RecentFile[] {

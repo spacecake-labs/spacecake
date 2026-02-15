@@ -6,7 +6,7 @@ import path from "path"
 import { normalizePath } from "@/lib/utils"
 import { ClaudeSettingsFile, type StatuslineConfigStatus } from "@/services/claude-settings-file"
 import { ClaudeTaskListService } from "@/services/claude-task-list"
-import { FileSystem, type FileSystemError } from "@/services/file-system"
+import { FileSystem, type FileSystemError, type IndexedFile } from "@/services/file-system"
 import { GitCommit, GitError, GitFileDiff, GitService, GitStatus } from "@/services/git"
 import { SpacecakeHome } from "@/services/spacecake-home"
 import { Terminal } from "@/services/terminal"
@@ -100,13 +100,32 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         }),
       ),
     )
-    ipcMain.handle("read-directory", (_, path: string) =>
-      Effect.runPromise(
-        Effect.match(fs.readDirectory(normalizePath(path)), {
-          onFailure: (error) => left(serializeError(error)),
-          onSuccess: (tree) => right(tree),
-        }),
-      ),
+    ipcMain.handle(
+      "read-directory",
+      (_, workspacePath: string, dirPath?: string, options?: { recursive?: boolean }) =>
+        Effect.runPromise(
+          Effect.match(
+            fs.readDirectory(
+              normalizePath(workspacePath),
+              dirPath ? normalizePath(dirPath) : undefined,
+              options,
+            ),
+            {
+              onFailure: (error) => left(serializeError(error)),
+              onSuccess: (tree) => right(tree),
+            },
+          ),
+        ),
+    )
+    ipcMain.handle(
+      "list-files",
+      (_, workspacePath: string): Promise<Either<SerializedFileSystemError, IndexedFile[]>> =>
+        Effect.runPromise(
+          Effect.match(fs.listFiles(normalizePath(workspacePath)), {
+            onFailure: (error) => left(serializeError(error)),
+            onSuccess: (files) => right(files),
+          }),
+        ),
     )
     ipcMain.handle("start-watcher", (_, watchPath: AbsolutePath) =>
       Effect.runPromise(

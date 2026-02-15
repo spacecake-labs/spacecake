@@ -1,0 +1,34 @@
+---
+title: troubleshooting
+description: Common issues and how to fix them.
+---
+
+## "permission denied" on macos
+
+go to System Settings → Privacy & Security and allow `spacecake` to run.
+
+## something looks wrong
+
+press `⌘R` to refresh the app. if the issue persists in rich mode, switch to source mode to see the underlying markdown.
+
+## terminal doesn't match the app theme
+
+after toggling between light and dark themes, the terminal may not update immediately. press `⌘R` / `ctrl+R` to reload the app, or quit and reopen. this is a known issue we're working on.
+
+## debugging issues
+
+open Chrome DevTools from within `spacecake` to view console logs.
+
+## slow file watching on linux or windows
+
+spacecake uses @parcel/watcher for detecting file changes. on linux and windows, installing [watchman](https://facebook.github.io/watchman/) significantly improves file watching performance and reliability for large projects. spacecake will show a tip in the status bar recommending this. see the [watchman installation guide](https://facebook.github.io/watchman/docs/install) for setup instructions.
+
+## claude code: IDE disconnected
+
+run `/ide` in Claude Code to check connection status. select spacecake from the list to reconnect.
+
+## claude code: no status line data
+
+- make sure spacecake is running
+- verify `~/.claude/settings.json` has the correct `statusLine` configuration (see [claude code integration](/claude-code-integration#status-line))
+- restart Claude Code after making changes

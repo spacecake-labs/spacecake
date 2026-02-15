@@ -5,7 +5,7 @@ import {
   Outlet,
   useLocation,
 } from "@tanstack/react-router"
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
+// import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import { usePostHog } from "posthog-js/react"
 import { useEffect } from "react"
 
@@ -50,7 +50,7 @@ function RootComponent() {
     <PGliteProvider db={db.client}>
       <DatabaseContext.Provider value={db.orm}>
         <Outlet />
-        <TanStackRouterDevtools />
+        {/* <TanStackRouterDevtools /> */}
       </DatabaseContext.Provider>
     </PGliteProvider>
   )

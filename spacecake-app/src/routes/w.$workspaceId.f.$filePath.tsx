@@ -8,14 +8,15 @@ import { useEffect } from "react"
 import { Editor } from "@/components/editor/editor"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { useWorkspaceSettings } from "@/hooks/use-workspace-settings"
-import { expandedFoldersAtom } from "@/lib/atoms/atoms"
-import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms"
+import { fileStateAtomFamily, findFolderInTree, updateFolderInTree } from "@/lib/atoms/file-tree"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
 import {
   createEditorConfigFromContent,
   createEditorConfigFromDiff,
   createEditorConfigFromState,
 } from "@/lib/editor"
+import { readDirectory } from "@/lib/fs"
 import { createRichViewClaudeSelection } from "@/lib/selection-utils"
 import { store } from "@/lib/store"
 import { decodeBase64Url } from "@/lib/utils"
@@ -66,6 +67,27 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
       })
       return next
     })
+
+    // resolve unresolved parent folders so the nested file is visible in the tree
+    for (const folderPath of foldersToExpand) {
+      const tree = store.get(fileTreeAtom)
+      const folder = findFolderInTree(tree, folderPath)
+      if (folder && !folder.resolved) {
+        const result = await readDirectory(workspace.path, folderPath)
+        match(result, {
+          onLeft: () => {},
+          onRight: (children) => {
+            store.set(fileTreeAtom, (prev) =>
+              updateFolderInTree(prev, folderPath, (f) => ({
+                ...f,
+                children,
+                resolved: true,
+              })),
+            )
+          },
+        })
+      }
+    }
 
     // Route loader is read-only for content - pane item creation is normally handled
     // by the pane machine before navigation. However, for direct URL navigation

@@ -52,8 +52,12 @@ export const remove = (
 export const exists = (path: AbsolutePath, electronAPI: ElectronAPI = window.electronAPI) =>
   electronAPI.exists(path)
 
-export const readDirectory = (path: AbsolutePath, electronAPI: ElectronAPI = window.electronAPI) =>
-  electronAPI.readDirectory(path)
+export const readDirectory = (
+  workspacePath: string,
+  dirPath?: string,
+  options?: { recursive?: boolean },
+  electronAPI: ElectronAPI = window.electronAPI,
+) => electronAPI.readDirectory(workspacePath, dirPath, options)
 
 export const startWatcher = (path: AbsolutePath, electronAPI: ElectronAPI = window.electronAPI) =>
   electronAPI.startWatcher(path)
