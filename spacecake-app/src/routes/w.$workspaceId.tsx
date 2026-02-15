@@ -52,6 +52,7 @@ import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { taskStatusFilterAtom } from "@/lib/atoms/claude-tasks"
 import { fileStateAtomFamily, setFileTreeAtom } from "@/lib/atoms/file-tree"
+import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
 import {
   clampSize,
   DOCK_SIZE_CONSTRAINTS,
@@ -156,6 +157,17 @@ export const Route = createFileRoute("/w/$workspaceId")({
         })
 
         store.set(setFileTreeAtom, tree)
+
+        // build quick-open file index in background (non-blocking)
+        window.electronAPI.listFiles(workspace.path).then((result) => {
+          match(result, {
+            onLeft: (error) => console.error("file index build failed:", error),
+            onRight: (files) => {
+              store.set(quickOpenIndexAtom, files)
+              store.set(quickOpenIndexReadyAtom, true)
+            },
+          })
+        })
       },
     })
 

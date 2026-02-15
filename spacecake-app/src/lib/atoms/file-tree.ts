@@ -3,18 +3,9 @@ import { atom } from "jotai"
 import { atomFamily } from "jotai-family"
 import { atomWithMachine } from "jotai-xstate"
 
-import type {
-  File,
-  FileTree,
-  FileTreeEvent,
-  Folder,
-  QuickOpenFileItem,
-  WorkspaceInfo,
-} from "@/types/workspace"
+import type { File, FileTree, FileTreeEvent, Folder, WorkspaceInfo } from "@/types/workspace"
 
 import { expandedFoldersAtom, fileTreeAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
-// Import expandedFoldersAtom
-import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 import { fileStateMachine } from "@/machines/file-tree"
 import { router } from "@/router"
@@ -293,52 +284,6 @@ export const sortedFileTreeAtom = atom((get) => {
 
   return sortTree(fileTree)
 })
-
-/**
- * Flattens a FileTree to get all files (excluding folders).
- * Optimized to avoid intermediate array creation and spreading.
- */
-export const flattenFiles = (tree: FileTree): File[] => {
-  const files: File[] = []
-
-  function traverse(items: FileTree) {
-    for (const item of items) {
-      if (item.kind === "file") {
-        files.push(item)
-      } else if (item.kind === "folder") {
-        traverse(item.children)
-      }
-    }
-  }
-
-  traverse(tree)
-  return files
-}
-
-// Function to get quick open file items for a specific workspace
-export const getQuickOpenFileItems = (
-  workspacePath: WorkspaceInfo["path"],
-  fileTree: FileTree,
-): QuickOpenFileItem[] => {
-  if (!workspacePath) return []
-
-  const files = flattenFiles(fileTree)
-  return files.map((file) => {
-    const displayPath = parentFolderName(file.path, workspacePath, file.name)
-    return { file, displayPath }
-  })
-}
-
-/** check if every folder in the tree has been resolved */
-export function isTreeFullyResolved(tree: FileTree): boolean {
-  for (const item of tree) {
-    if (item.kind === "folder") {
-      if (!item.resolved) return false
-      if (!isTreeFullyResolved(item.children)) return false
-    }
-  }
-  return true
-}
 
 const createFileStateMachineAtom = (filePath: AbsolutePath) =>
   atomWithMachine(

@@ -2,6 +2,7 @@ import type { PlatformError } from "@effect/platform/Error"
 
 import { FileSystem as EffectFileSystem } from "@effect/platform"
 import { Data, Effect, Either, Option } from "effect"
+import NFS from "node:fs/promises"
 import path from "path"
 import writeFileAtomic from "write-file-atomic"
 
@@ -15,6 +16,13 @@ import { WatcherFileSystemLive, WatcherService } from "@/main-process/watcher"
 import { GitIgnore, GitIgnoreLive } from "@/services/git-ignore-parser"
 import { SpacecakeHome } from "@/services/spacecake-home"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
+
+/** lightweight file entry for quick-open index (no stat, no cid, no etag) */
+export type IndexedFile = {
+  path: string
+  name: string
+  isGitIgnored: boolean
+}
 
 /** Common file permission modes */
 export const FileMode = {
@@ -174,33 +182,31 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
       options?: { recursive?: boolean },
     ): Effect.Effect<FileTree, FileSystemError> => {
       return Effect.gen(function* (_) {
-        const entries = yield* _(fs.readDirectory(currentPath))
+        // use withFileTypes to avoid per-entry stat() calls
+        const dirents = yield* Effect.tryPromise({
+          try: () => NFS.readdir(currentPath, { withFileTypes: true }),
+          catch: (error) => error,
+        })
+
         const tree: FileTree = []
 
-        for (const entryName of entries) {
+        for (const entry of dirents) {
+          const entryName = entry.name
+
           // skip .asar archives — Electron fakes fs.stat for these and causes issues
           if (entryName.endsWith(".asar")) {
             continue
           }
 
-          const fullPath = AbsolutePath(normalizePath(path.join(currentPath, entryName)))
-
-          // try to stat the entry — skip if it fails (broken symlink, permission denied, etc.)
-          const statsResult = yield* _(fs.stat(fullPath).pipe(Effect.either))
-
-          if (Either.isLeft(statsResult)) {
-            continue
-          }
-
-          const stats = statsResult.right
-
           if (EXCLUDED_ENTRIES.has(entryName)) {
             continue
           }
 
+          const fullPath = AbsolutePath(normalizePath(path.join(currentPath, entryName)))
+
           const isGitIgnored = yield* gitIgnore.isIgnored(workspacePath, fullPath)
 
-          if (stats.type === "Directory") {
+          if (entry.isDirectory()) {
             let children: FileTree = []
             let resolved = false
 
@@ -230,21 +236,19 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
               isSystemFolder: isSystemFolder(fullPath),
             }
             tree.push(folder)
-          } else if (stats.type === "File") {
+          } else if (entry.isFile()) {
             const file: File = {
               name: entryName,
               path: fullPath,
               fileType: fileTypeFromExtension(path.extname(entryName)),
               kind: "file",
               cid: ZERO_HASH,
-              etag: {
-                mtime: Option.getOrElse(stats.mtime, () => new Date()),
-                size: Number(stats.size),
-              },
+              etag: { mtime: new Date(0), size: 0 },
               isGitIgnored,
             }
             tree.push(file)
           }
+          // skip symlinks, sockets, etc.
         }
         return tree
       }).pipe(
@@ -256,6 +260,22 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
             (error._tag === "SystemError" || error._tag === "BadArgument")
           ) {
             return toFileSystemError(error as PlatformError, currentPath)
+          }
+          // map raw Node.js errno codes to typed errors
+          if (error && typeof error === "object" && "code" in error) {
+            const code = (error as NodeJS.ErrnoException).code
+            if (code === "EACCES" || code === "EPERM") {
+              return new PermissionDeniedError({
+                path: currentPath,
+                description: `failed to read directory: ${String(error)}`,
+              })
+            }
+            if (code === "ENOENT") {
+              return new NotFoundError({
+                path: currentPath,
+                description: `failed to read directory: ${String(error)}`,
+              })
+            }
           }
           return new UnknownFSError({
             path: currentPath,
@@ -335,6 +355,52 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         ),
       )
 
+    const listFiles = (workspacePath: string): Effect.Effect<IndexedFile[], FileSystemError> =>
+      Effect.gen(function* () {
+        const entries = yield* Effect.tryPromise({
+          try: () => NFS.readdir(workspacePath, { recursive: true, withFileTypes: true }),
+          catch: (error) =>
+            new UnknownFSError({
+              path: workspacePath,
+              description: `failed to list files: ${String(error)}`,
+            }),
+        })
+
+        const files: IndexedFile[] = []
+
+        for (const entry of entries) {
+          if (!entry.isFile()) continue
+
+          // skip .asar files
+          if (entry.name.endsWith(".asar")) continue
+
+          // skip entries whose parent segments include excluded names
+          const parentDir = entry.parentPath
+          const relativePath = path.relative(workspacePath, parentDir)
+          const segments = relativePath ? relativePath.split(path.sep) : []
+          if (segments.some((seg) => EXCLUDED_ENTRIES.has(seg))) continue
+
+          const fullPath = normalizePath(path.join(parentDir, entry.name))
+          const isGitIgnored = yield* gitIgnore.isIgnored(workspacePath, fullPath)
+
+          files.push({
+            path: fullPath,
+            name: entry.name,
+            isGitIgnored,
+          })
+        }
+
+        return files
+      }).pipe(
+        Effect.mapError((error) => {
+          if (error instanceof UnknownFSError) return error
+          return new UnknownFSError({
+            path: workspacePath,
+            description: `failed to list files: ${String(error)}`,
+          })
+        }),
+      )
+
     return {
       readTextFile,
       writeTextFile,
@@ -343,6 +409,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
       rename,
       exists,
       readDirectory,
+      listFiles,
       startWatcher,
       stopWatcher,
       startFileWatcher,

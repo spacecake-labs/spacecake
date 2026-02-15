@@ -2,7 +2,7 @@ import type { DisplayStatusline } from "@/lib/statusline-parser"
 import type { ClaudeTask, ClaudeTaskError } from "@/types/claude-task"
 import type { AbsolutePath, FileContent, FileTree, FileTreeEvent } from "@/types/workspace"
 
-import { FileSystemError } from "@/services/file-system"
+import { FileSystemError, type IndexedFile } from "@/services/file-system"
 import { type Either } from "@/types/adt"
 import {
   AtMentionedPayload,
@@ -64,6 +64,7 @@ export interface ElectronAPI {
     dirPath?: string,
     options?: { recursive?: boolean },
   ) => Promise<Either<FileSystemError, FileTree>>
+  listFiles: (workspacePath: string) => Promise<Either<FileSystemError, IndexedFile[]>>
   startWatcher: (path: AbsolutePath) => Promise<Either<FileSystemError, undefined>>
   stopWatcher: (workspacePath: AbsolutePath) => Promise<Either<FileSystemError, undefined>>
   onFileEvent: (handler: (event: FileTreeEvent) => void) => () => void

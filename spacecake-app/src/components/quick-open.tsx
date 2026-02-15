@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
+import { atom, useAtom, useAtomValue } from "jotai"
 import { File as FileIcon } from "lucide-react"
 import * as React from "react"
 
@@ -13,13 +13,18 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { useRecentFiles } from "@/hooks/use-recent-files"
-import { fileTreeAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
-import { getQuickOpenFileItems, isTreeFullyResolved, setFileTreeAtom } from "@/lib/atoms/file-tree"
+import { quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
+import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
 import { createQuickOpenItems } from "@/lib/filter-files"
-import { readDirectory } from "@/lib/fs"
+import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromFileName } from "@/lib/workspace"
-import { match } from "@/types/adt"
-import { AbsolutePath, File, WorkspaceInfo } from "@/types/workspace"
+import {
+  AbsolutePath,
+  type File,
+  type QuickOpenFileItem,
+  ZERO_HASH,
+  WorkspaceInfo,
+} from "@/types/workspace"
 
 const quickOpenSearchAtom = atom("")
 const quickOpenParentAtom = atom<HTMLDivElement | null>(null)
@@ -32,26 +37,11 @@ interface QuickOpenProps {
 export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
   const [isOpen, setIsOpen] = useAtom(quickOpenMenuOpenAtom)
   const [search, setSearch] = useAtom(quickOpenSearchAtom)
-  const setFileTree = useSetAtom(setFileTreeAtom)
 
-  // Get file tree from atom and derive file items
-  const fileTree = useAtomValue(fileTreeAtom)
-  const allFileItems = getQuickOpenFileItems(workspacePath, fileTree)
+  // read from the dedicated quick-open index (decoupled from sidebar)
+  const indexedFiles = useAtomValue(quickOpenIndexAtom)
+  const indexReady = useAtomValue(quickOpenIndexReadyAtom)
   const recentFiles = useRecentFiles(workspacePath)
-
-  // trigger a full recursive scan on first open if tree is not fully resolved
-  const fullScanTriggeredRef = React.useRef(false)
-  React.useEffect(() => {
-    if (isOpen && !fullScanTriggeredRef.current && !isTreeFullyResolved(fileTree)) {
-      fullScanTriggeredRef.current = true
-      readDirectory(workspacePath, undefined, { recursive: true }).then((result) => {
-        match(result, {
-          onLeft: (error) => console.error("full scan failed:", error),
-          onRight: (tree) => setFileTree(tree),
-        })
-      })
-    }
-  }, [isOpen])
 
   if (recentFiles.error) {
     console.error("error getting recent files", recentFiles.error)
@@ -70,6 +60,25 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
     document.addEventListener("keydown", down)
     return () => document.removeEventListener("keydown", down)
   }, [setIsOpen])
+
+  // derive QuickOpenFileItem[] from the flat IndexedFile[] index
+  const allFileItems: QuickOpenFileItem[] = React.useMemo(() => {
+    return indexedFiles.map((entry) => {
+      const file: File = {
+        name: entry.name,
+        path: AbsolutePath(entry.path),
+        kind: "file",
+        cid: ZERO_HASH,
+        etag: { mtime: new Date(0), size: 0 },
+        fileType: fileTypeFromFileName(entry.name),
+        isGitIgnored: entry.isGitIgnored,
+      }
+      return {
+        file,
+        displayPath: parentFolderName(file.path, workspacePath, file.name),
+      }
+    })
+  }, [indexedFiles, workspacePath])
 
   const filteredItems = React.useMemo(() => {
     if (recentFiles.data) {
@@ -123,8 +132,12 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
     >
       <CommandInput placeholder="search files..." value={search} onValueChange={setSearch} />
       <CommandList ref={setParent}>
-        {rowVirtualizer.getVirtualItems().length === 0 && search ? (
-          <CommandEmpty>no results found</CommandEmpty>
+        {rowVirtualizer.getVirtualItems().length === 0 ? (
+          search ? (
+            <CommandEmpty>no results found</CommandEmpty>
+          ) : !indexReady ? (
+            <CommandEmpty>indexing...</CommandEmpty>
+          ) : null
         ) : null}
         <div
           style={{

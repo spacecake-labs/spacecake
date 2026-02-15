@@ -6,6 +6,7 @@ import type { FileTreeEvent, WorkspaceInfo } from "@/types/workspace"
 
 import { useRoute } from "@/hooks/use-route"
 import { fileTreeEventAtom, sortedFileTreeAtom } from "@/lib/atoms/file-tree"
+import { quickOpenIndexAtom } from "@/lib/atoms/quick-open-index"
 import { handleFileEvent } from "@/lib/file-event-handler"
 import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
@@ -37,6 +38,17 @@ export const useFileEventHandler = (workspacePath: WorkspaceInfo["path"]) => {
       const fileTree = store.get(sortedFileTreeAtom)
 
       handleFileEvent(event, currentPath, setFileTreeEvent, workspacePath, fileTree, deleteFile)
+
+      // keep quick-open index current
+      if (event.kind === "addFile") {
+        const name = event.path.split("/").pop()!
+        store.set(quickOpenIndexAtom, (prev) => [
+          ...prev,
+          { path: event.path, name, isGitIgnored: false },
+        ])
+      } else if (event.kind === "unlinkFile") {
+        store.set(quickOpenIndexAtom, (prev) => prev.filter((f) => f.path !== event.path))
+      }
     },
     [setFileTreeEvent, store, workspacePath, deleteFile, currentPath],
   )
