@@ -53,17 +53,18 @@ test.describe("git panel", () => {
 
     // --- working tree content ---
 
-    await expect(window.getByText("working tree")).toBeVisible()
-    await expect(window.getByText("committed.md").first()).toBeVisible()
-    await expect(window.getByTitle("modified").first()).toBeVisible()
-    await expect(window.getByText("untracked.md").first()).toBeVisible()
-    await expect(window.getByTitle("untracked").first()).toBeVisible()
+    const gitPanel = window.locator("#git-panel-left")
+    await expect(gitPanel.getByText("working tree")).toBeVisible()
+    await expect(gitPanel.getByRole("button", { name: /committed\.md/ })).toBeVisible()
+    await expect(gitPanel.getByTitle("modified").first()).toBeVisible()
+    await expect(gitPanel.getByRole("button", { name: /untracked\.md/ })).toBeVisible()
+    await expect(gitPanel.getByTitle("untracked").first()).toBeVisible()
 
     // --- commit selection ---
 
-    await expect(window.getByText("initial commit")).toBeVisible()
-    await window.getByText("initial commit").click()
-    await expect(window.getByText("committed.md").first()).toBeVisible()
+    await expect(gitPanel.getByText("initial commit")).toBeVisible()
+    await gitPanel.getByText("initial commit").click()
+    await expect(gitPanel.getByRole("button", { name: /committed\.md/ })).toBeVisible()
 
     // --- dock switching ---
 
@@ -91,37 +92,15 @@ test.describe("git panel", () => {
     const newFile = path.join(tempTestDir, "created-during-test.md")
     fs.writeFileSync(newFile, "# initial content")
 
-    // wait for sidebar to show the new file
-    await expect(locateSidebarItem(window, "created-during-test.md")).toBeVisible()
-
     // select working tree to see current changes
-    await window.getByText("working tree").click()
+    await gitPanel.getByText("working tree").click()
 
     // verify the new file appears as untracked in git panel
-    const gitPanel = window.locator("#git-panel-left")
     await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
     await expect(gitPanel.getByTitle("untracked").first()).toBeVisible()
 
-    // open the file in editor
-    await locateSidebarItem(window, "created-during-test.md").click({ force: true })
-    await expect(window.getByText("initial content")).toBeVisible()
-
-    await window.getByText("initial content").click({ force: true })
-    await window.keyboard.press("End")
-    await window.keyboard.type(" EDITED", { delay: 50 })
-    await expect(window.getByText("EDITED")).toBeVisible()
-
-    // save with Cmd+S
-    await window.keyboard.press("ControlOrMeta+s")
-
-    // wait for save to complete
-    await window.waitForTimeout(500)
-
-    // verify file on disk was saved
-    const savedContent = fs.readFileSync(newFile, "utf-8")
-    expect(savedContent).toContain("EDITED")
-
-    // verify git panel still shows the file (refresh didn't break anything)
+    // modify the file externally and verify git panel refreshes
+    fs.writeFileSync(newFile, "# initial content EDITED")
     await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
   })
 

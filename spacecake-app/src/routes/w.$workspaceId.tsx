@@ -10,7 +10,6 @@ import { Effect, Match } from "effect"
 import { useAtom, useSetAtom } from "jotai"
 import {
   ChevronDown,
-  ChevronRight,
   ChevronUp,
   GitBranch,
   ListTodo,
@@ -336,6 +335,19 @@ function LayoutContent() {
   const isGitExpanded = layout.panels.git.isExpanded
   const gitSize = clampSize(layout.panels.git.size, gitDock)
   const isGitCollapsed = !isGitExpanded
+
+  // auto-collapse sidebar when a left-docked panel expands, restore when it collapses
+  const hasExpandedLeftPanel =
+    (gitDock === "left" && isGitExpanded) || (taskDock === "left" && isTaskExpanded)
+  const prevHasExpandedLeftPanelRef = useRef(hasExpandedLeftPanel)
+
+  useEffect(() => {
+    const prev = prevHasExpandedLeftPanelRef.current
+    prevHasExpandedLeftPanelRef.current = hasExpandedLeftPanel
+    if (prev === hasExpandedLeftPanel) return
+
+    setSidebarOpen(!hasExpandedLeftPanel)
+  }, [hasExpandedLeftPanel, setSidebarOpen])
 
   const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
   const shouldFocusTerminalRef = useRef(false)
@@ -995,20 +1007,11 @@ function LayoutContent() {
           />
         </ResizablePanel>
         <ResizableHandle withHandle className={cn("w-0", !sidebarOpen && "hidden")} />
-        {!sidebarOpen && (
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="flex h-full items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer"
-            aria-label="expand sidebar"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        )}
         <ResizablePanel
           id="main-content-panel"
           order={2}
           defaultSize={85}
-          className={cn("p-2 overflow-hidden", !sidebarOpen && "pl-0")}
+          className="p-2 overflow-hidden"
         >
           <div className="flex flex-col h-full bg-background rounded-xl shadow-sm overflow-hidden">
             <ResizablePanelGroup
