@@ -1,0 +1,51 @@
+---
+title: editor basics
+description: Workspaces, files, tabs, keyboard shortcuts, and the integrated terminal.
+---
+
+## workspaces
+
+a workspace is a folder you're working in. switch workspaces with `⌘O` / `ctrl+O` or the folder icon in the toolbar.
+
+your home folder (`~/.spacecake`) is always available for notes that aren't tied to a specific project.
+
+## files and tabs
+
+- **quick open**: press `⌘P` / `ctrl+P` to search and open files by name
+- **new file**: press `⌘N` / `ctrl+N` to create a new file
+- **close tab**: press `⌘W` / `ctrl+W` or click the × on the tab
+- **save**: press `⌘S` / `ctrl+S` to save the current file
+
+tabs show open files at the top of the editor. scroll horizontally if you have many tabs open.
+
+## autosave
+
+spacecake can automatically save files as you edit. enable autosave in workspace settings:
+
+1. click the gear icon in the sidebar (or navigate to Settings)
+2. toggle **enable autosave** on
+
+when enabled, changes are saved to disk automatically - no need to press `⌘S` / `ctrl+S`.
+
+## keyboard shortcuts
+
+| action                | macos        | windows/linux |
+| --------------------- | ------------ | ------------- |
+| open/switch workspace | `⌘O`         | `ctrl+O`      |
+| quick open file       | `⌘P`         | `ctrl+P`      |
+| new file              | `⌘N`         | `ctrl+N`      |
+| save file             | `⌘S`         | `ctrl+S`      |
+| close tab             | `⌘W`         | `ctrl+W`      |
+| toggle terminal       | `` ctrl+` `` | `` ctrl+` ``  |
+| focus editor          | `⌘1`         | `ctrl+1`      |
+| refresh app           | `⌘R`         | `ctrl+R`      |
+
+## terminal
+
+the integrated terminal is at the bottom of the screen. toggle it with `` ctrl+` ``, or click and drag the top edge to resize.
+
+each workspace gets its own terminal session, started in the workspace's root directory using your default shell. switching to a different workspace ends the current session and starts a fresh one in the new workspace.
+
+collapsing the terminal keeps the session alive — your shell state, environment variables, and running processes are all preserved when you expand it again. clicking the delete button in the terminal header kills the session entirely; the next time you open the terminal, it starts a new shell.
+
+`EDITOR` and `VISUAL` are set to `spacecake open --wait`, so tools like `git commit` and `crontab -e` open files directly in the editor.

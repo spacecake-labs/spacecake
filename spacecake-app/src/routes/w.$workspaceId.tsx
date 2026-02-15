@@ -10,6 +10,7 @@ import { Effect, Match } from "effect"
 import { useAtom, useSetAtom } from "jotai"
 import {
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   GitBranch,
   ListTodo,
@@ -973,7 +974,7 @@ function LayoutContent() {
       enabled={!isTerminalCollapsed}
       machine={machine}
     >
-      <ResizablePanelGroup direction="horizontal" className="h-screen">
+      <ResizablePanelGroup direction="horizontal" className="h-full">
         <ResizablePanel
           id="sidebar-panel"
           order={1}
@@ -993,15 +994,21 @@ function LayoutContent() {
             selectedFilePath={selectedFilePath}
           />
         </ResizablePanel>
-        <ResizableHandle
-          withHandle
-          className={cn("w-0", !sidebarOpen && "[&>div]:translate-x-1.5")}
-        />
+        <ResizableHandle withHandle className={cn("w-0", !sidebarOpen && "hidden")} />
+        {!sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex h-full items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer"
+            aria-label="expand sidebar"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        )}
         <ResizablePanel
           id="main-content-panel"
           order={2}
           defaultSize={85}
-          className="p-2 overflow-hidden"
+          className={cn("p-2 overflow-hidden", !sidebarOpen && "pl-0")}
         >
           <div className="flex flex-col h-full bg-background rounded-xl shadow-sm overflow-hidden">
             <ResizablePanelGroup
@@ -1214,9 +1221,11 @@ function WorkspaceLayout() {
   if (!workspace?.path) {
     return (
       <>
-        <div className="flex h-screen overflow-hidden">
+        <div className="flex h-screen flex-col overflow-hidden">
+          {/* app-wide drag region for window traffic lights */}
+          <div className="app-drag h-4 shrink-0 bg-sidebar" />
           <FocusManagerProvider>
-            <SidebarProvider>
+            <SidebarProvider className="flex-1 min-h-0">
               <LayoutContent />
             </SidebarProvider>
           </FocusManagerProvider>
@@ -1227,9 +1236,11 @@ function WorkspaceLayout() {
   return (
     <>
       <WorkspaceWatcher workspacePath={workspace.path} />
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen flex-col overflow-hidden">
+        {/* app-wide drag region for window traffic lights */}
+        <div className="app-drag h-4 shrink-0 bg-sidebar" />
         <FocusManagerProvider>
-          <SidebarProvider>
+          <SidebarProvider className="flex-1 min-h-0">
             <LayoutContent />
           </SidebarProvider>
         </FocusManagerProvider>

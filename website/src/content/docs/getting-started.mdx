@@ -1,7 +1,9 @@
 ---
 title: getting started
-description: Install `spacecake` and create your first technical spec.
+description: Install spacecake and open your first project.
 ---
+
+`spacecake` is a desktop markdown editor designed for working with AI coding agents. it gives [Claude Code](https://docs.anthropic.com/en/docs/claude-code) context about your open files, displays live session metrics, and lets you visually edit the plans and specs that Claude creates.
 
 ## installation
 
@@ -46,115 +48,8 @@ when `spacecake` launches, you'll start in your home folder (`~/.spacecake`). pr
 
 you can create notes and folders in your home folder, or open any project folder as a workspace anytime.
 
-## editor basics
+## next steps
 
-### workspaces
-
-a workspace is a folder you're working in. switch workspaces with `⌘O` / `ctrl+O` or the folder icon in the toolbar.
-
-your home folder (`~/.spacecake`) is always available for notes that aren't tied to a specific project.
-
-### files and tabs
-
-- **quick open**: press `⌘P` / `ctrl+P` to search and open files by name
-- **new file**: press `⌘N` / `ctrl+N` to create a new file
-- **close tab**: press `⌘W` / `ctrl+W` or click the × on the tab
-- **save**: press `⌘S` / `ctrl+S` to save the current file
-
-tabs show open files at the top of the editor. scroll horizontally if you have many tabs open.
-
-### autosave
-
-spacecake can automatically save files as you edit. enable autosave in workspace settings:
-
-1. click the gear icon in the sidebar (or navigate to Settings)
-2. toggle **enable autosave** on
-
-when enabled, changes are saved to disk automatically - no need to press `⌘S` / `ctrl+S`.
-
-### keyboard shortcuts
-
-| action                | macos        | windows/linux |
-| --------------------- | ------------ | ------------- |
-| open/switch workspace | `⌘O`         | `ctrl+O`      |
-| quick open file       | `⌘P`         | `ctrl+P`      |
-| new file              | `⌘N`         | `ctrl+N`      |
-| save file             | `⌘S`         | `ctrl+S`      |
-| close tab             | `⌘W`         | `ctrl+W`      |
-| toggle terminal       | `` ctrl+` `` | `` ctrl+` ``  |
-| focus editor          | `⌘1`         | `ctrl+1`      |
-| refresh app           | `⌘R`         | `ctrl+R`      |
-
-## 🖥️ terminal
-
-the integrated terminal is at the bottom of the screen. click it or drag to resize.
-
-- powered by [Ghostty](https://ghostty.org/)
-- run any CLI tool, including Claude Code
-
-## 🦀 claude code integration
-
-`spacecake` integrates with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) to give Claude context about your open files and display live session metrics.
-
-run `claude` from the integrated terminal - it automatically connects to spacecake and defaults to plan mode. when Claude creates a plan, press `ctrl+G` to open it directly in spacecake for editing.
-
-see the [claude code integration](/claude-code-integration) guide for more details.
-
-## 📝 writing markdown
-
-`spacecake` supports GitHub-flavoured markdown.
-
-write code blocks with syntax highlighting:
-
-```python
-def hello_world():
-    print("hello from spacecake!")
-```
-
-create execution plans with checklists:
-
-```markdown
-- [ ] set up database migrations
-- [ ] implement user authentication
-- [ ] write integration tests
-```
-
-embed [Mermaid](https://mermaid.js.org/) diagrams for system architecture:
-
-```mermaid
-graph TD
-    A[User Input] --> B[Validate]
-    B --> C[Process]
-    C --> D[Output]
-```
-
-toggle between rich mode (WYSIWYG) and source mode (live preview) using the view toggle button in the toolbar.
-
-## ⚙️ troubleshooting
-
-### "permission denied" on macos
-
-go to System Settings → Privacy & Security and allow `spacecake` to run.
-
-### something looks wrong
-
-press `⌘R` to refresh the app. if the issue persists in rich mode, switch to source mode to see the underlying markdown.
-
-### terminal doesn't match the app theme
-
-after toggling between light and dark themes, the terminal may not update immediately. press `⌘R` / `ctrl+R` to reload the app, or quit and reopen. this is a known issue we're working on.
-
-### debugging issues
-
-open Chrome DevTools from within `spacecake` to view console logs.
-
-### slow file watching on linux or windows
-
-spacecake uses @parcel/watcher for detecting file changes. on linux and windows, installing [watchman](https://facebook.github.io/watchman/) significantly improves file watching performance and reliability for large projects. spacecake will show a tip in the status bar recommending this. see the [watchman installation guide](https://facebook.github.io/watchman/docs/install) for setup instructions.
-
-## 💬 feedback & issues
-
-have feedback, found a bug, or want to request a feature?
-
-- click the **chat icon** in the bottom left corner of the app to share your thoughts directly
-- open an issue on [GitHub](https://github.com/spacecake-labs/spacecake/issues)
+- learn about [workspaces, tabs, and keyboard shortcuts](/editor-basics)
+- explore [markdown features](/writing-markdown) like code blocks, checklists, and mermaid diagrams
+- set up the [claude code integration](/claude-code-integration) for AI-assisted editing

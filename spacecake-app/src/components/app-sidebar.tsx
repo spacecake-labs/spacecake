@@ -52,8 +52,6 @@ export function AppSidebar({ onFileClick, workspace, selectedFilePath }: AppSide
 
   return (
     <Sidebar variant="inset" data-testid="sidebar">
-      {/* Drag region for window traffic lights area */}
-      <div className="app-drag h-10" />
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
