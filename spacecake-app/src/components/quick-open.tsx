@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { atom, useAtom, useAtomValue } from "jotai"
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { File as FileIcon } from "lucide-react"
 import * as React from "react"
 
@@ -14,9 +14,11 @@ import {
 } from "@/components/ui/command"
 import { useRecentFiles } from "@/hooks/use-recent-files"
 import { fileTreeAtom, quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
-import { getQuickOpenFileItems } from "@/lib/atoms/file-tree"
+import { getQuickOpenFileItems, isTreeFullyResolved, setFileTreeAtom } from "@/lib/atoms/file-tree"
 import { createQuickOpenItems } from "@/lib/filter-files"
+import { readDirectory } from "@/lib/fs"
 import { fileTypeFromFileName } from "@/lib/workspace"
+import { match } from "@/types/adt"
 import { AbsolutePath, File, WorkspaceInfo } from "@/types/workspace"
 
 const quickOpenSearchAtom = atom("")
@@ -30,11 +32,26 @@ interface QuickOpenProps {
 export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
   const [isOpen, setIsOpen] = useAtom(quickOpenMenuOpenAtom)
   const [search, setSearch] = useAtom(quickOpenSearchAtom)
+  const setFileTree = useSetAtom(setFileTreeAtom)
 
   // Get file tree from atom and derive file items
   const fileTree = useAtomValue(fileTreeAtom)
   const allFileItems = getQuickOpenFileItems(workspacePath, fileTree)
   const recentFiles = useRecentFiles(workspacePath)
+
+  // trigger a full recursive scan on first open if tree is not fully resolved
+  const fullScanTriggeredRef = React.useRef(false)
+  React.useEffect(() => {
+    if (isOpen && !fullScanTriggeredRef.current && !isTreeFullyResolved(fileTree)) {
+      fullScanTriggeredRef.current = true
+      readDirectory(workspacePath, undefined, { recursive: true }).then((result) => {
+        match(result, {
+          onLeft: (error) => console.error("full scan failed:", error),
+          onRight: (tree) => setFileTree(tree),
+        })
+      })
+    }
+  }, [isOpen])
 
   if (recentFiles.error) {
     console.error("error getting recent files", recentFiles.error)

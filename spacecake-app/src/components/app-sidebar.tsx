@@ -1,5 +1,5 @@
 import { useMatchRoute, useNavigate } from "@tanstack/react-router"
-import { useAtom } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { ChevronsUpDown, Settings } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -16,14 +16,13 @@ import {
 AppSidebar handles sidebar UI and folder expansion state.
 */
 import iconSvg from "@/images/icon.svg"
-import { expandedFoldersAtom } from "@/lib/atoms/atoms"
+import { expandedFoldersAtom, fileTreeAtom, loadingFoldersAtom } from "@/lib/atoms/atoms"
+import { findFolderInTree, updateFolderInTree } from "@/lib/atoms/file-tree"
+import { readDirectory } from "@/lib/fs"
 import { useOpenWorkspace } from "@/lib/open-workspace"
 import { encodeBase64Url } from "@/lib/utils"
+import { match } from "@/types/adt"
 import { AbsolutePath, ExpandedFolders, Folder, WorkspaceInfo } from "@/types/workspace"
-
-// import { NavProjects } from "@/components/nav-projects"
-// import { NavSecondary } from "@/components/nav-secondary"
-// import { NavUser } from "@/components/nav-user"
 
 interface AppSidebarProps {
   onFileClick?: (filePath: AbsolutePath) => void
@@ -33,6 +32,9 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onFileClick, workspace, selectedFilePath }: AppSidebarProps) {
   const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom)
+  const fileTree = useAtomValue(fileTreeAtom)
+  const setFileTree = useSetAtom(fileTreeAtom)
+  const setLoadingFolders = useSetAtom(loadingFoldersAtom)
   const navigate = useNavigate()
   const matchRoute = useMatchRoute()
   const isOnSettings = matchRoute({ to: "/w/$workspaceId/settings" })
@@ -50,6 +52,30 @@ export function AppSidebar({ onFileClick, workspace, selectedFilePath }: AppSide
       ...prev,
       [folderPath]: shouldExpand,
     }))
+
+    // if expanding an unresolved folder, fetch its children
+    if (shouldExpand) {
+      const folder = findFolderInTree(fileTree, folderPath)
+      if (folder && !folder.resolved) {
+        setLoadingFolders((prev) => [...prev, folderPath])
+        const result = await readDirectory(workspace.path, folderPath)
+        match(result, {
+          onLeft: (error) => {
+            console.error("failed to load folder children:", error)
+          },
+          onRight: (children) => {
+            setFileTree((prev) =>
+              updateFolderInTree(prev, folderPath, (f) => ({
+                ...f,
+                children,
+                resolved: true,
+              })),
+            )
+          },
+        })
+        setLoadingFolders((prev) => prev.filter((p) => p !== folderPath))
+      }
+    }
   }
 
   return (

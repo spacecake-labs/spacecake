@@ -1,5 +1,5 @@
 import { Effect, Exit, Layer, ManagedRuntime } from "effect"
-import { app, BrowserWindow, session, shell } from "electron"
+import { app, BrowserWindow, crashReporter, session, shell } from "electron"
 import { installExtension, REACT_DEVELOPER_TOOLS } from "electron-devtools-installer"
 import started from "electron-squirrel-startup"
 import fs from "node:fs"
@@ -37,6 +37,10 @@ if (started) {
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
 const isTest = process.env.IS_PLAYWRIGHT === "true"
 const showWindow = process.env.SHOW_WINDOW === "true"
+
+if (isTest) {
+  crashReporter.start({ ignoreSystemCrashHandler: true, uploadToServer: false })
+}
 
 let quitRequested = false
 let windowCounter = 0

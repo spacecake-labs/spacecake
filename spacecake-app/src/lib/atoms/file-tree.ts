@@ -21,6 +21,40 @@ import { router } from "@/router"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { WorkspaceNotFound } from "@/types/workspace-error"
 
+/** find a folder by path in the tree */
+export function findFolderInTree(tree: FileTree, folderPath: string): Folder | undefined {
+  for (const item of tree) {
+    if (item.kind === "folder") {
+      if (item.path === folderPath) return item
+      if (folderPath.startsWith(item.path + "/")) {
+        const found = findFolderInTree(item.children, folderPath)
+        if (found) return found
+      }
+    }
+  }
+  return undefined
+}
+
+/** update a folder by path in the tree (exported for lazy-load expand) */
+export const updateFolderInTree = (
+  tree: FileTree,
+  folderPath: string,
+  updater: (folder: Folder) => Folder,
+): FileTree => {
+  return tree.map((item) => {
+    if (item.kind === "folder" && item.path === folderPath) {
+      return updater(item)
+    }
+    if (item.kind === "folder" && folderPath.startsWith(item.path + "/")) {
+      return {
+        ...item,
+        children: updateFolderInTree(item.children, folderPath, updater),
+      }
+    }
+    return item
+  })
+}
+
 // helper function to find and update items in the tree
 const updateFileTree = (
   tree: FileTree,
@@ -78,7 +112,7 @@ const removeItemFromTree = (tree: FileTree, path: string): FileTree => {
   })
 }
 
-// Helper to merge new tree with existing, preserving expanded state
+// Helper to merge new tree with existing, preserving expanded and resolved state
 const mergeTrees = (
   newTree: FileTree,
   oldTree: FileTree,
@@ -92,10 +126,16 @@ const mergeTrees = (
 
       const isExpanded = expandedFolders[newItem.path] || oldItem?.isExpanded || false
 
+      // if the old folder was resolved but the new one isn't, keep the old children
+      const useOldChildren = oldItem?.resolved && !newItem.resolved
+      const children = useOldChildren ? oldItem.children : newItem.children
+      const resolved = useOldChildren ? oldItem.resolved : newItem.resolved
+
       return {
         ...newItem,
         isExpanded,
-        children: mergeTrees(newItem.children, oldItem?.children || [], expandedFolders),
+        resolved,
+        children: mergeTrees(children, oldItem?.children || [], expandedFolders),
       }
     }
     return newItem
@@ -157,6 +197,7 @@ export const fileTreeEventAtom = atom(
                 kind: "folder",
                 children: [],
                 isExpanded: true, // Set to true for auto-expansion
+                resolved: false,
               }
 
         if (parentPath === null || parentPath === workspacePath) {
@@ -288,6 +329,17 @@ export const getQuickOpenFileItems = (
   })
 }
 
+/** check if every folder in the tree has been resolved */
+export function isTreeFullyResolved(tree: FileTree): boolean {
+  for (const item of tree) {
+    if (item.kind === "folder") {
+      if (!item.resolved) return false
+      if (!isTreeFullyResolved(item.children)) return false
+    }
+  }
+  return true
+}
+
 const createFileStateMachineAtom = (filePath: AbsolutePath) =>
   atomWithMachine(
     () => fileStateMachine,
@@ -345,7 +397,7 @@ export function flattenVisibleTree(
     for (const item of items) {
       if (item.kind === "folder") {
         const isExpanded = expandedFolders[item.path] ?? false
-        const hasChildren = item.children.length > 0
+        const hasChildren = item.children.length > 0 || !item.resolved
 
         result.push({
           item,
@@ -354,8 +406,8 @@ export function flattenVisibleTree(
           hasChildren,
         })
 
-        // Only include children if folder is expanded
-        if (isExpanded && hasChildren) {
+        // Only include children if folder is expanded and has actual children
+        if (isExpanded && item.children.length > 0) {
           flatten(item.children, depth + 1)
         }
       } else {

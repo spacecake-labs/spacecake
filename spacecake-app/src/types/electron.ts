@@ -59,7 +59,11 @@ export interface ElectronAPI {
   rename: (path: AbsolutePath, newPath: AbsolutePath) => Promise<Either<FileSystemError, undefined>>
   remove: (path: AbsolutePath, recursive?: boolean) => Promise<Either<FileSystemError, undefined>>
   saveFile: (filePath: AbsolutePath, content: string) => Promise<Either<FileSystemError, undefined>>
-  readDirectory: (dirPath: AbsolutePath) => Promise<Either<FileSystemError, FileTree>>
+  readDirectory: (
+    workspacePath: string,
+    dirPath?: string,
+    options?: { recursive?: boolean },
+  ) => Promise<Either<FileSystemError, FileTree>>
   startWatcher: (path: AbsolutePath) => Promise<Either<FileSystemError, undefined>>
   stopWatcher: (workspacePath: AbsolutePath) => Promise<Either<FileSystemError, undefined>>
   onFileEvent: (handler: (event: FileTreeEvent) => void) => () => void

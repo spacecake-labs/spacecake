@@ -4,6 +4,7 @@ import { useEffect } from "react"
 
 import { emptyMdNode } from "@/components/editor/markdown-utils"
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
+import { $isDiffBlockNode } from "@/components/editor/nodes/diff-node"
 import { needsSpacer } from "@/components/editor/plugins/utils"
 import { INITIAL_LOAD_TAG } from "@/types/lexical"
 
@@ -12,9 +13,8 @@ import { INITIAL_LOAD_TAG } from "@/types/lexical"
  * Decorator nodes (code blocks, mermaid diagrams, images, etc) should be separated
  * to give users a natural place to add content between them.
  *
- * Detects source mode by checking if the first child is a CodeBlockNode with
- * meta="source" (set by convertToSourceView). In source mode, only the source
- * code block is kept; all other nodes are removed.
+ * In single-node modes (source view, diff view), only the single node is kept
+ * and all other nodes are removed to prevent text insertion around it.
  */
 export function DecoratorSpacerPlugin(): null {
   const [editor] = useLexicalComposerContext()
@@ -36,12 +36,14 @@ export function DecoratorSpacerPlugin(): null {
         const children = root.getChildren()
         if (children.length === 0) return
 
-        // Source mode: first child is code block with meta="source"
+        // single-node mode: source view (CodeBlockNode with meta="source") or diff view (DiffBlockNode)
         const firstChild = children[0]
-        const isSourceMode = $isCodeBlockNode(firstChild) && firstChild.getMeta() === "source"
+        const isSingleNodeMode =
+          ($isCodeBlockNode(firstChild) && firstChild.getMeta() === "source") ||
+          $isDiffBlockNode(firstChild)
 
-        if (isSourceMode) {
-          // Keep only the source code block, remove everything else
+        if (isSingleNodeMode) {
+          // keep only the single node, remove everything else
           if (children.length > 1) {
             editor.update(() => {
               $addUpdateTag(SKIP_DOM_SELECTION_TAG)

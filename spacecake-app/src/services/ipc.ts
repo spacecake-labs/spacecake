@@ -100,13 +100,22 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         }),
       ),
     )
-    ipcMain.handle("read-directory", (_, path: string) =>
-      Effect.runPromise(
-        Effect.match(fs.readDirectory(normalizePath(path)), {
-          onFailure: (error) => left(serializeError(error)),
-          onSuccess: (tree) => right(tree),
-        }),
-      ),
+    ipcMain.handle(
+      "read-directory",
+      (_, workspacePath: string, dirPath?: string, options?: { recursive?: boolean }) =>
+        Effect.runPromise(
+          Effect.match(
+            fs.readDirectory(
+              normalizePath(workspacePath),
+              dirPath ? normalizePath(dirPath) : undefined,
+              options,
+            ),
+            {
+              onFailure: (error) => left(serializeError(error)),
+              onSuccess: (tree) => right(tree),
+            },
+          ),
+        ),
     )
     ipcMain.handle("start-watcher", (_, watchPath: AbsolutePath) =>
       Effect.runPromise(

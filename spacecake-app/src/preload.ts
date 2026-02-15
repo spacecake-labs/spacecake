@@ -69,8 +69,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   showOpenDialog: (options: unknown) => ipcRenderer.invoke("show-open-dialog", options),
   openExternal: (url: string) => ipcRenderer.invoke("open-external", url),
-  readDirectory: (dirPath: string) => {
-    return ipcRenderer.invoke("read-directory", dirPath)
+  readDirectory: (workspacePath: string, dirPath?: string, options?: { recursive?: boolean }) => {
+    return ipcRenderer.invoke("read-directory", workspacePath, dirPath, options)
   },
   readFile: (filePath: AbsolutePath): Promise<FileContent> =>
     ipcRenderer.invoke("read-file", filePath),

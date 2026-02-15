@@ -171,30 +171,29 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
     const readDirectory = (
       workspacePath: string,
       currentPath: string = workspacePath,
+      options?: { recursive?: boolean },
     ): Effect.Effect<FileTree, FileSystemError> => {
       return Effect.gen(function* (_) {
         const entries = yield* _(fs.readDirectory(currentPath))
         const tree: FileTree = []
 
         for (const entryName of entries) {
-          // Skip .asar archives - Electron fakes fs.stat for these and causes issues
+          // skip .asar archives — Electron fakes fs.stat for these and causes issues
           if (entryName.endsWith(".asar")) {
             continue
           }
 
           const fullPath = AbsolutePath(normalizePath(path.join(currentPath, entryName)))
 
-          // Try to stat the entry - skip if it fails (broken symlink, permission denied, etc.)
+          // try to stat the entry — skip if it fails (broken symlink, permission denied, etc.)
           const statsResult = yield* _(fs.stat(fullPath).pipe(Effect.either))
 
           if (Either.isLeft(statsResult)) {
-            // Skip entries we can't stat (broken symlinks, permission issues, etc.)
             continue
           }
 
           const stats = statsResult.right
 
-          // Skip excluded entries (files and directories)
           if (EXCLUDED_ENTRIES.has(entryName)) {
             continue
           }
@@ -202,23 +201,31 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
           const isGitIgnored = yield* gitIgnore.isIgnored(workspacePath, fullPath)
 
           if (stats.type === "Directory") {
-            // Try to read directory children - skip if it fails
-            const childrenResult = yield* _(
-              readDirectory(workspacePath, fullPath).pipe(Effect.either),
-            )
+            let children: FileTree = []
+            let resolved = false
 
-            if (Either.isLeft(childrenResult)) {
-              // Skip directories we can't read
-              continue
+            if (options?.recursive) {
+              const childrenResult = yield* _(
+                readDirectory(workspacePath, fullPath, options).pipe(Effect.either),
+              )
+
+              if (Either.isLeft(childrenResult)) {
+                // skip directories we can't read
+                continue
+              }
+
+              children = childrenResult.right
+              resolved = true
             }
 
             const folder: Folder = {
               name: entryName,
               path: fullPath,
-              children: childrenResult.right,
+              children,
               kind: "folder",
               cid: ZERO_HASH,
               isExpanded: false,
+              resolved,
               isGitIgnored,
               isSystemFolder: isSystemFolder(fullPath),
             }
@@ -229,7 +236,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
               path: fullPath,
               fileType: fileTypeFromExtension(path.extname(entryName)),
               kind: "file",
-              cid: ZERO_HASH, // Initial scan, no content read yet
+              cid: ZERO_HASH,
               etag: {
                 mtime: Option.getOrElse(stats.mtime, () => new Date()),
                 size: Number(stats.size),
@@ -242,7 +249,6 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         return tree
       }).pipe(
         Effect.mapError((error) => {
-          // For PlatformErrors, use our typed error mapper
           if (
             error &&
             typeof error === "object" &&
@@ -251,7 +257,6 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
           ) {
             return toFileSystemError(error as PlatformError, currentPath)
           }
-          // For other errors, wrap in UnknownFSError
           return new UnknownFSError({
             path: currentPath,
             description: `failed to read directory: ${String(error)}`,
