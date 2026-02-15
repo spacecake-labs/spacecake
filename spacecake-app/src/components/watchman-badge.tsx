@@ -1,4 +1,5 @@
 import { useAtom } from "jotai"
+import { useEffect, useState } from "react"
 
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
@@ -18,10 +19,24 @@ const INSTALL_URLS: Record<string, string> = {
 export function WatchmanBadge({ className }: WatchmanBadgeProps) {
   const [dismissed, setDismissed] = useAtom(watchmanBadgeDismissedAtom)
   const { theme } = useTheme()
+  const [installed, setInstalled] = useState<boolean | null>(null)
 
   const platform = window.electronAPI.platform
+
+  useEffect(() => {
+    if (platform !== "win32" && platform !== "linux") return
+    if (dismissed) return
+
+    window.electronAPI
+      .checkWatchmanInstalled()
+      .then(setInstalled)
+      .catch(() => setInstalled(false))
+  }, [platform, dismissed])
+
   if (platform !== "win32" && platform !== "linux") return null
   if (dismissed) return null
+  // hide while loading or if watchman is installed
+  if (installed === null || installed) return null
 
   const isDark = theme !== "light"
 

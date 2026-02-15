@@ -51,6 +51,7 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
   updateCliWorkspaces: async () => {},
   isPlaywright: false,
   platform: "test",
+  checkWatchmanInstalled: async () => false,
   getHomeFolderPath: async () => "/test/.spacecake",
   exists: async () => right(true),
   createTerminal: async () => right(undefined),

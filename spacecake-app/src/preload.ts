@@ -83,6 +83,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   saveFile: (filePath: string, content: string) =>
     ipcRenderer.invoke("save-file", filePath, content),
   platform: process.platform,
+  checkWatchmanInstalled: (): Promise<boolean> => ipcRenderer.invoke("check-watchman-installed"),
   getHomeFolderPath: (): Promise<string> => ipcRenderer.invoke("get-home-folder-path"),
   startWatcher: (path: string) => ipcRenderer.invoke("start-watcher", path),
   stopWatcher: (workspacePath: string) => ipcRenderer.invoke("stop-watcher", workspacePath),

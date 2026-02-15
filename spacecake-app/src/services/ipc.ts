@@ -1,7 +1,9 @@
+import { execFile } from "child_process"
 import { Effect } from "effect"
 import { BrowserWindow, dialog, ipcMain, shell } from "electron"
 import fsNode from "fs/promises"
 import path from "path"
+import { promisify } from "util"
 
 import { normalizePath } from "@/lib/utils"
 import { ClaudeSettingsFile, type StatuslineConfigStatus } from "@/services/claude-settings-file"
@@ -156,6 +158,16 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     })
 
     ipcMain.handle("open-external", (_, url: string) => shell.openExternal(url))
+
+    // watchman detection — mirrors jest's execFile pattern
+    ipcMain.handle("check-watchman-installed", async () => {
+      try {
+        await promisify(execFile)("watchman", ["--version"])
+        return true
+      } catch {
+        return false
+      }
+    })
 
     ipcMain.handle("get-home-folder-path", () => home.homeDir)
 
