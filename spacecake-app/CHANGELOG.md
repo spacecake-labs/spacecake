@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.51
+
+### Patch Changes
+
+- fa86a46: Lazy reading for workspace tree.
+
 ## 0.1.0-alpha.50
 
 ### Patch Changes
