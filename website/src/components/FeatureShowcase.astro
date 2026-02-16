@@ -1,0 +1,2040 @@
+---
+
+---
+
+<section class="feature-showcase">
+  <div class="showcase-container">
+    <h2 class="showcase-heading">features</h2>
+
+    <div class="showcase-layout">
+      <!-- callout list: vertical on desktop, horizontal scroll tabs on mobile -->
+      <div class="callout-list" role="tablist" aria-label="features">
+        <button
+          class="callout active"
+          role="tab"
+          aria-selected="true"
+          aria-controls="panel-editor"
+          id="tab-editor"
+          data-feature="editor"
+          tabindex="0"
+        >
+          <div class="callout-indicator"></div>
+          <div class="callout-text">
+            <span class="callout-label">beautiful markdown</span>
+            <span class="callout-desc"
+              >WYSIWYG editing with mermaid diagrams and checklists</span
+            >
+          </div>
+        </button>
+
+        <button
+          class="callout"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-terminal"
+          id="tab-terminal"
+          data-feature="terminal"
+          tabindex="-1"
+        >
+          <div class="callout-indicator"></div>
+          <div class="callout-text">
+            <span class="callout-label">integrated terminal</span>
+            <span class="callout-desc"
+              >run Claude Code with real-time context tracking</span
+            >
+          </div>
+        </button>
+
+        <button
+          class="callout"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-git"
+          id="tab-git"
+          data-feature="git"
+          tabindex="-1"
+        >
+          <div class="callout-indicator"></div>
+          <div class="callout-text">
+            <span class="callout-label">git integration</span>
+            <span class="callout-desc"
+              >stage changes, browse commits, track file status</span
+            >
+          </div>
+        </button>
+
+        <button
+          class="callout"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-tasks"
+          id="tab-tasks"
+          data-feature="tasks"
+          tabindex="-1"
+        >
+          <div class="callout-indicator"></div>
+          <div class="callout-text">
+            <span class="callout-label">agent tasks</span>
+            <span class="callout-desc"
+              >monitor pending, in-progress, and completed tasks</span
+            >
+          </div>
+        </button>
+      </div>
+
+      <!-- preview container -->
+      <div class="preview-outer">
+        <div class="preview-container">
+          <!-- mini chrome bar (sidebar icons) -->
+          <div class="chrome-bar" aria-hidden="true">
+            <button
+              class="chrome-icon active"
+              data-feature="editor"
+              title="markdown editor"
+              tabindex="-1"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                ></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            </button>
+            <button
+              class="chrome-icon"
+              data-feature="terminal"
+              title="terminal"
+              tabindex="-1"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="4 17 10 11 4 5"></polyline>
+                <line x1="12" y1="19" x2="20" y2="19"></line>
+              </svg>
+            </button>
+            <button
+              class="chrome-icon"
+              data-feature="git"
+              title="git"
+              tabindex="-1"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="6" y1="3" x2="6" y2="15"></line>
+                <circle cx="18" cy="6" r="3"></circle>
+                <circle cx="6" cy="18" r="3"></circle>
+                <path d="M18 9a9 9 0 0 1-9 9"></path>
+              </svg>
+            </button>
+            <button
+              class="chrome-icon"
+              data-feature="tasks"
+              title="tasks"
+              tabindex="-1"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M9 11l3 3L22 4"></path>
+                <path
+                  d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+                ></path>
+              </svg>
+            </button>
+          </div>
+
+          <!-- panels -->
+          <div class="panels-area">
+            <!-- editor panel -->
+            <div
+              class="showcase-panel active"
+              id="panel-editor"
+              role="tabpanel"
+              aria-labelledby="tab-editor"
+            >
+              <div class="panel-toolbar">
+                <div class="panel-tab">
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                    ></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  <span>ship-faster.md</span>
+                </div>
+              </div>
+              <div class="panel-body editor-body">
+                <h3 class="editor-heading">ship faster</h3>
+                <p class="editor-text">
+                  write markdown plans.<br />explain code with diagrams.
+                </p>
+
+                <div class="mermaid-block">
+                  <div class="mermaid-header">
+                    <span>mermaid</span>
+                  </div>
+                  <div class="mermaid-body">
+                    <div class="mermaid-flow">
+                      <div class="flow-node">research</div>
+                      <div class="flow-connector"></div>
+                      <div class="flow-node">plan</div>
+                      <div class="flow-connector"></div>
+                      <div class="flow-node flow-node-active">implement</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="checklist">
+                  <div class="check-item checked">
+                    <span class="check-box"></span>
+                    <span>write specs, not code</span>
+                  </div>
+                  <div class="check-item checked">
+                    <span class="check-box"></span>
+                    <span>track progress visually</span>
+                  </div>
+                  <div class="check-item">
+                    <span class="check-box"></span>
+                    <span>ship faster</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- terminal panel -->
+            <div
+              class="showcase-panel"
+              id="panel-terminal"
+              role="tabpanel"
+              aria-labelledby="tab-terminal"
+              hidden
+            >
+              <div class="panel-toolbar">
+                <div class="panel-tab-icon">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="icon-active"
+                  >
+                    <polyline points="4 17 10 11 4 5"></polyline>
+                    <line x1="12" y1="19" x2="20" y2="19"></line>
+                  </svg>
+                </div>
+                <div class="toolbar-badges-row">
+                  <div class="panel-badge panel-badge-secondary">
+                    <span>🧠 67%</span>
+                  </div>
+                  <div class="panel-badge panel-badge-secondary">
+                    <span>💰 $4.20</span>
+                  </div>
+                  <div class="panel-badge panel-badge-accent">
+                    <div class="accent-dot"></div>
+                    <span>Opus 4.5</span>
+                  </div>
+                </div>
+              </div>
+              <div class="panel-body terminal-body">
+                <div class="terminal-ascii-overlay" id="terminal-ascii-overlay">
+                  <pre class="ascii-pre" id="showcase-ascii-text"></pre>
+                  <p class="ascii-message" id="showcase-ascii-message"></p>
+                  <span class="ascii-cursor" id="showcase-ascii-cursor"></span>
+                </div>
+                <div class="terminal-welcome">
+                  <div class="welcome-header">
+                    ━━━━━ Claude Code ━━━━━━━━━━━━━━━━━━
+                  </div>
+                  <div class="welcome-body">
+                    <div class="welcome-name">Welcome back Taylor!</div>
+                    <div class="welcome-info">
+                      <span class="welcome-emoji">🦀</span>
+                      <span class="welcome-meta">Opus 4.5 · Claude Pro</span>
+                    </div>
+                    <div class="welcome-paths">
+                      <span>taylor@spacecake.ai's Organization</span>
+                      <span>~/Documents/GitHub/spacecake/</span>
+                    </div>
+                  </div>
+                  <div class="welcome-footer">
+                    <div class="welcome-tips-title">
+                      Tips for getting started
+                    </div>
+                    <div class="welcome-tips-text">
+                      Run ./init to create a CLAUDE.md file with instructions
+                      for Claude
+                    </div>
+                    <div class="welcome-activity">
+                      <span class="welcome-activity-label">Recent activity</span
+                      >
+                      <span class="welcome-activity-none"
+                        >No recent activity</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <div class="terminal-prompt">
+                  <span class="prompt-arrow">❯</span>
+                  <span class="prompt-block">■</span>
+                  <span id="showcase-terminal-text"></span>
+                  <span class="prompt-cursor" id="showcase-terminal-cursor"
+                  ></span>
+                </div>
+
+                <div class="terminal-hint">? for shortcuts</div>
+              </div>
+            </div>
+
+            <!-- git panel -->
+            <div
+              class="showcase-panel"
+              id="panel-git"
+              role="tabpanel"
+              aria-labelledby="tab-git"
+              hidden
+            >
+              <div class="panel-toolbar">
+                <div class="panel-tab-icon">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="icon-active"
+                  >
+                    <line x1="6" y1="3" x2="6" y2="15"></line>
+                    <circle cx="18" cy="6" r="3"></circle>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <path d="M18 9a9 9 0 0 1-9 9"></path>
+                  </svg>
+                </div>
+                <div class="panel-badge">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="badge-icon"
+                  >
+                    <line x1="6" y1="3" x2="6" y2="15"></line>
+                    <circle cx="18" cy="6" r="3"></circle>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <path d="M18 9a9 9 0 0 1-9 9"></path>
+                  </svg>
+                  <span>main</span>
+                </div>
+              </div>
+              <div class="panel-body git-body">
+                <div class="git-layout">
+                  <div class="git-commits">
+                    <div class="git-pane-title">commits</div>
+                    <div class="git-pane-scroll">
+                      <div class="git-commit selected">
+                        <div class="git-commit-top">
+                          <span class="git-dot"></span>
+                          <span class="git-commit-label">working tree</span>
+                        </div>
+                      </div>
+                      <div class="git-commit">
+                        <div class="git-commit-top">
+                          <span class="git-hash">a1b2c3f</span>
+                          <span class="git-date">Feb 14</span>
+                        </div>
+                        <div class="git-msg">add task checklist</div>
+                      </div>
+                      <div class="git-commit">
+                        <div class="git-commit-top">
+                          <span class="git-hash">8f2e1d4</span>
+                          <span class="git-date">Feb 13</span>
+                        </div>
+                        <div class="git-msg">add mermaid flowchart</div>
+                      </div>
+                      <div class="git-commit">
+                        <div class="git-commit-top">
+                          <span class="git-hash">c7d9e2a</span>
+                          <span class="git-date">Feb 12</span>
+                        </div>
+                        <div class="git-msg">create project plan</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="git-files">
+                    <div class="git-pane-title">changed files</div>
+                    <div class="git-pane-scroll">
+                      <div class="git-section">
+                        <div class="git-section-hdr">
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            ><polyline points="6 9 12 15 18 9"></polyline></svg
+                          >
+                          <span>staged changes</span>
+                          <span class="git-count git-count-green">1</span>
+                        </div>
+                        <div class="git-section-files">
+                          <div class="git-file">
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                              class="git-file-ico"
+                              ><path
+                                d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                              ></path><polyline points="14 2 14 8 20 8"
+                              ></polyline></svg
+                            >
+                            <span class="git-file-name">ship-faster.md</span>
+                            <span class="git-status git-status-a">A</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="git-section">
+                        <div class="git-section-hdr">
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            ><polyline points="6 9 12 15 18 9"></polyline></svg
+                          >
+                          <span>changes</span>
+                          <span class="git-count">2</span>
+                        </div>
+                        <div class="git-section-files">
+                          <div class="git-file">
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                              class="git-file-ico"
+                              ><path
+                                d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                              ></path><polyline points="14 2 14 8 20 8"
+                              ></polyline></svg
+                            >
+                            <span class="git-file-name">CLAUDE.md</span>
+                            <span class="git-status git-status-m">M</span>
+                          </div>
+                          <div class="git-file">
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                              class="git-file-ico"
+                              ><path
+                                d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                              ></path><polyline points="14 2 14 8 20 8"
+                              ></polyline></svg
+                            >
+                            <span class="git-file-name">notes.md</span>
+                            <span class="git-status git-status-u">U</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- tasks panel -->
+            <div
+              class="showcase-panel"
+              id="panel-tasks"
+              role="tabpanel"
+              aria-labelledby="tab-tasks"
+              hidden
+            >
+              <div class="panel-toolbar">
+                <div class="showcase-filter-bar">
+                  <button class="showcase-filter active">all</button>
+                  <button class="showcase-filter">pending</button>
+                  <button class="showcase-filter">in progress</button>
+                  <button class="showcase-filter">completed</button>
+                </div>
+                <div class="panel-badge">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    class="badge-icon"
+                  >
+                    <path d="M9 11l3 3L22 4"></path>
+                    <path
+                      d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+                    ></path>
+                  </svg>
+                  <span>tasks</span>
+                </div>
+              </div>
+              <div class="panel-body tasks-body">
+                <table class="task-table">
+                  <thead>
+                    <tr>
+                      <th>task</th>
+                      <th>title</th>
+                      <th>status</th>
+                      <th>owner</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="task-row">
+                      <td class="task-num">1</td>
+                      <td class="task-title">create database schema</td>
+                      <td>
+                        <span class="task-badge task-completed">completed</span>
+                      </td>
+                      <td class="task-owner">agent-1</td>
+                    </tr>
+                    <tr class="task-row task-row-active">
+                      <td class="task-num">2</td>
+                      <td class="task-title">build api endpoints</td>
+                      <td>
+                        <span class="task-badge task-in-progress">
+                          <span class="task-dot-wrap">
+                            <span class="task-dot"></span>
+                            <span class="task-dot-ping"></span>
+                          </span>
+                          in progress
+                        </span>
+                      </td>
+                      <td class="task-owner">agent-2</td>
+                    </tr>
+                    <tr class="task-row">
+                      <td class="task-num">3</td>
+                      <td class="task-title">add unit tests</td>
+                      <td>
+                        <span class="task-badge task-pending">pending</span>
+                      </td>
+                      <td class="task-owner-empty">—</td>
+                    </tr>
+                    <tr class="task-row">
+                      <td class="task-num">4</td>
+                      <td class="task-title">update documentation</td>
+                      <td>
+                        <span class="task-badge task-pending">pending</span>
+                      </td>
+                      <td class="task-owner-empty">—</td>
+                    </tr>
+                    <tr class="task-row">
+                      <td class="task-num">5</td>
+                      <td class="task-title">set up CI pipeline</td>
+                      <td>
+                        <span class="task-badge task-completed">completed</span>
+                      </td>
+                      <td class="task-owner">agent-1</td>
+                    </tr>
+                    <tr class="task-row">
+                      <td class="task-num">6</td>
+                      <td class="task-title">deploy to staging</td>
+                      <td>
+                        <span class="task-badge task-pending">pending</span>
+                      </td>
+                      <td class="task-owner-empty">—</td>
+                    </tr>
+                    <tr class="task-row">
+                      <td class="task-num">7</td>
+                      <td class="task-title">write integration tests</td>
+                      <td>
+                        <span class="task-badge task-pending">pending</span>
+                      </td>
+                      <td class="task-owner-empty">—</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ── reset starlight markdown overrides ── */
+  :global(.sl-markdown-content) .feature-showcase {
+    margin-top: 0 !important;
+  }
+
+  :global(.sl-markdown-content) .feature-showcase * {
+    margin-top: 0 !important;
+  }
+
+  /* ── section ── */
+  .feature-showcase {
+    padding: 4rem 1rem 4rem;
+    width: 100%;
+  }
+
+  .showcase-container {
+    max-width: 80rem;
+    margin: 0 auto;
+  }
+
+  .showcase-heading {
+    font-size: var(--sl-text-4xl);
+    font-weight: 700;
+    text-align: center;
+    color: var(--sl-color-white);
+    margin: 0 0 3rem 0 !important;
+    padding: 0 !important;
+  }
+
+  /* ── layout ── */
+  .showcase-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 70rem) {
+    .showcase-layout {
+      flex-direction: row;
+      gap: 2rem;
+      align-items: flex-start;
+      justify-content: center;
+    }
+  }
+
+  /* ── callout list ── */
+  .callout-list {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-shrink: 0;
+    padding-bottom: 0.25rem;
+  }
+
+  .callout-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (min-width: 70rem) {
+    .callout-list {
+      flex-direction: column;
+      overflow-x: visible;
+      width: 16rem;
+      flex-shrink: 0;
+      padding-bottom: 0;
+      padding-top: 0.25rem;
+    }
+  }
+
+  /* ── callout button ── */
+  .callout {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 1rem;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    border-radius: 0.5rem;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-family: var(--sl-font);
+    color: var(--sl-color-gray-2);
+  }
+
+  .callout:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .callout:focus-visible {
+    outline: 2px solid #34d399;
+    outline-offset: 2px;
+  }
+
+  .callout-indicator {
+    width: 3px;
+    height: 1.5rem;
+    border-radius: 2px;
+    background: transparent;
+    flex-shrink: 0;
+    transition: background 0.15s ease;
+  }
+
+  .callout.active {
+    background: rgba(52, 211, 153, 0.05);
+    border-color: rgba(52, 211, 153, 0.1);
+  }
+
+  .callout.active .callout-indicator {
+    background: #34d399;
+  }
+
+  .callout-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+  }
+
+  .callout-label {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--sl-color-white);
+    white-space: nowrap;
+  }
+
+  .callout-desc {
+    font-size: 0.8125rem;
+    color: var(--sl-color-gray-3);
+    line-height: 1.4;
+    white-space: normal;
+    display: none;
+  }
+
+  @media (min-width: 70rem) {
+    .callout {
+      white-space: normal;
+    }
+
+    .callout-desc {
+      display: block;
+    }
+  }
+
+  /* ── preview container ── */
+  .preview-outer {
+    flex: 1;
+    min-width: 0;
+    max-width: 50rem;
+  }
+
+  .preview-container {
+    display: flex;
+    flex-direction: column;
+    border-radius: 0.5rem;
+    border: 1px solid #3f3f46;
+    background: #0a0a0a;
+    overflow: hidden;
+    box-shadow:
+      0 25px 50px -12px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(255, 255, 255, 0.03);
+  }
+
+  @media (min-width: 70rem) {
+    .preview-container {
+      flex-direction: row;
+    }
+  }
+
+  /* ── chrome bar ── */
+  .chrome-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.375rem 0.5rem;
+    background: #0a0a0a;
+    border-bottom: 1px solid #27272a;
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 70rem) {
+    .chrome-bar {
+      flex-direction: column;
+      border-bottom: none;
+      border-right: 1px solid #27272a;
+      width: 40px;
+      padding: 0.5rem 0.25rem;
+      align-items: center;
+    }
+  }
+
+  .chrome-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    background: transparent;
+    border: none;
+    color: #52525b;
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .chrome-icon:hover {
+    color: #a1a1aa;
+    background: rgba(63, 63, 70, 0.3);
+  }
+
+  .chrome-icon.active {
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.1);
+  }
+
+  /* ── panels area ── */
+  .panels-area {
+    position: relative;
+    flex: 1;
+    min-height: 420px;
+    min-width: 0;
+  }
+
+  .showcase-panel {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(6px);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease,
+      visibility 0.2s;
+  }
+
+  .showcase-panel.active {
+    position: relative;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .showcase-panel {
+      transition: none;
+      transform: none;
+    }
+  }
+
+  /* ── panel toolbar (shared) ── */
+  .panel-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    padding: 0 0.75rem;
+    background: #0a0a0a;
+    border-bottom: 1px solid #27272a;
+    flex-shrink: 0;
+  }
+
+  .panel-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    color: #e4e4e7;
+    padding: 0.25rem 0;
+    border-bottom: 2px solid oklch(0.6963 0.0866 40.28);
+  }
+
+  .panel-tab svg {
+    color: oklch(0.6963 0.0866 40.28);
+  }
+
+  .panel-tab-icon {
+    display: flex;
+    align-items: center;
+  }
+
+  .icon-active {
+    color: #34d399;
+  }
+
+  .panel-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.125rem 0.5rem;
+    border: 1px solid rgba(63, 63, 70, 0.5);
+    border-radius: 0.25rem;
+    font-family: var(--sl-font-mono);
+    line-height: 1.5;
+    color: #a1a1aa;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .panel-badge span {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+
+  .panel-badge .badge-icon {
+    color: #a1a1aa;
+  }
+
+  .panel-badge-secondary {
+    border: 1px solid rgba(63, 63, 70, 0.5);
+    color: #a1a1aa;
+  }
+
+  .panel-badge-accent {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: #34d399;
+  }
+
+  .accent-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #34d399;
+    flex-shrink: 0;
+  }
+
+  .toolbar-badges-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 500px) {
+    .panel-badge-secondary {
+      display: none;
+    }
+  }
+
+  /* ── panel body (shared) ── */
+  .panel-body {
+    flex: 1;
+    padding: 1.25rem;
+    font-family: var(--sl-font);
+    font-size: 0.875rem;
+    color: #d4d4d8;
+    overflow: auto;
+    min-height: 0;
+  }
+
+  /* ── editor panel ── */
+  .editor-body {
+    padding: 1.25rem;
+  }
+
+  .editor-heading {
+    font-size: 1.875rem !important;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.2 !important;
+  }
+
+  .editor-text {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 0.875rem;
+    color: #d4d4d8;
+    line-height: 1.5 !important;
+  }
+
+  .panel-body .mermaid-block {
+    margin-top: 1.5rem !important;
+  }
+
+  .mermaid-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0.25rem 0.75rem;
+    background: #121212;
+    border: 1px solid #3f3f46;
+    border-radius: 0.25rem 0.25rem 0 0;
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    color: #a1a1aa;
+  }
+
+  .mermaid-body {
+    padding: 0.75rem;
+    background: #0a0a0a;
+    border: 1px solid #3f3f46;
+    border-top: none;
+    border-radius: 0 0 0.25rem 0.25rem;
+  }
+
+  .mermaid-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+  }
+
+  .flow-node {
+    padding: 0.25rem 0.75rem;
+    background: #0a0a0a;
+    border: 1px solid #52525b;
+    border-radius: 0.25rem;
+    color: #ffffff;
+  }
+
+  .flow-node-active {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #34d399;
+  }
+
+  .flow-connector {
+    width: 1px;
+    height: 0.5rem;
+    background: #52525b;
+  }
+
+  .panel-body .checklist {
+    margin-top: 1.5rem !important;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-left: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.875rem;
+  }
+
+  .check-box {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 4px;
+    border: 1px solid #3f3f46;
+    background: rgba(63, 63, 70, 0.3);
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .check-item.checked .check-box {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.4);
+  }
+
+  .check-item.checked .check-box::after {
+    content: "\2713";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #34d399;
+    font-size: 0.65rem;
+    font-weight: bold;
+  }
+
+  .check-item.checked span:last-child {
+    color: #71717a;
+  }
+
+  /* ── git panel ── */
+  .git-body {
+    padding: 0;
+  }
+
+  .git-layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+  }
+
+  .git-commits {
+    display: flex;
+    flex-direction: column;
+    width: 40%;
+    border-right: 1px solid #27272a;
+    min-width: 0;
+  }
+
+  .git-files {
+    display: flex;
+    flex-direction: column;
+    width: 60%;
+    min-width: 0;
+  }
+
+  .git-pane-title {
+    padding: 6px 12px;
+    color: #71717a;
+    font-size: 0.65rem;
+    text-transform: lowercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid #27272a;
+    flex-shrink: 0;
+  }
+
+  .git-pane-scroll {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .git-commit {
+    padding: 6px 12px;
+    border-bottom: 1px solid #1a1a1e;
+    cursor: default;
+  }
+
+  .git-commit:hover {
+    background: rgba(63, 63, 70, 0.15);
+  }
+
+  .git-commit.selected {
+    background: rgba(16, 185, 129, 0.08);
+  }
+
+  .git-commit-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .git-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #eab308;
+    flex-shrink: 0;
+  }
+
+  .git-commit-label {
+    color: #e4e4e7;
+    font-weight: 500;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .git-hash {
+    color: #52525b;
+    font-family: var(--sl-font-mono);
+  }
+
+  .git-date {
+    color: #52525b;
+    font-size: 0.65rem;
+    flex-shrink: 0;
+  }
+
+  .git-msg {
+    color: #a1a1aa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+
+  .git-section {
+    border-bottom: 1px solid #1a1a1e;
+  }
+
+  .git-section-hdr {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    color: #a1a1aa;
+    font-size: 0.7rem;
+    font-weight: 500;
+  }
+
+  .git-section-hdr svg {
+    color: #52525b;
+    flex-shrink: 0;
+  }
+
+  .git-count {
+    margin-left: auto;
+    font-size: 0.6rem;
+    color: #71717a;
+    background: rgba(63, 63, 70, 0.3);
+    border-radius: 4px;
+    min-width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
+  }
+
+  .git-count-green {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+  }
+
+  .git-section-files {
+    padding: 0 2px 4px 6px;
+  }
+
+  .git-file {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    min-width: 0;
+  }
+
+  .git-file:hover {
+    background: rgba(63, 63, 70, 0.15);
+  }
+
+  .git-file-ico {
+    color: #52525b;
+    flex-shrink: 0;
+  }
+
+  .git-file-name {
+    color: #d4d4d8;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--sl-font-mono);
+    font-size: 0.7rem;
+  }
+
+  .git-status {
+    font-size: 0.6rem;
+    font-weight: 600;
+    font-family: var(--sl-font-mono);
+    min-width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .git-status-a {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.15);
+  }
+
+  .git-status-m {
+    color: #eab308;
+    background: rgba(234, 179, 8, 0.15);
+  }
+
+  .git-status-u {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.15);
+  }
+
+  /* ── tasks panel ── */
+  .showcase-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .showcase-filter-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .showcase-filter {
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    font-family: var(--sl-font-mono);
+    color: #a1a1aa;
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .showcase-filter:hover {
+    color: #e4e4e7;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .showcase-filter.active {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.1);
+    border-color: rgba(52, 211, 153, 0.2);
+  }
+
+  .tasks-body {
+    padding: 0.5rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    line-height: 1.333;
+    overflow-x: auto;
+  }
+
+  .task-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .task-table th,
+  .task-table td {
+    border: none !important;
+  }
+
+  .task-table thead tr {
+    color: #71717a;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+
+  .task-table th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    font-weight: 500;
+  }
+
+  .task-table th:nth-child(1) {
+    width: 6%;
+  }
+
+  .task-table th:nth-child(2) {
+    width: 44%;
+  }
+
+  .task-table th:nth-child(3) {
+    width: 28%;
+  }
+
+  .task-table th:nth-child(4) {
+    width: 22%;
+  }
+
+  .task-table td {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .task-row {
+    border-top: 1px solid rgba(39, 39, 42, 0.5);
+    transition: background 0.15s ease;
+  }
+
+  .task-row:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .task-row-active {
+    background: rgba(245, 158, 11, 0.03);
+  }
+
+  .task-row-active:hover {
+    background: rgba(245, 158, 11, 0.06);
+  }
+
+  .task-num {
+    color: #71717a;
+  }
+
+  .task-title {
+    color: #e4e4e7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .task-owner {
+    color: #a1a1aa;
+  }
+
+  .task-owner-empty {
+    color: #71717a;
+  }
+
+  .task-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.6875rem;
+    font-family: var(--sl-font-mono);
+    font-weight: 500;
+    text-transform: lowercase;
+    white-space: nowrap;
+  }
+
+  .task-completed {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.25);
+  }
+
+  .task-in-progress {
+    background: rgb(69 26 3 / 0.4);
+    color: #fbbf24;
+    border: 1px solid rgb(245 158 11 / 0.3);
+  }
+
+  .task-pending {
+    background: rgba(161, 161, 170, 0.1);
+    color: #a1a1aa;
+    border: 1px solid rgba(161, 161, 170, 0.2);
+  }
+
+  .task-dot-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .task-dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    background-color: #f59e0b;
+    animation: showcase-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .task-dot-ping {
+    position: absolute;
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    background-color: #f59e0b;
+    animation: showcase-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+    opacity: 0.75;
+  }
+
+  @keyframes showcase-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes showcase-ping {
+    75%,
+    100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+
+  @media (max-width: 500px) {
+    .task-table th:first-child,
+    .task-table td:first-child,
+    .task-table th:last-child,
+    .task-table td:last-child {
+      display: none;
+    }
+
+    .showcase-filter:nth-child(4) {
+      display: none;
+    }
+  }
+
+  /* ── terminal panel ── */
+  .terminal-body {
+    font-family: var(--sl-font-jetbrains);
+    font-size: 0.75rem;
+    color: #d4d4d8;
+    padding: 1rem;
+  }
+
+  .terminal-welcome {
+    border: 1px solid #f97316;
+    border-radius: 0.25rem;
+    padding: 0.75rem;
+  }
+
+  .welcome-header {
+    color: #fb923c;
+    border-bottom: 1px solid rgba(154, 52, 18, 0.5);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .welcome-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .welcome-name {
+    color: #ffffff;
+    font-weight: 500;
+  }
+
+  .welcome-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .welcome-emoji {
+    font-size: 1rem;
+  }
+
+  .welcome-meta {
+    color: #71717a;
+    font-size: 0.75rem;
+  }
+
+  .welcome-paths {
+    display: flex;
+    flex-direction: column;
+    color: #71717a;
+    font-size: 0.75rem;
+    overflow: hidden;
+  }
+
+  .welcome-paths span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .welcome-footer {
+    border-top: 1px solid rgba(154, 52, 18, 0.5);
+    padding-top: 0.5rem;
+    margin-top: 0.5rem !important;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .welcome-tips-title {
+    color: #34d399;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .welcome-tips-text {
+    color: #71717a;
+    font-size: 0.75rem;
+  }
+
+  .welcome-activity {
+    margin-top: 0.5rem !important;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .welcome-activity-label {
+    color: #fb923c;
+    font-size: 0.75rem;
+  }
+
+  .welcome-activity-none {
+    color: #52525b;
+    font-size: 0.75rem;
+  }
+
+  .terminal-prompt {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #a1a1aa;
+    margin-top: 0.75rem !important;
+    font-family: var(--sl-font-jetbrains);
+  }
+
+  .prompt-arrow {
+    color: #a855f7;
+    font-weight: 700;
+  }
+
+  .prompt-block {
+    color: #fb923c;
+  }
+
+  .prompt-cursor {
+    display: inline-block;
+    width: 0.5rem;
+    height: 1rem;
+    background: #ffffff;
+    vertical-align: text-bottom;
+  }
+
+  .prompt-cursor.blink-off {
+    opacity: 0;
+  }
+
+  .terminal-hint {
+    color: #52525b;
+    font-size: 0.75rem;
+    padding-top: 0.5rem;
+    margin-top: 0.75rem !important;
+  }
+
+  /* ── ascii art overlay ── */
+  .terminal-body {
+    position: relative;
+  }
+
+  .terminal-ascii-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    background: #0a0a0a;
+    padding: 1.25rem;
+    overflow: hidden;
+    opacity: 1;
+    transition: opacity 0.6s ease;
+  }
+
+  .terminal-ascii-overlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .terminal-ascii-overlay.hidden {
+    display: none;
+  }
+
+  .ascii-pre {
+    font-family: var(--sl-font-mono) !important;
+    color: #34d399 !important;
+    font-size: 10px !important;
+    line-height: 1.15 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    white-space: pre !important;
+    overflow: hidden;
+  }
+
+  .ascii-message {
+    font-family: var(--sl-font-jetbrains) !important;
+    font-size: 0.75rem !important;
+    line-height: 1.75 !important;
+    color: #34d399 !important;
+    margin: 0.75rem 0 0 0 !important;
+    padding: 0 !important;
+    white-space: pre-wrap;
+  }
+
+  .ascii-cursor {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.875rem;
+    background: #34d399;
+    vertical-align: text-bottom;
+    margin-top: 0.25rem;
+  }
+
+  .ascii-cursor.blink-off {
+    opacity: 0;
+  }
+
+  /* ── responsive ── */
+  @media (max-width: 640px) {
+    .feature-showcase {
+      padding: 2rem 1rem;
+    }
+
+    .showcase-heading {
+      font-size: var(--sl-text-2xl);
+      margin-bottom: 2rem !important;
+    }
+
+    .panels-area {
+      min-height: 360px;
+    }
+  }
+</style>
+
+<script>
+  function initFeatureShowcase() {
+    const showcase = document.querySelector(".feature-showcase")
+    if (!showcase) return
+
+    const callouts = showcase.querySelectorAll<HTMLButtonElement>(".callout")
+    const chromeIcons =
+      showcase.querySelectorAll<HTMLButtonElement>(".chrome-icon")
+    const panels = showcase.querySelectorAll<HTMLElement>(".showcase-panel")
+    const features = ["editor", "terminal", "git", "tasks"]
+
+    let showcaseTypingInterval: ReturnType<typeof setInterval> | null = null
+    let showcaseCursorInterval: ReturnType<typeof setInterval> | null = null
+    let asciiTypingInterval: ReturnType<typeof setInterval> | null = null
+    let asciiCursorInterval: ReturnType<typeof setInterval> | null = null
+    let asciiTransitionTimeout: ReturnType<typeof setTimeout> | null = null
+
+    function switchToFeature(feature: string) {
+      // update callouts
+      callouts.forEach((c) => {
+        const isActive = c.dataset.feature === feature
+        c.classList.toggle("active", isActive)
+        c.setAttribute("aria-selected", String(isActive))
+        c.setAttribute("tabindex", isActive ? "0" : "-1")
+      })
+
+      // update chrome icons
+      chromeIcons.forEach((icon) => {
+        icon.classList.toggle("active", icon.dataset.feature === feature)
+      })
+
+      // update panels
+      panels.forEach((panel) => {
+        const panelFeature = panel.id.replace("panel-", "")
+        if (panelFeature === feature) {
+          panel.classList.add("active")
+          panel.removeAttribute("hidden")
+        } else {
+          panel.classList.remove("active")
+          panel.setAttribute("hidden", "")
+        }
+      })
+
+      // auto-scroll active callout into view on mobile
+      const activeCallout = showcase.querySelector(
+        `.callout[data-feature="${feature}"]`
+      )
+      if (activeCallout && window.innerWidth < 1120) {
+        activeCallout.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center",
+        })
+      }
+
+      // handle terminal animation
+      if (feature === "terminal") {
+        startTerminalAnimation()
+      } else {
+        stopTerminalAnimation()
+      }
+    }
+
+    const asciiArt = [
+      "\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557",
+      "\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D",
+      "\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2551     \u2588\u2588\u2588\u2588\u2588\u2557  ",
+      "\u255A\u2550\u2550\u2550\u2550\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2550\u255D \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2551\u2588\u2588\u2551     \u2588\u2588\u2554\u2550\u2550\u255D  ",
+      "\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2551     \u2588\u2588\u2551  \u2588\u2588\u2551\u255A\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557",
+      "\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D\u255A\u2550\u255D     \u255A\u2550\u255D  \u255A\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u255D\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D",
+      "                                        ",
+      " \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2557  \u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557        ",
+      "\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551 \u2588\u2588\u2554\u255D\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D        ",
+      "\u2588\u2588\u2551     \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2554\u255D \u2588\u2588\u2588\u2588\u2588\u2557          ",
+      "\u2588\u2588\u2551     \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2588\u2588\u2557 \u2588\u2588\u2554\u2550\u2550\u255D          ",
+      "\u255A\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557        ",
+      " \u255A\u2550\u2550\u2550\u2550\u2550\u255D\u255A\u2550\u255D  \u255A\u2550\u255D\u255A\u2550\u255D  \u255A\u2550\u255D\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D        ",
+    ].join("\n")
+
+    function startTerminalAnimation() {
+      stopTerminalAnimation()
+
+      const overlay = showcase.querySelector(
+        "#terminal-ascii-overlay"
+      ) as HTMLElement
+      const asciiTextEl = showcase.querySelector(
+        "#showcase-ascii-text"
+      ) as HTMLElement
+      const asciiMsgEl = showcase.querySelector(
+        "#showcase-ascii-message"
+      ) as HTMLElement
+      const asciiCursorEl = showcase.querySelector(
+        "#showcase-ascii-cursor"
+      ) as HTMLElement
+      const textEl = showcase.querySelector(
+        "#showcase-terminal-text"
+      ) as HTMLElement
+
+      if (!overlay || !asciiTextEl || !asciiCursorEl) {
+        // fallback: just run prompt animation
+        startPromptAnimation()
+        return
+      }
+
+      // reset overlay
+      overlay.classList.remove("fade-out", "hidden")
+      asciiTextEl.textContent = ""
+      if (asciiMsgEl) asciiMsgEl.textContent = ""
+      asciiCursorEl.classList.remove("blink-off")
+
+      // reset prompt
+      if (textEl) textEl.textContent = ""
+
+      // phase 1: type ascii art into <pre> (4 chars per tick)
+      let idx = 0
+      const charsPerTick = 4
+      asciiTypingInterval = setInterval(() => {
+        if (idx <= asciiArt.length) {
+          asciiTextEl.textContent = asciiArt.slice(0, idx)
+          idx += charsPerTick
+        } else {
+          if (asciiTypingInterval) clearInterval(asciiTypingInterval)
+          asciiTypingInterval = null
+
+          // phase 2: type message into <p> (1 char per tick for readability)
+          const msgText = "wake up, Claude...\n\nfollow the white rabbit..."
+          let msgIdx = 0
+          asciiTypingInterval = setInterval(() => {
+            if (msgIdx <= msgText.length) {
+              if (asciiMsgEl) asciiMsgEl.textContent = msgText.slice(0, msgIdx)
+              msgIdx++
+            } else {
+              if (asciiTypingInterval) clearInterval(asciiTypingInterval)
+              asciiTypingInterval = null
+
+              // pause, then transition to claude welcome
+              asciiTransitionTimeout = setTimeout(() => {
+                overlay.classList.add("fade-out")
+
+                // after fade completes, hide overlay and start prompt typing
+                asciiTransitionTimeout = setTimeout(() => {
+                  overlay.classList.add("hidden")
+                  startPromptAnimation()
+                }, 600)
+              }, 400)
+            }
+          }, 30)
+        }
+      }, 12)
+
+      // blink ascii cursor
+      asciiCursorInterval = setInterval(() => {
+        asciiCursorEl.classList.toggle("blink-off")
+      }, 500)
+    }
+
+    function startPromptAnimation() {
+      const textEl = showcase.querySelector(
+        "#showcase-terminal-text"
+      ) as HTMLElement
+      const cursorEl = showcase.querySelector(
+        "#showcase-terminal-cursor"
+      ) as HTMLElement
+      if (!textEl || !cursorEl) return
+
+      const content = "edit <filepath> to..."
+      textEl.textContent = ""
+      cursorEl.classList.remove("blink-off")
+
+      let idx = 0
+      showcaseTypingInterval = setInterval(() => {
+        if (idx <= content.length) {
+          textEl.textContent = content.slice(0, idx)
+          idx++
+        } else {
+          if (showcaseTypingInterval) clearInterval(showcaseTypingInterval)
+          showcaseTypingInterval = null
+        }
+      }, 100)
+
+      showcaseCursorInterval = setInterval(() => {
+        cursorEl.classList.toggle("blink-off")
+      }, 500)
+    }
+
+    function stopTerminalAnimation() {
+      if (asciiTypingInterval) {
+        clearInterval(asciiTypingInterval)
+        asciiTypingInterval = null
+      }
+      if (asciiCursorInterval) {
+        clearInterval(asciiCursorInterval)
+        asciiCursorInterval = null
+      }
+      if (asciiTransitionTimeout) {
+        clearTimeout(asciiTransitionTimeout)
+        asciiTransitionTimeout = null
+      }
+      if (showcaseTypingInterval) {
+        clearInterval(showcaseTypingInterval)
+        showcaseTypingInterval = null
+      }
+      if (showcaseCursorInterval) {
+        clearInterval(showcaseCursorInterval)
+        showcaseCursorInterval = null
+      }
+    }
+
+    // callout clicks
+    callouts.forEach((callout) => {
+      callout.addEventListener("click", () => {
+        if (callout.dataset.feature) {
+          switchToFeature(callout.dataset.feature)
+        }
+      })
+    })
+
+    // chrome icon clicks
+    chromeIcons.forEach((icon) => {
+      icon.addEventListener("click", () => {
+        if (icon.dataset.feature) {
+          switchToFeature(icon.dataset.feature)
+        }
+      })
+    })
+
+    // keyboard navigation (arrow keys on tablist)
+    callouts.forEach((callout, index) => {
+      callout.addEventListener("keydown", (e: KeyboardEvent) => {
+        let newIndex = index
+        const isVertical = window.innerWidth >= 1120
+
+        if (
+          (isVertical && e.key === "ArrowDown") ||
+          (!isVertical && e.key === "ArrowRight")
+        ) {
+          e.preventDefault()
+          newIndex = (index + 1) % features.length
+        } else if (
+          (isVertical && e.key === "ArrowUp") ||
+          (!isVertical && e.key === "ArrowLeft")
+        ) {
+          e.preventDefault()
+          newIndex = (index - 1 + features.length) % features.length
+        } else if (e.key === "Home") {
+          e.preventDefault()
+          newIndex = 0
+        } else if (e.key === "End") {
+          e.preventDefault()
+          newIndex = features.length - 1
+        }
+
+        if (newIndex !== index) {
+          switchToFeature(features[newIndex]!)
+          callouts[newIndex]?.focus()
+        }
+      })
+    })
+
+    // checklist toggling
+    const checkItems = showcase.querySelectorAll(".check-item")
+    checkItems.forEach((item) => {
+      item.addEventListener("click", () => {
+        item.classList.toggle("checked")
+      })
+    })
+
+    // task filter buttons
+    const filterBtns = showcase.querySelectorAll(".showcase-filter")
+    const taskRows = showcase.querySelectorAll<HTMLElement>(".task-row")
+
+    filterBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        filterBtns.forEach((b) => b.classList.remove("active"))
+        btn.classList.add("active")
+
+        const filter = btn.textContent?.toLowerCase().trim()
+
+        taskRows.forEach((row) => {
+          const badge = row.querySelector(".task-badge")
+          const status = badge?.textContent?.toLowerCase().trim()
+
+          let show = false
+          if (filter === "all") show = true
+          else if (filter === "in progress" && status === "in progress")
+            show = true
+          else if (filter === "pending" && status === "pending") show = true
+          else if (filter === "completed" && status === "completed") show = true
+
+          row.style.display = show ? "" : "none"
+        })
+      })
+    })
+  }
+
+  // initialize
+  initFeatureShowcase()
+
+  // re-initialize on Astro view transitions
+  document.addEventListener("astro:page-load", initFeatureShowcase)
+</script>

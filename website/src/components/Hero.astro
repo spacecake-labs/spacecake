@@ -5,8 +5,6 @@ import EditorPreview from "./EditorPreview.astro"
 import GitHubDownloadButton from "./GitHubDownloadButton.astro"
 import PlatformDownloads from "./PlatformDownloads.astro"
 import RotatingText from "./RotatingText.astro"
-import TaskTablePreview from "./TaskTablePreview.astro"
-import TerminalPreview from "./TerminalPreview.astro"
 
 // https://github.com/withastro/starlight/blob/main/packages/starlight/constants.ts
 const PAGE_TITLE_ID = "_top"
@@ -66,104 +64,6 @@ const { title = data.title, tagline } = data.hero || {}
 
   <div class="editor-preview">
     <EditorPreview />
-  </div>
-
-  <!-- Features Section -->
-  <div
-    class="terminal-feature col-span-full w-full mt-48 space-y-16 overflow-hidden"
-  >
-    <!-- Section Header -->
-    <div class="text-left lg:text-center space-y-4">
-      <h2 class="text-4xl font-bold section-heading">built for the terminal</h2>
-      <p class="text-zinc-400 text-lg max-w-2xl mx-auto">
-        track your context window and usage cost in real time
-      </p>
-    </div>
-
-    <!-- Integrated Terminal Feature -->
-    <div class="grid lg:grid-cols-2 gap-12 items-center">
-      <div class="space-y-6" style="min-width: 0;">
-        <div class="inline-block">
-          <span
-            class="inline-flex items-center px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-mono text-xs font-medium"
-          >
-            integrated terminal
-          </span>
-        </div>
-        <h3 class="text-3xl font-bold section-heading">
-          everything you need in one glance
-        </h3>
-        <p class="text-zinc-400 text-lg leading-relaxed">
-          run Claude Code in the integrated terminal (Ghostty)
-        </p>
-        <ul class="space-y-3 text-zinc-400">
-          <li class="flex items-start gap-3">
-            <span class="text-emerald-500 mt-1">&#10003;</span>
-            <span>Claude knows which file you're editing</span>
-          </li>
-          <li class="flex items-start gap-3">
-            <span class="text-emerald-500 mt-1">&#10003;</span>
-            <span>see your context window and usage cost in real time</span>
-          </li>
-          <li class="flex items-start gap-3">
-            <span class="text-emerald-500 mt-1">&#10003;</span>
-            <span>more integrations coming soon</span>
-          </li>
-        </ul>
-      </div>
-
-      <div style="min-width: 0;">
-        <TerminalPreview />
-      </div>
-    </div>
-  </div>
-
-  <!-- Task Tracking Feature -->
-  <div
-    class="terminal-feature task-feature col-span-full w-full mt-48 space-y-16 overflow-hidden"
-  >
-    <!-- Section Header -->
-    <div class="text-left lg:text-center space-y-4">
-      <h2 class="text-4xl font-bold section-heading">monitor claude tasks</h2>
-      <p class="text-zinc-400 text-lg max-w-2xl mx-auto">
-        see what Claude is working on in real time
-      </p>
-    </div>
-
-    <!-- Task Table Feature -->
-    <div class="grid lg:grid-cols-2 gap-12 items-center">
-      <div class="space-y-6" style="min-width: 0;">
-        <div class="inline-block">
-          <span
-            class="inline-flex items-center px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-mono text-xs font-medium"
-          >
-            task table
-          </span>
-        </div>
-        <h3 class="text-3xl font-bold section-heading">keep agents on track</h3>
-        <p class="text-zinc-400 text-lg leading-relaxed">
-          Claude creates tasks as it works
-        </p>
-        <ul class="space-y-3 text-zinc-400">
-          <li class="flex items-start gap-3">
-            <span class="text-emerald-500 mt-1">&#10003;</span>
-            <span>see pending, in-progress, and completed tasks</span>
-          </li>
-          <li class="flex items-start gap-3">
-            <span class="text-emerald-500 mt-1">&#10003;</span>
-            <span>filter by status to focus on what matters</span>
-          </li>
-          <li class="flex items-start gap-3">
-            <span class="text-emerald-500 mt-1">&#10003;</span>
-            <span>tasks sync automatically with claude code</span>
-          </li>
-        </ul>
-      </div>
-
-      <div style="min-width: 0;">
-        <TaskTablePreview />
-      </div>
-    </div>
   </div>
 </div>
 
@@ -334,94 +234,6 @@ const { title = data.title, tagline } = data.hero || {}
 
     .cta-container {
       margin-top: 1rem;
-    }
-
-    .terminal-feature {
-      grid-column: 1 / -1;
-      margin-top: 4rem !important;
-      max-width: 1200px;
-      margin-inline: auto;
-    }
-
-    .terminal-feature.task-feature {
-      margin-top: 4rem !important;
-    }
-
-    @media (min-width: 70rem) {
-      .terminal-feature.task-feature {
-        margin-top: 12rem !important;
-      }
-    }
-
-    /* Override Starlight spacing for terminal feature section */
-    .terminal-feature.space-y-16 > * + * {
-      margin-top: 4rem !important;
-    }
-
-    .terminal-feature .space-y-6 > * + * {
-      margin-top: 1.5rem !important;
-    }
-
-    .terminal-feature .space-y-4 > * + * {
-      margin-top: 1rem !important;
-    }
-
-    .terminal-feature .space-y-3 > * + * {
-      margin-top: 0.75rem !important;
-    }
-
-    .terminal-feature .gap-12 {
-      gap: 3rem !important;
-    }
-
-    .terminal-feature .gap-3 {
-      gap: 0.75rem !important;
-    }
-
-    .terminal-feature h2,
-    .terminal-feature h3 {
-      margin: 0 !important;
-      padding: 0 !important;
-    }
-
-    .section-heading {
-      color: white;
-    }
-
-    :global([data-theme="light"]) .section-heading {
-      color: var(--sl-color-text);
-    }
-
-    .terminal-feature p {
-      margin: 0 !important;
-    }
-
-    @media (max-width: 1023px) {
-      .terminal-feature .text-left {
-        text-align: left !important;
-      }
-    }
-
-    @media (min-width: 1024px) {
-      .terminal-feature .lg\:text-center {
-        text-align: center !important;
-      }
-
-      .terminal-feature .lg\:text-center p {
-        margin-left: auto !important;
-        margin-right: auto !important;
-      }
-    }
-
-    .terminal-feature ul {
-      margin: 0 !important;
-      padding: 0 !important;
-      list-style: none !important;
-    }
-
-    .terminal-feature li {
-      margin: 0 !important;
-      padding: 0 !important;
     }
 
     @media (min-width: 70rem) {
