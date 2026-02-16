@@ -73,6 +73,7 @@ export interface ElectronAPI {
   updateCliWorkspaces: (workspaceFolders: string[]) => Promise<void>
   isPlaywright: boolean
   platform: string
+  checkWatchmanInstalled: () => Promise<boolean>
   getHomeFolderPath: () => Promise<string>
   exists: (path: AbsolutePath) => Promise<Either<FileSystemError, boolean>>
 

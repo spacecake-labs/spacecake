@@ -1,5 +1,5 @@
 import { Effect, Exit, Layer, ManagedRuntime } from "effect"
-import { app, BrowserWindow, crashReporter, session, shell } from "electron"
+import { app, BrowserWindow, crashReporter, Menu, session, shell } from "electron"
 import { installExtension, REACT_DEVELOPER_TOOLS } from "electron-devtools-installer"
 import started from "electron-squirrel-startup"
 import fs from "node:fs"
@@ -145,6 +145,15 @@ const createWindow = () => {
         "Content-Security-Policy": [cspString],
       },
     })
+  })
+
+  mainWindow.webContents.on("context-menu", (_event, params) => {
+    const menu = Menu.buildFromTemplate([
+      { role: "copy", enabled: params.editFlags.canCopy },
+      { role: "paste", enabled: params.editFlags.canPaste },
+      { role: "selectAll", enabled: params.editFlags.canSelectAll },
+    ])
+    menu.popup({ window: mainWindow })
   })
 
   if (isDev && (!isTest || showWindow)) {
