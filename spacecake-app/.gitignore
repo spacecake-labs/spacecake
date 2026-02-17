@@ -105,4 +105,5 @@ out/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+/.playwright-cli/
 /test-output/

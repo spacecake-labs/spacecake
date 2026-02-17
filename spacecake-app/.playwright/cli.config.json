@@ -1,0 +1,7 @@
+{
+  "browser": {
+    "launchOptions": {
+      "args": [".vite/build/main.js"]
+    }
+  }
+}
