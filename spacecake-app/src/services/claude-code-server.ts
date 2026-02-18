@@ -1,6 +1,7 @@
 import { Effect, Either, Schema } from "effect"
 import { BrowserWindow, ipcMain } from "electron"
 import crypto from "node:crypto"
+import fs from "node:fs"
 import path from "node:path"
 import { WebSocket, WebSocketServer } from "ws"
 
@@ -94,6 +95,43 @@ function getRandomPort(): number {
   return Math.floor(Math.random() * (PORT_RANGE_END - PORT_RANGE_START + 1)) + PORT_RANGE_START
 }
 
+/**
+ * Remove lock files whose owning process is no longer alive.
+ * This handles cases where the process was killed (SIGKILL) or crashed
+ * before the Effect finalizer could run.
+ */
+const cleanStaleLockFiles = (ideDir: string): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    const entries = yield* Effect.try(() => fs.readdirSync(ideDir))
+
+    yield* Effect.forEach(
+      entries.filter((name) => name.endsWith(".lock")),
+      (entry) =>
+        Effect.gen(function* () {
+          const lockPath = path.join(ideDir, entry)
+          const raw = yield* Effect.try(() => fs.readFileSync(lockPath, "utf-8"))
+          const data = yield* Effect.try(
+            () => JSON.parse(raw) as { ideName?: string; pid?: number },
+          )
+
+          // only clean up spacecake lock files — other IDEs manage their own
+          if (data.ideName !== "spacecake") return
+          if (typeof data.pid !== "number") return
+
+          // process.kill(pid, 0) throws if the process doesn't exist
+          const isAlive = yield* Effect.try(() => {
+            process.kill(data.pid!, 0)
+            return true
+          }).pipe(Effect.orElseSucceed(() => false))
+
+          if (!isAlive) {
+            yield* Effect.try(() => fs.unlinkSync(lockPath))
+          }
+        }).pipe(Effect.catchAll(() => Effect.void)),
+      { discard: true },
+    )
+  }).pipe(Effect.catchAll(() => Effect.void))
+
 export const makeClaudeCodeServer = Effect.gen(function* () {
   const claudeConfig = yield* ClaudeConfig
   const fsService = yield* FileSystem
@@ -153,6 +191,7 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
     })
 
     await Effect.runPromise(fsService.createFolder(claudeConfig.ideDir, { recursive: true }))
+    await Effect.runPromise(cleanStaleLockFiles(claudeConfig.ideDir))
     const lockFilePath = AbsolutePath(path.join(claudeConfig.ideDir, `${port}.lock`))
 
     wss.on("connection", (ws, req) => {
@@ -363,6 +402,18 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
     } catch (error) {
       console.error("Failed to write lock file", error)
     }
+
+    // synchronous safety net: delete lock file on process exit.
+    // the "exit" event fires for normal exits and SIGTERM (but not SIGKILL).
+    // this catches cases where the async Effect finalizer doesn't get a chance to run
+    // (e.g. e2e test teardown, ctrl+C during dev).
+    process.on("exit", () => {
+      try {
+        fs.unlinkSync(lockFilePath)
+      } catch {
+        // already deleted or inaccessible, ignore
+      }
+    })
 
     // Store state for cleanup and broadcast
     serverState = { wss, port, lockFilePath, authToken, workspaceFolders }

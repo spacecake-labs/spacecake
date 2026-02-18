@@ -116,10 +116,8 @@ export const test = base.extend<TestFixtures>({
 
       await use(app)
 
-      // Gracefully exit with code 0 to prevent macOS "quit unexpectedly" dialog.
-      // app.close() alone may kill the process ungracefully, triggering the dialog.
       try {
-        await app.evaluate(({ app }) => app.exit(0))
+        await app.evaluate(({ app }) => app.quit())
       } catch {
         // app may have already closed, ignore
       }
