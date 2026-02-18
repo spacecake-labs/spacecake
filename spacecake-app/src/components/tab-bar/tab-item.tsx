@@ -16,6 +16,7 @@ interface TabItemProps {
   onClose: (e: React.MouseEvent) => void
   source?: OpenFileSource
   commitHash?: string
+  isFirst?: boolean
 }
 
 export function TabItem({
@@ -26,6 +27,7 @@ export function TabItem({
   onClose,
   source,
   commitHash,
+  isFirst,
 }: TabItemProps) {
   const [copied, setCopied] = useState(false)
 
@@ -61,6 +63,7 @@ export function TabItem({
               "data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:border-b-background",
               "data-[state=active]:-mb-px data-[state=active]:shadow-none",
               "data-[state=inactive]:hover:bg-muted/50",
+              isFirst && "pl-4 !rounded-tl-none !border-l-transparent data-[state=inactive]:ml-px",
             )}
           >
             {source && (

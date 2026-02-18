@@ -111,8 +111,8 @@ export function TabBar({ paneId, machine }: TabBarProps) {
         ref={scrollContainerRef}
         className="h-full w-full min-w-0 overflow-x-auto overflow-y-hidden scrollbar-none"
       >
-        <TabsList className="!h-full gap-0 bg-transparent justify-start rounded-none p-0 shrink-0 [&>*:first-child_button]:pl-4">
-          {items.map((item) => {
+        <TabsList className="!h-full gap-0 bg-transparent justify-start rounded-none p-0 shrink-0">
+          {items.map((item, index) => {
             const fileName = item.filePath.split("/").pop() || "untitled"
             const isActive = item.id === activePaneItemId
             return (
@@ -125,6 +125,7 @@ export function TabBar({ paneId, machine }: TabBarProps) {
                 onClose={(e) => handleClose(e, item)}
                 source={isActive ? sourceFromRoute : undefined}
                 commitHash={isActive ? targetRefFromRoute : undefined}
+                isFirst={index === 0}
               />
             )
           })}

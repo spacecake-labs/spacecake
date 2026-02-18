@@ -1,8 +1,18 @@
 import { Effect, Exit, Layer, ManagedRuntime } from "effect"
-import { app, BrowserWindow, crashReporter, Menu, session, shell } from "electron"
+import {
+  app,
+  BrowserWindow,
+  crashReporter,
+  ipcMain,
+  Menu,
+  nativeTheme,
+  session,
+  shell,
+} from "electron"
 import { installExtension, REACT_DEVELOPER_TOOLS } from "electron-devtools-installer"
 import started from "electron-squirrel-startup"
 import fs from "node:fs"
+import os from "node:os"
 import path from "node:path"
 
 import { buildCSPString } from "@/csp"
@@ -89,6 +99,46 @@ const windowAllClosedListener = () => {
   }
 }
 
+// --- title bar height & traffic light centering ---
+// macOS Tahoe (26+) shrank traffic light buttons from 16px to 14px and increased
+// the native title bar height from 28px to 32px.  Detection uses the Darwin
+// kernel version returned by os.release() (>= 25 → Tahoe).
+// see: github.com/desktop/desktop/issues/21135
+const isMac = process.platform === "darwin"
+const isTahoe = isMac && parseFloat(os.release()) >= 25
+
+// target visual titlebar height (drag strip + existing layout padding).
+// macOS: 28 pre-Tahoe, 32 Tahoe (native title bar height)
+// Windows/Linux: 30px
+// the sidebar (pt-2) and main content panel (p-2) each add 8px of top padding
+// below the drag strip, so the strip itself is reduced by that amount.
+const LAYOUT_TOP_PADDING = 8
+const TITLEBAR_HEIGHT = isMac ? (isTahoe ? 32 : 28) : 30
+const DRAG_STRIP_HEIGHT = TITLEBAR_HEIGHT - LAYOUT_TOP_PADDING
+
+// macOS traffic light centering
+const TRAFFIC_LIGHT_BUTTON_HEIGHT = isTahoe ? 14 : 16
+
+function getTrafficLightPosition(titlebarHeight: number): Electron.Point {
+  const offset = Math.floor((titlebarHeight - TRAFFIC_LIGHT_BUTTON_HEIGHT) / 2)
+  return { x: offset + 1, y: offset }
+}
+
+// window controls overlay — macOS only needs `true`; Windows/Linux needs height + colors
+function getTitleBarOverlay(dark: boolean): true | Electron.TitleBarOverlay {
+  if (isMac) return true
+  const colors = dark
+    ? { color: "#171717", symbolColor: "#fafafa" }
+    : { color: "#fafafa", symbolColor: "#0a0a0a" }
+  return { ...colors, height: TITLEBAR_HEIGHT }
+}
+
+ipcMain.handle("set-title-bar-overlay", (event, dark: boolean) => {
+  if (isMac) return
+  const win = BrowserWindow.fromWebContents(event.sender)
+  win?.setTitleBarOverlay(getTitleBarOverlay(dark) as Electron.TitleBarOverlay)
+})
+
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
     icon: path.join(process.cwd(), "assets", "icon.png"),
@@ -96,8 +146,11 @@ const createWindow = () => {
     height: 600,
     show: !isTest || showWindow,
     titleBarStyle: "hidden",
+    titleBarOverlay: getTitleBarOverlay(nativeTheme.shouldUseDarkColors),
+    ...(isMac ? { trafficLightPosition: getTrafficLightPosition(TITLEBAR_HEIGHT) } : {}),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
+      additionalArguments: [`--titlebar-height=${DRAG_STRIP_HEIGHT}`],
       nodeIntegration: false,
       contextIsolation: true,
       webSecurity: true,

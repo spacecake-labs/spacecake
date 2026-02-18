@@ -23,6 +23,7 @@ function RootWithTheme() {
   // but body works given our globals.css @custom-variant
   document.documentElement.classList.remove("light", "dark")
   document.documentElement.classList.add(theme)
+  window.electronAPI.setTitleBarOverlay(theme === "dark")
   return (
     <>
       <RouterProvider router={router} context={{ db }} />

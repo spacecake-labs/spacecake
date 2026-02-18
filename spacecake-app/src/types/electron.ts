@@ -71,6 +71,9 @@ export interface ElectronAPI {
   ensurePlansDirectory: (workspacePath: string) => Promise<Either<FileSystemError, undefined>>
   notifyFileClosed: (filePath: string) => Promise<void>
   updateCliWorkspaces: (workspaceFolders: string[]) => Promise<void>
+  setTitleBarOverlay: (dark: boolean) => Promise<void>
+  /** platform-specific titlebar height in px (accounts for macOS version) */
+  titlebarHeight: number
   isPlaywright: boolean
   platform: string
   checkWatchmanInstalled: () => Promise<boolean>
