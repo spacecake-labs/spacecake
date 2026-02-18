@@ -7,6 +7,8 @@ import svgr from "vite-plugin-svgr"
 import topLevelAwait from "vite-plugin-top-level-await"
 import wasm from "vite-plugin-wasm"
 
+import packageJson from "@/../package.json"
+
 const buildSourcemap =
   process.env.NODE_ENV === "development" || process.env.IS_PLAYWRIGHT === "true"
 
@@ -44,6 +46,9 @@ export default defineConfig({
     hmr: {
       port: 24678,
     },
+  },
+  define: {
+    __APP_VERSION__: JSON.stringify(packageJson.version),
   },
   build: {
     // Enable source maps in dev mode
