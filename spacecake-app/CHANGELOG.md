@@ -1,5 +1,13 @@
 # spacecake-app
 
+## 0.1.0-alpha.52
+
+### Patch Changes
+
+- a1b8752: Fix markdown backtick escaping.
+- a1b8752: Title bar for Windows & Linux.
+- a1b8752: Show app version number.
+
 ## 0.1.0-alpha.51
 
 ### Patch Changes
