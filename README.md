@@ -94,4 +94,4 @@ See the [Claude Code integration docs](https://www.spacecake.ai/getting-started#
 </a>
 
 ## Product Hunt
-<a href="https://www.producthunt.com/products/spacecake/reviews/new?utm_source=badge-product_review&utm_medium=badge&utm_source=badge-spacecake" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/product_review.svg?product_id=1157919&theme=light" alt="spacecake - Run&#0032;Claude&#0032;Code&#0032;agents&#0032;in&#0032;terminal&#0032;with&#0032;a&#0032;visual&#0032;editor | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+<a href="https://www.producthunt.com/products/spacecake/launches/spacecake?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-spacecake" target="_blank" rel="noopener noreferrer"><img alt="spacecake - Run Claude Code agents in terminal with a visual editor | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1072549&amp;theme=light&amp;t=1771452537430"></a>
