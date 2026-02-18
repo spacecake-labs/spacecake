@@ -33,16 +33,6 @@ Download an installer for your platform from the [latest release](https://github
 On first launch, spacecake opens the home folder (`~/.spacecake`) for general notes.
 Press `⌘O` (macOS) or `ctrl+O` (Windows/Linux) to open your project as a workspace.
 
-## Star History
-
-<a href="https://www.star-history.com/#spacecake-labs/spacecake&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=spacecake-labs/spacecake&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=spacecake-labs/spacecake&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=spacecake-labs/spacecake&type=date&legend=top-left" />
- </picture>
-</a>
-
 #### keyboard shortcuts
 
 | shortcut | action |
@@ -91,4 +81,17 @@ See the [Claude Code integration docs](https://www.spacecake.ai/getting-started#
 - bracket closing
 - code folding
 - linting
-- the usual keyboard shortcuts
+- the usual keyboard shortcuts\
+
+## Star History
+
+<a href="https://www.star-history.com/#spacecake-labs/spacecake&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=spacecake-labs/spacecake&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=spacecake-labs/spacecake&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=spacecake-labs/spacecake&type=date&legend=top-left" />
+ </picture>
+</a>
+
+## Product Hunt
+<a href="https://www.producthunt.com/products/spacecake/reviews/new?utm_source=badge-product_review&utm_medium=badge&utm_source=badge-spacecake" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/product_review.svg?product_id=1157919&theme=light" alt="spacecake - Run&#0032;Claude&#0032;Code&#0032;agents&#0032;in&#0032;terminal&#0032;with&#0032;a&#0032;visual&#0032;editor | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
