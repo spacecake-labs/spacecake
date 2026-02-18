@@ -7,7 +7,8 @@ import svgr from "vite-plugin-svgr"
 import topLevelAwait from "vite-plugin-top-level-await"
 import wasm from "vite-plugin-wasm"
 
-import packageJson from "@/../package.json"
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import packageJson from "./package.json"
 
 const buildSourcemap =
   process.env.NODE_ENV === "development" || process.env.IS_PLAYWRIGHT === "true"
