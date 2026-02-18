@@ -149,6 +149,7 @@ export function AppSidebar({ onFileClick, workspace, selectedFilePath }: AppSide
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <p className="px-2 pt-1 text-xs text-muted-foreground/50">v{__APP_VERSION__}</p>
       </SidebarFooter>
     </Sidebar>
   )

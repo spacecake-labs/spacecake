@@ -15,6 +15,9 @@ declare module "write-file-atomic" {
   export default writeFileAtomic
 }
 
+// injected by vite.renderer.config.mts
+declare const __APP_VERSION__: string
+
 // SVG imports as React components
 declare module "*.svg?react" {
   import { FC, SVGProps } from "react"

@@ -129,7 +129,8 @@
   }
 
   body {
-    @apply bg-background text-foreground overflow-hidden;
+    @apply bg-background text-foreground overflow-hidden antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   /* Window drag regions for frameless window */

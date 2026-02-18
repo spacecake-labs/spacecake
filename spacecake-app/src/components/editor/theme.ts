@@ -34,7 +34,7 @@ export const editorTheme: EditorThemeClasses = {
   // See theme.css for implementations and FocusedNodePlugin for class management.
   paragraph: "text-block leading-7 mt-2 empty-para-collapsible",
   quote: "text-block mt-6 border-l-2 pl-6 italic",
-  link: "text-blue-600 hover:underline hover:cursor-pointer",
+  link: "underline underline-offset-4 decoration-muted-foreground/50 hover:decoration-foreground hover:cursor-pointer",
   list: {
     nested: {
       listitem: "list-none before:hidden after:hidden",

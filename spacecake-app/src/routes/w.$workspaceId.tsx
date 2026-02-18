@@ -697,7 +697,7 @@ function LayoutContent() {
           selectedFilePath={selectedFilePath}
         />
         <div className="flex flex-col h-full w-full overflow-hidden">
-          <main className="bg-background relative flex w-full flex-1 flex-col overflow-hidden rounded-xl shadow-sm p-2">
+          <main className="bg-background relative flex w-full flex-1 flex-col overflow-hidden rounded-md shadow-sm p-2">
             <header className="app-drag flex h-10 shrink-0 items-center gap-2 justify-between border-b">
               <div className="app-no-drag flex h-full items-end flex-1 min-w-0 overflow-hidden">
                 <TabBar paneId={paneId} machine={machine} />
@@ -1025,7 +1025,7 @@ function LayoutContent() {
           defaultSize={85}
           className="p-2 overflow-hidden"
         >
-          <div className="flex flex-col h-full bg-background rounded-xl shadow-sm overflow-hidden">
+          <div className="flex flex-col h-full bg-background rounded-md shadow-sm overflow-hidden">
             <ResizablePanelGroup
               ref={gitPanelGroupRef}
               direction="horizontal"
@@ -1233,12 +1233,14 @@ function WorkspaceLayout() {
     }
   }, [workspace?.path, setIsCreatingInContext, setContextItemName])
 
+  const titlebarHeight = window.electronAPI.titlebarHeight
+
   if (!workspace?.path) {
     return (
       <>
         <div className="flex h-screen flex-col overflow-hidden">
-          {/* app-wide drag region for window traffic lights */}
-          <div className="app-drag h-4 shrink-0 bg-sidebar" />
+          {/* app-wide drag region for window controls */}
+          <div className="app-drag shrink-0 bg-sidebar" style={{ height: titlebarHeight }} />
           <FocusManagerProvider>
             <SidebarProvider className="flex-1 min-h-0">
               <LayoutContent />
@@ -1252,8 +1254,8 @@ function WorkspaceLayout() {
     <>
       <WorkspaceWatcher workspacePath={workspace.path} />
       <div className="flex h-screen flex-col overflow-hidden">
-        {/* app-wide drag region for window traffic lights */}
-        <div className="app-drag h-4 shrink-0 bg-sidebar" />
+        {/* app-wide drag region for window controls */}
+        <div className="app-drag shrink-0 bg-sidebar" style={{ height: titlebarHeight }} />
         <FocusManagerProvider>
           <SidebarProvider className="flex-1 min-h-0">
             <LayoutContent />

@@ -11,6 +11,11 @@ import {
 } from "@/types/claude-code"
 import { AbsolutePath } from "@/types/workspace"
 
+// titlebar height is passed from the main process via additionalArguments
+// (preload sandbox cannot import node:os for version detection)
+const titlebarHeightArg = process.argv.find((arg) => arg.startsWith("--titlebar-height="))
+const titlebarHeight = titlebarHeightArg ? parseInt(titlebarHeightArg.split("=")[1], 10) : 35
+
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
@@ -82,6 +87,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("remove", filePath, recursive),
   saveFile: (filePath: string, content: string) =>
     ipcRenderer.invoke("save-file", filePath, content),
+  setTitleBarOverlay: (dark: boolean) => ipcRenderer.invoke("set-title-bar-overlay", dark),
+  titlebarHeight,
   platform: process.platform,
   checkWatchmanInstalled: (): Promise<boolean> => ipcRenderer.invoke("check-watchman-installed"),
   getHomeFolderPath: (): Promise<string> => ipcRenderer.invoke("get-home-folder-path"),

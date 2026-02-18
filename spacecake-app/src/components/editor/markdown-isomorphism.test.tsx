@@ -151,6 +151,35 @@ Here's a simple flow showing how data moves through the system.`
         expect(result).toBe(text)
       })
 
+      it("inline code containing backticks should have isomorphic parsing & serialization", async () => {
+        const text = `press \`\` ctrl+\` \`\` to toggle the terminal`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
+      it("table with inline code containing backticks should have isomorphic parsing & serialization", async () => {
+        const text = `| shortcut | action |
+| --- | --- |
+| \`⌘O\` | open workspace |
+| \`\` ctrl+\` \`\` | toggle terminal |`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
       it("markdown file with images and links should have isomorphic parsing & serialization", async () => {
         const text = `# Project README
 

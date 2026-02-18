@@ -26,6 +26,7 @@ import {
 } from "@lexical/table"
 import {
   $createNodeSelection,
+  $createTextNode,
   $getRoot,
   $isParagraphNode,
   $isTextNode,
@@ -447,6 +448,40 @@ const mapToTableCells = (textContent: string): Array<TableCellNode> | null => {
   return match[1].split("|").map((text) => $createTableCell(text))
 }
 
+// handles inline code containing backticks using double-backtick delimiters: `` content ``
+// lexical's built-in INLINE_CODE only supports single backticks, which breaks when
+// the content itself contains a backtick (e.g. ctrl+`)
+const DOUBLE_BACKTICK_INLINE_CODE: TextMatchTransformer = {
+  dependencies: [],
+  export: (node) => {
+    if (!$isTextNode(node)) return null
+    if (!node.hasFormat("code")) return null
+    const text = node.getTextContent()
+    if (!text.includes("`")) return null
+
+    const code = `\`\` ${text} \`\``
+
+    // preserve other formats around the code span
+    let result = code
+    if (node.hasFormat("bold")) result = `**${result}**`
+    if (node.hasFormat("italic")) result = `*${result}*`
+    if (node.hasFormat("strikethrough")) result = `~~${result}~~`
+    if (node.hasFormat("highlight")) result = `==${result}==`
+
+    return result
+  },
+  importRegExp: /``\s(.+?)\s``/,
+  regExp: /``\s(.+?)\s``$/,
+  replace: (textNode, match) => {
+    const content = match[1]
+    const codeNode = $createTextNode(content)
+    codeNode.toggleFormat("code")
+    textNode.replace(codeNode)
+  },
+  trigger: "`",
+  type: "text-match",
+}
+
 // Filter out conflicting code transformers
 const MULTILINE_ELEMENT_TRANSFORMERS_FILTERED = MULTILINE_ELEMENT_TRANSFORMERS.filter(
   (transformer) => {
@@ -466,6 +501,7 @@ export const MARKDOWN_TRANSFORMERS = [
   createCodeTransformer(),
   ...MULTILINE_ELEMENT_TRANSFORMERS_FILTERED,
   ...TEXT_FORMAT_TRANSFORMERS,
+  DOUBLE_BACKTICK_INLINE_CODE,
   LINKED_IMAGE,
   IMAGE,
   ...TEXT_MATCH_TRANSFORMERS,
