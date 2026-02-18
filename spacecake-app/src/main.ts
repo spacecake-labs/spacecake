@@ -44,6 +44,11 @@ if (started) {
   app.quit()
 }
 
+// sharper text rendering — use gpu rasterization and disable lcd text
+// (lcd/subpixel antialiasing looks blurry on non-retina and mixed-dpi setups)
+app.commandLine.appendSwitch("enable-gpu-rasterization")
+app.commandLine.appendSwitch("disable-lcd-text")
+
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
 const isTest = process.env.IS_PLAYWRIGHT === "true"
 const showWindow = process.env.SHOW_WINDOW === "true"
