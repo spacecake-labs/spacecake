@@ -1,4 +1,5 @@
 // @ts-check
+import sitemap from "@astrojs/sitemap"
 import starlight from "@astrojs/starlight"
 import tailwindcss from "@tailwindcss/vite"
 import { defineConfig } from "astro/config"
@@ -10,7 +11,9 @@ const PUBLIC_POSTHOG_HOST = "https://us.i.posthog.com"
 
 // https://astro.build/config
 export default defineConfig({
+  site: "https://www.spacecake.ai",
   integrations: [
+    sitemap(),
     posthogPlugin({
       posthogKey: PUBLIC_POSTHOG_KEY,
       api_host: PUBLIC_POSTHOG_HOST,
@@ -38,6 +41,13 @@ export default defineConfig({
           attrs: {
             property: "og:description",
             content: "run agents in the terminal. edit markdown visually.",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            name: "twitter:card",
+            content: "summary",
           },
         },
         {

@@ -31,6 +31,24 @@ const formatDate = (date: Date) =>
     />
     <link rel="canonical" href={Astro.url.href} />
 
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:title" content="Blog | spacecake" />
+    <meta
+      property="og:description"
+      content="Articles about AI-assisted coding, developer workflows, and building better software with spacecake."
+    />
+    <meta property="og:site_name" content="spacecake" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Blog | spacecake" />
+    <meta
+      name="twitter:description"
+      content="Articles about AI-assisted coding, developer workflows, and building better software with spacecake."
+    />
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
