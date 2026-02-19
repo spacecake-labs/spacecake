@@ -1,0 +1,24 @@
+---
+import { getCollection, render } from "astro:content"
+
+import BlogLayout from "../../layouts/BlogLayout.astro"
+
+export async function getStaticPaths() {
+  const blogEntries = await getCollection("blog")
+  return blogEntries.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }))
+}
+
+const { entry } = Astro.props
+const { Content } = await render(entry)
+
+// compute reading time from word count (~200 words/min)
+const wordCount = entry.body?.split(/\s+/).length ?? 0
+const readingTime = Math.max(1, Math.round(wordCount / 200))
+---
+
+<BlogLayout {...entry.data} readingTime={readingTime}>
+  <Content />
+</BlogLayout>

@@ -1,0 +1,202 @@
+---
+interface Props {
+  active?: "compare" | "blog"
+}
+
+const { active } = Astro.props
+---
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <img src="/favicon.svg" alt="spacecake logo" class="nav-logo-icon" />
+      <div class="nav-logo-text">
+        <span class="nav-logo-name">spacecake</span>
+        <span class="nav-logo-tagline">the best interface for Claude Code</span>
+      </div>
+    </a>
+    <div class="nav-right">
+      <div class="nav-links">
+        <a href="/getting-started">docs</a>
+        <a href="/compare" class:list={[{ active: active === "compare" }]}
+          >compare</a
+        >
+        <a href="/blog" class:list={[{ active: active === "blog" }]}>blog</a>
+        <a
+          href="https://github.com/spacecake-labs/spacecake"
+          target="_blank"
+          rel="noopener"
+        >
+          GitHub
+        </a>
+      </div>
+      <button
+        type="button"
+        class="theme-toggle"
+        aria-label="Toggle theme"
+        title="Toggle theme"
+      >
+        <svg
+          class="icon-sun"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg
+          class="icon-moon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<script>
+  function initTheme() {
+    const stored = localStorage.getItem("starlight-theme")
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches
+    const theme = stored || (prefersDark ? "dark" : "light")
+    document.documentElement.setAttribute("data-theme", theme)
+  }
+
+  initTheme()
+
+  document.querySelector(".theme-toggle")?.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme")
+    const next = current === "dark" ? "light" : "dark"
+    document.documentElement.setAttribute("data-theme", next)
+    localStorage.setItem("starlight-theme", next)
+  })
+</script>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+    height: var(--nav-height);
+  }
+
+  .nav-inner {
+    box-sizing: border-box;
+    padding: 0 2rem;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    text-decoration: none;
+  }
+
+  .nav-logo-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .nav-logo-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .nav-logo-name {
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: var(--color-text);
+  }
+
+  .nav-logo-tagline {
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .nav-links a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover,
+  .nav-links a.active {
+    color: var(--color-text);
+  }
+
+  .theme-toggle {
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    padding: 0.375rem;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      color 0.2s,
+      border-color 0.2s;
+  }
+
+  .theme-toggle:hover {
+    color: var(--color-text);
+    border-color: var(--color-text-muted);
+  }
+
+  /* show sun in dark mode, moon in light mode */
+  .icon-moon {
+    display: none;
+  }
+
+  :global([data-theme="light"]) .icon-sun {
+    display: none;
+  }
+
+  :global([data-theme="light"]) .icon-moon {
+    display: block;
+  }
+</style>

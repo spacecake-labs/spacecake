@@ -1,6 +1,7 @@
 ---
 /**
- * Layout for comparison/SEO pages
+ * Layout for blog/article pages
+ * Based on CompareLayout with BlogPosting schema, tags, reading time, and optional cover image
  */
 import CallToAction from "../components/CallToAction.astro"
 import Footer from "../components/Footer.astro"
@@ -9,12 +10,12 @@ import Nav from "../components/Nav.astro"
 interface Props {
   title: string
   description: string
-  products: string[]
-  verdict: string
-  winner?: string
+  tags: string[]
   publishedAt: Date
   updatedAt?: Date
   author?: string
+  coverImage?: { src: string; alt: string }
+  readingTime: number
   faq?: Array<{ question: string; answer: string }>
   canonical?: string
   noindex?: boolean
@@ -23,12 +24,12 @@ interface Props {
 const {
   title,
   description,
-  products,
-  verdict,
-  winner,
+  tags,
   publishedAt,
   updatedAt,
   author = "spacecake team",
+  coverImage,
+  readingTime,
   faq,
   canonical,
   noindex = false,
@@ -44,10 +45,10 @@ const formatDate = (date: Date) =>
     day: "numeric",
   })
 
-// Schema.org Article markup
+// Schema.org BlogPosting markup
 const articleSchema = {
   "@context": "https://schema.org",
-  "@type": "Article",
+  "@type": "BlogPosting",
   headline: title,
   description: description,
   author: {
@@ -62,6 +63,8 @@ const articleSchema = {
   datePublished: publishedAt.toISOString(),
   dateModified: (updatedAt || publishedAt).toISOString(),
   mainEntityOfPage: canonicalUrl,
+  ...(coverImage && { image: coverImage.src }),
+  keywords: tags.join(", "),
 }
 
 // FAQ Schema for rich snippets
@@ -102,6 +105,8 @@ const faqSchema = faq?.length
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:site_name" content="spacecake" />
+    {coverImage && <meta property="og:image" content={coverImage.src} />}
+    {coverImage && <meta property="og:image:alt" content={coverImage.alt} />}
     <meta
       property="article:published_time"
       content={publishedAt.toISOString()}
@@ -114,11 +119,13 @@ const faqSchema = faq?.length
         />
       )
     }
+    {tags.map((tag) => <meta property="article:tag" content={tag} />)}
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+    {coverImage && <meta name="twitter:image" content={coverImage.src} />}
 
     <!-- Structured Data -->
     <script
@@ -150,7 +157,7 @@ const faqSchema = faq?.length
   </head>
 
   <body>
-    <Nav active="compare" />
+    <Nav active="blog" />
 
     <main class="main">
       <article class="article">
@@ -158,14 +165,28 @@ const faqSchema = faq?.length
         <nav class="breadcrumbs" aria-label="Breadcrumb">
           <a href="/">Home</a>
           <span class="separator">/</span>
-          <a href="/compare">Compare</a>
+          <a href="/blog">Blog</a>
           <span class="separator">/</span>
-          <span class="current">{products.join(" vs ")}</span>
+          <span class="current">{title}</span>
         </nav>
+
+        <!-- Cover Image -->
+        {
+          coverImage && (
+            <div class="cover-image">
+              <img src={coverImage.src} alt={coverImage.alt} />
+            </div>
+          )
+        }
 
         <!-- Header -->
         <header class="header">
           <h1>{title}</h1>
+
+          <!-- Tags -->
+          <div class="tags">
+            {tags.map((tag) => <span class="tag">{tag}</span>)}
+          </div>
 
           <!-- Meta info -->
           <div class="meta">
@@ -187,19 +208,8 @@ const faqSchema = faq?.length
                 </>
               )
             }
-          </div>
-
-          <!-- Quick Verdict Box -->
-          <div class="verdict-box">
-            <div class="verdict-label">Quick Verdict</div>
-            <p class="verdict-text">{verdict}</p>
-            {
-              winner && (
-                <div class="winner">
-                  <span class="winner-label">Winner:</span> {winner}
-                </div>
-              )
-            }
+            <span class="separator">|</span>
+            <span class="reading-time">{readingTime} min read</span>
           </div>
         </header>
 
@@ -320,6 +330,20 @@ const faqSchema = faq?.length
     color: var(--color-text);
   }
 
+  /* Cover Image */
+  .cover-image {
+    margin-bottom: 2rem;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+  }
+
+  .cover-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
   /* Header */
   .header {
     margin-bottom: 3rem;
@@ -339,6 +363,25 @@ const faqSchema = faq?.length
     }
   }
 
+  /* Tags */
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .tag {
+    display: inline-flex;
+    padding: 0.25rem 0.625rem;
+    background: var(--color-accent-muted);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-accent);
+  }
+
   .meta {
     display: flex;
     flex-wrap: wrap;
@@ -351,40 +394,6 @@ const faqSchema = faq?.length
 
   .meta .separator {
     opacity: 0.5;
-  }
-
-  /* Verdict Box */
-  .verdict-box {
-    background: var(--color-accent-muted);
-    border: 1px solid rgba(16, 185, 129, 0.2);
-    border-radius: 0.5rem;
-    padding: 1.25rem 1.5rem;
-  }
-
-  .verdict-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-accent);
-    margin-bottom: 0.5rem;
-  }
-
-  .verdict-text {
-    font-size: 1.125rem;
-    color: var(--color-text);
-  }
-
-  .winner {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid rgba(16, 185, 129, 0.2);
-    font-size: 0.9375rem;
-  }
-
-  .winner-label {
-    font-weight: 600;
-    color: var(--color-accent);
   }
 
   /* Content */
@@ -474,7 +483,6 @@ const faqSchema = faq?.length
     margin: 2.5rem 0;
   }
 
-  /* Comparison Table Styles */
   .content :global(table) {
     width: 100%;
     border-collapse: collapse;
@@ -501,6 +509,13 @@ const faqSchema = faq?.length
 
   .content :global(tr:hover td) {
     background: var(--color-bg-elevated);
+  }
+
+  .content :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin: 1.5rem 0;
   }
 
   /* FAQ Section */

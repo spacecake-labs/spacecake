@@ -41,4 +41,23 @@ export const collections = {
         .optional(),
     }),
   }),
+
+  blog: defineCollection({
+    loader: glob({ pattern: "**/*.mdx", base: "./src/content/blog" }),
+    schema: z.object({
+      title: z.string(),
+      description: z.string(),
+      tags: z.array(z.string()),
+      publishedAt: z.coerce.date(),
+      updatedAt: z.coerce.date().optional(),
+      author: z.string().optional(),
+      coverImage: z.object({ src: z.string(), alt: z.string() }).optional(),
+      keywords: z.array(z.string()).optional(),
+      canonical: z.string().url().optional(),
+      noindex: z.boolean().default(false),
+      faq: z
+        .array(z.object({ question: z.string(), answer: z.string() }))
+        .optional(),
+    }),
+  }),
 }

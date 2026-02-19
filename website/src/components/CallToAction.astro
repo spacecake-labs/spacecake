@@ -1,0 +1,51 @@
+---
+/**
+ * shared CTA banner used at the bottom of blog and compare pages
+ */
+---
+
+<section class="cta-section">
+  <h2>Ready to ship faster?</h2>
+  <p>Download spacecake and start building with Claude Code.</p>
+  <a href="/getting-started" class="cta-button">Get Started</a>
+</section>
+
+<style>
+  .cta-section {
+    margin-top: 4rem;
+    padding: 2.5rem;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    text-align: center;
+  }
+
+  .cta-section h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .cta-section p {
+    color: var(--color-text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .cta-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    background: oklch(0.6963 0.0866 40.28);
+    color: #0a0a0a;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    transition: opacity 0.2s;
+  }
+
+  .cta-button:hover {
+    opacity: 0.9;
+  }
+</style>

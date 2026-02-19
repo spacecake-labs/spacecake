@@ -1,0 +1,71 @@
+---
+
+---
+
+<footer class="footer">
+  <div class="footer-inner">
+    <p>&copy; {new Date().getFullYear()} spacecake. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="https://github.com/spacecake-labs/spacecake">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    box-sizing: content-box;
+    border-top: 1px solid var(--color-border, var(--sl-color-gray-5, #383838));
+    padding: 1.5rem 0;
+  }
+
+  .footer-inner {
+    box-sizing: border-box;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-text-muted, var(--sl-color-gray-3, #8b8b8b));
+  }
+
+  .footer-inner p {
+    margin: 0;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .footer-links a {
+    color: var(--color-text-muted, var(--sl-color-gray-3, #8b8b8b));
+    text-decoration: none;
+  }
+
+  .footer-links a:hover {
+    color: var(--color-text, var(--sl-color-white, #ffffff));
+  }
+
+  /* reset starlight markdown content overrides */
+  :global(.sl-markdown-content) .footer {
+    margin-top: 0 !important;
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
+  }
+
+  :global(.sl-markdown-content) .footer * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    line-height: 1.5 !important;
+  }
+
+  :global(.sl-markdown-content) .footer a {
+    text-decoration: none !important;
+  }
+
+  /* remove starlight content-panel bottom padding when footer is last child */
+  :global(.content-panel:has(.footer)) {
+    padding-bottom: 0 !important;
+  }
+</style>

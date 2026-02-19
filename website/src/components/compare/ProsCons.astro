@@ -14,7 +14,7 @@ const { product, pros, cons } = Astro.props
 ---
 
 <div class="pros-cons">
-  <h3 class="product-name">{product}</h3>
+  <div class="product-name">{product}</div>
   <div class="columns">
     <div class="column pros">
       <div class="column-header">
@@ -47,9 +47,9 @@ const { product, pros, cons } = Astro.props
 
   .product-name {
     background: #1a1a1a;
-    padding: 1rem 1.25rem;
+    padding: 0.625rem 1.25rem;
     margin: 0;
-    font-size: 1.125rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #fafafa;
     border-bottom: 1px solid #262626;
