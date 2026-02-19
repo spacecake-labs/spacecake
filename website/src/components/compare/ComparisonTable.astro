@@ -67,7 +67,7 @@ const getValueClass = (
 
 <style>
   .comparison-table-wrapper {
-    overflow-x: auto;
+    overflow: hidden;
     margin: 2rem 0;
     border: 1px solid #262626;
     border-radius: 0.5rem;
@@ -76,7 +76,9 @@ const getValueClass = (
   .comparison-table {
     width: 100%;
     border-collapse: collapse;
+    border-spacing: 0;
     font-size: 0.9375rem;
+    margin: 0 !important;
   }
 
   th,

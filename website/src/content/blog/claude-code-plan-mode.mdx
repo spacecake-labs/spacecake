@@ -1,0 +1,183 @@
+---
+title: "Claude Code Plan Mode: Think First, Ship Faster"
+description: "Claude Code's plan mode separates research from implementation so you can review AI-generated plans before a single line of code gets written. Here's how to use it."
+tags: ["claude code", "ai coding", "developer workflow", "plan mode"]
+publishedAt: 2026-02-19
+author: "spacecake team"
+keywords:
+  - "claude code plan mode"
+  - "claude code planning"
+  - "ai coding assistant plan"
+  - "claude code tips"
+  - "claude code workflow"
+  - "opus plan mode"
+  - "claude code shift tab"
+faq:
+  - question: "How do I activate plan mode in Claude Code?"
+    answer: "You can activate plan mode by pressing Shift+Tab twice to cycle through permission modes, by typing /plan in the prompt, or by starting a session with the --permission-mode plan flag. All three methods put Claude into read-only mode where it explores and plans without making changes."
+  - question: "What is the difference between plan mode and auto-accept mode?"
+    answer: "Plan mode restricts Claude to read-only operations. It can explore your codebase and draft plans but cannot edit files or run modifying commands. Auto-accept mode is the opposite: it lets Claude make changes without asking for permission. Normal (default) mode sits between them, prompting you before each action."
+  - question: "What is opusplan mode in Claude Code?"
+    answer: "opusplan is a model alias that uses Opus 4.6 for the planning phase and automatically switches to Sonnet for implementation. This gives you Opus-level reasoning during the plan and Sonnet-level speed and cost efficiency during execution. Select it with /model opusplan."
+  - question: "Does plan mode cost more tokens than normal mode?"
+    answer: "Plan mode itself does not increase token costs — reading files and running searches consume the same tokens regardless of mode. However, the extra exploration and planning phase means you spend more tokens before implementation starts. The trade-off is fewer wasted tokens on incorrect implementations."
+  - question: "Can I edit a plan before Claude implements it?"
+    answer: "Yes. Press Ctrl+G to open the plan in your default text editor, where you can modify it directly. Once you are satisfied, switch back to normal mode with Shift+Tab and tell Claude to implement the plan."
+---
+
+Most developers launch Claude Code and immediately start asking it to write code. That works for small tasks, but for anything non-trivial (multi-file refactors, new features, unfamiliar codebases) you end up watching Claude make assumptions, touch the wrong files, and produce code that solves the wrong problem. Claude Code's [plan mode](https://code.claude.com/docs/en/common-workflows#use-plan-mode-for-safe-code-analysis) exists to fix that.
+
+Plan mode separates research from execution. Claude explores your codebase, reads files, and drafts an implementation approach, all without writing a single line of code until you approve.
+
+## What Plan Mode Actually Does
+
+When you activate plan mode, Claude Code enters a read-only state. It can still use tools like Read, Grep, Glob, and Bash for exploration, but it cannot use Write, Edit, or any tool that modifies files. This is enforced at the tool level, not just as a suggestion in the prompt.
+
+In practice, this means Claude will:
+
+- **Explore your codebase** by reading files, searching for patterns, and running non-destructive commands
+- **Ask clarifying questions** using the AskUserQuestion tool to gather requirements
+- **Draft a structured plan** with specific files to change, the order of changes, and the reasoning behind each step
+
+The plan lives in your conversation context. You can review it, poke holes in it, and iterate until you are confident in the approach.
+
+## How to Activate Plan Mode
+
+There are three ways to enter plan mode, depending on your workflow.
+
+### Keyboard Shortcut
+
+Press **Shift+Tab** to cycle through [permission modes](https://code.claude.com/docs/en/interactive-mode). From normal mode, the first Shift+Tab switches to auto-accept mode. A second Shift+Tab enters plan mode, indicated by `plan mode on` at the bottom of your terminal.
+
+### Slash Command
+
+Type `/plan` in the prompt to enter plan mode directly. This was added in Claude Code v2.1.0 and is the most straightforward method if you do not want to cycle through modes.
+
+### CLI Flag
+
+Start a new session in plan mode from the command line:
+
+```bash
+claude --permission-mode plan
+```
+
+This is useful for headless workflows or when you know upfront that you want to plan before coding.
+
+You can also run a one-off planning query without entering an interactive session:
+
+```bash
+claude --permission-mode plan -p "analyze the authentication system and suggest improvements"
+```
+
+## The Four-Phase Workflow
+
+The [recommended workflow](https://code.claude.com/docs/en/best-practices) from Anthropic's own engineering teams follows four phases.
+
+### 1. Explore
+
+Enter plan mode and have Claude read relevant files. Be specific about what you want it to look at:
+
+```
+read /src/auth and understand how we handle sessions and login.
+also look at how we manage environment variables for secrets.
+```
+
+### 2. Plan
+
+Ask Claude to draft an implementation plan:
+
+```
+I want to add Google OAuth. what files need to change?
+what's the session flow? create a plan.
+```
+
+Claude produces a step-by-step plan with specific files, the order of changes, and the reasoning behind each decision. Press **Ctrl+G** to open the plan in your text editor if you want to edit it directly.
+
+### 3. Implement
+
+Switch back to normal mode with Shift+Tab and tell Claude to execute:
+
+```
+implement the OAuth flow from your plan. write tests for the
+callback handler, run the test suite and fix any failures.
+```
+
+### 4. Verify
+
+Have Claude run tests, check types, and validate the implementation against the plan:
+
+```
+run the test suite. check for type errors. compare what you built
+against the plan and flag any deviations.
+```
+
+## Opus Plan Mode: Best of Both Models
+
+If you are on a [Max plan](https://claude.com/pricing) ($100/month for 5x usage or $200/month for 20x), the [`opusplan` model alias](https://code.claude.com/docs/en/model-config) gives you a practical cost-optimization strategy.
+
+Select it with `/model opusplan`. When plan mode is active, Claude uses **Opus 4.6** for the planning phase, giving you Opus-level reasoning for architecture decisions and complex analysis. When you switch to implementation, it automatically drops to **Sonnet** for the execution phase, which is faster and cheaper.
+
+You get Opus-level thinking where it matters (planning) and Sonnet-level efficiency where speed counts (writing code).
+
+| phase          | model      | strength                                                   |
+| -------------- | ---------- | ---------------------------------------------------------- |
+| planning       | Opus 4.6   | deep reasoning, architecture decisions, trade-off analysis |
+| implementation | Sonnet 4.6 | fast code generation, efficient token usage                |
+
+_Model configuration as of February 2026. See [model configuration docs](https://code.claude.com/docs/en/model-config) for current aliases._
+
+You can also pin specific model versions using environment variables if you need deterministic behavior:
+
+```bash
+export ANTHROPIC_DEFAULT_OPUS_MODEL="claude-opus-4-6"
+export ANTHROPIC_DEFAULT_SONNET_MODEL="claude-sonnet-4-6"
+```
+
+## When Plan Mode Is Worth the Extra Step
+
+Plan mode adds overhead. You spend tokens on exploration before any code gets written. That trade-off is worth it in specific scenarios:
+
+- **Multi-file changes**: refactors, migrations, or features that touch many files benefit from a coordinated plan. Without one, Claude tends to make changes file-by-file and miss cross-cutting concerns.
+- **Unfamiliar codebases**: when Claude (or you) does not know the code well, exploring first prevents the "confidently wrong" failure mode where Claude writes plausible-looking code that does not fit the existing architecture.
+- **Architectural decisions**: choosing between WebSockets vs SSE, monolith vs microservice, or any decision with trade-offs. Plan mode lets Claude research the codebase and present options before committing to an approach.
+- **Collaborative reviews**: when multiple people need to agree on an approach before implementation starts. Share the plan, get feedback, revise, then execute.
+
+For quick fixes (typos, one-liners, straightforward bug fixes), skip plan mode. The overhead is not worth it when you can describe the diff in one sentence.
+
+## Plan Mode and Agent Teams
+
+For large-scale tasks, plan mode integrates with [agent teams](https://code.claude.com/docs/en/agent-teams), an experimental feature that coordinates multiple Claude Code sessions working in parallel.
+
+Agent teams have a lead session that can require teammates to plan before implementing. The teammate works in read-only plan mode, drafts an approach, and sends it to the lead for approval. Only after the lead approves does the teammate exit plan mode and begin writing code.
+
+This is particularly useful for:
+
+- **Parallel code reviews** where different teammates review security, performance, and test coverage simultaneously
+- **New modules** where each teammate owns a separate component and plans independently
+- **Debugging with competing hypotheses** where teammates investigate different theories in parallel
+
+Plan mode also scales to multi-agent workflows where coordination matters.
+
+## Making Plan Mode Part of Your Default Workflow
+
+If you find yourself using plan mode frequently, you can set it as your default:
+
+```json
+// .claude/settings.json
+{
+  "permissions": {
+    "defaultMode": "plan"
+  }
+}
+```
+
+This starts every session in plan mode. You still switch to normal mode for implementation, but the default behavior is to explore and plan first.
+
+You can also combine plan mode with other Claude Code features for a tighter workflow:
+
+- **Subagents**: use the built-in Plan subagent to research the codebase in a separate context window, keeping your main conversation clean for implementation decisions
+- **CLAUDE.md**: add project-specific planning instructions like "when planning database changes, always check the migrations folder first"
+- **Extended thinking**: with [adaptive thinking](https://code.claude.com/docs/en/common-workflows#use-extended-thinking-thinking-mode) enabled (default on Opus 4.6), Claude allocates deeper reasoning during the planning phase when it detects complexity
+- **Checkpoints**: every plan creates a checkpoint you can rewind to with Esc+Esc if the implementation goes sideways
+
+The pattern that works best: plan mode for the hard decisions, normal mode for execution, subagents for research that would clutter your context. Match the level of thinking to the complexity of the task.

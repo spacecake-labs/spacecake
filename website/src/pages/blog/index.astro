@@ -4,14 +4,12 @@ import { getCollection } from "astro:content"
 import Footer from "../../components/Footer.astro"
 import Nav from "../../components/Nav.astro"
 
-const compareEntries = await getCollection("compare")
+const blogEntries = await getCollection("blog")
 
-// Sort by updatedAt or publishedAt (most recent first)
-const sortedEntries = compareEntries.sort((a, b) => {
-  const dateA = a.data.updatedAt || a.data.publishedAt
-  const dateB = b.data.updatedAt || b.data.publishedAt
-  return dateB.getTime() - dateA.getTime()
-})
+// filter out noindex posts and sort by publishedAt (most recent first)
+const sortedEntries = blogEntries
+  .filter((entry) => !entry.data.noindex)
+  .sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime())
 
 const formatDate = (date: Date) =>
   date.toLocaleDateString("en-US", {
@@ -26,10 +24,10 @@ const formatDate = (date: Date) =>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Coding Tool Comparisons | spacecake</title>
+    <title>Blog | spacecake</title>
     <meta
       name="description"
-      content="In-depth comparisons of AI coding assistants including Claude Code, Codex, Gemini CLI, and more. Find the best tool for your development workflow."
+      content="Articles about AI-assisted coding, developer workflows, and building better software with spacecake."
     />
     <link rel="canonical" href={Astro.url.href} />
 
@@ -49,16 +47,16 @@ const formatDate = (date: Date) =>
   </head>
 
   <body>
-    <Nav active="compare" />
+    <Nav active="blog" />
 
     <main class="main">
       <div class="container">
         <!-- Header -->
         <header class="header">
-          <h1>AI coding tool comparisons</h1>
+          <h1>blog</h1>
           <p class="subtitle">
-            Honest, in-depth comparisons to help you choose the right AI coding
-            assistant for your workflow.
+            Articles about AI-assisted coding, developer workflows, and building
+            better software.
           </p>
         </header>
 
@@ -66,24 +64,17 @@ const formatDate = (date: Date) =>
         <div class="articles-grid">
           {
             sortedEntries.map((entry) => (
-              <a href={`/compare/${entry.id}`} class="article-card">
+              <a href={`/blog/${entry.id}`} class="article-card">
                 <div class="article-meta">
-                  <span class="products">
-                    {entry.data.products.join(" vs ")}
+                  <span class="tags">
+                    {entry.data.tags.slice(0, 3).join(" · ")}
                   </span>
-                  <time
-                    datetime={(
-                      entry.data.updatedAt || entry.data.publishedAt
-                    ).toISOString()}
-                  >
-                    {formatDate(entry.data.updatedAt || entry.data.publishedAt)}
+                  <time datetime={entry.data.publishedAt.toISOString()}>
+                    {formatDate(entry.data.publishedAt)}
                   </time>
                 </div>
                 <h2>{entry.data.title}</h2>
                 <p>{entry.data.description}</p>
-                {entry.data.winner && (
-                  <div class="winner-badge">Winner: {entry.data.winner}</div>
-                )}
               </a>
             ))
           }
@@ -92,7 +83,7 @@ const formatDate = (date: Date) =>
         {
           sortedEntries.length === 0 && (
             <div class="empty-state">
-              <p>No comparisons yet. Check back soon!</p>
+              <p>no posts yet. check back soon!</p>
             </div>
           )
         }
@@ -208,13 +199,18 @@ const formatDate = (date: Date) =>
     font-size: 0.8125rem;
   }
 
-  .products {
+  .tags {
     color: var(--color-accent);
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
 
   .article-meta time {
     color: var(--color-text-muted);
+    flex-shrink: 0;
   }
 
   .article-card h2 {
@@ -233,18 +229,6 @@ const formatDate = (date: Date) =>
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
-  }
-
-  .winner-badge {
-    margin-top: 1rem;
-    display: inline-flex;
-    padding: 0.25rem 0.625rem;
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.2);
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--color-accent);
   }
 
   .empty-state {

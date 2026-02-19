@@ -3,11 +3,21 @@ title: getting started
 description: Install spacecake and open your first project.
 ---
 
+import GitHubDownloadButton from "../../components/GitHubDownloadButton.astro"
+import PlatformDownloads from "../../components/PlatformDownloads.astro"
+
 `spacecake` is a desktop markdown editor designed for working with AI coding agents. it gives [Claude Code](https://docs.anthropic.com/en/docs/claude-code) context about your open files, displays live session metrics, and lets you visually edit the plans and specs that Claude creates.
 
 ## installation
 
-`spacecake` is available for macOS, Windows, and Linux. download the latest release from the [homepage](/) or [GitHub](https://github.com/spacecake-labs/spacecake/releases).
+`spacecake` is available for macOS, Windows, and Linux.
+
+<div class="sl-flex" style="gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+  <GitHubDownloadButton platform="macos-arm64" />
+  <GitHubDownloadButton platform="macos-x64" />
+</div>
+
+<PlatformDownloads />
 
 you can also build from source by following the steps in the [release pipeline](https://github.com/spacecake-labs/spacecake/blob/main/.github/workflows/release.yml).
 

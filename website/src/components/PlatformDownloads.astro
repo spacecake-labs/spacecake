@@ -54,67 +54,69 @@ const downloads = await Promise.all(
 )
 ---
 
-<details class="platform-downloads">
-  <summary class="trigger">
-    <span>other platforms</span>
-    <svg
-      class="chevron"
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <polyline points="6 9 12 15 18 9"></polyline>
-    </svg>
-  </summary>
+<div class="not-content">
+  <details class="platform-downloads">
+    <summary class="trigger">
+      <span>other platforms</span>
+      <svg
+        class="chevron"
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </summary>
 
-  <div class="content">
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>platform</th>
-            <th>architecture</th>
-            <th>format</th>
-            <th>download</th>
-          </tr>
-        </thead>
-        <tbody>
-          {
-            downloads.map((row) => (
-              <tr>
-                <td>{row.platform}</td>
-                <td class="monospace">{row.architecture}</td>
-                <td class="monospace">{row.format}</td>
-                <td class="download-cell">
-                  {row.downloadUrl ? (
-                    <a
-                      href={row.downloadUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="download-link"
-                    >
-                      download
-                    </a>
-                  ) : (
-                    <span class="error">
-                      {row.errorMessage || "unavailable"}
-                    </span>
-                  )}
-                </td>
-              </tr>
-            ))
-          }
-        </tbody>
-      </table>
+    <div class="content">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>platform</th>
+              <th>architecture</th>
+              <th>format</th>
+              <th>download</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              downloads.map((row) => (
+                <tr>
+                  <td>{row.platform}</td>
+                  <td class="monospace">{row.architecture}</td>
+                  <td class="monospace">{row.format}</td>
+                  <td class="download-cell">
+                    {row.downloadUrl ? (
+                      <a
+                        href={row.downloadUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="download-link"
+                      >
+                        download
+                      </a>
+                    ) : (
+                      <span class="error">
+                        {row.errorMessage || "unavailable"}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-</details>
+  </details>
+</div>
 
 <a
   href="https://github.com/spacecake-labs/spacecake/releases"
@@ -206,6 +208,7 @@ const downloads = await Promise.all(
 
   .content {
     margin-top: 1rem;
+    margin-bottom: 0.5rem;
   }
 
   .table-wrapper {
