@@ -33,6 +33,30 @@ const formatDate = (date: Date) =>
     />
     <link rel="canonical" href={Astro.url.href} />
 
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={Astro.url.href} />
+    <meta
+      property="og:title"
+      content="AI Coding Tool Comparisons | spacecake"
+    />
+    <meta
+      property="og:description"
+      content="In-depth comparisons of AI coding assistants including Claude Code, Codex, Gemini CLI, and more. Find the best tool for your development workflow."
+    />
+    <meta property="og:site_name" content="spacecake" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta
+      name="twitter:title"
+      content="AI Coding Tool Comparisons | spacecake"
+    />
+    <meta
+      name="twitter:description"
+      content="In-depth comparisons of AI coding assistants including Claude Code, Codex, Gemini CLI, and more. Find the best tool for your development workflow."
+    />
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
