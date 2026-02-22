@@ -1,10 +1,8 @@
 import { Effect } from "effect"
 import { FitAddon, init, ITheme, Terminal } from "ghostty-web"
-import { useAtom } from "jotai"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { useTheme } from "@/components/theme-provider"
-import { terminalProfileLoadedAtom } from "@/lib/atoms/atoms"
 import { handleImagePaste, TerminalClipboardLive } from "@/lib/clipboard"
 import { suppressDuplicateWarnings } from "@/lib/suppress-duplicate-warnings"
 import {
@@ -30,6 +28,8 @@ interface UseGhosttyEngineOptions {
   enabled: boolean
   autoFocus?: boolean
   cwd?: string
+  onTitleChange?: (title: string) => void
+  onProfileLoaded?: () => void
 }
 
 interface UseGhosttyEngineResult {
@@ -59,6 +59,8 @@ export function useGhosttyEngine({
   enabled,
   autoFocus = false,
   cwd,
+  onTitleChange,
+  onProfileLoaded,
 }: UseGhosttyEngineOptions): UseGhosttyEngineResult {
   // Persistent container div — survives across mount/unmount of the mount point
   const [containerEl] = useState<HTMLDivElement>(() => {
@@ -76,10 +78,14 @@ export function useGhosttyEngine({
   const appShortcutHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null)
   const linkTooltipRef = useRef<HTMLDivElement | null>(null)
   const linkHoverHandlerRef = useRef<((e: MouseEvent) => void) | null>(null)
+  const onTitleChangeRef = useRef(onTitleChange)
+  onTitleChangeRef.current = onTitleChange
+  const onProfileLoadedRef = useRef(onProfileLoaded)
+  onProfileLoadedRef.current = onProfileLoaded
+  const profileLoadedRef = useRef(false)
 
   const [error, setError] = useState<string | null>(null)
   const [api, setApi] = useState<TerminalAPI | null>(null)
-  const [profileLoaded, setTerminalProfileLoaded] = useAtom(terminalProfileLoadedAtom)
 
   const { theme } = useTheme()
   const activeTheme = useRef(theme === "dark" ? terminalTheme.dark : terminalTheme.light)
@@ -174,6 +180,11 @@ export function useGhosttyEngine({
         // Outgoing: user types in Ghostty -> send to host
         term.onData((input: string) => {
           writeTerminal(id, input)
+        })
+
+        // propagate OSC title changes (shell integration sets cwd / running command)
+        term.onTitleChange((title: string) => {
+          onTitleChangeRef.current?.(title)
         })
 
         // Handle special key combinations
@@ -315,7 +326,6 @@ export function useGhosttyEngine({
 
         apiRef.current = terminalApi
         setApi(terminalApi)
-        window.__terminalAPI = terminalApi
       } catch (err) {
         console.error("failed to initialize terminal:", err)
         setError(err instanceof Error ? err.message : "failed to initialize terminal")
@@ -343,17 +353,23 @@ export function useGhosttyEngine({
         linkTooltipRef.current = null
       }
       killTerminal(id)
-      delete window.__terminalAPI
-      if (engineRef.current) {
-        engineRef.current.clear()
-        engineRef.current.dispose()
-        engineRef.current = null
-      }
+
+      // capture and null refs synchronously so nothing else can use them
+      const engine = engineRef.current
+      engineRef.current = null
       addonRef.current = null
       apiRef.current = null
       setApi(null)
-      setTerminalProfileLoaded(false)
       setError(null)
+
+      // defer WebGL teardown so it doesn't race with DOM layout changes
+      // during panel collapse (avoids ANGLE renderer crash on Windows)
+      if (engine) {
+        setTimeout(() => {
+          engine.clear()
+          engine.dispose()
+        }, 0)
+      }
     }
   }, [id, enabled])
 
@@ -366,8 +382,9 @@ export function useGhosttyEngine({
         try {
           engineRef.current.write(data)
 
-          if (!profileLoaded && /[$%>#]*$/.test(data)) {
-            setTerminalProfileLoaded(true)
+          if (!profileLoadedRef.current && /[$%>#]*$/.test(data)) {
+            profileLoadedRef.current = true
+            onProfileLoadedRef.current?.()
           }
         } catch (err) {
           console.error("error writing to terminal:", err)

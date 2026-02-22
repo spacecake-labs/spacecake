@@ -149,7 +149,14 @@ export function AppSidebar({ onFileClick, workspace, selectedFilePath }: AppSide
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <p className="px-2 pt-1 text-xs text-muted-foreground/50">v{__APP_VERSION__}</p>
+        <a
+          href="https://github.com/spacecake-labs/spacecake/blob/main/spacecake-app/CHANGELOG.md"
+          target="_blank"
+          rel="noreferrer"
+          className="block px-2 pt-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          v{__APP_VERSION__}
+        </a>
       </SidebarFooter>
     </Sidebar>
   )
