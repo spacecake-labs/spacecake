@@ -3,6 +3,7 @@ import type { ReactNode } from "react"
 import { useSetAtom } from "jotai"
 import { Plus } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { flushSync } from "react-dom"
 
 import type { TerminalAPI } from "@/hooks/use-ghostty-engine"
 
@@ -76,21 +77,26 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
   // central handler for all tab activations — replaces 4 separate effects
   const activateTab = useCallback(
     (tabId: string) => {
-      setActiveTabId(tabId)
+      // flush synchronously so the target tab's display:block is committed
+      // before we attempt to focus its textarea
+      flushSync(() => {
+        setActiveTabId(tabId)
+      })
       syncActiveApi(tabId)
       setProfileLoaded(profileLoadedTabsRef.current.has(tabId))
 
-      // scroll into view + focus after render
+      // DOM is committed — focus synchronously
+      const panel = document.querySelector('[data-testid="terminal-panel"]')
+      const tabContent = panel?.querySelector(
+        `[data-testid="terminal-tab-content"][data-tab-id="${tabId}"]`,
+      )
+      tabContent?.querySelector<HTMLTextAreaElement>("textarea")?.focus()
+
+      // scroll tab button into view after paint
       requestAnimationFrame(() => {
         scrollContainerRef.current
           ?.querySelector(`[data-state="active"]`)
           ?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
-
-        const panel = document.querySelector('[data-testid="terminal-panel"]')
-        const tabContent = panel?.querySelector(
-          `[data-testid="terminal-tab-content"][data-tab-id="${tabId}"]`,
-        )
-        tabContent?.querySelector<HTMLTextAreaElement>("textarea")?.focus()
       })
     },
     [syncActiveApi, setProfileLoaded],
