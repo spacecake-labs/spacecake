@@ -147,15 +147,18 @@ test.describe("ghostty terminal", () => {
     await window.keyboard.type(shell.echoMarker, { delay: typeDelay })
     await window.keyboard.press("Enter")
 
-    terminalContent = await window.evaluate(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const api = (globalThis as any).__terminalAPI
-      return api?.getAllLines().join("") as string | undefined
-    })
+    // poll until the shell has echoed the result back to the PTY
     // In a new session, the variable should be empty/unset
     // On Windows CMD, %VAR% is echoed literally if unset, so we check for that
     // On Unix, $VAR becomes empty, so we get MARKER::END
-    expect(terminalContent).toContain(shell.markerUnset)
+    await expect(async () => {
+      terminalContent = await window.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (globalThis as any).__terminalAPI
+        return api?.getAllLines().join("") as string | undefined
+      })
+      expect(terminalContent).toContain(shell.markerUnset)
+    }).toPass({ timeout: 5000 })
   })
 
   test("multi-tab operations: create, switch, isolate, close, and empty state", async ({

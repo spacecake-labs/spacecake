@@ -2,4 +2,4 @@
 "spacecake": patch
 ---
 
-Feat muti-tab terminal.
+Feat multi-tab terminal.

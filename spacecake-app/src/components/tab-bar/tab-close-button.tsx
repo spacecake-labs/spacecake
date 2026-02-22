@@ -47,11 +47,11 @@ export function TabCloseButton({ label, isActive, onClose }: TabCloseButtonProps
 /** shared class names for Radix TabsTrigger used by both editor and terminal tab bars */
 export function tabTriggerClasses(isFirst?: boolean) {
   return cn(
-    "group/tab relative h-full gap-1.5 pr-1.5 pl-3 text-xs font-normal cursor-pointer !transition-none",
+    "group/tab relative h-full gap-1.5 pr-1.5 pl-3 text-xs font-normal cursor-pointer",
     "bg-transparent rounded-none rounded-t-md border border-transparent",
     "data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:border-b-background",
     "data-[state=active]:-mb-px data-[state=active]:shadow-none",
     "data-[state=inactive]:hover:bg-muted/50",
-    isFirst && "pl-4 !rounded-tl-none !border-l-transparent ml-px",
+    isFirst && "pl-4 !rounded-tl-none !border-l-transparent data-[state=inactive]:ml-px",
   )
 }

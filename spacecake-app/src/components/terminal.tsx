@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 
+import { useSetAtom } from "jotai"
 import { Plus } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 
@@ -9,6 +10,7 @@ import { TabCloseButton, tabTriggerClasses } from "@/components/tab-bar/tab-clos
 import { TerminalTab } from "@/components/terminal-tab"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { terminalProfileLoadedAtom } from "@/lib/atoms/atoms"
 import { condensePath } from "@/lib/utils"
 
 interface TabState {
@@ -37,6 +39,12 @@ function terminalDisplayName(title: string): string {
   return title
 }
 
+function useLatest<T>(value: T) {
+  const ref = useRef(value)
+  ref.current = value
+  return ref
+}
+
 export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed }: TerminalProps) {
   const [initialTab] = useState(() => makeTab())
   const [tabs, setTabs] = useState<TabState[]>(() => [initialTab])
@@ -45,103 +53,121 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
   // track APIs per tab so we can expose the active one
   const tabApisRef = useRef<Map<string, TerminalAPI>>(new Map())
 
-  // refs for keyboard handler to avoid stale closures
-  const tabsRef = useRef(tabs)
-  const activeTabIdRef = useRef(activeTabId)
-  const onLastTabClosedRef = useRef(onLastTabClosed)
-  tabsRef.current = tabs
-  activeTabIdRef.current = activeTabId
-  onLastTabClosedRef.current = onLastTabClosed
+  // per-tab profile loaded tracking
+  const setProfileLoaded = useSetAtom(terminalProfileLoadedAtom)
+  const profileLoadedTabsRef = useRef<Set<string>>(new Set())
 
-  const updateActiveApi = useCallback(
-    (tabId: string | null) => {
-      const api = tabId ? (tabApisRef.current.get(tabId) ?? null) : null
-      window.__terminalAPI = api ?? undefined
-      onActiveApiChange?.(api)
+  // scroll refs for the tab bar
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // latest refs — avoids stale closures without re-creating callbacks
+  const tabsRef = useLatest(tabs)
+  const activeTabIdRef = useLatest(activeTabId)
+  const onLastTabClosedRef = useLatest(onLastTabClosed)
+  const onActiveApiChangeRef = useLatest(onActiveApiChange)
+
+  // stable: reads prop from ref so it never re-creates
+  const syncActiveApi = useCallback((tabId: string | null) => {
+    const api = tabId ? (tabApisRef.current.get(tabId) ?? null) : null
+    window.__terminalAPI = api ?? undefined
+    onActiveApiChangeRef.current?.(api)
+  }, [])
+
+  // central handler for all tab activations — replaces 4 separate effects
+  const activateTab = useCallback(
+    (tabId: string) => {
+      setActiveTabId(tabId)
+      syncActiveApi(tabId)
+      setProfileLoaded(profileLoadedTabsRef.current.has(tabId))
+
+      // scroll into view + focus after render
+      requestAnimationFrame(() => {
+        scrollContainerRef.current
+          ?.querySelector(`[data-state="active"]`)
+          ?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
+
+        const panel = document.querySelector('[data-testid="terminal-panel"]')
+        const activeContent = panel?.querySelector(
+          '[data-testid="terminal-tab-content"][data-active="true"]',
+        )
+        activeContent?.querySelector("textarea")?.focus()
+      })
     },
-    [onActiveApiChange],
+    [syncActiveApi, setProfileLoaded],
   )
 
   const handleTabReady = useCallback(
     (tabId: string, api: TerminalAPI) => {
       tabApisRef.current.set(tabId, api)
       if (activeTabIdRef.current === tabId) {
-        updateActiveApi(tabId)
+        syncActiveApi(tabId)
       }
     },
-    [updateActiveApi],
+    [syncActiveApi],
   )
 
   const handleTabDispose = useCallback(
     (tabId: string) => {
       tabApisRef.current.delete(tabId)
+      profileLoadedTabsRef.current.delete(tabId)
       if (activeTabIdRef.current === tabId) {
-        updateActiveApi(null)
+        syncActiveApi(null)
       }
     },
-    [updateActiveApi],
+    [syncActiveApi],
+  )
+
+  const handleProfileLoaded = useCallback(
+    (tabId: string) => {
+      profileLoadedTabsRef.current.add(tabId)
+      if (activeTabIdRef.current === tabId) {
+        setProfileLoaded(true)
+      }
+    },
+    [setProfileLoaded],
   )
 
   const handleTitleChange = useCallback((tabId: string, title: string) => {
     setTabs((prev) => prev.map((t) => (t.id === tabId ? { ...t, label: title } : t)))
   }, [])
 
-  // update exposed API when active tab changes
-  useEffect(() => {
-    updateActiveApi(activeTabId)
-  }, [activeTabId, updateActiveApi])
-
-  // auto-focus the newly active tab's textarea after a tab switch (skip initial mount)
-  const isInitialMount = useRef(true)
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false
-      return
-    }
-    if (!activeTabId) return
-
-    const raf = requestAnimationFrame(() => {
-      const panel = document.querySelector('[data-testid="terminal-panel"]')
-      const activeContent = panel?.querySelector(
-        '[data-testid="terminal-tab-content"][data-active="true"]',
-      )
-      const textarea = activeContent?.querySelector("textarea")
-      textarea?.focus()
-    })
-    return () => cancelAnimationFrame(raf)
-  }, [activeTabId])
-
   const addTab = useCallback(() => {
     const tab = makeTab()
     setTabs((prev) => [...prev, tab])
-    setActiveTabId(tab.id)
-  }, [])
+    activateTab(tab.id)
+  }, [activateTab])
 
-  const closeTab = useCallback((tabId: string) => {
-    const prev = tabsRef.current
-    const idx = prev.findIndex((t) => t.id === tabId)
-    const next = prev.filter((t) => t.id !== tabId)
+  const closeTab = useCallback(
+    (tabId: string) => {
+      const prev = tabsRef.current
+      const idx = prev.findIndex((t) => t.id === tabId)
+      const next = prev.filter((t) => t.id !== tabId)
 
-    // batch both state updates into a single render to avoid a flash
-    // where no tab is active (which causes a 1px jitter from -mb-px)
-    setTabs(next)
+      setTabs(next)
 
-    if (activeTabIdRef.current === tabId) {
-      if (next.length > 0) {
-        const newIdx = Math.min(idx, next.length - 1)
-        setActiveTabId(next[newIdx].id)
-      } else {
-        onLastTabClosedRef.current?.()
+      if (activeTabIdRef.current === tabId) {
+        if (next.length > 0) {
+          const newIdx = Math.min(idx, next.length - 1)
+          activateTab(next[newIdx].id)
+        } else {
+          onLastTabClosedRef.current?.()
+        }
       }
-    }
-  }, [])
+    },
+    [activateTab],
+  )
 
-  const switchTab = useCallback((tabId: string) => {
-    setActiveTabId(tabId)
-  }, [])
+  const switchTab = useCallback(
+    (tabId: string) => {
+      activateTab(tabId)
+    },
+    [activateTab],
+  )
 
-  // scroll refs for the tab bar
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  // reset atom on unmount
+  useEffect(() => {
+    return () => setProfileLoaded(false)
+  }, [setProfileLoaded])
 
   // handle horizontal scroll on wheel — must use native event for non-passive option
   useEffect(() => {
@@ -155,32 +181,20 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
 
     container.addEventListener("wheel", handleWheel, { passive: false })
     return () => container.removeEventListener("wheel", handleWheel)
-  }, [tabs.length])
+  }, [])
 
-  // auto-scroll to active tab when it changes or container resizes
+  // keep active tab visible on container resize
   useEffect(() => {
-    if (!activeTabId || !scrollContainerRef.current) return
-
-    const scrollToActive = () => {
-      const activeTab = scrollContainerRef.current?.querySelector(`[data-state="active"]`)
-      if (activeTab) {
-        activeTab.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-          inline: "nearest",
-        })
-      }
-    }
-
-    scrollToActive()
+    const container = scrollContainerRef.current
+    if (!container) return
 
     const resizeObserver = new ResizeObserver(() => {
-      scrollToActive()
+      const activeTab = container.querySelector(`[data-state="active"]`)
+      activeTab?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
     })
-    resizeObserver.observe(scrollContainerRef.current)
-
+    resizeObserver.observe(container)
     return () => resizeObserver.disconnect()
-  }, [activeTabId])
+  }, [])
 
   // keyboard shortcuts (only when terminal panel is focused)
   useEffect(() => {
@@ -224,7 +238,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
         const nextIdx = e.shiftKey
           ? (idx - 1 + current.length) % current.length
           : (idx + 1) % current.length
-        setActiveTabId(current[nextIdx].id)
+        activateTab(current[nextIdx].id)
         return
       }
     }
@@ -232,7 +246,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
     // use capture so we intercept before the editor's Cmd+W handler
     window.addEventListener("keydown", handleKeyDown, true)
     return () => window.removeEventListener("keydown", handleKeyDown, true)
-  }, [addTab, closeTab])
+  }, [addTab, closeTab, activateTab])
 
   return (
     <div className="flex h-full w-full flex-col" data-testid="terminal-panel">
@@ -315,6 +329,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
             onReady={handleTabReady}
             onDispose={handleTabDispose}
             onTitleChange={handleTitleChange}
+            onProfileLoaded={handleProfileLoaded}
           />
         ))}
       </div>

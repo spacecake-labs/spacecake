@@ -12,6 +12,7 @@ interface TerminalTabProps {
   onReady: (id: string, api: TerminalAPI) => void
   onDispose: (id: string) => void
   onTitleChange: (id: string, title: string) => void
+  onProfileLoaded: (id: string) => void
 }
 
 export const TerminalTab = memo(function TerminalTab({
@@ -21,17 +22,21 @@ export const TerminalTab = memo(function TerminalTab({
   onReady,
   onDispose,
   onTitleChange,
+  onProfileLoaded,
 }: TerminalTabProps) {
   const handleTitleChange = useCallback(
     (title: string) => onTitleChange(id, title),
     [id, onTitleChange],
   )
 
+  const handleProfileLoaded = useCallback(() => onProfileLoaded(id), [id, onProfileLoaded])
+
   const { containerEl, api, error, fit } = useGhosttyEngine({
     id,
     enabled: true,
     cwd,
     onTitleChange: handleTitleChange,
+    onProfileLoaded: handleProfileLoaded,
   })
 
   // notify parent when API is ready
@@ -75,18 +80,14 @@ export const TerminalTab = memo(function TerminalTab({
     }
   }, [isActive, containerEl, fit])
 
-  const handleMount = useCallback(() => {
-    fit()
-  }, [fit])
-
   return (
     <div
       data-testid="terminal-tab-content"
       data-active={isActive}
-      className="w-full h-full min-h-0"
+      className="relative w-full h-full min-h-0"
       style={{ display: isActive ? "block" : "none" }}
     >
-      {containerEl && <TerminalMountPoint containerEl={containerEl} onMount={handleMount} />}
+      {containerEl && <TerminalMountPoint containerEl={containerEl} onMount={fit} />}
       {error && (
         <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-100 px-4 py-2 text-sm font-mono">
           {error}

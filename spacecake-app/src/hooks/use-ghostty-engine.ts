@@ -1,10 +1,8 @@
 import { Effect } from "effect"
 import { FitAddon, init, ITheme, Terminal } from "ghostty-web"
-import { useAtom } from "jotai"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { useTheme } from "@/components/theme-provider"
-import { terminalProfileLoadedAtom } from "@/lib/atoms/atoms"
 import { handleImagePaste, TerminalClipboardLive } from "@/lib/clipboard"
 import { suppressDuplicateWarnings } from "@/lib/suppress-duplicate-warnings"
 import {
@@ -31,6 +29,7 @@ interface UseGhosttyEngineOptions {
   autoFocus?: boolean
   cwd?: string
   onTitleChange?: (title: string) => void
+  onProfileLoaded?: () => void
 }
 
 interface UseGhosttyEngineResult {
@@ -61,6 +60,7 @@ export function useGhosttyEngine({
   autoFocus = false,
   cwd,
   onTitleChange,
+  onProfileLoaded,
 }: UseGhosttyEngineOptions): UseGhosttyEngineResult {
   // Persistent container div — survives across mount/unmount of the mount point
   const [containerEl] = useState<HTMLDivElement>(() => {
@@ -80,10 +80,12 @@ export function useGhosttyEngine({
   const linkHoverHandlerRef = useRef<((e: MouseEvent) => void) | null>(null)
   const onTitleChangeRef = useRef(onTitleChange)
   onTitleChangeRef.current = onTitleChange
+  const onProfileLoadedRef = useRef(onProfileLoaded)
+  onProfileLoadedRef.current = onProfileLoaded
+  const profileLoadedRef = useRef(false)
 
   const [error, setError] = useState<string | null>(null)
   const [api, setApi] = useState<TerminalAPI | null>(null)
-  const [profileLoaded, setTerminalProfileLoaded] = useAtom(terminalProfileLoadedAtom)
 
   const { theme } = useTheme()
   const activeTheme = useRef(theme === "dark" ? terminalTheme.dark : terminalTheme.light)
@@ -372,8 +374,9 @@ export function useGhosttyEngine({
         try {
           engineRef.current.write(data)
 
-          if (!profileLoaded && /[$%>#]*$/.test(data)) {
-            setTerminalProfileLoaded(true)
+          if (!profileLoadedRef.current && /[$%>#]*$/.test(data)) {
+            profileLoadedRef.current = true
+            onProfileLoadedRef.current?.()
           }
         } catch (err) {
           console.error("error writing to terminal:", err)
