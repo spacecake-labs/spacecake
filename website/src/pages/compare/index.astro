@@ -103,7 +103,7 @@ const formatDate = (date: Date) =>
                     {formatDate(entry.data.updatedAt || entry.data.publishedAt)}
                   </time>
                 </div>
-                <h2>{entry.data.title}</h2>
+                <h2>{entry.data.products.join(" vs ")}</h2>
                 <p>{entry.data.description}</p>
                 {entry.data.winner && (
                   <div class="winner-badge">Winner: {entry.data.winner}</div>

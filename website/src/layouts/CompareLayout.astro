@@ -57,11 +57,36 @@ const articleSchema = {
   publisher: {
     "@type": "Organization",
     name: "spacecake",
-    url: "https://spacecake.dev",
+    url: "https://www.spacecake.ai",
   },
   datePublished: publishedAt.toISOString(),
   dateModified: (updatedAt || publishedAt).toISOString(),
   mainEntityOfPage: canonicalUrl,
+}
+
+// BreadcrumbList schema
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: "https://www.spacecake.ai",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Compare",
+      item: "https://www.spacecake.ai/compare",
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: products.join(" vs "),
+    },
+  ],
 }
 
 // FAQ Schema for rich snippets
@@ -124,6 +149,10 @@ const faqSchema = faq?.length
     <script
       type="application/ld+json"
       set:html={JSON.stringify(articleSchema)}
+    />
+    <script
+      type="application/ld+json"
+      set:html={JSON.stringify(breadcrumbSchema)}
     />
     {
       faqSchema && (
