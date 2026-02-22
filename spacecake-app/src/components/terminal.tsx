@@ -87,10 +87,10 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
           ?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
 
         const panel = document.querySelector('[data-testid="terminal-panel"]')
-        const activeContent = panel?.querySelector(
-          '[data-testid="terminal-tab-content"][data-active="true"]',
+        const tabContent = panel?.querySelector(
+          `[data-testid="terminal-tab-content"][data-tab-id="${tabId}"]`,
         )
-        activeContent?.querySelector("textarea")?.focus()
+        tabContent?.querySelector<HTMLTextAreaElement>("textarea")?.focus()
       })
     },
     [syncActiveApi, setProfileLoaded],

@@ -83,6 +83,7 @@ export const TerminalTab = memo(function TerminalTab({
   return (
     <div
       data-testid="terminal-tab-content"
+      data-tab-id={id}
       data-active={isActive}
       className="relative w-full h-full min-h-0"
       style={{ display: isActive ? "block" : "none" }}
