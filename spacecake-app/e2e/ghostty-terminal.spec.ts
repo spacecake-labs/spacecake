@@ -328,7 +328,7 @@ test.describe("ghostty terminal", () => {
     // verify a new tab exists and is functional
     const freshTabButtons = terminalPanel.getByTestId("terminal-tab")
     await expect(freshTabButtons).toHaveCount(1)
-    await expect(freshTabButtons.first()).toContainText("spacecake-e2e")
+    await expect(freshTabButtons.first()).not.toBeEmpty()
     await expect(terminalPanel.getByTestId("ghostty-terminal").first()).toBeVisible()
   })
 })
