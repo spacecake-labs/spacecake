@@ -31,7 +31,7 @@ import { LoadingAnimation } from "@/components/loading-animation"
 import { QuickOpen } from "@/components/quick-open"
 import { TabBar } from "@/components/tab-bar"
 import { TaskTable } from "@/components/task-table/task-table"
-import { TerminalMountPoint } from "@/components/terminal-mount-point"
+import { Terminal } from "@/components/terminal"
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
 import {
   DropdownMenu,
@@ -44,7 +44,6 @@ import { SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { WorkspaceStatusBar } from "@/components/workspace-status-bar"
 import { FocusManagerProvider, useFocusablePanel, useFocusManager } from "@/contexts/focus-manager"
 import { useClaudeTaskWatcher } from "@/hooks/use-claude-task-watcher"
-import { useGhosttyEngine } from "@/hooks/use-ghostty-engine"
 import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
 import { usePaneMachine } from "@/hooks/use-pane-machine"
 import { useRoute } from "@/hooks/use-route"
@@ -269,10 +268,13 @@ function LayoutContent() {
   const { items: paneItems } = usePaneItems(paneId)
   const activePaneItemId = useActivePaneItemId(paneId)
 
-  // Ctrl+W / Cmd+W to close active tab
+  // Ctrl+W / Cmd+W to close active editor tab (skip when terminal is focused — terminal handles its own Cmd+W)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "w" && (e.metaKey || e.ctrlKey)) {
+        const terminalPanel = document.querySelector('[data-testid="terminal-panel"]')
+        if (terminalPanel?.contains(document.activeElement)) return
+
         e.preventDefault()
         const activeItem = paneItems.find((i) => i.id === activePaneItemId)
         if (activeItem) {
@@ -301,11 +303,12 @@ function LayoutContent() {
     return () => window.removeEventListener("keydown", onKey, true)
   }, [focus])
 
-  // Register terminal focus callback
+  // Register terminal focus callback — find the active tab's terminal textarea
   const focusTerminal = useCallback(() => {
-    const terminalEl = document.querySelector('[data-testid="ghostty-terminal"]')
-    // xterm.js uses a textarea for keyboard input, not the canvas
-    const textarea = terminalEl?.querySelector("textarea")
+    // find the visible (active) ghostty terminal mount point
+    const terminalPanel = document.querySelector('[data-testid="terminal-panel"]')
+    const visibleMount = terminalPanel?.querySelector('[data-testid="ghostty-terminal"]')
+    const textarea = visibleMount?.querySelector("textarea")
     textarea?.focus()
   }, [])
   useFocusablePanel("terminal", focusTerminal)
@@ -375,47 +378,6 @@ function LayoutContent() {
     }
   }, [isTerminalExpanded, focus])
 
-  const {
-    containerEl: terminalContainerEl,
-    api: terminalApi,
-    error: terminalError,
-    fit: terminalFit,
-  } = useGhosttyEngine({
-    id: "main-terminal",
-    enabled: isTerminalSessionActive,
-    cwd: workspace.path,
-  })
-
-  // Toggle cursor blink based on terminal focus state
-  useEffect(() => {
-    if (!terminalApi || !terminalContainerEl) return
-
-    const handleFocusIn = () => terminalApi.setCursorBlink(true)
-    const handleFocusOut = (e: FocusEvent) => {
-      // Only disable blink if focus is leaving the container entirely
-      const relatedTarget = e.relatedTarget as Node | null
-      if (relatedTarget && terminalContainerEl.contains(relatedTarget)) return
-      terminalApi.setCursorBlink(false)
-    }
-
-    terminalContainerEl.addEventListener("focusin", handleFocusIn)
-    terminalContainerEl.addEventListener("focusout", handleFocusOut)
-
-    // Set initial state based on current focus
-    if (terminalContainerEl.contains(document.activeElement)) {
-      terminalApi.setCursorBlink(true)
-    }
-
-    return () => {
-      terminalContainerEl.removeEventListener("focusin", handleFocusIn)
-      terminalContainerEl.removeEventListener("focusout", handleFocusOut)
-    }
-  }, [terminalApi, terminalContainerEl])
-
-  const handleTerminalMount = useCallback(() => {
-    terminalFit()
-  }, [terminalFit])
-
   const terminalPanelRef = useRef<HTMLDivElement>(null)
 
   const taskPanelRef = useRef<HTMLDivElement>(null)
@@ -441,11 +403,11 @@ function LayoutContent() {
 
   // Helper to blur terminal focus (prevents aria-hidden focus warning when collapsing)
   const blurTerminal = useCallback(() => {
-    const terminalEl = document.querySelector('[data-testid="ghostty-terminal"]')
-    if (!terminalEl) return
+    const terminalPanel = document.querySelector('[data-testid="terminal-panel"]')
+    if (!terminalPanel) return
 
     // Check if focus is within the terminal (could be textarea, canvas container, or other elements)
-    if (terminalEl.contains(document.activeElement)) {
+    if (terminalPanel.contains(document.activeElement)) {
       ;(document.activeElement as HTMLElement)?.blur?.()
     }
   }, [])
@@ -471,8 +433,8 @@ function LayoutContent() {
         // The window capture handler already sees the original event first
         if (!e.isTrusted) return
 
-        const terminalEl = document.querySelector('[data-testid="ghostty-terminal"]')
-        const isTerminalFocused = terminalEl?.contains(document.activeElement)
+        const terminalPanel = document.querySelector('[data-testid="terminal-panel"]')
+        const isTerminalFocused = terminalPanel?.contains(document.activeElement)
 
         if (isTerminalFocused && isTerminalExpanded) {
           // Terminal focused + expanded → collapse
@@ -654,13 +616,6 @@ function LayoutContent() {
           ? [terminalSize, 100 - terminalSize]
           : [100 - terminalSize, terminalSize]
       verticalPanelGroupRef.current.setLayout(layout)
-      // when expanding, fit the terminal to the new size
-      if (!isTerminalCollapsed) {
-        // use requestAnimationFrame to ensure layout has settled
-        requestAnimationFrame(() => {
-          terminalFit()
-        })
-      }
     }
   }, [isTerminalCollapsed, terminalSize, terminalDock])
 
@@ -726,46 +681,40 @@ function LayoutContent() {
 
   // Note: No border class needed - ResizableHandle provides the visual divider
 
-  // The toolbar content - same for all dock positions, h-10 + border-b to match editor header
-  const toolbarContent = (
-    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
-      {/* Left side: terminal status + dock position */}
-      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-        <TerminalStatusBadge />
-        <DockPositionDropdown
-          currentDock={terminalDock}
-          onDockChange={setTerminalDock}
-          label="terminal"
-        />
-      </div>
-      {/* Right side: badges, task toggle, delete, collapse */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <DeleteButton
-          onDelete={
-            isTerminalSessionActive
-              ? () => {
-                  setIsTerminalSessionActive(false)
-                  setTerminalExpanded(false)
-                }
-              : undefined
+  // Controls injected into the right side of the tab bar
+  const terminalToolbarRight = (
+    <div className="flex items-center gap-2">
+      <TerminalStatusBadge />
+      <DockPositionDropdown
+        currentDock={terminalDock}
+        onDockChange={setTerminalDock}
+        label="terminal"
+      />
+      <DeleteButton
+        onDelete={
+          isTerminalSessionActive
+            ? () => {
+                setIsTerminalSessionActive(false)
+                setTerminalExpanded(false)
+              }
+            : undefined
+        }
+        disabled={!isTerminalSessionActive}
+        title="kill terminal"
+        data-testid="terminal-delete-button"
+      />
+      <button
+        onClick={() => {
+          if (isTerminalCollapsed && !isTerminalSessionActive) {
+            setIsTerminalSessionActive(true)
           }
-          disabled={!isTerminalSessionActive}
-          title="kill terminal"
-          data-testid="terminal-delete-button"
-        />
-        <button
-          onClick={() => {
-            if (isTerminalCollapsed && !isTerminalSessionActive) {
-              setIsTerminalSessionActive(true)
-            }
-            setTerminalExpanded(!isTerminalExpanded)
-          }}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          aria-label={isTerminalCollapsed ? "show terminal" : "hide terminal"}
-        >
-          {collapseIcon}
-        </button>
-      </div>
+          setTerminalExpanded(!isTerminalExpanded)
+        }}
+        className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        aria-label={isTerminalCollapsed ? "show terminal" : "hide terminal"}
+      >
+        {collapseIcon}
+      </button>
     </div>
   )
 
@@ -971,23 +920,18 @@ function LayoutContent() {
       maxSize={isTerminalCollapsed ? 0 : terminalConstraints.max}
       className={isTerminalCollapsed ? "grow-0! shrink-0! basis-auto!" : ""}
     >
-      <div ref={terminalPanelRef} className="flex h-full w-full flex-col">
-        {/* Horizontal toolbar at top for all dock positions (hidden when collapsed — status bar provides toggle) */}
-        {!isTerminalCollapsed && toolbarContent}
-
-        {/* Terminal content area */}
-        <div
-          className={cn("flex-1 min-h-0 min-w-0 overflow-hidden", isTerminalCollapsed && "hidden")}
-        >
-          {isTerminalSessionActive && terminalContainerEl && (
-            <TerminalMountPoint containerEl={terminalContainerEl} onMount={handleTerminalMount} />
-          )}
-          {terminalError && (
-            <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-100 px-4 py-2 text-sm font-mono">
-              {terminalError}
-            </div>
-          )}
-        </div>
+      <div ref={terminalPanelRef} className={cn("h-full w-full", isTerminalCollapsed && "hidden")}>
+        {isTerminalSessionActive && (
+          <Terminal
+            cwd={workspace.path}
+            toolbarRight={terminalToolbarRight}
+            onLastTabClosed={() => {
+              setIsTerminalSessionActive(false)
+              setTerminalExpanded(false)
+              focus("editor")
+            }}
+          />
+        )}
       </div>
     </ResizablePanel>
   )

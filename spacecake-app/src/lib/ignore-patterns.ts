@@ -36,6 +36,9 @@ export const WATCHER_IGNORE_PATTERNS: string[] = [
   "**/out/**",
   "**/target/**",
 
+  // Framework caches
+  "**/.vite/**",
+
   // IDE/editor caches
   "**/.vscode/**",
   "**/.idea/**",

@@ -1,12 +1,13 @@
-import { Check, Copy, MoveHorizontal, X } from "lucide-react"
+import { Check, Copy, MoveHorizontal } from "lucide-react"
 import { useState } from "react"
 
 import type { OpenFileSource } from "@/types/claude-code"
 
+import { TabCloseButton, tabTriggerClasses } from "@/components/tab-bar/tab-close-button"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { TabsTrigger } from "@/components/ui/tabs"
-import { cn, condensePath } from "@/lib/utils"
+import { condensePath } from "@/lib/utils"
 
 interface TabItemProps {
   id: string
@@ -55,17 +56,7 @@ export function TabItem({
             }
           }}
         >
-          <TabsTrigger
-            value={id}
-            className={cn(
-              "group/tab relative h-full gap-1.5 pr-1.5 pl-3 text-xs font-normal cursor-pointer",
-              "bg-transparent rounded-none rounded-t-md border border-transparent",
-              "data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:border-b-background",
-              "data-[state=active]:-mb-px data-[state=active]:shadow-none",
-              "data-[state=inactive]:hover:bg-muted/50",
-              isFirst && "pl-4 !rounded-tl-none !border-l-transparent data-[state=inactive]:ml-px",
-            )}
-          >
+          <TabsTrigger value={id} className={tabTriggerClasses(isFirst)}>
             {source && (
               <span
                 className="text-emerald-500 dark:text-emerald-400 shrink-0 inline-flex items-center gap-1.5"
@@ -81,39 +72,7 @@ export function TabItem({
                 {commitHash.substring(0, 7)}
               </span>
             )}
-            <span
-              role="button"
-              tabIndex={0}
-              onPointerDown={(e) => {
-                // Prevent Radix TabsTrigger's default activation behavior.
-                // Without this, clicking close on an inactive tab would activate it
-                // (via onPointerDown) before the close handler runs, causing the tab
-                // to briefly reappear due to route loader recreating the pane item.
-                e.stopPropagation()
-                e.preventDefault()
-              }}
-              onClick={(e) => {
-                e.stopPropagation()
-                e.preventDefault()
-                onClose(e)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault()
-                  onClose(e as unknown as React.MouseEvent)
-                }
-              }}
-              className={cn(
-                "h-4 w-4 rounded-sm flex items-center justify-center cursor-pointer",
-                "opacity-0 group-hover/tab:opacity-100",
-                "hover:bg-muted-foreground/20",
-                "transition-opacity",
-                isActive && "opacity-100",
-              )}
-              aria-label={`Close ${fileName}`}
-            >
-              <X className="h-3 w-3" />
-            </span>
+            <TabCloseButton label={fileName} isActive={isActive} onClose={onClose} />
           </TabsTrigger>
         </span>
       </HoverCardTrigger>

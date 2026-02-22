@@ -30,6 +30,7 @@ interface UseGhosttyEngineOptions {
   enabled: boolean
   autoFocus?: boolean
   cwd?: string
+  onTitleChange?: (title: string) => void
 }
 
 interface UseGhosttyEngineResult {
@@ -59,6 +60,7 @@ export function useGhosttyEngine({
   enabled,
   autoFocus = false,
   cwd,
+  onTitleChange,
 }: UseGhosttyEngineOptions): UseGhosttyEngineResult {
   // Persistent container div — survives across mount/unmount of the mount point
   const [containerEl] = useState<HTMLDivElement>(() => {
@@ -76,6 +78,8 @@ export function useGhosttyEngine({
   const appShortcutHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null)
   const linkTooltipRef = useRef<HTMLDivElement | null>(null)
   const linkHoverHandlerRef = useRef<((e: MouseEvent) => void) | null>(null)
+  const onTitleChangeRef = useRef(onTitleChange)
+  onTitleChangeRef.current = onTitleChange
 
   const [error, setError] = useState<string | null>(null)
   const [api, setApi] = useState<TerminalAPI | null>(null)
@@ -174,6 +178,11 @@ export function useGhosttyEngine({
         // Outgoing: user types in Ghostty -> send to host
         term.onData((input: string) => {
           writeTerminal(id, input)
+        })
+
+        // propagate OSC title changes (shell integration sets cwd / running command)
+        term.onTitleChange((title: string) => {
+          onTitleChangeRef.current?.(title)
         })
 
         // Handle special key combinations
@@ -315,7 +324,6 @@ export function useGhosttyEngine({
 
         apiRef.current = terminalApi
         setApi(terminalApi)
-        window.__terminalAPI = terminalApi
       } catch (err) {
         console.error("failed to initialize terminal:", err)
         setError(err instanceof Error ? err.message : "failed to initialize terminal")
@@ -343,7 +351,6 @@ export function useGhosttyEngine({
         linkTooltipRef.current = null
       }
       killTerminal(id)
-      delete window.__terminalAPI
       if (engineRef.current) {
         engineRef.current.clear()
         engineRef.current.dispose()
@@ -352,7 +359,6 @@ export function useGhosttyEngine({
       addonRef.current = null
       apiRef.current = null
       setApi(null)
-      setTerminalProfileLoaded(false)
       setError(null)
     }
   }, [id, enabled])
