@@ -353,15 +353,23 @@ export function useGhosttyEngine({
         linkTooltipRef.current = null
       }
       killTerminal(id)
-      if (engineRef.current) {
-        engineRef.current.clear()
-        engineRef.current.dispose()
-        engineRef.current = null
-      }
+
+      // capture and null refs synchronously so nothing else can use them
+      const engine = engineRef.current
+      engineRef.current = null
       addonRef.current = null
       apiRef.current = null
       setApi(null)
       setError(null)
+
+      // defer WebGL teardown so it doesn't race with DOM layout changes
+      // during panel collapse (avoids ANGLE renderer crash on Windows)
+      if (engine) {
+        setTimeout(() => {
+          engine.clear()
+          engine.dispose()
+        }, 0)
+      }
     }
   }, [id, enabled])
 

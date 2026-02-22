@@ -109,7 +109,29 @@ test.describe("route not found", () => {
     })
 
     // delete the workspace directory
-    fs.rmSync(tempTestDir, { recursive: true, force: true })
+    // on windows, file handles may linger briefly after stopping watchers/terminals,
+    // so retry a few times before giving up
+    if (isWindows) {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          fs.rmSync(tempTestDir, { recursive: true, force: true })
+          break
+        } catch (err: unknown) {
+          if (
+            err instanceof Error &&
+            "code" in err &&
+            (err as NodeJS.ErrnoException).code === "EBUSY" &&
+            attempt < 4
+          ) {
+            await window.waitForTimeout(1000)
+          } else {
+            throw err
+          }
+        }
+      }
+    } else {
+      fs.rmSync(tempTestDir, { recursive: true, force: true })
+    }
 
     // reload the window - this should trigger the workspace not found error
     await window.reload()
