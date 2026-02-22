@@ -1,13 +1,71 @@
 ---
+import { getCollection } from "astro:content"
 
+const blogEntries = await getCollection("blog")
+const compareEntries = await getCollection("compare")
+
+const sortedBlog = blogEntries.sort((a, b) => {
+  const dateA = a.data.updatedAt || a.data.publishedAt
+  const dateB = b.data.updatedAt || b.data.publishedAt
+  return dateB.getTime() - dateA.getTime()
+})
+
+const sortedCompare = compareEntries.sort((a, b) => {
+  const dateA = a.data.updatedAt || a.data.publishedAt
+  const dateB = b.data.updatedAt || b.data.publishedAt
+  return dateB.getTime() - dateA.getTime()
+})
 ---
 
 <footer class="footer">
   <div class="footer-inner">
-    <p>&copy; {new Date().getFullYear()} spacecake. All rights reserved.</p>
-    <div class="footer-links">
-      <a href="https://github.com/spacecake-labs/spacecake">GitHub</a>
-    </div>
+    {
+      (sortedBlog.length > 0 || sortedCompare.length > 0) && (
+        <div class="footer-columns">
+          {sortedBlog.length > 0 && (
+            <div class="footer-column">
+              <h3 class="footer-heading">blog</h3>
+              <ul class="footer-list">
+                {sortedBlog.map((entry) => (
+                  <li>
+                    <a href={`/blog/${entry.id}`}>{entry.data.title}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {sortedCompare.length > 0 && (
+            <div class="footer-column">
+              <h3 class="footer-heading">compare</h3>
+              <ul class="footer-list">
+                {sortedCompare.map((entry) => (
+                  <li>
+                    <a href={`/compare/${entry.id}`}>
+                      {entry.data.products.join(" vs ")}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div class="footer-column">
+            <h3 class="footer-heading">community</h3>
+            <ul class="footer-list">
+              <li>
+                <a href="https://github.com/spacecake-labs/spacecake">GitHub</a>
+              </li>
+              <li>
+                <a href="https://discord.gg/CwFnxfkGHB">Discord</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      )
+    }
+
+    <p class="footer-copyright">
+      &copy; {new Date().getFullYear()} spacecake. All rights reserved.
+    </p>
   </div>
 </footer>
 
@@ -20,31 +78,58 @@
 
   .footer-inner {
     box-sizing: border-box;
+    max-width: 72rem;
+    margin: 0 auto;
     padding: 0 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     font-size: 0.875rem;
     line-height: 1.5;
     color: var(--color-text-muted, var(--sl-color-gray-3, #8b8b8b));
   }
 
-  .footer-inner p {
-    margin: 0;
-  }
-
-  .footer-links {
+  .footer-columns {
     display: flex;
-    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
   }
 
-  .footer-links a {
+  .footer-heading {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text, var(--sl-color-white, #ffffff));
+    margin-bottom: 0.75rem;
+  }
+
+  .footer-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .footer-list a {
     color: var(--color-text-muted, var(--sl-color-gray-3, #8b8b8b));
     text-decoration: none;
+    font-size: 0.8125rem;
   }
 
-  .footer-links a:hover {
+  .footer-list a:hover {
     color: var(--color-text, var(--sl-color-white, #ffffff));
+  }
+
+  .footer-copyright {
+    margin: 0;
+    font-size: 0.8125rem;
+  }
+
+  @media (max-width: 480px) {
+    .footer-columns {
+      flex-direction: column;
+      gap: 1.5rem;
+    }
   }
 
   /* reset starlight markdown content overrides */

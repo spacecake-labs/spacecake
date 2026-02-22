@@ -1,0 +1,9 @@
+---
+import StarlightDefault from "@astrojs/starlight/components/Footer.astro"
+import type { Props } from "@astrojs/starlight/props"
+
+import Footer from "./Footer.astro"
+---
+
+<StarlightDefault {...Astro.props as Props}><slot /></StarlightDefault>
+<Footer />

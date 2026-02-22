@@ -13,7 +13,12 @@ const PUBLIC_POSTHOG_HOST = "https://us.i.posthog.com"
 export default defineConfig({
   site: "https://www.spacecake.ai",
   integrations: [
-    sitemap(),
+    sitemap({
+      serialize(item) {
+        item.lastmod = new Date().toISOString()
+        return item
+      },
+    }),
     posthogPlugin({
       posthogKey: PUBLIC_POSTHOG_KEY,
       api_host: PUBLIC_POSTHOG_HOST,
@@ -107,6 +112,7 @@ export default defineConfig({
         Hero: "./src/components/Hero.astro",
         Search: "./src/components/Search.astro",
         SocialIcons: "./src/components/SocialIcons.astro",
+        Footer: "./src/components/StarlightFooter.astro",
       },
       customCss: ["./src/styles/global.css", "./src/styles/theme.css"],
     }),
