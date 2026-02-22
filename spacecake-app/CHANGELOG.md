@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.53
+
+### Patch Changes
+
+- f7ba041: Feat multi-tab terminal.
+
 ## 0.1.0-alpha.52
 
 ### Patch Changes
