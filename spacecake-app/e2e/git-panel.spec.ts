@@ -15,7 +15,7 @@ const gitEnv = {
 
 test.describe("git panel", () => {
   test("working tree, commits, toggle visibility, and dock switching", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
     // setup: init repo with a commit, then create working tree changes
@@ -27,6 +27,7 @@ test.describe("git panel", () => {
     fs.writeFileSync(path.join(tempTestDir, "untracked.md"), "# untracked")
     fs.writeFileSync(committedFile, "# committed\nmodified line")
 
+    const window = await electronApp.firstWindow()
     await waitForWorkspace(window)
 
     // open a file to get to the workspace route
@@ -103,9 +104,10 @@ test.describe("git panel", () => {
     await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
   })
 
-  test("non-git directory hides git toggle in status bar", async ({ window, tempTestDir }) => {
+  test("non-git directory hides git toggle in status bar", async ({ electronApp, tempTestDir }) => {
     fs.writeFileSync(path.join(tempTestDir, "plain.md"), "# plain file")
 
+    const window = await electronApp.firstWindow()
     await waitForWorkspace(window)
 
     await locateSidebarItem(window, "plain.md").click()

@@ -23,12 +23,14 @@ const shell = {
 
 test.describe("ghostty terminal", () => {
   test("toggle terminal visibility, interact with terminal, and verify session management", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
     // Setup: Create a test file
     const testFilePath = path.join(tempTestDir, "test.md")
     fs.writeFileSync(testFilePath, "# test file")
+
+    const window = await electronApp.firstWindow()
 
     // Open the workspace
     await waitForWorkspace(window)
@@ -160,12 +162,14 @@ test.describe("ghostty terminal", () => {
   })
 
   test("multi-tab operations: create, switch, isolate, close, and empty state", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
     // setup: create a test file and open workspace
     const testFilePath = path.join(tempTestDir, "test.md")
     fs.writeFileSync(testFilePath, "# test file")
+
+    const window = await electronApp.firstWindow()
     await waitForWorkspace(window)
     await locateSidebarItem(window, "test.md").click()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()

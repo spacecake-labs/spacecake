@@ -7,9 +7,11 @@ import { LANGUAGE_SUPPORT } from "@/types/language"
 
 test.describe("code block language dropdown e2e", () => {
   test("language dropdown: change language, verify all options, and disabled for Python files", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
+    const window = await electronApp.firstWindow()
+
     // copy fixtures into the temp workspace
     const plaintextFixturePath = path.join(process.cwd(), "tests/fixtures/plaintext-code-block.md")
     const plaintextDestPath = path.join(tempTestDir, "plaintext-code-block.md")

@@ -12,7 +12,7 @@ import {
 
 test.describe("recent files", () => {
   test("should list recent files and persist them across reloads", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
     // 1. Setup: Copy fixture files to temp directory
@@ -23,6 +23,8 @@ test.describe("recent files", () => {
         path.join(tempTestDir, file),
       )
     }
+
+    const window = await electronApp.firstWindow()
 
     // Wait for initial home folder load to complete
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
@@ -77,8 +79,10 @@ test.describe("recent files", () => {
   })
 
   test("recent files updates with file creation and deletion; persists after reload", async ({
-    window,
+    electronApp,
   }) => {
+    const window = await electronApp.firstWindow()
+
     // 1. Wait for workspace to load
     await waitForWorkspace(window)
 
@@ -177,7 +181,6 @@ test.describe("recent files", () => {
 
   test("recent files are workspace-specific and persist across workspace switches", async ({
     electronApp,
-    window,
     tempTestDir,
   }) => {
     // 1. Setup: Create two workspace directories within tempTestDir
@@ -198,6 +201,8 @@ test.describe("recent files", () => {
       path.join(__dirname, "..", "tests", "fixtures", "google-doc.py"),
       path.join(workspace2Path, "google-doc.py"),
     )
+
+    const window = await electronApp.firstWindow()
 
     // Wait for initial home folder load to complete before navigating
     await expect(window.getByTestId("lexical-editor")).toBeVisible()

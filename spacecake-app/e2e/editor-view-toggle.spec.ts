@@ -6,7 +6,7 @@ import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("editor view toggle", () => {
   test("different file types toggle between rich and source views correctly", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
     // Create test files for all file types
@@ -51,74 +51,75 @@ This is a **markdown** file.
     const textContent = "This is a plain text file."
     fs.writeFileSync(textFile, textContent)
 
-    await waitForWorkspace(window)
+    const page = await electronApp.firstWindow()
+    await waitForWorkspace(page)
 
     // =========================================================================
     // Test 1: Python file toggle
     // =========================================================================
-    await locateSidebarItem(window, "test.py").click()
-    const editor = window.getByTestId("lexical-editor")
+    await locateSidebarItem(page, "test.py").click()
+    const editor = page.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
 
     // Should start in rich view
-    await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
-    await expect(window.getByRole("heading", { name: "fibonacci" }).first()).toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to source view" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "fibonacci" }).first()).toBeVisible()
 
     // Toggle to source view
-    await window.getByRole("link", { name: "switch to source view" }).click()
-    await expect(window.getByRole("link", { name: "switch to rich view" })).toBeVisible()
-    await expect(window.getByText('"""Module docstring"""')).toBeVisible()
+    await page.getByRole("link", { name: "switch to source view" }).click()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).toBeVisible()
+    await expect(page.getByText('"""Module docstring"""')).toBeVisible()
 
     // Toggle back to rich view
-    await window.getByRole("link", { name: "switch to rich view" }).click()
-    await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
+    await page.getByRole("link", { name: "switch to rich view" }).click()
+    await expect(page.getByRole("link", { name: "switch to source view" })).toBeVisible()
 
     // =========================================================================
     // Test 2: Python with markdown directives toggle
     // =========================================================================
-    await locateSidebarItem(window, "test_md.py").click()
+    await locateSidebarItem(page, "test_md.py").click()
     await expect(editor).toBeVisible()
 
     // Verify markdown directives are rendered in rich view
-    await expect(window.getByRole("heading", { name: "main section" })).toBeVisible()
-    await expect(window.getByText("this is a paragraph with").first()).toBeVisible()
+    await expect(page.getByRole("heading", { name: "main section" })).toBeVisible()
+    await expect(page.getByText("this is a paragraph with").first()).toBeVisible()
 
     // Toggle to source view
-    await window.getByRole("link", { name: "switch to source view" }).click()
-    await expect(window.getByText("#🍰 # main section")).toBeVisible()
+    await page.getByRole("link", { name: "switch to source view" }).click()
+    await expect(page.getByText("#🍰 # main section")).toBeVisible()
 
     // Toggle back
-    await window.getByRole("link", { name: "switch to rich view" }).click()
+    await page.getByRole("link", { name: "switch to rich view" }).click()
 
     // =========================================================================
     // Test 3: Markdown file toggle
     // =========================================================================
-    await locateSidebarItem(window, "test.md").click()
+    await locateSidebarItem(page, "test.md").click()
     await expect(editor).toBeVisible()
 
-    await expect(window.getByRole("heading", { name: "Test Document" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Test Document" })).toBeVisible()
 
     // Toggle to source view
-    await window.getByRole("link", { name: "switch to source view" }).click()
-    await expect(window.getByText("# Test Document")).toBeVisible()
+    await page.getByRole("link", { name: "switch to source view" }).click()
+    await expect(page.getByText("# Test Document")).toBeVisible()
 
     // Toggle back
-    await window.getByRole("link", { name: "switch to rich view" }).click()
+    await page.getByRole("link", { name: "switch to rich view" }).click()
 
     // =========================================================================
     // Test 4: Plaintext file shows no toggle option
     // =========================================================================
-    await locateSidebarItem(window, "test.txt").click()
+    await locateSidebarItem(page, "test.txt").click()
     await expect(editor).toBeVisible()
-    await expect(window.getByText(textContent)).toBeVisible()
+    await expect(page.getByText(textContent)).toBeVisible()
 
     // Verify no toggle buttons
-    await expect(window.getByRole("link", { name: "switch to source view" })).not.toBeVisible()
-    await expect(window.getByRole("link", { name: "switch to rich view" })).not.toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to source view" })).not.toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).not.toBeVisible()
   })
 
   test("view preference persists across file switches and saves", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
     const pythonFile1 = path.join(tempTestDir, "file1.py")
@@ -133,58 +134,59 @@ This is a **markdown** file.
     const readmePath = path.join(tempTestDir, "_README.md")
     fs.writeFileSync(readmePath, readmeContent)
 
-    await waitForWorkspace(window)
+    const page = await electronApp.firstWindow()
+    await waitForWorkspace(page)
 
     // =========================================================================
     // Test 1: View preference persists when switching between files
     // =========================================================================
     // Open first file and switch to source view
-    await locateSidebarItem(window, "file1.py").click()
-    await expect(window.getByTestId("lexical-editor")).toBeVisible()
-    await window.getByRole("link", { name: "switch to source view" }).click()
-    await expect(window.getByRole("link", { name: "switch to rich view" })).toBeVisible()
+    await locateSidebarItem(page, "file1.py").click()
+    await expect(page.getByTestId("lexical-editor")).toBeVisible()
+    await page.getByRole("link", { name: "switch to source view" }).click()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).toBeVisible()
 
     // Open second file - should be in rich view (default)
-    await locateSidebarItem(window, "file2.py").click()
-    await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
+    await locateSidebarItem(page, "file2.py").click()
+    await expect(page.getByRole("link", { name: "switch to source view" })).toBeVisible()
 
     // Switch back to first file - should still be in source view
-    await locateSidebarItem(window, "file1.py").click()
-    await expect(window.getByRole("link", { name: "switch to rich view" })).toBeVisible()
+    await locateSidebarItem(page, "file1.py").click()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).toBeVisible()
 
     // =========================================================================
     // Test 2: Source view persists through save operations
     // =========================================================================
-    await locateSidebarItem(window, "_README.md").click()
-    const editor = window.getByTestId("lexical-editor")
+    await locateSidebarItem(page, "_README.md").click()
+    const editor = page.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
 
     // Start in rich view
-    await expect(window.getByRole("heading", { name: header })).toBeVisible()
+    await expect(page.getByRole("heading", { name: header })).toBeVisible()
 
     // Switch to source view
-    await window.getByRole("link", { name: "switch to source view" }).click()
-    await expect(window.getByRole("link", { name: "switch to rich view" })).toBeVisible()
+    await page.getByRole("link", { name: "switch to source view" }).click()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).toBeVisible()
 
     // Save without changes - view should persist
     await editor.press("ControlOrMeta+s", { delay: 500 })
-    await expect(window.getByRole("link", { name: "switch to rich view" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).toBeVisible()
 
     // Add content and save
-    await window.getByText(header).click({ delay: 100 })
+    await page.getByText(header).click({ delay: 100 })
     await editor.press("ControlOrMeta+ArrowDown", { delay: 100 })
     await editor.press("Enter", { delay: 100 })
     await editor.pressSequentially("## New Section Added", { delay: 100 })
 
-    await window.waitForTimeout(250)
+    await page.waitForTimeout(250)
     await editor.press("ControlOrMeta+s", { delay: 500 })
 
     // Still in source view after save
-    await expect(window.getByRole("link", { name: "switch to rich view" })).toBeVisible()
-    await expect(window.getByText("## New Section Added")).toBeVisible()
+    await expect(page.getByRole("link", { name: "switch to rich view" })).toBeVisible()
+    await expect(page.getByText("## New Section Added")).toBeVisible()
 
     // Toggle to rich view to verify content
-    await window.getByRole("link", { name: "switch to rich view" }).click()
-    await expect(window.getByRole("heading", { name: "New Section Added" })).toBeVisible()
+    await page.getByRole("link", { name: "switch to rich view" }).click()
+    await expect(page.getByRole("heading", { name: "New Section Added" })).toBeVisible()
   })
 })

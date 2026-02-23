@@ -5,13 +5,15 @@ import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
 test("clean file, no conflict: external file change updates editor via watcher", async ({
-  window,
+  electronApp,
   tempTestDir,
 }) => {
   // copy core.py fixture into the temp workspace
   const fixturePath = path.join(process.cwd(), "tests/fixtures/core.py")
   const destPath = path.join(tempTestDir, "core.py")
   fs.copyFileSync(fixturePath, destPath)
+
+  const window = await electronApp.firstWindow()
 
   // open the temp test directory as workspace
   await waitForWorkspace(window)
@@ -41,13 +43,15 @@ test("clean file, no conflict: external file change updates editor via watcher",
 })
 
 test("dirty file, external change, keep mine: dirty indicator remains and content is unchanged", async ({
-  window,
+  electronApp,
   tempTestDir,
 }) => {
   // copy core.py fixture into the temp workspace
   const fixturePath = path.join(process.cwd(), "tests/fixtures/core.py")
   const destPath = path.join(tempTestDir, "core.py")
   fs.copyFileSync(fixturePath, destPath)
+
+  const window = await electronApp.firstWindow()
 
   // open the temp test directory as workspace
   await waitForWorkspace(window)
@@ -99,13 +103,15 @@ test("dirty file, external change, keep mine: dirty indicator remains and conten
 })
 
 test("dirty file, external change, keep theirs: file reloads with original content", async ({
-  window,
+  electronApp,
   tempTestDir,
 }) => {
   // copy core.py fixture into the temp workspace
   const fixturePath = path.join(process.cwd(), "tests/fixtures/core.py")
   const destPath = path.join(tempTestDir, "core.py")
   fs.copyFileSync(fixturePath, destPath)
+
+  const window = await electronApp.firstWindow()
 
   // open the temp test directory as workspace
   await waitForWorkspace(window)

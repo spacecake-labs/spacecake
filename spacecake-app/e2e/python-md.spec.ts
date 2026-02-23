@@ -6,9 +6,11 @@ import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("python markdown directives e2e", () => {
   test("markdown directives are properly formatted and editable", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
+    const window = await electronApp.firstWindow()
+
     // copy md.py fixture into the temp workspace
     const fixturePath = path.join(process.cwd(), "tests/fixtures/md.py")
     const destPath = path.join(tempTestDir, "md.py")
@@ -53,7 +55,9 @@ test.describe("python markdown directives e2e", () => {
     await expect(window.getByText("a header updated").first()).toBeVisible()
   })
 
-  test("delete a code block from a python markdown file", async ({ window, tempTestDir }) => {
+  test("delete a code block from a python markdown file", async ({ electronApp, tempTestDir }) => {
+    const window = await electronApp.firstWindow()
+
     // copy md.py fixture into the temp workspace
     const fixturePath = path.join(process.cwd(), "tests/fixtures/md.py")
     const destPath = path.join(tempTestDir, "md.py")

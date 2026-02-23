@@ -1,23 +1,25 @@
 import { expect, test } from "@/../e2e/fixtures"
 
 test.describe("theme toggle", () => {
-  test("toggles theme and persists choice", async ({ window }) => {
-    await expect(window.locator("body")).toBeVisible()
+  test("toggles theme and persists choice", async ({ electronApp }) => {
+    const appWindow = await electronApp.firstWindow()
+
+    await expect(appWindow.locator("body")).toBeVisible()
 
     // capture initial state from the root html element
-    const isDarkBefore = await window.evaluate(() =>
+    const isDarkBefore = await appWindow.evaluate(() =>
       document.documentElement.classList.contains("dark"),
     )
 
     let next = isDarkBefore ? "light" : "dark"
 
     // click the toggle button (always present in header)
-    await window.getByRole("button", { name: `switch to ${next} mode` }).click()
+    await appWindow.getByRole("button", { name: `switch to ${next} mode` }).click()
 
     // wait for the class to flip, and verify dark/light are mutually exclusive
     await expect
       .poll(async () =>
-        window.evaluate(() => {
+        appWindow.evaluate(() => {
           const cl = document.documentElement.classList
           return {
             hasDark: cl.contains("dark"),
@@ -28,7 +30,7 @@ test.describe("theme toggle", () => {
       .toEqual({ hasDark: !isDarkBefore, hasLight: isDarkBefore })
 
     // verify persisted theme is now explicit (light or dark)
-    const persisted = await window.evaluate(() => {
+    const persisted = await appWindow.evaluate(() => {
       const v = localStorage.getItem("spacecake-theme")
       return v ? JSON.parse(v) : null
     })
@@ -37,10 +39,10 @@ test.describe("theme toggle", () => {
     next = next === "light" ? "dark" : "light"
 
     // toggle back; class should restore to original state and remain exclusive
-    await window.getByRole("button", { name: `switch to ${next} mode` }).click()
+    await appWindow.getByRole("button", { name: `switch to ${next} mode` }).click()
     await expect
       .poll(async () =>
-        window.evaluate(() => {
+        appWindow.evaluate(() => {
           const cl = document.documentElement.classList
           return {
             hasDark: cl.contains("dark"),

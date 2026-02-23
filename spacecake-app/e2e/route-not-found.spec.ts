@@ -11,13 +11,15 @@ const isWindows = process.platform === "win32"
 
 test.describe("route not found", () => {
   test("should show 'workspace not accessible' message when workspace has no read permissions", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
     // Skip on Windows: icacls permission denial doesn't trigger PermissionDeniedError
     // from Node's fs.access/stat the same way Unix chmod 000 does. The app handles
     // permission errors gracefully (falls back to "workspace not found").
     test.skip(isWindows, "Windows handles permissions differently")
+
+    const window = await electronApp.firstWindow()
 
     // open the temp test directory as workspace (via SPACECAKE_HOME env var)
     await waitForWorkspace(window)
@@ -46,9 +48,11 @@ test.describe("route not found", () => {
   })
 
   test("should show 'file not found' message when file is deleted after opening", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
+    const window = await electronApp.firstWindow()
+
     const fixturePath = path.join(process.cwd(), "tests/fixtures/_README.md")
     const testFilePath = path.join(tempTestDir, "_README.md")
     fs.copyFileSync(fixturePath, testFilePath)
@@ -78,9 +82,11 @@ test.describe("route not found", () => {
   })
 
   test("should show 'workspace not found' message when workspace path does not exist", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
+    const window = await electronApp.firstWindow()
+
     // open the temp test directory as workspace
     await waitForWorkspace(window)
 

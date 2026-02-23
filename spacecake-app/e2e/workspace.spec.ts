@@ -5,7 +5,10 @@ import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem, locateTab, locateTabCloseButton } from "@/../e2e/utils"
 
 test.describe("spacecake app", () => {
-  test("open electron app", async ({ window }, testInfo) => {
+  test("open electron app", async ({ electronApp }, testInfo) => {
+    // wait for the first window to be ready
+    const window = await electronApp.firstWindow()
+
     // verify the window is visible by checking if it has content
     await expect(window.locator("body")).toBeVisible()
 
@@ -25,7 +28,13 @@ test.describe("spacecake app", () => {
     await expect(window.getByText("welcome to spacecake")).toBeVisible()
   })
 
-  test("open workspace; create file with button", async ({ window, tempTestDir }, testInfo) => {
+  test("open workspace; create file with button", async ({
+    electronApp,
+    tempTestDir,
+  }, testInfo) => {
+    // wait for the first window to be ready
+    const window = await electronApp.firstWindow()
+
     // verify the window is visible by checking if it has content
     await expect(window.locator("body")).toBeVisible()
 
@@ -67,9 +76,12 @@ test.describe("spacecake app", () => {
   })
 
   test("open workspace; create file with key command", async ({
-    window,
+    electronApp,
     tempTestDir,
   }, testInfo) => {
+    // wait for the first window to be ready
+    const window = await electronApp.firstWindow()
+
     // verify the window is visible by checking if it has content
     await expect(window.locator("body")).toBeVisible()
 
@@ -107,7 +119,7 @@ test.describe("spacecake app", () => {
   })
 
   test("nested folder structure and recursive expansion", async ({
-    window,
+    electronApp,
     tempTestDir,
   }, testInfo) => {
     // Create a nested folder structure in the temp test directory
@@ -127,6 +139,9 @@ test.describe("spacecake app", () => {
       description: `Created nested structure: ${tempTestDir}`,
     })
 
+    // wait for the first window to be ready
+    const window = await electronApp.firstWindow()
+
     // verify the window is visible by checking if it has content
     await expect(window.locator("body")).toBeVisible()
 
@@ -145,7 +160,7 @@ test.describe("spacecake app", () => {
   })
 
   test("auto-expand and refresh when creating files and folders", async ({
-    window,
+    electronApp,
     tempTestDir,
   }, testInfo) => {
     // Create a test folder
@@ -156,6 +171,9 @@ test.describe("spacecake app", () => {
       type: "info",
       description: `Created test folder: ${testFolderPath}`,
     })
+
+    // wait for the first window to be ready
+    const window = await electronApp.firstWindow()
 
     // verify the window is visible by checking if it has content
     await expect(window.locator("body")).toBeVisible()
@@ -205,7 +223,7 @@ test.describe("spacecake app", () => {
   })
 
   test("create multiple items in nested folders without collapse/expand", async ({
-    window,
+    electronApp,
     tempTestDir,
   }, testInfo) => {
     // Create a nested folder structure
@@ -217,6 +235,9 @@ test.describe("spacecake app", () => {
       type: "info",
       description: `Created nested structure: ${tempTestDir}`,
     })
+
+    // wait for the first window to be ready
+    const window = await electronApp.firstWindow()
 
     // verify the window is visible by checking if it has content
     await expect(window.locator("body")).toBeVisible()
@@ -294,7 +315,10 @@ test.describe("spacecake app", () => {
     })
   })
 
-  test("delete file", async ({ window, tempTestDir }, testInfo) => {
+  test("delete file", async ({ electronApp, tempTestDir }, testInfo) => {
+    // wait for the first window to be ready
+    const window = await electronApp.firstWindow()
+
     // verify the window is visible by checking if it has content
     await expect(window.locator("body")).toBeVisible()
 
@@ -419,10 +443,12 @@ test.describe("spacecake app", () => {
     })
   })
 
-  test("previously opened workspace reopens on launch", async ({ window, tempTestDir }) => {
+  test("previously opened workspace reopens on launch", async ({ electronApp, tempTestDir }) => {
     // 1. Setup: Create a file in the temp dir
     const testFilePath = path.join(tempTestDir, "persistent-file.txt")
     fs.writeFileSync(testFilePath, "hello persistence")
+
+    const window = await electronApp.firstWindow()
 
     // 2. Open the workspace for the first time
     await waitForWorkspace(window)
@@ -445,10 +471,12 @@ test.describe("spacecake app", () => {
     await expect(window.getByRole("button", { name: "create file or folder" })).toBeVisible()
   })
 
-  test("previously opened file reopens on launch", async ({ window, tempTestDir }) => {
+  test("previously opened file reopens on launch", async ({ electronApp, tempTestDir }) => {
     // 1. Setup: Create a file in the temp dir
     const testFilePath = path.join(tempTestDir, "persistent-file.md")
     fs.writeFileSync(testFilePath, "hello persistence")
+
+    const window = await electronApp.firstWindow()
 
     // 2. Open the workspace for the first time
     await waitForWorkspace(window)
@@ -473,7 +501,10 @@ test.describe("spacecake app", () => {
     await expect(window.getByText("hello persistence")).toBeVisible()
   })
 
-  test("auto-reveal expands folders when opening nested file", async ({ window, tempTestDir }) => {
+  test("auto-reveal expands folders when opening nested file", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
     // 1. Setup: Create a 3-level nested structure with a file at the deepest level
     const level1Dir = path.join(tempTestDir, "level1")
     const level2Dir = path.join(level1Dir, "level2")
@@ -482,6 +513,8 @@ test.describe("spacecake app", () => {
     fs.mkdirSync(level3Dir, { recursive: true })
     const nestedFilePath = path.join(level3Dir, "deep-file.txt")
     fs.writeFileSync(nestedFilePath, "deep file content")
+
+    const window = await electronApp.firstWindow()
 
     // 2. Open the workspace
     await waitForWorkspace(window)
@@ -521,10 +554,12 @@ test.describe("spacecake app", () => {
     await expect(locateSidebarItem(window, "level3")).toBeVisible()
   })
 
-  test("autofocus and type in new file", async ({ window, tempTestDir }, testInfo) => {
+  test("autofocus and type in new file", async ({ electronApp, tempTestDir }, testInfo) => {
     // 1. Setup: Create a test file in the temp dir
     const testFilePath = path.join(tempTestDir, "existing-file.txt")
     fs.writeFileSync(testFilePath, "existing content")
+
+    const window = await electronApp.firstWindow()
 
     // 2. Open the workspace
     await waitForWorkspace(window)
@@ -576,7 +611,7 @@ test.describe("spacecake app", () => {
   })
 
   test("dot files and folders are visible after external creation", async ({
-    window,
+    electronApp,
     tempTestDir,
   }, testInfo) => {
     // 1. Setup: Create a dot folder in the temp dir
@@ -587,6 +622,8 @@ test.describe("spacecake app", () => {
       type: "info",
       description: `Created dot folder: ${dotFolderPath}`,
     })
+
+    const window = await electronApp.firstWindow()
 
     // 2. Open the workspace
     await waitForWorkspace(window)
@@ -619,12 +656,14 @@ test.describe("spacecake app", () => {
   })
 
   test("file dirty state indicator appears on edit and disappears on save", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
     // 1. Setup: Create a test file in the temp dir
     const testFilePath = path.join(tempTestDir, "test-dirty.md")
     fs.writeFileSync(testFilePath, "# Initial content")
+
+    const window = await electronApp.firstWindow()
 
     // 2. Open the workspace
     await waitForWorkspace(window)
@@ -658,12 +697,14 @@ test.describe("spacecake app", () => {
   })
 
   test("file revert discards changes and restores original content", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
     // 1. Setup: Create a test file with known content
     const testFilePath = path.join(tempTestDir, "test-revert.md")
     fs.writeFileSync(testFilePath, "# Original content")
+
+    const window = await electronApp.firstWindow()
 
     // 2. Open the workspace
     await waitForWorkspace(window)
@@ -717,7 +758,7 @@ test.describe("spacecake app", () => {
   })
 
   test("tab management: open, switch, close active, close non-active, persistence", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
     // Setup: Create 3 test files
@@ -729,6 +770,7 @@ test.describe("spacecake app", () => {
     fs.writeFileSync(file2, "# Content File 2")
     fs.writeFileSync(file3, "# Content File 3")
 
+    const window = await electronApp.firstWindow()
     await waitForWorkspace(window)
 
     // 1. Opening a file creates a tab

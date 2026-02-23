@@ -4,56 +4,39 @@ import os from "os"
 import path from "path"
 import treeKill from "tree-kill"
 
-const ANIMATION_CSS = `
-  *, *::before, *::after {
-    animation-duration: 0s !important;
-    transition-duration: 0s !important;
-  }
-  [data-slot="dialog-content"][data-state="closed"],
-  [data-slot="dialog-overlay"][data-state="closed"],
-  [data-slot="dropdown-menu-content"][data-state="closed"],
-  [data-slot="dropdown-menu-sub-content"][data-state="closed"] {
-    display: none !important;
-  }
-`
-
 export type TestFixtures = {
   electronApp: ElectronApplication
-  window: Page
   tempTestDir: string
 }
+export const test = base.extend<TestFixtures>({
+  // eslint-disable-next-line no-empty-pattern
+  tempTestDir: async ({}, use, testInfo) => {
+    // use os.tmpdir() so temp dirs are never inside a git repo (matters for
+    // tests that assert non-git behavior). realpathSync resolves macOS symlinks
+    // (/var/folders → /private/var/folders) so file watcher paths match.
+    const testOutputRoot = path.join(fs.realpathSync(os.tmpdir()), "spacecake-e2e")
+    const workerTempRoot = path.join(testOutputRoot, `worker-${testInfo.workerIndex}`)
+    fs.mkdirSync(workerTempRoot, { recursive: true })
+    const tempDir = fs.mkdtempSync(path.join(workerTempRoot, "spacecake-e2e-"))
 
-type WorkerFixtures = {
-  workspaceDir: string
-  sharedElectronApp: ElectronApplication
-}
+    testInfo.annotations.push({
+      type: "info",
+      description: `created temp test directory: ${tempDir}`,
+    })
 
-// per-worker state (each playwright worker is a separate process)
-let capturedAppUrl = ""
-let isFirstTest = true
+    await use(tempDir)
 
-export const test = base.extend<TestFixtures, WorkerFixtures>({
-  // --- worker-scoped fixtures (created once per worker) ---
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true, maxRetries: 5 })
+      testInfo.annotations.push({
+        type: "info",
+        description: `cleaned up temp test directory: ${tempDir}`,
+      })
+    }
+  },
 
-  workspaceDir: [
-    // eslint-disable-next-line no-empty-pattern
-    async ({}, use, workerInfo) => {
-      const testOutputRoot = path.join(fs.realpathSync(os.tmpdir()), "spacecake-e2e")
-      const workerDir = path.join(testOutputRoot, `worker-${workerInfo.workerIndex}`)
-      fs.mkdirSync(workerDir, { recursive: true })
-      const dir = fs.mkdtempSync(path.join(workerDir, "spacecake-e2e-"))
-
-      await use(dir)
-
-      if (fs.existsSync(dir)) {
-        fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5 })
-      }
-    },
-    { scope: "worker" },
-  ],
-
-  sharedElectronApp: [
-    async ({ workspaceDir }, use) => {
+  electronApp: [
+    async ({ tempTestDir }, use, testInfo) => {
       const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "spacecake-e2e-data"))
       let app: ElectronApplication | null = null
 
@@ -72,36 +55,60 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       const cleanupDataDir = () => {
         if (fs.existsSync(dataDir)) {
           fs.rmSync(dataDir, { recursive: true, force: true, maxRetries: 5 })
+          testInfo.annotations.push({
+            type: "info",
+            description: `cleaned up temp data directory: ${dataDir}`,
+          })
         }
       }
 
       try {
         app = await _electron.launch({
-          args: [".vite/build/main.js", `--user-data-dir=${dataDir}`],
+          args: [
+            ".vite/build/main.js",
+            `--user-data-dir=${dataDir}`, // isolate electron data per test
+          ],
           env: {
             ...process.env,
-            SPACECAKE_HOME: workspaceDir,
+            SPACECAKE_HOME: tempTestDir, // isolate home folder per test
           },
           cwd: process.cwd(),
           timeout: 60000,
         })
 
+        // log electron process output for CI debugging
+        // app.process()?.stdout?.on("data", (data) => console.log(`stdout: ${data}`))
+        // app.process()?.stderr?.on("data", (data) => console.log(`stderr: ${data}`))
+
+        // clear localStorage before each test
         const page = await app.firstWindow()
-
-        // capture the app URL for between-test reset navigation
-        capturedAppUrl = page.url()
-        isFirstTest = true
-
         try {
           await page.evaluate(() => {
             localStorage.clear()
           })
 
-          await page.addStyleTag({ content: ANIMATION_CSS })
+          // disable animations and force-hide closed radix components to prevent
+          // race conditions where playwright checks visibility before the unmount
+          // animation finishes.
+          await page.addStyleTag({
+            content: `
+          *, *::before, *::after {
+            animation-duration: 0s !important;
+            transition-duration: 0s !important;
+          }
+          [data-slot="dialog-content"][data-state="closed"],
+          [data-slot="dialog-overlay"][data-state="closed"],
+          [data-slot="dropdown-menu-content"][data-state="closed"],
+          [data-slot="dropdown-menu-sub-content"][data-state="closed"] {
+            display: none !important;
+          }
+        `,
+          })
         } catch (error) {
           console.warn("could not clear localStorage or disable animations:", error)
         }
       } catch (error) {
+        // Setup failed before use() — clean up to prevent leaked processes/dirs
         forceKillApp()
         cleanupDataDir()
         throw error
@@ -115,8 +122,9 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
         // app may have already closed, ignore
       }
 
-      // on Linux, graceful close can hang due to WebSocket cleanup issues.
-      // use a timeout with force-kill fallback.
+      // On Linux, graceful close can hang due to WebSocket cleanup issues.
+      // Use a timeout with force-kill fallback. Shorter timeout on CI since
+      // speed matters more than graceful cleanup there.
       const closeTimeout = process.env.CI ? 1000 : 5000
       let timeoutId: NodeJS.Timeout | null = null
       const closePromise = app.close().finally(() => {
@@ -133,57 +141,8 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
       cleanupDataDir()
     },
-    { scope: "worker", timeout: 60_000 },
+    { timeout: 60_000 },
   ],
-
-  // --- test-scoped fixtures ---
-
-  electronApp: async ({ sharedElectronApp }, use) => {
-    await use(sharedElectronApp)
-  },
-
-  window: async ({ sharedElectronApp, workspaceDir }, use) => {
-    const page = await sharedElectronApp.firstWindow()
-
-    if (!isFirstTest) {
-      // between-test reset sequence:
-
-      // 1. clean workspace dir files (keep .app/)
-      fs.mkdirSync(workspaceDir, { recursive: true })
-      for (const entry of fs.readdirSync(workspaceDir)) {
-        if (entry === ".app") continue
-        fs.rmSync(path.join(workspaceDir, entry), { recursive: true, force: true })
-      }
-
-      // 2. navigate to about:blank (tears down renderer + PGlite web worker)
-      await page.goto("about:blank")
-
-      // 3. clear IDB + localStorage via Electron's session.clearStorageData
-      await sharedElectronApp.evaluate(async ({ session }) => {
-        await session.defaultSession.clearStorageData({
-          storages: ["indexdb", "localstorage"],
-        })
-      })
-
-      // 4. navigate back to the app URL (fresh renderer init: PGlite WASM + migrations)
-      await page.goto(capturedAppUrl)
-
-      // 5. re-inject animation-disabling CSS
-      try {
-        await page.addStyleTag({ content: ANIMATION_CSS })
-      } catch (error) {
-        console.warn("could not re-inject animation CSS:", error)
-      }
-    }
-
-    isFirstTest = false
-
-    await use(page)
-  },
-
-  tempTestDir: async ({ workspaceDir }, use) => {
-    await use(workspaceDir)
-  },
 })
 
 export { expect }

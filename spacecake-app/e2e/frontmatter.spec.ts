@@ -6,7 +6,12 @@ import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("frontmatter e2e", () => {
   // Single test with multiple assertions to minimize app startup overhead
-  test("create frontmatter, toggle views, and verify content", async ({ window, tempTestDir }) => {
+  test("create frontmatter, toggle views, and verify content", async ({
+    electronApp,
+    tempTestDir,
+  }) => {
+    const window = await electronApp.firstWindow()
+
     // Create an empty markdown file
     const filePath = path.join(tempTestDir, "test-frontmatter.md")
     fs.writeFileSync(filePath, "")
@@ -92,9 +97,11 @@ test.describe("frontmatter e2e", () => {
   })
 
   test("open markdown file with existing frontmatter renders table", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
+    const window = await electronApp.firstWindow()
+
     // Create a markdown file with frontmatter
     const filePath = path.join(tempTestDir, "with-frontmatter.md")
     fs.writeFileSync(

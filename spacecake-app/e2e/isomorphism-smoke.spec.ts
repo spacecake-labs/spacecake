@@ -14,9 +14,11 @@ import { locateSidebarItem } from "@/../e2e/utils"
  */
 test.describe("isomorphism smoke tests", () => {
   test("markdown file maintains isomorphism through full pipeline", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
+    const window = await electronApp.firstWindow()
+
     // copy _README.md fixture into the temp workspace
     const fixturePath = path.join(process.cwd(), "tests/fixtures/_README.md")
     const destPath = path.join(tempTestDir, "_README.md")
@@ -52,9 +54,11 @@ test.describe("isomorphism smoke tests", () => {
   })
 
   test("python file maintains isomorphism through full pipeline", async ({
-    window,
+    electronApp,
     tempTestDir,
   }) => {
+    const window = await electronApp.firstWindow()
+
     // copy md.py fixture (tests python with markdown directives)
     const fixturePath = path.join(process.cwd(), "tests/fixtures/md.py")
     const destPath = path.join(tempTestDir, "md.py")
