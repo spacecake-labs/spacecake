@@ -35,6 +35,10 @@ export default defineConfig({
     },
   },
   assetsInclude: ["./src/drizzle/*.sql"],
+  worker: {
+    format: "es",
+    plugins: () => [wasm(), topLevelAwait()],
+  },
   optimizeDeps: {
     exclude: [
       "web-tree-sitter",

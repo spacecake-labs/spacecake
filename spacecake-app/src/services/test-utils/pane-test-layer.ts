@@ -1,7 +1,7 @@
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
 import { drizzle } from "drizzle-orm/pglite"
-import { Context, Effect, Layer } from "effect"
+import { Effect, Layer } from "effect"
 
 import migration0000 from "@/drizzle/0000_natural_rogue.sql?raw"
 import migration0001 from "@/drizzle/0001_add_workspace_layout.sql?raw"
@@ -61,7 +61,7 @@ export const makeTestDatabaseLayer = () =>
 
       const orm = drizzle({ client, casing: "snake_case" })
 
-      return makeDatabaseService(client, orm) as Context.Tag.Service<typeof Database>
+      return Database.make(makeDatabaseService(client, orm))
     }),
   )
 

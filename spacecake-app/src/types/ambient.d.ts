@@ -18,6 +18,12 @@ declare module "write-file-atomic" {
 // injected by vite.renderer.config.mts
 declare const __APP_VERSION__: string
 
+// vite ?worker imports return a Worker constructor
+declare module "*?worker" {
+  const workerConstructor: { new (): Worker }
+  export default workerConstructor
+}
+
 // SVG imports as React components
 declare module "*.svg?react" {
   import { FC, SVGProps } from "react"
