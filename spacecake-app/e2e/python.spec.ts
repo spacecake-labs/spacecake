@@ -6,11 +6,9 @@ import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("python e2e", () => {
   test("open workspace and create an empty python file", async ({
-    electronApp,
+    window,
     tempTestDir,
   }, testInfo) => {
-    const window = await electronApp.firstWindow()
-
     // open the temp test directory as workspace
     await waitForWorkspace(window)
 
@@ -46,9 +44,7 @@ test.describe("python e2e", () => {
     })
   })
 
-  test("open workspace and render core.py rich", async ({ electronApp, tempTestDir }) => {
-    const window = await electronApp.firstWindow()
-
+  test("open workspace and render core.py rich", async ({ window, tempTestDir }) => {
     // copy core.py fixture into the temp workspace
     const fixturePath = path.join(process.cwd(), "tests/fixtures/core.py")
     const destPath = path.join(tempTestDir, "core.py")
@@ -185,12 +181,7 @@ test.describe("python e2e", () => {
     await expect(importBlockToDelete).not.toBeVisible()
   })
 
-  test("switching between core.py and empty.py updates editor", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    const window = await electronApp.firstWindow()
-
+  test("switching between core.py and empty.py updates editor", async ({ window, tempTestDir }) => {
     // copy both fixtures into the temp workspace
     const coreFixture = path.join(process.cwd(), "tests/fixtures/core.py")
     const emptyFixture = path.join(process.cwd(), "tests/fixtures/empty.py")
@@ -218,11 +209,9 @@ test.describe("python e2e", () => {
   })
 
   test("switching between files in different folders updates editor", async ({
-    electronApp,
+    window,
     tempTestDir,
   }) => {
-    const window = await electronApp.firstWindow()
-
     // create nested folder and copy fixtures
     const nestedFolder = path.join(tempTestDir, "nested")
     fs.mkdirSync(nestedFolder, { recursive: true })
@@ -255,11 +244,10 @@ test.describe("python e2e", () => {
   })
 
   test("saving new misc block persists after rerender without navigation", async ({
-    electronApp,
+    window,
     tempTestDir,
   }) => {
     test.slow()
-    const window = await electronApp.firstWindow()
 
     // prepare core.py in temp workspace
     const coreFixture = path.join(process.cwd(), "tests/fixtures/core.py")

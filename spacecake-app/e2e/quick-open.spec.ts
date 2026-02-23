@@ -5,7 +5,7 @@ import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("quick open feature", () => {
-  test("quick open and navigate to files", async ({ electronApp, tempTestDir }, testInfo) => {
+  test("quick open and navigate to files", async ({ window, tempTestDir }, testInfo) => {
     // Define source paths for fixture files
     const fixtureReadme = path.join(process.cwd(), "tests", "fixtures", "_README.md")
     const fixtureCorePy = path.join(process.cwd(), "tests", "fixtures", "core.py")
@@ -29,9 +29,6 @@ test.describe("quick open feature", () => {
       type: "info",
       description: `Populated temp test directory: ${tempTestDir}`,
     })
-
-    // Get the first window
-    const window = await electronApp.firstWindow()
 
     // Verify the window is visible
     await expect(window.locator("body")).toBeVisible()

@@ -5,12 +5,7 @@ import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("selection restoration", () => {
-  test("should restore selection in a markdown file on save", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    const window = await electronApp.firstWindow()
-
+  test("should restore selection in a markdown file on save", async ({ window, tempTestDir }) => {
     // Wait for initial home folder load to complete
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
@@ -46,12 +41,7 @@ test.describe("selection restoration", () => {
     await expect(editor.getByText("one two three")).toBeVisible()
   })
 
-  test("should restore selection in a markdown file on reload", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    const window = await electronApp.firstWindow()
-
+  test("should restore selection in a markdown file on reload", async ({ window, tempTestDir }) => {
     // Wait for initial home folder load to complete
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 

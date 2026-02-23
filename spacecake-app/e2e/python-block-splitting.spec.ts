@@ -5,12 +5,7 @@ import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("Python block splitting", () => {
-  test("should split python blocks on navigation and on save", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    const window = await electronApp.firstWindow()
-
+  test("should split python blocks on navigation and on save", async ({ window, tempTestDir }) => {
     // create the python file on disk first
     const pythonCode = `import os
 

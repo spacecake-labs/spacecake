@@ -5,9 +5,7 @@ import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("markdown e2e", () => {
-  test("open workspace and render _README.md blocks", async ({ electronApp, tempTestDir }) => {
-    const window = await electronApp.firstWindow()
-
+  test("open workspace and render _README.md blocks", async ({ window, tempTestDir }) => {
     // copy _README.md fixture into the temp workspace
     const fixturePath = path.join(process.cwd(), "tests/fixtures/_README.md")
     const destPath = path.join(tempTestDir, "_README.md")

@@ -6,11 +6,9 @@ import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("slash commands e2e", () => {
   test("slash commands in markdown: menu options, code block, heading, and paragraph", async ({
-    electronApp,
+    window,
     tempTestDir,
   }) => {
-    const window = await electronApp.firstWindow()
-
     // copy the _README.md fixture into the temp workspace
     const fixturePath = path.join(process.cwd(), "tests/fixtures/_README.md")
     const destPath = path.join(tempTestDir, "_README.md")
@@ -91,9 +89,7 @@ test.describe("slash commands e2e", () => {
     await expect(window.getByRole("paragraph").filter({ hasText: "TEST_PARA" })).toBeVisible()
   })
 
-  test("slash commands in Python files", async ({ electronApp, tempTestDir }) => {
-    const window = await electronApp.firstWindow()
-
+  test("slash commands in Python files", async ({ window, tempTestDir }) => {
     // copy the core.py fixture into the temp workspace
     const fixturePath = path.join(process.cwd(), "tests/fixtures/core.py")
     const destPath = path.join(tempTestDir, "core.py")

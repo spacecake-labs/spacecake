@@ -5,12 +5,11 @@ import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem, locateTab, locateTabCloseButton } from "@/../e2e/utils"
 
 test.describe("autosave", () => {
-  test("autosave OFF: file remains dirty after editing", async ({ electronApp, tempTestDir }) => {
+  test("autosave OFF: file remains dirty after editing", async ({ window, tempTestDir }) => {
     // Create a test file
     const testFilePath = path.join(tempTestDir, "test-autosave-off.md")
     fs.writeFileSync(testFilePath, "# Original content")
 
-    const window = await electronApp.firstWindow()
     await waitForWorkspace(window)
 
     // Open the file
@@ -42,7 +41,7 @@ test.describe("autosave", () => {
     expect(fileContent).not.toContain("EDITED")
   })
 
-  test("autosave ON: debounce save and close-tab save", async ({ electronApp, tempTestDir }) => {
+  test("autosave ON: debounce save and close-tab save", async ({ window, tempTestDir }) => {
     // Create test files
     const testFilePath = path.join(tempTestDir, "test-autosave-on.md")
     const testFile1Path = path.join(tempTestDir, "file1.md")
@@ -51,7 +50,6 @@ test.describe("autosave", () => {
     fs.writeFileSync(testFile1Path, "# File 1 content")
     fs.writeFileSync(testFile2Path, "# File 2 content")
 
-    const window = await electronApp.firstWindow()
     await waitForWorkspace(window)
 
     // Navigate to settings and enable autosave

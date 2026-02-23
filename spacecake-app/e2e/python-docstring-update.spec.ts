@@ -5,12 +5,7 @@ import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("Python docstring updating", () => {
-  test("should update docstring on navigation and on save", async ({
-    electronApp,
-    tempTestDir,
-  }) => {
-    const window = await electronApp.firstWindow()
-
+  test("should update docstring on navigation and on save", async ({ window, tempTestDir }) => {
     // create two python files to test both triggers
     const pythonCode1 = `def my_function():
     """A docstring."""

@@ -5,9 +5,7 @@ import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("mermaid e2e", () => {
-  test("open markdown file and render mermaid diagram", async ({ electronApp, tempTestDir }) => {
-    const window = await electronApp.firstWindow()
-
+  test("open markdown file and render mermaid diagram", async ({ window, tempTestDir }) => {
     // copy mermaid.md fixture into the temp workspace
     const fixturePath = path.join(process.cwd(), "tests/fixtures/mermaid.md")
     const destPath = path.join(tempTestDir, "mermaid.md")
@@ -35,9 +33,7 @@ test.describe("mermaid e2e", () => {
     await expect(window.getByTestId("mermaid-diagram").locator("svg")).toBeVisible()
   })
 
-  test("create mermaid node by typing markdown shortcut", async ({ electronApp, tempTestDir }) => {
-    const window = await electronApp.firstWindow()
-
+  test("create mermaid node by typing markdown shortcut", async ({ window, tempTestDir }) => {
     // create a new markdown file
     const filePath = path.join(tempTestDir, "test-create-mermaid.md")
     fs.writeFileSync(filePath, "")

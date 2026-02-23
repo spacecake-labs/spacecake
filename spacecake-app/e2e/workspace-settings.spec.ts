@@ -1,8 +1,7 @@
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 
 test.describe("workspace settings", () => {
-  test("settings navigation and autosave toggle persistence", async ({ electronApp }) => {
-    const window = await electronApp.firstWindow()
+  test("settings navigation and autosave toggle persistence", async ({ window }) => {
     await waitForWorkspace(window)
 
     // --- Part 1: Test settings page navigation ---
