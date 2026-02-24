@@ -38,8 +38,8 @@ test.describe("workspace settings", () => {
     await autosaveSwitch.click()
     await expect(autosaveSwitch).toBeChecked()
 
-    // Wait for the setting to persist to database
-    await window.waitForTimeout(500)
+    // wait for the setting to persist to database (pglite worker adds latency)
+    await window.waitForTimeout(1500)
 
     // Reload the page (simulates app restart without full electron restart)
     await window.reload()
@@ -49,6 +49,8 @@ test.describe("workspace settings", () => {
 
     // Navigate back to settings
     await window.getByRole("button", { name: "settings" }).click()
+    // wait for settings page to fully render
+    await expect(window.getByRole("heading", { name: "general" })).toBeVisible()
 
     // Verify autosave is still on
     const autosaveSwitchAfterReload = window.locator("#autosave-setting")
@@ -60,13 +62,15 @@ test.describe("workspace settings", () => {
     await autosaveSwitchAfterReload.click()
     await expect(autosaveSwitchAfterReload).not.toBeChecked()
 
-    // Wait for persistence
-    await window.waitForTimeout(500)
+    // wait for the setting to persist to database (pglite worker adds latency)
+    await window.waitForTimeout(1500)
 
     // Reload and verify
     await window.reload()
     await waitForWorkspace(window)
     await window.getByRole("button", { name: "settings" }).click()
+    // wait for settings page to fully render
+    await expect(window.getByRole("heading", { name: "general" })).toBeVisible()
 
     const autosaveSwitchFinal = window.locator("#autosave-setting")
     await expect(autosaveSwitchFinal).not.toBeChecked()

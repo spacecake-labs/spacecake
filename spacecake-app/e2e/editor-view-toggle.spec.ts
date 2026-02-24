@@ -143,8 +143,13 @@ This is a **markdown** file.
     // Open first file and switch to source view
     await locateSidebarItem(page, "file1.py").click()
     await expect(page.getByTestId("lexical-editor")).toBeVisible()
+    // wait for the file content to fully render before toggling view
+    await expect(page.getByText("test_function").first()).toBeVisible()
     await page.getByRole("link", { name: "switch to source view" }).click()
     await expect(page.getByRole("link", { name: "switch to rich view" })).toBeVisible()
+
+    // wait for view preference to persist to database (pglite worker adds latency)
+    await page.waitForTimeout(500)
 
     // Open second file - should be in rich view (default)
     await locateSidebarItem(page, "file2.py").click()

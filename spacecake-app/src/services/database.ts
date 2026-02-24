@@ -1,8 +1,12 @@
-import { PGlite } from "@electric-sql/pglite"
-import { live } from "@electric-sql/pglite/live"
+import type { PGlite } from "@electric-sql/pglite"
+
+import { live, type PGliteWithLive } from "@electric-sql/pglite/live"
+import { PGliteWorker } from "@electric-sql/pglite/worker"
 import { and, desc, eq, getTableColumns, gt, isNotNull, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 import { Console, Data, DateTime, Effect, flow, Option, Schema } from "effect"
+
+import type { PersistableViewKind } from "@/types/lexical"
 
 import { workspaceCacheQuery } from "@/lib/db/queries"
 import {
@@ -47,6 +51,7 @@ import {
 } from "@/schema/workspace-settings"
 import { maybeSingleResult, singleResult } from "@/services/utils"
 import { AbsolutePath } from "@/types/workspace"
+import PgliteWorkerModule from "@/workers/pglite-worker?worker"
 
 export class PgliteError extends Data.TaggedError("PgliteError")<{
   cause: unknown
@@ -67,11 +72,10 @@ const execute = <A, I, T, E>(
 type Orm = ReturnType<typeof drizzle>
 
 /**
- * Creates the Database service methods given a PGlite client and ORM.
- * This factory is shared between production and test layers.
- * Generic over the client type to preserve PGliteWithLive in production.
+ * creates the Database service methods given a PGlite client and ORM.
+ * this factory is shared between production and test layers.
  */
-export const makeDatabaseService = <C extends PGlite>(client: C, orm: Orm) => {
+export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
   const query = <R>(execute: (_: Orm) => Promise<R>) =>
     Effect.tryPromise({
       try: () => execute(orm),
@@ -424,6 +428,11 @@ export const makeDatabaseService = <C extends PGlite>(client: C, orm: Orm) => {
       // Effect.tap((editor) => Effect.log("db: updated editor state:", editor))
     ),
 
+    updateEditorViewKind: (editorId: EditorPrimaryKey, viewKind: PersistableViewKind) =>
+      query((_) =>
+        _.update(editorTable).set({ view_kind: viewKind }).where(eq(editorTable.id, editorId)),
+      ),
+
     updateEditorSelection: flow(
       execute(EditorUpdateSelectionSchema, (values: EditorSelectionUpdate) =>
         Effect.gen(function* () {
@@ -622,11 +631,13 @@ export const makeDatabaseService = <C extends PGlite>(client: C, orm: Orm) => {
 
 export class Database extends Effect.Service<Database>()("Database", {
   effect: Effect.gen(function* () {
+    // pglite runs in a web worker for off-main-thread performance
     const client = yield* Effect.tryPromise({
       try: () =>
-        PGlite.create(`idb://spacecake`, {
+        PGliteWorker.create(new PgliteWorkerModule(), {
+          dataDir: "idb://spacecake",
           extensions: { live },
-          relaxedDurability: true,
+          singleTab: true,
         }),
       catch: (error) => {
         console.log(error)
@@ -634,7 +645,8 @@ export class Database extends Effect.Service<Database>()("Database", {
       },
     })
 
-    const orm = drizzle({ client, casing: "snake_case" })
+    // TODO: remove cast when drizzle accepts PGliteWorker (drizzle-team/drizzle-orm#2873)
+    const orm = drizzle({ client: client as unknown as PGlite, casing: "snake_case" })
 
     return makeDatabaseService(client, orm)
   }),
