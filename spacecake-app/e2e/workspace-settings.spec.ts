@@ -58,7 +58,9 @@ test.describe("workspace settings", () => {
 
     // --- Part 3: Test autosave toggle can be turned off and persists ---
 
-    // Disable autosave
+    // Disable autosave (wait for switch to be interactive after page render)
+    await expect(autosaveSwitchAfterReload).toBeVisible()
+    await expect(autosaveSwitchAfterReload).toBeChecked()
     await autosaveSwitchAfterReload.click()
     await expect(autosaveSwitchAfterReload).not.toBeChecked()
 
