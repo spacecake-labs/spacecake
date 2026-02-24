@@ -55,6 +55,7 @@ test.describe("mermaid e2e", () => {
     // a small settle delay after focus prevents characters being dropped during
     // initial editor state setup (pglite worker adds latency to re-renders).
     await waitForEditorFocus(window)
+    // settle delay lets the editor finish internal state setup after focus
     await window.waitForTimeout(200)
     await window.keyboard.type("```mermaid ", { delay: 50 })
 
