@@ -47,6 +47,10 @@ test.describe("workspace settings", () => {
     // Wait for workspace to load again
     await waitForWorkspace(window)
 
+    // wait for any file restore to complete before navigating
+    // (the active editor is restored asynchronously via the pane machine)
+    await window.waitForTimeout(2000)
+
     // Navigate back to settings
     await window.getByRole("button", { name: "settings" }).click()
     // wait for settings page to fully render

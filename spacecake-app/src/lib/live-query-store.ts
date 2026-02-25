@@ -1,6 +1,5 @@
 import type { LiveQuery, LiveQueryResults, PGliteWithLive } from "@electric-sql/pglite/live"
 
-import { notifyManager } from "@/lib/notify-manager"
 import { replaceEqualDeep } from "@/lib/structural-sharing"
 
 type Listener = () => void
@@ -12,9 +11,8 @@ type Listener = () => void
  * applies structural sharing so unchanged subtrees preserve reference
  * identity, preventing unnecessary re-renders downstream.
  *
- * routes listener notifications through the global `notifyManager` so
- * that simultaneous updates across multiple stores are flushed together
- * in a single microtask (one react render pass).
+ * notifies listeners synchronously so react sees snapshot changes
+ * immediately — react 19 batches synchronous updates automatically.
  */
 export class LiveQueryStore<T> {
   private snapshot: LiveQueryResults<T> | undefined
@@ -89,10 +87,8 @@ export class LiveQueryStore<T> {
 
     this.snapshot = shared
 
-    notifyManager.schedule(() => {
-      for (const listener of this.listeners) {
-        listener()
-      }
-    })
+    for (const listener of this.listeners) {
+      listener()
+    }
   }
 }

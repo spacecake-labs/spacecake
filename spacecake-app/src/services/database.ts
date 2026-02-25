@@ -120,7 +120,7 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
               .onConflictDoUpdate({
                 target: [workspaceTable.path],
                 set: {
-                  ...values,
+                  is_open: values.is_open,
                   last_accessed_at: DateTime.formatIso(now),
                 },
               })
@@ -144,9 +144,7 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
                 .values(values)
                 .onConflictDoUpdate({
                   target: fileTable.path,
-                  set: {
-                    ...values,
-                  },
+                  set: { cid: values.cid, mtime: values.mtime },
                 })
                 .returning(),
             )
@@ -181,10 +179,7 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
               .values(values)
               .onConflictDoUpdate({
                 target: [paneTable.workspace_id, paneTable.position],
-                set: {
-                  ...values,
-                  last_accessed_at: DateTime.formatIso(now),
-                },
+                set: { last_accessed_at: DateTime.formatIso(now) },
               })
               .returning(),
           )
@@ -384,9 +379,7 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
               .values(values)
               .onConflictDoUpdate({
                 target: [editorTable.pane_id, editorTable.file_id],
-                set: {
-                  ...values,
-                },
+                set: { view_kind: values.view_kind },
               })
               .returning(),
           )
