@@ -13,10 +13,11 @@ class InvalidData extends Data.TaggedError("InvalidData")<{
 const useQueryEffect = <A, I>(
   query: (orm: ReturnType<typeof useDatabase>) => Query,
   schema: Schema.Schema<A, I>,
+  key?: string,
 ) => {
   const orm = useDatabase()
   const { params, sql } = query(orm)
-  const results = useStableLiveQuery<I>(sql, params)
+  const results = useStableLiveQuery<I>(sql, params, key)
   return pipe(
     results?.rows,
     Either.fromNullable(() => new MissingData()),

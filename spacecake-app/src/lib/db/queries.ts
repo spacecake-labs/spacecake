@@ -32,7 +32,7 @@ export const workspaceCacheQuery = (orm: Orm, workspacePath: AbsolutePath) => {
   return orm
     .selectDistinctOn([fileTable.id], {
       filePath: sql<AbsolutePath>`${fileTable.path}`.as("filePath"),
-      fileId: sql<FilePrimaryKey>`${fileTable.id}`.as("fileId"),
+      fileId: sql<FilePrimaryKey>`${fileTable.id}`.as("file_id"),
       view_kind: editorTable.view_kind,
       has_cached_state: sql<boolean>`${editorTable.state} IS NOT NULL`.as("has_cached_state"),
       mtime: fileTable.mtime,

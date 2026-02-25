@@ -16,6 +16,7 @@ import { LiveQueryStore } from "@/lib/live-query-store"
 export function useStableLiveQuery<T>(
   sql: string,
   params?: unknown[],
+  key?: string,
 ): LiveQueryResults<T> | undefined {
   const db = usePGlite()
   const paramsKey = JSON.stringify(params)
@@ -35,7 +36,7 @@ export function useStableLiveQuery<T>(
 
   // manage the async pglite subscription lifecycle
   useEffect(() => {
-    store.connect(db, sql, params ?? [])
+    store.connect(db, sql, params ?? [], key)
     return () => {
       store.dispose()
     }

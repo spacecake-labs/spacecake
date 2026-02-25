@@ -12,6 +12,7 @@ export const useWorkspaceCache = (workspacePath: AbsolutePath) => {
   const { data, loading, error, empty } = useQuery(
     (orm) => workspaceCacheQuery(orm, workspacePath).toSQL(),
     WorkspaceCacheRowSchema,
+    "file_id",
   )
 
   const cacheMap = new Map(data?.map((row) => [row.filePath, row]) ?? [])

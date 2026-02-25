@@ -39,13 +39,19 @@ export class LiveQueryStore<T> {
     return this.snapshot
   }
 
-  /** start the async pglite subscription. */
-  async connect(db: PGliteWithLive, sql: string, params: unknown[]): Promise<void> {
+  /**
+   * start the async pglite subscription.
+   * when `key` is provided, uses `live.incrementalQuery` which diffs inside
+   * postgres and only patches the changed rows — less wasm work per update.
+   */
+  async connect(db: PGliteWithLive, sql: string, params: unknown[], key?: string): Promise<void> {
     if (this.disposed) return
 
     let liveQuery: LiveQuery<T>
     try {
-      liveQuery = await db.live.query<T>(sql, params)
+      liveQuery = key
+        ? await db.live.incrementalQuery<T>(sql, params, key)
+        : await db.live.query<T>(sql, params)
     } catch (error) {
       if (!this.disposed) {
         console.error("live query failed:", error)
