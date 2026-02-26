@@ -125,10 +125,7 @@ export const paneMachine = setup({
         await RuntimeClient.runPromise(
           Effect.gen(function* () {
             const db = yield* Database
-
-            // Update the pane's active item in the database
-            yield* db.updatePaneActivePaneItem(input.paneId, input.item.id)
-            yield* db.updatePaneItemAccessedAt(input.item.id)
+            yield* db.activatePaneItem(input.paneId, input.item.id)
           }).pipe(Effect.tapErrorCause(Effect.logError)),
         )
 
@@ -179,14 +176,18 @@ export const paneMachine = setup({
               }>()
             }
 
-            const file = yield* db.upsertFile()({
-              path: input.filePath,
-              cid: fileContent.value.cid,
-              mtime: new Date(fileContent.value.etag.mtime).toISOString(),
-            })
-
-            // Check if we already have an editor for this file in this pane
-            const existingEditor = yield* db.selectLatestEditorStateForFile(input.filePath)
+            // run file upsert and editor lookup in parallel (data-independent)
+            const [file, existingEditor] = yield* Effect.all(
+              [
+                db.upsertFile()({
+                  path: input.filePath,
+                  cid: fileContent.value.cid,
+                  mtime: new Date(fileContent.value.etag.mtime).toISOString(),
+                }),
+                db.selectLatestEditorStateForFile(input.filePath),
+              ],
+              { concurrency: 2 },
+            )
             const fileType = fileTypeFromFileName(input.filePath)
 
             let editorId: EditorPrimaryKey

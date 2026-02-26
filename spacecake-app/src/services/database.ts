@@ -2,7 +2,7 @@ import type { PGlite } from "@electric-sql/pglite"
 
 import { live, type PGliteWithLive } from "@electric-sql/pglite/live"
 import { PGliteWorker } from "@electric-sql/pglite/worker"
-import { and, desc, eq, getTableColumns, gt, isNotNull, sql } from "drizzle-orm"
+import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 import { Console, Data, DateTime, Effect, flow, Option, Schema } from "effect"
 
@@ -202,6 +202,7 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
 
     /**
      * Closes a pane item (tab) and returns the next active item's info for navigation.
+     * Uses a single CTE per code path to minimize worker roundtrips.
      * - Deletes the pane item
      * - Recompacts positions
      * - Only updates the active item pointer if closing the active tab
@@ -209,62 +210,68 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
      */
     closePaneItemAndGetNext: (paneItemId: PaneItemPrimaryKey, isClosingActiveTab: boolean) =>
       Effect.gen(function* () {
-        // Get pane_id and position before deletion
-        const deleted = yield* query((_) =>
-          _.delete(paneItemTable).where(eq(paneItemTable.id, paneItemId)).returning({
-            pane_id: paneItemTable.pane_id,
-            position: paneItemTable.position,
-          }),
-        ).pipe(maybeSingleResult())
-
-        if (Option.isNone(deleted)) return Option.none()
-
-        const { pane_id: paneId, position: deletedPosition } = deleted.value
-
-        // Recompact positions: decrement all positions greater than deleted
-        yield* query((_) =>
-          _.update(paneItemTable)
-            .set({ position: sql`${paneItemTable.position} - 1` })
-            .where(
-              and(eq(paneItemTable.pane_id, paneId), gt(paneItemTable.position, deletedPosition)),
-            ),
-        )
-
-        // Only update active pointer if closing the active tab
         if (!isClosingActiveTab) {
+          // delete + recompact only (1 roundtrip)
+          yield* query((_) =>
+            _.execute(sql`
+              WITH deleted AS (
+                DELETE FROM pane_item WHERE id = ${paneItemId} RETURNING pane_id, "index"
+              ),
+              _recompacted AS (
+                UPDATE pane_item SET "index" = "index" - 1
+                WHERE pane_id = (SELECT pane_id FROM deleted)
+                  AND "index" > (SELECT "index" FROM deleted)
+              )
+              SELECT 1
+            `),
+          )
           return Option.none()
         }
 
-        // Find new active item with full info (most recently accessed)
-        const newActive = yield* query((_) =>
-          _.select({
-            id: paneItemTable.id,
-            editorId: editorTable.id,
-            filePath: fileTable.path,
-            viewKind: editorTable.view_kind,
-          })
-            .from(paneItemTable)
-            .innerJoin(editorTable, eq(paneItemTable.editor_id, editorTable.id))
-            .innerJoin(fileTable, eq(editorTable.file_id, fileTable.id))
-            .where(eq(paneItemTable.pane_id, paneId))
-            .orderBy(desc(paneItemTable.last_accessed_at))
-            .limit(1),
-        ).pipe(maybeSingleResult())
-
-        // Update pane's active item (will be null if no items remain)
-        yield* query((_) =>
-          _.update(paneTable)
-            .set({
-              active_pane_item_id: Option.match(newActive, {
-                onNone: () => null,
-                onSome: (v) => v.id,
-              }),
-            })
-            .where(eq(paneTable.id, paneId)),
+        // closing active tab: delete + recompact + find next + update pane (1 roundtrip)
+        // note: CTEs see the pre-mutation snapshot, so we exclude the deleted item explicitly
+        const result = yield* query((_) =>
+          _.execute(sql`
+            WITH deleted AS (
+              DELETE FROM pane_item WHERE id = ${paneItemId} RETURNING pane_id, "index"
+            ),
+            _recompacted AS (
+              UPDATE pane_item SET "index" = "index" - 1
+              WHERE pane_id = (SELECT pane_id FROM deleted)
+                AND "index" > (SELECT "index" FROM deleted)
+            ),
+            new_active AS (
+              SELECT pi.id, e.id AS editor_id, f.path AS file_path, e.view_kind
+              FROM pane_item pi
+              INNER JOIN editor e ON pi.editor_id = e.id
+              INNER JOIN file f ON e.file_id = f.id
+              WHERE pi.pane_id = (SELECT pane_id FROM deleted)
+                AND pi.id != ${paneItemId}
+              ORDER BY pi.last_accessed_at DESC LIMIT 1
+            ),
+            _updated_pane AS (
+              UPDATE pane SET active_pane_item_id = (SELECT id FROM new_active)
+              WHERE id = (SELECT pane_id FROM deleted)
+            )
+            SELECT id, editor_id, file_path, view_kind FROM new_active
+          `),
         )
 
-        // Return the new active item's info for navigation
-        return newActive
+        if (result.rows.length === 0) return Option.none()
+
+        const row = result.rows[0] as {
+          id: string
+          editor_id: string
+          file_path: string
+          view_kind: PersistableViewKind
+        }
+
+        return Option.some({
+          id: row.id,
+          editorId: row.editor_id,
+          filePath: row.file_path,
+          viewKind: row.view_kind,
+        })
       }),
 
     updatePaneItemAccessedAt: (paneItemId: PaneItemPrimaryKey) =>
@@ -274,6 +281,25 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
           _.update(paneItemTable)
             .set({ last_accessed_at: DateTime.formatIso(now) })
             .where(eq(paneItemTable.id, paneItemId)),
+        )
+      }),
+
+    /**
+     * Activates a pane item by updating its access time and the pane's active pointer
+     * in a single roundtrip.
+     */
+    activatePaneItem: (paneId: PanePrimaryKey, paneItemId: PaneItemPrimaryKey) =>
+      Effect.gen(function* () {
+        const now = yield* DateTime.now
+        const nowIso = DateTime.formatIso(now)
+
+        yield* query((_) =>
+          _.execute(sql`
+            WITH _updated_item AS (
+              UPDATE pane_item SET last_accessed_at = ${nowIso} WHERE id = ${paneItemId}
+            )
+            UPDATE pane SET active_pane_item_id = ${paneItemId} WHERE id = ${paneId}
+          `),
         )
       }),
 
@@ -312,7 +338,7 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
       }),
 
     /**
-     * Activates an editor in a pane by:
+     * Activates an editor in a pane in a single roundtrip by:
      * 1. Upserting a paneItem for this editor
      * 2. Setting this paneItem as the pane's active item
      * 3. Setting this pane as the workspace's active pane
@@ -320,55 +346,33 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
     activateEditorInPane: (editorId: EditorPrimaryKey, paneId: PanePrimaryKey) =>
       Effect.gen(function* () {
         const now = yield* DateTime.now
+        const nowIso = DateTime.formatIso(now)
 
-        // Get next position for new items
-        const [{ maxPosition }] = yield* query((_) =>
-          _.select({
-            maxPosition: sql<number>`COALESCE(MAX(${paneItemTable.position}), -1)`,
-          })
-            .from(paneItemTable)
-            .where(eq(paneItemTable.pane_id, paneId)),
+        const result = yield* query((_) =>
+          _.execute(sql`
+            WITH max_pos AS (
+              SELECT COALESCE(MAX("index"), -1) AS p FROM pane_item WHERE pane_id = ${paneId}
+            ),
+            upserted AS (
+              INSERT INTO pane_item (pane_id, kind, editor_id, "index", last_accessed_at)
+              VALUES (${paneId}, 'editor', ${editorId}, (SELECT p + 1 FROM max_pos), ${nowIso})
+              ON CONFLICT (pane_id, editor_id) DO UPDATE SET last_accessed_at = EXCLUDED.last_accessed_at
+              RETURNING id
+            ),
+            updated_pane AS (
+              UPDATE pane SET active_pane_item_id = (SELECT id FROM upserted), last_accessed_at = ${nowIso}
+              WHERE id = ${paneId}
+              RETURNING workspace_id
+            ),
+            _updated_workspace AS (
+              UPDATE workspace SET active_pane_id = ${paneId}
+              WHERE id = (SELECT workspace_id FROM updated_pane)
+            )
+            SELECT id FROM upserted
+          `),
         )
 
-        // Upsert paneItem (unique on pane_id + editor_id)
-        // New items get next position, existing items keep their position
-        const paneItems = yield* query((_) =>
-          _.insert(paneItemTable)
-            .values({
-              pane_id: paneId,
-              kind: "editor",
-              editor_id: editorId,
-              position: maxPosition + 1,
-            })
-            .onConflictDoUpdate({
-              target: [paneItemTable.pane_id, paneItemTable.editor_id],
-              set: { last_accessed_at: DateTime.formatIso(now) },
-              // Don't change position for existing items
-            })
-            .returning({ id: paneItemTable.id }),
-        )
-
-        const paneItemId = paneItems[0].id
-
-        // Update pane's active item and get workspace_id
-        const panes = yield* query((_) =>
-          _.update(paneTable)
-            .set({
-              active_pane_item_id: paneItemId,
-              last_accessed_at: DateTime.formatIso(now),
-            })
-            .where(eq(paneTable.id, paneId))
-            .returning({ workspace_id: paneTable.workspace_id }),
-        )
-
-        // Update workspace's active pane
-        yield* query((_) =>
-          _.update(workspaceTable)
-            .set({ active_pane_id: paneId })
-            .where(eq(workspaceTable.id, panes[0].workspace_id)),
-        )
-
-        return paneItemId
+        return (result.rows[0] as { id: string }).id
       }),
 
     upsertEditor: flow(
