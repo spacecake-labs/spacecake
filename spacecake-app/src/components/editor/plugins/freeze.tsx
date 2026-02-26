@@ -3,7 +3,7 @@ import { useAtomValue } from "jotai"
 import { useEffect } from "react"
 
 import { useRoute } from "@/hooks/use-route"
-import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { getOrCreateFileStateAtom } from "@/lib/atoms/file-tree"
 import { AbsolutePath } from "@/types/workspace"
 
 /**
@@ -17,7 +17,7 @@ export function FreezePlugin() {
   if (!route?.filePath) return null
 
   const filePath = AbsolutePath(route.filePath)
-  const fileState = useAtomValue(fileStateAtomFamily(filePath))
+  const fileState = useAtomValue(getOrCreateFileStateAtom(filePath))
 
   useEffect(() => {
     if (!editor || !fileState) return

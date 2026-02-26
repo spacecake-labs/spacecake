@@ -6,7 +6,7 @@ import { useEffect } from "react"
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { maybeUpdateBlockAndDocstring } from "@/components/editor/plugins/block-utils"
 import { useRoute } from "@/hooks/use-route"
-import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { getOrCreateFileStateAtom } from "@/lib/atoms/file-tree"
 import { AbsolutePath } from "@/types/workspace"
 
 /**
@@ -21,8 +21,8 @@ export function ReparsePlugin() {
   if (!route?.filePath) return null
 
   const filePath = AbsolutePath(route.filePath)
-  const fileState = useAtomValue(fileStateAtomFamily(filePath))
-  const sendFileState = useSetAtom(fileStateAtomFamily(filePath))
+  const fileState = useAtomValue(getOrCreateFileStateAtom(filePath))
+  const sendFileState = useSetAtom(getOrCreateFileStateAtom(filePath))
 
   useEffect(() => {
     // Only trigger reparse when state machine is in Reparsing state

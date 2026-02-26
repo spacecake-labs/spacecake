@@ -12,7 +12,7 @@ import { ViewToggleButton } from "@/components/editor/view-toggle-button"
 import { Button } from "@/components/ui/button"
 import { useEditor } from "@/contexts/editor-context"
 import { saveResultAtom } from "@/lib/atoms/atoms"
-import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { getOrCreateFileStateAtom } from "@/lib/atoms/file-tree"
 import { cn } from "@/lib/utils"
 import { RouteContext } from "@/types/workspace"
 
@@ -24,7 +24,7 @@ interface EditorToolbarProps {
 
 export function EditorToolbar({ routeContext, machine, activePaneItemId }: EditorToolbarProps) {
   const { editorRef } = useEditor()
-  const fileStateAtom = fileStateAtomFamily(routeContext.filePath)
+  const fileStateAtom = getOrCreateFileStateAtom(routeContext.filePath)
   const fileState = useAtomValue(fileStateAtom).value
   const send = useSetAtom(fileStateAtom)
   const isSaving = fileState === "Saving"

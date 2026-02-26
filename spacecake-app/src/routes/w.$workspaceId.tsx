@@ -50,7 +50,11 @@ import { useRoute } from "@/hooks/use-route"
 import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { taskStatusFilterAtom } from "@/lib/atoms/claude-tasks"
-import { fileStateAtomFamily, setFileTreeAtom } from "@/lib/atoms/file-tree"
+import {
+  clearFileStateAtoms,
+  getOrCreateFileStateAtom,
+  setFileTreeAtom,
+} from "@/lib/atoms/file-tree"
 import {
   clampSize,
   DOCK_SIZE_CONSTRAINTS,
@@ -151,7 +155,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
           const event: FileStateHydrationEvent = {
             type: row.has_cached_state ? "file.dirty" : "file.clean",
           }
-          store.set(fileStateAtomFamily(row.filePath), event)
+          store.set(getOrCreateFileStateAtom(row.filePath), event)
         })
 
         store.set(setFileTreeAtom, tree)
@@ -1140,6 +1144,16 @@ function WorkspaceLayout() {
 
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
+
+  // clean up all file state atoms when workspace unmounts
+  useEffect(() => {
+    return () => {
+      // defer so child components unmount first (prevents re-creation during teardown)
+      setTimeout(() => {
+        clearFileStateAtoms()
+      }, 0)
+    }
+  }, [workspace.path])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
-import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { getFileStateAtom, hasFileStateAtom } from "@/lib/atoms/file-tree"
 import { supportedViews } from "@/lib/language-support"
 import { cn, encodeBase64Url } from "@/lib/utils"
 import { getNavItemIcon } from "@/lib/workspace"
@@ -71,6 +71,25 @@ function RenameInput({
   )
 }
 
+/** renders the revert menu item only when the file has state and is dirty.
+ *  only mounted when hasFileStateAtom is true (guarded in ItemDropdownMenu). */
+function RevertMenuItem({
+  item,
+  onStartRevert,
+}: {
+  item: File
+  onStartRevert: (item: File) => void
+}) {
+  const atom = getFileStateAtom(item.path)
+  const fileState = useAtomValue(atom!)
+  if (fileState.value !== "Dirty") return null
+  return (
+    <DropdownMenuItem onClick={() => onStartRevert(item)}>
+      <span>revert</span>
+    </DropdownMenuItem>
+  )
+}
+
 // Component for the dropdown menu (for files and folders)
 function ItemDropdownMenu({
   item,
@@ -92,14 +111,11 @@ function ItemDropdownMenu({
   const [isCreatingInContext, setIsCreatingInContext] = useAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
 
-  // Check if file is dirty (only for files)
-  const isFile = item.kind === "file"
-  const fileState = useAtomValue(fileStateAtomFamily(item.path))
-  const isDirty = isFile && fileState.value === "Dirty"
-
   const itemTitle = item.name
   const itemPath = item.path
   const isItemFolder = item.kind === "folder"
+  const isFile = item.kind === "file"
+  const showRevert = isFile && hasFileStateAtom(item.path as AbsolutePath) && onStartRevert
 
   const startCreatingFile = () => {
     setIsCreatingInContext({ kind: "file", parentPath: itemPath })
@@ -165,11 +181,7 @@ function ItemDropdownMenu({
             <DropdownMenuItem onClick={() => onStartDelete(item)}>
               <span>delete</span>
             </DropdownMenuItem>
-            {!isItemFolder && isDirty && (
-              <DropdownMenuItem onClick={() => onStartRevert?.(item as File)}>
-                <span>revert</span>
-              </DropdownMenuItem>
-            )}
+            {showRevert && <RevertMenuItem item={item as File} onStartRevert={onStartRevert} />}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -246,7 +258,8 @@ function CancelRenameButton({ onCancel }: { onCancel: () => void }) {
   )
 }
 
-function FileRowLink({
+/** renders a file row with state-aware styling (dirty/conflict indicators) */
+function FileRowLinkWithState({
   item,
   workspace,
   isSelected,
@@ -257,7 +270,7 @@ function FileRowLink({
   isSelected: boolean
   cacheMap: WorkspaceCache
 }) {
-  const state = useAtomValue(fileStateAtomFamily(item.path)).value
+  const state = useAtomValue(getFileStateAtom(item.path)!).value
   const statusText = state === "Dirty" ? "dirty" : state === "Conflict" ? "conflict" : "clean"
   const title = `${item.name} (${statusText})`
 
@@ -291,6 +304,80 @@ function FileRowLink({
         {cached && state === "ExternalChange" && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
       </SidebarMenuButton>
     </Link>
+  )
+}
+
+/** renders a file row with default clean appearance (no atom subscription) */
+function FileRowLinkClean({
+  item,
+  workspace,
+  isSelected,
+  cacheMap,
+}: {
+  item: File
+  workspace: WorkspaceInfo
+  isSelected: boolean
+  cacheMap: WorkspaceCache
+}) {
+  const title = `${item.name} (clean)`
+
+  const filePathEncoded = encodeBase64Url(AbsolutePath(item.path))
+  const workspaceIdEncoded = workspace?.path ? encodeBase64Url(workspace.path) : ""
+
+  const canToggleViews = supportedViews(item.fileType).size > 1
+  const cacheEntry = cacheMap.get(item.path)
+  const view = cacheEntry?.view_kind ?? (canToggleViews ? undefined : "source")
+  const editorId = cacheEntry?.editorId ?? undefined
+
+  const Icon = getNavItemIcon(item)
+
+  return (
+    <Link
+      to="/w/$workspaceId/f/$filePath"
+      params={{
+        workspaceId: workspaceIdEncoded,
+        filePath: filePathEncoded,
+      }}
+      search={{ view, editorId }}
+      className="w-full"
+      title={title}
+    >
+      <SidebarMenuButton isActive={isSelected} onClick={() => {}} className="cursor-pointer">
+        <Icon />
+        <span className="truncate">{item.name}</span>
+      </SidebarMenuButton>
+    </Link>
+  )
+}
+
+function FileRowLink({
+  item,
+  workspace,
+  isSelected,
+  cacheMap,
+}: {
+  item: File
+  workspace: WorkspaceInfo
+  isSelected: boolean
+  cacheMap: WorkspaceCache
+}) {
+  if (hasFileStateAtom(item.path as AbsolutePath)) {
+    return (
+      <FileRowLinkWithState
+        item={item}
+        workspace={workspace}
+        isSelected={isSelected}
+        cacheMap={cacheMap}
+      />
+    )
+  }
+  return (
+    <FileRowLinkClean
+      item={item}
+      workspace={workspace}
+      isSelected={isSelected}
+      cacheMap={cacheMap}
+    />
   )
 }
 

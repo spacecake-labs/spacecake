@@ -10,7 +10,7 @@ import { LoadingAnimation } from "@/components/loading-animation"
 import { useWorkspaceSettings } from "@/hooks/use-workspace-settings"
 import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms"
 import {
-  fileStateAtomFamily,
+  getOrCreateFileStateAtom,
   findFolderInTree,
   sortTree,
   updateFolderInTree,
@@ -152,7 +152,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         }
 
         const cid = result.content.kind === "state" ? ZERO_HASH : result.content.data.cid
-        const epoch = store.get(fileStateAtomFamily(filePath)).context.epoch
+        const epoch = store.get(getOrCreateFileStateAtom(filePath)).context.epoch
         const key = `${filePath}-${result.viewKind}-${cid}-${epoch}`
 
         // Handle diff view - fetch git diff data and create diff editor config
@@ -233,7 +233,7 @@ function FileLayout() {
   const { db, workspace } = Route.useRouteContext()
   const { view: viewKind } = Route.useSearch()
 
-  const sendFileState = useSetAtom(fileStateAtomFamily(filePath))
+  const sendFileState = useSetAtom(getOrCreateFileStateAtom(filePath))
 
   const send = useActorRef(fileMachine).send
 

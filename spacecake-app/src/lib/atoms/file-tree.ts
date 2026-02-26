@@ -1,6 +1,5 @@
 // hook to get file state only if it has been opened
 import { atom } from "jotai"
-import { atomFamily } from "jotai-family"
 import { atomWithMachine } from "jotai-xstate"
 
 import type { File, FileTree, FileTreeEvent, Folder, WorkspaceInfo } from "@/types/workspace"
@@ -251,7 +250,7 @@ export const fileTreeEventAtom = atom(
         // watcher events fire for every file in the workspace — don't create
         // machine actors for files the user never opened.
         if (hasFileStateAtom(absolutePath)) {
-          set(fileStateAtomFamily(absolutePath), {
+          set(getOrCreateFileStateAtom(absolutePath), {
             type: "file.external.change",
           })
         }
@@ -262,7 +261,7 @@ export const fileTreeEventAtom = atom(
       case "unlinkFile": {
         const newTree = removeItemFromTree(currentTree, absolutePath)
         set(fileTreeAtom, newTree)
-        fileStateAtomFamily.remove(absolutePath)
+        removeFileStateAtom(absolutePath)
         ;(async () => {
           await deleteFile(absolutePath)
         })()
@@ -282,6 +281,14 @@ export const fileTreeEventAtom = atom(
         }
         const newTree = removeItemFromTree(currentTree, absolutePath)
         set(fileTreeAtom, newTree)
+        // clean up file state atoms for all children
+        const childPrefix = absolutePath + "/"
+        for (const path of fileStateAtoms.keys()) {
+          if (path.startsWith(childPrefix)) {
+            fileStateAtoms.delete(path)
+            deleteFile(path)
+          }
+        }
         break
       }
     }
@@ -308,14 +315,36 @@ const createFileStateMachineAtom = (filePath: AbsolutePath) =>
     () => ({ input: { filePath, fileType: fileTypeFromFileName(filePath) } }),
   )
 
-export const fileStateAtomFamily = atomFamily(createFileStateMachineAtom)
+const fileStateAtoms = new Map<AbsolutePath, ReturnType<typeof createFileStateMachineAtom>>()
 
-/** check if a file state atom already exists without creating one */
-export const hasFileStateAtom = (filePath: AbsolutePath): boolean => {
-  for (const param of fileStateAtomFamily.getParams()) {
-    if (param === filePath) return true
+/** get or create a file state atom — use at intentional creation sites only */
+export function getOrCreateFileStateAtom(filePath: AbsolutePath) {
+  let atom = fileStateAtoms.get(filePath)
+  if (!atom) {
+    atom = createFileStateMachineAtom(filePath)
+    fileStateAtoms.set(filePath, atom)
   }
-  return false
+  return atom
+}
+
+/** get a file state atom if it exists — returns undefined without creating */
+export function getFileStateAtom(filePath: AbsolutePath) {
+  return fileStateAtoms.get(filePath)
+}
+
+/** O(1) existence check */
+export function hasFileStateAtom(filePath: AbsolutePath): boolean {
+  return fileStateAtoms.has(filePath)
+}
+
+/** remove a file state atom */
+export function removeFileStateAtom(filePath: AbsolutePath): boolean {
+  return fileStateAtoms.delete(filePath)
+}
+
+/** remove all file state atoms (used on workspace unmount) */
+export function clearFileStateAtoms() {
+  fileStateAtoms.clear()
 }
 
 /**
