@@ -1,9 +1,11 @@
 import type { Query } from "drizzle-orm"
 
 import { Data, Either, flow, Match, pipe, Schema, type ParseResult } from "effect"
+import { useRef } from "react"
 
 import { useDatabase } from "@/hooks/use-database"
 import { useStableLiveQuery } from "@/hooks/use-stable-live-query"
+import { replaceEqualDeep } from "@/lib/structural-sharing"
 
 class MissingData extends Data.TaggedError("MissingData") {}
 class InvalidData extends Data.TaggedError("InvalidData")<{
@@ -18,6 +20,7 @@ const useQueryEffect = <A, I>(
   const orm = useDatabase()
   const { params, sql } = query(orm)
   const results = useStableLiveQuery<I>(sql, params, key)
+  const prevRef = useRef<readonly A[] | undefined>(undefined)
   return pipe(
     results?.rows,
     Either.fromNullable(() => new MissingData()),
@@ -27,6 +30,11 @@ const useQueryEffect = <A, I>(
         Either.mapLeft((parseError) => new InvalidData({ parseError })),
       ),
     ),
+    Either.map((decoded) => {
+      const shared = replaceEqualDeep(prevRef.current, decoded)
+      prevRef.current = shared
+      return shared
+    }),
   )
 }
 
