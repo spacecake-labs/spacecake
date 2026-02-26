@@ -27,6 +27,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { DeleteButton } from "@/components/delete-button"
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { LoadingAnimation } from "@/components/loading-animation"
+import { QuickOpen } from "@/components/quick-open"
 import { TabBar } from "@/components/tab-bar"
 
 const GitPanel = lazy(() => import("@/components/git-panel").then((m) => ({ default: m.GitPanel })))
@@ -34,9 +35,6 @@ const TaskTable = lazy(() =>
   import("@/components/task-table/task-table").then((m) => ({ default: m.TaskTable })),
 )
 const Terminal = lazy(() => import("@/components/terminal").then((m) => ({ default: m.Terminal })))
-const QuickOpen = lazy(() =>
-  import("@/components/quick-open").then((m) => ({ default: m.QuickOpen })),
-)
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
 import {
   DropdownMenu,
@@ -1227,9 +1225,7 @@ function WorkspaceLayout() {
           </SidebarProvider>
         </FocusManagerProvider>
       </div>
-      <Suspense>
-        <QuickOpen workspacePath={workspace.path} machine={machine} />
-      </Suspense>
+      <QuickOpen workspacePath={workspace.path} machine={machine} />
     </>
   )
 }

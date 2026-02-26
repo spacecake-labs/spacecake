@@ -1,7 +1,5 @@
-import type { PGlite } from "@electric-sql/pglite"
-
+import { PGlite } from "@electric-sql/pglite"
 import { live, type PGliteWithLive } from "@electric-sql/pglite/live"
-import { PGliteWorker } from "@electric-sql/pglite/worker"
 import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 import { Console, Data, DateTime, Effect, flow, Option, Schema } from "effect"
@@ -51,7 +49,9 @@ import {
 } from "@/schema/workspace-settings"
 import { maybeSingleResult, singleResult } from "@/services/utils"
 import { AbsolutePath } from "@/types/workspace"
-import PgliteWorkerModule from "@/workers/pglite-worker?worker"
+// web worker version kept for when pglite improves worker RPC batching:
+// import { PGliteWorker } from "@electric-sql/pglite/worker"
+// import PgliteWorkerModule from "@/workers/pglite-worker?worker"
 
 export class PgliteError extends Data.TaggedError("PgliteError")<{
   cause: unknown
@@ -628,13 +628,12 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
 
 export class Database extends Effect.Service<Database>()("Database", {
   effect: Effect.gen(function* () {
-    // pglite runs in a web worker for off-main-thread performance
     const client = yield* Effect.tryPromise({
       try: () =>
-        PGliteWorker.create(new PgliteWorkerModule(), {
+        PGlite.create({
           dataDir: "idb://spacecake",
           extensions: { live },
-          singleTab: true,
+          relaxedDurability: true,
         }),
       catch: (error) => {
         console.log(error)
@@ -642,8 +641,21 @@ export class Database extends Effect.Service<Database>()("Database", {
       },
     })
 
-    // TODO: remove cast when drizzle accepts PGliteWorker (drizzle-team/drizzle-orm#2873)
-    const orm = drizzle({ client: client as unknown as PGlite, casing: "snake_case" })
+    // web worker version (revisit when pglite batches worker RPC):
+    // const client = yield* Effect.tryPromise({
+    //   try: () =>
+    //     PGliteWorker.create(new PgliteWorkerModule(), {
+    //       dataDir: "idb://spacecake",
+    //       extensions: { live },
+    //       singleTab: true,
+    //     }),
+    //   catch: (error) => {
+    //     console.log(error)
+    //     return new PgliteError({ cause: error })
+    //   },
+    // })
+
+    const orm = drizzle({ client, casing: "snake_case" })
 
     return makeDatabaseService(client, orm)
   }),
