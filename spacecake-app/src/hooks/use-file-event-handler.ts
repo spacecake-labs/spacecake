@@ -42,10 +42,7 @@ export const useFileEventHandler = (workspacePath: WorkspaceInfo["path"]) => {
       // keep quick-open index current
       if (event.kind === "addFile") {
         const name = event.path.split("/").pop()!
-        store.set(quickOpenIndexAtom, (prev) => [
-          ...prev,
-          { path: event.path, name, isGitIgnored: false },
-        ])
+        store.set(quickOpenIndexAtom, (prev) => [...prev, { path: event.path, name }])
       } else if (event.kind === "unlinkFile") {
         store.set(quickOpenIndexAtom, (prev) => prev.filter((f) => f.path !== event.path))
       }

@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { atom, useAtom, useAtomValue } from "jotai"
+import { atom, useAtom, useAtomValue, useStore } from "jotai"
 import { File as FileIcon } from "lucide-react"
 import * as React from "react"
 
@@ -18,6 +18,7 @@ import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-o
 import { createQuickOpenItems } from "@/lib/filter-files"
 import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromFileName } from "@/lib/workspace"
+import { match } from "@/types/adt"
 import {
   AbsolutePath,
   type File,
@@ -49,6 +50,23 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
 
   const [parent, setParent] = useAtom(quickOpenParentAtom)
 
+  const jotaiStore = useStore()
+
+  // lazy-load file index on first open
+  React.useEffect(() => {
+    if (isOpen && !indexReady) {
+      window.electronAPI.listFiles(workspacePath).then((result) => {
+        match(result, {
+          onLeft: (error) => console.error("file index build failed:", error),
+          onRight: (files) => {
+            jotaiStore.set(quickOpenIndexAtom, files)
+            jotaiStore.set(quickOpenIndexReadyAtom, true)
+          },
+        })
+      })
+    }
+  }, [isOpen, indexReady, workspacePath, jotaiStore])
+
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "p" && (e.metaKey || e.ctrlKey)) {
@@ -71,7 +89,6 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
         cid: ZERO_HASH,
         etag: { mtime: new Date(0), size: 0 },
         fileType: fileTypeFromFileName(entry.name),
-        isGitIgnored: entry.isGitIgnored,
       }
       return {
         file,

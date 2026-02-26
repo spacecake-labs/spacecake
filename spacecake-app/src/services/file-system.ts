@@ -1,7 +1,9 @@
 import type { PlatformError } from "@effect/platform/Error"
 
 import { FileSystem as EffectFileSystem } from "@effect/platform"
+import { rgPath } from "@vscode/ripgrep"
 import { Data, Effect, Either, Option } from "effect"
+import { execFile } from "node:child_process"
 import NFS from "node:fs/promises"
 import path from "path"
 import writeFileAtomic from "write-file-atomic"
@@ -21,7 +23,6 @@ import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 export type IndexedFile = {
   path: string
   name: string
-  isGitIgnored: boolean
 }
 
 /** Common file permission modes */
@@ -356,50 +357,41 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
       )
 
     const listFiles = (workspacePath: string): Effect.Effect<IndexedFile[], FileSystemError> =>
-      Effect.gen(function* () {
-        const entries = yield* Effect.tryPromise({
-          try: () => NFS.readdir(workspacePath, { recursive: true, withFileTypes: true }),
-          catch: (error) =>
-            new UnknownFSError({
-              path: workspacePath,
-              description: `failed to list files: ${String(error)}`,
-            }),
-        })
-
-        const files: IndexedFile[] = []
-
-        for (const entry of entries) {
-          if (!entry.isFile()) continue
-
-          // skip .asar files
-          if (entry.name.endsWith(".asar")) continue
-
-          // skip entries whose parent segments include excluded names
-          const parentDir = entry.parentPath
-          const relativePath = path.relative(workspacePath, parentDir)
-          const segments = relativePath ? relativePath.split(path.sep) : []
-          if (segments.some((seg) => EXCLUDED_ENTRIES.has(seg))) continue
-
-          const fullPath = normalizePath(path.join(parentDir, entry.name))
-          const isGitIgnored = yield* gitIgnore.isIgnored(workspacePath, fullPath)
-
-          files.push({
-            path: fullPath,
-            name: entry.name,
-            isGitIgnored,
-          })
-        }
-
-        return files
-      }).pipe(
-        Effect.mapError((error) => {
-          if (error instanceof UnknownFSError) return error
-          return new UnknownFSError({
+      Effect.tryPromise({
+        try: () =>
+          new Promise<IndexedFile[]>((resolve, reject) => {
+            const args = [
+              "--files",
+              "--hidden",
+              ...[...EXCLUDED_ENTRIES, "*.asar"].flatMap((entry) => ["--glob", `!${entry}`]),
+            ]
+            execFile(
+              rgPath,
+              args,
+              { cwd: workspacePath, maxBuffer: 50 * 1024 * 1024 },
+              (error, stdout) => {
+                if (error) {
+                  reject(error)
+                  return
+                }
+                const files: IndexedFile[] = stdout
+                  .split("\n")
+                  .filter(Boolean)
+                  .map((relativePath) => {
+                    const fullPath = normalizePath(path.join(workspacePath, relativePath))
+                    const name = relativePath.split("/").pop()!
+                    return { path: fullPath, name }
+                  })
+                resolve(files)
+              },
+            )
+          }),
+        catch: (error) =>
+          new UnknownFSError({
             path: workspacePath,
             description: `failed to list files: ${String(error)}`,
-          })
-        }),
-      )
+          }),
+      })
 
     return {
       readTextFile,

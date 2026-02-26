@@ -53,6 +53,8 @@ test.describe("quick open feature", () => {
     await expect(quickOpenInput).toBeVisible()
     await quickOpenInput.pressSequentially("README.md", { delay: 100 })
 
+    const quickOpenDialog = window.getByRole("dialog", { name: "quick open" })
+    await expect(quickOpenDialog.getByRole("option").first()).toBeVisible()
     await window.keyboard.press("Enter")
     await expect(quickOpenInput).not.toBeVisible() // Quick open should close
 
@@ -67,6 +69,7 @@ test.describe("quick open feature", () => {
     await window.keyboard.press("ControlOrMeta+p")
     await expect(quickOpenInput).toBeVisible()
     await quickOpenInput.pressSequentially("core.py", { delay: 100 })
+    await expect(quickOpenDialog.getByRole("option").first()).toBeVisible()
     await window.keyboard.press("Enter")
     await expect(quickOpenInput).not.toBeVisible() // Quick open should close
 
@@ -81,6 +84,7 @@ test.describe("quick open feature", () => {
     await window.keyboard.press("ControlOrMeta+p")
     await expect(quickOpenInput).toBeVisible()
     await quickOpenInput.pressSequentially("google-doc.py", { delay: 100 })
+    await expect(quickOpenDialog.getByRole("option").first()).toBeVisible()
     await window.keyboard.press("Enter")
     await expect(quickOpenInput).not.toBeVisible() // Quick open should close
 

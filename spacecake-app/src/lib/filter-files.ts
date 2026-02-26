@@ -43,11 +43,6 @@ export function createQuickOpenItems(
 ): QuickOpenFileItem[] {
   const recentPaths = new Set(recentFiles.map((f) => f.path))
 
-  // Filter out gitignored files, unless they're recently opened
-  const visibleFileItems = allFileItems.filter(
-    (item) => !item.file.isGitIgnored || recentPaths.has(item.file.path),
-  )
-
   // If no search, show recent files only (sorted by most recent first)
   if (searchQuery.length === 0) {
     return recentFiles.map((recentFile) => ({
@@ -64,5 +59,5 @@ export function createQuickOpenItems(
   }
 
   // When searching, sort by match score with recency boost applied
-  return sortFilesByMatchingScore(visibleFileItems, searchQuery, recentPaths)
+  return sortFilesByMatchingScore(allFileItems, searchQuery, recentPaths)
 }

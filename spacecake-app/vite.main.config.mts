@@ -21,6 +21,7 @@ export default defineConfig({
         "tree-sitter-typescript",
         "@parcel/watcher",
         "@lydell/node-pty",
+        "@vscode/ripgrep",
         "bufferutil",
         "utf-8-validate",
       ],
