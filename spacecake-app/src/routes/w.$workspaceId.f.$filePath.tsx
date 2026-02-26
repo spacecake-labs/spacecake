@@ -43,17 +43,24 @@ const fileSearchSchema = Schema.Struct({
   source: Schema.optional(OpenFileSourceSchema),
   baseRef: Schema.optional(Schema.String),
   targetRef: Schema.optional(Schema.String),
+  // set by pane machine to signal that pane item activation was already handled
+  paneActivated: Schema.optional(Schema.Boolean),
 })
 
 export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
   validateSearch: (search) => Schema.decodeUnknownSync(fileSearchSchema)(search),
-  loaderDeps: ({ search: { view, editorId, baseRef, targetRef } }) => ({
+  loaderDeps: ({ search: { view, editorId, baseRef, targetRef, paneActivated } }) => ({
     view,
     editorId,
     baseRef,
     targetRef,
+    paneActivated,
   }),
-  loader: async ({ params, deps: { view, editorId, baseRef, targetRef }, context }) => {
+  loader: async ({
+    params,
+    deps: { view, editorId, baseRef, targetRef, paneActivated },
+    context,
+  }) => {
     const { paneId, workspace } = context
     const filePath = AbsolutePath(decodeBase64Url(params.filePath))
 
@@ -115,14 +122,15 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         })
       },
       onRight: async (result) => {
-        // Ensure pane item exists for direct URL navigation
-        // This is safe because direct URL nav doesn't race with close operations
-        await RuntimeClient.runPromise(
-          Effect.gen(function* () {
-            const db = yield* Database
-            yield* db.activateEditorInPane(result.content.data.editorId, paneId)
-          }),
-        )
+        // skip when the pane machine already activated the pane item
+        if (!paneActivated) {
+          await RuntimeClient.runPromise(
+            Effect.gen(function* () {
+              const db = yield* Database
+              yield* db.activateEditorInPane(result.content.data.editorId, paneId)
+            }),
+          )
+        }
 
         // add view to search params if it is not present
         if (!view) {

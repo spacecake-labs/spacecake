@@ -90,6 +90,7 @@ export const paneMachine = setup({
               search: {
                 view: nextActive.value.viewKind,
                 editorId: EditorPrimaryKey(nextActive.value.editorId),
+                paneActivated: true,
               },
             })
           } else {
@@ -137,6 +138,7 @@ export const paneMachine = setup({
           search: {
             view: input.item.viewKind,
             editorId: input.item.editorId,
+            paneActivated: true,
           },
         })
       },
@@ -202,7 +204,6 @@ export const paneMachine = setup({
               editorId = editor.id
             }
 
-            // Activate the editor in the pane (creates paneItem, updates pointers)
             yield* db.activateEditorInPane(editorId, input.paneId)
 
             return Option.some({ editorId, viewKind })
@@ -229,6 +230,7 @@ export const paneMachine = setup({
           search: {
             view: result.value.viewKind,
             editorId: result.value.editorId,
+            paneActivated: true,
             source: input.source,
             baseRef: input.baseRef,
             targetRef: input.targetRef,
