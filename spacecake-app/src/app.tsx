@@ -1,13 +1,14 @@
+import type { PostHog } from "posthog-js"
+
 import { RouterProvider } from "@tanstack/react-router"
 import { Provider } from "jotai"
-import { PostHogProvider } from "posthog-js/react"
+import { useEffect, useState } from "react"
 import ReactDOM from "react-dom/client"
 
 import { useTheme } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { EditorProvider } from "@/contexts/editor-context"
 import { initializeDatabase } from "@/lib/init-database"
-import posthog from "@/lib/posthog-client"
 import { store } from "@/lib/store"
 import { router } from "@/router"
 
@@ -16,6 +17,26 @@ const db = await initializeDatabase()
 
 const rootElement = document.getElementById("root")!
 const root = ReactDOM.createRoot(rootElement)
+
+function DeferredPostHogProvider({ children }: { children: React.ReactNode }) {
+  const [ctx, setCtx] = useState<{
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Provider: React.ComponentType<{ client: PostHog; children: React.ReactNode }>
+    client: PostHog
+  } | null>(null)
+
+  useEffect(() => {
+    Promise.all([import("posthog-js/react"), import("@/lib/posthog-client")]).then(
+      ([reactMod, clientMod]) => {
+        setCtx({ Provider: reactMod.PostHogProvider, client: clientMod.initPostHog() })
+      },
+    )
+  }, [])
+
+  if (!ctx) return <>{children}</>
+
+  return <ctx.Provider client={ctx.client}>{children}</ctx.Provider>
+}
 
 function RootWithTheme() {
   const { theme } = useTheme()
@@ -34,10 +55,10 @@ function RootWithTheme() {
 
 root.render(
   <Provider store={store}>
-    <PostHogProvider client={posthog}>
+    <DeferredPostHogProvider>
       <EditorProvider>
         <RootWithTheme />
       </EditorProvider>
-    </PostHogProvider>
+    </DeferredPostHogProvider>
   </Provider>,
 )

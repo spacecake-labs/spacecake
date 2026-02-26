@@ -3,8 +3,9 @@ import posthog from "posthog-js"
 const PUBLIC_POSTHOG_KEY = "phc_tie9HcJtBH5SkcTLpsJaUnq7X8adjIpDU4flhefHdWJ"
 const PUBLIC_POSTHOG_HOST = "https://us.i.posthog.com"
 
-// Initialize PostHog client-side
-if (typeof window !== "undefined" && !posthog.__loaded) {
+export function initPostHog() {
+  if (typeof window === "undefined" || posthog.__loaded) return posthog
+
   posthog.init(PUBLIC_POSTHOG_KEY, {
     api_host: PUBLIC_POSTHOG_HOST,
     capture_exceptions: true,
@@ -21,6 +22,8 @@ if (typeof window !== "undefined" && !posthog.__loaded) {
   if (window.location.protocol === "file:") {
     posthog.register({ $host: "spacecake.ai" })
   }
+
+  return posthog
 }
 
 export default posthog

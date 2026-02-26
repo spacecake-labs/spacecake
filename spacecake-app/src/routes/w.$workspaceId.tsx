@@ -18,7 +18,7 @@ import {
   PanelRight,
   X,
 } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 
 import type { DockAction } from "@/lib/dock-transition"
 import type { DockablePanelKind, DockPosition } from "@/schema/workspace-layout"
@@ -26,12 +26,17 @@ import type { DockablePanelKind, DockPosition } from "@/schema/workspace-layout"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DeleteButton } from "@/components/delete-button"
 import { EditorToolbar } from "@/components/editor/toolbar"
-import { GitPanel } from "@/components/git-panel"
 import { LoadingAnimation } from "@/components/loading-animation"
-import { QuickOpen } from "@/components/quick-open"
 import { TabBar } from "@/components/tab-bar"
-import { TaskTable } from "@/components/task-table/task-table"
-import { Terminal } from "@/components/terminal"
+
+const GitPanel = lazy(() => import("@/components/git-panel").then((m) => ({ default: m.GitPanel })))
+const TaskTable = lazy(() =>
+  import("@/components/task-table/task-table").then((m) => ({ default: m.TaskTable })),
+)
+const Terminal = lazy(() => import("@/components/terminal").then((m) => ({ default: m.Terminal })))
+const QuickOpen = lazy(() =>
+  import("@/components/quick-open").then((m) => ({ default: m.QuickOpen })),
+)
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
 import {
   DropdownMenu,
@@ -856,7 +861,9 @@ function LayoutContent() {
                     isTaskCollapsed && "hidden",
                   )}
                 >
-                  <TaskTable />
+                  <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                    <TaskTable />
+                  </Suspense>
                 </div>
               </div>
             </ResizablePanel>
@@ -877,11 +884,13 @@ function LayoutContent() {
                     isGitCollapsed && "hidden",
                   )}
                 >
-                  <GitPanel
-                    workspacePath={workspace.path}
-                    onFileClick={handleGitFileClick}
-                    onCommitFileClick={handleCommitFileClick}
-                  />
+                  <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                    <GitPanel
+                      workspacePath={workspace.path}
+                      onFileClick={handleGitFileClick}
+                      onCommitFileClick={handleCommitFileClick}
+                    />
+                  </Suspense>
                 </div>
               </div>
             </ResizablePanel>
@@ -914,15 +923,17 @@ function LayoutContent() {
     >
       <div ref={terminalPanelRef} className={cn("h-full w-full", isTerminalCollapsed && "hidden")}>
         {isTerminalSessionActive && (
-          <Terminal
-            cwd={workspace.path}
-            toolbarRight={terminalToolbarRight}
-            onLastTabClosed={() => {
-              setIsTerminalSessionActive(false)
-              setTerminalExpanded(false)
-              focus("editor")
-            }}
-          />
+          <Suspense fallback={<div className="h-full w-full bg-background" />}>
+            <Terminal
+              cwd={workspace.path}
+              toolbarRight={terminalToolbarRight}
+              onLastTabClosed={() => {
+                setIsTerminalSessionActive(false)
+                setTerminalExpanded(false)
+                focus("editor")
+              }}
+            />
+          </Suspense>
         )}
       </div>
     </ResizablePanel>
@@ -986,11 +997,13 @@ function LayoutContent() {
                           isGitCollapsed && "hidden",
                         )}
                       >
-                        <GitPanel
-                          workspacePath={workspace.path}
-                          onFileClick={handleGitFileClick}
-                          onCommitFileClick={handleCommitFileClick}
-                        />
+                        <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                          <GitPanel
+                            workspacePath={workspace.path}
+                            onFileClick={handleGitFileClick}
+                            onCommitFileClick={handleCommitFileClick}
+                          />
+                        </Suspense>
                       </div>
                     </div>
                   </ResizablePanel>
@@ -1017,7 +1030,9 @@ function LayoutContent() {
                           isTaskCollapsed && "hidden",
                         )}
                       >
-                        <TaskTable />
+                        <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                          <TaskTable />
+                        </Suspense>
                       </div>
                     </div>
                   </ResizablePanel>
@@ -1081,7 +1096,9 @@ function LayoutContent() {
                           isTaskCollapsed && "hidden",
                         )}
                       >
-                        <TaskTable />
+                        <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                          <TaskTable />
+                        </Suspense>
                       </div>
                     </div>
                   </ResizablePanel>
@@ -1108,11 +1125,13 @@ function LayoutContent() {
                           isGitCollapsed && "hidden",
                         )}
                       >
-                        <GitPanel
-                          workspacePath={workspace.path}
-                          onFileClick={handleGitFileClick}
-                          onCommitFileClick={handleCommitFileClick}
-                        />
+                        <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                          <GitPanel
+                            workspacePath={workspace.path}
+                            onFileClick={handleGitFileClick}
+                            onCommitFileClick={handleCommitFileClick}
+                          />
+                        </Suspense>
                       </div>
                     </div>
                   </ResizablePanel>
@@ -1208,7 +1227,9 @@ function WorkspaceLayout() {
           </SidebarProvider>
         </FocusManagerProvider>
       </div>
-      <QuickOpen workspacePath={workspace.path} machine={machine} />
+      <Suspense>
+        <QuickOpen workspacePath={workspace.path} machine={machine} />
+      </Suspense>
     </>
   )
 }
