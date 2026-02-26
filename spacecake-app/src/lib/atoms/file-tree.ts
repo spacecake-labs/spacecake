@@ -247,12 +247,14 @@ export const fileTreeEventAtom = atom(
         )
         set(fileTreeAtom, newTree)
 
-        // Dispatch external change event to the state machine
-        // Note: pending saves are filtered by the file event handler,
-        // so only legit external changes reach here
-        set(fileStateAtomFamily(absolutePath), {
-          type: "file.external.change",
-        })
+        // only notify files that already have state machines (i.e., were opened).
+        // watcher events fire for every file in the workspace — don't create
+        // machine actors for files the user never opened.
+        if (hasFileStateAtom(absolutePath)) {
+          set(fileStateAtomFamily(absolutePath), {
+            type: "file.external.change",
+          })
+        }
 
         break
       }
@@ -260,6 +262,7 @@ export const fileTreeEventAtom = atom(
       case "unlinkFile": {
         const newTree = removeItemFromTree(currentTree, absolutePath)
         set(fileTreeAtom, newTree)
+        fileStateAtomFamily.remove(absolutePath)
         ;(async () => {
           await deleteFile(absolutePath)
         })()
@@ -306,6 +309,14 @@ const createFileStateMachineAtom = (filePath: AbsolutePath) =>
   )
 
 export const fileStateAtomFamily = atomFamily(createFileStateMachineAtom)
+
+/** check if a file state atom already exists without creating one */
+export const hasFileStateAtom = (filePath: AbsolutePath): boolean => {
+  for (const param of fileStateAtomFamily.getParams()) {
+    if (param === filePath) return true
+  }
+  return false
+}
 
 /**
  * Represents a creation input placeholder for virtualized rendering.

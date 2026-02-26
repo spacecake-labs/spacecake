@@ -3,6 +3,7 @@ import { assertEvent, fromPromise, setup, type ActorRefFrom } from "xstate"
 
 import type { OpenFileSource } from "@/types/claude-code"
 
+import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
 import { supportsRichView } from "@/lib/language-support"
 import { encodeBase64Url } from "@/lib/utils"
 import { fileTypeFromFileName } from "@/lib/workspace"
@@ -102,6 +103,9 @@ export const paneMachine = setup({
           }
         }
         // If closing a non-active tab, no navigation needed
+
+        // clean up the file state machine atom so it doesn't leak
+        fileStateAtomFamily.remove(AbsolutePath(input.filePath))
       },
     ),
     activateItem: fromPromise(
