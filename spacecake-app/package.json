@@ -88,7 +88,6 @@
     "ignore": "^7.0.5",
     "jotai": "^2.17.1",
     "jotai-effect": "^2.2.3",
-    "jotai-family": "^1.0.1",
     "jotai-xstate": "^0.6.1",
     "lexical": "^0.40.0",
     "live": "link:@electric-sql/pglite/live",
