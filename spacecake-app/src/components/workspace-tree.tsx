@@ -329,6 +329,54 @@ export interface TreeRowProps {
   style?: React.CSSProperties
 }
 
+function areTreeRowPropsEqual(prev: TreeRowProps, next: TreeRowProps): boolean {
+  // fast path: wrapper reference preserved by intern cache
+  if (prev.flatItem !== next.flatItem) {
+    const pi = prev.flatItem
+    const ni = next.flatItem
+    if (pi.item.path !== ni.item.path) return false
+    if (pi.item.name !== ni.item.name) return false
+    if (pi.item.kind !== ni.item.kind) return false
+    if (pi.item.isGitIgnored !== ni.item.isGitIgnored) return false
+    if (pi.depth !== ni.depth) return false
+    if (pi.isExpanded !== ni.isExpanded) return false
+    if (pi.hasChildren !== ni.hasChildren) return false
+    if (pi.item.kind === "file" && ni.item.kind === "file") {
+      if (pi.item.cid !== ni.item.cid) return false
+      if (pi.item.fileType !== ni.item.fileType) return false
+    }
+    if (pi.item.kind === "folder" && ni.item.kind === "folder") {
+      if (pi.item.isSystemFolder !== ni.item.isSystemFolder) return false
+    }
+  }
+
+  if (prev.selectedFilePath !== next.selectedFilePath) return false
+
+  // editingItem: only compare whether *this* row is being edited
+  const path = prev.flatItem.item.path
+  const prevEditing = prev.editingItem?.path === path
+  const nextEditing = next.editingItem?.path === path
+  if (prevEditing !== nextEditing) return false
+  if (prevEditing && nextEditing) {
+    if (prev.editingItem!.value !== next.editingItem!.value) return false
+    if (prev.validationError !== next.validationError) return false
+  }
+
+  // cacheMap: only compare this row's entry (files only)
+  if (prev.flatItem.item.kind === "file") {
+    const pe = prev.cacheMap.get(path)
+    const ne = next.cacheMap.get(path)
+    if (pe !== ne) {
+      if (!pe || !ne) return false
+      if (pe.view_kind !== ne.view_kind) return false
+      if (pe.editorId !== ne.editorId) return false
+      if (pe.has_cached_state !== ne.has_cached_state) return false
+    }
+  }
+
+  return true
+}
+
 /**
  * TreeRow renders a single item in the virtualized file tree.
  * Handles both files and folders with proper indentation based on depth.
@@ -444,4 +492,4 @@ export const TreeRow = React.memo(function TreeRow({
       </SidebarMenuItem>
     </>
   )
-})
+}, areTreeRowPropsEqual)

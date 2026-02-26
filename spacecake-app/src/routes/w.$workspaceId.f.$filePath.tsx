@@ -9,7 +9,12 @@ import { Editor } from "@/components/editor/editor"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { useWorkspaceSettings } from "@/hooks/use-workspace-settings"
 import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms"
-import { fileStateAtomFamily, findFolderInTree, updateFolderInTree } from "@/lib/atoms/file-tree"
+import {
+  fileStateAtomFamily,
+  findFolderInTree,
+  sortTree,
+  updateFolderInTree,
+} from "@/lib/atoms/file-tree"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
 import {
   createEditorConfigFromContent,
@@ -87,7 +92,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
             store.set(fileTreeAtom, (prev) =>
               updateFolderInTree(prev, folderPath, (f) => ({
                 ...f,
-                children,
+                children: sortTree(children),
                 resolved: true,
               })),
             )
