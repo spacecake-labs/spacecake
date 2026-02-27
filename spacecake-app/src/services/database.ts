@@ -1,12 +1,18 @@
-import { PGlite } from "@electric-sql/pglite"
-import { live, type PGliteWithLive } from "@electric-sql/pglite/live"
-import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm"
+import type { PGliteInterface } from "@electric-sql/pglite"
+
+import { and, desc, eq, getTableColumns, isNotNull, like, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
-import { Console, Data, DateTime, Effect, flow, Option, Schema } from "effect"
+import { Context, Data, DateTime, Effect, flow, Option, Schema } from "effect"
 
 import type { PersistableViewKind } from "@/types/lexical"
 
-import { workspaceCacheQuery } from "@/lib/db/queries"
+import {
+  activePaneItemQuery,
+  paneItemsQuery,
+  workspaceCacheQuery,
+  workspaceLayoutQuery,
+  workspaceSettingsQuery as workspaceSettingsRawQuery,
+} from "@/lib/db/queries"
 import {
   ActiveEditorSelectSchema,
   EditorInsertSchema,
@@ -48,10 +54,11 @@ import {
   type WorkspaceSettings,
 } from "@/schema/workspace-settings"
 import { maybeSingleResult, singleResult } from "@/services/utils"
+import { none, some, type Maybe } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
-// web worker version kept for when pglite improves worker RPC batching:
-// import { PGliteWorker } from "@electric-sql/pglite/worker"
-// import PgliteWorkerModule from "@/workers/pglite-worker?worker"
+
+const toMaybe = <A>(option: Option.Option<A>): Maybe<A> =>
+  Option.isSome(option) ? some(option.value) : none
 
 export class PgliteError extends Data.TaggedError("PgliteError")<{
   cause: unknown
@@ -64,7 +71,6 @@ const execute = <A, I, T, E>(
   flow(
     Schema.decode(schema),
     Effect.flatMap(Schema.encode(schema)),
-    // Effect.tap((encoded) => Effect.log("db:", encoded)),
     Effect.mapError((error) => new PgliteError({ cause: error })),
     Effect.flatMap(exec),
   )
@@ -75,12 +81,12 @@ type Orm = ReturnType<typeof drizzle>
  * creates the Database service methods given a PGlite client and ORM.
  * this factory is shared between production and test layers.
  */
-export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
+export const makeDatabaseService = (client: PGliteInterface, orm: Orm) => {
   const query = <R>(execute: (_: Orm) => Promise<R>) =>
     Effect.tryPromise({
       try: () => execute(orm),
       catch: (error) => {
-        Console.log(error)
+        console.error(error)
         return new PgliteError({ cause: error })
       },
     })
@@ -93,22 +99,21 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
     selectWorkspaceCache: (workspacePath: AbsolutePath) =>
       query((_) => workspaceCacheQuery(_, workspacePath)),
 
-    selectLastOpenedWorkspace: query((_) =>
-      _.select()
-        .from(workspaceTable)
-        .where(eq(workspaceTable.is_open, true))
-        .orderBy(desc(workspaceTable.last_accessed_at))
-        .limit(1),
-    ).pipe(
-      maybeSingleResult(),
-      Effect.flatMap((maybeWorkspace) =>
-        Option.isNone(maybeWorkspace)
-          ? Effect.succeed(Option.none())
-          : Schema.decode(WorkspaceSelectSchema)(maybeWorkspace.value).pipe(
-              Effect.map(Option.some),
-            ),
+    selectLastOpenedWorkspace: () =>
+      query((_) =>
+        _.select()
+          .from(workspaceTable)
+          .where(eq(workspaceTable.is_open, true))
+          .orderBy(desc(workspaceTable.last_accessed_at))
+          .limit(1),
+      ).pipe(
+        maybeSingleResult(),
+        Effect.flatMap((maybeWorkspace) =>
+          Option.isNone(maybeWorkspace)
+            ? Effect.succeed(none)
+            : Schema.decode(WorkspaceSelectSchema)(maybeWorkspace.value).pipe(Effect.map(some)),
+        ),
       ),
-    ),
 
     upsertWorkspace: flow(
       execute(WorkspaceInsertSchema, (values: WorkspaceInsert) =>
@@ -130,30 +135,25 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
       ),
       singleResult(() => new PgliteError({ cause: "workspace not upserted" })),
       Effect.flatMap(Schema.decode(WorkspaceSelectSchema)),
-      // Effect.tap((workspace) =>
-      //   Effect.log("db: upserted workspace:", workspace)
-      // )
     ),
 
-    upsertFile: () =>
-      flow(
-        execute(FileInsertSchema, (values: FileInsert) =>
-          Effect.gen(function* () {
-            return yield* query((_) =>
-              _.insert(fileTable)
-                .values(values)
-                .onConflictDoUpdate({
-                  target: fileTable.path,
-                  set: { cid: values.cid, mtime: values.mtime },
-                })
-                .returning(),
-            )
-          }),
-        ),
-        singleResult(() => new PgliteError({ cause: "file not upserted" })),
-        Effect.flatMap(Schema.decode(FileSelectSchema)),
-        // Effect.tap((file) => Effect.log("db: upserted file:", file))
+    upsertFile: flow(
+      execute(FileInsertSchema, (values: FileInsert) =>
+        Effect.gen(function* () {
+          return yield* query((_) =>
+            _.insert(fileTable)
+              .values(values)
+              .onConflictDoUpdate({
+                target: fileTable.path,
+                set: { cid: values.cid, mtime: values.mtime },
+              })
+              .returning(),
+          )
+        }),
       ),
+      singleResult(() => new PgliteError({ cause: "file not upserted" })),
+      Effect.flatMap(Schema.decode(FileSelectSchema)),
+    ),
 
     updateFileAccessedAt: flow(
       execute(FileUpdateSchema, (values: FileUpdate) =>
@@ -166,7 +166,6 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
           )
         }),
       ),
-      // Effect.tap((file) => Effect.log("db: updated file accessed at:", file))
     ),
 
     upsertPane: flow(
@@ -187,7 +186,6 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
       ),
       singleResult(() => new PgliteError({ cause: "pane not upserted" })),
       Effect.flatMap(Schema.decode(PaneSelectSchema)),
-      // Effect.tap((pane) => Effect.log("db: upserted pane:", pane))
     ),
 
     insertPaneItem: flow(
@@ -225,7 +223,7 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
               SELECT 1
             `),
           )
-          return Option.none()
+          return none
         }
 
         // closing active tab: delete + recompact + find next + update pane (1 roundtrip)
@@ -257,7 +255,7 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
           `),
         )
 
-        if (result.rows.length === 0) return Option.none()
+        if (result.rows.length === 0) return none
 
         const row = result.rows[0] as {
           id: string
@@ -266,7 +264,7 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
           view_kind: PersistableViewKind
         }
 
-        return Option.some({
+        return some({
           id: row.id,
           editorId: row.editor_id,
           filePath: row.file_path,
@@ -314,8 +312,8 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
         maybeSingleResult(),
         Effect.flatMap((maybe) =>
           Option.isNone(maybe)
-            ? Effect.succeed(Option.none())
-            : Schema.decode(PaneItemSelectSchema)(maybe.value).pipe(Effect.map(Option.some)),
+            ? Effect.succeed(none)
+            : Schema.decode(PaneItemSelectSchema)(maybe.value).pipe(Effect.map(some)),
         ),
       ),
 
@@ -391,7 +389,6 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
       ),
       singleResult(() => new PgliteError({ cause: "editor not upserted" })),
       Effect.flatMap(Schema.decode(EditorSelectSchema)),
-      // Effect.tap((editor) => Effect.log("db: upserted editor:", editor))
     ),
 
     updateEditorAccessedAt: (editorId: EditorPrimaryKey, paneId: PanePrimaryKey) =>
@@ -422,7 +419,6 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
           )
         }),
       ),
-      // Effect.tap((editor) => Effect.log("db: updated editor state:", editor))
     ),
 
     updateEditorViewKind: (editorId: EditorPrimaryKey, viewKind: PersistableViewKind) =>
@@ -442,21 +438,13 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
           )
         }),
       ),
-      // Effect.tap((editor) =>
-      //   Effect.log("db: updated editor selection:", editor)
-      // )
     ),
 
     deleteFile: (filePath: AbsolutePath) =>
       Effect.gen(function* () {
         return yield* query((_) =>
           _.delete(fileTable).where(eq(fileTable.path, filePath)).returning(),
-        ).pipe(
-          maybeSingleResult(),
-          // Effect.tap((deletedFiles) =>
-          //   Effect.log("db: deleted file:", deletedFiles)
-          // )
-        )
+        ).pipe(maybeSingleResult(), Effect.map(toMaybe))
       }),
 
     selectLastOpenedFile: () =>
@@ -481,8 +469,8 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
         maybeSingleResult(),
         Effect.flatMap((maybe) =>
           Option.isNone(maybe)
-            ? Effect.succeed(Option.none())
-            : Schema.decode(FileSelectSchema)(maybe.value).pipe(Effect.map(Option.some)),
+            ? Effect.succeed(none)
+            : Schema.decode(FileSelectSchema)(maybe.value).pipe(Effect.map(some)),
         ),
       ),
 
@@ -510,8 +498,8 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
         maybeSingleResult(),
         Effect.flatMap((maybe) =>
           Option.isNone(maybe)
-            ? Effect.succeed(Option.none())
-            : Schema.decode(ActiveEditorSelectSchema)(maybe.value).pipe(Effect.map(Option.some)),
+            ? Effect.succeed(none)
+            : Schema.decode(ActiveEditorSelectSchema)(maybe.value).pipe(Effect.map(some)),
         ),
       ),
 
@@ -535,9 +523,16 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
         maybeSingleResult(),
         Effect.flatMap(
           Option.match({
-            onNone: () => Effect.succeed(Option.none()),
+            onNone: () => Effect.succeed(none),
             onSome: (value) =>
-              Schema.decode(EditorStateWithFileIdSelectSchema)(value).pipe(Effect.map(Option.some)),
+              Schema.decode(EditorStateWithFileIdSelectSchema)(value).pipe(
+                Effect.map((decoded) =>
+                  some({
+                    ...decoded,
+                    selection: Option.getOrNull(decoded.selection),
+                  }),
+                ),
+              ),
           }),
         ),
       ),
@@ -548,7 +543,7 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
           _.update(editorTable)
             .set({ state: null, state_updated_at: null, selection: null })
             .from(fileTable)
-            .where(eq(fileTable.path, filePath)),
+            .where(and(eq(fileTable.path, filePath), eq(editorTable.file_id, fileTable.id))),
         )
       }),
 
@@ -568,9 +563,16 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
         maybeSingleResult(),
         Effect.flatMap(
           Option.match({
-            onNone: () => Effect.succeed(Option.none()),
+            onNone: () => Effect.succeed(none),
             onSome: (value) =>
-              Schema.decode(EditorStateWithFileIdSelectSchema)(value).pipe(Effect.map(Option.some)),
+              Schema.decode(EditorStateWithFileIdSelectSchema)(value).pipe(
+                Effect.map((decoded) =>
+                  some({
+                    ...decoded,
+                    selection: Option.getOrNull(decoded.selection),
+                  }),
+                ),
+              ),
           }),
         ),
       ),
@@ -605,58 +607,97 @@ export const makeDatabaseService = (client: PGliteWithLive, orm: Orm) => {
         ),
       ),
 
-    // selectRecentFiles: (workspacePath: AbsolutePath) =>
-    //   query((_) =>
-    //     _.select(getTableColumns(fileTable))
-    //       .from(fileTable)
-    //       .innerJoin(
-    //         workspaceTable,
-    //         eq(fileTable.workspace_id, workspaceTable.id)
-    //       )
-    //       .where(eq(workspaceTable.path, workspacePath))
-    //       .orderBy(desc(fileTable.last_accessed_at))
-    //       .limit(10)
-    //   ).pipe(
-    //     Effect.flatMap((files) =>
-    //       Effect.forEach(files, (file) =>
-    //         Schema.decode(FileSelectSchema)(file)
-    //       )
-    //     )
-    //   ),
+    // --- query methods for reactive hooks (used via IPC in renderer) ---
+
+    selectWorkspaceLayoutRaw: (workspaceId: WorkspacePrimaryKey) =>
+      query((_) => workspaceLayoutQuery(_, workspaceId)),
+
+    selectWorkspaceSettingsRaw: (workspaceId: WorkspacePrimaryKey) =>
+      query((_) => workspaceSettingsRawQuery(_, workspaceId)),
+
+    selectPaneItems: (paneId: PanePrimaryKey) => query((_) => paneItemsQuery(_, paneId)),
+
+    selectActivePaneItemId: (paneId: PanePrimaryKey) =>
+      query((_) => activePaneItemQuery(_, paneId)),
+
+    selectRecentFiles: (workspacePath: AbsolutePath) =>
+      query((_) =>
+        _.select(getTableColumns(fileTable))
+          .from(fileTable)
+          .where(
+            and(like(fileTable.path, `${workspacePath}%`), isNotNull(fileTable.last_accessed_at)),
+          )
+          .orderBy(desc(fileTable.last_accessed_at))
+          .limit(10),
+      ),
+
+    selectActiveEditorRaw: (workspacePath: AbsolutePath) =>
+      query((_) =>
+        _.select(getTableColumns(editorTable))
+          .from(workspaceTable)
+          .innerJoin(
+            paneTable,
+            and(
+              eq(paneTable.id, workspaceTable.active_pane_id),
+              eq(workspaceTable.path, workspacePath),
+            ),
+          )
+          .innerJoin(paneItemTable, eq(paneItemTable.id, paneTable.active_pane_item_id))
+          .innerJoin(editorTable, eq(editorTable.id, paneItemTable.editor_id))
+          .limit(1),
+      ),
+
+    // --- full-table fetch methods for TanStack DB collections ---
+
+    selectAllFiles: (workspacePath: AbsolutePath) =>
+      query((_) =>
+        _.select(getTableColumns(fileTable))
+          .from(fileTable)
+          .where(like(fileTable.path, `${workspacePath}%`)),
+      ),
+
+    selectAllPanes: (workspaceId: WorkspacePrimaryKey) =>
+      query((_) =>
+        _.select(getTableColumns(paneTable))
+          .from(paneTable)
+          .where(eq(paneTable.workspace_id, workspaceId)),
+      ),
+
+    selectAllPaneItems: (workspaceId: WorkspacePrimaryKey) =>
+      query((_) =>
+        _.select(getTableColumns(paneItemTable))
+          .from(paneItemTable)
+          .innerJoin(paneTable, eq(paneItemTable.pane_id, paneTable.id))
+          .where(eq(paneTable.workspace_id, workspaceId)),
+      ),
+
+    selectAllEditors: (workspaceId: WorkspacePrimaryKey) =>
+      query((_) =>
+        _.select(getTableColumns(editorTable))
+          .from(editorTable)
+          .innerJoin(paneTable, eq(editorTable.pane_id, paneTable.id))
+          .where(eq(paneTable.workspace_id, workspaceId)),
+      ),
+
+    selectWorkspaceById: (workspaceId: WorkspacePrimaryKey) =>
+      query((_) =>
+        _.select(getTableColumns(workspaceTable))
+          .from(workspaceTable)
+          .where(eq(workspaceTable.id, workspaceId)),
+      ),
   }
 }
 
-export class Database extends Effect.Service<Database>()("Database", {
-  effect: Effect.gen(function* () {
-    const client = yield* Effect.tryPromise({
-      try: () =>
-        PGlite.create({
-          dataDir: "idb://spacecake",
-          extensions: { live },
-          relaxedDurability: true,
-        }),
-      catch: (error) => {
-        console.log(error)
-        return new PgliteError({ cause: error })
-      },
-    })
+/** IPC-callable method names (everything except client/orm/query) */
+export type DatabaseMethods = Omit<
+  ReturnType<typeof makeDatabaseService>,
+  "client" | "orm" | "query"
+>
 
-    // web worker version (revisit when pglite batches worker RPC):
-    // const client = yield* Effect.tryPromise({
-    //   try: () =>
-    //     PGliteWorker.create(new PgliteWorkerModule(), {
-    //       dataDir: "idb://spacecake",
-    //       extensions: { live },
-    //       singleTab: true,
-    //     }),
-    //   catch: (error) => {
-    //     console.log(error)
-    //     return new PgliteError({ cause: error })
-    //   },
-    // })
+/** union of IPC-callable method names for type-safe dispatch */
+export type DatabaseMethodName = keyof DatabaseMethods
 
-    const orm = drizzle({ client, casing: "snake_case" })
-
-    return makeDatabaseService(client, orm)
-  }),
-}) {}
+export class Database extends Context.Tag("Database")<
+  Database,
+  ReturnType<typeof makeDatabaseService>
+>() {}

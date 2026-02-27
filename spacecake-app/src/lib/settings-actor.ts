@@ -1,11 +1,9 @@
-import { Effect } from "effect"
 import { createActor, fromPromise, setup, type Actor } from "xstate"
 
 import type { WorkspaceSettings } from "@/schema/workspace-settings"
 
+import * as mutations from "@/lib/db/mutations"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
-import { Database } from "@/services/database"
-import { RuntimeClient } from "@/services/runtime-client"
 
 /**
  * Settings machine that handles workspace settings updates.
@@ -23,12 +21,7 @@ const settingsMachine = setup({
   actors: {
     saveSettings: fromPromise(
       ({ input }: { input: { workspaceId: WorkspacePrimaryKey; settings: WorkspaceSettings } }) =>
-        RuntimeClient.runPromise(
-          Effect.gen(function* () {
-            const db = yield* Database
-            yield* db.updateWorkspaceSettings(input.workspaceId, input.settings)
-          }).pipe(Effect.tapErrorCause(Effect.logError)),
-        ),
+        mutations.updateWorkspaceSettings(input.workspaceId, input.settings),
     ),
   },
 }).createMachine({
@@ -79,4 +72,13 @@ export function getOrCreateSettingsMachine(workspaceId: WorkspacePrimaryKey): Se
   actor.start()
   settingsMachineCache.set(workspaceId, actor)
   return actor
+}
+
+/** stop and remove a settings machine actor for a workspace */
+export function cleanupSettingsMachine(workspaceId: WorkspacePrimaryKey): void {
+  const actor = settingsMachineCache.get(workspaceId)
+  if (actor) {
+    actor.stop()
+    settingsMachineCache.delete(workspaceId)
+  }
 }

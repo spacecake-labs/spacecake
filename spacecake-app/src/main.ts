@@ -20,8 +20,10 @@ import { fixPath } from "@/main-process/fix-path"
 import { ClaudeCodeServer } from "@/services/claude-code-server"
 import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { CliServer } from "@/services/cli-server"
+import { DatabaseMainLayer } from "@/services/database-main"
 import { GitService } from "@/services/git"
 import { Ipc } from "@/services/ipc"
+import { Migrations } from "@/services/migrations"
 import { ensureHomeFolderExists, SpacecakeHome } from "@/services/spacecake-home"
 import { setupUpdates } from "@/update"
 
@@ -231,8 +233,13 @@ const AppLive = Layer.mergeAll(
   ClaudeHooksServer.Default,
   CliServer.Default,
   GitService.Default,
+  Migrations.Default,
   SpacecakeHomeLive,
-).pipe(Layer.provide(SpacecakeHomeLive), Layer.provide(Layer.scope))
+).pipe(
+  Layer.provide(DatabaseMainLayer),
+  Layer.provide(SpacecakeHomeLive),
+  Layer.provide(Layer.scope),
+)
 
 const AppRuntime = ManagedRuntime.make(AppLive)
 
@@ -240,6 +247,10 @@ const setupProgram = Effect.gen(function* () {
   yield* Effect.promise(() => app.whenReady())
   yield* Effect.promise(() => fixPath())
   yield* ensureHomeFolderExists
+
+  // run database migrations before creating window
+  const migrations = yield* Migrations
+  yield* migrations.apply
 
   // Start CLI server early so `spacecake open` works before a workspace is opened
   const cliServer = yield* CliServer

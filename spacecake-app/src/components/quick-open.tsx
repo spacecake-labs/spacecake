@@ -42,7 +42,7 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
   // read from the dedicated quick-open index (decoupled from sidebar)
   const indexedFiles = useAtomValue(quickOpenIndexAtom)
   const indexReady = useAtomValue(quickOpenIndexReadyAtom)
-  const recentFiles = useRecentFiles(workspacePath)
+  const recentFiles = useRecentFiles()
 
   if (recentFiles.error) {
     console.error("error getting recent files", recentFiles.error)

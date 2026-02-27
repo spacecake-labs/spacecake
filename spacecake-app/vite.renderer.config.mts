@@ -40,12 +40,7 @@ export default defineConfig({
     plugins: () => [wasm(), topLevelAwait()],
   },
   optimizeDeps: {
-    exclude: [
-      "web-tree-sitter",
-      "tree-sitter-python",
-      "tree-sitter-typescript",
-      "@electric-sql/pglite",
-    ],
+    exclude: ["web-tree-sitter", "tree-sitter-python", "tree-sitter-typescript"],
   },
   server: {
     hmr: {

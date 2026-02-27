@@ -17,6 +17,3 @@ onlyBuiltDependencies:
   - tree-sitter-javascript
   - tree-sitter-python
   - tree-sitter-typescript
-
-patchedDependencies:
-  "@electric-sql/pglite@0.3.15": patches/@electric-sql__pglite@0.3.15.patch

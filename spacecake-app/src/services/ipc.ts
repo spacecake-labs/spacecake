@@ -1,13 +1,15 @@
 import { execFile } from "child_process"
-import { Effect } from "effect"
+import { Cause, Effect, Exit } from "effect"
 import { BrowserWindow, dialog, ipcMain, shell } from "electron"
 import fsNode from "fs/promises"
 import path from "path"
 import { promisify } from "util"
 
+import { MUTATION_METHOD_NAMES } from "@/lib/db/mutation-methods"
 import { normalizePath } from "@/lib/utils"
 import { ClaudeSettingsFile, type StatuslineConfigStatus } from "@/services/claude-settings-file"
 import { ClaudeTaskListService } from "@/services/claude-task-list"
+import { Database, type DatabaseMethodName } from "@/services/database"
 import { FileSystem, type FileSystemError, type IndexedFile } from "@/services/file-system"
 import { GitCommit, GitError, GitFileDiff, GitService, GitStatus } from "@/services/git"
 import { SpacecakeHome } from "@/services/spacecake-home"
@@ -51,6 +53,47 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     const settingsFile = yield* ClaudeSettingsFile
     const home = yield* SpacecakeHome
     const git = yield* GitService
+    const db = yield* Database
+
+    // ---------------------------------------------------------------------------
+    // Database IPC — routes method calls from renderer to main-process PGlite
+    // ---------------------------------------------------------------------------
+
+    // non-callable properties that must not be dispatched via IPC
+    const NON_CALLABLE = new Set<string>(["client", "orm", "query"])
+
+    // mutation methods that trigger invalidation — single source of truth in invalidation.ts
+
+    ipcMain.handle("db:invoke", async (event, method: string, ...args: unknown[]) => {
+      if (NON_CALLABLE.has(method)) {
+        return left({ _tag: "PgliteError" as const, cause: `${method} is not callable via IPC` })
+      }
+
+      const fn = db[method as DatabaseMethodName]
+      if (typeof fn !== "function") {
+        return left({ _tag: "PgliteError" as const, cause: `unknown db method: ${method}` })
+      }
+
+      // single contained cast — args are untyped at the IPC boundary
+      const handler = fn as (...a: unknown[]) => Effect.Effect<unknown, unknown>
+      const exit = await Effect.runPromiseExit(handler(...args))
+
+      if (Exit.isFailure(exit)) {
+        const squashed = Cause.squash(exit.cause)
+        console.error("[main:db] ERROR in", method, ":", squashed)
+        return left({
+          _tag: "PgliteError" as const,
+          cause: squashed instanceof Error ? squashed.message : String(squashed),
+        })
+      }
+
+      // notify renderer of data changes after mutations
+      if (MUTATION_METHOD_NAMES.has(method)) {
+        BrowserWindow.fromWebContents(event.sender)?.webContents.send("db:invalidate", method)
+      }
+
+      return right(exit.value)
+    })
 
     ipcMain.handle(
       "read-file",

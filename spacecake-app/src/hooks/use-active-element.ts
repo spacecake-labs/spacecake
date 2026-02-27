@@ -1,26 +1,39 @@
-import { and, eq, getTableColumns } from "drizzle-orm"
+import { eq, useLiveQuery } from "@tanstack/react-db"
+import { useMemo } from "react"
 
-import { useQuery } from "@/hooks/use-query"
-import { EditorSelectSchema, editorTable, paneItemTable, paneTable, workspaceTable } from "@/schema"
-import { AbsolutePath } from "@/types/workspace"
+import { useCollections } from "@/contexts/collections-context"
 
-export const useActiveEditor = (workspacePath: AbsolutePath) => {
-  return useQuery(
-    (orm) =>
-      orm
-        .select(getTableColumns(editorTable))
-        .from(workspaceTable)
-        .innerJoin(
-          paneTable,
-          and(
-            eq(paneTable.id, workspaceTable.active_pane_id),
-            eq(workspaceTable.path, workspacePath),
-          ),
+export const useActiveEditor = () => {
+  const { workspaceCollection, paneCollection, paneItemCollection, editorCollection } =
+    useCollections()
+
+  const result = useLiveQuery(
+    (q) =>
+      q
+        .from({ ws: workspaceCollection })
+        .innerJoin({ pane: paneCollection }, ({ ws, pane }) => eq(pane.id, ws.active_pane_id!))
+        .innerJoin({ item: paneItemCollection }, ({ pane, item }) =>
+          eq(item.id, pane.active_pane_item_id!),
         )
-        .innerJoin(paneItemTable, eq(paneItemTable.id, paneTable.active_pane_item_id))
-        .innerJoin(editorTable, eq(editorTable.id, paneItemTable.editor_id))
-        .limit(1)
-        .toSQL(),
-    EditorSelectSchema,
+        .innerJoin({ editor: editorCollection }, ({ item, editor }) =>
+          eq(editor.id, item.editor_id!),
+        )
+        .select(({ editor }) => ({
+          id: editor.id,
+          pane_id: editor.pane_id,
+          file_id: editor.file_id,
+          view_kind: editor.view_kind,
+        })),
+    [workspaceCollection, paneCollection, paneItemCollection, editorCollection],
+  )
+
+  return useMemo(
+    () => ({
+      data: result.data,
+      loading: result.isLoading,
+      error: result.isError ? "collection error" : undefined,
+      empty: result.data?.length === 0,
+    }),
+    [result.data, result.isLoading, result.isError],
   )
 }

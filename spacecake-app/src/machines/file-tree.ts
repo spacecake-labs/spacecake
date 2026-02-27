@@ -1,20 +1,9 @@
-import { Effect } from "effect"
 import { toast } from "sonner"
-import {
-  ActorRefFrom,
-  assertEvent,
-  assign,
-  EventFromLogic,
-  fromPromise,
-  setup,
-  spawnChild,
-  type SnapshotFrom,
-} from "xstate"
+import { assertEvent, assign, EventFromLogic, fromPromise, setup } from "xstate"
 
+import * as mutations from "@/lib/db/mutations"
 import { saveFile } from "@/lib/fs"
 import { router } from "@/router"
-import { Database } from "@/services/database"
-import { RuntimeClient } from "@/services/runtime-client"
 import { type ViewKind } from "@/types/lexical"
 import { AbsolutePath, FileType } from "@/types/workspace"
 
@@ -67,12 +56,7 @@ export const fileStateMachine = setup({
 
   actors: {
     clearEditorStatesForFile: fromPromise(({ input }: { input: { filePath: AbsolutePath } }) =>
-      RuntimeClient.runPromise(
-        Effect.gen(function* () {
-          const db = yield* Database
-          yield* db.clearEditorStatesForFile(input.filePath)
-        }).pipe(Effect.tapErrorCause(Effect.logError)),
-      ),
+      mutations.clearEditorStatesForFile(input.filePath),
     ),
     reloadRoute: fromPromise(({ input }: { input: { invalidateRoute: () => Promise<void> } }) =>
       input.invalidateRoute(),
@@ -93,12 +77,7 @@ export const fileStateMachine = setup({
           throw new Error("failed to save file")
         }
 
-        await RuntimeClient.runPromise(
-          Effect.gen(function* () {
-            const db = yield* Database
-            yield* db.clearEditorStatesForFile(filePath)
-          }).pipe(Effect.tapErrorCause(Effect.logError)),
-        )
+        await mutations.clearEditorStatesForFile(filePath)
 
         // Return info including viewKind for transition decision
         return {
@@ -246,46 +225,3 @@ export const fileStateMachine = setup({
 
 export type FileStateEvent = EventFromLogic<typeof fileStateMachine>
 export type FileStateHydrationEvent = Extract<FileStateEvent, { type: "file.clean" | "file.dirty" }>
-
-type FileActorRef = ActorRefFrom<typeof fileStateMachine>
-
-// not currently used
-export const fileTreeMachine = setup({
-  types: {
-    events: {} as {
-      type: "file.open"
-      filePath: AbsolutePath
-    },
-  },
-  actors: {},
-}).createMachine({
-  id: "fileTree",
-  initial: "Idle",
-  context: {} as {
-    fileRefs: Record<AbsolutePath, FileActorRef>
-  },
-  states: {
-    Idle: {
-      on: {
-        "file.open": {
-          actions: assign({
-            fileRefs: ({ context, event }) => {
-              const filePath = event.filePath
-
-              const newActor = spawnChild(fileStateMachine, {
-                id: filePath,
-              })
-
-              return {
-                ...context.fileActors,
-                [filePath]: newActor,
-              }
-            },
-          }),
-        },
-      },
-    },
-  },
-})
-
-export type T = SnapshotFrom<typeof fileTreeMachine>

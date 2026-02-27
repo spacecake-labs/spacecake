@@ -53,7 +53,7 @@ export const setupPaneWithTabs = (tabCount: number) =>
 
     for (let i = 0; i < tabCount; i++) {
       // Create file
-      const file = yield* db.upsertFile()({
+      const file = yield* db.upsertFile({
         path: AbsolutePath(`/test/file-${i}-${Date.now()}.md`),
         cid: `cid-${i}-${Date.now()}`,
         mtime: new Date().toISOString(),

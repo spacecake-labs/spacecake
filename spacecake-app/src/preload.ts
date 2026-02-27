@@ -109,6 +109,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateCliWorkspaces: (workspaceFolders: string[]) =>
     ipcRenderer.invoke("cli:update-workspaces", workspaceFolders),
   isPlaywright: process.env.IS_PLAYWRIGHT === "true",
+  // Database IPC
+  db: {
+    invoke: (method: string, ...args: unknown[]) =>
+      ipcRenderer.invoke("db:invoke", method, ...args),
+    onInvalidate: (handler: (method: string) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, method: string) => {
+        handler(method)
+      }
+      ipcRenderer.on("db:invalidate", listener)
+      return () => ipcRenderer.removeListener("db:invalidate", listener)
+    },
+  },
   // Git integration
   git: {
     getCurrentBranch: (workspacePath: string): Promise<string | null> =>

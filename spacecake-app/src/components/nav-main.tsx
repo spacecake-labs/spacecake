@@ -122,7 +122,7 @@ export function NavMain({
     overscan: 10,
   })
 
-  const { cacheMap } = useWorkspaceCache(workspace.path)
+  const { cacheMap } = useWorkspaceCache()
 
   const isCreatingInWorkspace = isCreatingInContext?.parentPath === workspace?.path
 

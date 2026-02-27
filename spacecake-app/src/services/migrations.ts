@@ -24,7 +24,6 @@ const execute = (client: PGliteInterface) => (sql: string) =>
   })
 
 export class Migrations extends Effect.Service<Migrations>()("Migrations", {
-  dependencies: [Database.Default],
   effect: Effect.gen(function* () {
     const { query, client } = yield* Database
     const migrate = execute(client)

@@ -6,7 +6,7 @@
 import type { ImperativePanelHandle } from "react-resizable-panels"
 
 import { createFileRoute, ErrorComponent, Outlet, redirect } from "@tanstack/react-router"
-import { Effect, Match } from "effect"
+import { Match } from "effect"
 import { useAtom, useSetAtom } from "jotai"
 import {
   ChevronDown,
@@ -45,6 +45,7 @@ import {
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { WorkspaceStatusBar } from "@/components/workspace-status-bar"
+import { CollectionsProvider } from "@/contexts/collections-context"
 import { FocusManagerProvider, useFocusablePanel, useFocusManager } from "@/contexts/focus-manager"
 import { useClaudeTaskWatcher } from "@/hooks/use-claude-task-watcher"
 import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
@@ -58,6 +59,9 @@ import {
   getOrCreateFileStateAtom,
   setFileTreeAtom,
 } from "@/lib/atoms/file-tree"
+import { cleanupCollections, createWorkspaceCollections } from "@/lib/db/collections"
+import * as mutations from "@/lib/db/mutations"
+import { queryClient } from "@/lib/db/query-client"
 import {
   clampSize,
   DOCK_SIZE_CONSTRAINTS,
@@ -65,13 +69,13 @@ import {
   transition,
 } from "@/lib/dock-transition"
 import { exists, readDirectory } from "@/lib/fs"
+import { cleanupSettingsMachine } from "@/lib/settings-actor"
 import { store } from "@/lib/store"
 import { cn, debounce, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
 import { FileStateHydrationEvent } from "@/machines/file-tree"
 import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
-import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
@@ -386,12 +390,7 @@ function LayoutContent() {
     (action: DockAction) => {
       const newLayout = transition(layout, action)
       if (newLayout === layout) return // no-op
-      RuntimeClient.runPromise(
-        Effect.gen(function* () {
-          const db = yield* Database
-          yield* db.updateWorkspaceLayout(workspace.id, newLayout)
-        }),
-      )
+      mutations.updateWorkspaceLayout(workspace.id, newLayout)
     },
     [layout, workspace.id],
   )
@@ -614,25 +613,32 @@ function LayoutContent() {
     }
   }, [isTerminalCollapsed, terminalSize, terminalDock])
 
-  const handleFileClick = (filePath: AbsolutePath) => {
-    if (workspace?.path) {
-      // Use the pane machine to open files - this serializes the operation
-      // with close operations ensuring they complete in order.
-      machine.send({ type: "pane.file.open", filePath })
-    }
-  }
+  const handleFileClick = useCallback(
+    (filePath: AbsolutePath) => {
+      if (workspace?.path) {
+        machine.send({ type: "pane.file.open", filePath })
+      }
+    },
+    [workspace?.path, machine],
+  )
 
-  // Git panel file clicks open in diff view mode
-  const handleGitFileClick = (filePath: AbsolutePath, baseRef?: string, targetRef?: string) => {
-    if (workspace?.path) {
-      machine.send({ type: "pane.file.open", filePath, viewKind: "diff", baseRef, targetRef })
-    }
-  }
+  // git panel file clicks open in diff view mode
+  const handleGitFileClick = useCallback(
+    (filePath: AbsolutePath, baseRef?: string, targetRef?: string) => {
+      if (workspace?.path) {
+        machine.send({ type: "pane.file.open", filePath, viewKind: "diff", baseRef, targetRef })
+      }
+    },
+    [workspace?.path, machine],
+  )
 
-  // Commit file clicks show diff for that specific commit vs its parent
-  const handleCommitFileClick = (filePath: AbsolutePath, commitHash: string) => {
-    handleGitFileClick(filePath, `${commitHash}^`, commitHash)
-  }
+  // commit file clicks show diff for that specific commit vs its parent
+  const handleCommitFileClick = useCallback(
+    (filePath: AbsolutePath, commitHash: string) => {
+      handleGitFileClick(filePath, `${commitHash}^`, commitHash)
+    },
+    [handleGitFileClick],
+  )
 
   if (isMobile) {
     return (
@@ -719,14 +725,17 @@ function LayoutContent() {
     { value: "completed", label: "completed" },
   ]
 
-  const toggleTaskStatus = (status: string) => {
-    if (taskStatusFilter.includes(status)) {
-      const next = taskStatusFilter.filter((s) => s !== status)
-      setTaskStatusFilter(next)
-    } else {
-      setTaskStatusFilter([...taskStatusFilter, status])
-    }
-  }
+  const toggleTaskStatus = useCallback(
+    (status: string) => {
+      if (taskStatusFilter.includes(status)) {
+        const next = taskStatusFilter.filter((s) => s !== status)
+        setTaskStatusFilter(next)
+      } else {
+        setTaskStatusFilter([...taskStatusFilter, status])
+      }
+    },
+    [taskStatusFilter, setTaskStatusFilter],
+  )
 
   // Task toolbar content - h-10 + border-b to match editor header
   const taskToolbarContent = (
@@ -1155,6 +1164,32 @@ function LayoutContent() {
 function WorkspaceLayout() {
   const { workspace, paneId } = Route.useRouteContext()
 
+  // create workspace-scoped TanStack DB collections (stable per workspace).
+  const [collections, setCollections] = useState(() =>
+    createWorkspaceCollections(workspace.path, workspace.id, queryClient),
+  )
+  const collectionsKeyRef = useRef(`${workspace.path}:${workspace.id}`)
+
+  useEffect(() => {
+    const key = `${workspace.path}:${workspace.id}`
+    if (collectionsKeyRef.current === key) return
+
+    // workspace changed — recreate collections
+    collectionsKeyRef.current = key
+    setCollections((prev) => {
+      cleanupCollections(prev)
+      return createWorkspaceCollections(workspace.path, workspace.id, queryClient)
+    })
+  }, [workspace.path, workspace.id])
+
+  useEffect(() => {
+    return () => {
+      cleanupCollections(collections)
+    }
+    // only clean up on unmount — workspace changes are handled above
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Pane machine for quick open file selection (serializes with tab operations)
   const workspaceIdEncoded = encodeBase64Url(workspace.path)
   const machine = usePaneMachine(paneId, workspace.path, workspaceIdEncoded)
@@ -1162,15 +1197,17 @@ function WorkspaceLayout() {
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
 
-  // clean up all file state atoms when workspace unmounts
+  // clean up all file state atoms and settings machine when workspace unmounts
   useEffect(() => {
+    const id = workspace.id
     return () => {
+      cleanupSettingsMachine(id)
       // defer so child components unmount first (prevents re-creation during teardown)
       setTimeout(() => {
         clearFileStateAtoms()
       }, 0)
     }
-  }, [workspace.path])
+  }, [workspace.path, workspace.id])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1200,7 +1237,7 @@ function WorkspaceLayout() {
 
   if (!workspace?.path) {
     return (
-      <>
+      <CollectionsProvider collections={collections}>
         <div className="flex h-screen flex-col overflow-hidden">
           {/* app-wide drag region for window controls */}
           <div className="app-drag shrink-0 bg-sidebar" style={{ height: titlebarHeight }} />
@@ -1210,11 +1247,11 @@ function WorkspaceLayout() {
             </SidebarProvider>
           </FocusManagerProvider>
         </div>
-      </>
+      </CollectionsProvider>
     )
   }
   return (
-    <>
+    <CollectionsProvider collections={collections}>
       <WorkspaceWatcher workspacePath={workspace.path} />
       <div className="flex h-screen flex-col overflow-hidden">
         {/* app-wide drag region for window controls */}
@@ -1226,6 +1263,6 @@ function WorkspaceLayout() {
         </FocusManagerProvider>
       </div>
       <QuickOpen workspacePath={workspace.path} machine={machine} />
-    </>
+    </CollectionsProvider>
   )
 }

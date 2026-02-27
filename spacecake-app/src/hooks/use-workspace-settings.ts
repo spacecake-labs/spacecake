@@ -1,35 +1,38 @@
+import { eq, useLiveQuery } from "@tanstack/react-db"
 import { Option, Schema } from "effect"
+import { useMemo } from "react"
 
-import { useQuerySingle } from "@/hooks/use-query"
-import { workspaceSettingsQuery } from "@/lib/db/queries"
+import { useCollections } from "@/contexts/collections-context"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
-import {
-  defaultWorkspaceSettings,
-  WorkspaceSettingsRowSchema,
-  WorkspaceSettingsSchema,
-} from "@/schema/workspace-settings"
+import { defaultWorkspaceSettings, WorkspaceSettingsSchema } from "@/schema/workspace-settings"
 
 const decodeSettings = Schema.decodeUnknownOption(WorkspaceSettingsSchema)
 
-/**
- * Reactive hook that provides workspace settings data with live updates.
- *
- * Returns the settings with defaults applied for missing fields.
- */
 export const useWorkspaceSettings = (workspaceId: WorkspacePrimaryKey) => {
-  const { data, loading, error, empty } = useQuerySingle(
-    (orm) => workspaceSettingsQuery(orm, workspaceId).toSQL(),
-    WorkspaceSettingsRowSchema,
+  const { workspaceCollection } = useCollections()
+
+  const result = useLiveQuery(
+    (q) =>
+      q
+        .from({ ws: workspaceCollection })
+        .where(({ ws }) => eq(ws.id, workspaceId))
+        .select(({ ws }) => ({ settings: ws.settings })),
+    [workspaceId, workspaceCollection],
   )
 
-  const settings = data?.settings
-    ? Option.getOrElse(decodeSettings(data.settings), () => defaultWorkspaceSettings)
+  const row = result.data?.[0]
+
+  const settings = row?.settings
+    ? Option.getOrElse(decodeSettings(row.settings), () => defaultWorkspaceSettings)
     : defaultWorkspaceSettings
 
-  return {
-    settings,
-    loading,
-    error,
-    empty,
-  }
+  return useMemo(
+    () => ({
+      settings,
+      loading: result.isLoading,
+      error: result.isError ? "collection error" : undefined,
+      empty: !row,
+    }),
+    [settings, result.isLoading, result.isError, row],
+  )
 }
