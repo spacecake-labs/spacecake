@@ -35,7 +35,6 @@ const TaskTable = lazy(() =>
   import("@/components/task-table/task-table").then((m) => ({ default: m.TaskTable })),
 )
 const Terminal = lazy(() => import("@/components/terminal").then((m) => ({ default: m.Terminal })))
-import type { WorkspaceCollections } from "@/lib/db/collections"
 
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
 import {
@@ -62,7 +61,7 @@ import {
   setFileTreeAtom,
 } from "@/lib/atoms/file-tree"
 import { gitBranchAtom } from "@/lib/atoms/git"
-import { cleanupCollections, createWorkspaceCollections } from "@/lib/db/collections"
+import { createWorkspaceCollections } from "@/lib/db/collections"
 import * as mutations from "@/lib/db/mutations"
 import { queryClient } from "@/lib/db/query-client"
 import {
@@ -651,6 +650,15 @@ function LayoutContent() {
     [handleGitFileClick],
   )
 
+  const toggleTaskStatus = useCallback(
+    (status: string) => {
+      setTaskStatusFilter((prev) =>
+        prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status],
+      )
+    },
+    [setTaskStatusFilter],
+  )
+
   if (isMobile) {
     return (
       <ClaudeIntegrationProvider
@@ -735,18 +743,6 @@ function LayoutContent() {
     { value: "in_progress", label: "in progress" },
     { value: "completed", label: "completed" },
   ]
-
-  const toggleTaskStatus = useCallback(
-    (status: string) => {
-      if (taskStatusFilter.includes(status)) {
-        const next = taskStatusFilter.filter((s) => s !== status)
-        setTaskStatusFilter(next)
-      } else {
-        setTaskStatusFilter([...taskStatusFilter, status])
-      }
-    },
-    [taskStatusFilter, setTaskStatusFilter],
-  )
 
   // Task toolbar content - h-10 + border-b to match editor header
   const taskToolbarContent = (
@@ -1185,25 +1181,11 @@ function WorkspaceLayout() {
     const key = `${workspace.path}:${workspace.id}`
     if (collectionsKeyRef.current === key) return
 
-    // workspace changed — recreate collections
+    // no manual cleanup — old collections are GC'd via the built-in 5-minute
+    // timer. calling cleanup() while live queries exist causes react crashes.
     collectionsKeyRef.current = key
-    let prev: WorkspaceCollections | undefined
-    setCollections((old) => {
-      prev = old
-      return createWorkspaceCollections(workspace.path, workspace.id, queryClient)
-    })
-    // defer cleanup so children re-render with new collections before old ones are destroyed
-    // (prevents "source collection was manually cleaned up" warnings from active live queries)
-    setTimeout(() => prev && cleanupCollections(prev), 0)
+    setCollections(createWorkspaceCollections(workspace.path, workspace.id, queryClient))
   }, [workspace.path, workspace.id])
-
-  useEffect(() => {
-    return () => {
-      cleanupCollections(collections)
-    }
-    // only clean up on unmount — workspace changes are handled above
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   // Pane machine for quick open file selection (serializes with tab operations)
   const workspaceIdEncoded = encodeBase64Url(workspace.path)
