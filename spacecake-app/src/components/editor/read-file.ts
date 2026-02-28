@@ -17,7 +17,6 @@ import { delimitPyBlock } from "@/components/editor/block-utils"
 import { emptyMdNode, mdBlockToNode } from "@/components/editor/markdown-utils"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 import { $restoreNodeSelection, $restoreSelection, convertToSourceView } from "@/lib/editor"
-import { parsePythonContentStreaming } from "@/lib/parser/python/blocks"
 import { INITIAL_LOAD_TAG, SerializedSelection } from "@/types/lexical"
 import { EditorFile, FileType } from "@/types/workspace"
 
@@ -29,10 +28,14 @@ export async function convertPythonBlocksToLexical(
   editor: LexicalEditor,
   selection: SerializedSelection | null = null,
   nodeSelection: NodeSelection | null = null,
-  streamParser: (file: EditorFile) => AsyncGenerator<PyBlock> = parsePythonContentStreaming,
+  streamParser?: (file: EditorFile) => AsyncGenerator<PyBlock>,
   onComplete?: () => void,
 ) {
   try {
+    // lazy-load tree-sitter wasm only when a python file is actually opened
+    const parser =
+      streamParser ?? (await import("@/lib/parser/python/blocks")).parsePythonContentStreaming
+
     // Start with an empty editor
     editor.update(
       () => {
@@ -46,7 +49,7 @@ export async function convertPythonBlocksToLexical(
     )
     // Parse blocks progressively, updating per block
     let parsedBlockCount = 0
-    for await (const block of streamParser(file)) {
+    for await (const block of parser(file)) {
       editor.update(
         () => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)

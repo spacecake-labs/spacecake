@@ -63,6 +63,10 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
   onTerminalOutput: () => () => {},
   onIdeDisconnected: () => () => {},
   openExternal: async () => {},
+  db: {
+    invoke: async () => right(undefined),
+    onInvalidate: () => () => {},
+  },
   git: {
     getCurrentBranch: async () => null,
     isGitRepo: async () => false,

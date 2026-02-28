@@ -21,3 +21,14 @@ export const match = <A, B, C, D>(
 ): C | D => {
   return either._tag === "Left" ? handlers.onLeft(either.value) : handlers.onRight(either.value)
 }
+
+// --- Maybe (plain-object Option for IPC) ---
+
+export type None = { _tag: "None" }
+export type Some<A> = { _tag: "Some"; value: A }
+export type Maybe<A> = None | Some<A>
+
+export const none: Maybe<never> = { _tag: "None" }
+export const some = <A>(value: A): Maybe<A> => ({ _tag: "Some", value })
+export const isSome = <A>(maybe: Maybe<A>): maybe is Some<A> => maybe._tag === "Some"
+export const isNone = <A>(maybe: Maybe<A>): maybe is None => maybe._tag === "None"

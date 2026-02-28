@@ -1,17 +1,18 @@
-import { Effect, Option } from "effect"
+import { toast } from "sonner"
 import { assertEvent, fromPromise, setup, type ActorRefFrom } from "xstate"
 
 import type { OpenFileSource } from "@/types/claude-code"
 
+import { removeFileStateAtom } from "@/lib/atoms/file-tree"
+import * as mutations from "@/lib/db/mutations"
 import { supportsRichView } from "@/lib/language-support"
 import { encodeBase64Url } from "@/lib/utils"
 import { fileTypeFromFileName } from "@/lib/workspace"
 import { router } from "@/router"
 import { EditorPrimaryKey } from "@/schema/editor"
 import { PaneItemPrimaryKey, PaneItemWithFile, PanePrimaryKey } from "@/schema/pane"
-import { Database } from "@/services/database"
 import { getPersistableViewKind } from "@/services/editor-manager"
-import { RuntimeClient } from "@/services/runtime-client"
+import { isSome } from "@/types/adt"
 import { ViewKind } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 
@@ -71,16 +72,14 @@ export const paneMachine = setup({
         // Notify CLI server that file is closed (for --wait support)
         window.electronAPI.notifyFileClosed(input.filePath)
 
-        const nextActive = await RuntimeClient.runPromise(
-          Effect.gen(function* () {
-            const db = yield* Database
-            return yield* db.closePaneItemAndGetNext(input.itemId, input.isClosingActiveTab)
-          }).pipe(Effect.tapErrorCause(Effect.logError)),
+        const nextActive = await mutations.closePaneItemAndGetNext(
+          input.itemId,
+          input.isClosingActiveTab,
         )
 
         // If we closed the active tab, navigate to the next one
         if (input.isClosingActiveTab) {
-          if (Option.isSome(nextActive)) {
+          if (isSome(nextActive)) {
             router.navigate({
               to: "/w/$workspaceId/f/$filePath",
               params: {
@@ -90,6 +89,7 @@ export const paneMachine = setup({
               search: {
                 view: nextActive.value.viewKind,
                 editorId: EditorPrimaryKey(nextActive.value.editorId),
+                paneActivated: true,
               },
             })
           } else {
@@ -101,6 +101,9 @@ export const paneMachine = setup({
           }
         }
         // If closing a non-active tab, no navigation needed
+
+        // clean up the file state machine atom so it doesn't leak
+        removeFileStateAtom(AbsolutePath(input.filePath))
       },
     ),
     activateItem: fromPromise(
@@ -117,15 +120,7 @@ export const paneMachine = setup({
           return
         }
 
-        await RuntimeClient.runPromise(
-          Effect.gen(function* () {
-            const db = yield* Database
-
-            // Update the pane's active item in the database
-            yield* db.updatePaneActivePaneItem(input.paneId, input.item.id)
-            yield* db.updatePaneItemAccessedAt(input.item.id)
-          }).pipe(Effect.tapErrorCause(Effect.logError)),
-        )
+        await mutations.activatePaneItem(input.paneId, input.item.id)
 
         // Navigate to the activated item
         router.navigate({
@@ -137,6 +132,7 @@ export const paneMachine = setup({
           search: {
             view: input.item.viewKind,
             editorId: input.item.editorId,
+            paneActivated: true,
           },
         })
       },
@@ -156,61 +152,10 @@ export const paneMachine = setup({
         }
       }): Promise<void> => {
         // Create editor and pane item, then navigate
-        const result = await RuntimeClient.runPromise(
-          Effect.gen(function* () {
-            const db = yield* Database
+        const fileContent = await window.electronAPI.readFile(input.filePath)
 
-            // First upsert the file record
-            const fileContent = yield* Effect.promise(() =>
-              window.electronAPI.readFile(input.filePath),
-            )
-
-            if (fileContent._tag === "Left") {
-              // File doesn't exist or can't be read
-              return Option.none<{
-                editorId: EditorPrimaryKey
-                viewKind: ViewKind
-              }>()
-            }
-
-            const file = yield* db.upsertFile()({
-              path: input.filePath,
-              cid: fileContent.value.cid,
-              mtime: new Date(fileContent.value.etag.mtime).toISOString(),
-            })
-
-            // Check if we already have an editor for this file in this pane
-            const existingEditor = yield* db.selectLatestEditorStateForFile(input.filePath)
-            const fileType = fileTypeFromFileName(input.filePath)
-
-            let editorId: EditorPrimaryKey
-            let viewKind: ViewKind
-
-            if (Option.isSome(existingEditor)) {
-              // Use existing editor
-              editorId = existingEditor.value.id
-              viewKind = input.viewKind ?? existingEditor.value.view_kind
-            } else {
-              // Create new editor
-              viewKind = input.viewKind ?? (supportsRichView(fileType) ? "rich" : "source")
-
-              const editor = yield* db.upsertEditor({
-                pane_id: input.paneId,
-                file_id: file.id,
-                view_kind: getPersistableViewKind(viewKind, fileType),
-              })
-              editorId = editor.id
-            }
-
-            // Activate the editor in the pane (creates paneItem, updates pointers)
-            yield* db.activateEditorInPane(editorId, input.paneId)
-
-            return Option.some({ editorId, viewKind })
-          }).pipe(Effect.tapErrorCause(Effect.logError)),
-        )
-
-        if (Option.isNone(result)) {
-          // File not found - redirect to workspace index with error
+        if (fileContent._tag === "Left") {
+          // File doesn't exist or can't be read
           router.navigate({
             to: "/w/$workspaceId",
             params: { workspaceId: input.workspaceId },
@@ -218,6 +163,39 @@ export const paneMachine = setup({
           })
           return
         }
+
+        // run file upsert and editor lookup in parallel (data-independent)
+        const [file, existingEditor] = await Promise.all([
+          mutations.upsertFile({
+            path: input.filePath,
+            cid: fileContent.value.cid,
+            mtime: new Date(fileContent.value.etag.mtime).toISOString(),
+          }),
+          mutations.selectLatestEditorStateForFile(input.filePath),
+        ])
+
+        const fileType = fileTypeFromFileName(input.filePath)
+
+        let editorId: EditorPrimaryKey
+        let viewKind: ViewKind
+
+        if (isSome(existingEditor)) {
+          // Use existing editor
+          editorId = existingEditor.value.id
+          viewKind = input.viewKind ?? existingEditor.value.view_kind
+        } else {
+          // Create new editor
+          viewKind = input.viewKind ?? (supportsRichView(fileType) ? "rich" : "source")
+
+          const editor = await mutations.upsertEditor({
+            pane_id: input.paneId,
+            file_id: file.id,
+            view_kind: getPersistableViewKind(viewKind, fileType),
+          })
+          editorId = editor.id
+        }
+
+        await mutations.activateEditorInPane(editorId, input.paneId)
 
         // Navigate to the file
         router.navigate({
@@ -227,8 +205,9 @@ export const paneMachine = setup({
             filePath: encodeBase64Url(input.filePath),
           },
           search: {
-            view: result.value.viewKind,
-            editorId: result.value.editorId,
+            view: viewKind,
+            editorId: editorId,
+            paneActivated: true,
             source: input.source,
             baseRef: input.baseRef,
             targetRef: input.targetRef,
@@ -266,7 +245,12 @@ export const paneMachine = setup({
           }
         },
         onDone: "Idle",
-        onError: "Idle",
+        onError: {
+          target: "Idle",
+          actions: () => {
+            toast("failed to close tab")
+          },
+        },
       },
     },
     Activating: {
@@ -281,7 +265,12 @@ export const paneMachine = setup({
           }
         },
         onDone: "Idle",
-        onError: "Idle",
+        onError: {
+          target: "Idle",
+          actions: () => {
+            toast("failed to activate tab")
+          },
+        },
       },
     },
     Opening: {
@@ -300,7 +289,12 @@ export const paneMachine = setup({
           }
         },
         onDone: "Idle",
-        onError: "Idle",
+        onError: {
+          target: "Idle",
+          actions: () => {
+            toast("failed to open file")
+          },
+        },
       },
     },
   },

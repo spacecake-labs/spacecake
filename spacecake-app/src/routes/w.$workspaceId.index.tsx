@@ -4,7 +4,6 @@
  */
 
 import { createFileRoute, ErrorComponent } from "@tanstack/react-router"
-import { Option } from "effect"
 import { AlertCircleIcon, CakeSlice } from "lucide-react"
 import { useEffect, useRef } from "react"
 
@@ -15,7 +14,7 @@ import { usePaneMachine } from "@/hooks/use-pane-machine"
 import { exists } from "@/lib/fs"
 import { condensePath, decodeBase64Url, normalizePath } from "@/lib/utils"
 import { RuntimeClient } from "@/services/runtime-client"
-import { match } from "@/types/adt"
+import { isSome, match } from "@/types/adt"
 import { ViewKind } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 
@@ -46,7 +45,7 @@ export const Route = createFileRoute("/w/$workspaceId/")({
       db.selectActiveEditorForWorkspace(workspacePath),
     )
 
-    if (Option.isSome(activeEditor)) {
+    if (isSome(activeEditor)) {
       const { viewKind, filePath } = activeEditor.value
       const absolutePath = AbsolutePath(filePath)
 

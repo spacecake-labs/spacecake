@@ -1,7 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { expect, test, waitForEditorFocus, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("frontmatter e2e", () => {
@@ -28,8 +28,10 @@ test.describe("frontmatter e2e", () => {
     // =========================================================================
     // Test 1: Create frontmatter using markdown shortcut "--- "
     // =========================================================================
-    await editor.click()
-    await editor.type("--- ")
+    await waitForEditorFocus(window)
+    // settle delay lets the editor finish internal state setup after focus
+    await window.waitForTimeout(200)
+    await window.keyboard.type("--- ", { delay: 50 })
 
     // Verify frontmatter node is created
     await expect(window.getByTestId("frontmatter-node")).toBeVisible()

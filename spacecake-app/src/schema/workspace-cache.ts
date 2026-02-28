@@ -11,7 +11,7 @@ import { AbsolutePathSchema } from "@/types/workspace"
  */
 export const WorkspaceCacheRowSchema = Schema.Struct({
   filePath: AbsolutePathSchema,
-  fileId: FilePrimaryKeySchema,
+  file_id: FilePrimaryKeySchema,
   view_kind: ViewKindSchema,
   has_cached_state: Schema.Boolean,
   mtime: Schema.DateFromSelf,

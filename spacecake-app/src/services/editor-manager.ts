@@ -1,4 +1,4 @@
-import { Data, Effect, Option } from "effect"
+import { Data, Effect } from "effect"
 
 import { serializeFromCache } from "@/lib/editor"
 import { fnv1a64Hex } from "@/lib/hash"
@@ -8,7 +8,7 @@ import { PaneSelect } from "@/schema"
 import { EditorPrimaryKey } from "@/schema/editor"
 import { Database, PgliteError } from "@/services/database"
 import { FileSystemError } from "@/services/file-system"
-import { isLeft, isRight, left, right, type Either } from "@/types/adt"
+import { isLeft, isRight, isSome, left, right, type Either } from "@/types/adt"
 import { PersistableViewKind, ViewKind } from "@/types/lexical"
 import { AbsolutePath, FileType, type EditorCache, type EditorFile } from "@/types/workspace"
 
@@ -56,7 +56,7 @@ export class EditorManager extends Effect.Service<EditorManager>()("EditorManage
           ? db.selectEditorStateById(editorId)
           : db.selectLatestEditorStateForFile(filePath)
 
-        if (Option.isSome(maybeEditor)) {
+        if (isSome(maybeEditor)) {
           const editor = maybeEditor.value
 
           return right<PgliteError, EditorCache>({
@@ -64,7 +64,7 @@ export class EditorManager extends Effect.Service<EditorManager>()("EditorManage
             viewKind: editor.view_kind,
             state: editor.state,
             fileId: editor.fileId,
-            selection: Option.getOrNull(editor.selection),
+            selection: editor.selection,
           })
         }
         return left<PgliteError, EditorCache>(new PgliteError({ cause: "editor state not found" }))
@@ -78,7 +78,7 @@ export class EditorManager extends Effect.Service<EditorManager>()("EditorManage
           return left<FileSystemError, EditorFile>(fileContent.value)
         }
 
-        const updatedRecord = yield* db.upsertFile()({
+        const updatedRecord = yield* db.upsertFile({
           path: filePath,
           cid: fileContent.value.cid,
           mtime: new Date(fileContent.value.etag.mtime).toISOString(),
@@ -176,5 +176,4 @@ export class EditorManager extends Effect.Service<EditorManager>()("EditorManage
 
     return { readStateOrFile }
   }),
-  dependencies: [Database.Default],
 }) {}

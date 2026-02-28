@@ -38,8 +38,8 @@ test.describe("workspace settings", () => {
     await autosaveSwitch.click()
     await expect(autosaveSwitch).toBeChecked()
 
-    // Wait for the setting to persist to database
-    await window.waitForTimeout(500)
+    // wait for the setting to persist to database (pglite worker adds latency)
+    await window.waitForTimeout(1500)
 
     // Reload the page (simulates app restart without full electron restart)
     await window.reload()
@@ -47,8 +47,14 @@ test.describe("workspace settings", () => {
     // Wait for workspace to load again
     await waitForWorkspace(window)
 
+    // wait for any file restore to complete before navigating
+    // (the active editor is restored asynchronously via the pane machine)
+    await window.waitForTimeout(2000)
+
     // Navigate back to settings
     await window.getByRole("button", { name: "settings" }).click()
+    // wait for settings page to fully render
+    await expect(window.getByRole("heading", { name: "general" })).toBeVisible()
 
     // Verify autosave is still on
     const autosaveSwitchAfterReload = window.locator("#autosave-setting")
@@ -56,17 +62,21 @@ test.describe("workspace settings", () => {
 
     // --- Part 3: Test autosave toggle can be turned off and persists ---
 
-    // Disable autosave
+    // Disable autosave (wait for switch to be interactive after page render)
+    await expect(autosaveSwitchAfterReload).toBeVisible()
+    await expect(autosaveSwitchAfterReload).toBeChecked()
     await autosaveSwitchAfterReload.click()
     await expect(autosaveSwitchAfterReload).not.toBeChecked()
 
-    // Wait for persistence
-    await window.waitForTimeout(500)
+    // wait for the setting to persist to database (pglite worker adds latency)
+    await window.waitForTimeout(1500)
 
     // Reload and verify
     await window.reload()
     await waitForWorkspace(window)
     await window.getByRole("button", { name: "settings" }).click()
+    // wait for settings page to fully render
+    await expect(window.getByRole("heading", { name: "general" })).toBeVisible()
 
     const autosaveSwitchFinal = window.locator("#autosave-setting")
     await expect(autosaveSwitchFinal).not.toBeChecked()

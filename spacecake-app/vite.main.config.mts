@@ -21,8 +21,12 @@ export default defineConfig({
         "tree-sitter-typescript",
         "@parcel/watcher",
         "@lydell/node-pty",
+        "@vscode/ripgrep",
         "bufferutil",
         "utf-8-validate",
+        // pglite uses WASM — let Node.js load it natively
+        "@electric-sql/pglite",
+        "@electric-sql/pglite/live",
       ],
     },
     sourcemap: buildSourcemap ? "inline" : false,

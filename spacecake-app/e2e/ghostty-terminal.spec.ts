@@ -201,8 +201,8 @@ test.describe("ghostty terminal", () => {
     // verify two tab buttons now exist
     await expect(tabButtons).toHaveCount(2)
 
-    // wait for the new tab's shell to settle
-    await window.waitForTimeout(500)
+    // wait for the new tab's shell to settle (CI can be slow)
+    await window.waitForTimeout(1000)
 
     // --- session isolation: variable set in tab 2 should not exist in tab 1 ---
     // tab 2 is now active. set a variable in it.
@@ -233,12 +233,15 @@ test.describe("ghostty terminal", () => {
     await window.waitForTimeout(200)
 
     // __terminalAPI points to the active tab (tab 1), which should NOT have TAB2_VAR
-    let content = await window.evaluate(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const api = (globalThis as any).__terminalAPI
-      return api?.getAllLines().join("") as string | undefined
-    })
-    expect(content).toContain(isWindows ? "MARKER:%TAB2_VAR%:END" : "MARKER::END")
+    // poll until the shell has echoed the result back to the PTY
+    await expect(async () => {
+      const content = await window.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (globalThis as any).__terminalAPI
+        return api?.getAllLines().join("") as string | undefined
+      })
+      expect(content).toContain(isWindows ? "MARKER:%TAB2_VAR%:END" : "MARKER::END")
+    }).toPass({ timeout: 5000 })
 
     // --- tab switching via keyboard: Ctrl+Tab cycles forward ---
     await tab1Textarea.focus()
@@ -251,14 +254,16 @@ test.describe("ghostty terminal", () => {
       delay: typeDelay,
     })
     await window.keyboard.press("Enter")
-    await window.waitForTimeout(200)
 
-    content = await window.evaluate(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const api = (globalThis as any).__terminalAPI
-      return api?.getAllLines().join("") as string | undefined
-    })
-    expect(content).toContain("hello")
+    // poll until the shell has echoed the result back to the PTY
+    await expect(async () => {
+      const content = await window.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (globalThis as any).__terminalAPI
+        return api?.getAllLines().join("") as string | undefined
+      })
+      expect(content).toContain("hello")
+    }).toPass({ timeout: 5000 })
 
     // --- Ctrl+Shift+Tab cycles backward (back to tab 1) ---
     const tab2Textarea = terminalPanel.locator(
@@ -271,13 +276,16 @@ test.describe("ghostty terminal", () => {
 
     // verify we're back on tab 1 (first tab button should be active)
     // tab 1 is the active tab now; __terminalAPI should point to it
-    content = await window.evaluate(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const api = (globalThis as any).__terminalAPI
-      return api?.getAllLines().join("") as string | undefined
-    })
-    // tab 1 content should still have the marker output from earlier (no "hello")
-    expect(content).toContain(isWindows ? "MARKER:%TAB2_VAR%:END" : "MARKER::END")
+    // poll until the API has rebound to tab 1 after the switch
+    await expect(async () => {
+      const content = await window.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (globalThis as any).__terminalAPI
+        return api?.getAllLines().join("") as string | undefined
+      })
+      // tab 1 content should still have the marker output from earlier (no "hello")
+      expect(content).toContain(isWindows ? "MARKER:%TAB2_VAR%:END" : "MARKER::END")
+    }).toPass({ timeout: 5000 })
 
     // --- close tab via Cmd+W ---
     // switch to tab 2 first so we close it

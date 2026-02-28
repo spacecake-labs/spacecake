@@ -159,6 +159,23 @@ export async function waitForWorkspace(page: Page) {
 }
 
 /**
+ * waits for the lexical editor's contenteditable element to be visible and focused.
+ * clicks the contenteditable to ensure focus if it's not already focused.
+ * use this before typing into the editor to account for pglite worker latency.
+ *
+ * uses data-lexical-editor to target only the main lexical contenteditable,
+ * avoiding codemirror instances that also have contenteditable="true".
+ */
+export async function waitForEditorFocus(page: Page) {
+  const contentEditable = page.locator(
+    '[data-testid="lexical-editor"] [data-lexical-editor="true"]',
+  )
+  await expect(contentEditable).toBeVisible()
+  await contentEditable.click()
+  await expect(contentEditable).toBeFocused()
+}
+
+/**
  * For a given absolute file path, asserts that every non-empty line of the file
  * is rendered somewhere in the editor and therefore visible/selectable by text.
  *

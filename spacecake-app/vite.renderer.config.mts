@@ -35,13 +35,12 @@ export default defineConfig({
     },
   },
   assetsInclude: ["./src/drizzle/*.sql"],
+  worker: {
+    format: "es",
+    plugins: () => [wasm(), topLevelAwait()],
+  },
   optimizeDeps: {
-    exclude: [
-      "web-tree-sitter",
-      "tree-sitter-python",
-      "tree-sitter-typescript",
-      "@electric-sql/pglite",
-    ],
+    exclude: ["web-tree-sitter", "tree-sitter-python", "tree-sitter-typescript"],
   },
   server: {
     hmr: {
@@ -54,5 +53,16 @@ export default defineConfig({
   build: {
     // Enable source maps in dev mode
     sourcemap: buildSourcemap ? "inline" : false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/mermaid")) return "vendor-mermaid"
+          if (id.includes("node_modules/@codemirror") || id.includes("node_modules/codemirror"))
+            return "vendor-codemirror"
+          if (id.includes("node_modules/@lexical") || id.includes("node_modules/lexical"))
+            return "vendor-lexical"
+        },
+      },
+    },
   },
 })

@@ -1,7 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { expect, test, waitForEditorFocus, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("mermaid e2e", () => {
@@ -51,15 +51,16 @@ test.describe("mermaid e2e", () => {
     // verify we're in rich view
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
-    // type the mermaid markdown shortcut with a trailing space to trigger transformation
-    const editor = window.getByTestId("lexical-editor")
-    await editor.click()
-    await editor.type("```mermaid ")
+    // type the mermaid markdown shortcut with a trailing space to trigger transformation.
+    // a small settle delay after focus prevents characters being dropped during
+    // initial editor state setup (pglite worker adds latency to re-renders).
+    await waitForEditorFocus(window)
+    // settle delay lets the editor finish internal state setup after focus
+    await window.waitForTimeout(200)
+    await window.keyboard.type("```mermaid ", { delay: 50 })
 
-    // wait for the mermaid node to be created
-    await expect(window.getByTestId("mermaid-node")).toBeVisible()
-
-    // verify it's in code view mode by checking for the code editor
+    // wait for the mermaid node created in THIS file (not the one from getting-started.md).
+    // the code editor is only visible when a mermaid node is created via shortcut.
     await expect(window.getByTestId("mermaid-code-editor")).toBeVisible()
 
     // verify the toggle button exists (which allows switching to diagram view)

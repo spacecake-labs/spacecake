@@ -195,18 +195,17 @@ describe("sortFilesByMatchingScore with recency", () => {
 describe("createQuickOpenItems", () => {
   const workspacePath = AbsolutePath("/workspace")
 
-  const mockFile = (path: AbsolutePath, isGitIgnored = false): File => ({
+  const mockFile = (path: AbsolutePath): File => ({
     path,
     name: path.split("/").pop()!,
     kind: "file",
     fileType: FileType.Plaintext,
     cid: "",
     etag: { mtime: new Date(0), size: 0 },
-    isGitIgnored,
   })
 
-  const mockItem = (path: string, isGitIgnored = false): QuickOpenFileItem => ({
-    file: mockFile(AbsolutePath(path), isGitIgnored),
+  const mockItem = (path: string): QuickOpenFileItem => ({
+    file: mockFile(AbsolutePath(path)),
     displayPath: "",
   })
 
@@ -263,19 +262,19 @@ describe("createQuickOpenItems", () => {
     expect(result[0].file.name).toBe("file-beta.txt")
   })
 
-  it("should filter out gitignored files unless recently opened", () => {
+  it("should include all indexed files in search results", () => {
     const allFiles = [
       mockItem("/workspace/normal.txt"),
-      mockItem("/workspace/ignored.txt", true), // gitignored
-      mockItem("/workspace/ignored-but-recent.txt", true), // gitignored but recent
+      mockItem("/workspace/other.txt"),
+      mockItem("/workspace/another.txt"),
     ]
-    const recentFiles = [mockRecentFile("ignored-but-recent.txt", 2000)]
+    const recentFiles = [mockRecentFile("other.txt", 2000)]
 
     const result = createQuickOpenItems(allFiles, recentFiles, "txt", workspacePath)
 
     const names = result.map((r) => r.file.name)
     expect(names).toContain("normal.txt")
-    expect(names).not.toContain("ignored.txt")
-    expect(names).toContain("ignored-but-recent.txt")
+    expect(names).toContain("other.txt")
+    expect(names).toContain("another.txt")
   })
 })

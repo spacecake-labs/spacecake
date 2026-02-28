@@ -17,7 +17,7 @@ AppSidebar handles sidebar UI and folder expansion state.
 */
 import iconSvg from "@/images/icon.svg"
 import { expandedFoldersAtom, fileTreeAtom, loadingFoldersAtom } from "@/lib/atoms/atoms"
-import { findFolderInTree, updateFolderInTree } from "@/lib/atoms/file-tree"
+import { findFolderInTree, sortTree, updateFolderInTree } from "@/lib/atoms/file-tree"
 import { readDirectory } from "@/lib/fs"
 import { useOpenWorkspace } from "@/lib/open-workspace"
 import { encodeBase64Url } from "@/lib/utils"
@@ -67,7 +67,7 @@ export function AppSidebar({ onFileClick, workspace, selectedFilePath }: AppSide
             setFileTree((prev) =>
               updateFolderInTree(prev, folderPath, (f) => ({
                 ...f,
-                children,
+                children: sortTree(children),
                 resolved: true,
               })),
             )

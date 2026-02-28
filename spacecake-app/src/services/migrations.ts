@@ -1,4 +1,4 @@
-import type { PGlite } from "@electric-sql/pglite"
+import type { PGliteInterface } from "@electric-sql/pglite"
 
 import { Data, Effect } from "effect"
 
@@ -14,7 +14,7 @@ class MigrationsError extends Data.TaggedError("MigrationsError")<{
   cause: unknown
 }> {}
 
-const execute = (client: PGlite) => (sql: string) =>
+const execute = (client: PGliteInterface) => (sql: string) =>
   Effect.tryPromise({
     try: () => client.exec(sql),
     catch: (error) => {
@@ -24,7 +24,6 @@ const execute = (client: PGlite) => (sql: string) =>
   })
 
 export class Migrations extends Effect.Service<Migrations>()("Migrations", {
-  dependencies: [Database.Default],
   effect: Effect.gen(function* () {
     const { query, client } = yield* Database
     const migrate = execute(client)

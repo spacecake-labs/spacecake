@@ -1,6 +1,6 @@
 import { it } from "@effect/vitest"
 import { eq } from "drizzle-orm"
-import { Effect, Option } from "effect"
+import { Effect } from "effect"
 import { beforeAll, describe, expect } from "vitest"
 
 import { paneItemTable } from "@/schema/drizzle"
@@ -12,6 +12,7 @@ import {
   setupPaneWithTabs,
 } from "@/services/test-utils/pane-factories"
 import { initCachedDataDir, TestDatabaseLayer } from "@/services/test-utils/pane-test-layer"
+import { isNone, isSome } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 
 // Warm up the migration cache before tests run (avoids timeout on first test)
@@ -26,7 +27,7 @@ describe("activateEditorInPane", () => {
       const { pane } = yield* setupPaneWithTabs(0)
 
       // Create a file and editor that doesn't have a paneItem yet
-      const file = yield* db.upsertFile()({
+      const file = yield* db.upsertFile({
         path: AbsolutePath("/test/new-file.md"),
         cid: "cid-new",
         mtime: new Date().toISOString(),
@@ -71,7 +72,7 @@ describe("activateEditorInPane", () => {
       const db = yield* Database
       const { pane } = yield* setupPaneWithTabs(0)
 
-      const file = yield* db.upsertFile()({
+      const file = yield* db.upsertFile({
         path: AbsolutePath("/test/new-file.md"),
         cid: "cid-new",
         mtime: new Date().toISOString(),
@@ -95,7 +96,7 @@ describe("activateEditorInPane", () => {
       const { pane } = yield* setupPaneWithTabs(2)
 
       // Create and activate a new editor
-      const file = yield* db.upsertFile()({
+      const file = yield* db.upsertFile({
         path: AbsolutePath("/test/new-file.md"),
         cid: "cid-new",
         mtime: new Date().toISOString(),
@@ -203,21 +204,21 @@ describe("closePaneItemAndGetNext", () => {
       const result = yield* db.closePaneItemAndGetNext(paneItems[2].id as PaneItemPrimaryKey, true)
 
       // Should return paneItems[1] as next active (most recently accessed remaining)
-      expect(Option.isSome(result)).toBe(true)
-      if (Option.isSome(result)) {
+      expect(isSome(result)).toBe(true)
+      if (isSome(result)) {
         expect(result.value.id).toBe(paneItems[1].id)
       }
     }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 
-  it.effect("returns Option.none when closing last tab", () =>
+  it.effect("returns none when closing last tab", () =>
     Effect.gen(function* () {
       const db = yield* Database
       const { pane, paneItems } = yield* setupPaneWithTabs(1)
 
       const result = yield* db.closePaneItemAndGetNext(paneItems[0].id as PaneItemPrimaryKey, true)
 
-      expect(Option.isNone(result)).toBe(true)
+      expect(isNone(result)).toBe(true)
 
       // Pane should have no active item
       const updatedPane = yield* getPane(pane.id)
@@ -237,7 +238,7 @@ describe("closePaneItemAndGetNext", () => {
       const result = yield* db.closePaneItemAndGetNext(paneItems[2].id as PaneItemPrimaryKey, false)
 
       // Should return none (we're not changing active)
-      expect(Option.isNone(result)).toBe(true)
+      expect(isNone(result)).toBe(true)
 
       // Active pointer should remain unchanged
       const updatedPane = yield* getPane(pane.id)
@@ -317,21 +318,21 @@ describe("selectActivePaneItemForPane", () => {
 
       const active = yield* db.selectActivePaneItemForPane(pane.id)
 
-      expect(Option.isSome(active)).toBe(true)
-      if (Option.isSome(active)) {
+      expect(isSome(active)).toBe(true)
+      if (isSome(active)) {
         expect(active.value.id).toBe(paneItems[0].id)
       }
     }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 
-  it.effect("returns Option.none when no active item is set", () =>
+  it.effect("returns none when no active item is set", () =>
     Effect.gen(function* () {
       const db = yield* Database
       const { pane } = yield* setupPaneWithTabs(0)
 
       const active = yield* db.selectActivePaneItemForPane(pane.id)
 
-      expect(Option.isNone(active)).toBe(true)
+      expect(isNone(active)).toBe(true)
     }).pipe(Effect.provide(TestDatabaseLayer)),
   )
 })

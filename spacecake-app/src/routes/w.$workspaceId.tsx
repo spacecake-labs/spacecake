@@ -6,7 +6,7 @@
 import type { ImperativePanelHandle } from "react-resizable-panels"
 
 import { createFileRoute, ErrorComponent, Outlet, redirect } from "@tanstack/react-router"
-import { Effect, Match } from "effect"
+import { Match } from "effect"
 import { useAtom, useSetAtom } from "jotai"
 import {
   ChevronDown,
@@ -18,7 +18,7 @@ import {
   PanelRight,
   X,
 } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 
 import type { DockAction } from "@/lib/dock-transition"
 import type { DockablePanelKind, DockPosition } from "@/schema/workspace-layout"
@@ -26,12 +26,15 @@ import type { DockablePanelKind, DockPosition } from "@/schema/workspace-layout"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DeleteButton } from "@/components/delete-button"
 import { EditorToolbar } from "@/components/editor/toolbar"
-import { GitPanel } from "@/components/git-panel"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { QuickOpen } from "@/components/quick-open"
 import { TabBar } from "@/components/tab-bar"
-import { TaskTable } from "@/components/task-table/task-table"
-import { Terminal } from "@/components/terminal"
+
+const GitPanel = lazy(() => import("@/components/git-panel").then((m) => ({ default: m.GitPanel })))
+const TaskTable = lazy(() =>
+  import("@/components/task-table/task-table").then((m) => ({ default: m.TaskTable })),
+)
+const Terminal = lazy(() => import("@/components/terminal").then((m) => ({ default: m.Terminal })))
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
 import {
   DropdownMenu,
@@ -42,6 +45,7 @@ import {
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { WorkspaceStatusBar } from "@/components/workspace-status-bar"
+import { CollectionsProvider } from "@/contexts/collections-context"
 import { FocusManagerProvider, useFocusablePanel, useFocusManager } from "@/contexts/focus-manager"
 import { useClaudeTaskWatcher } from "@/hooks/use-claude-task-watcher"
 import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
@@ -50,8 +54,15 @@ import { useRoute } from "@/hooks/use-route"
 import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { taskStatusFilterAtom } from "@/lib/atoms/claude-tasks"
-import { fileStateAtomFamily, setFileTreeAtom } from "@/lib/atoms/file-tree"
-import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
+import {
+  clearFileStateAtoms,
+  getOrCreateFileStateAtom,
+  setFileTreeAtom,
+} from "@/lib/atoms/file-tree"
+import { gitBranchAtom } from "@/lib/atoms/git"
+import { cleanupCollections, createWorkspaceCollections } from "@/lib/db/collections"
+import * as mutations from "@/lib/db/mutations"
+import { queryClient } from "@/lib/db/query-client"
 import {
   clampSize,
   DOCK_SIZE_CONSTRAINTS,
@@ -59,13 +70,13 @@ import {
   transition,
 } from "@/lib/dock-transition"
 import { exists, readDirectory } from "@/lib/fs"
+import { cleanupSettingsMachine } from "@/lib/settings-actor"
 import { store } from "@/lib/store"
 import { cn, debounce, decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { WorkspaceWatcher } from "@/lib/workspace-watcher"
 import { FileStateHydrationEvent } from "@/machines/file-tree"
 import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
-import { Database } from "@/services/database"
 import { RuntimeClient } from "@/services/runtime-client"
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
@@ -128,8 +139,16 @@ export const Route = createFileRoute("/w/$workspaceId")({
   },
   loader: async ({ context }) => {
     const { db, workspace } = context
+
+    // fetch git branch early so status bar toggle is available sooner
+    // (fire-and-forget — don't block workspace loading)
+    window.electronAPI.git
+      .getCurrentBranch(workspace.path)
+      .then((branch) => store.set(gitBranchAtom, branch))
+      .catch(() => {})
+
     const result = await readDirectory(workspace.path)
-    match(result, {
+    await match(result, {
       onLeft: (error) => {
         Match.value(error).pipe(
           Match.tag("PermissionDeniedError", () => {
@@ -152,21 +171,10 @@ export const Route = createFileRoute("/w/$workspaceId")({
           const event: FileStateHydrationEvent = {
             type: row.has_cached_state ? "file.dirty" : "file.clean",
           }
-          store.set(fileStateAtomFamily(row.filePath), event)
+          store.set(getOrCreateFileStateAtom(row.filePath), event)
         })
 
         store.set(setFileTreeAtom, tree)
-
-        // build quick-open file index in background (non-blocking)
-        window.electronAPI.listFiles(workspace.path).then((result) => {
-          match(result, {
-            onLeft: (error) => console.error("file index build failed:", error),
-            onRight: (files) => {
-              store.set(quickOpenIndexAtom, files)
-              store.set(quickOpenIndexReadyAtom, true)
-            },
-          })
-        })
       },
     })
 
@@ -391,12 +399,7 @@ function LayoutContent() {
     (action: DockAction) => {
       const newLayout = transition(layout, action)
       if (newLayout === layout) return // no-op
-      RuntimeClient.runPromise(
-        Effect.gen(function* () {
-          const db = yield* Database
-          yield* db.updateWorkspaceLayout(workspace.id, newLayout)
-        }),
-      )
+      mutations.updateWorkspaceLayout(workspace.id, newLayout)
     },
     [layout, workspace.id],
   )
@@ -619,25 +622,32 @@ function LayoutContent() {
     }
   }, [isTerminalCollapsed, terminalSize, terminalDock])
 
-  const handleFileClick = (filePath: AbsolutePath) => {
-    if (workspace?.path) {
-      // Use the pane machine to open files - this serializes the operation
-      // with close operations ensuring they complete in order.
-      machine.send({ type: "pane.file.open", filePath })
-    }
-  }
+  const handleFileClick = useCallback(
+    (filePath: AbsolutePath) => {
+      if (workspace?.path) {
+        machine.send({ type: "pane.file.open", filePath })
+      }
+    },
+    [workspace?.path, machine],
+  )
 
-  // Git panel file clicks open in diff view mode
-  const handleGitFileClick = (filePath: AbsolutePath, baseRef?: string, targetRef?: string) => {
-    if (workspace?.path) {
-      machine.send({ type: "pane.file.open", filePath, viewKind: "diff", baseRef, targetRef })
-    }
-  }
+  // git panel file clicks open in diff view mode
+  const handleGitFileClick = useCallback(
+    (filePath: AbsolutePath, baseRef?: string, targetRef?: string) => {
+      if (workspace?.path) {
+        machine.send({ type: "pane.file.open", filePath, viewKind: "diff", baseRef, targetRef })
+      }
+    },
+    [workspace?.path, machine],
+  )
 
-  // Commit file clicks show diff for that specific commit vs its parent
-  const handleCommitFileClick = (filePath: AbsolutePath, commitHash: string) => {
-    handleGitFileClick(filePath, `${commitHash}^`, commitHash)
-  }
+  // commit file clicks show diff for that specific commit vs its parent
+  const handleCommitFileClick = useCallback(
+    (filePath: AbsolutePath, commitHash: string) => {
+      handleGitFileClick(filePath, `${commitHash}^`, commitHash)
+    },
+    [handleGitFileClick],
+  )
 
   if (isMobile) {
     return (
@@ -724,14 +734,17 @@ function LayoutContent() {
     { value: "completed", label: "completed" },
   ]
 
-  const toggleTaskStatus = (status: string) => {
-    if (taskStatusFilter.includes(status)) {
-      const next = taskStatusFilter.filter((s) => s !== status)
-      setTaskStatusFilter(next)
-    } else {
-      setTaskStatusFilter([...taskStatusFilter, status])
-    }
-  }
+  const toggleTaskStatus = useCallback(
+    (status: string) => {
+      if (taskStatusFilter.includes(status)) {
+        const next = taskStatusFilter.filter((s) => s !== status)
+        setTaskStatusFilter(next)
+      } else {
+        setTaskStatusFilter([...taskStatusFilter, status])
+      }
+    },
+    [taskStatusFilter, setTaskStatusFilter],
+  )
 
   // Task toolbar content - h-10 + border-b to match editor header
   const taskToolbarContent = (
@@ -864,7 +877,9 @@ function LayoutContent() {
                     isTaskCollapsed && "hidden",
                   )}
                 >
-                  <TaskTable />
+                  <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                    <TaskTable />
+                  </Suspense>
                 </div>
               </div>
             </ResizablePanel>
@@ -885,11 +900,13 @@ function LayoutContent() {
                     isGitCollapsed && "hidden",
                   )}
                 >
-                  <GitPanel
-                    workspacePath={workspace.path}
-                    onFileClick={handleGitFileClick}
-                    onCommitFileClick={handleCommitFileClick}
-                  />
+                  <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                    <GitPanel
+                      workspacePath={workspace.path}
+                      onFileClick={handleGitFileClick}
+                      onCommitFileClick={handleCommitFileClick}
+                    />
+                  </Suspense>
                 </div>
               </div>
             </ResizablePanel>
@@ -922,15 +939,17 @@ function LayoutContent() {
     >
       <div ref={terminalPanelRef} className={cn("h-full w-full", isTerminalCollapsed && "hidden")}>
         {isTerminalSessionActive && (
-          <Terminal
-            cwd={workspace.path}
-            toolbarRight={terminalToolbarRight}
-            onLastTabClosed={() => {
-              setIsTerminalSessionActive(false)
-              setTerminalExpanded(false)
-              focus("editor")
-            }}
-          />
+          <Suspense fallback={<div className="h-full w-full bg-background" />}>
+            <Terminal
+              cwd={workspace.path}
+              toolbarRight={terminalToolbarRight}
+              onLastTabClosed={() => {
+                setIsTerminalSessionActive(false)
+                setTerminalExpanded(false)
+                focus("editor")
+              }}
+            />
+          </Suspense>
         )}
       </div>
     </ResizablePanel>
@@ -994,11 +1013,13 @@ function LayoutContent() {
                           isGitCollapsed && "hidden",
                         )}
                       >
-                        <GitPanel
-                          workspacePath={workspace.path}
-                          onFileClick={handleGitFileClick}
-                          onCommitFileClick={handleCommitFileClick}
-                        />
+                        <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                          <GitPanel
+                            workspacePath={workspace.path}
+                            onFileClick={handleGitFileClick}
+                            onCommitFileClick={handleCommitFileClick}
+                          />
+                        </Suspense>
                       </div>
                     </div>
                   </ResizablePanel>
@@ -1025,7 +1046,9 @@ function LayoutContent() {
                           isTaskCollapsed && "hidden",
                         )}
                       >
-                        <TaskTable />
+                        <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                          <TaskTable />
+                        </Suspense>
                       </div>
                     </div>
                   </ResizablePanel>
@@ -1089,7 +1112,9 @@ function LayoutContent() {
                           isTaskCollapsed && "hidden",
                         )}
                       >
-                        <TaskTable />
+                        <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                          <TaskTable />
+                        </Suspense>
                       </div>
                     </div>
                   </ResizablePanel>
@@ -1116,11 +1141,13 @@ function LayoutContent() {
                           isGitCollapsed && "hidden",
                         )}
                       >
-                        <GitPanel
-                          workspacePath={workspace.path}
-                          onFileClick={handleGitFileClick}
-                          onCommitFileClick={handleCommitFileClick}
-                        />
+                        <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                          <GitPanel
+                            workspacePath={workspace.path}
+                            onFileClick={handleGitFileClick}
+                            onCommitFileClick={handleCommitFileClick}
+                          />
+                        </Suspense>
                       </div>
                     </div>
                   </ResizablePanel>
@@ -1146,12 +1173,50 @@ function LayoutContent() {
 function WorkspaceLayout() {
   const { workspace, paneId } = Route.useRouteContext()
 
+  // create workspace-scoped TanStack DB collections (stable per workspace).
+  const [collections, setCollections] = useState(() =>
+    createWorkspaceCollections(workspace.path, workspace.id, queryClient),
+  )
+  const collectionsKeyRef = useRef(`${workspace.path}:${workspace.id}`)
+
+  useEffect(() => {
+    const key = `${workspace.path}:${workspace.id}`
+    if (collectionsKeyRef.current === key) return
+
+    // workspace changed — recreate collections
+    collectionsKeyRef.current = key
+    setCollections((prev) => {
+      cleanupCollections(prev)
+      return createWorkspaceCollections(workspace.path, workspace.id, queryClient)
+    })
+  }, [workspace.path, workspace.id])
+
+  useEffect(() => {
+    return () => {
+      cleanupCollections(collections)
+    }
+    // only clean up on unmount — workspace changes are handled above
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Pane machine for quick open file selection (serializes with tab operations)
   const workspaceIdEncoded = encodeBase64Url(workspace.path)
   const machine = usePaneMachine(paneId, workspace.path, workspaceIdEncoded)
 
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
+
+  // clean up all file state atoms and settings machine when workspace unmounts
+  useEffect(() => {
+    const id = workspace.id
+    return () => {
+      cleanupSettingsMachine(id)
+      // defer so child components unmount first (prevents re-creation during teardown)
+      setTimeout(() => {
+        clearFileStateAtoms()
+      }, 0)
+    }
+  }, [workspace.path, workspace.id])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1181,7 +1246,7 @@ function WorkspaceLayout() {
 
   if (!workspace?.path) {
     return (
-      <>
+      <CollectionsProvider collections={collections}>
         <div className="flex h-screen flex-col overflow-hidden">
           {/* app-wide drag region for window controls */}
           <div className="app-drag shrink-0 bg-sidebar" style={{ height: titlebarHeight }} />
@@ -1191,11 +1256,11 @@ function WorkspaceLayout() {
             </SidebarProvider>
           </FocusManagerProvider>
         </div>
-      </>
+      </CollectionsProvider>
     )
   }
   return (
-    <>
+    <CollectionsProvider collections={collections}>
       <WorkspaceWatcher workspacePath={workspace.path} />
       <div className="flex h-screen flex-col overflow-hidden">
         {/* app-wide drag region for window controls */}
@@ -1207,6 +1272,6 @@ function WorkspaceLayout() {
         </FocusManagerProvider>
       </div>
       <QuickOpen workspacePath={workspace.path} machine={machine} />
-    </>
+    </CollectionsProvider>
   )
 }

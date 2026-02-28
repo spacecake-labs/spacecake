@@ -4,7 +4,7 @@
  */
 
 import { createFileRoute, ErrorComponent, redirect } from "@tanstack/react-router"
-import { Match, Option, Schema } from "effect"
+import { Match, Schema } from "effect"
 import { AlertCircleIcon, FolderOpen, Loader2Icon } from "lucide-react"
 
 import { LoadingAnimation } from "@/components/loading-animation"
@@ -15,7 +15,7 @@ import { exists } from "@/lib/fs"
 import { useOpenWorkspace } from "@/lib/open-workspace"
 import { encodeBase64Url, normalizePath } from "@/lib/utils"
 import { RuntimeClient } from "@/services/runtime-client"
-import { match } from "@/types/adt"
+import { isSome, match, some } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 import {
   WorkspaceError,
@@ -44,11 +44,11 @@ export const Route = createFileRoute("/")({
     // If we were redirected here with a workspace error, don't auto-redirect back
     // (this prevents infinite loops when workspace exists but can't be read)
     if (searchWorkspaceError) {
-      return { workspaceError: Option.some(searchWorkspaceError) }
+      return { workspaceError: some(searchWorkspaceError) }
     }
 
-    const lastOpenedWorkspace = await RuntimeClient.runPromise(db.selectLastOpenedWorkspace)
-    if (Option.isSome(lastOpenedWorkspace)) {
+    const lastOpenedWorkspace = await RuntimeClient.runPromise(db.selectLastOpenedWorkspace())
+    if (isSome(lastOpenedWorkspace)) {
       const workspacePath = AbsolutePath(lastOpenedWorkspace.value.path)
       const pathExists = await exists(workspacePath)
       return match(pathExists, {
@@ -61,7 +61,7 @@ export const Route = createFileRoute("/")({
             ),
             Match.orElse(() => new WorkspaceNotFound({ path: workspacePath })),
           )
-          return { workspaceError: Option.some(workspaceError) }
+          return { workspaceError: some(workspaceError) }
         },
         onRight: (pathExists) => {
           if (pathExists) {
@@ -72,7 +72,7 @@ export const Route = createFileRoute("/")({
             })
           }
           return {
-            workspaceError: Option.some(new WorkspaceNotFound({ path: workspacePath })),
+            workspaceError: some(new WorkspaceNotFound({ path: workspacePath })),
           }
         },
       })
@@ -98,7 +98,9 @@ function Index() {
 
   // Get workspace error from loader data or search params
   const workspaceError: WorkspaceError | null =
-    (loaderData?.workspaceError && Option.getOrNull(loaderData.workspaceError)) ??
+    (loaderData?.workspaceError && isSome(loaderData.workspaceError)
+      ? loaderData.workspaceError.value
+      : null) ??
     searchData.workspaceError ??
     null
 

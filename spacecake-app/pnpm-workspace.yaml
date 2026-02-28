@@ -1,5 +1,5 @@
 packages:
-  - "."
+  - .
 
 ignoredBuiltDependencies:
   - msgpackr-extract

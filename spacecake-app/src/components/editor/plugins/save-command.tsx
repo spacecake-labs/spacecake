@@ -11,7 +11,7 @@ import { useEffect } from "react"
 
 import { useEditor } from "@/contexts/editor-context"
 import { useRoute } from "@/hooks/use-route"
-import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { getOrCreateFileStateAtom } from "@/lib/atoms/file-tree"
 import { serializeEditorToSource } from "@/lib/editor"
 import { addPendingSave } from "@/lib/file-event-handler"
 import { fnv1a64Hex } from "@/lib/hash"
@@ -27,8 +27,8 @@ export function SaveCommandPlugin() {
   const selectedFilePath = route?.filePath || null
   const sendFileState = useSetAtom(
     selectedFilePath
-      ? fileStateAtomFamily(AbsolutePath(selectedFilePath))
-      : fileStateAtomFamily(AbsolutePath("")),
+      ? getOrCreateFileStateAtom(AbsolutePath(selectedFilePath))
+      : getOrCreateFileStateAtom(AbsolutePath("")),
   )
   const { cancelDebounce } = useEditor()
 

@@ -4,6 +4,12 @@ import type { AbsolutePath, FileContent, FileTree, FileTreeEvent } from "@/types
 
 import { FileSystemError, type IndexedFile } from "@/services/file-system"
 import { type Either } from "@/types/adt"
+
+/** serialized PgliteError for IPC transport */
+export type SerializedPgliteError = { _tag: "PgliteError"; cause: string }
+
+import type { DatabaseMethodName } from "@/services/database"
+
 import {
   AtMentionedPayload,
   ClaudeCodeStatus,
@@ -91,6 +97,14 @@ export interface ElectronAPI {
   killTerminal: (id: string) => Promise<Either<TerminalError, void>>
   onTerminalOutput: (handler: (id: string, data: string) => void) => () => void
   onIdeDisconnected: (handler: () => void) => () => void
+
+  db: {
+    invoke: (
+      method: DatabaseMethodName,
+      ...args: unknown[]
+    ) => Promise<Either<SerializedPgliteError, unknown>>
+    onInvalidate: (handler: (method: string) => void) => () => void
+  }
 
   git: {
     getCurrentBranch: (workspacePath: string) => Promise<string | null>

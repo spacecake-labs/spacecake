@@ -1,16 +1,39 @@
 // hook to get file state only if it has been opened
 import { atom } from "jotai"
-import { atomFamily } from "jotai-family"
 import { atomWithMachine } from "jotai-xstate"
 
 import type { File, FileTree, FileTreeEvent, Folder, WorkspaceInfo } from "@/types/workspace"
 
 import { expandedFoldersAtom, fileTreeAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
+import { replaceEqualDeep } from "@/lib/structural-sharing"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 import { fileStateMachine } from "@/machines/file-tree"
 import { router } from "@/router"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { WorkspaceNotFound } from "@/types/workspace-error"
+
+/** sort comparator: folders first, then alphabetical by name */
+const fileTreeCompare = (a: File | Folder, b: File | Folder): number => {
+  if (a.kind !== b.kind) return a.kind === "folder" ? -1 : 1
+  return a.name.localeCompare(b.name)
+}
+
+/** insert an item into an already-sorted array, preserving sort order */
+const sortedInsert = (items: FileTree, newItem: File | Folder): FileTree => {
+  const idx = items.findIndex((item) => fileTreeCompare(newItem, item) < 0)
+  if (idx === -1) return [...items, newItem]
+  const result = [...items]
+  result.splice(idx, 0, newItem)
+  return result
+}
+
+/** recursively sort a tree (used on initial load, merge, and lazy-load expand) */
+export const sortTree = (items: FileTree): FileTree => {
+  const sorted = [...items].sort(fileTreeCompare)
+  return sorted.map((item) =>
+    item.kind === "folder" ? { ...item, children: sortTree(item.children) } : item,
+  )
+}
 
 /** find a folder by path in the tree */
 export function findFolderInTree(tree: FileTree, folderPath: string): Folder | undefined {
@@ -77,7 +100,7 @@ const addItemToTree = (
       if (item.children.find((child) => child.path === itemToAdd.path)) {
         return item
       }
-      return { ...item, children: [...item.children, itemToAdd] }
+      return { ...item, children: sortedInsert(item.children, itemToAdd) }
     }
     if (item.kind === "folder" && parentPath.startsWith(item.path + "/")) {
       return {
@@ -138,7 +161,7 @@ export const setFileTreeAtom = atom(null, (get, set, tree: FileTree) => {
   const currentExpandedFolders = get(expandedFoldersAtom)
   const currentTree = get(fileTreeAtom)
   const mergedTree = mergeTrees(tree, currentTree, currentExpandedFolders)
-  set(fileTreeAtom, mergedTree)
+  set(fileTreeAtom, sortTree(mergedTree))
 })
 
 // atom for handling file tree events
@@ -194,7 +217,7 @@ export const fileTreeEventAtom = atom(
         if (parentPath === null || parentPath === workspacePath) {
           // Add to workspace root level
           if (currentTree.find((i) => i.path === absolutePath)) return
-          set(fileTreeAtom, [...currentTree, newItem])
+          set(fileTreeAtom, sortedInsert(currentTree, newItem))
         } else {
           // Add to parent folder
           set(fileTreeAtom, addItemToTree(currentTree, parentPath, newItem))
@@ -223,12 +246,14 @@ export const fileTreeEventAtom = atom(
         )
         set(fileTreeAtom, newTree)
 
-        // Dispatch external change event to the state machine
-        // Note: pending saves are filtered by the file event handler,
-        // so only legit external changes reach here
-        set(fileStateAtomFamily(absolutePath), {
-          type: "file.external.change",
-        })
+        // only notify files that already have state machines (i.e., were opened).
+        // watcher events fire for every file in the workspace — don't create
+        // machine actors for files the user never opened.
+        if (hasFileStateAtom(absolutePath)) {
+          set(getOrCreateFileStateAtom(absolutePath), {
+            type: "file.external.change",
+          })
+        }
 
         break
       }
@@ -236,6 +261,7 @@ export const fileTreeEventAtom = atom(
       case "unlinkFile": {
         const newTree = removeItemFromTree(currentTree, absolutePath)
         set(fileTreeAtom, newTree)
+        removeFileStateAtom(absolutePath)
         ;(async () => {
           await deleteFile(absolutePath)
         })()
@@ -255,34 +281,32 @@ export const fileTreeEventAtom = atom(
         }
         const newTree = removeItemFromTree(currentTree, absolutePath)
         set(fileTreeAtom, newTree)
+        // clean up file state atoms for all children
+        const childPrefix = absolutePath + "/"
+        for (const path of fileStateAtoms.keys()) {
+          if (path.startsWith(childPrefix)) {
+            fileStateAtoms.delete(path)
+            deleteFile(path)
+          }
+        }
         break
       }
     }
   },
 )
 
+let prevSortedTree: FileTree = []
+
+/**
+ * the tree is maintained in sorted order at mutation time (sorted insert on add,
+ * sort on initial load). this derived atom only does structural sharing to
+ * preserve reference identity for unchanged subtrees.
+ */
 export const sortedFileTreeAtom = atom((get) => {
   const fileTree = get(fileTreeAtom)
-
-  const sortItems = (items: FileTree): FileTree => {
-    return [...items].sort((a, b) => {
-      if (a.kind !== b.kind) {
-        return a.kind === "folder" ? -1 : 1
-      }
-      return a.name.localeCompare(b.name)
-    })
-  }
-
-  const sortTree = (items: FileTree): FileTree => {
-    return sortItems(items).map((item) => {
-      if (item.kind === "folder") {
-        return { ...item, children: sortTree(item.children) }
-      }
-      return item
-    })
-  }
-
-  return sortTree(fileTree)
+  const shared = replaceEqualDeep(prevSortedTree, fileTree) as FileTree
+  prevSortedTree = shared
+  return shared
 })
 
 const createFileStateMachineAtom = (filePath: AbsolutePath) =>
@@ -291,7 +315,37 @@ const createFileStateMachineAtom = (filePath: AbsolutePath) =>
     () => ({ input: { filePath, fileType: fileTypeFromFileName(filePath) } }),
   )
 
-export const fileStateAtomFamily = atomFamily(createFileStateMachineAtom)
+const fileStateAtoms = new Map<AbsolutePath, ReturnType<typeof createFileStateMachineAtom>>()
+
+/** get or create a file state atom — use at intentional creation sites only */
+export function getOrCreateFileStateAtom(filePath: AbsolutePath) {
+  let atom = fileStateAtoms.get(filePath)
+  if (!atom) {
+    atom = createFileStateMachineAtom(filePath)
+    fileStateAtoms.set(filePath, atom)
+  }
+  return atom
+}
+
+/** get a file state atom if it exists — returns undefined without creating */
+export function getFileStateAtom(filePath: AbsolutePath) {
+  return fileStateAtoms.get(filePath)
+}
+
+/** O(1) existence check */
+export function hasFileStateAtom(filePath: AbsolutePath): boolean {
+  return fileStateAtoms.has(filePath)
+}
+
+/** remove a file state atom */
+export function removeFileStateAtom(filePath: AbsolutePath): boolean {
+  return fileStateAtoms.delete(filePath)
+}
+
+/** remove all file state atoms (used on workspace unmount) */
+export function clearFileStateAtoms() {
+  fileStateAtoms.clear()
+}
 
 /**
  * Represents a creation input placeholder for virtualized rendering.
@@ -330,11 +384,13 @@ export type FlatTreeItem = FlatFileTreeItem | FlatCreationInputItem
 /**
  * Flattens a file tree into a list of visible items based on expanded folders.
  * Only includes items whose parent folders are expanded.
- * Optimized to avoid intermediate array creation and spreading.
+ * Reuses cached FlatTreeItem wrappers when the underlying data is unchanged,
+ * preserving reference identity for React.memo downstream.
  */
 export function flattenVisibleTree(
   tree: FileTree,
   expandedFolders: Record<string, boolean>,
+  cache: Map<string, FlatTreeItem>,
 ): FlatTreeItem[] {
   const result: FlatTreeItem[] = []
 
@@ -344,24 +400,29 @@ export function flattenVisibleTree(
         const isExpanded = expandedFolders[item.path] ?? false
         const hasChildren = item.children.length > 0 || !item.resolved
 
-        result.push({
-          item,
-          depth,
-          isExpanded,
-          hasChildren,
-        })
+        const cached = cache.get(item.path) as FlatFileTreeItem | undefined
+        if (
+          cached &&
+          cached.item === item &&
+          cached.depth === depth &&
+          cached.isExpanded === isExpanded &&
+          cached.hasChildren === hasChildren
+        ) {
+          result.push(cached)
+        } else {
+          result.push({ item, depth, isExpanded, hasChildren })
+        }
 
-        // Only include children if folder is expanded and has actual children
         if (isExpanded && item.children.length > 0) {
           flatten(item.children, depth + 1)
         }
       } else {
-        result.push({
-          item,
-          depth,
-          isExpanded: false,
-          hasChildren: false,
-        })
+        const cached = cache.get(item.path) as FlatFileTreeItem | undefined
+        if (cached && cached.item === item && cached.depth === depth) {
+          result.push(cached)
+        } else {
+          result.push({ item, depth, isExpanded: false, hasChildren: false })
+        }
       }
     }
   }
@@ -369,6 +430,8 @@ export function flattenVisibleTree(
   flatten(tree, 0)
   return result
 }
+
+let prevFlatCache = new Map<string, FlatTreeItem>()
 
 /**
  * Atom that provides a flattened list of visible tree items for virtualized rendering.
@@ -380,7 +443,16 @@ export const flatVisibleTreeAtom = atom((get) => {
   const expandedFolders = get(expandedFoldersAtom)
   const isCreatingInContext = get(isCreatingInContextAtom)
 
-  const flatTree = flattenVisibleTree(tree, expandedFolders)
+  const flatTree = flattenVisibleTree(tree, expandedFolders, prevFlatCache)
+
+  // update intern cache for next recomputation
+  const newCache = new Map<string, FlatTreeItem>()
+  for (const flatItem of flatTree) {
+    if (flatItem.item.kind !== "creation-input") {
+      newCache.set(flatItem.item.path, flatItem)
+    }
+  }
+  prevFlatCache = newCache
 
   // If creating in a folder context, inject a creation input pseudo-item
   if (isCreatingInContext) {

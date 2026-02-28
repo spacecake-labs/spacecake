@@ -1,7 +1,6 @@
 import { PGlite } from "@electric-sql/pglite"
-import { live } from "@electric-sql/pglite/live"
 import { drizzle } from "drizzle-orm/pglite"
-import { Context, Effect, Layer } from "effect"
+import { Effect, Layer } from "effect"
 
 import migration0000 from "@/drizzle/0000_natural_rogue.sql?raw"
 import migration0001 from "@/drizzle/0001_add_workspace_layout.sql?raw"
@@ -20,7 +19,7 @@ export const initCachedDataDir = async (): Promise<Blob> => {
   if (cachedDataDir) return cachedDataDir
 
   // Create a temporary PGlite instance, run migrations, then dump
-  const tempClient = await PGlite.create({ extensions: { live } })
+  const tempClient = await PGlite.create()
   await tempClient.exec(migration0000)
   await tempClient.exec(migration0001)
   await tempClient.exec(migration0002)
@@ -53,7 +52,6 @@ export const makeTestDatabaseLayer = () =>
       const client = yield* Effect.tryPromise({
         try: () =>
           PGlite.create({
-            extensions: { live },
             loadDataDir: dataDir,
           }),
         catch: (error) => new PgliteError({ cause: error }),
@@ -61,7 +59,7 @@ export const makeTestDatabaseLayer = () =>
 
       const orm = drizzle({ client, casing: "snake_case" })
 
-      return makeDatabaseService(client, orm) as Context.Tag.Service<typeof Database>
+      return makeDatabaseService(client, orm)
     }),
   )
 

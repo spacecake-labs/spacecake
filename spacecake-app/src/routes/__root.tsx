@@ -1,4 +1,3 @@
-import { PGliteProvider } from "@electric-sql/pglite-react"
 import {
   createRootRouteWithContext,
   ErrorComponent,
@@ -11,7 +10,6 @@ import { useEffect } from "react"
 
 import type { RouterContext } from "@/router"
 
-import { DatabaseContext } from "@/hooks/use-database"
 import { useOpenWorkspace } from "@/lib/open-workspace"
 
 export const Route = createRootRouteWithContext<RouterContext>()({
@@ -20,7 +18,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 })
 
 function RootComponent() {
-  const { db } = Route.useRouteContext()
   const { handleOpenWorkspace } = useOpenWorkspace()
   const posthog = usePostHog()
   const location = useLocation()
@@ -47,11 +44,9 @@ function RootComponent() {
   }, [location.href, posthog])
 
   return (
-    <PGliteProvider db={db.client}>
-      <DatabaseContext.Provider value={db.orm}>
-        <Outlet />
-        {/* <TanStackRouterDevtools /> */}
-      </DatabaseContext.Provider>
-    </PGliteProvider>
+    <>
+      <Outlet />
+      {/* <TanStackRouterDevtools /> */}
+    </>
   )
 }

@@ -1,7 +1,7 @@
 import fs from "fs"
 import path from "path"
 
-import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
+import { expect, test, waitForEditorFocus, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem, locateTab, locateTabCloseButton } from "@/../e2e/utils"
 
 test.describe("spacecake app", () => {
@@ -456,8 +456,8 @@ test.describe("spacecake app", () => {
     // 3. Verify workspace is loaded
     await expect(locateSidebarItem(window, "persistent-file.txt")).toBeVisible()
 
-    // wait for workspace to be logged in db
-    await window.waitForTimeout(1000)
+    // wait for workspace to be logged in db (pglite worker adds latency)
+    await window.waitForTimeout(2000)
 
     // 4. Reload the window
     // At some point we should improve this test
@@ -488,7 +488,8 @@ test.describe("spacecake app", () => {
 
     await expect(window.getByText("hello persistence")).toBeVisible()
 
-    await window.waitForTimeout(1000)
+    // wait for file open state to persist to db (pglite worker adds latency)
+    await window.waitForTimeout(2000)
 
     // 4. Reload the window
     // At some point we should improve this test
@@ -538,7 +539,8 @@ test.describe("spacecake app", () => {
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
     await expect(window.getByText("deep file content")).toBeVisible()
 
-    await window.waitForTimeout(1000)
+    // wait for file open and folder state to persist to db (pglite worker adds latency)
+    await window.waitForTimeout(2000)
     // 6. Reload the window
 
     await window.reload()
@@ -576,6 +578,9 @@ test.describe("spacecake app", () => {
 
     // 6. Verify the editor is focused and ready for typing
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
+    await waitForEditorFocus(window)
+    // settle delay lets the editor finish internal state setup after focus
+    await window.waitForTimeout(200)
 
     // 7. Type some text - this will only work if autofocus is working!
     await window.keyboard.type("Hello, autofocus!", { delay: 100 })
@@ -678,6 +683,7 @@ test.describe("spacecake app", () => {
 
     // 5. Type some text to make the file dirty
     await editor.getByText("Initial content").click() // focus editor
+    await waitForEditorFocus(window)
     await window.keyboard.type("... some new text", { delay: 100 })
 
     // 6. Verify the dirty indicator is visible
@@ -719,6 +725,7 @@ test.describe("spacecake app", () => {
 
     // 5. Type some text to make the file dirty
     await editor.getByText("Original content").click()
+    await waitForEditorFocus(window)
     await window.keyboard.press("End") // ensure cursor is at end of line
     await window.keyboard.type(" EDITED", { delay: 50 })
 
@@ -807,7 +814,8 @@ test.describe("spacecake app", () => {
     await expect(locateTab(window, "file2.md")).toBeVisible()
     await expect(locateTab(window, "file3.md")).toBeVisible()
 
-    await window.waitForTimeout(1000) // allow db persistence
+    // allow db persistence (pglite worker adds latency)
+    await window.waitForTimeout(2000)
     await window.reload()
 
     await expect(locateTab(window, "file2.md")).toBeVisible()

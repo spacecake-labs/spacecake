@@ -35,9 +35,6 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.3.15
         version: 0.3.15
-      '@electric-sql/pglite-react':
-        specifier: ^0.2.33
-        version: 0.2.33(@electric-sql/pglite@0.3.15)(react@19.2.4)
       '@fontsource-variable/geist':
         specifier: ^5.2.8
         version: 5.2.8
@@ -128,6 +125,18 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@6.4.1(@types/node@24.10.13)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+      '@tanstack/db':
+        specifier: ^0.5.30
+        version: 0.5.30(typescript@5.8.3)
+      '@tanstack/query-db-collection':
+        specifier: ^1.0.27
+        version: 1.0.27(@tanstack/query-core@5.90.20)(typescript@5.8.3)
+      '@tanstack/react-db':
+        specifier: ^0.1.74
+        version: 0.1.74(react@19.2.4)(typescript@5.8.3)
+      '@tanstack/react-query':
+        specifier: ^5.90.21
+        version: 5.90.21(react@19.2.4)
       '@tanstack/react-router':
         specifier: ^1.160.2
         version: 1.160.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -140,6 +149,9 @@ importers:
       '@tanstack/react-virtual':
         specifier: ^3.13.18
         version: 3.13.18(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@vscode/ripgrep':
+        specifier: ^1.17.0
+        version: 1.17.0
       '@xstate/react':
         specifier: ^6.0.0
         version: 6.0.0(@types/react@19.2.14)(react@19.2.4)(xstate@5.28.0)
@@ -182,18 +194,12 @@ importers:
       jotai-effect:
         specifier: ^2.2.3
         version: 2.2.3(jotai@2.17.1(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.14)(react@19.2.4))
-      jotai-family:
-        specifier: ^1.0.1
-        version: 1.0.1(jotai@2.17.1(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.14)(react@19.2.4))
       jotai-xstate:
         specifier: ^0.6.1
         version: 0.6.1(jotai@2.17.1(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.14)(react@19.2.4))(xstate@5.28.0)
       lexical:
         specifier: ^0.40.0
         version: 0.40.0
-      live:
-        specifier: link:@electric-sql/pglite/live
-        version: link:@electric-sql/pglite/live
       lucide-react:
         specifier: ^0.525.0
         version: 0.525.0(react@19.2.4)
@@ -827,12 +833,6 @@ packages:
       '@effect/platform': ^0.94.0
       '@effect/rpc': ^0.73.0
       effect: ^3.19.13
-
-  '@electric-sql/pglite-react@0.2.33':
-    resolution: {integrity: sha512-HNBSdKsq+3BmMCVCcZjkwyoZLCZVo7YmmOnq3NVdHdLDDtTP9FPekW8AZQnbV8nnyAgX778/BV1Asfy/wi+Q7A==}
-    peerDependencies:
-      '@electric-sql/pglite': 0.3.15
-      react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
 
   '@electric-sql/pglite@0.3.15':
     resolution: {integrity: sha512-Cj++n1Mekf9ETfdc16TlDi+cDDQF0W7EcbyRHYOAeZdsAe8M/FJg18itDTSwyHfar2WIezawM9o0EKaRGVKygQ==}
@@ -3188,9 +3188,42 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
 
+  '@tanstack/db-ivm@0.1.17':
+    resolution: {integrity: sha512-DK7vm56CDxNuRAdsbiPs+gITJ+16tUtYgZg3BRTLYKGIDsy8sdIO7sQFq5zl7Y+aIKAPmMAbVp9UjJ75FTtwgQ==}
+    peerDependencies:
+      typescript: '>=4.7'
+
+  '@tanstack/db@0.5.30':
+    resolution: {integrity: sha512-kgBbmGrWSrDdKPzl465OEGy2Epyc6HsoI2U/jUrMSHuGgUEtgowpnBCTyPJCGBrHL8+bYgASFV4ULsFn4L6pLg==}
+    peerDependencies:
+      typescript: '>=4.7'
+
   '@tanstack/history@1.154.14':
     resolution: {integrity: sha512-xyIfof8eHBuub1CkBnbKNKQXeRZC4dClhmzePHVOEel4G7lk/dW+TQ16da7CFdeNLv6u6Owf5VoBQxoo6DFTSA==}
     engines: {node: '>=12'}
+
+  '@tanstack/pacer-lite@0.2.1':
+    resolution: {integrity: sha512-3PouiFjR4B6x1c969/Pl4ZIJleof1M0n6fNX8NRiC9Sqv1g06CVDlEaXUR4212ycGFyfq4q+t8Gi37Xy+z34iQ==}
+    engines: {node: '>=18'}
+
+  '@tanstack/query-core@5.90.20':
+    resolution: {integrity: sha512-OMD2HLpNouXEfZJWcKeVKUgQ5n+n3A2JFmBaScpNDUqSrQSjiveC7dKMe53uJUg1nDG16ttFPz2xfilz6i2uVg==}
+
+  '@tanstack/query-db-collection@1.0.27':
+    resolution: {integrity: sha512-A45TZSLJsY9tCPGMiJpLHdx1e4qLAnBvOVrfUXKhbOFtDleLZuU1r+Wg5aMRYKDTIPjOyoPLQYy9TiN92uBU+w==}
+    peerDependencies:
+      '@tanstack/query-core': ^5.0.0
+      typescript: '>=4.7'
+
+  '@tanstack/react-db@0.1.74':
+    resolution: {integrity: sha512-5c5sIVLWsqDnufK4fTnO6VQWUjuIQXB5LEY7zBSqhfJgTMomHtFVxb899O97z2oqF+UzIzmW/lXqUq9Xm8l1Pg==}
+    peerDependencies:
+      react: '>=16.8.0'
+
+  '@tanstack/react-query@5.90.21':
+    resolution: {integrity: sha512-0Lu6y5t+tvlTJMTO7oh5NSpJfpg/5D41LlThfepTixPYkJ0sE2Jj0m0f6yYqujBwIXlId87e234+MxG3D3g7kg==}
+    peerDependencies:
+      react: ^18 || ^19
 
   '@tanstack/react-router-devtools@1.160.2':
     resolution: {integrity: sha512-uSdQD77S+LcANCiWcLsrqSxyEqTXdZhBETbciKcYJrcgd8rfkxg6AIewYi7148QPU6gb3VKQbeRlqXmBeEs5dg==}
@@ -3567,6 +3600,9 @@ packages:
 
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
+
+  '@vscode/ripgrep@1.17.0':
+    resolution: {integrity: sha512-mBRKm+ASPkUcw4o9aAgfbusIu6H4Sdhw09bjeP1YOBFTJEZAnrnk6WZwzv8NEjgC82f7ILvhmb1WIElSugea6g==}
 
   '@vscode/sudo-prompt@9.3.2':
     resolution: {integrity: sha512-gcXoCN00METUNFeQOFJ+C9xUI0DKB+0EGMVg7wbVYRHBw2Eq3fKisDZOkRdOz3kqXRKOENMfShPOmypw1/8nOw==}
@@ -4762,6 +4798,10 @@ packages:
     resolution: {integrity: sha512-gIXjKqtFuWEgzFRJA9WCQeSJLZDjgJUOMCMzxtvFq/37KojM1BFGufqsCy0r4qSQmYLsZYMeyRqzIWOMup03sw==}
     engines: {node: '>=14'}
 
+  fractional-indexing@3.2.0:
+    resolution: {integrity: sha512-PcOxmqwYCW7O2ovKRU8OoQQj2yqTfEB/yeTYk4gPid6dN5ODRfU1hXd9tTVZzax/0NkO7AxpHykvZnT1aYp/BQ==}
+    engines: {node: ^14.13.1 || >=16.0.0}
+
   fs-extra@10.1.0:
     resolution: {integrity: sha512-oRXApq54ETRj4eMiFzGnHWGy+zo5raudjuxN0b8H7s/RU2oW0Wvsx9O0ACRN/kRq9E8Vu/ReskGB5o3ji+FzHQ==}
     engines: {node: '>=12'}
@@ -5232,12 +5272,6 @@ packages:
     engines: {node: '>=12.20.0'}
     peerDependencies:
       jotai: '>=2.16.0'
-
-  jotai-family@1.0.1:
-    resolution: {integrity: sha512-Zb/79GNDhC/z82R+6qTTpeKW4l4H6ZCApfF5W8G4SH37E4mhbysU7r8DkP0KX94hWvjB/6lt/97nSr3wB+64Zg==}
-    engines: {node: '>=12.20.0'}
-    peerDependencies:
-      jotai: '>=2.9.0'
 
   jotai-xstate@0.6.1:
     resolution: {integrity: sha512-graSDsorui1a4Zt4jCJ40GuOzOkfOY317XcazYnNx0EHS+D/rOr4aLzZRy0NLaPQZsypfcGSMbNCwksfhwkixA==}
@@ -6150,6 +6184,9 @@ packages:
     resolution: {integrity: sha512-CvexbZtbov6jW2eXAvLukXjXUW1TzFaivC46BpWc/3BpcCysb5Vffu+B3XHMm8lVEuy2Mm4XGex8hBSg1yapPg==}
     engines: {node: '>=12.0.0'}
 
+  proxy-from-env@1.1.0:
+    resolution: {integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==}
+
   pump@3.0.3:
     resolution: {integrity: sha512-todwxLMY7/heScKmntwQG8CXVkWUOdYxIvY2s0VWAAMh/nd8SoYiRaKjlr7+iCs984f2P8zvrfWcDDYVb73NfA==}
 
@@ -6504,6 +6541,9 @@ packages:
     peerDependencies:
       react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
       react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+
+  sorted-btree@1.8.1:
+    resolution: {integrity: sha512-395+XIP+wqNn3USkFSrNz7G3Ss/MXlZEqesxvzCRFwL14h6e8LukDHdLBePn5pwbm5OQ9vGu8mDyz2lLDIqamQ==}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -8014,11 +8054,6 @@ snapshots:
       '@effect/platform': 0.94.5(effect@3.19.18)
       '@effect/rpc': 0.73.0(@effect/platform@0.94.5(effect@3.19.18))(effect@3.19.18)
       effect: 3.19.18
-
-  '@electric-sql/pglite-react@0.2.33(@electric-sql/pglite@0.3.15)(react@19.2.4)':
-    dependencies:
-      '@electric-sql/pglite': 0.3.15
-      react: 19.2.4
 
   '@electric-sql/pglite@0.3.15': {}
 
@@ -10451,7 +10486,44 @@ snapshots:
       tailwindcss: 4.1.18
       vite: 6.4.1(@types/node@24.10.13)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
 
+  '@tanstack/db-ivm@0.1.17(typescript@5.8.3)':
+    dependencies:
+      fractional-indexing: 3.2.0
+      sorted-btree: 1.8.1
+      typescript: 5.8.3
+
+  '@tanstack/db@0.5.30(typescript@5.8.3)':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      '@tanstack/db-ivm': 0.1.17(typescript@5.8.3)
+      '@tanstack/pacer-lite': 0.2.1
+      typescript: 5.8.3
+
   '@tanstack/history@1.154.14': {}
+
+  '@tanstack/pacer-lite@0.2.1': {}
+
+  '@tanstack/query-core@5.90.20': {}
+
+  '@tanstack/query-db-collection@1.0.27(@tanstack/query-core@5.90.20)(typescript@5.8.3)':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      '@tanstack/db': 0.5.30(typescript@5.8.3)
+      '@tanstack/query-core': 5.90.20
+      typescript: 5.8.3
+
+  '@tanstack/react-db@0.1.74(react@19.2.4)(typescript@5.8.3)':
+    dependencies:
+      '@tanstack/db': 0.5.30(typescript@5.8.3)
+      react: 19.2.4
+      use-sync-external-store: 1.6.0(react@19.2.4)
+    transitivePeerDependencies:
+      - typescript
+
+  '@tanstack/react-query@5.90.21(react@19.2.4)':
+    dependencies:
+      '@tanstack/query-core': 5.90.20
+      react: 19.2.4
 
   '@tanstack/react-router-devtools@1.160.2(@tanstack/react-router@1.160.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@tanstack/router-core@1.160.0)(csstype@3.2.3)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
@@ -10921,6 +10993,14 @@ snapshots:
       '@vitest/pretty-format': 3.2.4
       loupe: 3.2.1
       tinyrainbow: 2.0.0
+
+  '@vscode/ripgrep@1.17.0':
+    dependencies:
+      https-proxy-agent: 7.0.6
+      proxy-from-env: 1.1.0
+      yauzl: 2.10.0
+    transitivePeerDependencies:
+      - supports-color
 
   '@vscode/sudo-prompt@9.3.2': {}
 
@@ -12213,6 +12293,8 @@ snapshots:
       cross-spawn: 7.0.6
       signal-exit: 4.1.0
 
+  fractional-indexing@3.2.0: {}
+
   fs-extra@10.1.0:
     dependencies:
       graceful-fs: 4.2.11
@@ -12725,10 +12807,6 @@ snapshots:
   jiti@2.6.1: {}
 
   jotai-effect@2.2.3(jotai@2.17.1(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.14)(react@19.2.4)):
-    dependencies:
-      jotai: 2.17.1(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.14)(react@19.2.4)
-
-  jotai-family@1.0.1(jotai@2.17.1(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.14)(react@19.2.4)):
     dependencies:
       jotai: 2.17.1(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.14)(react@19.2.4)
 
@@ -13680,6 +13758,8 @@ snapshots:
       '@types/node': 24.10.13
       long: 5.3.2
 
+  proxy-from-env@1.1.0: {}
+
   pump@3.0.3:
     dependencies:
       end-of-stream: 1.4.5
@@ -14071,6 +14151,8 @@ snapshots:
     dependencies:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
+
+  sorted-btree@1.8.1: {}
 
   source-map-js@1.2.1: {}
 

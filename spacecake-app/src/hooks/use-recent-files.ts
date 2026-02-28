@@ -1,21 +1,36 @@
-import { and, desc, getTableColumns, isNotNull, like } from "drizzle-orm"
+import { isNull, not, useLiveQuery } from "@tanstack/react-db"
+import { useMemo } from "react"
 
-import { useQuery } from "@/hooks/use-query"
-import { FileSelectSchema, fileTable } from "@/schema"
-import { AbsolutePath } from "@/types/workspace"
+import { useCollections } from "@/contexts/collections-context"
 
-export const useRecentFiles = (workspacePath: AbsolutePath) => {
-  return useQuery(
-    (orm) =>
-      orm
-        .select(getTableColumns(fileTable))
-        .from(fileTable)
-        .where(
-          and(like(fileTable.path, `${workspacePath}%`), isNotNull(fileTable.last_accessed_at)),
-        )
-        .orderBy(desc(fileTable.last_accessed_at))
+export const useRecentFiles = () => {
+  const { fileCollection } = useCollections()
+
+  const result = useLiveQuery(
+    (q) =>
+      q
+        .from({ file: fileCollection })
+        .where(({ file }) => not(isNull(file.last_accessed_at)))
+        .orderBy(({ file }) => file.last_accessed_at, "desc")
         .limit(10)
-        .toSQL(),
-    FileSelectSchema,
+        .select(({ file }) => ({
+          id: file.id,
+          path: file.path,
+          cid: file.cid,
+          mtime: file.mtime,
+          created_at: file.created_at,
+          last_accessed_at: file.last_accessed_at,
+        })),
+    [fileCollection],
+  )
+
+  return useMemo(
+    () => ({
+      data: result.data,
+      loading: result.isLoading,
+      error: result.isError ? "collection error" : undefined,
+      empty: result.data?.length === 0,
+    }),
+    [result.data, result.isLoading, result.isError],
   )
 }

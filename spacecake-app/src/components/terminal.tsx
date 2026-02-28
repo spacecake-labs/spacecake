@@ -58,6 +58,10 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
   const setProfileLoaded = useSetAtom(terminalProfileLoadedAtom)
   const profileLoadedTabsRef = useRef<Set<string>>(new Set())
 
+  // tracks a tab created by addTab that hasn't mounted yet — used to
+  // auto-focus only user-created tabs, not the initial tab on startup
+  const pendingNewTabRef = useRef<string | null>(null)
+
   // scroll refs for the tab bar
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -74,6 +78,17 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
     onActiveApiChangeRef.current?.(api)
   }, [])
 
+  // focus the terminal textarea for a given tab
+  const focusTerminal = useCallback((tabId?: string) => {
+    const id = tabId ?? activeTabIdRef.current
+    if (!id) return
+    const panel = document.querySelector('[data-testid="terminal-panel"]')
+    const tabContent = panel?.querySelector(
+      `[data-testid="terminal-tab-content"][data-tab-id="${id}"]`,
+    )
+    tabContent?.querySelector<HTMLTextAreaElement>("textarea")?.focus()
+  }, [])
+
   // central handler for all tab activations — replaces 4 separate effects
   const activateTab = useCallback(
     (tabId: string) => {
@@ -85,12 +100,11 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
       syncActiveApi(tabId)
       setProfileLoaded(profileLoadedTabsRef.current.has(tabId))
 
-      // DOM is committed — focus synchronously
-      const panel = document.querySelector('[data-testid="terminal-panel"]')
-      const tabContent = panel?.querySelector(
-        `[data-testid="terminal-tab-content"][data-tab-id="${tabId}"]`,
-      )
-      tabContent?.querySelector<HTMLTextAreaElement>("textarea")?.focus()
+      // immediate attempt (works for keyboard-triggered switches)
+      focusTerminal(tabId)
+      // deferred attempt (handles click-triggered switches where the browser
+      // moves focus to the clicked button after our synchronous focus call)
+      requestAnimationFrame(() => focusTerminal(tabId))
 
       // scroll tab button into view after paint
       requestAnimationFrame(() => {
@@ -99,7 +113,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
           ?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
       })
     },
-    [syncActiveApi, setProfileLoaded],
+    [syncActiveApi, setProfileLoaded, focusTerminal],
   )
 
   const handleTabReady = useCallback(
@@ -107,9 +121,14 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
       tabApisRef.current.set(tabId, api)
       if (activeTabIdRef.current === tabId) {
         syncActiveApi(tabId)
+        // only auto-focus if this is a user-created tab (not the initial tab on startup)
+        if (pendingNewTabRef.current === tabId) {
+          pendingNewTabRef.current = null
+          requestAnimationFrame(() => focusTerminal(tabId))
+        }
       }
     },
-    [syncActiveApi],
+    [syncActiveApi, focusTerminal],
   )
 
   const handleTabDispose = useCallback(
@@ -139,6 +158,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
 
   const addTab = useCallback(() => {
     const tab = makeTab()
+    pendingNewTabRef.current = tab.id
     setTabs((prev) => [...prev, tab])
     activateTab(tab.id)
   }, [activateTab])

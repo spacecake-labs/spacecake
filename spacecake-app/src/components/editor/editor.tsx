@@ -22,7 +22,7 @@ import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { editorTheme } from "@/components/editor/theme"
 import { RouteContext, useEditor, type CancelDebounceRef } from "@/contexts/editor-context"
 import { useFocusablePanel } from "@/contexts/focus-manager"
-import { fileStateAtomFamily } from "@/lib/atoms/file-tree"
+import { getOrCreateFileStateAtom } from "@/lib/atoms/file-tree"
 import { debounce } from "@/lib/utils"
 import { type EditorExtendedSelection } from "@/types/claude-code"
 import { type ChangeType, type SerializedSelection } from "@/types/lexical"
@@ -92,7 +92,7 @@ export function Editor({
 }: EditorProps) {
   const context = React.useContext(RouteContext)
   const { editorRef } = useEditor()
-  const fileState = useAtomValue(fileStateAtomFamily(filePath)).value
+  const fileState = useAtomValue(getOrCreateFileStateAtom(filePath)).value
   const isDirty = fileState === "Dirty"
 
   // Keep refs for unmount cleanup (can't use hooks in cleanup)

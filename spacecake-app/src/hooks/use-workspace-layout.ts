@@ -1,39 +1,42 @@
+import { eq, useLiveQuery } from "@tanstack/react-db"
 import { Option, Schema } from "effect"
+import { useMemo } from "react"
 
-import { useQuerySingle } from "@/hooks/use-query"
-import { workspaceLayoutQuery } from "@/lib/db/queries"
+import { useCollections } from "@/contexts/collections-context"
 import { normalizeDock } from "@/lib/dock-transition"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
-import {
-  defaultWorkspaceLayout,
-  WorkspaceLayoutRowSchema,
-  WorkspaceLayoutSchema,
-} from "@/schema/workspace-layout"
+import { defaultWorkspaceLayout, WorkspaceLayoutSchema } from "@/schema/workspace-layout"
 
 const decodeLayout = Schema.decodeUnknownOption(WorkspaceLayoutSchema)
 
-/**
- * Reactive hook that provides workspace layout data with live updates.
- *
- * Returns the layout with defaults applied for missing fields.
- */
 export const useWorkspaceLayout = (workspaceId: WorkspacePrimaryKey) => {
-  const { data, loading, error, empty } = useQuerySingle(
-    (orm) => workspaceLayoutQuery(orm, workspaceId).toSQL(),
-    WorkspaceLayoutRowSchema,
+  const { workspaceCollection } = useCollections()
+
+  const result = useLiveQuery(
+    (q) =>
+      q
+        .from({ ws: workspaceCollection })
+        .where(({ ws }) => eq(ws.id, workspaceId))
+        .select(({ ws }) => ({ layout: ws.layout })),
+    [workspaceId, workspaceCollection],
   )
 
-  const decoded = data?.layout
-    ? Option.getOrElse(decodeLayout(data.layout), () => defaultWorkspaceLayout)
+  const row = result.data?.[0]
+
+  const decoded = row?.layout
+    ? Option.getOrElse(decodeLayout(row.layout), () => defaultWorkspaceLayout)
     : defaultWorkspaceLayout
 
-  // backfill panels missing from older stored layouts (e.g. "git" added after initial release)
-  const layout = normalizeDock(decoded)
+  // backfill panels missing from older stored layouts
+  const layout = useMemo(() => normalizeDock(decoded), [decoded])
 
-  return {
-    layout,
-    loading,
-    error,
-    empty,
-  }
+  return useMemo(
+    () => ({
+      layout,
+      loading: result.isLoading,
+      error: result.isError ? "collection error" : undefined,
+      empty: !row,
+    }),
+    [layout, result.isLoading, result.isError, row],
+  )
 }

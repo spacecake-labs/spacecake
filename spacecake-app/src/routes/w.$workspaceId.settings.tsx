@@ -1,6 +1,6 @@
 import { createFileRoute, ErrorComponent, useNavigate } from "@tanstack/react-router"
 import { X } from "lucide-react"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useOptimistic, useRef, useState } from "react"
 
 import type { WorkspaceSettings } from "@/schema/workspace-settings"
 
@@ -30,16 +30,31 @@ function SettingsPage() {
   // Reactive settings from DB - updates automatically when DB changes
   const { settings } = useWorkspaceSettings(workspace.id)
 
+  // optimistic autosave - reverts to settings.autosave when DB catches up
+  const [optimisticAutosave, setOptimisticAutosave] = useOptimistic(settings.autosave)
+  const autosaveOn = optimisticAutosave === "on"
+
   // Cached settings machine - lives at module level to survive unmounts
   const settingsMachine = useMemo(() => getOrCreateSettingsMachine(workspace.id), [workspace.id])
 
+  // ref avoids stale closure in updateSetting, keeping the callback stable
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
+
   const updateSetting = useCallback(
     <K extends keyof WorkspaceSettings>(key: K, value: WorkspaceSettings[K]) => {
-      const newSettings = { ...settings, [key]: value }
-      // Send to settings machine - DB update triggers reactive query update
+      const newSettings = { ...settingsRef.current, [key]: value }
       settingsMachine.send({ type: "settings.update", settings: newSettings })
     },
-    [settings, settingsMachine],
+    [settingsMachine],
+  )
+
+  const handleAutosaveChange = useCallback(
+    (checked: boolean) => {
+      setOptimisticAutosave(checked ? "on" : "off")
+      updateSetting("autosave", checked ? "on" : "off")
+    },
+    [setOptimisticAutosave, updateSetting],
   )
 
   const handleClose = useCallback(() => {
@@ -103,8 +118,8 @@ function SettingsPage() {
                   <Switch
                     id="autosave-setting"
                     className="cursor-pointer"
-                    checked={settings.autosave === "on"}
-                    onCheckedChange={(checked) => updateSetting("autosave", checked ? "on" : "off")}
+                    checked={autosaveOn}
+                    onCheckedChange={handleAutosaveChange}
                   />
                 </div>
               </CardContent>

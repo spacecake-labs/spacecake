@@ -3,13 +3,14 @@ import { $getNodeByKey, LexicalEditor } from "lexical"
 import { $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { maybeSplitBlock } from "@/components/editor/plugins/block-splitting"
 import { maybeUpdateDocstring } from "@/components/editor/plugins/docstring-update"
-import { parseCodeBlocks } from "@/lib/parser/python/blocks"
 import { PyBlock } from "@/types/parser"
 
 /**
- * Parse code into blocks - shared utility to avoid duplicate parsing
+ * Parse code into blocks - shared utility to avoid duplicate parsing.
+ * lazy-loads tree-sitter wasm so it's only fetched for python files.
  */
 export async function getBlocks(code: string): Promise<PyBlock[]> {
+  const { parseCodeBlocks } = await import("@/lib/parser/python/blocks")
   const blocks: PyBlock[] = []
   for await (const block of parseCodeBlocks(code)) {
     blocks.push(block)

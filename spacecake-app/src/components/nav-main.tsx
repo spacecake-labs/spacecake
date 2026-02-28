@@ -34,7 +34,7 @@ import {
   revertStateAtom,
 } from "@/lib/atoms/atoms"
 import {
-  fileStateAtomFamily,
+  getOrCreateFileStateAtom,
   flatVisibleTreeAtom,
   sortedFileTreeAtom,
   type FlatFileTreeItem,
@@ -122,7 +122,7 @@ export function NavMain({
     overscan: 10,
   })
 
-  const { cacheMap } = useWorkspaceCache(workspace.path)
+  const { cacheMap } = useWorkspaceCache()
 
   const isCreatingInWorkspace = isCreatingInContext?.parentPath === workspace?.path
 
@@ -358,7 +358,7 @@ export function NavMain({
     if (!revertState.isOpen) return
     setRevertState({ ...revertState, isReverting: true })
     // Use store.set directly to ensure we target the correct file's state machine
-    store.set(fileStateAtomFamily(revertState.filePath), {
+    store.set(getOrCreateFileStateAtom(revertState.filePath), {
       type: "file.revert",
     })
     setTimeout(() => {
