@@ -35,6 +35,8 @@ const TaskTable = lazy(() =>
   import("@/components/task-table/task-table").then((m) => ({ default: m.TaskTable })),
 )
 const Terminal = lazy(() => import("@/components/terminal").then((m) => ({ default: m.Terminal })))
+import type { WorkspaceCollections } from "@/lib/db/collections"
+
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
 import {
   DropdownMenu,
@@ -1185,10 +1187,14 @@ function WorkspaceLayout() {
 
     // workspace changed — recreate collections
     collectionsKeyRef.current = key
-    setCollections((prev) => {
-      cleanupCollections(prev)
+    let prev: WorkspaceCollections | undefined
+    setCollections((old) => {
+      prev = old
       return createWorkspaceCollections(workspace.path, workspace.id, queryClient)
     })
+    // defer cleanup so children re-render with new collections before old ones are destroyed
+    // (prevents "source collection was manually cleaned up" warnings from active live queries)
+    setTimeout(() => prev && cleanupCollections(prev), 0)
   }, [workspace.path, workspace.id])
 
   useEffect(() => {
