@@ -21,6 +21,7 @@ function getPlatformArchSpecificPackages(platform: string, arch: string): string
     "@parcel/watcher",
     "@lydell/node-pty",
     "@vscode/ripgrep",
+    "@electric-sql/pglite",
     "micromatch",
     "braces",
     "fill-range",
@@ -148,7 +149,8 @@ const config: ForgeConfig = {
     executableName: "spacecake",
     asar: {
       unpack: "*.{node,dylib,dll,so}",
-      unpackDir: "**/node_modules/{@parcel/watcher*,@lydell/node-pty*,@vscode/ripgrep*}",
+      unpackDir:
+        "**/node_modules/{@parcel/watcher*,@lydell/node-pty*,@vscode/ripgrep*,@electric-sql/pglite*}",
     },
     icon: "./assets/icon", // no file extension required
   },
