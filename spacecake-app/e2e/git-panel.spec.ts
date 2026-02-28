@@ -71,19 +71,26 @@ test.describe("git panel", () => {
     // default is left
     await expect(window.locator("#git-panel-left")).toBeVisible()
 
+    // helper: open dock dropdown, wait for menu, click option
+    const switchDock = async (option: string) => {
+      const button = window.getByRole("button", { name: "change git dock position" })
+      await expect(button).toBeVisible()
+      await button.click()
+      const menuItem = window.getByText(option)
+      await expect(menuItem).toBeVisible()
+      await menuItem.click()
+    }
+
     // switch to right
-    await window.getByRole("button", { name: "change git dock position" }).click()
-    await window.getByText("dock right").click()
+    await switchDock("dock right")
     await expect(window.locator("#git-panel-right")).toBeVisible()
 
     // switch to bottom
-    await window.getByRole("button", { name: "change git dock position" }).click()
-    await window.getByText("dock bottom").click()
+    await switchDock("dock bottom")
     await expect(window.locator("#git-panel-bottom")).toBeVisible()
 
     // switch back to left
-    await window.getByRole("button", { name: "change git dock position" }).click()
-    await window.getByText("dock left").click()
+    await switchDock("dock left")
     await expect(window.locator("#git-panel-left")).toBeVisible()
 
     // --- git panel refreshes when file is saved in editor ---

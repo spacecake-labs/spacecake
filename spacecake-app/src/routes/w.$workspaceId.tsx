@@ -59,6 +59,7 @@ import {
   getOrCreateFileStateAtom,
   setFileTreeAtom,
 } from "@/lib/atoms/file-tree"
+import { gitBranchAtom } from "@/lib/atoms/git"
 import { cleanupCollections, createWorkspaceCollections } from "@/lib/db/collections"
 import * as mutations from "@/lib/db/mutations"
 import { queryClient } from "@/lib/db/query-client"
@@ -138,8 +139,16 @@ export const Route = createFileRoute("/w/$workspaceId")({
   },
   loader: async ({ context }) => {
     const { db, workspace } = context
+
+    // fetch git branch early so status bar toggle is available sooner
+    // (fire-and-forget — don't block workspace loading)
+    window.electronAPI.git
+      .getCurrentBranch(workspace.path)
+      .then((branch) => store.set(gitBranchAtom, branch))
+      .catch(() => {})
+
     const result = await readDirectory(workspace.path)
-    match(result, {
+    await match(result, {
       onLeft: (error) => {
         Match.value(error).pipe(
           Match.tag("PermissionDeniedError", () => {
