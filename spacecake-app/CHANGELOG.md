@@ -1,5 +1,12 @@
 # spacecake-app
 
+## 0.1.0-alpha.54
+
+### Patch Changes
+
+- 718f492: Migrate PGlite from renderer to Node.
+- bfc79e7: Fix atom family memory leaks.
+
 ## 0.1.0-alpha.53
 
 ### Patch Changes
