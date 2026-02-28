@@ -114,11 +114,20 @@ const config: ForgeConfig = {
           config: "vite.preload.config.mts",
           target: "preload",
         },
+        {
+          entry: "src/migration-preload.ts",
+          config: "vite.preload.config.mts",
+          target: "preload",
+        },
       ],
       renderer: [
         {
           name: "main_window",
           config: "vite.renderer.config.mts",
+        },
+        {
+          name: "migration_window",
+          config: "vite.migration.config.mts",
         },
       ],
     }),

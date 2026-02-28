@@ -20,9 +20,10 @@ import { fixPath } from "@/main-process/fix-path"
 import { ClaudeCodeServer } from "@/services/claude-code-server"
 import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { CliServer } from "@/services/cli-server"
-import { DatabaseMainLayer } from "@/services/database-main"
+import { DatabaseMainLayer, makeDatabaseFromDumpLayer } from "@/services/database-main"
 import { GitService } from "@/services/git"
 import { Ipc } from "@/services/ipc"
+import { migratePgliteFromIdb } from "@/services/migration-idb"
 import { Migrations } from "@/services/migrations"
 import { ensureHomeFolderExists, SpacecakeHome } from "@/services/spacecake-home"
 import { setupUpdates } from "@/update"
@@ -62,6 +63,11 @@ if (isTest) {
 let quitRequested = false
 let windowCounter = 0
 let pendingWillShutdownPromise: Promise<void> | null = null
+type AppLive = ReturnType<typeof buildAppLive>
+let AppRuntime: ManagedRuntime.ManagedRuntime<
+  Layer.Layer.Success<AppLive>,
+  Layer.Layer.Error<AppLive>
+> | null = null
 
 const SHUTDOWN_TIMEOUT_MS = 3000
 
@@ -69,6 +75,10 @@ const SHUTDOWN_TIMEOUT_MS = 3000
 function fireOnWillShutdown(): Promise<void> {
   if (pendingWillShutdownPromise) {
     return pendingWillShutdownPromise
+  }
+
+  if (!AppRuntime) {
+    return Promise.resolve()
   }
 
   const timeout = setTimeout(() => {
@@ -227,32 +237,32 @@ const createWindow = () => {
 
 const SpacecakeHomeLive = SpacecakeHome.Default
 
-const AppLive = Layer.mergeAll(
-  Ipc.Default,
-  ClaudeCodeServer.Default,
-  ClaudeHooksServer.Default,
-  CliServer.Default,
-  GitService.Default,
-  Migrations.Default,
-  SpacecakeHomeLive,
-).pipe(
-  Layer.provide(DatabaseMainLayer),
-  Layer.provide(SpacecakeHomeLive),
-  Layer.provide(Layer.scope),
-)
-
-const AppRuntime = ManagedRuntime.make(AppLive)
+function buildAppLive(
+  dbLayer: Layer.Layer<
+    import("@/services/database").Database,
+    import("@/services/database").PgliteError,
+    SpacecakeHome
+  >,
+) {
+  return Layer.mergeAll(
+    Ipc.Default,
+    ClaudeCodeServer.Default,
+    ClaudeHooksServer.Default,
+    CliServer.Default,
+    GitService.Default,
+    Migrations.Default,
+    SpacecakeHomeLive,
+  ).pipe(Layer.provide(dbLayer), Layer.provide(SpacecakeHomeLive), Layer.provide(Layer.scope))
+}
 
 const setupProgram = Effect.gen(function* () {
-  yield* Effect.promise(() => app.whenReady())
-  yield* Effect.promise(() => fixPath())
   yield* ensureHomeFolderExists
 
   // run database migrations before creating window
   const migrations = yield* Migrations
   yield* migrations.apply
 
-  // Start CLI server early so `spacecake open` works before a workspace is opened
+  // start CLI server early so `spacecake open` works before a workspace is opened
   const cliServer = yield* CliServer
   yield* Effect.promise(() => cliServer.ensureStarted([]))
 
@@ -279,6 +289,62 @@ const setupProgram = Effect.gen(function* () {
     }
   })
 })
+
+/**
+ * determines which database layer to use based on filesystem state:
+ * 1. PG_VERSION exists → normal startup (data already on disk)
+ * 2. migration dump file exists → crash recovery (load dump)
+ * 3. neither → attempt IndexedDB migration via hidden window
+ */
+async function resolveDatabaseLayer(): Promise<
+  Layer.Layer<
+    import("@/services/database").Database,
+    import("@/services/database").PgliteError,
+    SpacecakeHome
+  >
+> {
+  const homeDir = process.env.SPACECAKE_HOME || path.join(app.getPath("home"), ".spacecake")
+  const appDir = path.join(homeDir, ".app")
+  const dataDir = path.join(appDir, "pglite-data")
+  const pgVersionPath = path.join(dataDir, "PG_VERSION")
+  const dumpPath = path.join(appDir, "migration-dump.tar.gz")
+
+  // path 1: data already exists on disk
+  if (fs.existsSync(pgVersionPath)) {
+    return DatabaseMainLayer
+  }
+
+  // path 2: crash recovery — dump was saved but PGlite didn't load it yet
+  if (fs.existsSync(dumpPath)) {
+    console.log("migration: found existing dump file, restoring from crash recovery")
+    return makeDatabaseFromDumpLayer(dumpPath)
+  }
+
+  // path 3: attempt migration from IndexedDB
+  // only launch the hidden migration window if Chromium's IndexedDB storage
+  // actually contains data — on fresh installs (and in tests) the directory
+  // won't exist, so we skip straight to an empty database.
+  const storagePath = session.defaultSession?.storagePath
+  if (storagePath) {
+    const idbDir = path.join(storagePath, "IndexedDB")
+    const hasIdbData = fs.existsSync(idbDir) && fs.readdirSync(idbDir).length > 0
+
+    if (!hasIdbData) {
+      return DatabaseMainLayer
+    }
+  }
+
+  console.log("migration: no PGlite data on disk, checking IndexedDB for existing data")
+  const result = await migratePgliteFromIdb(appDir, dumpPath)
+
+  if (result === "migrated") {
+    console.log("migration: IndexedDB dump received, loading into filesystem PGlite")
+    return makeDatabaseFromDumpLayer(dumpPath)
+  }
+
+  // fresh install or migration failed — use normal layer (creates empty db)
+  return DatabaseMainLayer
+}
 
 async function main() {
   // Silence write errors on broken stdout/stderr (e.g. Linux terminal closed
@@ -317,11 +383,19 @@ async function main() {
     })
   })
 
-  const exit = await AppRuntime.runPromiseExit(setupProgram)
+  await app.whenReady()
+  await fixPath()
+
+  // resolve the database layer (may run IndexedDB migration via hidden window)
+  const dbLayer = await resolveDatabaseLayer()
+  const AppLive = buildAppLive(dbLayer)
+  AppRuntime = ManagedRuntime.make(AppLive)
+
+  const exit = await AppRuntime!.runPromiseExit(setupProgram)
 
   if (Exit.isFailure(exit)) {
     console.error("Lifecycle: App setup failed", exit.cause)
-    await AppRuntime.dispose()
+    await AppRuntime!.dispose()
     app.exit(1)
   }
 }
