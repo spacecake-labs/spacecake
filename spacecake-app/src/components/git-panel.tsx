@@ -1,6 +1,6 @@
 import { useAtom, useSetAtom } from "jotai"
 import { Check, ChevronDown, ChevronRight, Circle, Copy, File } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -277,15 +277,20 @@ function WorkingTreeFilesPane({
   onFileClick?: (filePath: AbsolutePath) => void
 }) {
   // staged files with "added" status (A)
-  const stagedFiles: Array<{ path: string; status: FileStatus }> =
-    status?.staged.map((path) => ({ path, status: "added" as FileStatus })) ?? []
+  const stagedFiles = useMemo<Array<{ path: string; status: FileStatus }>>(
+    () => status?.staged.map((path) => ({ path, status: "added" as FileStatus })) ?? [],
+    [status?.staged],
+  )
 
   // combine modified, untracked, deleted into "changes" section
-  const changesFiles: Array<{ path: string; status: FileStatus }> = [
-    ...(status?.modified.map((path) => ({ path, status: "modified" as FileStatus })) ?? []),
-    ...(status?.untracked.map((path) => ({ path, status: "untracked" as FileStatus })) ?? []),
-    ...(status?.deleted.map((path) => ({ path, status: "deleted" as FileStatus })) ?? []),
-  ]
+  const changesFiles = useMemo<Array<{ path: string; status: FileStatus }>>(
+    () => [
+      ...(status?.modified.map((path) => ({ path, status: "modified" as FileStatus })) ?? []),
+      ...(status?.untracked.map((path) => ({ path, status: "untracked" as FileStatus })) ?? []),
+      ...(status?.deleted.map((path) => ({ path, status: "deleted" as FileStatus })) ?? []),
+    ],
+    [status?.modified, status?.untracked, status?.deleted],
+  )
 
   const hasNoChanges = stagedFiles.length === 0 && changesFiles.length === 0
 
