@@ -22,6 +22,7 @@ import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { editorTheme } from "@/components/editor/theme"
 import { RouteContext, useEditor, type CancelDebounceRef } from "@/contexts/editor-context"
 import { useFocusablePanel } from "@/contexts/focus-manager"
+import { useLatest } from "@/hooks/use-latest"
 import { getOrCreateFileStateAtom } from "@/lib/atoms/file-tree"
 import { debounce } from "@/lib/utils"
 import { type EditorExtendedSelection } from "@/types/claude-code"
@@ -132,10 +133,7 @@ export function Editor({
     }, [editorRef]),
   )
 
-  const onChangeRef = React.useRef<EditorProps["onChange"]>(onChange)
-  React.useEffect(() => {
-    onChangeRef.current = onChange
-  }, [onChange])
+  const onChangeRef = useLatest(onChange)
 
   const lastStateRef = React.useRef<EditorState | null>(null)
   // if a content change occurs in the debounce window,

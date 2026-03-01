@@ -12,6 +12,7 @@ import { TerminalTab } from "@/components/terminal-tab"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useHotkey } from "@/hooks/use-hotkey"
+import { useLatest } from "@/hooks/use-latest"
 import { terminalProfileLoadedAtom } from "@/lib/atoms/atoms"
 import { condensePath } from "@/lib/utils"
 
@@ -39,12 +40,6 @@ function terminalDisplayName(title: string): string {
     return basename ?? title
   }
   return title
-}
-
-function useLatest<T>(value: T) {
-  const ref = useRef(value)
-  ref.current = value
-  return ref
 }
 
 export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed }: TerminalProps) {

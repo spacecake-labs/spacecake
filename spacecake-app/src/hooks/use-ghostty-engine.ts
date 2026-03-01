@@ -3,6 +3,7 @@ import { FitAddon, init, ITheme, Terminal } from "ghostty-web"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { useTheme } from "@/components/theme-provider"
+import { useLatest } from "@/hooks/use-latest"
 import { handleImagePaste, TerminalClipboardLive } from "@/lib/clipboard"
 import { suppressDuplicateWarnings } from "@/lib/suppress-duplicate-warnings"
 import {
@@ -78,10 +79,9 @@ export function useGhosttyEngine({
   const appShortcutHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null)
   const linkTooltipRef = useRef<HTMLDivElement | null>(null)
   const linkHoverHandlerRef = useRef<((e: MouseEvent) => void) | null>(null)
-  const onTitleChangeRef = useRef(onTitleChange)
-  onTitleChangeRef.current = onTitleChange
-  const onProfileLoadedRef = useRef(onProfileLoaded)
-  onProfileLoadedRef.current = onProfileLoaded
+  const linkLeaveHandlerRef = useRef<(() => void) | null>(null)
+  const onTitleChangeRef = useLatest(onTitleChange)
+  const onProfileLoadedRef = useLatest(onProfileLoaded)
   const profileLoadedRef = useRef(false)
 
   const [error, setError] = useState<string | null>(null)
@@ -298,9 +298,10 @@ export function useGhosttyEngine({
           }
         }
         containerEl.addEventListener("mousemove", linkHoverHandlerRef.current)
-        containerEl.addEventListener("mouseleave", () => {
+        linkLeaveHandlerRef.current = () => {
           tooltip.style.opacity = "0"
-        })
+        }
+        containerEl.addEventListener("mouseleave", linkLeaveHandlerRef.current)
 
         // Build API
         const terminalApi: TerminalAPI = {
@@ -347,6 +348,10 @@ export function useGhosttyEngine({
       if (linkHoverHandlerRef.current) {
         containerEl.removeEventListener("mousemove", linkHoverHandlerRef.current)
         linkHoverHandlerRef.current = null
+      }
+      if (linkLeaveHandlerRef.current) {
+        containerEl.removeEventListener("mouseleave", linkLeaveHandlerRef.current)
+        linkLeaveHandlerRef.current = null
       }
       if (linkTooltipRef.current) {
         linkTooltipRef.current.remove()
