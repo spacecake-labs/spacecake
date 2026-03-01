@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { Language, Parser } from "web-tree-sitter"
 
-import languages from "@/lib/parser/languages"
+import { getLanguages } from "@/lib/parser/languages"
 import { dedentDocstring, findDocstringNode } from "@/lib/parser/python/docstring"
 
 let Python: Language
@@ -10,7 +10,7 @@ describe("Python docstring utilities", () => {
   let parser: Parser
 
   beforeAll(async () => {
-    ;({ Python } = await languages)
+    ;({ Python } = await getLanguages())
   })
 
   beforeEach(() => {

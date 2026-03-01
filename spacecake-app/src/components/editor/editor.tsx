@@ -16,7 +16,7 @@ import { Plugins } from "@/components/editor/plugins"
 import {
   CODEMIRROR_SELECTION_COMMAND,
   type CodeMirrorSelectionPayload,
-} from "@/components/editor/plugins/codemirror-editor"
+} from "@/components/editor/plugins/codemirror-commands"
 import { OnChangePlugin } from "@/components/editor/plugins/on-change"
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { editorTheme } from "@/components/editor/theme"

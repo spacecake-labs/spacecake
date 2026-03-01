@@ -21,7 +21,9 @@ import React, { JSX } from "react"
 import type { LanguageSpec } from "@/types/language"
 import type { Block } from "@/types/parser"
 
-import { CodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor"
+const CodeMirrorEditor = React.lazy(() =>
+  import("@/components/editor/plugins/codemirror-editor").then((m) => ({ default: m.CodeMirrorEditor })),
+)
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
 
@@ -383,13 +385,15 @@ const CodeBlockEditorContainer: React.FC<
       lexicalNode={props.codeBlockNode}
       src={props.src}
     >
-      <CodeMirrorEditor
-        code={props.code}
-        language={props.language}
-        block={props.block}
-        nodeKey={props.nodeKey}
-        codeBlockNode={props.codeBlockNode}
-      />
+      <React.Suspense fallback={null}>
+        <CodeMirrorEditor
+          code={props.code}
+          language={props.language}
+          block={props.block}
+          nodeKey={props.nodeKey}
+          codeBlockNode={props.codeBlockNode}
+        />
+      </React.Suspense>
     </CodeBlockEditorContextProvider>
   )
 }

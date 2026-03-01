@@ -1,8 +1,8 @@
-import type { Extension } from "@codemirror/state"
 import type { JSX } from "react"
 
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
 import { mergeRegister } from "@lexical/utils"
+import type { BaseCodeMirrorEditorProps } from "@/components/editor/plugins/codemirror-editor"
 import {
   $addUpdateTag,
   $applyNodeReplacement,
@@ -29,7 +29,19 @@ import {
   type CodeMirrorFocusManager,
 } from "@/components/editor/nodes/code-node"
 const MermaidDiagram = React.lazy(() => import("@/components/editor/nodes/mermaid-diagram"))
-import { BaseCodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor"
+
+const LazyMermaidCodeEditor = React.lazy(async () => {
+  const [{ BaseCodeMirrorEditor }, { mermaid }] = await Promise.all([
+    import("@/components/editor/plugins/codemirror-editor"),
+    import("codemirror-lang-mermaid"),
+  ])
+  const ext = mermaid()
+  return {
+    default: (props: Omit<BaseCodeMirrorEditorProps, "language">) => (
+      <BaseCodeMirrorEditor {...props} language={ext} />
+    ),
+  }
+})
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -285,16 +297,6 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
     })
   }, [parentEditor, nodeKey])
 
-  // lazy-load the mermaid language extension only when code view is active
-  const [mermaidLanguageExtension, setMermaidLanguageExtension] = React.useState<Extension | null>(
-    null,
-  )
-  React.useEffect(() => {
-    if (viewMode === "code" && !mermaidLanguageExtension) {
-      import("codemirror-lang-mermaid").then((m) => setMermaidLanguageExtension(m.mermaid()))
-    }
-  }, [viewMode, mermaidLanguageExtension])
-
   const toggleButton = (
     <TooltipProvider>
       <Tooltip>
@@ -335,20 +337,19 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
       {/* Content area */}
       <div className="overflow-hidden rounded-b-lg" data-testid="mermaid-node-content">
         {viewMode === "code" ? (
-          mermaidLanguageExtension ? (
-            <MermaidEditorContextProvider parentEditor={parentEditor} nodeKey={nodeKey}>
-              <div data-testid="mermaid-code-editor">
-                <BaseCodeMirrorEditor
-                  language={mermaidLanguageExtension}
+          <MermaidEditorContextProvider parentEditor={parentEditor} nodeKey={nodeKey}>
+            <div data-testid="mermaid-code-editor">
+              <React.Suspense fallback={null}>
+                <LazyMermaidCodeEditor
                   code={diagram}
                   nodeKey={nodeKey}
                   onCodeChange={handleCodeChange}
                   showLineNumbers={true}
                   mermaidNode={mermaidNode}
                 />
-              </div>
-            </MermaidEditorContextProvider>
-          ) : null
+              </React.Suspense>
+            </div>
+          </MermaidEditorContextProvider>
         ) : (
           <React.Suspense fallback={null}>
             <MermaidDiagram diagram={diagram} nodeKey={nodeKey} />

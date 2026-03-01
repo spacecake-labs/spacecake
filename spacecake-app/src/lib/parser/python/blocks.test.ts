@@ -3,7 +3,7 @@ import { join } from "path"
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { Language, Parser } from "web-tree-sitter"
 
-import languages from "@/lib/parser/languages"
+import { getLanguages } from "@/lib/parser/languages"
 import {
   blockKind,
   blockName,
@@ -24,7 +24,7 @@ describe("Python parser", () => {
   let parser: Parser
 
   beforeAll(async () => {
-    ;({ Python } = await languages)
+    ;({ Python } = await getLanguages())
   })
 
   beforeEach(() => {

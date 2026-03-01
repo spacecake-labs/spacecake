@@ -7,15 +7,15 @@ import { Compartment, EditorSelection, EditorState, Extension } from "@codemirro
 import { EditorView, keymap, lineNumbers } from "@codemirror/view"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { basicSetup } from "codemirror"
-import { $addUpdateTag, createCommand, LexicalCommand, SKIP_DOM_SELECTION_TAG } from "lexical"
+import { $addUpdateTag, SKIP_DOM_SELECTION_TAG } from "lexical"
 import React from "react"
 
-import type { ClaudeSelection } from "@/types/claude-code"
 import type { LanguageSpec } from "@/types/language"
 import type { Block } from "@/types/parser"
 
 import { CodeBlock } from "@/components/code-block"
 import { CodeBlockNode, useCodeBlockEditorContext } from "@/components/editor/nodes/code-node"
+import { CODEMIRROR_SELECTION_COMMAND } from "@/components/editor/plugins/codemirror-commands"
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { useNavigation } from "@/components/editor/plugins/use-navigation"
 import { githubDark, githubLight } from "@/components/editor/themes"
@@ -24,18 +24,6 @@ import { extractCodeMirrorSelectionInfo } from "@/lib/selection-utils"
 import { debounce } from "@/lib/utils"
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
-
-// Command dispatched when CodeMirror selection changes
-export interface CodeMirrorSelectionPayload {
-  nodeKey: string
-  anchor: number
-  head: number
-  selectedText: string
-  claudeSelection: ClaudeSelection
-}
-
-export const CODEMIRROR_SELECTION_COMMAND: LexicalCommand<CodeMirrorSelectionPayload> =
-  createCommand("CODEMIRROR_SELECTION_COMMAND")
 
 interface NodeWithFocusManager {
   setFocusManager: (manager: {
