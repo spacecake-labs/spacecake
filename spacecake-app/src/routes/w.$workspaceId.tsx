@@ -277,7 +277,7 @@ function DockPositionDropdown({
 
 function LayoutContent() {
   const { workspace, paneId } = Route.useRouteContext()
-  const { isMobile, open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
+  const { open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null)
   const verticalPanelGroupRef = useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null)
   const { focus } = useFocusManager()
@@ -648,35 +648,6 @@ function LayoutContent() {
     [setTaskStatusFilter],
   )
 
-  if (isMobile) {
-    return (
-      <ClaudeIntegrationProvider
-        workspacePath={workspace.path}
-        enabled={!isTerminalCollapsed}
-        machine={machine}
-      >
-        <AppSidebar
-          onFileClick={handleFileClick}
-          workspace={workspace}
-          selectedFilePath={selectedFilePath}
-        />
-        <div className="flex flex-col h-full w-full overflow-hidden">
-          <main className="bg-background relative flex w-full flex-1 flex-col overflow-hidden rounded-md shadow-sm p-2">
-            <header className="app-drag flex h-10 shrink-0 items-center gap-2 justify-between border-b">
-              <div className="app-no-drag flex h-full items-end flex-1 min-w-0 overflow-hidden">
-                <TabBar paneId={paneId} machine={machine} />
-              </div>
-              <HeaderToolbar />
-            </header>
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <Outlet />
-            </div>
-          </main>
-          <WorkspaceStatusBar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-        </div>
-      </ClaudeIntegrationProvider>
-    )
-  }
   // Layout direction based on dock position
   const panelDirection = terminalDock === "bottom" ? "vertical" : "horizontal"
   const terminalFirst = terminalDock === "left"
