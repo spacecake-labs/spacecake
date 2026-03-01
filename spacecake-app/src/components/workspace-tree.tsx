@@ -98,6 +98,7 @@ function ItemDropdownMenu({
   onStartRevert,
   isRenaming,
   onExpandFolder,
+  isCreatingInThisContext,
 }: {
   item: File | Folder
   onStartRename: (item: File | Folder) => void
@@ -105,10 +106,11 @@ function ItemDropdownMenu({
   onStartRevert?: (item: File) => void
   isRenaming: boolean
   onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
+  isCreatingInThisContext: boolean
 }) {
   if (isRenaming) return null
 
-  const [isCreatingInContext, setIsCreatingInContext] = useAtom(isCreatingInContextAtom)
+  const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
 
   const itemTitle = item.name
@@ -141,8 +143,6 @@ function ItemDropdownMenu({
     setIsCreatingInContext(null)
     setContextItemName("")
   }
-
-  const isCreatingInThisContext = isCreatingInContext?.parentPath === itemPath
 
   return (
     <>
@@ -298,7 +298,7 @@ function FileRowLinkWithState({
       className="w-full"
       title={title}
     >
-      <SidebarMenuButton isActive={isSelected} onClick={() => {}} className="cursor-pointer">
+      <SidebarMenuButton isActive={isSelected} className="cursor-pointer">
         <Icon className={iconClass} />
         <span className="truncate">{item.name}</span>
         {cached && state === "ExternalChange" && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
@@ -342,7 +342,7 @@ function FileRowLinkClean({
       className="w-full"
       title={title}
     >
-      <SidebarMenuButton isActive={isSelected} onClick={() => {}} className="cursor-pointer">
+      <SidebarMenuButton isActive={isSelected} className="cursor-pointer">
         <Icon />
         <span className="truncate">{item.name}</span>
       </SidebarMenuButton>
@@ -390,6 +390,7 @@ export interface TreeRowProps {
   onStartRevert?: (item: File) => void
   onCreateFile: (name: string) => void
   onCreateFolder: (name: string) => void
+  isCreatingInThisContext: boolean
   selectedFilePath?: AbsolutePath | null
   editingItem: {
     type: "create" | "rename"
@@ -438,6 +439,7 @@ function areTreeRowPropsEqual(prev: TreeRowProps, next: TreeRowProps): boolean {
   }
 
   if (prev.selectedFilePath !== next.selectedFilePath) return false
+  if (prev.isCreatingInThisContext !== next.isCreatingInThisContext) return false
 
   // editingItem: only compare whether *this* row is being edited
   const path = prev.flatItem.item.path
@@ -477,6 +479,7 @@ export const TreeRow = React.memo(function TreeRow({
   onStartRevert,
   onCreateFile: _onCreateFile,
   onCreateFolder: _onCreateFolder,
+  isCreatingInThisContext,
   selectedFilePath,
   editingItem,
   setEditingItem: _setEditingItem,
@@ -531,6 +534,7 @@ export const TreeRow = React.memo(function TreeRow({
           onStartRevert={onStartRevert}
           isRenaming={isRenaming}
           onExpandFolder={onExpandFolder}
+          isCreatingInThisContext={isCreatingInThisContext}
         />
         {isRenaming && <CancelRenameButton onCancel={onCancelRename} />}
       </SidebarMenuItem>
@@ -574,6 +578,7 @@ export const TreeRow = React.memo(function TreeRow({
           onStartRevert={onStartRevert}
           isRenaming={isRenaming}
           onExpandFolder={onExpandFolder}
+          isCreatingInThisContext={isCreatingInThisContext}
         />
         {isRenaming && <CancelRenameButton onCancel={onCancelRename} />}
       </SidebarMenuItem>

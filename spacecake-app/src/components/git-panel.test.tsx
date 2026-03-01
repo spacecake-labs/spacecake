@@ -36,6 +36,20 @@ vi.mock("@/router", () => ({
   },
 }))
 
+// bypass virtualization in jsdom (elements have zero dimensions)
+vi.mock("@tanstack/react-virtual", () => ({
+  useVirtualizer: (opts: { count: number; estimateSize: () => number }) => ({
+    getTotalSize: () => opts.count * opts.estimateSize(),
+    getVirtualItems: () =>
+      Array.from({ length: opts.count }, (_, i) => ({
+        index: i,
+        start: i * opts.estimateSize(),
+        size: opts.estimateSize(),
+        key: i,
+      })),
+  }),
+}))
+
 type GitError = { _tag: "GitError"; description: string }
 const gitRight = <T,>(value: T): Either<GitError, T> => right(value)
 
@@ -209,7 +223,7 @@ describe("GitPanel", () => {
 
     expect(api.isGitRepo).toHaveBeenCalledWith(TEST_WORKSPACE)
     expect(api.getStatus).toHaveBeenCalledWith(TEST_WORKSPACE)
-    expect(api.getCommitLog).toHaveBeenCalledWith(TEST_WORKSPACE, 20)
+    expect(api.getCommitLog).toHaveBeenCalledWith(TEST_WORKSPACE, 100)
   })
 
   it("yellow dot when changes exist", async () => {

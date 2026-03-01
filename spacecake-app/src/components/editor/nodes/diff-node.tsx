@@ -161,6 +161,8 @@ const DiffBlockEditorContainer: React.FC<DiffBlockEditorContainerProps> = ({
   filePath,
 }) => {
   const [isNodeSelected, setNodeSelected, clearNodeSelection] = useLexicalNodeSelection(nodeKey)
+  const isNodeSelectedRef = React.useRef(isNodeSelected)
+  isNodeSelectedRef.current = isNodeSelected
 
   React.useEffect(() => {
     return mergeRegister(
@@ -172,7 +174,7 @@ const DiffBlockEditorContainer: React.FC<DiffBlockEditorContainerProps> = ({
             if (!event.shiftKey) {
               clearNodeSelection()
             }
-            setNodeSelected(!isNodeSelected)
+            setNodeSelected(!isNodeSelectedRef.current)
             return true
           }
           return false
@@ -180,7 +182,7 @@ const DiffBlockEditorContainer: React.FC<DiffBlockEditorContainerProps> = ({
         COMMAND_PRIORITY_LOW,
       ),
     )
-  }, [clearNodeSelection, parentEditor, setNodeSelected, nodeKey, isNodeSelected])
+  }, [clearNodeSelection, parentEditor, setNodeSelected, nodeKey])
 
   return (
     <DiffBlock

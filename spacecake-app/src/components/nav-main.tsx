@@ -271,7 +271,7 @@ export function NavMain({
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(null)
 
-  const sortedFileTree = useAtomValue(sortedFileTreeAtom)
+  const store = useStore()
   const flatVisibleTree = useAtomValue(flatVisibleTreeAtom)
 
   // Ref for the scrollable container
@@ -337,13 +337,14 @@ export function NavMain({
       const currentDir = currentPath.substring(0, currentPath.lastIndexOf("/"))
       const newPath = `${currentDir}/${newName.trim()}`
 
+      const sortedFileTree = store.get(sortedFileTreeAtom)
       const existingFile = sortedFileTree.find((f: File | Folder) => f.path === newPath)
       if (existingFile) {
         return `'${newName.trim()}' already exists`
       }
       return null
     },
-    [sortedFileTree],
+    [store],
   )
 
   const handleFileClickCallback = React.useCallback(
@@ -570,6 +571,10 @@ export function NavMain({
                         onStartRevert={handleStartRevertCallback}
                         onCreateFile={handleCreateFile}
                         onCreateFolder={handleCreateFolder}
+                        isCreatingInThisContext={
+                          isCreatingInContext?.parentPath ===
+                          (flatItem as FlatFileTreeItem).item.path
+                        }
                         selectedFilePath={initialSelectedFilePath}
                         editingItem={editingItem}
                         setEditingItem={setEditingItem}
