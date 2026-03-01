@@ -1,5 +1,12 @@
 # spacecake-app
 
+## 0.1.0-alpha.55
+
+### Patch Changes
+
+- 1136c3e: Fix CLI symlink on Linux.
+- 5e830d6: Fix git polling for non-repos.
+
 ## 0.1.0-alpha.54
 
 ### Patch Changes
