@@ -11,6 +11,7 @@ import { TabCloseButton, tabTriggerClasses } from "@/components/tab-bar/tab-clos
 import { TerminalTab } from "@/components/terminal-tab"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useHotkey } from "@/hooks/use-hotkey"
 import { terminalProfileLoadedAtom } from "@/lib/atoms/atoms"
 import { condensePath } from "@/lib/utils"
 
@@ -223,56 +224,55 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
   }, [])
 
   // keyboard shortcuts (only when terminal panel is focused)
-  useEffect(() => {
-    const isTerminalFocused = () => {
-      const panel = document.querySelector('[data-testid="terminal-panel"]')
-      return panel?.contains(document.activeElement) ?? false
-    }
+  const terminalFocusGuard = useCallback(() => {
+    const panel = document.querySelector('[data-testid="terminal-panel"]')
+    return panel?.contains(document.activeElement) ?? false
+  }, [])
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isTerminalFocused()) return
+  // Cmd+T → new tab
+  useHotkey("mod+t", () => addTab(), {
+    capture: true,
+    stopPropagation: true,
+    guard: terminalFocusGuard,
+  })
 
-      const isMod = e.metaKey || e.ctrlKey
-
-      // Cmd+T → new tab
-      if (isMod && e.key === "t") {
-        e.preventDefault()
-        e.stopPropagation()
-        addTab()
-        return
+  // Cmd+W → close active tab
+  useHotkey(
+    "mod+w",
+    () => {
+      const current = tabsRef.current
+      const active = activeTabIdRef.current
+      if (current.length > 0 && active) {
+        closeTab(active)
       }
+    },
+    { capture: true, stopPropagation: true, guard: terminalFocusGuard },
+  )
 
-      // Cmd+W → close active tab (only when >0 tabs)
-      if (isMod && e.key === "w") {
-        const current = tabsRef.current
-        const active = activeTabIdRef.current
-        if (current.length > 0 && active) {
-          e.preventDefault()
-          e.stopPropagation()
-          closeTab(active)
-        }
-        return
-      }
+  // Ctrl+Tab → cycle tabs forward
+  const cycleTab = useCallback(
+    (direction: 1 | -1) => {
+      const current = tabsRef.current
+      if (current.length <= 1) return
+      const idx = current.findIndex((t) => t.id === activeTabIdRef.current)
+      const nextIdx = (idx + direction + current.length) % current.length
+      activateTab(current[nextIdx].id)
+    },
+    [activateTab],
+  )
 
-      // Ctrl+Tab / Ctrl+Shift+Tab → cycle tabs
-      if (e.ctrlKey && e.key === "Tab") {
-        e.preventDefault()
-        e.stopPropagation()
-        const current = tabsRef.current
-        if (current.length <= 1) return
-        const idx = current.findIndex((t) => t.id === activeTabIdRef.current)
-        const nextIdx = e.shiftKey
-          ? (idx - 1 + current.length) % current.length
-          : (idx + 1) % current.length
-        activateTab(current[nextIdx].id)
-        return
-      }
-    }
+  useHotkey("ctrl+tab", () => cycleTab(1), {
+    capture: true,
+    stopPropagation: true,
+    guard: terminalFocusGuard,
+  })
 
-    // use capture so we intercept before the editor's Cmd+W handler
-    window.addEventListener("keydown", handleKeyDown, true)
-    return () => window.removeEventListener("keydown", handleKeyDown, true)
-  }, [addTab, closeTab, activateTab])
+  // Ctrl+Shift+Tab → cycle tabs backward
+  useHotkey("ctrl+shift+tab", () => cycleTab(-1), {
+    capture: true,
+    stopPropagation: true,
+    guard: terminalFocusGuard,
+  })
 
   return (
     <div className="flex h-full w-full flex-col" data-testid="terminal-panel">

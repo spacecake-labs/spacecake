@@ -49,6 +49,7 @@ import { WorkspaceStatusBar } from "@/components/workspace-status-bar"
 import { CollectionsProvider } from "@/contexts/collections-context"
 import { FocusManagerProvider, useFocusablePanel, useFocusManager } from "@/contexts/focus-manager"
 import { useClaudeTaskWatcher } from "@/hooks/use-claude-task-watcher"
+import { useHotkey } from "@/hooks/use-hotkey"
 import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
 import { usePaneMachine } from "@/hooks/use-pane-machine"
 import { useRoute } from "@/hooks/use-route"
@@ -288,39 +289,29 @@ function LayoutContent() {
   const activePaneItemId = useActivePaneItemId(paneId)
 
   // Ctrl+W / Cmd+W to close active editor tab (skip when terminal is focused — terminal handles its own Cmd+W)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "w" && (e.metaKey || e.ctrlKey)) {
-        const terminalPanel = document.querySelector('[data-testid="terminal-panel"]')
-        if (terminalPanel?.contains(document.activeElement)) return
-
-        e.preventDefault()
-        const activeItem = paneItems.find((i) => i.id === activePaneItemId)
-        if (activeItem) {
-          machine.send({
-            type: "pane.item.close",
-            itemId: activeItem.id,
-            filePath: activeItem.filePath,
-            isClosingActiveTab: true,
-          })
-        }
+  useHotkey(
+    "mod+w",
+    () => {
+      const activeItem = paneItems.find((i) => i.id === activePaneItemId)
+      if (activeItem) {
+        machine.send({
+          type: "pane.item.close",
+          itemId: activeItem.id,
+          filePath: activeItem.filePath,
+          isClosingActiveTab: true,
+        })
       }
-    }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [paneItems, activePaneItemId, machine])
+    },
+    {
+      guard: () => {
+        const terminalPanel = document.querySelector('[data-testid="terminal-panel"]')
+        return !terminalPanel?.contains(document.activeElement)
+      },
+    },
+  )
 
   // Cmd+1 / Ctrl+1 to focus editor
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "1") {
-        e.preventDefault()
-        focus("editor")
-      }
-    }
-    window.addEventListener("keydown", onKey, true)
-    return () => window.removeEventListener("keydown", onKey, true)
-  }, [focus])
+  useHotkey("mod+1", () => focus("editor"), { capture: true })
 
   // Register terminal focus callback — find the active tab's terminal textarea
   const focusTerminal = useCallback(() => {
@@ -436,44 +427,33 @@ function LayoutContent() {
   )
 
   // Ctrl+` to toggle terminal (VS Code behavior)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      // Ctrl+` to toggle terminal (Cmd+` is system window switching on macOS)
-      if (e.ctrlKey && e.code === "Backquote") {
-        e.preventDefault()
+  useHotkey(
+    "ctrl+`",
+    () => {
+      const terminalPanel = document.querySelector('[data-testid="terminal-panel"]')
+      const isTerminalFocused = terminalPanel?.contains(document.activeElement)
 
-        // Skip synthetic events dispatched by the terminal's shortcut interceptor
-        // The window capture handler already sees the original event first
-        if (!e.isTrusted) return
-
-        const terminalPanel = document.querySelector('[data-testid="terminal-panel"]')
-        const isTerminalFocused = terminalPanel?.contains(document.activeElement)
-
-        if (isTerminalFocused && isTerminalExpanded) {
-          // Terminal focused + expanded → collapse
-          setTerminalExpanded(false)
-        } else if (!isTerminalFocused && isTerminalExpanded) {
-          // Editor focused + terminal expanded → focus terminal
-          focus("terminal")
-        } else {
-          // Editor focused + terminal collapsed → expand AND focus
-          if (!isTerminalSessionActive) {
-            setIsTerminalSessionActive(true)
-          }
-          shouldFocusTerminalRef.current = true
-          setTerminalExpanded(true)
+      if (isTerminalFocused && isTerminalExpanded) {
+        // terminal focused + expanded → collapse
+        setTerminalExpanded(false)
+      } else if (!isTerminalFocused && isTerminalExpanded) {
+        // editor focused + terminal expanded → focus terminal
+        focus("terminal")
+      } else {
+        // editor focused + terminal collapsed → expand AND focus
+        if (!isTerminalSessionActive) {
+          setIsTerminalSessionActive(true)
         }
+        shouldFocusTerminalRef.current = true
+        setTerminalExpanded(true)
       }
-    }
-    window.addEventListener("keydown", onKey, true)
-    return () => window.removeEventListener("keydown", onKey, true)
-  }, [
-    focus,
-    isTerminalExpanded,
-    isTerminalSessionActive,
-    setTerminalExpanded,
-    setIsTerminalSessionActive,
-  ])
+    },
+    {
+      capture: true,
+      // skip synthetic events dispatched by the terminal's shortcut interceptor
+      guard: (e) => e.isTrusted,
+    },
+  )
 
   const setTerminalDock = useCallback(
     (dock: DockPosition) => {
@@ -1235,29 +1215,23 @@ function WorkspaceLayout() {
     }
   }, [workspace.path, workspace.id])
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const isNewFile = (e.metaKey || e.ctrlKey) && (e.key === "n" || e.key === "N")
-
-      if (isNewFile) {
-        e.preventDefault()
-        // if focused within CodeMirror, let its own handler dispatch the save event
-        const target = e.target as EventTarget | null
-        const isInCodeMirror = target instanceof Element && !!target.closest(".cm-editor")
-        if (isInCodeMirror) return
-
-        // start creating a new file in the workspace root
-        if (workspace?.path) {
-          setIsCreatingInContext({ kind: "file", parentPath: workspace.path })
-          setContextItemName("")
-        }
+  useHotkey(
+    "mod+n",
+    () => {
+      if (workspace?.path) {
+        setIsCreatingInContext({ kind: "file", parentPath: workspace.path })
+        setContextItemName("")
       }
-    }
-    window.addEventListener("keydown", onKey, true)
-    return () => {
-      window.removeEventListener("keydown", onKey, true)
-    }
-  }, [workspace?.path, setIsCreatingInContext, setContextItemName])
+    },
+    {
+      capture: true,
+      // let CodeMirror handle its own shortcut
+      guard: (e) => {
+        const target = e.target as EventTarget | null
+        return !(target instanceof Element && !!target.closest(".cm-editor"))
+      },
+    },
+  )
 
   const titlebarHeight = window.electronAPI.titlebarHeight
 

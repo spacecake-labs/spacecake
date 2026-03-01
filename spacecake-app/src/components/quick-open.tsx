@@ -12,6 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
+import { useHotkey } from "@/hooks/use-hotkey"
 import { useRecentFiles } from "@/hooks/use-recent-files"
 import { quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
 import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
@@ -67,17 +68,7 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
     }
   }, [isOpen, indexReady, workspacePath, jotaiStore])
 
-  React.useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === "p" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        setIsOpen()
-      }
-    }
-
-    document.addEventListener("keydown", down)
-    return () => document.removeEventListener("keydown", down)
-  }, [setIsOpen])
+  useHotkey("mod+p", () => setIsOpen())
 
   // derive QuickOpenFileItem[] from the flat IndexedFile[] index
   const allFileItems: QuickOpenFileItem[] = React.useMemo(() => {

@@ -10,6 +10,7 @@ import {
 import { useEffect } from "react"
 
 import { useEditor } from "@/contexts/editor-context"
+import { useHotkey } from "@/hooks/use-hotkey"
 import { useRoute } from "@/hooks/use-route"
 import { getOrCreateFileStateAtom } from "@/lib/atoms/file-tree"
 import { serializeEditorToSource } from "@/lib/editor"
@@ -86,24 +87,11 @@ export function SaveCommandPlugin() {
     )
   }, [editor])
 
-  // Also register at document level for events dispatched from terminal/other sources
+  // document-level fallback for events dispatched from terminal/other sources
   // (e.g., when terminal intercepts Cmd+S and re-dispatches to document)
-  useEffect(() => {
-    const handleDocumentKeyDown = (event: KeyboardEvent) => {
-      // Skip if already handled (e.g., by Lexical's KEY_DOWN_COMMAND)
-      if (event.defaultPrevented) return
-
-      const isSave = (event.metaKey || event.ctrlKey) && (event.key === "s" || event.key === "S")
-
-      if (isSave) {
-        event.preventDefault()
-        editor.dispatchCommand(SAVE_FILE_COMMAND, undefined)
-      }
-    }
-
-    document.addEventListener("keydown", handleDocumentKeyDown)
-    return () => document.removeEventListener("keydown", handleDocumentKeyDown)
-  }, [editor])
+  useHotkey("mod+s", () => editor.dispatchCommand(SAVE_FILE_COMMAND, undefined), {
+    guard: (e) => !e.defaultPrevented,
+  })
 
   return null
 }
