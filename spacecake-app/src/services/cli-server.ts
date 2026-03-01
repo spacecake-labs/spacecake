@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import * as Effect from "effect/Effect"
 import { BrowserWindow, ipcMain } from "electron"
 /**
  * CLI Server — IPC server for the `spacecake` CLI tool.

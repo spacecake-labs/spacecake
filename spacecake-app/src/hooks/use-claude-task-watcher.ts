@@ -1,7 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai"
 import { useEffect, useRef } from "react"
 
-import { claudeStatuslineAtom } from "@/lib/atoms/atoms"
+import { claudeSessionIdAtom } from "@/lib/atoms/atoms"
 import { claudeTasksAtom } from "@/lib/atoms/claude-tasks"
 import { isRight } from "@/types/adt"
 
@@ -10,9 +10,8 @@ import { isRight } from "@/types/adt"
  * On file changes, re-fetches the full task list via IPC.
  */
 export function useClaudeTaskWatcher() {
-  const statusline = useAtomValue(claudeStatuslineAtom)
+  const sessionId = useAtomValue(claudeSessionIdAtom) ?? undefined
   const setTasks = useSetAtom(claudeTasksAtom)
-  const sessionId = statusline?.sessionId ?? undefined
   const prevSessionIdRef = useRef<string | undefined>(undefined)
 
   useEffect(() => {

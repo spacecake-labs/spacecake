@@ -1,4 +1,5 @@
-import { Data, Effect } from "effect"
+import * as Data from "effect/Data"
+import * as Effect from "effect/Effect"
 
 import { serializeFromCache } from "@/lib/editor"
 import { fnv1a64Hex } from "@/lib/hash"

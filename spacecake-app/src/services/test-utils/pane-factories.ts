@@ -1,5 +1,5 @@
 import { asc, eq } from "drizzle-orm"
-import { Effect } from "effect"
+import * as Effect from "effect/Effect"
 
 import { paneItemTable, paneTable, type PaneItemSelect } from "@/schema"
 import { EditorPrimaryKey } from "@/schema/editor"

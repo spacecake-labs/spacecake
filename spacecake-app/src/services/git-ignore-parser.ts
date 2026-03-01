@@ -1,7 +1,11 @@
-import { Context, Effect, Layer } from "effect"
+import * as Context from "effect/Context"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import ignore from "ignore"
 import * as fs from "node:fs/promises"
 import * as Path from "node:path"
+
+const BACKSLASH_RE = /\\/g
 
 export interface GitIgnoreConfig {
   readonly extraPatterns: readonly string[]
@@ -103,7 +107,7 @@ export class GitIgnore extends Effect.Service<GitIgnore>()("GitIgnore", {
           return false
         }
 
-        const normalizedPath = relativePath.replace(/\\/g, "/")
+        const normalizedPath = relativePath.replace(BACKSLASH_RE, "/")
         if (normalizedPath.startsWith("/") || normalizedPath === "") {
           return false
         }
@@ -148,7 +152,7 @@ export class GitIgnore extends Effect.Service<GitIgnore>()("GitIgnore", {
         for (const dir of dirsToVisit) {
           const relativeDir = Path.relative(root, dir)
           if (relativeDir) {
-            const normalizedRelativeDir = relativeDir.replace(/\\/g, "/")
+            const normalizedRelativeDir = relativeDir.replace(BACKSLASH_RE, "/")
             const igPlusExtras = ignore().add(ig).add(processedExtraPatterns)
             if (igPlusExtras.ignores(normalizedRelativeDir)) {
               // This directory is ignored by an ancestor's .gitignore.

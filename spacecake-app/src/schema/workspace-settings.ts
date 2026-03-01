@@ -1,5 +1,4 @@
-import { Schema } from "effect"
-
+import * as Schema from "effect/Schema"
 export const AutosaveSchema = Schema.Literal("on", "off")
 export type Autosave = typeof AutosaveSchema.Type
 

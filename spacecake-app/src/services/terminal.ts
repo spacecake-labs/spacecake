@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import * as Effect from "effect/Effect"
 import { BrowserWindow } from "electron"
 import path from "node:path"
 

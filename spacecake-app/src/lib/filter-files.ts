@@ -28,7 +28,10 @@ export function sortFilesByMatchingScore(
   }
 
   results.sort((a, b) => b.score - a.score)
-  return results.slice(0, maxResults).map((r) => r.item)
+  const end = Math.min(results.length, maxResults)
+  const out: QuickOpenFileItem[] = []
+  for (let i = 0; i < end; i++) out.push(results[i].item)
+  return out
 }
 
 export function sortFilesByRecency(recentFiles: RecentFile[]): RecentFile[] {

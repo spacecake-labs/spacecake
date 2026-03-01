@@ -1,4 +1,5 @@
-import { Effect, Layer } from "effect"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import * as fs from "node:fs/promises"
 import * as os from "node:os"
 import * as path from "node:path"

@@ -1,5 +1,6 @@
 import { eq, useLiveQuery } from "@tanstack/react-db"
-import { Option, Schema } from "effect"
+import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
 import { useMemo } from "react"
 
 import { useCollections } from "@/contexts/collections-context"

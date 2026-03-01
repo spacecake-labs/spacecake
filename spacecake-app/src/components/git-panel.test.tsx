@@ -36,6 +36,20 @@ vi.mock("@/router", () => ({
   },
 }))
 
+// bypass virtualization in jsdom (elements have zero dimensions)
+vi.mock("@tanstack/react-virtual", () => ({
+  useVirtualizer: (opts: { count: number; estimateSize: () => number }) => ({
+    getTotalSize: () => opts.count * opts.estimateSize(),
+    getVirtualItems: () =>
+      Array.from({ length: opts.count }, (_, i) => ({
+        index: i,
+        start: i * opts.estimateSize(),
+        size: opts.estimateSize(),
+        key: i,
+      })),
+  }),
+}))
+
 type GitError = { _tag: "GitError"; description: string }
 const gitRight = <T,>(value: T): Either<GitError, T> => right(value)
 
@@ -159,6 +173,49 @@ describe("GitPanel", () => {
     expect(workingTreeBtn!.className).toContain("bg-accent")
   })
 
+  it("does not call getStatus/getCommitLog again when file event fires on non-git workspace", async () => {
+    const { api } = createMockGitAPI({ isGitRepo: false })
+
+    // capture the file event callback
+    let fileEventHandler: ((event: { path: string; kind: string }) => void) | undefined
+    const mockOnFileEvent = vi.fn((cb: (event: { path: string; kind: string }) => void) => {
+      fileEventHandler = cb
+      return () => {}
+    })
+
+    window.electronAPI = {
+      git: api,
+      onFileEvent: mockOnFileEvent,
+    } as unknown as ElectronAPI
+
+    act(() => {
+      root.render(
+        <Provider store={store}>
+          <GitPanel workspacePath={TEST_WORKSPACE} />
+        </Provider>,
+      )
+    })
+    await waitForEffects()
+
+    // initial mount calls isGitRepo once
+    expect(api.isGitRepo).toHaveBeenCalledTimes(1)
+    expect(api.getStatus).not.toHaveBeenCalled()
+    expect(api.getCommitLog).not.toHaveBeenCalled()
+
+    // simulate a file event in the workspace
+    api.isGitRepo.mockClear()
+    await act(async () => {
+      fileEventHandler?.({ path: `${TEST_WORKSPACE}/.git/HEAD`, kind: "contentChange" })
+      // wait for debounce (300ms)
+      await new Promise((r) => setTimeout(r, 400))
+    })
+
+    // should not have called isGitRepo again — ref-based guard prevents it
+    expect(api.isGitRepo).not.toHaveBeenCalled()
+    expect(api.getStatus).not.toHaveBeenCalled()
+    expect(api.getCommitLog).not.toHaveBeenCalled()
+  })
+
   it("calls isGitRepo, getStatus, getCommitLog on mount", async () => {
     const { api } = createMockGitAPI()
     renderPanel(api)
@@ -166,7 +223,7 @@ describe("GitPanel", () => {
 
     expect(api.isGitRepo).toHaveBeenCalledWith(TEST_WORKSPACE)
     expect(api.getStatus).toHaveBeenCalledWith(TEST_WORKSPACE)
-    expect(api.getCommitLog).toHaveBeenCalledWith(TEST_WORKSPACE, 20)
+    expect(api.getCommitLog).toHaveBeenCalledWith(TEST_WORKSPACE, 100)
   })
 
   it("yellow dot when changes exist", async () => {

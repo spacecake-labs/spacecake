@@ -1,4 +1,6 @@
-import { Effect, Either, Schema } from "effect"
+import * as Effect from "effect/Effect"
+import * as Either from "effect/Either"
+import * as Schema from "effect/Schema"
 import { BrowserWindow, ipcMain } from "electron"
 import crypto from "node:crypto"
 import fs from "node:fs"
@@ -178,20 +180,23 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
     const { wss, port } = await Effect.runPromise(startServerEffect)
     const authToken = crypto.randomUUID()
 
-    // Start the statusline server alongside Claude Code server
-    // (both are related to Claude Code sessions)
-    await hooksServer.ensureStarted()
+    // parallelize independent startup: hooks server vs ide dir preparation
+    await Promise.all([
+      hooksServer.ensureStarted(),
+      Effect.runPromise(
+        fsService
+          .createFolder(claudeConfig.ideDir, { recursive: true })
+          .pipe(Effect.andThen(() => cleanStaleLockFiles(claudeConfig.ideDir))),
+      ),
+    ])
 
-    // Register statusline callbacks to broadcast to renderer
+    // register statusline callbacks to broadcast to renderer
     hooksServer.onStatuslineUpdate((statusline) => {
       broadcastStatusline(statusline)
     })
     hooksServer.onStatuslineCleared(() => {
       broadcastStatuslineCleared()
     })
-
-    await Effect.runPromise(fsService.createFolder(claudeConfig.ideDir, { recursive: true }))
-    await Effect.runPromise(cleanStaleLockFiles(claudeConfig.ideDir))
     const lockFilePath = AbsolutePath(path.join(claudeConfig.ideDir, `${port}.lock`))
 
     wss.on("connection", (ws, req) => {

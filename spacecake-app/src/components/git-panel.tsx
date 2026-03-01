@@ -1,6 +1,7 @@
+import { useVirtualizer } from "@tanstack/react-virtual"
 import { useAtom, useSetAtom } from "jotai"
 import { Check, ChevronDown, ChevronRight, Circle, Copy, File } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -12,6 +13,7 @@ import {
   gitBranchAtom,
   GitCommit as GitCommitType,
   gitCommitsAtom,
+  isGitRepoAtom,
   GitStatus,
   gitStatusAtom,
   gitStatusLoadingAtom,
@@ -245,23 +247,47 @@ function CommitPane({
   hasChanges: boolean
   onSelectCommit: (commitHash: string) => void
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const rowVirtualizer = useVirtualizer({
+    count: commits.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 52,
+    overscan: 5,
+  })
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">commits</div>
-      <div className="flex-1 overflow-auto p-1 space-y-0.5">
+      <div ref={scrollRef} className="flex-1 overflow-auto p-1">
         <WorkingTreeItem
           isSelected={selectedCommit === "working-tree"}
           hasChanges={hasChanges}
           onClick={() => onSelectCommit("working-tree")}
         />
-        {commits.map((commit) => (
-          <CommitListItem
-            key={commit.hash}
-            commit={commit}
-            isSelected={selectedCommit === commit.hash}
-            onClick={() => onSelectCommit(commit.hash)}
-          />
-        ))}
+        <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
+          {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+            const commit = commits[virtualItem.index]
+            return (
+              <div
+                key={commit.hash}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: `${virtualItem.size}px`,
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
+              >
+                <CommitListItem
+                  commit={commit}
+                  isSelected={selectedCommit === commit.hash}
+                  onClick={() => onSelectCommit(commit.hash)}
+                />
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -277,15 +303,20 @@ function WorkingTreeFilesPane({
   onFileClick?: (filePath: AbsolutePath) => void
 }) {
   // staged files with "added" status (A)
-  const stagedFiles: Array<{ path: string; status: FileStatus }> =
-    status?.staged.map((path) => ({ path, status: "added" as FileStatus })) ?? []
+  const stagedFiles = useMemo<Array<{ path: string; status: FileStatus }>>(
+    () => status?.staged.map((path) => ({ path, status: "added" as FileStatus })) ?? [],
+    [status?.staged],
+  )
 
   // combine modified, untracked, deleted into "changes" section
-  const changesFiles: Array<{ path: string; status: FileStatus }> = [
-    ...(status?.modified.map((path) => ({ path, status: "modified" as FileStatus })) ?? []),
-    ...(status?.untracked.map((path) => ({ path, status: "untracked" as FileStatus })) ?? []),
-    ...(status?.deleted.map((path) => ({ path, status: "deleted" as FileStatus })) ?? []),
-  ]
+  const changesFiles = useMemo<Array<{ path: string; status: FileStatus }>>(
+    () => [
+      ...(status?.modified.map((path) => ({ path, status: "modified" as FileStatus })) ?? []),
+      ...(status?.untracked.map((path) => ({ path, status: "untracked" as FileStatus })) ?? []),
+      ...(status?.deleted.map((path) => ({ path, status: "deleted" as FileStatus })) ?? []),
+    ],
+    [status?.modified, status?.untracked, status?.deleted],
+  )
 
   const hasNoChanges = stagedFiles.length === 0 && changesFiles.length === 0
 
@@ -360,7 +391,8 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
   const [commits, setCommits] = useAtom(gitCommitsAtom)
   const setIsLoading = useSetAtom(gitStatusLoadingAtom)
   const [selectedCommit, setSelectedCommit] = useAtom(selectedCommitAtom)
-  const [isGitRepo, setIsGitRepo] = useState<boolean | null>(null)
+  const [isGitRepo, setIsGitRepo] = useAtom(isGitRepoAtom)
+  const isGitRepoRef = useRef<boolean | null>(null)
   const setGitBranch = useSetAtom(gitBranchAtom)
   const initialBranchFetched = useRef(false)
 
@@ -370,6 +402,7 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
       // first check if this is a git repo
       const isRepo = await window.electronAPI.git.isGitRepo(workspacePath)
       setIsGitRepo(isRepo)
+      isGitRepoRef.current = isRepo
 
       if (!isRepo) {
         setStatus(null)
@@ -387,7 +420,7 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
         },
       })
 
-      const logResult = await window.electronAPI.git.getCommitLog(workspacePath, 20)
+      const logResult = await window.electronAPI.git.getCommitLog(workspacePath, 100)
       match(logResult, {
         onLeft: (err) => {
           console.error("Git log error:", err)
@@ -414,7 +447,7 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
     } finally {
       setIsLoading(false)
     }
-  }, [workspacePath, setStatus, setCommits, setIsLoading])
+  }, [workspacePath, setStatus, setCommits, setIsLoading, setIsGitRepo])
 
   useEffect(() => {
     // initial fetch
@@ -433,6 +466,9 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
 
     const cleanup = window.electronAPI.onFileEvent((event) => {
       if (!event.path.startsWith(workspacePath)) return
+
+      // skip git polling when workspace is not a git repo
+      if (isGitRepoRef.current === false) return
 
       // check if this is a git state change we care about
       const isGitStateChange =

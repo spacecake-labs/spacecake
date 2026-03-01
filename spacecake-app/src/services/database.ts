@@ -2,7 +2,13 @@ import type { PGliteInterface } from "@electric-sql/pglite"
 
 import { and, desc, eq, getTableColumns, isNotNull, like, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
-import { Context, Data, DateTime, Effect, flow, Option, Schema } from "effect"
+import * as Context from "effect/Context"
+import * as Data from "effect/Data"
+import * as DateTime from "effect/DateTime"
+import * as Effect from "effect/Effect"
+import { flow } from "effect/Function"
+import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
 
 import type { PersistableViewKind } from "@/types/lexical"
 

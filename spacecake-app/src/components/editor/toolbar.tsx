@@ -41,18 +41,19 @@ export function EditorToolbar({ routeContext, machine, activePaneItemId }: Edito
   const [saveResult, setSaveResult] = useAtom(saveResultAtom)
 
   // Detect state transitions
-  if (prevStateRef.current !== fileState) {
+  React.useEffect(() => {
     const prev = prevStateRef.current
     prevStateRef.current = fileState
-
     if (prev === "Saving" && fileState === "Clean") {
       setSaveResult("success")
-      setTimeout(() => setSaveResult(null), 1500)
+      const t = setTimeout(() => setSaveResult(null), 1500)
+      return () => clearTimeout(t)
     } else if (prev === "Saving" && (fileState === "Dirty" || fileState === "Conflict")) {
       setSaveResult("error")
-      setTimeout(() => setSaveResult(null), 1500)
+      const t = setTimeout(() => setSaveResult(null), 1500)
+      return () => clearTimeout(t)
     }
-  }
+  }, [fileState, setSaveResult])
 
   const handleSave = () => {
     if (editorRef.current) {

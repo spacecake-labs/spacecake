@@ -18,6 +18,8 @@ export function TabBar({ paneId, machine }: TabBarProps) {
   const { items, loading, empty } = usePaneItems(paneId)
   const activePaneItemId = useActivePaneItemId(paneId)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const itemsRef = useRef(items)
+  itemsRef.current = items
   // Get source and targetRef from route search params for the active tab
   const sourceFromRoute = useSearch({
     strict: false,
@@ -73,11 +75,11 @@ export function TabBar({ paneId, machine }: TabBarProps) {
 
   const handleTabChange = useCallback(
     (paneItemId: string) => {
-      const item = items.find((i) => i.id === paneItemId)
+      const item = itemsRef.current.find((i) => i.id === paneItemId)
       if (!item) return
       machine.send({ type: "pane.item.activate", item })
     },
-    [machine, items],
+    [machine],
   )
 
   const handleClose = useCallback(

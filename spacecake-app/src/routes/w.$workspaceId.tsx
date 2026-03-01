@@ -6,7 +6,7 @@
 import type { ImperativePanelHandle } from "react-resizable-panels"
 
 import { createFileRoute, ErrorComponent, Outlet, redirect } from "@tanstack/react-router"
-import { Match } from "effect"
+import * as Match from "effect/Match"
 import { useAtom, useSetAtom } from "jotai"
 import {
   ChevronDown,
@@ -18,10 +18,10 @@ import {
   PanelRight,
   X,
 } from "lucide-react"
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import type { DockAction } from "@/lib/dock-transition"
-import type { DockablePanelKind, DockPosition } from "@/schema/workspace-layout"
+import type { DockablePanelKind, DockPosition, FullDock } from "@/schema/workspace-layout"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DeleteButton } from "@/components/delete-button"
@@ -49,6 +49,7 @@ import { WorkspaceStatusBar } from "@/components/workspace-status-bar"
 import { CollectionsProvider } from "@/contexts/collections-context"
 import { FocusManagerProvider, useFocusablePanel, useFocusManager } from "@/contexts/focus-manager"
 import { useClaudeTaskWatcher } from "@/hooks/use-claude-task-watcher"
+import { useHotkey } from "@/hooks/use-hotkey"
 import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
 import { usePaneMachine } from "@/hooks/use-pane-machine"
 import { useRoute } from "@/hooks/use-route"
@@ -82,6 +83,12 @@ import { RuntimeClient } from "@/services/runtime-client"
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 import { WorkspaceNotAccessible, WorkspaceNotFound } from "@/types/workspace-error"
+
+const TASK_STATUSES = [
+  { value: "pending", label: "pending" },
+  { value: "in_progress", label: "in progress" },
+  { value: "completed", label: "completed" },
+]
 
 export const Route = createFileRoute("/w/$workspaceId")({
   beforeLoad: async ({ params, context }) => {
@@ -148,8 +155,13 @@ export const Route = createFileRoute("/w/$workspaceId")({
       .then((branch) => store.set(gitBranchAtom, branch))
       .catch(() => {})
 
-    const result = await readDirectory(workspace.path)
-    await match(result, {
+    // parallelize independent I/O: directory read (filesystem) and cache query (database)
+    const [result, cache] = await Promise.all([
+      readDirectory(workspace.path),
+      RuntimeClient.runPromise(db.selectWorkspaceCache(workspace.path)),
+    ])
+
+    match(result, {
       onLeft: (error) => {
         Match.value(error).pipe(
           Match.tag("PermissionDeniedError", () => {
@@ -165,9 +177,8 @@ export const Route = createFileRoute("/w/$workspaceId")({
           Match.orElse((e) => console.error(e)),
         )
       },
-      onRight: async (tree) => {
+      onRight: (tree) => {
         // hydrate file state machine atoms
-        const cache = await RuntimeClient.runPromise(db.selectWorkspaceCache(workspace.path))
         cache.forEach((row) => {
           const event: FileStateHydrationEvent = {
             type: row.has_cached_state ? "file.dirty" : "file.clean",
@@ -278,39 +289,29 @@ function LayoutContent() {
   const activePaneItemId = useActivePaneItemId(paneId)
 
   // Ctrl+W / Cmd+W to close active editor tab (skip when terminal is focused — terminal handles its own Cmd+W)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "w" && (e.metaKey || e.ctrlKey)) {
-        const terminalPanel = document.querySelector('[data-testid="terminal-panel"]')
-        if (terminalPanel?.contains(document.activeElement)) return
-
-        e.preventDefault()
-        const activeItem = paneItems.find((i) => i.id === activePaneItemId)
-        if (activeItem) {
-          machine.send({
-            type: "pane.item.close",
-            itemId: activeItem.id,
-            filePath: activeItem.filePath,
-            isClosingActiveTab: true,
-          })
-        }
+  useHotkey(
+    "mod+w",
+    () => {
+      const activeItem = paneItems.find((i) => i.id === activePaneItemId)
+      if (activeItem) {
+        machine.send({
+          type: "pane.item.close",
+          itemId: activeItem.id,
+          filePath: activeItem.filePath,
+          isClosingActiveTab: true,
+        })
       }
-    }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [paneItems, activePaneItemId, machine])
+    },
+    {
+      guard: () => {
+        const terminalPanel = document.querySelector('[data-testid="terminal-panel"]')
+        return !terminalPanel?.contains(document.activeElement)
+      },
+    },
+  )
 
   // Cmd+1 / Ctrl+1 to focus editor
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "1") {
-        e.preventDefault()
-        focus("editor")
-      }
-    }
-    window.addEventListener("keydown", onKey, true)
-    return () => window.removeEventListener("keydown", onKey, true)
-  }, [focus])
+  useHotkey("mod+1", () => focus("editor"), { capture: true })
 
   // Register terminal focus callback — find the active tab's terminal textarea
   const focusTerminal = useCallback(() => {
@@ -360,19 +361,6 @@ function LayoutContent() {
   const gitSize = clampSize(layout.panels.git.size, gitDock)
   const isGitCollapsed = !isGitExpanded
 
-  // auto-collapse sidebar when a left-docked panel expands, restore when it collapses
-  const hasExpandedLeftPanel =
-    (gitDock === "left" && isGitExpanded) || (taskDock === "left" && isTaskExpanded)
-  const prevHasExpandedLeftPanelRef = useRef(hasExpandedLeftPanel)
-
-  useEffect(() => {
-    const prev = prevHasExpandedLeftPanelRef.current
-    prevHasExpandedLeftPanelRef.current = hasExpandedLeftPanel
-    if (prev === hasExpandedLeftPanel) return
-
-    setSidebarOpen(!hasExpandedLeftPanel)
-  }, [hasExpandedLeftPanel, setSidebarOpen])
-
   const [isTerminalSessionActive, setIsTerminalSessionActive] = useState(true)
   const shouldFocusTerminalRef = useRef(false)
 
@@ -399,10 +387,22 @@ function LayoutContent() {
   const dispatch = useCallback(
     (action: DockAction) => {
       const newLayout = transition(layout, action)
-      if (newLayout === layout) return // no-op
+      if (newLayout === layout) return
+
+      const newGitDock = getDockPosition(newLayout.dock as FullDock, "git")
+      const newTaskDock = getDockPosition(newLayout.dock as FullDock, "task")
+      const hadExpandedLeft =
+        (gitDock === "left" && isGitExpanded) || (taskDock === "left" && isTaskExpanded)
+      const hasExpandedLeft =
+        (newGitDock === "left" && newLayout.panels.git.isExpanded) ||
+        (newTaskDock === "left" && newLayout.panels.task.isExpanded)
+      if (hasExpandedLeft !== hadExpandedLeft) {
+        setSidebarOpen(!hasExpandedLeft)
+      }
+
       mutations.updateWorkspaceLayout(workspace.id, newLayout)
     },
-    [layout, workspace.id],
+    [layout, workspace.id, gitDock, taskDock, isGitExpanded, isTaskExpanded, setSidebarOpen],
   )
 
   // Helper to blur terminal focus (prevents aria-hidden focus warning when collapsing)
@@ -427,44 +427,33 @@ function LayoutContent() {
   )
 
   // Ctrl+` to toggle terminal (VS Code behavior)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      // Ctrl+` to toggle terminal (Cmd+` is system window switching on macOS)
-      if (e.ctrlKey && e.code === "Backquote") {
-        e.preventDefault()
+  useHotkey(
+    "ctrl+`",
+    () => {
+      const terminalPanel = document.querySelector('[data-testid="terminal-panel"]')
+      const isTerminalFocused = terminalPanel?.contains(document.activeElement)
 
-        // Skip synthetic events dispatched by the terminal's shortcut interceptor
-        // The window capture handler already sees the original event first
-        if (!e.isTrusted) return
-
-        const terminalPanel = document.querySelector('[data-testid="terminal-panel"]')
-        const isTerminalFocused = terminalPanel?.contains(document.activeElement)
-
-        if (isTerminalFocused && isTerminalExpanded) {
-          // Terminal focused + expanded → collapse
-          setTerminalExpanded(false)
-        } else if (!isTerminalFocused && isTerminalExpanded) {
-          // Editor focused + terminal expanded → focus terminal
-          focus("terminal")
-        } else {
-          // Editor focused + terminal collapsed → expand AND focus
-          if (!isTerminalSessionActive) {
-            setIsTerminalSessionActive(true)
-          }
-          shouldFocusTerminalRef.current = true
-          setTerminalExpanded(true)
+      if (isTerminalFocused && isTerminalExpanded) {
+        // terminal focused + expanded → collapse
+        setTerminalExpanded(false)
+      } else if (!isTerminalFocused && isTerminalExpanded) {
+        // editor focused + terminal expanded → focus terminal
+        focus("terminal")
+      } else {
+        // editor focused + terminal collapsed → expand AND focus
+        if (!isTerminalSessionActive) {
+          setIsTerminalSessionActive(true)
         }
+        shouldFocusTerminalRef.current = true
+        setTerminalExpanded(true)
       }
-    }
-    window.addEventListener("keydown", onKey, true)
-    return () => window.removeEventListener("keydown", onKey, true)
-  }, [
-    focus,
-    isTerminalExpanded,
-    isTerminalSessionActive,
-    setTerminalExpanded,
-    setIsTerminalSessionActive,
-  ])
+    },
+    {
+      capture: true,
+      // skip synthetic events dispatched by the terminal's shortcut interceptor
+      guard: (e) => e.isTrusted,
+    },
+  )
 
   const setTerminalDock = useCallback(
     (dock: DockPosition) => {
@@ -702,128 +691,148 @@ function LayoutContent() {
   // Note: No border class needed - ResizableHandle provides the visual divider
 
   // Controls injected into the right side of the tab bar
-  const terminalToolbarRight = (
-    <div className="flex items-center gap-2">
-      <TerminalStatusBadge />
-      <DockPositionDropdown
-        currentDock={terminalDock}
-        onDockChange={setTerminalDock}
-        label="terminal"
-      />
-      <DeleteButton
-        onDelete={
-          isTerminalSessionActive
-            ? () => {
-                setIsTerminalSessionActive(false)
-                setTerminalExpanded(false)
-              }
-            : undefined
-        }
-        disabled={!isTerminalSessionActive}
-        title="kill terminal"
-        data-testid="terminal-delete-button"
-      />
-      <button
-        onClick={() => {
-          if (isTerminalCollapsed && !isTerminalSessionActive) {
-            setIsTerminalSessionActive(true)
-          }
-          setTerminalExpanded(!isTerminalExpanded)
-        }}
-        className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-        aria-label={isTerminalCollapsed ? "show terminal" : "hide terminal"}
-      >
-        {collapseIcon}
-      </button>
-    </div>
-  )
-
-  const taskStatuses = [
-    { value: "pending", label: "pending" },
-    { value: "in_progress", label: "in progress" },
-    { value: "completed", label: "completed" },
-  ]
-
-  // Task toolbar content - h-10 + border-b to match editor header
-  const taskToolbarContent = (
-    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
-      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-        <ListTodo
-          className={cn(
-            "h-3.5 w-3.5 shrink-0",
-            isTaskExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
-          )}
+  const terminalToolbarRight = useMemo(
+    () => (
+      <div className="flex items-center gap-2">
+        <TerminalStatusBadge />
+        <DockPositionDropdown
+          currentDock={terminalDock}
+          onDockChange={setTerminalDock}
+          label="terminal"
         />
-        <DockPositionDropdown currentDock={taskDock} onDockChange={setTaskDock} label="task" />
-      </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        {taskStatuses.map((status) => {
-          const isActive = taskStatusFilter.includes(status.value)
-          return (
-            <button
-              key={status.value}
-              onClick={() => toggleTaskStatus(status.value)}
-              className={cn(
-                "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-colors cursor-pointer shrink-0",
-                isActive
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
-                  : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300",
-              )}
-            >
-              {status.label}
-            </button>
-          )
-        })}
-        {taskStatusFilter.length > 0 && (
-          <button
-            onClick={() => setTaskStatusFilter([])}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
-          >
-            <X className="h-3 w-3" />
-            reset
-          </button>
-        )}
+        <DeleteButton
+          onDelete={
+            isTerminalSessionActive
+              ? () => {
+                  setIsTerminalSessionActive(false)
+                  setTerminalExpanded(false)
+                }
+              : undefined
+          }
+          disabled={!isTerminalSessionActive}
+          title="kill terminal"
+          data-testid="terminal-delete-button"
+        />
         <button
-          onClick={() => setTaskExpanded(!isTaskExpanded)}
+          onClick={() => {
+            if (isTerminalCollapsed && !isTerminalSessionActive) {
+              setIsTerminalSessionActive(true)
+            }
+            setTerminalExpanded(!isTerminalExpanded)
+          }}
           className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          aria-label={isTaskCollapsed ? "show tasks" : "hide tasks"}
+          aria-label={isTerminalCollapsed ? "show terminal" : "hide terminal"}
         >
-          {isTaskCollapsed ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
+          {collapseIcon}
         </button>
       </div>
-    </div>
+    ),
+    [
+      isTerminalCollapsed,
+      isTerminalSessionActive,
+      setIsTerminalSessionActive,
+      setTerminalExpanded,
+      terminalDock,
+      setTerminalDock,
+      collapseIcon,
+    ],
+  )
+
+  // Task toolbar content - h-10 + border-b to match editor header
+  const taskToolbarContent = useMemo(
+    () => (
+      <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
+        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+          <ListTodo
+            className={cn(
+              "h-3.5 w-3.5 shrink-0",
+              isTaskExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+            )}
+          />
+          <DockPositionDropdown currentDock={taskDock} onDockChange={setTaskDock} label="task" />
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {TASK_STATUSES.map((status) => {
+            const isActive = taskStatusFilter.includes(status.value)
+            return (
+              <button
+                key={status.value}
+                onClick={() => toggleTaskStatus(status.value)}
+                className={cn(
+                  "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-colors cursor-pointer shrink-0",
+                  isActive
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
+                    : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300",
+                )}
+              >
+                {status.label}
+              </button>
+            )
+          })}
+          {taskStatusFilter.length > 0 && (
+            <button
+              onClick={() => setTaskStatusFilter([])}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+            >
+              <X className="h-3 w-3" />
+              reset
+            </button>
+          )}
+          <button
+            onClick={() => setTaskExpanded(!isTaskExpanded)}
+            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            aria-label={isTaskCollapsed ? "show tasks" : "hide tasks"}
+          >
+            {isTaskCollapsed ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
+      </div>
+    ),
+    [
+      isTaskExpanded,
+      isTaskCollapsed,
+      taskDock,
+      setTaskDock,
+      taskStatusFilter,
+      setTaskStatusFilter,
+      toggleTaskStatus,
+      setTaskExpanded,
+    ],
   )
 
   // Git toolbar content - h-10 + border-b to match editor header
-  const gitToolbarContent = (
-    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
-      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-        <GitBranch
-          className={cn(
-            "h-3.5 w-3.5 shrink-0",
-            isGitExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
-          )}
-        />
-        <DockPositionDropdown currentDock={gitDock} onDockChange={setGitDock} label="git" />
+  const gitToolbarContent = useMemo(
+    () => (
+      <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
+        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+          <GitBranch
+            className={cn(
+              "h-3.5 w-3.5 shrink-0",
+              isGitExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+            )}
+          />
+          <DockPositionDropdown currentDock={gitDock} onDockChange={setGitDock} label="git" />
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => setGitExpanded(!isGitExpanded)}
+            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            aria-label={isGitCollapsed ? "show git" : "hide git"}
+          >
+            {isGitCollapsed ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <button
-          onClick={() => setGitExpanded(!isGitExpanded)}
-          className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          aria-label={isGitCollapsed ? "show git" : "hide git"}
-        >
-          {isGitCollapsed ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
-        </button>
-      </div>
-    </div>
+    ),
+    [isGitExpanded, isGitCollapsed, gitDock, setGitDock, setGitExpanded],
   )
 
   // Determine which panel (if any) is docked at bottom
@@ -1206,29 +1215,23 @@ function WorkspaceLayout() {
     }
   }, [workspace.path, workspace.id])
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const isNewFile = (e.metaKey || e.ctrlKey) && (e.key === "n" || e.key === "N")
-
-      if (isNewFile) {
-        e.preventDefault()
-        // if focused within CodeMirror, let its own handler dispatch the save event
-        const target = e.target as EventTarget | null
-        const isInCodeMirror = target instanceof Element && !!target.closest(".cm-editor")
-        if (isInCodeMirror) return
-
-        // start creating a new file in the workspace root
-        if (workspace?.path) {
-          setIsCreatingInContext({ kind: "file", parentPath: workspace.path })
-          setContextItemName("")
-        }
+  useHotkey(
+    "mod+n",
+    () => {
+      if (workspace?.path) {
+        setIsCreatingInContext({ kind: "file", parentPath: workspace.path })
+        setContextItemName("")
       }
-    }
-    window.addEventListener("keydown", onKey, true)
-    return () => {
-      window.removeEventListener("keydown", onKey, true)
-    }
-  }, [workspace?.path, setIsCreatingInContext, setContextItemName])
+    },
+    {
+      capture: true,
+      // let CodeMirror handle its own shortcut
+      guard: (e) => {
+        const target = e.target as EventTarget | null
+        return !(target instanceof Element && !!target.closest(".cm-editor"))
+      },
+    },
+  )
 
   const titlebarHeight = window.electronAPI.titlebarHeight
 

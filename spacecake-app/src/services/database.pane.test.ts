@@ -1,6 +1,6 @@
 import { it } from "@effect/vitest"
 import { eq } from "drizzle-orm"
-import { Effect } from "effect"
+import * as Effect from "effect/Effect"
 import { beforeAll, describe, expect } from "vitest"
 
 import { paneItemTable } from "@/schema/drizzle"

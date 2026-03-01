@@ -88,13 +88,7 @@ export class ContextNode extends ElementNode {
     // Append header first
     dom.appendChild(header)
 
-    // Apply content styling to the main container
-    // The Lexical content will be rendered as children of dom, after the header
-    dom.style.paddingLeft = "1rem"
-    dom.style.paddingRight = "1rem"
-    dom.style.paddingBottom = "1rem"
-    dom.style.paddingTop = "0"
-    dom.style.backgroundColor = "hsl(var(--muted) / 0.1)"
+    dom.style.cssText = "padding: 0 1rem 1rem; background-color: hsl(var(--muted) / 0.1)"
 
     if (typeof config.theme.contextBlock === "string") {
       addClassNamesToElement(dom, config.theme.contextBlock)

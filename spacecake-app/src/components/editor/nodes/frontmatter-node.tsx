@@ -324,6 +324,8 @@ const FrontmatterNodeEditorContainer: React.FC<FrontmatterNodeEditorContainerPro
   nodeKey,
 }) => {
   const [isNodeSelected, setNodeSelected, clearNodeSelection] = useLexicalNodeSelection(nodeKey)
+  const isNodeSelectedRef = React.useRef(isNodeSelected)
+  isNodeSelectedRef.current = isNodeSelected
 
   const viewMode = frontmatterNode.__viewMode
   const yamlContent = frontmatterNode.__yaml
@@ -340,7 +342,7 @@ const FrontmatterNodeEditorContainer: React.FC<FrontmatterNodeEditorContainerPro
             if (!event.shiftKey) {
               clearNodeSelection()
             }
-            setNodeSelected(!isNodeSelected)
+            setNodeSelected(!isNodeSelectedRef.current)
             return true
           }
 
@@ -349,7 +351,7 @@ const FrontmatterNodeEditorContainer: React.FC<FrontmatterNodeEditorContainerPro
         COMMAND_PRIORITY_LOW,
       ),
     )
-  }, [clearNodeSelection, parentEditor, setNodeSelected, nodeKey, isNodeSelected])
+  }, [clearNodeSelection, parentEditor, setNodeSelected, nodeKey])
 
   const handleCodeChange = React.useCallback(
     (code: string) => {

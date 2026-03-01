@@ -43,6 +43,169 @@ import { createFolder, remove, rename, saveFile } from "@/lib/fs"
 import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 
+function DeleteConfirmDialog({ workspace }: { workspace: WorkspaceInfo }) {
+  const [deletionState, setDeletionState] = useAtom(deletionStateAtom)
+
+  const handleConfirmDelete = async () => {
+    if (!deletionState.item || !workspace?.path) return
+
+    // prevent deletion of system folders
+    if (deletionState.item.kind === "folder" && deletionState.item.isSystemFolder) {
+      toast.error("system folders cannot be deleted")
+      setDeletionState({ item: null, isOpen: false, isDeleting: false })
+      return
+    }
+
+    setDeletionState((prev) => ({ ...prev, isDeleting: true }))
+
+    const itemToDelete = deletionState.item
+    const result = await remove(
+      AbsolutePath(itemToDelete.path),
+      deletionState.item.kind === "folder",
+    )
+
+    match(result, {
+      onLeft: (error) => {
+        console.error(error)
+        setDeletionState((prev) => ({ ...prev, isDeleting: false }))
+      },
+      onRight: async () => {
+        setDeletionState((prev) => ({ ...prev, isOpen: false }))
+      },
+    })
+  }
+
+  const handleCancelDelete = () => {
+    setDeletionState({ item: null, isOpen: false, isDeleting: false })
+  }
+
+  return (
+    <Dialog
+      open={deletionState.isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          setTimeout(() => {
+            setDeletionState({
+              item: null,
+              isOpen: false,
+              isDeleting: false,
+            })
+          }, 150)
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {deletionState.item && deletionState.item.kind === "folder"
+              ? "delete folder"
+              : "delete file"}
+          </DialogTitle>
+          <DialogDescription>
+            are you sure you want to delete '
+            {deletionState.item &&
+            (deletionState.item.kind === "file" || deletionState.item.kind === "folder")
+              ? deletionState.item.name
+              : ""}
+            '{deletionState.item && deletionState.item.kind === "folder" ? " and its contents" : ""}
+            ?
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={handleCancelDelete}
+            disabled={deletionState.isDeleting}
+            className="cursor-pointer"
+          >
+            cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleConfirmDelete}
+            disabled={deletionState.isDeleting}
+            className="cursor-pointer"
+          >
+            {deletionState.isDeleting ? (
+              <Loader2Icon className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <Trash2 className="mr-1 h-3 w-3" />
+            )}
+            delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function RevertConfirmDialog() {
+  const [revertState, setRevertState] = useAtom(revertStateAtom)
+  const store = useStore()
+
+  const handleConfirmRevert = () => {
+    if (!revertState.isOpen) return
+    setRevertState((prev) => (prev.isOpen ? { ...prev, isReverting: true } : prev))
+    store.set(getOrCreateFileStateAtom(revertState.filePath), {
+      type: "file.revert",
+    })
+    setTimeout(() => {
+      setRevertState({ isOpen: false })
+    }, 150)
+  }
+
+  const handleCancelRevert = () => {
+    setRevertState({ isOpen: false })
+  }
+
+  return (
+    <Dialog
+      open={revertState.isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          setTimeout(() => {
+            setRevertState({ isOpen: false })
+          }, 150)
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>revert file</DialogTitle>
+          <DialogDescription>
+            are you sure you want to revert '{revertState.isOpen ? revertState.fileName : ""}'?
+            <br />
+            all unsaved changes will be lost.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={handleCancelRevert}
+            disabled={revertState.isOpen && revertState.isReverting}
+            className="cursor-pointer"
+          >
+            cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleConfirmRevert}
+            disabled={revertState.isOpen && revertState.isReverting}
+            className="cursor-pointer"
+          >
+            {revertState.isOpen && revertState.isReverting ? (
+              <Loader2Icon className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <RotateCcw className="mr-1 h-3 w-3" />
+            )}
+            revert
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 interface NavMainProps {
   onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
   onFileClick?: (filePath: AbsolutePath) => void
@@ -99,8 +262,8 @@ export function NavMain({
   const [isCreatingInContext, setIsCreatingInContext] = useAtom(isCreatingInContextAtom)
   // Removed global subscription to contextItemNameAtom here
   const setContextItemName = useSetAtom(contextItemNameAtom)
-  const [deletionState, setDeletionState] = useAtom(deletionStateAtom)
-  const [revertState, setRevertState] = useAtom(revertStateAtom)
+  const setDeletionState = useSetAtom(deletionStateAtom)
+  const setRevertState = useSetAtom(revertStateAtom)
 
   const route = useRoute()
   const selectedFilePath = route?.filePath || null
@@ -108,7 +271,7 @@ export function NavMain({
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(null)
 
-  const sortedFileTree = useAtomValue(sortedFileTreeAtom)
+  const store = useStore()
   const flatVisibleTree = useAtomValue(flatVisibleTreeAtom)
 
   // Ref for the scrollable container
@@ -174,13 +337,14 @@ export function NavMain({
       const currentDir = currentPath.substring(0, currentPath.lastIndexOf("/"))
       const newPath = `${currentDir}/${newName.trim()}`
 
+      const sortedFileTree = store.get(sortedFileTreeAtom)
       const existingFile = sortedFileTree.find((f: File | Folder) => f.path === newPath)
       if (existingFile) {
         return `'${newName.trim()}' already exists`
       }
       return null
     },
-    [sortedFileTree],
+    [store],
   )
 
   const handleFileClickCallback = React.useCallback(
@@ -305,41 +469,6 @@ export function NavMain({
     [setDeletionState],
   )
 
-  const handleConfirmDelete = async () => {
-    if (!deletionState.item || !workspace?.path) return
-
-    // prevent deletion of system folders
-    if (deletionState.item.kind === "folder" && deletionState.item.isSystemFolder) {
-      toast.error("system folders cannot be deleted")
-      setDeletionState({ item: null, isOpen: false, isDeleting: false })
-      return
-    }
-
-    setDeletionState((prev) => ({ ...prev, isDeleting: true }))
-
-    const itemToDelete = deletionState.item
-    const result = await remove(
-      AbsolutePath(itemToDelete.path),
-      deletionState.item.kind === "folder",
-    )
-
-    match(result, {
-      onLeft: (error) => {
-        console.error(error)
-        setDeletionState((prev) => ({ ...prev, isDeleting: false }))
-      },
-      onRight: async () => {
-        // Only close the dialog - keep isDeleting true during close animation
-        // The onOpenChange handler will clean up the full state after animation completes
-        setDeletionState((prev) => ({ ...prev, isOpen: false }))
-      },
-    })
-  }
-
-  const handleCancelDelete = () => {
-    setDeletionState({ item: null, isOpen: false, isDeleting: false })
-  }
-
   const handleStartRevertCallback = React.useCallback(
     (item: File) => {
       setRevertState({
@@ -351,24 +480,6 @@ export function NavMain({
     },
     [setRevertState],
   )
-
-  const store = useStore()
-
-  const handleConfirmRevert = () => {
-    if (!revertState.isOpen) return
-    setRevertState({ ...revertState, isReverting: true })
-    // Use store.set directly to ensure we target the correct file's state machine
-    store.set(getOrCreateFileStateAtom(revertState.filePath), {
-      type: "file.revert",
-    })
-    setTimeout(() => {
-      setRevertState({ isOpen: false })
-    }, 150)
-  }
-
-  const handleCancelRevert = () => {
-    setRevertState({ isOpen: false })
-  }
 
   const handleCancelCreation = () => {
     setIsCreatingInContext(null)
@@ -460,6 +571,10 @@ export function NavMain({
                         onStartRevert={handleStartRevertCallback}
                         onCreateFile={handleCreateFile}
                         onCreateFolder={handleCreateFolder}
+                        isCreatingInThisContext={
+                          isCreatingInContext?.parentPath ===
+                          (flatItem as FlatFileTreeItem).item.path
+                        }
                         selectedFilePath={initialSelectedFilePath}
                         editingItem={editingItem}
                         setEditingItem={setEditingItem}
@@ -493,114 +608,8 @@ export function NavMain({
         </div>
       </SidebarGroup>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deletionState.isOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            // Delay state reset until after close animation completes
-            // to keep isDeleting true during the fade-out
-            setTimeout(() => {
-              setDeletionState({
-                item: null,
-                isOpen: false,
-                isDeleting: false,
-              })
-            }, 150)
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {deletionState.item && deletionState.item.kind === "folder"
-                ? "delete folder"
-                : "delete file"}
-            </DialogTitle>
-            <DialogDescription>
-              are you sure you want to delete '
-              {deletionState.item &&
-              (deletionState.item.kind === "file" || deletionState.item.kind === "folder")
-                ? deletionState.item.name
-                : ""}
-              '
-              {deletionState.item && deletionState.item.kind === "folder"
-                ? " and its contents"
-                : ""}
-              ?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={handleCancelDelete}
-              disabled={deletionState.isDeleting}
-              className="cursor-pointer"
-            >
-              cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmDelete}
-              disabled={deletionState.isDeleting}
-              className="cursor-pointer"
-            >
-              {deletionState.isDeleting ? (
-                <Loader2Icon className="mr-1 h-3 w-3 animate-spin" />
-              ) : (
-                <Trash2 className="mr-1 h-3 w-3" />
-              )}
-              delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Revert Confirmation Dialog */}
-      <Dialog
-        open={revertState.isOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setTimeout(() => {
-              setRevertState({ isOpen: false })
-            }, 150)
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>revert file</DialogTitle>
-            <DialogDescription>
-              are you sure you want to revert '{revertState.isOpen ? revertState.fileName : ""}'?
-              <br />
-              all unsaved changes will be lost.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={handleCancelRevert}
-              disabled={revertState.isOpen && revertState.isReverting}
-              className="cursor-pointer"
-            >
-              cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmRevert}
-              disabled={revertState.isOpen && revertState.isReverting}
-              className="cursor-pointer"
-            >
-              {revertState.isOpen && revertState.isReverting ? (
-                <Loader2Icon className="mr-1 h-3 w-3 animate-spin" />
-              ) : (
-                <RotateCcw className="mr-1 h-3 w-3" />
-              )}
-              revert
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteConfirmDialog workspace={workspace} />
+      <RevertConfirmDialog />
     </>
   )
 }

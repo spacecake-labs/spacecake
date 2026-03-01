@@ -178,7 +178,13 @@ const config: ForgeConfig = {
       }),
     },
     new MakerDeb({
-      options: commonLinuxConfig,
+      options: {
+        ...commonLinuxConfig,
+        scripts: {
+          postinst: "resources/linux/postinst",
+          prerm: "resources/linux/prerm",
+        },
+      },
     }),
     {
       name: "@reforged/maker-appimage",

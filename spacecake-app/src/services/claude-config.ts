@@ -1,4 +1,7 @@
-import { Config, Effect, Layer, Option } from "effect"
+import * as Config from "effect/Config"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import os from "node:os"
 import path from "node:path"
 

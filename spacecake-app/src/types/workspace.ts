@@ -2,7 +2,8 @@
  * Workspace and file tree types
  */
 
-import { Brand, Schema } from "effect"
+import * as Brand from "effect/Brand"
+import * as Schema from "effect/Schema"
 
 import { encodeBase64Url } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"

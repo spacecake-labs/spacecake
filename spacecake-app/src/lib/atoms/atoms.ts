@@ -83,6 +83,9 @@ export const terminalProfileLoadedAtom = atom<boolean>(false)
 // Claude statusline data (model, context usage, cost)
 export const claudeStatuslineAtom = atom<DisplayStatusline | null>(null)
 
+// derived: only the session id (avoids re-renders when other statusline fields change)
+export const claudeSessionIdAtom = atom((get) => get(claudeStatuslineAtom)?.sessionId ?? null)
+
 // Persisted flag so the "IDE disconnected" toast is only shown once
 export const ideDisconnectedToastShownAtom = atomWithStorage<boolean>(
   "spacecake-ide-disconnected-toast-shown",

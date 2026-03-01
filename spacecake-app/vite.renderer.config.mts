@@ -57,10 +57,15 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules/mermaid")) return "vendor-mermaid"
+          // codemirror-lang-mermaid is lazy-loaded separately — don't bundle with core codemirror
+          if (id.includes("node_modules/codemirror-lang-mermaid"))
+            return "vendor-codemirror-mermaid"
           if (id.includes("node_modules/@codemirror") || id.includes("node_modules/codemirror"))
             return "vendor-codemirror"
           if (id.includes("node_modules/@lexical") || id.includes("node_modules/lexical"))
             return "vendor-lexical"
+          if (id.includes("node_modules/effect") || id.includes("node_modules/@effect"))
+            return "vendor-effect"
         },
       },
     },

@@ -1,5 +1,5 @@
 import { useParams, useSearch } from "@tanstack/react-router"
-import { Schema } from "effect"
+import * as Schema from "effect/Schema"
 
 import { decodeBase64Url } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"

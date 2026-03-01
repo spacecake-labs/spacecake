@@ -1,4 +1,5 @@
-import { Effect, Layer } from "effect"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 
 import { ClaudeConfig } from "@/services/claude-config"
 import { FileSystem, UnknownFSError, type FileSystemError } from "@/services/file-system"

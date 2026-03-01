@@ -1,5 +1,4 @@
-import { Schema } from "effect"
-
+import * as Schema from "effect/Schema"
 // JSON-RPC 2.0 message schemas
 const JsonRpcRequestSchema = Schema.Struct({
   method: Schema.String,

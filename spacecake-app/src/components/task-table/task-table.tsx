@@ -2,14 +2,14 @@ import { useAtomValue } from "jotai"
 
 import { columns } from "@/components/task-table/columns"
 import { DataTable } from "@/components/task-table/data-table"
-import { claudeStatuslineAtom } from "@/lib/atoms/atoms"
+import { claudeSessionIdAtom } from "@/lib/atoms/atoms"
 import { claudeTasksAtom } from "@/lib/atoms/claude-tasks"
 
 export function TaskTable() {
-  const statusline = useAtomValue(claudeStatuslineAtom)
+  const sessionId = useAtomValue(claudeSessionIdAtom)
   const tasks = useAtomValue(claudeTasksAtom)
 
-  if (!statusline?.sessionId) {
+  if (!sessionId) {
     return (
       <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
         no active claude session

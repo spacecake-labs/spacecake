@@ -17,6 +17,9 @@ export interface StatuslineData {
   timestamp: number
 }
 
+// eslint-disable-next-line no-control-regex
+const STATUSLINE_OSC_RE = /\x1b\]1337;StatuslineData;(.+?)\x07/
+
 /**
  * Parse statusline data from OSC escape sequence in terminal output
  * Expected format: \x1b]1337;StatuslineData;{...}\x07
@@ -25,10 +28,7 @@ export function parseStatuslineOutput(data: string): StatuslineData | null {
   if (!data) return null
 
   try {
-    // Look for OSC sequence: \x1b]1337;StatuslineData;{...}\x07
-    // eslint-disable-next-line no-control-regex
-    const oscPattern = /\x1b\]1337;StatuslineData;(.+?)\x07/
-    const match = data.match(oscPattern)
+    const match = data.match(STATUSLINE_OSC_RE)
 
     if (!match || !match[1]) {
       return null
@@ -53,8 +53,7 @@ export function parseStatuslineOutput(data: string): StatuslineData | null {
  */
 export function hasStatuslineData(data: string): boolean {
   if (!data) return false
-  // eslint-disable-next-line no-control-regex
-  return /\x1b\]1337;StatuslineData;(.+?)\x07/.test(data)
+  return STATUSLINE_OSC_RE.test(data)
 }
 
 /**

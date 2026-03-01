@@ -1,5 +1,4 @@
-import { Schema } from "effect"
-
+import * as Schema from "effect/Schema"
 // Tagged classes for workspace errors in URL search params
 // Using Schema.TaggedClass for automatic serialization/validation
 

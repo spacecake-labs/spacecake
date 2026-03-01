@@ -1,6 +1,7 @@
 import { createFileRoute, ErrorComponent, redirect } from "@tanstack/react-router"
 import { useActorRef } from "@xstate/react"
-import { Effect, Schema } from "effect"
+import * as Effect from "effect/Effect"
+import * as Schema from "effect/Schema"
 import { useSetAtom } from "jotai"
 import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 import { useEffect } from "react"
@@ -127,18 +128,19 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         })
       },
       onRight: async (result) => {
-        // skip when the pane machine already activated the pane item
-        if (!paneActivated) {
-          await RuntimeClient.runPromise(
-            Effect.gen(function* () {
-              const db = yield* Database
-              yield* db.activateEditorInPane(result.content.data.editorId, paneId)
-            }),
-          )
-        }
+        // start pane activation early — don't block subsequent work
+        const activationPromise = !paneActivated
+          ? RuntimeClient.runPromise(
+              Effect.gen(function* () {
+                const db = yield* Database
+                yield* db.activateEditorInPane(result.content.data.editorId, paneId)
+              }),
+            )
+          : Promise.resolve()
 
         // add view to search params if it is not present
         if (!view) {
+          await activationPromise
           throw redirect({
             search: {
               view: result.viewKind,
@@ -156,17 +158,16 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         const key = `${filePath}-${result.viewKind}-${cid}-${epoch}`
 
         // Handle diff view - fetch git diff data and create diff editor config
+        // parallelize activation with diff fetch since they're independent
         if (result.viewKind === "diff") {
           const relativePath = filePath.startsWith(workspace.path + "/")
             ? filePath.slice(workspace.path.length + 1)
             : filePath
 
-          const diffResult = await window.electronAPI.git.getFileDiff(
-            workspace.path,
-            relativePath,
-            baseRef,
-            targetRef,
-          )
+          const [, diffResult] = await Promise.all([
+            activationPromise,
+            window.electronAPI.git.getFileDiff(workspace.path, relativePath, baseRef, targetRef),
+          ])
 
           return match(diffResult, {
             onLeft: (error) => ({
@@ -197,6 +198,9 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
             },
           })
         }
+
+        // ensure activation completes before returning for non-diff views
+        await activationPromise
 
         // Handle source/rich view
         const editorConfig =

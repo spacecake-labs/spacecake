@@ -1,5 +1,6 @@
 import { Clipboard, layer as ClipboardLayer } from "@effect/platform-browser/Clipboard"
-import { Effect, Layer } from "effect"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 
 import { TerminalWriter, TerminalWriterLive } from "@/lib/terminal-writer"
 

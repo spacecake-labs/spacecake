@@ -132,11 +132,17 @@ const mergeTrees = (
   oldTree: FileTree,
   expandedFolders: { [path: string]: boolean },
 ): FileTree => {
+  // build a map for O(1) lookups instead of O(n) find per item
+  const oldFoldersByPath = new Map<string, Folder>()
+  for (const item of oldTree) {
+    if (item.kind === "folder") {
+      oldFoldersByPath.set(item.path, item)
+    }
+  }
+
   return newTree.map((newItem) => {
     if (newItem.kind === "folder") {
-      const oldItem = oldTree.find(
-        (item) => item.path === newItem.path && item.kind === "folder",
-      ) as Folder | undefined
+      const oldItem = oldFoldersByPath.get(newItem.path)
 
       const isExpanded = expandedFolders[newItem.path] || oldItem?.isExpanded || false
 
