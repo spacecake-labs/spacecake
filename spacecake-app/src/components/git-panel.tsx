@@ -361,6 +361,7 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
   const setIsLoading = useSetAtom(gitStatusLoadingAtom)
   const [selectedCommit, setSelectedCommit] = useAtom(selectedCommitAtom)
   const [isGitRepo, setIsGitRepo] = useState<boolean | null>(null)
+  const isGitRepoRef = useRef<boolean | null>(null)
   const setGitBranch = useSetAtom(gitBranchAtom)
   const initialBranchFetched = useRef(false)
 
@@ -370,6 +371,7 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
       // first check if this is a git repo
       const isRepo = await window.electronAPI.git.isGitRepo(workspacePath)
       setIsGitRepo(isRepo)
+      isGitRepoRef.current = isRepo
 
       if (!isRepo) {
         setStatus(null)
@@ -433,6 +435,9 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
 
     const cleanup = window.electronAPI.onFileEvent((event) => {
       if (!event.path.startsWith(workspacePath)) return
+
+      // skip git polling when workspace is not a git repo
+      if (isGitRepoRef.current === false) return
 
       // check if this is a git state change we care about
       const isGitStateChange =

@@ -121,29 +121,35 @@ const makeGitService = Effect.gen(function* () {
     })
 
   const getCommitLog = (workspacePath: string, limit = 50): Effect.Effect<GitCommit[], GitError> =>
-    Effect.tryPromise({
-      try: async () => {
-        const git = getGit(workspacePath)
-        const log = await git.log({
-          maxCount: limit,
-          "--name-only": null, // Include file names
-        })
+    Effect.gen(function* () {
+      const git = getGit(workspacePath)
 
-        return log.all.map((commit) => ({
-          hash: commit.hash,
-          message: commit.message,
-          author: commit.author_name,
-          date: new Date(commit.date),
-          files: (commit.diff?.files ?? []).map((f) => f.file),
-        }))
-      },
-      catch: (e) => {
-        console.error("Git log error for path:", workspacePath, e)
-        return new GitError({
-          description: `Failed to get commit log: ${e instanceof Error ? e.message : String(e)}`,
-          cause: e,
-        })
-      },
+      // guard: if HEAD doesn't resolve (no commits yet), return empty
+      const headExists = yield* Effect.tryPromise(() => git.revparse(["HEAD"])).pipe(
+        Effect.map(() => true),
+        Effect.catchAll(() => Effect.succeed(false)),
+      )
+      if (!headExists) return []
+
+      return yield* Effect.tryPromise({
+        try: () =>
+          git.log({ maxCount: limit, "--name-only": null }).then((log) =>
+            log.all.map((commit) => ({
+              hash: commit.hash,
+              message: commit.message,
+              author: commit.author_name,
+              date: new Date(commit.date),
+              files: (commit.diff?.files ?? []).map((f) => f.file),
+            })),
+          ),
+        catch: (e) => {
+          console.error("git log error for path:", workspacePath, e)
+          return new GitError({
+            description: `Failed to get commit log: ${e instanceof Error ? e.message : String(e)}`,
+            cause: e,
+          })
+        },
+      })
     })
 
   return {
