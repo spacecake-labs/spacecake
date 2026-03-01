@@ -2,7 +2,6 @@ import type { JSX } from "react"
 
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
 import { mergeRegister } from "@lexical/utils"
-import type { BaseCodeMirrorEditorProps } from "@/components/editor/plugins/codemirror-editor"
 import {
   $addUpdateTag,
   $applyNodeReplacement,
@@ -21,6 +20,8 @@ import {
 } from "lexical"
 import { Code2, Eye } from "lucide-react"
 import * as React from "react"
+
+import type { BaseCodeMirrorEditorProps } from "@/components/editor/plugins/codemirror-editor"
 
 import { BlockHeader } from "@/components/editor/block-header"
 import {

@@ -1,6 +1,5 @@
 import type { JSX } from "react"
 
-import type { BaseCodeMirrorEditorProps } from "@/components/editor/plugins/codemirror-editor"
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
 import { mergeRegister } from "@lexical/utils"
 import {
@@ -22,6 +21,8 @@ import {
 import { Code2, Table2 } from "lucide-react"
 import * as React from "react"
 import YAML from "yaml"
+
+import type { BaseCodeMirrorEditorProps } from "@/components/editor/plugins/codemirror-editor"
 
 import { BlockHeader } from "@/components/editor/block-header"
 import {

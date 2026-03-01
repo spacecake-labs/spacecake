@@ -22,7 +22,9 @@ import type { LanguageSpec } from "@/types/language"
 import type { Block } from "@/types/parser"
 
 const CodeMirrorEditor = React.lazy(() =>
-  import("@/components/editor/plugins/codemirror-editor").then((m) => ({ default: m.CodeMirrorEditor })),
+  import("@/components/editor/plugins/codemirror-editor").then((m) => ({
+    default: m.CodeMirrorEditor,
+  })),
 )
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
