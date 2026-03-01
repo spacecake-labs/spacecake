@@ -1,7 +1,7 @@
 import { $addUpdateTag, LexicalEditor, SKIP_DOM_SELECTION_TAG } from "lexical"
 
 import { CodeBlockNode } from "@/components/editor/nodes/code-node"
-import { PyBlock } from "@/types/parser"
+import { PyBlock, toBlockMeta } from "@/types/parser"
 
 export async function maybeUpdateDocstring(
   editor: LexicalEditor,
@@ -27,7 +27,7 @@ export async function maybeUpdateDocstring(
       editor.update(() => {
         $addUpdateTag(SKIP_DOM_SELECTION_TAG)
         // update the block property with new docstring info
-        node.setBlock(block)
+        node.setBlock(toBlockMeta(block))
       })
     }
   }

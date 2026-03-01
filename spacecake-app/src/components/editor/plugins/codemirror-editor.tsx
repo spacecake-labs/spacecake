@@ -11,7 +11,7 @@ import { $addUpdateTag, SKIP_DOM_SELECTION_TAG } from "lexical"
 import React from "react"
 
 import type { LanguageSpec } from "@/types/language"
-import type { Block } from "@/types/parser"
+import type { BlockMeta } from "@/types/parser"
 
 import { CodeBlock } from "@/components/code-block"
 import { CodeBlockNode, useCodeBlockEditorContext } from "@/components/editor/nodes/code-node"
@@ -49,7 +49,7 @@ interface CodeMirrorEditorProps {
   language: CodeMirrorLanguage
   nodeKey: string
   code: string
-  block: Block
+  block: BlockMeta
   codeBlockNode: CodeBlockNode
   enableLanguageSwitching?: boolean
   showLineNumbers?: boolean
@@ -108,12 +108,12 @@ const foldPlaceholderTheme = EditorView.theme({
 })
 
 // Function to automatically fold docstrings using parsed block data
-const foldDocstrings = (view: EditorView, block: Block) => {
+const foldDocstrings = (view: EditorView, block: BlockMeta) => {
   if (!block.doc) return
 
   const doc = view.state.doc
   const docText = doc.toString()
-  const offset = block.text.length - docText.length
+  const offset = block.endByte - block.startByte - docText.length
 
   const docStartChar = block.doc.startByte - block.startByte - offset
   const docEndChar = block.doc.endByte - block.startByte - offset
@@ -585,6 +585,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   return (
     <CodeBlock
       block={block}
+      code={code}
       language={language}
       editable={!readOnly}
       theme={theme}

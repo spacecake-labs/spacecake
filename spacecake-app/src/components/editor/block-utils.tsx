@@ -1,6 +1,7 @@
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { delimitedNode } from "@/components/editor/nodes/delimited-node"
 import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
+import { toBlockMeta } from "@/types/parser"
 import { PyBlock } from "@/types/parser"
 
 /**
@@ -15,7 +16,7 @@ export function delimitPyBlock(block: PyBlock, filePath: string) {
         language: "python",
         meta: String(block.kind),
         src: filePath,
-        block: block,
+        block: toBlockMeta(block),
       }),
     delimitedString,
   )

@@ -19,7 +19,7 @@ import {
 import React, { JSX } from "react"
 
 import type { LanguageSpec } from "@/types/language"
-import type { Block } from "@/types/parser"
+import type { BlockMeta } from "@/types/parser"
 
 const CodeMirrorEditor = React.lazy(() =>
   import("@/components/editor/plugins/codemirror-editor").then((m) => ({
@@ -53,14 +53,14 @@ export interface CreateCodeBlockNodeOptions {
   language: CodeMirrorLanguage
   meta: string
   src: string
-  block: Block
+  block: BlockMeta
 }
 
 /**
  * A serialized representation of a CodeBlockNode.
  */
 export type SerializedCodeBlockNode = Spread<
-  CreateCodeBlockNodeOptions & { type: "codeblock"; version: 1 },
+  Omit<CreateCodeBlockNodeOptions, "block"> & { block: BlockMeta; type: "codeblock"; version: 1 },
   SerializedLexicalNode
 >
 
@@ -72,7 +72,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
   __meta: string
   __language: CodeMirrorLanguage
   __src: string
-  __block: Block
+  __block: BlockMeta
 
   static getType(): string {
     return "codeblock"
@@ -118,7 +118,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     language: CodeMirrorLanguage,
     meta: string,
     src: string,
-    block: Block,
+    block: BlockMeta,
     key?: NodeKey,
   ) {
     super(key)
@@ -175,7 +175,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     return this.__src
   }
 
-  getBlock(): Block {
+  getBlock(): BlockMeta {
     return this.__block
   }
 
@@ -203,7 +203,7 @@ export class CodeBlockNode extends DecoratorNode<JSX.Element> {
     }
   }
 
-  setBlock = (block: Block) => {
+  setBlock = (block: BlockMeta) => {
     if (block !== this.__block) {
       this.getWritable().__block = block
     }
@@ -338,7 +338,7 @@ interface CodeBlockEditorProps {
   language: CodeMirrorLanguage
   meta: string
   src: string
-  block: Block
+  block: BlockMeta
   nodeKey: string
 }
 
@@ -416,7 +416,6 @@ export function $createCodeBlockNode(options: Partial<CreateCodeBlockNodeOptions
         name: { kind: "anonymous", value: "anonymous" },
         startByte: 0,
         endByte: options.code?.length ?? 0,
-        text: options.code ?? "",
         startLine: 1,
       },
     ),

@@ -38,6 +38,13 @@ export interface Block<TKind = string> {
   doc?: Block<"doc">
 }
 
+// block metadata stored on editor nodes — omits `text` since the node's `__code` is canonical
+export type BlockMeta = Omit<Block, "text">
+
+export function toBlockMeta({ text: _, ...rest }: Block): BlockMeta {
+  return rest
+}
+
 // Docable block kinds that can have docstrings
 export const PyDocableKindSchema = Schema.Union(
   Schema.Literal("module"),
