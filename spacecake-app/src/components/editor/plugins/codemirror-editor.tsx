@@ -419,6 +419,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   React.useEffect(() => {
     const el = elRef.current!
+    let cleanupListeners: (() => void) | null = null
+
     void (async () => {
       // Load language support first
       let languageSupport = null
@@ -527,18 +529,26 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         flushPending()
       }
 
-      view.contentDOM.addEventListener("keydown", onKeyDown, false)
-      view.contentDOM.addEventListener("cut", onCut, false)
-      view.contentDOM.addEventListener("paste", onPaste, false)
-      view.contentDOM.addEventListener("blur", onBlur, false)
+      const contentDOM = view.contentDOM
+      contentDOM.addEventListener("keydown", onKeyDown, false)
+      contentDOM.addEventListener("cut", onCut, false)
+      contentDOM.addEventListener("paste", onPaste, false)
+      contentDOM.addEventListener("blur", onBlur, false)
+
+      cleanupListeners = () => {
+        contentDOM.removeEventListener("keydown", onKeyDown, false)
+        contentDOM.removeEventListener("cut", onCut, false)
+        contentDOM.removeEventListener("paste", onPaste, false)
+        contentDOM.removeEventListener("blur", onBlur, false)
+      }
     })()
 
     return () => {
       // ensure any pending changes are committed before teardown
       flushPending()
+      cleanupListeners?.()
       editorViewRef.current?.destroy()
       editorViewRef.current = null
-      // listeners are attached to contentDOM; they are removed by destroy()
     }
   }, [language, debounceMs, flushPending])
 

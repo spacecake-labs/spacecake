@@ -29,6 +29,21 @@ export function getOrCreatePaneMachine(input: PaneMachineInput): PaneMachineActo
   return actor
 }
 
+export function cleanupPaneMachine(paneId: string): void {
+  const actor = paneMachineCache.get(paneId)
+  if (actor) {
+    actor.stop()
+    paneMachineCache.delete(paneId)
+  }
+}
+
+export function clearPaneMachineCache(): void {
+  for (const actor of paneMachineCache.values()) {
+    actor.stop()
+  }
+  paneMachineCache.clear()
+}
+
 /**
  * Helper to create the machine input from pane context
  */

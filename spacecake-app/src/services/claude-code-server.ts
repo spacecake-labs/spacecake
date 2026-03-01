@@ -149,6 +149,7 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
   } | null = null
 
   let startPromise: Promise<void> | null = null
+  let statuslineCleanup: (() => void)[] = []
 
   const startServerEffect = Effect.gen(function* () {
     const port = getRandomPort()
@@ -191,12 +192,15 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
     ])
 
     // register statusline callbacks to broadcast to renderer
-    hooksServer.onStatuslineUpdate((statusline) => {
-      broadcastStatusline(statusline)
-    })
-    hooksServer.onStatuslineCleared(() => {
-      broadcastStatuslineCleared()
-    })
+    statuslineCleanup.forEach((fn) => fn())
+    statuslineCleanup = [
+      hooksServer.onStatuslineUpdate((statusline) => {
+        broadcastStatusline(statusline)
+      }),
+      hooksServer.onStatuslineCleared(() => {
+        broadcastStatuslineCleared()
+      }),
+    ]
     const lockFilePath = AbsolutePath(path.join(claudeConfig.ideDir, `${port}.lock`))
 
     wss.on("connection", (ws, req) => {
@@ -412,7 +416,7 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
     // the "exit" event fires for normal exits and SIGTERM (but not SIGKILL).
     // this catches cases where the async Effect finalizer doesn't get a chance to run
     // (e.g. e2e test teardown, ctrl+C during dev).
-    process.on("exit", () => {
+    process.once("exit", () => {
       try {
         fs.unlinkSync(lockFilePath)
       } catch {
@@ -491,6 +495,8 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
       }
 
       console.log("Claude Code Server: Stopping...")
+      statuslineCleanup.forEach((fn) => fn())
+      statuslineCleanup = []
       broadcastClaudeCodeStatus("disconnected")
       // Terminate all connected clients so wss.close() can complete
       for (const client of serverState.wss.clients) {

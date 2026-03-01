@@ -1,5 +1,5 @@
 import { Check, Copy, MoveHorizontal } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import type { OpenFileSource } from "@/types/claude-code"
 
@@ -31,6 +31,11 @@ export function TabItem({
   isFirst,
 }: TabItemProps) {
   const [copied, setCopied] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  useEffect(() => {
+    return () => clearTimeout(timerRef.current)
+  }, [])
 
   const handleCopyPath = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -38,7 +43,8 @@ export function TabItem({
     try {
       await navigator.clipboard.writeText(filePath)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       console.error("failed to copy path:", err)
     }

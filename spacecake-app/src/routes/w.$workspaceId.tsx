@@ -62,6 +62,8 @@ import {
   setFileTreeAtom,
 } from "@/lib/atoms/file-tree"
 import { gitBranchAtom } from "@/lib/atoms/git"
+import { clearPaneMachineCache } from "@/lib/atoms/pane"
+import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
 import { createWorkspaceCollections } from "@/lib/db/collections"
 import * as mutations from "@/lib/db/mutations"
 import { queryClient } from "@/lib/db/query-client"
@@ -1179,6 +1181,9 @@ function WorkspaceLayout() {
     const id = workspace.id
     return () => {
       cleanupSettingsMachine(id)
+      clearPaneMachineCache()
+      store.set(quickOpenIndexAtom, [])
+      store.set(quickOpenIndexReadyAtom, false)
       // defer so child components unmount first (prevents re-creation during teardown)
       setTimeout(() => {
         clearFileStateAtoms()

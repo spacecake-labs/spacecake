@@ -61,6 +61,11 @@ function FileItem({
   onClick?: () => void
 }) {
   const [copied, setCopied] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  useEffect(() => {
+    return () => clearTimeout(timerRef.current)
+  }, [])
 
   const handleCopyPath = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -68,7 +73,8 @@ function FileItem({
     try {
       await navigator.clipboard.writeText(fullPath)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       console.error("failed to copy path:", err)
     }
