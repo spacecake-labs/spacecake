@@ -3,6 +3,8 @@ import { twMerge } from "tailwind-merge"
 
 import { AbsolutePath, RelativePath } from "@/types/workspace"
 
+const PATH_SEP_RE = /[/\\]/
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -104,7 +106,7 @@ export function parentFolderName(
  * filename("simple.txt") // "simple.txt"
  */
 export function filename(filePath: string): string {
-  const pathParts = filePath.split(/[/\\]/).filter((part) => part.length > 0)
+  const pathParts = filePath.split(PATH_SEP_RE).filter((part) => part.length > 0)
   return pathParts[pathParts.length - 1] || filePath
 }
 
@@ -125,7 +127,7 @@ export function filename(filePath: string): string {
 export const condensePath = (path: string): string => {
   // Split the path by either forward or backward slash.
   // Filter out any empty strings that might result from leading/trailing slashes.
-  const parts = path.split(/[/\\]/).filter((part) => part.length > 0)
+  const parts = path.split(PATH_SEP_RE).filter((part) => part.length > 0)
 
   // If the path has 2 or fewer parts, there's no need to condense it.
   if (parts.length <= 2) {
