@@ -8,13 +8,12 @@ import { describe, expect } from "vitest"
 
 import { normalizePath } from "@/lib/utils"
 import {
-  AppEnvTag,
+  AppEnv,
   ensureHomeFolderExists,
   installCli,
   makeSpacecakeHome,
   makeSpacecakeHomeTestLayer,
   SpacecakeHome,
-  type AppEnv,
 } from "@/services/spacecake-home"
 import { isWindows } from "@/test-utils/platform"
 
@@ -23,11 +22,18 @@ import { isWindows } from "@/test-utils/platform"
 // ---------------------------------------------------------------------------
 
 /** Build a SpacecakeHome layer from an AppEnv (uses the real service effect, no electron). */
-const makeLayerFromEnv = (env: AppEnv) =>
+const makeLayerFromEnv = (env: {
+  readonly isPackaged: boolean
+  readonly homePath: string
+  readonly resourcesPath: string
+  readonly cliSourceEntryPath: string
+  readonly globalBinTarget: string
+  readonly systemInstalledPath: string
+}) =>
   Layer.effect(
     SpacecakeHome,
-    makeSpacecakeHome as unknown as Effect.Effect<SpacecakeHome, never, AppEnvTag>,
-  ).pipe(Layer.provide(Layer.succeed(AppEnvTag, env)))
+    makeSpacecakeHome as unknown as Effect.Effect<SpacecakeHome, never, AppEnv>,
+  ).pipe(Layer.provide(Layer.succeed(AppEnv, env)))
 
 // ---------------------------------------------------------------------------
 // Path computation tests
@@ -45,6 +51,7 @@ describe("SpacecakeHome — path computation", () => {
         resourcesPath: "",
         cliSourceEntryPath: "",
         globalBinTarget: "/usr/local/bin/spacecake",
+        systemInstalledPath: "",
       })
 
       const home = yield* SpacecakeHome.pipe(Effect.provide(layer))
@@ -69,6 +76,7 @@ describe("SpacecakeHome — path computation", () => {
           resourcesPath: "",
           cliSourceEntryPath: "",
           globalBinTarget: "/usr/local/bin/spacecake",
+          systemInstalledPath: "",
         })
 
         const home = yield* SpacecakeHome.pipe(Effect.provide(layer))
@@ -95,6 +103,7 @@ describe("SpacecakeHome — path computation", () => {
         resourcesPath: "",
         cliSourceEntryPath: "",
         globalBinTarget: "/usr/local/bin/spacecake",
+        systemInstalledPath: "",
       })
 
       const home = yield* SpacecakeHome.pipe(Effect.provide(layer))
@@ -114,6 +123,7 @@ describe("SpacecakeHome — path computation", () => {
         resourcesPath: resPath,
         cliSourceEntryPath: "",
         globalBinTarget: "/usr/local/bin/spacecake",
+        systemInstalledPath: "",
       })
 
       const home = yield* SpacecakeHome.pipe(Effect.provide(layer))
@@ -132,6 +142,7 @@ describe("SpacecakeHome — path computation", () => {
         resourcesPath: "",
         cliSourceEntryPath: "",
         globalBinTarget: "/usr/local/bin/spacecake",
+        systemInstalledPath: "",
       })
 
       const home = yield* SpacecakeHome.pipe(Effect.provide(layer))
@@ -150,6 +161,7 @@ describe("SpacecakeHome — path computation", () => {
         resourcesPath: "",
         cliSourceEntryPath: "",
         globalBinTarget: "/usr/local/bin/spacecake",
+        systemInstalledPath: "",
       })
 
       const home = yield* SpacecakeHome.pipe(Effect.provide(layer))
@@ -169,6 +181,7 @@ describe("SpacecakeHome — path computation", () => {
         resourcesPath: resPath,
         cliSourceEntryPath: "",
         globalBinTarget: "/usr/local/bin/spacecake",
+        systemInstalledPath: "",
       })
 
       const home = yield* SpacecakeHome.pipe(Effect.provide(layer))
@@ -187,6 +200,7 @@ describe("SpacecakeHome — path computation", () => {
         resourcesPath: "",
         cliSourceEntryPath: "",
         globalBinTarget: isWindows ? "" : "/usr/local/bin/spacecake",
+        systemInstalledPath: "",
       })
 
       const home = yield* SpacecakeHome.pipe(Effect.provide(layer))
@@ -530,4 +544,94 @@ describe.skipIf(isWindows)("installCli — packaged mode", () => {
       expect(fs.existsSync(symlinkTarget)).toBe(false)
     }).pipe(Effect.provide(NodeFileSystem.layer)),
   )
+
+  it.scoped("skips when system-level symlink already points to bundled binary", () =>
+    Effect.gen(function* () {
+      const effectFs = yield* EffectFileSystem.FileSystem
+      const tempDir = yield* effectFs.makeTempDirectoryScoped()
+      const homeDir = path.join(tempDir, ".spacecake")
+      const resPath = path.join(tempDir, "Resources")
+      const bundledBin = path.join(resPath, "bin", "spacecake")
+
+      // create the bundled binary
+      fs.mkdirSync(path.join(resPath, "bin"), { recursive: true })
+      fs.writeFileSync(bundledBin, "#!/bin/sh\necho hello", { mode: 0o755 })
+
+      // simulate deb postinst: a system-level symlink pointing to the bundled binary
+      const debBinDir = path.join(tempDir, "usr-bin")
+      fs.mkdirSync(debBinDir, { recursive: true })
+      const debBinPath = path.join(debBinDir, "spacecake")
+      fs.symlinkSync(bundledBin, debBinPath)
+
+      const globalBinTarget = path.join(tempDir, "local-bin", "spacecake")
+
+      const layer = makeSpacecakeHomeTestLayer({
+        homeDir,
+        isPackaged: true,
+        resourcesPath: resPath,
+        globalBinTarget,
+        systemInstalledPath: debBinPath,
+      })
+
+      yield* installCli.pipe(Effect.provide(layer))
+
+      // globalBinTarget symlink should NOT have been created — deb path was sufficient
+      expect(fs.existsSync(globalBinTarget)).toBe(false)
+    }).pipe(Effect.provide(NodeFileSystem.layer)),
+  )
+
+  it.scoped("creates parent directory for globalBinTarget if missing", () =>
+    Effect.gen(function* () {
+      const effectFs = yield* EffectFileSystem.FileSystem
+      const tempDir = yield* effectFs.makeTempDirectoryScoped()
+      const homeDir = path.join(tempDir, ".spacecake")
+      const resPath = path.join(tempDir, "Resources")
+      const bundledBin = path.join(resPath, "bin", "spacecake")
+
+      // create the bundled binary
+      fs.mkdirSync(path.join(resPath, "bin"), { recursive: true })
+      fs.writeFileSync(bundledBin, "#!/bin/sh\necho hello", { mode: 0o755 })
+
+      // globalBinTarget in a directory that doesn't exist yet
+      const globalBinTarget = path.join(tempDir, "nonexistent-dir", "spacecake")
+
+      const layer = makeSpacecakeHomeTestLayer({
+        homeDir,
+        isPackaged: true,
+        resourcesPath: resPath,
+        globalBinTarget,
+        systemInstalledPath: "",
+      })
+
+      yield* installCli.pipe(Effect.provide(layer))
+
+      // parent directory should have been created
+      expect(fs.existsSync(path.join(tempDir, "nonexistent-dir"))).toBe(true)
+      // symlink should exist and point to the bundled binary
+      expect(fs.lstatSync(globalBinTarget).isSymbolicLink()).toBe(true)
+      expect(fs.readlinkSync(globalBinTarget)).toBe(bundledBin)
+    }).pipe(Effect.provide(NodeFileSystem.layer)),
+  )
+})
+
+// ---------------------------------------------------------------------------
+// deb packaging scripts
+// ---------------------------------------------------------------------------
+
+describe("deb packaging scripts", () => {
+  const scriptsDir = path.resolve(__dirname, "../../resources/linux")
+
+  it("postinst exists and contains expected symlink command", () => {
+    const content = fs.readFileSync(path.join(scriptsDir, "postinst"), "utf-8")
+    expect(content).toMatch(/^#!\/bin\/sh/)
+    expect(content).toContain(
+      "ln -sf /usr/lib/spacecake/resources/bin/spacecake /usr/bin/spacecake",
+    )
+  })
+
+  it("prerm exists and contains expected rm command", () => {
+    const content = fs.readFileSync(path.join(scriptsDir, "prerm"), "utf-8")
+    expect(content).toMatch(/^#!\/bin\/sh/)
+    expect(content).toContain("rm -f /usr/bin/spacecake")
+  })
 })

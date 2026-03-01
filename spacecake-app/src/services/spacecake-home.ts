@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect, Layer } from "effect"
 import fs from "node:fs"
 import path from "node:path"
 
@@ -12,30 +12,35 @@ const EXECUTABLE_MODE = 0o755
 // AppEnv — captures Electron-specific values so the rest is pure
 // ---------------------------------------------------------------------------
 
-export interface AppEnv {
-  readonly isPackaged: boolean
-  readonly homePath: string
-  readonly resourcesPath: string
-  readonly cliSourceEntryPath: string
-  readonly globalBinTarget: string
-}
-
-export class AppEnvTag extends Context.Tag("AppEnv")<AppEnvTag, AppEnv>() {}
-
-/**
- * Live layer — the only place that imports `electron`.
- */
-export const AppEnvLive: Layer.Layer<AppEnvTag> = Layer.sync(AppEnvTag, () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy require to avoid importing electron in tests
-  const { app } = require("electron")
-  return {
-    isPackaged: app.isPackaged,
-    homePath: app.getPath("home"),
-    resourcesPath: process.resourcesPath ?? "",
-    cliSourceEntryPath: app.isPackaged ? "" : path.resolve(__dirname, "../../../cli/src/main.ts"),
-    globalBinTarget: process.platform === "win32" ? "" : "/usr/local/bin/spacecake",
+export class AppEnv extends Effect.Tag("AppEnv")<
+  AppEnv,
+  {
+    readonly isPackaged: boolean
+    readonly homePath: string
+    readonly resourcesPath: string
+    readonly cliSourceEntryPath: string
+    readonly globalBinTarget: string
+    readonly systemInstalledPath: string
   }
-})
+>() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy require to avoid importing electron in tests
+  static readonly Default = Layer.sync(AppEnv, () => {
+    const { app } = require("electron")
+    return {
+      isPackaged: app.isPackaged,
+      homePath: app.getPath("home"),
+      resourcesPath: process.resourcesPath ?? "",
+      cliSourceEntryPath: app.isPackaged ? "" : path.resolve(__dirname, "../../../cli/src/main.ts"),
+      globalBinTarget:
+        process.platform === "win32"
+          ? ""
+          : process.platform === "linux"
+            ? path.join(app.getPath("home"), ".local", "bin", "spacecake")
+            : "/usr/local/bin/spacecake",
+      systemInstalledPath: process.platform === "linux" ? "/usr/bin/spacecake" : "",
+    }
+  })
+}
 
 // ---------------------------------------------------------------------------
 // Statusline hook script content
@@ -81,10 +86,10 @@ const STATUSLINE_SCRIPT_CMD = `@echo off\r\nif "%SPACECAKE_TERMINAL%"=="" exit /
 // ---------------------------------------------------------------------------
 
 /**
- * Core service effect — separated so tests can provide a custom AppEnvTag.
+ * Core service effect — separated so tests can provide a custom AppEnv.
  */
 export const makeSpacecakeHome = Effect.gen(function* () {
-  const env = yield* AppEnvTag
+  const env = yield* AppEnv
 
   // Normalize to forward slashes for cross-platform consistency
   const homeDir = normalizePath(
@@ -112,6 +117,7 @@ export const makeSpacecakeHome = Effect.gen(function* () {
     cliBinDir,
     bundledCliBinaryPath,
     globalBinTarget: env.globalBinTarget,
+    systemInstalledPath: env.systemInstalledPath,
     cliSourceEntryPath: env.cliSourceEntryPath,
     isPackaged: env.isPackaged,
   }
@@ -119,7 +125,7 @@ export const makeSpacecakeHome = Effect.gen(function* () {
 
 export class SpacecakeHome extends Effect.Service<SpacecakeHome>()("SpacecakeHome", {
   effect: makeSpacecakeHome,
-  dependencies: [AppEnvLive],
+  dependencies: [AppEnv.Default],
 }) {}
 
 // ---------------------------------------------------------------------------
@@ -132,11 +138,20 @@ export const makeSpacecakeHomeTestLayer = (opts: {
   resourcesPath?: string
   cliSourceEntryPath?: string
   globalBinTarget?: string
+  systemInstalledPath?: string
 }): Layer.Layer<SpacecakeHome> => {
   const isPackaged = opts.isPackaged ?? false
   const resourcesPath = opts.resourcesPath ?? ""
   const cliSourceEntryPath = opts.cliSourceEntryPath ?? ""
-  const globalBinTarget = opts.globalBinTarget ?? "/usr/local/bin/spacecake"
+  const globalBinTarget =
+    opts.globalBinTarget ??
+    (process.platform === "win32"
+      ? ""
+      : process.platform === "linux"
+        ? "/home/user/.local/bin/spacecake"
+        : "/usr/local/bin/spacecake")
+  const systemInstalledPath =
+    opts.systemInstalledPath ?? (process.platform === "linux" ? "/usr/bin/spacecake" : "")
 
   const appDir = path.join(opts.homeDir, ".app")
   const hooksDir = path.join(appDir, "hooks")
@@ -152,10 +167,105 @@ export const makeSpacecakeHomeTestLayer = (opts: {
     cliBinDir: isPackaged ? path.join(resourcesPath, "bin") : path.join(appDir, "bin"),
     bundledCliBinaryPath: isPackaged ? path.join(resourcesPath, "bin", "spacecake") : null,
     globalBinTarget,
+    systemInstalledPath,
     cliSourceEntryPath,
     isPackaged,
   } as SpacecakeHome)
 }
+
+// ---------------------------------------------------------------------------
+// installCli helpers
+// ---------------------------------------------------------------------------
+
+const installCliPackaged = (home: SpacecakeHome) =>
+  Effect.try(() => {
+    // windows packaged mode — skip global symlink (requires admin privileges).
+    // the CLI is available via PATH prepending in terminal.ts.
+    if (process.platform === "win32") return
+
+    const bundledPath = home.bundledCliBinaryPath
+    if (!bundledPath || !fs.existsSync(bundledPath)) {
+      console.warn("CLI binary not found in app bundle:", bundledPath)
+      return
+    }
+
+    // skip if system package (deb/rpm) already installed a working symlink
+    if (home.systemInstalledPath) {
+      try {
+        if (
+          fs.lstatSync(home.systemInstalledPath).isSymbolicLink() &&
+          fs.readlinkSync(home.systemInstalledPath) === bundledPath
+        ) {
+          return
+        }
+      } catch {
+        // not installed via system package — continue with user-local install
+      }
+    }
+
+    const symlinkTarget = home.globalBinTarget
+
+    // ensure parent directory exists (e.g. ~/.local/bin)
+    fs.mkdirSync(path.dirname(symlinkTarget), { recursive: true })
+
+    try {
+      const stat = fs.lstatSync(symlinkTarget)
+
+      if (stat.isSymbolicLink()) {
+        const existingTarget = fs.readlinkSync(symlinkTarget)
+        if (existingTarget === bundledPath) {
+          return
+        }
+        fs.unlinkSync(symlinkTarget)
+      } else {
+        console.warn(
+          `CLI install: ${symlinkTarget} exists and is not a symlink we created. Skipping.`,
+        )
+        return
+      }
+    } catch {
+      // file doesn't exist — proceed with creation
+    }
+
+    try {
+      fs.symlinkSync(bundledPath, symlinkTarget)
+      console.log(`CLI installed: ${symlinkTarget} -> ${bundledPath}`)
+    } catch (err: unknown) {
+      const code = (err as NodeJS.ErrnoException).code
+      if (code === "EACCES") {
+        console.log(
+          `CLI install: permission denied creating ${symlinkTarget}. ` +
+            "The CLI will still be available inside spacecake terminals.",
+        )
+      } else {
+        console.warn("CLI install: failed to create symlink:", err)
+      }
+    }
+  })
+
+const installCliDev = (home: SpacecakeHome) =>
+  Effect.try(() => {
+    const binDir = path.join(home.appDir, "bin")
+    fs.mkdirSync(binDir, { recursive: true })
+
+    if (process.platform === "win32") {
+      const wrapper = `@echo off\r\nbun run "${home.cliSourceEntryPath}" %*\r\n`
+      const wrapperPath = path.join(binDir, "spacecake.cmd")
+      fs.writeFileSync(wrapperPath, wrapper, { encoding: "utf-8" })
+      console.log(`CLI dev wrapper installed: ${wrapperPath}`)
+    } else {
+      const wrapper = `#!/usr/bin/env bash
+# Auto-generated by spacecake (dev mode)
+exec bun run "${home.cliSourceEntryPath}" "$@"
+`
+      const wrapperPath = path.join(binDir, "spacecake")
+      fs.writeFileSync(wrapperPath, wrapper, {
+        encoding: "utf-8",
+        mode: EXECUTABLE_MODE,
+      })
+      console.log(`CLI dev wrapper installed: ${wrapperPath}`)
+    }
+  })
 
 // ---------------------------------------------------------------------------
 // installCli — Effect requiring SpacecakeHome
@@ -163,80 +273,11 @@ export const makeSpacecakeHomeTestLayer = (opts: {
 
 export const installCli: Effect.Effect<void, never, SpacecakeHome> = Effect.gen(function* () {
   const home = yield* SpacecakeHome
-
-  try {
-    if (home.isPackaged) {
-      // windows packaged mode — skip global symlink (requires admin privileges).
-      // the CLI is available via PATH prepending in terminal.ts.
-      if (process.platform === "win32") return
-
-      const bundledPath = home.bundledCliBinaryPath
-      if (!bundledPath || !fs.existsSync(bundledPath)) {
-        console.warn("CLI binary not found in app bundle:", bundledPath)
-        return
-      }
-
-      const symlinkTarget = home.globalBinTarget
-
-      try {
-        const stat = fs.lstatSync(symlinkTarget)
-
-        if (stat.isSymbolicLink()) {
-          const existingTarget = fs.readlinkSync(symlinkTarget)
-          if (existingTarget === bundledPath) {
-            return
-          }
-          fs.unlinkSync(symlinkTarget)
-        } else {
-          console.warn(
-            `CLI install: ${symlinkTarget} exists and is not a symlink we created. Skipping.`,
-          )
-          return
-        }
-      } catch {
-        // File doesn't exist — proceed with creation
-      }
-
-      try {
-        fs.symlinkSync(bundledPath, symlinkTarget)
-        console.log(`CLI installed: ${symlinkTarget} -> ${bundledPath}`)
-      } catch (err: unknown) {
-        const code = (err as NodeJS.ErrnoException).code
-        if (code === "EACCES") {
-          console.warn(
-            `CLI install: permission denied creating ${symlinkTarget}. ` +
-              "The CLI will still be available inside spacecake terminals.",
-          )
-        } else {
-          console.warn("CLI install: failed to create symlink:", err)
-        }
-      }
-    } else {
-      // dev mode — write a wrapper script
-      const binDir = path.join(home.appDir, "bin")
-      fs.mkdirSync(binDir, { recursive: true })
-
-      if (process.platform === "win32") {
-        const wrapper = `@echo off\r\nbun run "${home.cliSourceEntryPath}" %*\r\n`
-        const wrapperPath = path.join(binDir, "spacecake.cmd")
-        fs.writeFileSync(wrapperPath, wrapper, { encoding: "utf-8" })
-        console.log(`CLI dev wrapper installed: ${wrapperPath}`)
-      } else {
-        const wrapper = `#!/usr/bin/env bash
-# Auto-generated by spacecake (dev mode)
-exec bun run "${home.cliSourceEntryPath}" "$@"
-`
-        const wrapperPath = path.join(binDir, "spacecake")
-        fs.writeFileSync(wrapperPath, wrapper, {
-          encoding: "utf-8",
-          mode: EXECUTABLE_MODE,
-        })
-        console.log(`CLI dev wrapper installed: ${wrapperPath}`)
-      }
-    }
-  } catch (err) {
-    console.warn("CLI install: unexpected error:", err)
-  }
+  yield* (home.isPackaged ? installCliPackaged(home) : installCliDev(home)).pipe(
+    Effect.catchAll((err) =>
+      Effect.sync(() => console.warn("CLI install: unexpected error:", err)),
+    ),
+  )
 })
 
 // ---------------------------------------------------------------------------
@@ -247,26 +288,32 @@ export const ensureHomeFolderExists: Effect.Effect<void, never, SpacecakeHome> =
   function* () {
     const home = yield* SpacecakeHome
 
-    // ensure .app and hooks folders exist
-    fs.mkdirSync(home.hooksDir, { recursive: true })
+    yield* Effect.sync(() => {
+      // ensure .app and hooks folders exist
+      fs.mkdirSync(home.hooksDir, { recursive: true })
 
-    // always write latest guide content (we own .app/)
-    fs.writeFileSync(path.join(home.appDir, "getting-started.md"), GETTING_STARTED_CONTENT, "utf-8")
+      // always write latest guide content (we own .app/)
+      fs.writeFileSync(
+        path.join(home.appDir, "getting-started.md"),
+        GETTING_STARTED_CONTENT,
+        "utf-8",
+      )
 
-    // always write latest statusline hook script (we own .app/hooks/)
-    if (process.platform === "win32") {
-      fs.writeFileSync(path.join(home.hooksDir, "statusline.ps1"), STATUSLINE_SCRIPT_PS1, {
-        encoding: "utf-8",
-      })
-      fs.writeFileSync(home.statuslineScriptPath, STATUSLINE_SCRIPT_CMD, {
-        encoding: "utf-8",
-      })
-    } else {
-      fs.writeFileSync(home.statuslineScriptPath, STATUSLINE_SCRIPT_UNIX, {
-        encoding: "utf-8",
-        mode: EXECUTABLE_MODE,
-      })
-    }
+      // always write latest statusline hook script (we own .app/hooks/)
+      if (process.platform === "win32") {
+        fs.writeFileSync(path.join(home.hooksDir, "statusline.ps1"), STATUSLINE_SCRIPT_PS1, {
+          encoding: "utf-8",
+        })
+        fs.writeFileSync(home.statuslineScriptPath, STATUSLINE_SCRIPT_CMD, {
+          encoding: "utf-8",
+        })
+      } else {
+        fs.writeFileSync(home.statuslineScriptPath, STATUSLINE_SCRIPT_UNIX, {
+          encoding: "utf-8",
+          mode: EXECUTABLE_MODE,
+        })
+      }
+    })
 
     // install CLI binary / wrapper
     yield* installCli
