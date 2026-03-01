@@ -1,5 +1,5 @@
 import * as Effect from "effect/Effect"
-import { FitAddon, init, ITheme, Terminal } from "ghostty-web"
+import { FitAddon, Ghostty, ITheme, Terminal } from "ghostty-web"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { useTheme } from "@/components/theme-provider"
@@ -99,7 +99,7 @@ export function useGhosttyEngine({
 
     const initialize = async () => {
       try {
-        await init()
+        const ghostty = await Ghostty.load("ghostty-vt.wasm")
 
         if (!isMounted) return
 
@@ -109,6 +109,7 @@ export function useGhosttyEngine({
           cursorBlink: false,
           theme: activeTheme.current,
           scrollback: 10000,
+          ghostty,
         })
 
         // HACK: Prevent the terminal from ever showing the scrollbar.

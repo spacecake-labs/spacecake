@@ -1,8 +1,7 @@
 import { indentWithTab } from "@codemirror/commands"
 import { markdown } from "@codemirror/lang-markdown"
 import { yamlFrontmatter } from "@codemirror/lang-yaml"
-import { foldEffect } from "@codemirror/language"
-import { languages } from "@codemirror/language-data"
+import { foldEffect, LanguageSupport, StreamLanguage } from "@codemirror/language"
 import { Compartment, EditorSelection, EditorState, Extension } from "@codemirror/state"
 import { EditorView, keymap, lineNumbers } from "@codemirror/view"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
@@ -57,25 +56,51 @@ interface CodeMirrorEditorProps {
 
 const EMPTY_VALUE = "__EMPTY_VALUE__"
 
+const legacy = (parser: Parameters<typeof StreamLanguage.define>[0]) =>
+  new LanguageSupport(StreamLanguage.define(parser)).extension
+
+// hand-written map of supported languages — avoids importing the full
+// @codemirror/language-data catalogue (127+ languages, ~1 MB metadata)
+const LANGUAGE_LOADERS: Record<string, () => Promise<Extension>> = {
+  python: () => import("@codemirror/lang-python").then((m) => m.python().extension),
+  javascript: () => import("@codemirror/lang-javascript").then((m) => m.javascript().extension),
+  typescript: () =>
+    import("@codemirror/lang-javascript").then((m) => m.javascript({ typescript: true }).extension),
+  jsx: () =>
+    import("@codemirror/lang-javascript").then((m) => m.javascript({ jsx: true }).extension),
+  tsx: () =>
+    import("@codemirror/lang-javascript").then(
+      (m) => m.javascript({ jsx: true, typescript: true }).extension,
+    ),
+  rust: () => import("@codemirror/lang-rust").then((m) => m.rust().extension),
+  go: () => import("@codemirror/lang-go").then((m) => m.go().extension),
+  c: () => import("@codemirror/lang-cpp").then((m) => m.cpp().extension),
+  cpp: () => import("@codemirror/lang-cpp").then((m) => m.cpp().extension),
+  csharp: () => import("@codemirror/legacy-modes/mode/clike").then((m) => legacy(m.csharp)),
+  java: () => import("@codemirror/lang-java").then((m) => m.java().extension),
+  swift: () => import("@codemirror/legacy-modes/mode/swift").then((m) => legacy(m.swift)),
+  kotlin: () => import("@codemirror/legacy-modes/mode/clike").then((m) => legacy(m.kotlin)),
+  json: () => import("@codemirror/lang-json").then((m) => m.json().extension),
+  yaml: () => import("@codemirror/lang-yaml").then((m) => m.yaml().extension),
+  toml: () => import("@codemirror/legacy-modes/mode/toml").then((m) => legacy(m.toml)),
+  css: () => import("@codemirror/lang-css").then((m) => m.css().extension),
+  shell: () => import("@codemirror/legacy-modes/mode/shell").then((m) => legacy(m.shell)),
+  xml: () => import("@codemirror/lang-xml").then((m) => m.xml().extension),
+}
+
 // Function to get language support extension dynamically
 export const getLanguageSupport = async (language: string): Promise<Extension | null> => {
   if (!language || language === EMPTY_VALUE) return null
 
-  // Special case: markdown with YAML frontmatter support
-  // This provides proper syntax highlighting for both the frontmatter
-  // and the markdown body in source mode
+  // special case: markdown with YAML frontmatter support
   if (language === "markdown") {
     return yamlFrontmatter({ content: markdown() }).extension
   }
 
-  const languageData = languages.find((l) => {
-    return l.name === language || l.alias.includes(language) || l.extensions.includes(language)
-  })
-
-  if (languageData) {
+  const loader = LANGUAGE_LOADERS[language]
+  if (loader) {
     try {
-      const languageSupport = await languageData.load()
-      return languageSupport.extension
+      return await loader()
     } catch {
       console.warn("failed to load language support for", language)
       return null
@@ -223,6 +248,8 @@ export const BaseCodeMirrorEditor = React.forwardRef<HTMLDivElement, BaseCodeMir
       const el = elRef.current
       if (!el) return
 
+      let isCancelled = false
+
       void (async () => {
         // Load language support if language is a string
         let languageExtension: Extension | null = null
@@ -232,6 +259,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<HTMLDivElement, BaseCodeMir
           // language is already an Extension
           languageExtension = language
         }
+        if (isCancelled) return
 
         const extensions: Extension[] = [
           basicSetup,
@@ -272,6 +300,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<HTMLDivElement, BaseCodeMir
       })()
 
       return () => {
+        isCancelled = true
         flushPending()
         editorViewRef.current?.destroy()
         editorViewRef.current = null
@@ -321,6 +350,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   const editorViewRef = React.useRef<EditorView | null>(null)
   const elRef = React.useRef<HTMLDivElement | null>(null)
+  const pendingFocusRef = React.useRef(false)
 
   const setCodeRef = React.useRef(setCode)
   setCodeRef.current = setCode
@@ -337,6 +367,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           Promise.resolve().then(() => {
             view.focus()
           })
+        } else {
+          // view not ready yet (async language loading); defer until init completes
+          pendingFocusRef.current = true
         }
       },
       restoreSelection: (selection: { anchor: number; head: number }) => {
@@ -420,6 +453,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   React.useEffect(() => {
     const el = elRef.current!
     let cleanupListeners: (() => void) | null = null
+    let isCancelled = false
 
     void (async () => {
       // Load language support first
@@ -427,6 +461,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       if (language !== "" && autoLoadLanguageSupport) {
         languageSupport = await getLanguageSupport(language)
       }
+      if (isCancelled) return
 
       const startLine = Math.max(1, Number(block.startLine) || 1)
 
@@ -479,12 +514,18 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
       const view = editorViewRef.current
 
-      // Focus the editor if the node is selected
-      editor.read(() => {
-        if (codeBlockNode.isSelected()) {
-          view.focus()
-        }
-      })
+      // honor deferred focus request from before the view was ready
+      if (pendingFocusRef.current) {
+        pendingFocusRef.current = false
+        view.focus()
+      } else {
+        // focus the editor if the node is selected
+        editor.read(() => {
+          if (codeBlockNode.isSelected()) {
+            view.focus()
+          }
+        })
+      }
 
       // automatically fold docstrings if this block has one
       if (language === "python" && block.doc) {
@@ -544,7 +585,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     })()
 
     return () => {
-      // ensure any pending changes are committed before teardown
+      isCancelled = true
+      pendingFocusRef.current = false
       flushPending()
       cleanupListeners?.()
       editorViewRef.current?.destroy()

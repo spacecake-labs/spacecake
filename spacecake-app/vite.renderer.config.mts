@@ -51,6 +51,9 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
   build: {
+    // electron's chromium natively supports modulepreload — skip the polyfill
+    // and __vite_mapDeps helper to avoid retaining ~7 MB of source strings
+    modulePreload: false,
     // Enable source maps in dev mode
     sourcemap: buildSourcemap ? "inline" : false,
     rollupOptions: {
