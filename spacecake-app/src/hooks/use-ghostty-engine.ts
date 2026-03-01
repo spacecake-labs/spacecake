@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import * as Effect from "effect/Effect"
 import { FitAddon, init, ITheme, Terminal } from "ghostty-web"
 import { useCallback, useEffect, useRef, useState } from "react"
 

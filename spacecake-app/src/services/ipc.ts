@@ -1,5 +1,7 @@
 import { execFile } from "child_process"
-import { Cause, Effect, Exit } from "effect"
+import * as Cause from "effect/Cause"
+import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
 import { BrowserWindow, dialog, ipcMain, shell } from "electron"
 import fsNode from "fs/promises"
 import path from "path"

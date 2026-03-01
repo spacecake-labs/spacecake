@@ -1,20 +1,18 @@
 import { FileSystem } from "@effect/platform"
 import * as PlatformError from "@effect/platform/Error"
 import { it } from "@effect/vitest"
-import {
-  Chunk,
-  Duration,
-  Effect,
-  Fiber,
-  Layer,
-  Option,
-  Queue,
-  Ref,
-  Schedule,
-  Stream,
-  TestClock,
-  TestContext,
-} from "effect"
+import * as Chunk from "effect/Chunk"
+import * as Duration from "effect/Duration"
+import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
+import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
+import * as Queue from "effect/Queue"
+import * as Ref from "effect/Ref"
+import * as Schedule from "effect/Schedule"
+import * as Stream from "effect/Stream"
+import * as TestClock from "effect/TestClock"
+import * as TestContext from "effect/TestContext"
 import { afterEach, beforeEach, describe, expect, vi } from "vitest"
 
 import { convertToFileTreeEvent } from "@/main-process/watcher"

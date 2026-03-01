@@ -7,8 +7,7 @@ import * as Drizzle from "drizzle-orm"
 import * as DrizzleMysql from "drizzle-orm/mysql-core"
 import * as DrizzlePg from "drizzle-orm/pg-core"
 import * as DrizzleSqlite from "drizzle-orm/sqlite-core"
-import { Schema } from "effect"
-
+import * as Schema from "effect/Schema"
 // Core utility types - simplified
 type Columns<TTable extends Drizzle.Table> = TTable["_"]["columns"]
 

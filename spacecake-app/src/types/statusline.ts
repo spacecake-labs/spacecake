@@ -1,5 +1,4 @@
-import { Data } from "effect"
-
+import * as Data from "effect/Data"
 export class StatuslineError extends Data.TaggedError("StatuslineError")<{
   readonly message: string
 }> {}

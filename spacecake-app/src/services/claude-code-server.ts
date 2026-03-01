@@ -1,4 +1,6 @@
-import { Effect, Either, Schema } from "effect"
+import * as Effect from "effect/Effect"
+import * as Either from "effect/Either"
+import * as Schema from "effect/Schema"
 import { BrowserWindow, ipcMain } from "electron"
 import crypto from "node:crypto"
 import fs from "node:fs"

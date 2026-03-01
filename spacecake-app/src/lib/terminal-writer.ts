@@ -1,5 +1,6 @@
-import { Context, Effect, Layer } from "effect"
-
+import * as Context from "effect/Context"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 /**
  * Service for writing data to a terminal PTY via IPC.
  * This is the renderer-side abstraction for terminal writes.

@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import * as Effect from "effect/Effect"
 import { assertEvent, fromPromise, setup, type ActorRefFrom } from "xstate"
 
 import { type EditorSelectionUpdate, type EditorStateUpdate } from "@/schema/editor"

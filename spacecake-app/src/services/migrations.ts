@@ -1,6 +1,7 @@
 import type { PGliteInterface } from "@electric-sql/pglite"
 
-import { Data, Effect } from "effect"
+import * as Data from "effect/Data"
+import * as Effect from "effect/Effect"
 
 import v0000 from "@/drizzle/0000_natural_rogue.sql?raw"
 import v0001 from "@/drizzle/0001_add_workspace_layout.sql?raw"

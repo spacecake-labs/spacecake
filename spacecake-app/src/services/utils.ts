@@ -1,5 +1,8 @@
-import { Array, Effect, Either, flow, pipe, Schema } from "effect"
-
+import * as Array from "effect/Array"
+import * as Effect from "effect/Effect"
+import * as Either from "effect/Either"
+import { flow, pipe } from "effect/Function"
+import * as Schema from "effect/Schema"
 export const validate = <A, I>(schema: Schema.Schema<A, I>) =>
   flow(
     Schema.decodeEither(schema),

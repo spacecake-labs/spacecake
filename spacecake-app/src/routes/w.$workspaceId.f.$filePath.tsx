@@ -1,6 +1,7 @@
 import { createFileRoute, ErrorComponent, redirect } from "@tanstack/react-router"
 import { useActorRef } from "@xstate/react"
-import { Effect, Schema } from "effect"
+import * as Effect from "effect/Effect"
+import * as Schema from "effect/Schema"
 import { useSetAtom } from "jotai"
 import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 import { useEffect } from "react"

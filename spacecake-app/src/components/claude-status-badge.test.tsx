@@ -1,4 +1,6 @@
-import { Effect, Fiber, Layer } from "effect"
+import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
+import * as Layer from "effect/Layer"
 import { Provider } from "jotai"
 /**
  * @vitest-environment jsdom

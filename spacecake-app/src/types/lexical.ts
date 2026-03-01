@@ -1,6 +1,6 @@
 // minimal, typesafe helpers for lexical update tags used in the app
 
-import { Schema } from "effect"
+import * as Schema from "effect/Schema"
 import { SerializedEditorState } from "lexical"
 
 export const INITIAL_LOAD_TAG = "initial-load" as const

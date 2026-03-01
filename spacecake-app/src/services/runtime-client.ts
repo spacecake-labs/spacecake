@@ -1,4 +1,5 @@
-import { Layer, ManagedRuntime } from "effect"
+import * as Layer from "effect/Layer"
+import * as ManagedRuntime from "effect/ManagedRuntime"
 
 import { DatabaseIpcLayer } from "@/services/database-ipc"
 import { EditorManager } from "@/services/editor-manager"

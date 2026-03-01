@@ -1,4 +1,5 @@
-import { Match, Schema } from "effect"
+import * as Match from "effect/Match"
+import * as Schema from "effect/Schema"
 import { describe, expect, test } from "vitest"
 
 import {

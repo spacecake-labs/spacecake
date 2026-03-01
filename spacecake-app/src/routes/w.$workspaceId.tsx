@@ -6,7 +6,7 @@
 import type { ImperativePanelHandle } from "react-resizable-panels"
 
 import { createFileRoute, ErrorComponent, Outlet, redirect } from "@tanstack/react-router"
-import { Match } from "effect"
+import * as Match from "effect/Match"
 import { useAtom, useSetAtom } from "jotai"
 import {
   ChevronDown,

@@ -3,7 +3,8 @@ import {
   ClipboardError,
   make as makeClipboard,
 } from "@effect/platform-browser/Clipboard"
-import { Effect, Layer } from "effect"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import { describe, expect, it } from "vitest"
 
 import { handleImagePaste, hasImageInClipboard } from "@/lib/clipboard"

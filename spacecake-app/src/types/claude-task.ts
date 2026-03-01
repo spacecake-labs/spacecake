@@ -1,5 +1,5 @@
-import { Data, Schema } from "effect"
-
+import * as Data from "effect/Data"
+import * as Schema from "effect/Schema"
 // ============================================
 // Branded Types
 // ============================================

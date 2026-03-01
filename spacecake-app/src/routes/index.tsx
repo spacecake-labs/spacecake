@@ -4,7 +4,8 @@
  */
 
 import { createFileRoute, ErrorComponent, redirect } from "@tanstack/react-router"
-import { Match, Schema } from "effect"
+import * as Match from "effect/Match"
+import * as Schema from "effect/Schema"
 import { AlertCircleIcon, FolderOpen, Loader2Icon } from "lucide-react"
 
 import { LoadingAnimation } from "@/components/loading-animation"

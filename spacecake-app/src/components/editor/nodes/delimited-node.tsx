@@ -1,4 +1,5 @@
-import { Option, Schema } from "effect"
+import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
 import { $getState, $setState, createState, LexicalNode } from "lexical"
 
 import { DelimitedString, StringDelimiters, StringDelimitersSchema } from "@/types/parser"

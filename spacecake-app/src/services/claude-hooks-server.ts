@@ -1,6 +1,6 @@
 import type { AddressInfo } from "node:net"
 
-import { Effect } from "effect"
+import * as Effect from "effect/Effect"
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http"
 import path from "node:path"
 

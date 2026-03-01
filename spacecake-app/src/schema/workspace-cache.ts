@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import * as Schema from "effect/Schema"
 
 import { EditorPrimaryKeySchema } from "@/schema/editor"
 import { FilePrimaryKeySchema } from "@/schema/file"

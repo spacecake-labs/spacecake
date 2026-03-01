@@ -1,4 +1,5 @@
-import { Brand, Schema } from "effect"
+import * as Brand from "effect/Brand"
+import * as Schema from "effect/Schema"
 
 import { paneItemTable, paneTable } from "@/schema/drizzle"
 import { createInsertSchema, createSelectSchema } from "@/schema/drizzle-effect"

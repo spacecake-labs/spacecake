@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import * as Schema from "effect/Schema"
 
 import { ViewKindSchema } from "@/types/lexical"
 import { FileType } from "@/types/workspace"

@@ -1,6 +1,7 @@
 import { PGlite } from "@electric-sql/pglite"
 import { drizzle } from "drizzle-orm/pglite"
-import { Effect, Layer } from "effect"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 
 import migration0000 from "@/drizzle/0000_natural_rogue.sql?raw"
 import migration0001 from "@/drizzle/0001_add_workspace_layout.sql?raw"
