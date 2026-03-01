@@ -148,8 +148,13 @@ export const Route = createFileRoute("/w/$workspaceId")({
       .then((branch) => store.set(gitBranchAtom, branch))
       .catch(() => {})
 
-    const result = await readDirectory(workspace.path)
-    await match(result, {
+    // parallelize independent I/O: directory read (filesystem) and cache query (database)
+    const [result, cache] = await Promise.all([
+      readDirectory(workspace.path),
+      RuntimeClient.runPromise(db.selectWorkspaceCache(workspace.path)),
+    ])
+
+    match(result, {
       onLeft: (error) => {
         Match.value(error).pipe(
           Match.tag("PermissionDeniedError", () => {
@@ -165,9 +170,8 @@ export const Route = createFileRoute("/w/$workspaceId")({
           Match.orElse((e) => console.error(e)),
         )
       },
-      onRight: async (tree) => {
+      onRight: (tree) => {
         // hydrate file state machine atoms
-        const cache = await RuntimeClient.runPromise(db.selectWorkspaceCache(workspace.path))
         cache.forEach((row) => {
           const event: FileStateHydrationEvent = {
             type: row.has_cached_state ? "file.dirty" : "file.clean",
