@@ -11,25 +11,19 @@ import { AbsolutePath } from "@/types/workspace"
  * User cannot edit while file is being persisted or tree is being rebuilt.
  */
 export function FreezePlugin() {
-  const [editor] = useLexicalComposerContext()
   const route = useRoute()
-
   if (!route?.filePath) return null
+  return <FreezePluginInner filePath={AbsolutePath(route.filePath)} />
+}
 
-  const filePath = AbsolutePath(route.filePath)
+function FreezePluginInner({ filePath }: { filePath: AbsolutePath }) {
+  const [editor] = useLexicalComposerContext()
   const fileState = useAtomValue(getOrCreateFileStateAtom(filePath))
 
   useEffect(() => {
     if (!editor || !fileState) return
 
-    // in future we could freeze when saving or reparsing.
-    // this might need extra selection restoration logic
-    // as setting editable to false seems to steal focus and selection
-    // from lexical nodes (non-decorator)
-
-    // Freeze editor when Reparsing
     const shouldFreeze = fileState.value === "Reparsing"
-
     editor.setEditable(!shouldFreeze)
   }, [editor, fileState?.value])
 

@@ -15,25 +15,23 @@ import { AbsolutePath } from "@/types/workspace"
  * Emits reparse.complete or reparse.error events when done.
  */
 export function ReparsePlugin() {
-  const [editor] = useLexicalComposerContext()
   const route = useRoute()
-
   if (!route?.filePath) return null
+  return <ReparsePluginInner filePath={AbsolutePath(route.filePath)} />
+}
 
-  const filePath = AbsolutePath(route.filePath)
+function ReparsePluginInner({ filePath }: { filePath: AbsolutePath }) {
+  const [editor] = useLexicalComposerContext()
   const fileState = useAtomValue(getOrCreateFileStateAtom(filePath))
   const sendFileState = useSetAtom(getOrCreateFileStateAtom(filePath))
 
   useEffect(() => {
-    // Only trigger reparse when state machine is in Reparsing state
-    // (state machine ensures we only reach here for Python files in rich view)
     if (fileState?.value !== "Reparsing") return
 
     let isMounted = true
 
     async function performReparse() {
       try {
-        // Collect all code block node keys
         const codeBlockKeys: string[] = []
         editor.getEditorState().read(() => {
           const root = $getRoot()
@@ -45,7 +43,6 @@ export function ReparsePlugin() {
           }
         })
 
-        // Update each code block node
         if (isMounted) {
           for (const nodeKey of codeBlockKeys) {
             await maybeUpdateBlockAndDocstring(editor, nodeKey, true)
@@ -65,7 +62,7 @@ export function ReparsePlugin() {
     return () => {
       isMounted = false
     }
-  }, [fileState?.value, route?.fileType, route?.viewKind, editor, filePath, sendFileState])
+  }, [fileState?.value, editor, filePath, sendFileState])
 
   return null
 }
