@@ -3,7 +3,7 @@ import { Node, Parser } from "web-tree-sitter"
 import type { EditorFile } from "@/types/workspace"
 
 import { fnv1a64Hex } from "@/lib/hash"
-import languages from "@/lib/parser/languages"
+import { getLanguages } from "@/lib/parser/languages"
 import { dedentDocstring, findDocstringNode } from "@/lib/parser/python/docstring"
 import { filename } from "@/lib/utils"
 import {
@@ -15,9 +15,15 @@ import {
   PyDecoratedKind,
 } from "@/types/parser"
 
-const { Python } = await languages
-const parser = new Parser()
-parser.setLanguage(Python)
+let _parser: Parser | null = null
+
+async function getParser(): Promise<Parser> {
+  if (_parser) return _parser
+  const { Python } = await getLanguages()
+  _parser = new Parser()
+  _parser.setLanguage(Python)
+  return _parser
+}
 
 export function isDataclass(node: Node): boolean {
   if (node.type !== "decorated_definition") return false
@@ -163,6 +169,7 @@ export function blockName(node: Node): BlockName {
 }
 
 export async function* parseCodeBlocks(code: string, filePath?: string): AsyncGenerator<PyBlock> {
+  const parser = await getParser()
   const tree = parser.parse(code)
   if (!tree) throw new Error("failed to parse code")
 

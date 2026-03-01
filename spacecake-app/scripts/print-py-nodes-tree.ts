@@ -2,9 +2,9 @@ import { readFile } from "node:fs/promises"
 import { argv, exit } from "node:process"
 import { Parser, type TreeCursor } from "web-tree-sitter"
 
-import languages from "../src/lib/parser/languages"
+import { getLanguages } from "../src/lib/parser/languages"
 
-const { Python } = await languages
+const { Python } = await getLanguages()
 
 const parser = new Parser()
 parser.setLanguage(Python)

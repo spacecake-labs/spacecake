@@ -36,6 +36,7 @@ export const RIGHT_CLICK_IMAGE_COMMAND: LexicalCommand<MouseEvent> = createComma
 )
 
 // simple cache for image dimensions
+const IMAGE_CACHE_MAX = 200
 const imageDimensionsCache = new Map<string, { width: number; height: number }>()
 
 function useSuspenseImage(src: string) {
@@ -51,6 +52,10 @@ function useSuspenseImage(src: string) {
     img.onload = () => {
       const dimensions = { width: img.naturalWidth, height: img.naturalHeight }
       imageDimensionsCache.set(src, dimensions)
+      if (imageDimensionsCache.size > IMAGE_CACHE_MAX) {
+        const firstKey = imageDimensionsCache.keys().next().value
+        if (firstKey !== undefined) imageDimensionsCache.delete(firstKey)
+      }
       resolve(dimensions)
     }
     img.onerror = () => reject(new Error("image failed to load"))
@@ -174,10 +179,15 @@ export default function ImageComponent({
   const imageRef = useRef<null | HTMLImageElement>(null)
   const [isSelected, setSelected, clearSelection] = useLexicalNodeSelection(nodeKey)
   const [isResizing, setIsResizing] = useState<boolean>(false)
+  const resizeTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [editor] = useLexicalComposerContext()
   const [selection, setSelection] = useState<BaseSelection | null>(null)
   const activeEditorRef = useRef<LexicalEditor | null>(null)
   const isEditable = useLexicalEditable()
+
+  useEffect(() => {
+    return () => clearTimeout(resizeTimerRef.current)
+  }, [])
 
   const onClick = useCallback(
     (payload: MouseEvent) => {
@@ -274,7 +284,8 @@ export default function ImageComponent({
 
   const onResizeEnd = (nextWidth: "inherit" | number, nextHeight: "inherit" | number) => {
     // Delay hiding the resize bars for click case
-    setTimeout(() => {
+    clearTimeout(resizeTimerRef.current)
+    resizeTimerRef.current = setTimeout(() => {
       setIsResizing(false)
     }, 200)
 

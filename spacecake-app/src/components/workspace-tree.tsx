@@ -108,10 +108,10 @@ function ItemDropdownMenu({
   onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
   isCreatingInThisContext: boolean
 }) {
-  if (isRenaming) return null
-
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
+
+  if (isRenaming) return null
 
   const itemTitle = item.name
   const itemPath = item.path

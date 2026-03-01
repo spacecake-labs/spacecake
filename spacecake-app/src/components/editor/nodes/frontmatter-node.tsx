@@ -1,6 +1,5 @@
 import type { JSX } from "react"
 
-import { yaml } from "@codemirror/lang-yaml"
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
 import { mergeRegister } from "@lexical/utils"
 import {
@@ -23,13 +22,26 @@ import { Code2, Table2 } from "lucide-react"
 import * as React from "react"
 import YAML from "yaml"
 
+import type { BaseCodeMirrorEditorProps } from "@/components/editor/plugins/codemirror-editor"
+
 import { BlockHeader } from "@/components/editor/block-header"
 import {
   CodeBlockEditorContext,
   type CodeBlockEditorContextValue,
   type CodeMirrorFocusManager,
 } from "@/components/editor/nodes/code-node"
-import { BaseCodeMirrorEditor } from "@/components/editor/plugins/codemirror-editor"
+const LazyFrontmatterCodeEditor = React.lazy(async () => {
+  const [{ BaseCodeMirrorEditor }, { yaml }] = await Promise.all([
+    import("@/components/editor/plugins/codemirror-editor"),
+    import("@codemirror/lang-yaml"),
+  ])
+  const ext = yaml()
+  return {
+    default: (props: Omit<BaseCodeMirrorEditorProps, "language">) => (
+      <BaseCodeMirrorEditor {...props} language={ext} />
+    ),
+  }
+})
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -385,9 +397,6 @@ const FrontmatterNodeEditorContainer: React.FC<FrontmatterNodeEditorContainerPro
     })
   }, [parentEditor, nodeKey])
 
-  // memoize the yaml language extension to avoid recreating it on every render
-  const yamlLanguageExtension = React.useMemo(() => yaml(), [])
-
   const rightActions = (
     <>
       <Select value="yaml" disabled>
@@ -444,14 +453,15 @@ const FrontmatterNodeEditorContainer: React.FC<FrontmatterNodeEditorContainerPro
         {viewMode === "code" ? (
           <FrontmatterEditorContextProvider parentEditor={parentEditor} nodeKey={nodeKey}>
             <div data-testid="frontmatter-code-editor">
-              <BaseCodeMirrorEditor
-                language={yamlLanguageExtension}
-                code={yamlContent}
-                nodeKey={nodeKey}
-                onCodeChange={handleCodeChange}
-                showLineNumbers={true}
-                mermaidNode={frontmatterNode}
-              />
+              <React.Suspense fallback={null}>
+                <LazyFrontmatterCodeEditor
+                  code={yamlContent}
+                  nodeKey={nodeKey}
+                  onCodeChange={handleCodeChange}
+                  showLineNumbers={true}
+                  mermaidNode={frontmatterNode}
+                />
+              </React.Suspense>
             </div>
           </FrontmatterEditorContextProvider>
         ) : (

@@ -17,9 +17,10 @@ export class GitIgnore extends Effect.Service<GitIgnore>()("GitIgnore", {
   effect: Effect.gen(function* () {
     const { extraPatterns } = yield* GitIgnoreConfig
 
-    // Cache: Directory Path -> List of patterns
+    // Cache: Directory Path -> List of patterns (capped to prevent unbounded growth in deep repos)
+    const CACHE_MAX = 500
     const cache = new Map<string, string[]>()
-    // Cache: Root Path -> Global patterns (.git/info/exclude)
+    // Cache: Root Path -> Global patterns (.git/info/exclude) — bounded by number of roots (typically 1-2)
     const globalPatternsCache = new Map<string, string[]>()
 
     const processPatterns = (rawPatterns: string[], relativeBaseDir: string): string[] => {
@@ -182,6 +183,10 @@ export class GitIgnore extends Effect.Service<GitIgnore>()("GitIgnore", {
             if (exists) {
               const patterns = yield* loadPatternsForFile(root, gitignorePath)
               cache.set(dir, patterns)
+              if (cache.size > CACHE_MAX) {
+                const firstKey = cache.keys().next().value
+                if (firstKey !== undefined) cache.delete(firstKey)
+              }
               ig.add(patterns)
             } else {
               cache.set(dir, [])

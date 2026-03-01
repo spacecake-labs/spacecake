@@ -49,7 +49,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const imageCache = new Set()
+const IMAGE_CACHE_MAX = 200
+const imageCache = new Set<string>()
 
 function useSuspenseImage(src: string) {
   if (!imageCache.has(src)) {
@@ -58,6 +59,10 @@ function useSuspenseImage(src: string) {
       img.src = src
       img.onload = () => {
         imageCache.add(src)
+        if (imageCache.size > IMAGE_CACHE_MAX) {
+          const firstKey = imageCache.values().next().value
+          if (firstKey !== undefined) imageCache.delete(firstKey)
+        }
         resolve(null)
       }
     })

@@ -18,7 +18,7 @@ import type { Block } from "@/types/parser"
  * const id = blockId(block); // "calculator-class"
  * ```
  */
-export function blockId<TKind = string>(block: Block<TKind>): string {
+export function blockId<TKind = string>(block: Pick<Block<TKind>, "kind" | "name">): string {
   const kind = String(block.kind).replace(/\s+/g, "-")
   const name = block.name.kind === "named" ? block.name.value : "anonymous"
   return `${name.toLowerCase()}-${kind}`

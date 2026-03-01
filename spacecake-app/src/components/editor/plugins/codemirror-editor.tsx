@@ -1,21 +1,20 @@
 import { indentWithTab } from "@codemirror/commands"
 import { markdown } from "@codemirror/lang-markdown"
 import { yamlFrontmatter } from "@codemirror/lang-yaml"
-import { foldEffect } from "@codemirror/language"
-import { languages } from "@codemirror/language-data"
+import { foldEffect, LanguageSupport, StreamLanguage } from "@codemirror/language"
 import { Compartment, EditorSelection, EditorState, Extension } from "@codemirror/state"
 import { EditorView, keymap, lineNumbers } from "@codemirror/view"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { basicSetup } from "codemirror"
-import { $addUpdateTag, createCommand, LexicalCommand, SKIP_DOM_SELECTION_TAG } from "lexical"
+import { $addUpdateTag, SKIP_DOM_SELECTION_TAG } from "lexical"
 import React from "react"
 
-import type { ClaudeSelection } from "@/types/claude-code"
 import type { LanguageSpec } from "@/types/language"
-import type { Block } from "@/types/parser"
+import type { BlockMeta } from "@/types/parser"
 
 import { CodeBlock } from "@/components/code-block"
 import { CodeBlockNode, useCodeBlockEditorContext } from "@/components/editor/nodes/code-node"
+import { CODEMIRROR_SELECTION_COMMAND } from "@/components/editor/plugins/codemirror-commands"
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { useNavigation } from "@/components/editor/plugins/use-navigation"
 import { githubDark, githubLight } from "@/components/editor/themes"
@@ -24,18 +23,6 @@ import { extractCodeMirrorSelectionInfo } from "@/lib/selection-utils"
 import { debounce } from "@/lib/utils"
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
-
-// Command dispatched when CodeMirror selection changes
-export interface CodeMirrorSelectionPayload {
-  nodeKey: string
-  anchor: number
-  head: number
-  selectedText: string
-  claudeSelection: ClaudeSelection
-}
-
-export const CODEMIRROR_SELECTION_COMMAND: LexicalCommand<CodeMirrorSelectionPayload> =
-  createCommand("CODEMIRROR_SELECTION_COMMAND")
 
 interface NodeWithFocusManager {
   setFocusManager: (manager: {
@@ -61,7 +48,7 @@ interface CodeMirrorEditorProps {
   language: CodeMirrorLanguage
   nodeKey: string
   code: string
-  block: Block
+  block: BlockMeta
   codeBlockNode: CodeBlockNode
   enableLanguageSwitching?: boolean
   showLineNumbers?: boolean
@@ -69,25 +56,51 @@ interface CodeMirrorEditorProps {
 
 const EMPTY_VALUE = "__EMPTY_VALUE__"
 
+const legacy = (parser: Parameters<typeof StreamLanguage.define>[0]) =>
+  new LanguageSupport(StreamLanguage.define(parser)).extension
+
+// hand-written map of supported languages — avoids importing the full
+// @codemirror/language-data catalogue (127+ languages, ~1 MB metadata)
+const LANGUAGE_LOADERS: Record<string, () => Promise<Extension>> = {
+  python: () => import("@codemirror/lang-python").then((m) => m.python().extension),
+  javascript: () => import("@codemirror/lang-javascript").then((m) => m.javascript().extension),
+  typescript: () =>
+    import("@codemirror/lang-javascript").then((m) => m.javascript({ typescript: true }).extension),
+  jsx: () =>
+    import("@codemirror/lang-javascript").then((m) => m.javascript({ jsx: true }).extension),
+  tsx: () =>
+    import("@codemirror/lang-javascript").then(
+      (m) => m.javascript({ jsx: true, typescript: true }).extension,
+    ),
+  rust: () => import("@codemirror/lang-rust").then((m) => m.rust().extension),
+  go: () => import("@codemirror/lang-go").then((m) => m.go().extension),
+  c: () => import("@codemirror/lang-cpp").then((m) => m.cpp().extension),
+  cpp: () => import("@codemirror/lang-cpp").then((m) => m.cpp().extension),
+  csharp: () => import("@codemirror/legacy-modes/mode/clike").then((m) => legacy(m.csharp)),
+  java: () => import("@codemirror/lang-java").then((m) => m.java().extension),
+  swift: () => import("@codemirror/legacy-modes/mode/swift").then((m) => legacy(m.swift)),
+  kotlin: () => import("@codemirror/legacy-modes/mode/clike").then((m) => legacy(m.kotlin)),
+  json: () => import("@codemirror/lang-json").then((m) => m.json().extension),
+  yaml: () => import("@codemirror/lang-yaml").then((m) => m.yaml().extension),
+  toml: () => import("@codemirror/legacy-modes/mode/toml").then((m) => legacy(m.toml)),
+  css: () => import("@codemirror/lang-css").then((m) => m.css().extension),
+  shell: () => import("@codemirror/legacy-modes/mode/shell").then((m) => legacy(m.shell)),
+  xml: () => import("@codemirror/lang-xml").then((m) => m.xml().extension),
+}
+
 // Function to get language support extension dynamically
 export const getLanguageSupport = async (language: string): Promise<Extension | null> => {
   if (!language || language === EMPTY_VALUE) return null
 
-  // Special case: markdown with YAML frontmatter support
-  // This provides proper syntax highlighting for both the frontmatter
-  // and the markdown body in source mode
+  // special case: markdown with YAML frontmatter support
   if (language === "markdown") {
     return yamlFrontmatter({ content: markdown() }).extension
   }
 
-  const languageData = languages.find((l) => {
-    return l.name === language || l.alias.includes(language) || l.extensions.includes(language)
-  })
-
-  if (languageData) {
+  const loader = LANGUAGE_LOADERS[language]
+  if (loader) {
     try {
-      const languageSupport = await languageData.load()
-      return languageSupport.extension
+      return await loader()
     } catch {
       console.warn("failed to load language support for", language)
       return null
@@ -120,12 +133,12 @@ const foldPlaceholderTheme = EditorView.theme({
 })
 
 // Function to automatically fold docstrings using parsed block data
-const foldDocstrings = (view: EditorView, block: Block) => {
+const foldDocstrings = (view: EditorView, block: BlockMeta) => {
   if (!block.doc) return
 
   const doc = view.state.doc
   const docText = doc.toString()
-  const offset = block.text.length - docText.length
+  const offset = block.endByte - block.startByte - docText.length
 
   const docStartChar = block.doc.startByte - block.startByte - offset
   const docEndChar = block.doc.endByte - block.startByte - offset
@@ -235,6 +248,8 @@ export const BaseCodeMirrorEditor = React.forwardRef<HTMLDivElement, BaseCodeMir
       const el = elRef.current
       if (!el) return
 
+      let isCancelled = false
+
       void (async () => {
         // Load language support if language is a string
         let languageExtension: Extension | null = null
@@ -244,6 +259,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<HTMLDivElement, BaseCodeMir
           // language is already an Extension
           languageExtension = language
         }
+        if (isCancelled) return
 
         const extensions: Extension[] = [
           basicSetup,
@@ -284,6 +300,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<HTMLDivElement, BaseCodeMir
       })()
 
       return () => {
+        isCancelled = true
         flushPending()
         editorViewRef.current?.destroy()
         editorViewRef.current = null
@@ -333,6 +350,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   const editorViewRef = React.useRef<EditorView | null>(null)
   const elRef = React.useRef<HTMLDivElement | null>(null)
+  const pendingFocusRef = React.useRef(false)
 
   const setCodeRef = React.useRef(setCode)
   setCodeRef.current = setCode
@@ -349,6 +367,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           Promise.resolve().then(() => {
             view.focus()
           })
+        } else {
+          // view not ready yet (async language loading); defer until init completes
+          pendingFocusRef.current = true
         }
       },
       restoreSelection: (selection: { anchor: number; head: number }) => {
@@ -431,12 +452,16 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   React.useEffect(() => {
     const el = elRef.current!
+    let cleanupListeners: (() => void) | null = null
+    let isCancelled = false
+
     void (async () => {
       // Load language support first
       let languageSupport = null
       if (language !== "" && autoLoadLanguageSupport) {
         languageSupport = await getLanguageSupport(language)
       }
+      if (isCancelled) return
 
       const startLine = Math.max(1, Number(block.startLine) || 1)
 
@@ -489,12 +514,18 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
       const view = editorViewRef.current
 
-      // Focus the editor if the node is selected
-      editor.read(() => {
-        if (codeBlockNode.isSelected()) {
-          view.focus()
-        }
-      })
+      // honor deferred focus request from before the view was ready
+      if (pendingFocusRef.current) {
+        pendingFocusRef.current = false
+        view.focus()
+      } else {
+        // focus the editor if the node is selected
+        editor.read(() => {
+          if (codeBlockNode.isSelected()) {
+            view.focus()
+          }
+        })
+      }
 
       // automatically fold docstrings if this block has one
       if (language === "python" && block.doc) {
@@ -539,18 +570,27 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         flushPending()
       }
 
-      view.contentDOM.addEventListener("keydown", onKeyDown, false)
-      view.contentDOM.addEventListener("cut", onCut, false)
-      view.contentDOM.addEventListener("paste", onPaste, false)
-      view.contentDOM.addEventListener("blur", onBlur, false)
+      const contentDOM = view.contentDOM
+      contentDOM.addEventListener("keydown", onKeyDown, false)
+      contentDOM.addEventListener("cut", onCut, false)
+      contentDOM.addEventListener("paste", onPaste, false)
+      contentDOM.addEventListener("blur", onBlur, false)
+
+      cleanupListeners = () => {
+        contentDOM.removeEventListener("keydown", onKeyDown, false)
+        contentDOM.removeEventListener("cut", onCut, false)
+        contentDOM.removeEventListener("paste", onPaste, false)
+        contentDOM.removeEventListener("blur", onBlur, false)
+      }
     })()
 
     return () => {
-      // ensure any pending changes are committed before teardown
+      isCancelled = true
+      pendingFocusRef.current = false
       flushPending()
+      cleanupListeners?.()
       editorViewRef.current?.destroy()
       editorViewRef.current = null
-      // listeners are attached to contentDOM; they are removed by destroy()
     }
   }, [language, debounceMs, flushPending])
 
@@ -597,6 +637,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   return (
     <CodeBlock
       block={block}
+      code={code}
       language={language}
       editable={!readOnly}
       theme={theme}

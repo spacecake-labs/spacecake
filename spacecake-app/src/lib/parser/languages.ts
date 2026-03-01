@@ -12,10 +12,14 @@ function languageURL(name: LanguageName): string {
   return path.join(process.cwd(), "public", `tree-sitter-${name}.wasm`)
 }
 
-export default Parser.init().then(async () => ({
-  languageURL,
-  Python: await Language.load(languageURL("python")),
-  //   JavaScript: await Language.load(languageURL("javascript")),
-  //   TypeScript: await Language.load(languageURL("typescript")),
-  //   JSON: await Language.load(languageURL("json")),
-}))
+let _cache: { languageURL: typeof languageURL; Python: Language } | null = null
+
+export async function getLanguages() {
+  if (_cache) return _cache
+  await Parser.init()
+  _cache = {
+    languageURL,
+    Python: await Language.load(languageURL("python")),
+  }
+  return _cache
+}

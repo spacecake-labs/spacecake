@@ -4,6 +4,7 @@ import type { TerminalAPI } from "@/hooks/use-ghostty-engine"
 
 import { TerminalMountPoint } from "@/components/terminal-mount-point"
 import { useGhosttyEngine } from "@/hooks/use-ghostty-engine"
+import { useLatest } from "@/hooks/use-latest"
 
 interface TerminalTabProps {
   id: string
@@ -24,12 +25,17 @@ export const TerminalTab = memo(function TerminalTab({
   onTitleChange,
   onProfileLoaded,
 }: TerminalTabProps) {
+  const onReadyRef = useLatest(onReady)
+  const onDisposeRef = useLatest(onDispose)
+  const onTitleChangeRef = useLatest(onTitleChange)
+  const onProfileLoadedRef = useLatest(onProfileLoaded)
+
   const handleTitleChange = useCallback(
-    (title: string) => onTitleChange(id, title),
-    [id, onTitleChange],
+    (title: string) => onTitleChangeRef.current(id, title),
+    [id],
   )
 
-  const handleProfileLoaded = useCallback(() => onProfileLoaded(id), [id, onProfileLoaded])
+  const handleProfileLoaded = useCallback(() => onProfileLoadedRef.current(id), [id])
 
   const { containerEl, api, error, fit } = useGhosttyEngine({
     id,
@@ -42,12 +48,12 @@ export const TerminalTab = memo(function TerminalTab({
   // notify parent when API is ready
   useEffect(() => {
     if (api) {
-      onReady(id, api)
+      onReadyRef.current(id, api)
     }
     return () => {
-      onDispose(id)
+      onDisposeRef.current(id)
     }
-  }, [api, id, onReady, onDispose])
+  }, [api, id])
 
   // toggle cursor blink based on focus
   useEffect(() => {

@@ -2,7 +2,7 @@ import React from "react"
 
 import type { CodeBlockEditorContextValue } from "@/components/editor/nodes/code-node"
 import type { LanguageSpec } from "@/types/language"
-import type { Block } from "@/types/parser"
+import type { BlockMeta } from "@/types/parser"
 
 import { BlockHeader } from "@/components/editor/block-header"
 import { TypographyH3, TypographyP } from "@/components/typography"
@@ -24,7 +24,8 @@ import { FileType } from "@/types/workspace"
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
 
 interface CodeBlockProps {
-  block: Block
+  block: BlockMeta
+  code: string
   language?: CodeMirrorLanguage
   editable?: boolean
   theme?: "light" | "dark" | "auto"
@@ -38,6 +39,7 @@ interface CodeBlockProps {
 
 export function CodeBlock({
   block,
+  code,
   language = "plaintext" as CodeMirrorLanguage,
   editable = false,
   className,
@@ -50,8 +52,6 @@ export function CodeBlock({
 
   // can change language only if the file is markdown and in rich view
   const canChangeLanguage = route?.fileType === FileType.Markdown && route?.viewKind === "rich"
-
-  const code = block.text
   const blockName = block.name.value
   const title = blockName
   const badgeValue =
