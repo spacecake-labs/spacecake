@@ -48,7 +48,7 @@ class Person:
     if (!node) throw new Error("failed to get first child of module")
 
     expect(isDataclass(node)).toBe(true)
-    parser.delete()
+    tree.delete()
   })
 
   it("isDataclass should not detect undecorated class", async () => {
@@ -62,7 +62,7 @@ class Person:
     if (!node) throw new Error("failed to get first child of module")
 
     expect(isDataclass(node)).toBe(false)
-    parser.delete()
+    tree.delete()
   })
 
   it.each([
@@ -102,7 +102,7 @@ class Person:
     const node = tree.rootNode.firstChild
     if (!node) throw new Error("failed to get first child of module")
     expect(isDocstring(node)).toBe(expected)
-    parser.delete()
+    tree.delete()
   })
 
   it.each([
@@ -122,7 +122,7 @@ class Person:
     const node = tree.rootNode.firstChild
     if (!node) throw new Error("failed to get first child of module")
     expect(isMdocString(node)).toBe(expected)
-    parser.delete()
+    tree.delete()
   })
 
   it.each([
@@ -178,7 +178,7 @@ class Person:
     const node = tree.rootNode.firstChild
     if (!node) throw new Error("failed to get first child of module")
     expect(blockKind(node)).toBe(expected)
-    parser.delete()
+    tree.delete()
   })
 
   it.each([
@@ -225,7 +225,7 @@ class Person:
     const node = tree.rootNode.firstChild
     if (!node) throw new Error("failed to get first child of module")
     expect(blockName(node)).toStrictEqual(expected)
-    parser.delete()
+    tree.delete()
   })
   describe("parseCodeBlocks", () => {
     it("should parse blocks from core.py", async () => {
