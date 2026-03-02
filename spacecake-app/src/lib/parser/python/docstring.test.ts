@@ -35,12 +35,13 @@ describe("Python docstring utilities", () => {
       const docstringNode = findDocstringNode(functionNode)
       expect(docstringNode).not.toBeNull()
       expect(docstringNode?.text).toBe('"""A function docstring."""')
+      tree.delete()
     })
 
     it("finds docstring in class", async () => {
       const code = `class MyClass:
     """A class docstring."""
-    
+
     def method(self):
         return "hello"`
       const tree = parser.parse(code)
@@ -51,6 +52,7 @@ describe("Python docstring utilities", () => {
       const docstringNode = findDocstringNode(classNode)
       expect(docstringNode).not.toBeNull()
       expect(docstringNode?.text).toBe('"""A class docstring."""')
+      tree.delete()
     })
   })
 
