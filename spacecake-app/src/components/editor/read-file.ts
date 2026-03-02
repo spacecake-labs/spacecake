@@ -21,20 +21,20 @@ import { INITIAL_LOAD_TAG, SerializedSelection } from "@/types/lexical"
 import { EditorFile, FileType } from "@/types/workspace"
 
 /**
- * Converts Python blocks into Lexical nodes with progressive rendering
+ * Converts Python blocks into Lexical nodes.
+ * Parsing runs in the main process via IPC; blocks arrive as a single array.
  */
 export async function convertPythonBlocksToLexical(
   file: EditorFile,
   editor: LexicalEditor,
   selection: SerializedSelection | null = null,
   nodeSelection: NodeSelection | null = null,
-  streamParser?: (file: EditorFile) => AsyncGenerator<PyBlock>,
+  blockOverride?: PyBlock[],
   onComplete?: () => void,
 ) {
   try {
-    // lazy-load tree-sitter wasm only when a python file is actually opened
-    const parser =
-      streamParser ?? (await import("@/lib/parser/python/blocks")).parsePythonContentStreaming
+    const blocks =
+      blockOverride ?? (await window.electronAPI.parser.parseBlocks(file.content, file.path))
 
     // Start with an empty editor
     editor.update(
@@ -47,9 +47,8 @@ export async function convertPythonBlocksToLexical(
       },
       { tag: INITIAL_LOAD_TAG },
     )
-    // Parse blocks progressively, updating per block
-    let parsedBlockCount = 0
-    for await (const block of parser(file)) {
+
+    for (const block of blocks) {
       editor.update(
         () => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
@@ -72,11 +71,10 @@ export async function convertPythonBlocksToLexical(
         },
         { tag: INITIAL_LOAD_TAG },
       )
-      parsedBlockCount++
     }
 
     // If no blocks were parsed, fall back to plaintext
-    if (parsedBlockCount === 0) {
+    if (blocks.length === 0) {
       editor.update(
         () => {
           const root = $getRoot()

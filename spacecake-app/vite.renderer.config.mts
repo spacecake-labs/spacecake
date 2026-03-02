@@ -39,9 +39,7 @@ export default defineConfig({
     format: "es",
     plugins: () => [wasm(), topLevelAwait()],
   },
-  optimizeDeps: {
-    exclude: ["web-tree-sitter", "tree-sitter-python", "tree-sitter-typescript"],
-  },
+  optimizeDeps: {},
   server: {
     hmr: {
       port: 24678,

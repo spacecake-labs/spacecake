@@ -1,13 +1,10 @@
 import { readFile } from "node:fs/promises"
 import { argv, exit } from "node:process"
-import { Parser, type TreeCursor } from "web-tree-sitter"
+import Parser from "tree-sitter"
 
-import { getLanguages } from "../src/lib/parser/languages"
+import { createParser } from "../src/lib/parser/languages"
 
-const { Python } = await getLanguages()
-
-const parser = new Parser()
-parser.setLanguage(Python)
+const parser = createParser()
 
 function makeSnippet(text: string, from: number, to: number, maxLen: number = 80): string {
   const slice = text.slice(from, to).replace(/\s+/g, " ").trim()
@@ -15,7 +12,7 @@ function makeSnippet(text: string, from: number, to: number, maxLen: number = 80
   return `${slice.slice(0, maxLen - 1)}…`
 }
 
-function printCursor(cursor: TreeCursor, text: string, indent: number): void {
+function printCursor(cursor: Parser.TreeCursor, text: string, indent: number): void {
   const pad = "  ".repeat(indent)
   const snippet = makeSnippet(text, cursor.startIndex, cursor.endIndex)
   // type [from,to] "snippet"
@@ -46,8 +43,12 @@ async function main(): Promise<void> {
 
   const tree = parser.parse(source)
   if (!tree) throw new Error("failed to parse code")
-  const cursor = tree.walk()
-  printCursor(cursor, source, 0)
+  try {
+    const cursor = tree.walk()
+    printCursor(cursor, source, 0)
+  } finally {
+    tree.delete()
+  }
 }
 
 void main()

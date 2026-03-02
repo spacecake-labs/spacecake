@@ -22,6 +22,9 @@ function getPlatformArchSpecificPackages(platform: string, arch: string): string
     "@lydell/node-pty",
     "@vscode/ripgrep",
     "@electric-sql/pglite",
+    "tree-sitter",
+    "tree-sitter-python",
+    "node-gyp-build",
     "micromatch",
     "braces",
     "fill-range",
@@ -150,7 +153,7 @@ const config: ForgeConfig = {
     asar: {
       unpack: "*.{node,dylib,dll,so}",
       unpackDir:
-        "**/node_modules/{@parcel/watcher*,@lydell/node-pty*,@vscode/ripgrep*,@electric-sql/pglite*}",
+        "**/node_modules/{@parcel/watcher*,@lydell/node-pty*,@vscode/ripgrep*,@electric-sql/pglite*,tree-sitter,tree-sitter-python}",
     },
     icon: "./assets/icon", // no file extension required
   },

@@ -14,6 +14,10 @@ onlyBuiltDependencies:
   - esbuild
   - fs-xattr
   - macos-alias
+  - tree-sitter
   - tree-sitter-javascript
   - tree-sitter-python
   - tree-sitter-typescript
+
+patchedDependencies:
+  tree-sitter@0.25.0: patches/tree-sitter@0.25.0.patch

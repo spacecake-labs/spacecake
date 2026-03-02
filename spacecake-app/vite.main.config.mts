@@ -16,9 +16,9 @@ export default defineConfig({
       external: [
         // don't bundle
         "electron",
-        "web-tree-sitter",
+        "tree-sitter",
         "tree-sitter-python",
-        "tree-sitter-typescript",
+        "node-gyp-build",
         "@parcel/watcher",
         "@lydell/node-pty",
         "@vscode/ripgrep",

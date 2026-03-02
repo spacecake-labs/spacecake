@@ -17,36 +17,6 @@ import { $isMermaidNode } from "@/components/editor/nodes/mermaid-node"
 import { initializeUnitTest } from "@/components/editor/test-utils"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 
-vi.mock("web-tree-sitter", () => {
-  return {
-    Parser: class {
-      static init = vi.fn()
-      setLanguage = vi.fn()
-      parse = vi.fn(() => ({
-        rootNode: {
-          children: [],
-        },
-      }))
-    },
-  }
-})
-
-vi.mock("@/lib/parser/languages", () => {
-  const mockQuery = {
-    exec: () => [],
-  }
-
-  const mockLanguage = {
-    query: () => mockQuery,
-  }
-
-  return {
-    default: Promise.resolve({
-      Markdown: mockLanguage,
-    }),
-  }
-})
-
 const Plugins = React.memo(function Plugins() {
   return (
     <div className="relative">

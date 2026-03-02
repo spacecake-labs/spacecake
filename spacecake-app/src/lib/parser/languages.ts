@@ -1,25 +1,11 @@
-import path from "path"
-import { Language, Parser } from "web-tree-sitter"
+import Parser from "tree-sitter"
+import Python from "tree-sitter-python"
 
-export type LanguageName = "python" | "javascript" | "typescript" | "json"
+export type { Parser }
+export type SyntaxNode = Parser.SyntaxNode
 
-function languageURL(name: LanguageName): string {
-  if (typeof window !== "undefined") {
-    // browser environment - load from public directory
-    return `tree-sitter-${name}.wasm`
-  }
-  // Node.js environment (tests) - load from public directory relative to project root
-  return path.join(process.cwd(), "public", `tree-sitter-${name}.wasm`)
-}
-
-let _cache: { languageURL: typeof languageURL; Python: Language } | null = null
-
-export async function getLanguages() {
-  if (_cache) return _cache
-  await Parser.init()
-  _cache = {
-    languageURL,
-    Python: await Language.load(languageURL("python")),
-  }
-  return _cache
+export function createParser(): Parser {
+  const parser = new Parser()
+  parser.setLanguage(Python as unknown as Parser.Language)
+  return parser
 }
