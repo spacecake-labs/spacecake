@@ -173,140 +173,174 @@ export async function* parseCodeBlocks(code: string, filePath?: string): AsyncGe
   const tree = parser.parse(code)
   if (!tree) throw new Error("failed to parse code")
 
-  let importNodes: Node[] = []
-  let miscNodes: Node[] = []
-  let commentNodes: Node[] = []
-  let mdNodes: Node[] = []
-  let prevBlockEndByte = 0
+  try {
+    let importNodes: Node[] = []
+    let miscNodes: Node[] = []
+    let commentNodes: Node[] = []
+    let mdNodes: Node[] = []
+    let prevBlockEndByte = 0
 
-  const countLinesBefore = (byte: number): number => {
-    const before = code.substring(0, byte)
-    const lines = (before.match(/\n/g) || []).length
-    return lines + 1
-  }
-
-  const emitImportBlock = (nodeEndIndex: number): PyBlock => {
-    const firstImport = importNodes[0]
-    const startByte = prevBlockEndByte
-    const raw = code.slice(startByte, nodeEndIndex)
-    const name = blockName(firstImport)
-    const block: PyBlock = {
-      kind: "import",
-      name,
-      startByte,
-      endByte: nodeEndIndex,
-      text: raw,
-      startLine: countLinesBefore(firstImport.startIndex),
-      cid: computeCid("import", name.value, raw),
-      cidAlgo: "fnv1a64-norm1",
+    const countLinesBefore = (byte: number): number => {
+      const before = code.substring(0, byte)
+      const lines = (before.match(/\n/g) || []).length
+      return lines + 1
     }
-    importNodes = []
-    return block
-  }
 
-  const emitMiscBlock = (nodeEndIndex: number): PyBlock => {
-    const first = miscNodes[0]
-    const startByte = prevBlockEndByte
-    const raw = code.slice(startByte, nodeEndIndex)
-    const block: PyBlock = {
-      kind: "misc",
-      name: anonymousName(),
-      startByte,
-      endByte: nodeEndIndex,
-      text: raw,
-      startLine: countLinesBefore(first.startIndex),
-      cid: computeCid("misc", "anonymous", raw),
-      cidAlgo: "fnv1a64-norm1",
-    }
-    miscNodes = []
-    return block
-  }
-
-  const emitMdBlock = (nodeEndIndex: number): PyBlock => {
-    const first = mdNodes[0]
-    const startByte = prevBlockEndByte
-    const raw = code.slice(startByte, nodeEndIndex)
-    const block: PyBlock = {
-      kind: "markdown block",
-      name: anonymousName(),
-      startByte,
-      endByte: nodeEndIndex,
-      text: raw,
-      startLine: countLinesBefore(first.startIndex),
-      cid: computeCid("markdown block", "anonymous", raw),
-      cidAlgo: "fnv1a64-norm1",
-    }
-    mdNodes = []
-    return block
-  }
-
-  for (const [index, node] of tree.rootNode.children.entries()) {
-    if (!node) continue
-
-    // if this is the last node, extend its range to include any trailing content
-    const isLastNode = index === tree.rootNode.children.length - 1
-    const nodeEndIndex = isLastNode ? code.length : node.endIndex
-
-    if (index === 0 && isDocstring(node)) {
-      prevBlockEndByte = nodeEndIndex
-      // Extract filename from path for module docstring naming
-      const moduleName = filePath ? namedBlock(filename(filePath)) : anonymousName()
-      const moduleDocCid = computeCid("module", moduleName.value, node.text)
-      yield {
-        kind: "module",
-        name: moduleName,
-        startByte: node.startIndex,
+    const emitImportBlock = (nodeEndIndex: number): PyBlock => {
+      const firstImport = importNodes[0]
+      const startByte = prevBlockEndByte
+      const raw = code.slice(startByte, nodeEndIndex)
+      const name = blockName(firstImport)
+      const block: PyBlock = {
+        kind: "import",
+        name,
+        startByte,
         endByte: nodeEndIndex,
-        text: code.slice(node.startIndex, nodeEndIndex),
-        startLine: 1,
-        cid: moduleDocCid,
+        text: raw,
+        startLine: countLinesBefore(firstImport.startIndex),
+        cid: computeCid("import", name.value, raw),
         cidAlgo: "fnv1a64-norm1",
-        doc: {
-          kind: "doc",
+      }
+      importNodes = []
+      return block
+    }
+
+    const emitMiscBlock = (nodeEndIndex: number): PyBlock => {
+      const first = miscNodes[0]
+      const startByte = prevBlockEndByte
+      const raw = code.slice(startByte, nodeEndIndex)
+      const block: PyBlock = {
+        kind: "misc",
+        name: anonymousName(),
+        startByte,
+        endByte: nodeEndIndex,
+        text: raw,
+        startLine: countLinesBefore(first.startIndex),
+        cid: computeCid("misc", "anonymous", raw),
+        cidAlgo: "fnv1a64-norm1",
+      }
+      miscNodes = []
+      return block
+    }
+
+    const emitMdBlock = (nodeEndIndex: number): PyBlock => {
+      const first = mdNodes[0]
+      const startByte = prevBlockEndByte
+      const raw = code.slice(startByte, nodeEndIndex)
+      const block: PyBlock = {
+        kind: "markdown block",
+        name: anonymousName(),
+        startByte,
+        endByte: nodeEndIndex,
+        text: raw,
+        startLine: countLinesBefore(first.startIndex),
+        cid: computeCid("markdown block", "anonymous", raw),
+        cidAlgo: "fnv1a64-norm1",
+      }
+      mdNodes = []
+      return block
+    }
+
+    for (const [index, node] of tree.rootNode.children.entries()) {
+      if (!node) continue
+
+      // if this is the last node, extend its range to include any trailing content
+      const isLastNode = index === tree.rootNode.children.length - 1
+      const nodeEndIndex = isLastNode ? code.length : node.endIndex
+
+      if (index === 0 && isDocstring(node)) {
+        prevBlockEndByte = nodeEndIndex
+        // Extract filename from path for module docstring naming
+        const moduleName = filePath ? namedBlock(filename(filePath)) : anonymousName()
+        const moduleDocCid = computeCid("module", moduleName.value, node.text)
+        yield {
+          kind: "module",
           name: moduleName,
           startByte: node.startIndex,
           endByte: nodeEndIndex,
-          text: dedentDocstring(code.slice(node.startIndex, nodeEndIndex)),
+          text: code.slice(node.startIndex, nodeEndIndex),
           startLine: 1,
           cid: moduleDocCid,
           cidAlgo: "fnv1a64-norm1",
-        },
-      }
-      continue
-    }
-
-    const kind = blockKind(node)
-
-    if (!kind) {
-      if (node.type === "ERROR") continue
-      if (node.type === "comment") {
-        commentNodes.push(node)
+          doc: {
+            kind: "doc",
+            name: moduleName,
+            startByte: node.startIndex,
+            endByte: nodeEndIndex,
+            text: dedentDocstring(code.slice(node.startIndex, nodeEndIndex)),
+            startLine: 1,
+            cid: moduleDocCid,
+            cidAlgo: "fnv1a64-norm1",
+          },
+        }
         continue
       }
 
-      // This is a misc node, so flush any pending blocks first.
+      const kind = blockKind(node)
+
+      if (!kind) {
+        if (node.type === "ERROR") continue
+        if (node.type === "comment") {
+          commentNodes.push(node)
+          continue
+        }
+
+        // This is a misc node, so flush any pending blocks first.
+        if (importNodes.length) {
+          const importBlock = emitImportBlock(importNodes[importNodes.length - 1].endIndex)
+          prevBlockEndByte = importBlock.endByte
+          yield importBlock
+        }
+
+        if (mdNodes.length) {
+          const mdBlock = emitMdBlock(mdNodes[mdNodes.length - 1].endIndex)
+          prevBlockEndByte = mdBlock.endByte
+          yield mdBlock
+        }
+
+        // anything else accumulates into a `misc` block
+        // consume any accumulated comments
+        miscNodes.push(...commentNodes, node)
+        commentNodes = []
+
+        continue
+      }
+
+      if (kind === "import") {
+        // This is an import node, so flush any pending misc block first.
+        if (miscNodes.length) {
+          const miscBlock = emitMiscBlock(miscNodes[miscNodes.length - 1].endIndex)
+          prevBlockEndByte = miscBlock.endByte
+          yield miscBlock
+        }
+
+        if (mdNodes.length) {
+          const mdBlock = emitMdBlock(mdNodes[mdNodes.length - 1].endIndex)
+          prevBlockEndByte = mdBlock.endByte
+          yield mdBlock
+        }
+
+        // consume any accumulated comments
+        importNodes.push(...commentNodes, node)
+        commentNodes = []
+
+        // continue to next iteration
+        continue
+      }
+
+      if (kind === "markdown block") {
+        mdNodes.push(node)
+        continue
+      }
+
+      // This is a "real" block (e.g., function/class).
+      // Flush any pending block, whichever it may be.
       if (importNodes.length) {
         const importBlock = emitImportBlock(importNodes[importNodes.length - 1].endIndex)
         prevBlockEndByte = importBlock.endByte
         yield importBlock
       }
 
-      if (mdNodes.length) {
-        const mdBlock = emitMdBlock(mdNodes[mdNodes.length - 1].endIndex)
-        prevBlockEndByte = mdBlock.endByte
-        yield mdBlock
-      }
-
-      // anything else accumulates into a `misc` block
-      // consume any accumulated comments
-      miscNodes.push(...commentNodes, node)
-      commentNodes = []
-
-      continue
-    }
-
-    if (kind === "import") {
-      // This is an import node, so flush any pending misc block first.
       if (miscNodes.length) {
         const miscBlock = emitMiscBlock(miscNodes[miscNodes.length - 1].endIndex)
         prevBlockEndByte = miscBlock.endByte
@@ -319,105 +353,75 @@ export async function* parseCodeBlocks(code: string, filePath?: string): AsyncGe
         yield mdBlock
       }
 
-      // consume any accumulated comments
-      importNodes.push(...commentNodes, node)
+      const startByte = prevBlockEndByte
+      const raw = code.slice(startByte, nodeEndIndex)
+      const name = blockName(node)
+
+      const nodeFrom = commentNodes.length ? commentNodes[0].startIndex : node.startIndex
+
       commentNodes = []
+      prevBlockEndByte = nodeEndIndex
 
-      // continue to next iteration
-      continue
+      if (isDocablePyKind(kind)) {
+        const docstringNode = findDocstringNode(node)
+        if (docstringNode) {
+          yield {
+            kind,
+            name,
+            startByte,
+            endByte: nodeEndIndex,
+            text: raw,
+            startLine: countLinesBefore(nodeFrom),
+            cid: computeCid(kind, name.value, raw),
+            cidAlgo: "fnv1a64-norm1",
+            doc: {
+              kind: "doc",
+              name: anonymousName(),
+              startByte: docstringNode.startIndex,
+              endByte: docstringNode.endIndex,
+              text: dedentDocstring(docstringNode.text),
+              startLine: countLinesBefore(docstringNode.startIndex),
+              cid: computeCid("doc", "anonymous", docstringNode.text),
+              cidAlgo: "fnv1a64-norm1",
+            },
+          }
+          continue
+        }
+      }
+      yield {
+        kind,
+        name,
+        startByte,
+        endByte: nodeEndIndex,
+        text: raw,
+        startLine: countLinesBefore(nodeFrom),
+        cid: computeCid(kind, name.value, raw),
+        cidAlgo: "fnv1a64-norm1",
+      }
     }
 
-    if (kind === "markdown block") {
-      mdNodes.push(node)
-      continue
-    }
-
-    // This is a "real" block (e.g., function/class).
-    // Flush any pending block, whichever it may be.
     if (importNodes.length) {
-      const importBlock = emitImportBlock(importNodes[importNodes.length - 1].endIndex)
+      const importEndIndex =
+        miscNodes.length || mdNodes.length
+          ? importNodes[importNodes.length - 1].endIndex
+          : code.length
+      const importBlock = emitImportBlock(importEndIndex)
       prevBlockEndByte = importBlock.endByte
       yield importBlock
     }
-
     if (miscNodes.length) {
-      const miscBlock = emitMiscBlock(miscNodes[miscNodes.length - 1].endIndex)
+      const miscEndIndex = mdNodes.length ? miscNodes[miscNodes.length - 1].endIndex : code.length
+      const miscBlock = emitMiscBlock(miscEndIndex)
       prevBlockEndByte = miscBlock.endByte
       yield miscBlock
     }
-
     if (mdNodes.length) {
-      const mdBlock = emitMdBlock(mdNodes[mdNodes.length - 1].endIndex)
+      const mdBlock = emitMdBlock(code.length)
       prevBlockEndByte = mdBlock.endByte
       yield mdBlock
     }
-
-    const startByte = prevBlockEndByte
-    const raw = code.slice(startByte, nodeEndIndex)
-    const name = blockName(node)
-
-    const nodeFrom = commentNodes.length ? commentNodes[0].startIndex : node.startIndex
-
-    commentNodes = []
-    prevBlockEndByte = nodeEndIndex
-
-    if (isDocablePyKind(kind)) {
-      const docstringNode = findDocstringNode(node)
-      if (docstringNode) {
-        yield {
-          kind,
-          name,
-          startByte,
-          endByte: nodeEndIndex,
-          text: raw,
-          startLine: countLinesBefore(nodeFrom),
-          cid: computeCid(kind, name.value, raw),
-          cidAlgo: "fnv1a64-norm1",
-          doc: {
-            kind: "doc",
-            name: anonymousName(),
-            startByte: docstringNode.startIndex,
-            endByte: docstringNode.endIndex,
-            text: dedentDocstring(docstringNode.text),
-            startLine: countLinesBefore(docstringNode.startIndex),
-            cid: computeCid("doc", "anonymous", docstringNode.text),
-            cidAlgo: "fnv1a64-norm1",
-          },
-        }
-        continue
-      }
-    }
-    yield {
-      kind,
-      name,
-      startByte,
-      endByte: nodeEndIndex,
-      text: raw,
-      startLine: countLinesBefore(nodeFrom),
-      cid: computeCid(kind, name.value, raw),
-      cidAlgo: "fnv1a64-norm1",
-    }
-  }
-
-  if (importNodes.length) {
-    const importEndIndex =
-      miscNodes.length || mdNodes.length
-        ? importNodes[importNodes.length - 1].endIndex
-        : code.length
-    const importBlock = emitImportBlock(importEndIndex)
-    prevBlockEndByte = importBlock.endByte
-    yield importBlock
-  }
-  if (miscNodes.length) {
-    const miscEndIndex = mdNodes.length ? miscNodes[miscNodes.length - 1].endIndex : code.length
-    const miscBlock = emitMiscBlock(miscEndIndex)
-    prevBlockEndByte = miscBlock.endByte
-    yield miscBlock
-  }
-  if (mdNodes.length) {
-    const mdBlock = emitMdBlock(code.length)
-    prevBlockEndByte = mdBlock.endByte
-    yield mdBlock
+  } finally {
+    tree.delete()
   }
 }
 
