@@ -24,6 +24,9 @@ declare module "*?worker" {
   export default workerConstructor
 }
 
+// font packages with no type declarations
+declare module "@fontsource-variable/geist"
+
 // SVG imports as React components
 declare module "*.svg?react" {
   import { FC, SVGProps } from "react"
