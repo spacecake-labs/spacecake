@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.56
+
+### Patch Changes
+
+- 502674f: Migrate tree-sitter WASM to Node.
+
 ## 0.1.0-alpha.55
 
 ### Patch Changes
