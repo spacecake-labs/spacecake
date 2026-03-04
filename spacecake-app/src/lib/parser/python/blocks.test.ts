@@ -1,9 +1,10 @@
+import type Parser from "tree-sitter"
+
 import { readFileSync } from "fs"
 import { join } from "path"
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
-import { Language, Parser } from "web-tree-sitter"
+import { beforeEach, describe, expect, it } from "vitest"
 
-import { getLanguages } from "@/lib/parser/languages"
+import { createParser } from "@/lib/parser/languages"
 import {
   blockKind,
   blockName,
@@ -11,32 +12,20 @@ import {
   isDocstring,
   isMdocString,
   parseCodeBlocks,
-  parsePythonContentStreaming,
+  parsePythonContent,
 } from "@/lib/parser/python/blocks"
 import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import { normalizeLineEndings } from "@/test-utils/platform"
-import { PyBlock } from "@/types/parser"
 import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
-
-let Python: Language
 
 describe("Python parser", () => {
   let parser: Parser
 
-  beforeAll(async () => {
-    ;({ Python } = await getLanguages())
-  })
-
   beforeEach(() => {
-    parser = new Parser()
-    parser.setLanguage(Python)
+    parser = createParser()
   })
 
-  afterEach(() => {
-    parser.delete()
-  })
-
-  it("isDataclass should detect dataclass", async () => {
+  it("isDataclass should detect dataclass", () => {
     const code = `@dataclass
 class Person:
     name: str
@@ -48,10 +37,9 @@ class Person:
     if (!node) throw new Error("failed to get first child of module")
 
     expect(isDataclass(node)).toBe(true)
-    tree.delete()
   })
 
-  it("isDataclass should not detect undecorated class", async () => {
+  it("isDataclass should not detect undecorated class", () => {
     const code = `class Person:
     name: str
     age: int`
@@ -62,7 +50,6 @@ class Person:
     if (!node) throw new Error("failed to get first child of module")
 
     expect(isDataclass(node)).toBe(false)
-    tree.delete()
   })
 
   it.each([
@@ -96,13 +83,12 @@ class Person:
       code: `'docstring'`,
       expected: false,
     },
-  ])("isDocstring $description", async ({ code, expected }) => {
+  ])("isDocstring $description", ({ code, expected }) => {
     const tree = parser.parse(code)
     if (!tree) throw new Error("failed to parse code")
     const node = tree.rootNode.firstChild
     if (!node) throw new Error("failed to get first child of module")
     expect(isDocstring(node)).toBe(expected)
-    tree.delete()
   })
 
   it.each([
@@ -116,13 +102,12 @@ class Person:
       code: `#🍰mdocstring`,
       expected: true,
     },
-  ])("isMdocString $description", async ({ code, expected }) => {
+  ])("isMdocString $description", ({ code, expected }) => {
     const tree = parser.parse(code)
     if (!tree) throw new Error("failed to parse code")
     const node = tree.rootNode.firstChild
     if (!node) throw new Error("failed to get first child of module")
     expect(isMdocString(node)).toBe(expected)
-    tree.delete()
   })
 
   it.each([
@@ -172,13 +157,12 @@ class Person:
       code: `#🍰mdocstring`,
       expected: "markdown block",
     },
-  ])("blockKind $description", async ({ code, expected }) => {
+  ])("blockKind $description", ({ code, expected }) => {
     const tree = parser.parse(code)
     if (!tree) throw new Error("failed to parse code")
     const node = tree.rootNode.firstChild
     if (!node) throw new Error("failed to get first child of module")
     expect(blockKind(node)).toBe(expected)
-    tree.delete()
   })
 
   it.each([
@@ -219,25 +203,21 @@ class Person:
     age: int`,
       expected: { kind: "named", value: "Person" },
     },
-  ])("blockName $description", async ({ code, expected }) => {
+  ])("blockName $description", ({ code, expected }) => {
     const tree = parser.parse(code)
     if (!tree) throw new Error("failed to parse code")
     const node = tree.rootNode.firstChild
     if (!node) throw new Error("failed to get first child of module")
     expect(blockName(node)).toStrictEqual(expected)
-    tree.delete()
   })
   describe("parseCodeBlocks", () => {
-    it("should parse blocks from core.py", async () => {
+    it("should parse blocks from core.py", () => {
       // Normalize line endings for cross-platform compatibility (git on Windows may convert LF to CRLF)
       const code = normalizeLineEndings(
         readFileSync(join(__dirname, "../../../../tests/fixtures/core.py"), "utf-8"),
       )
 
-      const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code, "test.py")) {
-        blocks.push(block)
-      }
+      const blocks = parseCodeBlocks(code, "test.py")
 
       expect(blocks.length).toBe(7) // doc, import, dataclass, function, class, misc, main
 
@@ -281,13 +261,10 @@ class Person:
       expect(blocks[6].startLine).toBe(31)
     })
 
-    it("parses module description in import block", async () => {
+    it("parses module description in import block", () => {
       const code = `r"""module header"""\nimport os\nimport sys\n\n\ndef f():\n    pass\n`
 
-      const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code, "test.py")) {
-        blocks.push(block)
-      }
+      const blocks = parseCodeBlocks(code, "test.py")
 
       expect(blocks.length).toBe(3)
       expect(blocks[0].kind).toBe("module")
@@ -301,13 +278,10 @@ class Person:
       expect(blocks[2].startLine).toBe(6)
     })
 
-    it("yields misc block between import and function", async () => {
+    it("yields misc block between import and function", () => {
       const code = "import os\n\n" + "x = 1\n\n" + "def f():\n    pass\n"
 
-      const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code, "test.py")) {
-        blocks.push(block)
-      }
+      const blocks = parseCodeBlocks(code, "test.py")
 
       expect(blocks.length).toBe(3)
       expect(blocks[0].kind).toBe("import")
@@ -319,13 +293,10 @@ class Person:
       expect(blocks[2].startLine).toBe(5)
     })
 
-    it("yields import block at EOF", async () => {
+    it("yields import block at EOF", () => {
       const code = "from dataclasses import dataclass"
 
-      const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code, "test.py")) {
-        blocks.push(block)
-      }
+      const blocks = parseCodeBlocks(code, "test.py")
 
       expect(blocks.length).toBe(1)
       expect(blocks[0].kind).toBe("import")
@@ -333,13 +304,10 @@ class Person:
       expect(blocks[0].startLine).toBe(1)
     })
 
-    it("yields misc block at EOF", async () => {
+    it("yields misc block at EOF", () => {
       const code = "def f():\n    return 1\n\n" + "x = 2\n"
 
-      const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code, "test.py")) {
-        blocks.push(block)
-      }
+      const blocks = parseCodeBlocks(code, "test.py")
 
       expect(blocks.length).toBe(2)
       expect(blocks[0].kind).toBe("function")
@@ -349,13 +317,10 @@ class Person:
       expect(blocks[1].startLine).toBe(4)
     })
 
-    it("yields module docstring", async () => {
+    it("yields module docstring", () => {
       const code = '"""A docstring"""'
 
-      const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code, "test.py")) {
-        blocks.push(block)
-      }
+      const blocks = parseCodeBlocks(code, "test.py")
 
       expect(blocks.length).toBe(1)
       expect(blocks[0].kind).toBe("module")
@@ -363,42 +328,22 @@ class Person:
       expect(blocks[0].doc?.startLine).toBe(1)
     })
 
-    it("accumulates comments in import block", async () => {
+    it("accumulates comments in import block", () => {
       const code = "# a comment\nimport os"
 
-      const blocks: PyBlock[] = []
-      for await (const block of parseCodeBlocks(code, "test.py")) {
-        blocks.push(block)
-      }
+      const blocks = parseCodeBlocks(code, "test.py")
 
       expect(blocks.length).toBe(1)
       expect(blocks[0].kind).toBe("import")
       expect(blocks[0].text).toBe("# a comment\nimport os")
       expect(blocks[0].startLine).toBe(1)
     })
-
-    // it("accumulates comments in docblock", async () => {
-    //   const code = `# a comment\n"""A docstring"""`
-
-    //   const blocks: PyBlock[] = []
-    //   for await (const block of parseCodeBlocks(code)) {
-    //     blocks.push(block)
-    //   }
-
-    //   expect(blocks.length).toBe(1)
-    //   expect(blocks[0].kind).toBe("misc")
-    //   expect(blocks[0].text).toBe(`# a comment\n"""A docstring"""`)
-    //   expect(blocks[0].startLine).toBe(1)
-    // })
   })
 
-  it("accumulates comments in misc block", async () => {
+  it("accumulates comments in misc block", () => {
     const code = `# a comment\nprint("hello")`
 
-    const blocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(code)) {
-      blocks.push(block)
-    }
+    const blocks = parseCodeBlocks(code)
 
     expect(blocks.length).toBe(1)
     expect(blocks[0].kind).toBe("misc")
@@ -406,13 +351,10 @@ class Person:
     expect(blocks[0].startLine).toBe(1)
   })
 
-  it("accumulates comments in function block", async () => {
+  it("accumulates comments in function block", () => {
     const code = `# a comment\ndef f():\n    pass`
 
-    const blocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(code)) {
-      blocks.push(block)
-    }
+    const blocks = parseCodeBlocks(code)
 
     expect(blocks.length).toBe(1)
     expect(blocks[0].kind).toBe("function")
@@ -420,7 +362,7 @@ class Person:
     expect(blocks[0].startLine).toBe(1)
   })
 
-  it("accumulates consecutive mdocstring comments into single block", async () => {
+  it("accumulates consecutive mdocstring comments into single block", () => {
     const code = `"""A file with markdown directives."""
 
 import pandas as pd
@@ -429,10 +371,7 @@ import pandas as pd
 #🍰 ## a subheader
 #🍰 a paragraph`
 
-    const blocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(code)) {
-      blocks.push(block)
-    }
+    const blocks = parseCodeBlocks(code)
 
     expect(blocks.length).toBe(3)
 
@@ -452,15 +391,12 @@ import pandas as pd
     expect(blocks[2].startLine).toBe(5)
   })
 
-  it("parses function with docstring", async () => {
+  it("parses function with docstring", () => {
     const code = `def f():
     """A docstring."""
     pass`
 
-    const blocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(code)) {
-      blocks.push(block)
-    }
+    const blocks = parseCodeBlocks(code)
 
     expect(blocks.length).toBe(1)
     expect(blocks[0].kind).toBe("function")
@@ -470,17 +406,14 @@ import pandas as pd
     expect(blocks[0].doc?.startLine).toBe(2)
   })
 
-  it("parses class with docstring", async () => {
+  it("parses class with docstring", () => {
     const code = `class MyClass:
     """This is a class docstring."""
-    
+
     def method(self):
         return "hello"`
 
-    const blocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(code)) {
-      blocks.push(block)
-    }
+    const blocks = parseCodeBlocks(code)
 
     expect(blocks.length).toBe(1)
     expect(blocks[0].kind).toBe("class")
@@ -491,7 +424,7 @@ import pandas as pd
   })
 
   describe("fallback block naming", () => {
-    it("uses anonymous name when no blocks are parsed", async () => {
+    it("uses anonymous name when no blocks are parsed", () => {
       const content = "# just comments or empty file\n"
       const file: EditorFile = {
         fileId: FilePrimaryKey("test-file-1"),
@@ -502,10 +435,7 @@ import pandas as pd
         cid: "test-cid",
         selection: null,
       }
-      const blocks: PyBlock[] = []
-      for await (const block of parsePythonContentStreaming(file)) {
-        blocks.push(block)
-      }
+      const blocks = parsePythonContent(file)
 
       // with the new approach, the parser will still yield a single 'module' fallback
       expect(blocks.length).toBe(1)

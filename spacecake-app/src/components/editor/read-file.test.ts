@@ -1,13 +1,12 @@
 import { $getRoot, createEditor, type ElementNode } from "lexical"
 import { describe, expect, it } from "vitest"
 
-import type { PyBlock } from "@/types/parser"
-
 import { nodes } from "@/components/editor/nodes"
 import {
   convertPythonBlocksToLexical,
   getInitialEditorStateFromContent,
 } from "@/components/editor/read-file"
+import { parseCodeBlocks, parsePythonContent } from "@/lib/parser/python/blocks"
 import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
 
@@ -36,7 +35,8 @@ def my_function():
     expect(file.content === pythonCode, "file should have content")
     expect(file.fileType === FileType.Python, "file should be python type")
 
-    await convertPythonBlocksToLexical(file, editor, null, undefined, undefined, () => {})
+    const blocks = parsePythonContent(file)
+    await convertPythonBlocksToLexical(file, editor, null, undefined, blocks, () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -93,7 +93,8 @@ import pandas as pd
     expect(file.content === pythonCode, "file should have content")
     expect(file.fileType === FileType.Python, "file should be python type")
 
-    await convertPythonBlocksToLexical(file, editor, null, undefined, undefined, () => {})
+    const blocks = parsePythonContent(file)
+    await convertPythonBlocksToLexical(file, editor, null, undefined, blocks, () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -159,7 +160,8 @@ import pandas as pd
       cid: "test-cid",
       selection: null,
     }
-    await convertPythonBlocksToLexical(file, editor, null, undefined, undefined, () => {})
+    const blocks = parsePythonContent(file)
+    await convertPythonBlocksToLexical(file, editor, null, undefined, blocks, () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -174,7 +176,7 @@ import pandas as pd
       expect(children[1].getTextContent()).toBe("")
     })
   })
-  it("should create an empty paragraph if parsing fails", async () => {
+  it("should create an empty paragraph if no blocks are provided", async () => {
     const emptyCode = ""
     const editor = createEditor({ nodes })
     const file: EditorFile = {
@@ -187,16 +189,8 @@ import pandas as pd
       selection: null,
     }
 
-    // create an async generator that throws an error
-    const failingParser = async function* (file: EditorFile): AsyncGenerator<PyBlock> {
-      // this will never execute since we pass empty content, but satisfies the linter
-      if (file.content) {
-        yield {} as PyBlock
-      }
-      throw new Error("parsing failed")
-    }
-
-    await convertPythonBlocksToLexical(file, editor, null, undefined, failingParser, () => {})
+    // pass empty blocks to simulate the "no blocks" fallback path
+    await convertPythonBlocksToLexical(file, editor, null, undefined, [], () => {})
 
     editor.getEditorState().read(() => {
       const root = $getRoot()
@@ -228,49 +222,74 @@ def my_function():
       selection: null,
     }
 
-    // Create editor and then apply the initial state
-    const editor = createEditor({ nodes })
+    // mock window.electronAPI.parser for getInitialEditorStateFromContent
+    // which calls convertPythonBlocksToLexical without blockOverride
+    const mockElectronAPI = {
+      parser: {
+        parseBlocks: (code: string, filePath?: string) =>
+          Promise.resolve(parseCodeBlocks(code, filePath)),
+      },
+    }
 
-    // Create a promise that resolves when the async operation completes
-    const completionPromise = new Promise<void>((resolve) => {
-      const updateFunction = getInitialEditorStateFromContent(file, "rich", null, () => resolve())
+    // node.js has no `window`, so create one for this test
+    const hadWindow = "window" in globalThis
+    const origWindow = hadWindow ? globalThis.window : undefined
+    // @ts-expect-error — assigning mock window in Node.js test
+    globalThis.window = { ...globalThis.window, electronAPI: mockElectronAPI }
 
-      // Apply the update using the existing logic
-      updateFunction(editor)
-    })
+    try {
+      // Create editor and then apply the initial state
+      const editor = createEditor({ nodes })
 
-    // Wait for the completion callback to be called
-    await completionPromise
+      // Create a promise that resolves when the async operation completes
+      const completionPromise = new Promise<void>((resolve) => {
+        const updateFunction = getInitialEditorStateFromContent(file, "rich", null, () => resolve())
 
-    // Now check the editor state after initialization
-    editor.getEditorState().read(() => {
-      const root = $getRoot()
-      const children = root.getChildren()
-      expect(children).toHaveLength(4)
+        // Apply the update using the existing logic
+        updateFunction(editor)
+      })
 
-      // first child: import statement
-      expect(children[0].getType()).toBe("codeblock")
-      expect(children[0].getTextContent()).toBe("import os")
+      // Wait for the completion callback to be called
+      await completionPromise
 
-      // second child: empty paragraph
-      expect(children[1].getType()).toBe("container")
-      const paragraphChildren = (children[1] as ElementNode).getChildren()
-      expect(paragraphChildren).toHaveLength(1)
-      expect(paragraphChildren[0].getType()).toBe("paragraph")
-      expect(children[1].getTextContent()).toBe("")
+      // Now check the editor state after initialization
+      editor.getEditorState().read(() => {
+        const root = $getRoot()
+        const children = root.getChildren()
+        expect(children).toHaveLength(4)
 
-      // third child: function definition
-      expect(children[2].getType()).toBe("codeblock")
-      expect(children[2].getTextContent()).toBe(
-        "def my_function():\n    x = 1\n    y = 2\n    return x + y",
-      )
+        // first child: import statement
+        expect(children[0].getType()).toBe("codeblock")
+        expect(children[0].getTextContent()).toBe("import os")
 
-      // fourth child: empty paragraph
-      expect(children[3].getType()).toBe("container")
-      const paragraphChildren2 = (children[3] as ElementNode).getChildren()
-      expect(paragraphChildren2).toHaveLength(1)
-      expect(paragraphChildren2[0].getType()).toBe("paragraph")
-      expect(children[3].getTextContent()).toBe("")
-    })
+        // second child: empty paragraph
+        expect(children[1].getType()).toBe("container")
+        const paragraphChildren = (children[1] as ElementNode).getChildren()
+        expect(paragraphChildren).toHaveLength(1)
+        expect(paragraphChildren[0].getType()).toBe("paragraph")
+        expect(children[1].getTextContent()).toBe("")
+
+        // third child: function definition
+        expect(children[2].getType()).toBe("codeblock")
+        expect(children[2].getTextContent()).toBe(
+          "def my_function():\n    x = 1\n    y = 2\n    return x + y",
+        )
+
+        // fourth child: empty paragraph
+        expect(children[3].getType()).toBe("container")
+        const paragraphChildren2 = (children[3] as ElementNode).getChildren()
+        expect(paragraphChildren2).toHaveLength(1)
+        expect(paragraphChildren2[0].getType()).toBe("paragraph")
+        expect(children[3].getTextContent()).toBe("")
+      })
+    } finally {
+      if (hadWindow) {
+        // @ts-expect-error — restoring original window
+        globalThis.window = origWindow
+      } else {
+        // @ts-expect-error — removing mock window
+        delete globalThis.window
+      }
+    }
   })
 })

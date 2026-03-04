@@ -2,34 +2,26 @@ import { readFileSync } from "fs"
 import { join } from "path"
 import { describe, expect, it } from "vitest"
 
-import type { PyBlock } from "@/types/parser"
-
 import {
   parseCodeBlocks,
-  parsePythonContentStreaming,
+  parsePythonContent,
   serializeBlocksToPython,
 } from "@/lib/parser/python/blocks"
 import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
 
 describe("Python parser isomorphism", () => {
-  it("tests that parse/serialize is isomorphic for core.py", async () => {
+  it("tests that parse/serialize is isomorphic for core.py", () => {
     const code = readFileSync(join(__dirname, "../../../../tests/fixtures/core.py"), "utf-8")
 
     // First parse
-    const originalBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(code, "test.py")) {
-      originalBlocks.push(block)
-    }
+    const originalBlocks = parseCodeBlocks(code, "test.py")
 
     // Serialize back to Python
     const serializedCode = serializeBlocksToPython(originalBlocks)
 
     // Parse the serialized code
-    const reparsedBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(serializedCode, "test.py")) {
-      reparsedBlocks.push(block)
-    }
+    const reparsedBlocks = parseCodeBlocks(serializedCode, "test.py")
 
     // Verify isomorphism
     expect(reparsedBlocks.length).toBe(originalBlocks.length)
@@ -49,21 +41,15 @@ describe("Python parser isomorphism", () => {
     expect(serializedCode).toBe(code)
   })
 
-  it("tests that parse/serialize is isomorphic for simple python code", async () => {
+  it("tests that parse/serialize is isomorphic for simple python code", () => {
     const code = `"""docstring"""\nimport os\ndef f():\n    pass\n`
 
-    const originalBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(code, "test.py")) {
-      originalBlocks.push(block)
-    }
+    const originalBlocks = parseCodeBlocks(code, "test.py")
 
     const serializedCode = serializeBlocksToPython(originalBlocks)
     expect(serializedCode).toBe(code)
 
-    const reparsedBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(serializedCode, "test.py")) {
-      reparsedBlocks.push(block)
-    }
+    const reparsedBlocks = parseCodeBlocks(serializedCode, "test.py")
 
     expect(reparsedBlocks.length).toBe(originalBlocks.length)
     expect(reparsedBlocks[0].text).toBe(originalBlocks[0].text)
@@ -71,21 +57,15 @@ describe("Python parser isomorphism", () => {
     expect(reparsedBlocks[2].text).toBe(originalBlocks[2].text)
   })
 
-  it("tests that parse/serialize is isomorphic for code with comments and whitespace", async () => {
+  it("tests that parse/serialize is isomorphic for code with comments and whitespace", () => {
     const code = `# header comment\n"""docstring"""\n\nimport os\n\n# function comment\ndef f():\n    pass\n`
 
-    const originalBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(code, "test.py")) {
-      originalBlocks.push(block)
-    }
+    const originalBlocks = parseCodeBlocks(code, "test.py")
 
     const serializedCode = serializeBlocksToPython(originalBlocks)
     expect(serializedCode).toBe(code)
 
-    const reparsedBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(serializedCode, "test.py")) {
-      reparsedBlocks.push(block)
-    }
+    const reparsedBlocks = parseCodeBlocks(serializedCode, "test.py")
 
     expect(reparsedBlocks.length).toBe(originalBlocks.length)
     for (let i = 0; i < originalBlocks.length; i++) {
@@ -93,25 +73,19 @@ describe("Python parser isomorphism", () => {
     }
   })
 
-  it("tests that parse/serialize is isomorphic for empty file", async () => {
+  it("tests that parse/serialize is isomorphic for empty file", () => {
     const code = ""
 
-    const originalBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(code, "test.py")) {
-      originalBlocks.push(block)
-    }
+    const originalBlocks = parseCodeBlocks(code, "test.py")
 
     const serializedCode = serializeBlocksToPython(originalBlocks)
     expect(serializedCode).toBe(code)
   })
 
-  it("tests that parse/serialize is isomorphic for file with only comments", async () => {
+  it("tests that parse/serialize is isomorphic for file with only comments", () => {
     const code = "# just a comment\n# another comment\n"
 
-    const originalBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(code, "test.py")) {
-      originalBlocks.push(block)
-    }
+    const originalBlocks = parseCodeBlocks(code, "test.py")
 
     // Files with only comments don't produce blocks, so we get empty array
     expect(originalBlocks.length).toBe(0)
@@ -129,10 +103,7 @@ describe("Python parser isomorphism", () => {
       cid: "test-cid",
       selection: null,
     }
-    const streamingBlocks: PyBlock[] = []
-    for await (const block of parsePythonContentStreaming(file)) {
-      streamingBlocks.push(block)
-    }
+    const streamingBlocks = parsePythonContent(file)
 
     // Streaming parser should create a fallback 'module' block
     expect(streamingBlocks.length).toBe(1)
@@ -143,7 +114,7 @@ describe("Python parser isomorphism", () => {
     expect(streamingSerialized).toBe(code)
   })
 
-  it("tests that parse/serialize is isomorphic for complex nested structures", async () => {
+  it("tests that parse/serialize is isomorphic for complex nested structures", () => {
     const code = `"""Module docstring"""
 
 import os
@@ -151,10 +122,10 @@ import sys
 
 class OuterClass:
     """Class docstring"""
-    
+
     def __init__(self):
         self.value = 42
-    
+
     class InnerClass:
         def inner_method(self):
             pass
@@ -168,19 +139,13 @@ def outer_function():
 if __name__ == "__main__":
     print("main")`
 
-    const originalBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(code, "test.py")) {
-      originalBlocks.push(block)
-    }
+    const originalBlocks = parseCodeBlocks(code, "test.py")
 
     const serializedCode = serializeBlocksToPython(originalBlocks)
     expect(serializedCode).toBe(code)
 
     // Verify reparsing produces identical blocks
-    const reparsedBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(serializedCode, "test.py")) {
-      reparsedBlocks.push(block)
-    }
+    const reparsedBlocks = parseCodeBlocks(serializedCode, "test.py")
 
     expect(reparsedBlocks.length).toBe(originalBlocks.length)
     for (let i = 0; i < originalBlocks.length; i++) {
@@ -189,7 +154,7 @@ if __name__ == "__main__":
     }
   })
 
-  it("tests that parse/serialize is isomorphic for async functions and classes", async () => {
+  it("tests that parse/serialize is isomorphic for async functions and classes", () => {
     const code = `"""Async module"""
 
 import asyncio
@@ -203,18 +168,12 @@ class AsyncClass:
         await asyncio.sleep(0.1)
         return "async method result"`
 
-    const originalBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(code, "test.py")) {
-      originalBlocks.push(block)
-    }
+    const originalBlocks = parseCodeBlocks(code, "test.py")
 
     const serializedCode = serializeBlocksToPython(originalBlocks)
     expect(serializedCode).toBe(code)
 
-    const reparsedBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(serializedCode, "test.py")) {
-      reparsedBlocks.push(block)
-    }
+    const reparsedBlocks = parseCodeBlocks(serializedCode, "test.py")
 
     expect(reparsedBlocks.length).toBe(originalBlocks.length)
     for (let i = 0; i < originalBlocks.length; i++) {
@@ -222,7 +181,7 @@ class AsyncClass:
     }
   })
 
-  it("tests that parse/serialize is isomorphic for decorators and type hints", async () => {
+  it("tests that parse/serialize is isomorphic for decorators and type hints", () => {
     const code = `"""Type hints and decorators"""
 
 from typing import List, Optional
@@ -238,18 +197,12 @@ def decorator(func):
 def typed_function(items: List[str]) -> Optional[str]:
     return items[0] if items else None`
 
-    const originalBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(code, "test.py")) {
-      originalBlocks.push(block)
-    }
+    const originalBlocks = parseCodeBlocks(code, "test.py")
 
     const serializedCode = serializeBlocksToPython(originalBlocks)
     expect(serializedCode).toBe(code)
 
-    const reparsedBlocks: PyBlock[] = []
-    for await (const block of parseCodeBlocks(serializedCode, "test.py")) {
-      reparsedBlocks.push(block)
-    }
+    const reparsedBlocks = parseCodeBlocks(serializedCode, "test.py")
 
     expect(reparsedBlocks.length).toBe(originalBlocks.length)
     for (let i = 0; i < originalBlocks.length; i++) {

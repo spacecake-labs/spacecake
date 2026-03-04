@@ -26,37 +26,6 @@ const mockPaneMachine = {
   send: vi.fn(),
 } as unknown as PaneMachineRef
 
-// Mock web-tree-sitter to avoid WASM loading issues in tests
-vi.mock("web-tree-sitter", () => {
-  return {
-    Parser: class {
-      static init = vi.fn()
-      setLanguage = vi.fn()
-      parse = vi.fn(() => ({
-        rootNode: {
-          children: [],
-        },
-      }))
-    },
-  }
-})
-
-vi.mock("@/lib/parser/languages", () => {
-  const mockQuery = {
-    exec: () => [],
-  }
-
-  const mockLanguage = {
-    query: () => mockQuery,
-  }
-
-  return {
-    default: Promise.resolve({
-      Python: mockLanguage,
-    }),
-  }
-})
-
 // Suppress act() warnings for this integration test - WebSocket message handling
 // is async and can't be wrapped in act() without blocking the event loop
 const originalConsoleError = console.error

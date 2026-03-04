@@ -7,7 +7,7 @@ import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPl
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
 import * as React from "react"
 import { act } from "react"
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 
 import { ContentEditable } from "@/components/editor/content-editable"
 import { editorConfig } from "@/components/editor/editor"
@@ -15,36 +15,6 @@ import { mdBlockToNode, nodeToMdBlock } from "@/components/editor/markdown-utils
 import { initializeUnitTest } from "@/components/editor/test-utils"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 import { anonymousName, Block } from "@/types/parser"
-
-vi.mock("web-tree-sitter", () => {
-  return {
-    Parser: class {
-      static init = vi.fn()
-      setLanguage = vi.fn()
-      parse = vi.fn(() => ({
-        rootNode: {
-          children: [],
-        },
-      }))
-    },
-  }
-})
-
-vi.mock("@/lib/parser/languages", () => {
-  const mockQuery = {
-    exec: () => [],
-  }
-
-  const mockLanguage = {
-    query: () => mockQuery,
-  }
-
-  return {
-    default: Promise.resolve({
-      Python: mockLanguage,
-    }),
-  }
-})
 
 const Plugins = React.memo(function Plugins() {
   return (

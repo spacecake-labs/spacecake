@@ -1,5 +1,6 @@
 import type { DisplayStatusline } from "@/lib/statusline-parser"
 import type { ClaudeTask, ClaudeTaskError } from "@/types/claude-task"
+import type { PyBlock } from "@/types/parser"
 import type { AbsolutePath, FileContent, FileTree, FileTreeEvent } from "@/types/workspace"
 
 import { FileSystemError, type IndexedFile } from "@/services/file-system"
@@ -104,6 +105,10 @@ export interface ElectronAPI {
       ...args: unknown[]
     ) => Promise<Either<SerializedPgliteError, unknown>>
     onInvalidate: (handler: (method: string) => void) => () => void
+  }
+
+  parser: {
+    parseBlocks: (code: string, filePath?: string) => Promise<PyBlock[]>
   }
 
   git: {

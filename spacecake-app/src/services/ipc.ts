@@ -355,6 +355,14 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       }
     })
 
+    // Parser IPC handler — tree-sitter runs in main process (native module)
+    let _parseBlocksForFile: typeof import("@/lib/parser/python/blocks").parseBlocksForFile | null =
+      null
+    ipcMain.handle("parser:parse-blocks", async (_, code: string, filePath?: string) => {
+      _parseBlocksForFile ??= (await import("@/lib/parser/python/blocks")).parseBlocksForFile
+      return _parseBlocksForFile(code, filePath)
+    })
+
     // Git IPC handlers
     ipcMain.handle("git:branch:current", (_, workspacePath: string) =>
       Effect.runPromise(

@@ -1,29 +1,19 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
-import { Language, Parser } from "web-tree-sitter"
+import type Parser from "tree-sitter"
 
-import { getLanguages } from "@/lib/parser/languages"
+import { beforeEach, describe, expect, it } from "vitest"
+
+import { createParser } from "@/lib/parser/languages"
 import { dedentDocstring, findDocstringNode } from "@/lib/parser/python/docstring"
-
-let Python: Language
 
 describe("Python docstring utilities", () => {
   let parser: Parser
 
-  beforeAll(async () => {
-    ;({ Python } = await getLanguages())
-  })
-
   beforeEach(() => {
-    parser = new Parser()
-    parser.setLanguage(Python)
-  })
-
-  afterEach(() => {
-    parser.delete()
+    parser = createParser()
   })
 
   describe("findDocstringNode", () => {
-    it("finds docstring in function", async () => {
+    it("finds docstring in function", () => {
       const code = `def f():
     """A function docstring."""
     pass`
@@ -35,10 +25,9 @@ describe("Python docstring utilities", () => {
       const docstringNode = findDocstringNode(functionNode)
       expect(docstringNode).not.toBeNull()
       expect(docstringNode?.text).toBe('"""A function docstring."""')
-      tree.delete()
     })
 
-    it("finds docstring in class", async () => {
+    it("finds docstring in class", () => {
       const code = `class MyClass:
     """A class docstring."""
 
@@ -52,7 +41,6 @@ describe("Python docstring utilities", () => {
       const docstringNode = findDocstringNode(classNode)
       expect(docstringNode).not.toBeNull()
       expect(docstringNode?.text).toBe('"""A class docstring."""')
-      tree.delete()
     })
   })
 
@@ -67,7 +55,7 @@ describe("Python docstring utilities", () => {
 
 
     This is a docstring.
-    
+
 
 `
       expect(dedentDocstring(docstring)).toBe("This is a docstring.")
@@ -134,7 +122,7 @@ describe("Python docstring utilities", () => {
 
     it("handles docstring with only whitespace lines", () => {
       const docstring = `
-    
+
 
 `
       expect(dedentDocstring(docstring)).toBe("")

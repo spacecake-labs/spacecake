@@ -67,6 +67,9 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
     invoke: async () => right(undefined),
     onInvalidate: () => () => {},
   },
+  parser: {
+    parseBlocks: async () => [],
+  },
   git: {
     getCurrentBranch: async () => null,
     isGitRepo: async () => false,

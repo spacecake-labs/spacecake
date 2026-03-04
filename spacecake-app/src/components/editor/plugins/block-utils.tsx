@@ -6,16 +6,10 @@ import { maybeUpdateDocstring } from "@/components/editor/plugins/docstring-upda
 import { PyBlock } from "@/types/parser"
 
 /**
- * Parse code into blocks - shared utility to avoid duplicate parsing.
- * lazy-loads tree-sitter wasm so it's only fetched for python files.
+ * Parse code into blocks via IPC — tree-sitter runs in the main process.
  */
 export async function getBlocks(code: string): Promise<PyBlock[]> {
-  const { parseCodeBlocks } = await import("@/lib/parser/python/blocks")
-  const blocks: PyBlock[] = []
-  for await (const block of parseCodeBlocks(code)) {
-    blocks.push(block)
-  }
-  return blocks
+  return window.electronAPI.parser.parseBlocks(code)
 }
 
 /**

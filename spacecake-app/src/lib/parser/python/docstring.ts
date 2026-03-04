@@ -1,4 +1,4 @@
-import { Node } from "web-tree-sitter"
+import type { SyntaxNode } from "@/lib/parser/languages"
 
 import { isDocstring } from "@/lib/parser/python/blocks"
 
@@ -6,7 +6,7 @@ import { isDocstring } from "@/lib/parser/python/blocks"
  * Find the docstring node within a given node (function, class, etc.)
  * Searches for a block child that contains a docstring
  */
-export function findDocstringNode(node: Node): Node | null {
+export function findDocstringNode(node: SyntaxNode): SyntaxNode | null {
   for (const child of node.children) {
     if (child && child.type === "block") {
       const blockChild = child.firstChild
