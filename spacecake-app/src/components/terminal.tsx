@@ -9,6 +9,7 @@ import type { TerminalAPI } from "@/hooks/use-ghostty-engine"
 
 import { TabCloseButton, tabTriggerClasses } from "@/components/tab-bar/tab-close-button"
 import { TerminalTab } from "@/components/terminal-tab"
+import { useTheme } from "@/components/theme-provider"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useHotkey } from "@/hooks/use-hotkey"
@@ -43,6 +44,12 @@ function terminalDisplayName(title: string): string {
 }
 
 export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed }: TerminalProps) {
+  const { theme } = useTheme()
+  // ghostty cannot switch theme after initialization, so lock the terminal
+  // panel to the theme at first render — updates on app reload
+  const lockedThemeRef = useRef(theme)
+  const lockedTheme = lockedThemeRef.current
+
   const [initialTab] = useState(() => makeTab())
   const [tabs, setTabs] = useState<TabState[]>(() => [initialTab])
   const [activeTabId, setActiveTabId] = useState<string | null>(initialTab.id)
@@ -347,6 +354,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
             id={tab.id}
             cwd={cwd}
             isActive={tab.id === activeTabId}
+            lockedTheme={lockedTheme}
             onReady={handleTabReady}
             onDispose={handleTabDispose}
             onTitleChange={handleTitleChange}
