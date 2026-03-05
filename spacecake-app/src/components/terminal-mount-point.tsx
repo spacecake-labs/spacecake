@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react"
 
-import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
 interface TerminalMountPointProps {
   containerEl: HTMLDivElement | null
+  lockedTheme: "light" | "dark"
   className?: string
   onMount?: () => void
 }
@@ -14,9 +14,13 @@ const backgroundColors = {
   dark: "#0a0a0a",
 } as const
 
-export function TerminalMountPoint({ containerEl, className, onMount }: TerminalMountPointProps) {
+export function TerminalMountPoint({
+  containerEl,
+  lockedTheme,
+  className,
+  onMount,
+}: TerminalMountPointProps) {
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const { theme } = useTheme()
 
   useEffect(() => {
     if (!wrapperRef.current || !containerEl) return
@@ -42,7 +46,7 @@ export function TerminalMountPoint({ containerEl, className, onMount }: Terminal
       ref={wrapperRef}
       data-testid="ghostty-terminal"
       className={cn("relative w-full h-full p-4 box-border", className)}
-      style={{ backgroundColor: backgroundColors[theme] }}
+      style={{ backgroundColor: backgroundColors[lockedTheme] }}
     />
   )
 }

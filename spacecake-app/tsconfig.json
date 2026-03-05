@@ -4,10 +4,8 @@
     "module": "ESNext",
     "allowJs": true,
     "skipLibCheck": true,
-    "esModuleInterop": true,
     "strict": true,
     "sourceMap": true,
-    "baseUrl": ".",
     "outDir": "dist",
     "paths": {
       "@/*": ["./src/*"]
@@ -17,6 +15,6 @@
     "jsx": "react-jsx",
     "types": ["electron", "vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "e2e/**/*.ts", "forge.env.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "forge.env.d.ts"],
   "exclude": ["tests/fixtures/**"]
 }

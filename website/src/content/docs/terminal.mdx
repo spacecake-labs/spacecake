@@ -1,0 +1,68 @@
+---
+title: terminal
+description: Integrated terminal with tabs, keyboard shortcuts, and shell integration.
+---
+
+## overview
+
+spacecake includes an integrated terminal at the bottom of the screen. toggle it with `` ctrl+` ``, or click and drag the top edge to resize.
+
+each workspace gets its own terminal session, started in the workspace's root directory using your default shell. switching to a different workspace ends the current session and starts a fresh one in the new workspace.
+
+collapsing the terminal keeps the session alive — your shell state, environment variables, and running processes are all preserved when you expand it again.
+
+## tabs
+
+the terminal supports multiple tabs, so you can run several shell sessions side by side — for example, a dev server in one tab and Claude Code in another.
+
+### creating and closing tabs
+
+- press `⌘T` / `ctrl+T` to open a new terminal tab, or click the **+** button in the terminal tab bar
+- press `⌘W` / `ctrl+W` to close the active tab (when the terminal is focused)
+- middle-click a tab to close it
+
+closing the last tab hides the terminal panel. the next time you open the terminal, a fresh tab is created.
+
+### switching tabs
+
+- `ctrl+Tab` — switch to the next tab
+- `ctrl+Shift+Tab` — switch to the previous tab
+- click any tab to switch to it directly
+
+### tab labels
+
+tab labels update automatically based on what's running in the shell. by default a new tab shows a placeholder label, then updates to show the current directory or running command. for example, if you `cd` into a `src/` folder, the tab label changes to `src`. if you run `pnpm dev`, the label changes to `pnpm dev`.
+
+these labels come from your shell's terminal title sequence (OSC 0/2), so they work with any shell that sets the window title.
+
+### tab behavior
+
+- each tab runs its own independent shell process (PTY)
+- switching tabs does **not** kill background processes — inactive tabs keep running
+- tabs are not saved between sessions — they are created fresh each time you open spacecake
+
+## shell integration
+
+### editor environment variables
+
+`EDITOR` and `VISUAL` are set to `spacecake open --wait`, so tools like `git commit` and `crontab -e` open files directly in the editor. the terminal waits until you close the file before returning control to the shell.
+
+### claude code
+
+when you run Claude Code in the terminal, spacecake automatically connects and provides file context. see [claude code integration](/claude-code-integration) for details.
+
+a common workflow is to keep Claude Code running in one tab while using a separate tab for your dev server or manual commands.
+
+## theme
+
+the terminal theme (light or dark) is locked when a tab is created. if you toggle the app theme after opening a terminal, existing tabs won't update — press `⌘R` / `ctrl+R` to reload the app, which restarts all terminal sessions with the new theme.
+
+## keyboard shortcuts
+
+| action                 | macos              | windows/linux        |
+| ---------------------- | ------------------ | -------------------- |
+| toggle terminal        | `` ctrl+` ``       | `` ctrl+` ``         |
+| new tab                | `⌘T`               | `ctrl+T`             |
+| close tab              | `⌘W`               | `ctrl+W`             |
+| next tab               | `ctrl+Tab`         | `ctrl+Tab`           |
+| previous tab           | `ctrl+Shift+Tab`   | `ctrl+Shift+Tab`     |

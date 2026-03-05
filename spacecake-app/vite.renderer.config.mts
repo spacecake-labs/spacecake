@@ -57,7 +57,10 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes("node_modules/mermaid")) return "vendor-mermaid"
+          // no manual chunk for mermaid — it's lazy-loaded via React.lazy() and
+          // forcing it into a named chunk causes __vitePreload to land there,
+          // making every chunk in the app statically depend on it.
+
           // codemirror-lang-mermaid is lazy-loaded separately — don't bundle with core codemirror
           if (id.includes("node_modules/codemirror-lang-mermaid"))
             return "vendor-codemirror-mermaid"

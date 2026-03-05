@@ -96,6 +96,7 @@ export default defineConfig({
         {
           label: "features",
           items: [
+            { label: "terminal", slug: "terminal" },
             { label: "writing markdown", slug: "writing-markdown" },
             {
               label: "claude code integration",

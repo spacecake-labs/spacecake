@@ -19,13 +19,11 @@ async function fetchLatestRelease() {
         headers: {
           Accept: "application/vnd.github.v3+json",
         },
-      }
+      },
     )
 
     if (!response.ok) {
-      throw new Error(
-        `GitHub API error: ${response.status} ${response.statusText}`
-      )
+      throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
     }
 
     return await response.json()
@@ -36,20 +34,14 @@ async function fetchLatestRelease() {
 }
 
 export async function getDownloadUrl(
-  platform:
-    | "macos-arm64"
-    | "macos-x64"
-    | "debian-x64"
-    | "linux-x64"
-    | "windows-x64"
+  platform: "macos-arm64" | "macos-x64" | "debian-x64" | "linux-x64" | "windows-x64",
 ): Promise<DownloadResult> {
   const pattern = platformPatterns[platform]
 
   // In development, skip the API call to avoid rate limits during refresh
   if (!import.meta.env.PROD) {
     return {
-      downloadUrl:
-        "https://github.com/spacecake-labs/spacecake/releases/latest",
+      downloadUrl: "https://github.com/spacecake-labs/spacecake/releases/latest",
       errorMessage: undefined,
     }
   }
@@ -63,9 +55,7 @@ export async function getDownloadUrl(
     }
   }
 
-  const asset = releaseData.assets?.find((a: { name: string }) =>
-    a.name.includes(pattern)
-  )
+  const asset = releaseData.assets?.find((a: { name: string }) => a.name.includes(pattern))
 
   if (asset) {
     return {
