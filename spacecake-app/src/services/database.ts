@@ -91,10 +91,7 @@ export const makeDatabaseService = (client: PGliteInterface, orm: Orm) => {
   const query = <R>(execute: (_: Orm) => Promise<R>) =>
     Effect.tryPromise({
       try: () => execute(orm),
-      catch: (error) => {
-        console.error(error)
-        return new PgliteError({ cause: error })
-      },
+      catch: (error) => new PgliteError({ cause: error }),
     })
 
   return {
