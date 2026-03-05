@@ -12,52 +12,78 @@ import TaskTablePreview from "./TaskTablePreview.astro"
       <div class="markdown-panel">
         <!-- Tab Bar -->
         <div
-          class="tab-bar flex items-center bg-[#0a0a0a] border-b border-zinc-800"
+          class="tab-bar flex items-center bg-[#0a0a0a]/50 border-b border-zinc-800"
         >
-          <button
-            class="editor-tab active flex items-center gap-2 px-3 py-2 text-xs font-medium cursor-pointer transition-colors"
-            data-tab="skills"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="tab-icon"
-            >
-              <path
-                d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
-              ></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-            </svg>
-            <span class="tab-filename">ship-faster.md</span>
-          </button>
-          <button
-            class="editor-tab flex items-center gap-2 px-3 py-2 text-xs font-medium cursor-pointer transition-colors"
-            data-tab="claude"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="tab-icon"
-            >
-              <path
-                d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
-              ></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-            </svg>
-            <span class="tab-filename">CLAUDE.md</span>
-          </button>
+          <div class="flex items-center h-full min-w-0 flex-1">
+            <button class="editor-tab active" data-tab="skills">
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="tab-icon"
+              >
+                <path
+                  d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                ></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span class="tab-filename">ship-faster.md</span>
+              <span class="editor-tab-close">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </span>
+            </button>
+            <button class="editor-tab" data-tab="claude">
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="tab-icon"
+              >
+                <path
+                  d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                ></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span class="tab-filename">CLAUDE.md</span>
+              <span class="editor-tab-close">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </span>
+            </button>
+          </div>
         </div>
 
         <!-- Tab Content: Ship Faster -->
@@ -187,111 +213,72 @@ import TaskTablePreview from "./TaskTablePreview.astro"
 
       <!-- Terminal Panel -->
       <div class="terminal-panel">
-        <div
-          class="toolbar-row flex items-center justify-between px-4 bg-[#0a0a0a] border-b border-zinc-800"
-        >
-          <div class="dock-tabs flex items-center gap-1">
-            <button
-              class="dock-tab active"
-              data-dock="terminal"
-              title="terminal"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><polyline points="4 17 10 11 4 5"></polyline><line
-                  x1="12"
-                  y1="19"
-                  x2="20"
-                  y2="19"></line></svg
-              >
-            </button>
-            <button class="dock-tab" data-dock="git" title="git">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><line x1="6" y1="3" x2="6" y2="15"></line><circle
-                  cx="18"
-                  cy="6"
-                  r="3"></circle><circle cx="6" cy="18" r="3"></circle><path
-                  d="M18 9a9 9 0 0 1-9 9"></path></svg
-              >
-            </button>
-          </div>
-          <div class="dock-badges active" data-dock-badges="terminal">
-            <div
-              class="toolbar-badge toolbar-badge-secondary flex items-center border border-zinc-700/50 rounded px-2 py-0.5"
-            >
-              <span class="text-zinc-400 text-xs font-mono whitespace-nowrap"
-                >🧠 67%</span
-              >
-            </div>
-
-            <div
-              class="toolbar-badge toolbar-badge-secondary flex items-center border border-zinc-700/50 rounded px-2 py-0.5"
-            >
-              <span class="text-zinc-400 text-xs font-mono whitespace-nowrap"
-                >💰 $4.20</span
-              >
-            </div>
-
-            <div
-              class="toolbar-badge toolbar-badge-primary flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/25 rounded px-2 py-0.5"
-            >
-              <div
-                class="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0"
-              >
-              </div>
-              <span class="text-emerald-400 text-xs font-mono whitespace-nowrap"
-                >Opus 4.5</span
-              >
-            </div>
-          </div>
-
-          <div class="dock-badges" data-dock-badges="git">
-            <div
-              class="toolbar-badge toolbar-badge-primary flex items-center gap-1.5 border border-zinc-700/50 rounded px-2 py-0.5"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="text-zinc-400"
-                ><line x1="6" y1="3" x2="6" y2="15"></line><circle
-                  cx="18"
-                  cy="6"
-                  r="3"></circle><circle cx="6" cy="18" r="3"></circle><path
-                  d="M18 9a9 9 0 0 1-9 9"></path></svg
-              >
-              <span class="text-zinc-400 text-xs font-mono whitespace-nowrap"
-                >main</span
-              >
-            </div>
-          </div>
-        </div>
-
         <div class="dock-content active" data-dock-content="terminal">
-          <div class="p-4 text-xs space-y-3 font-jetbrains flex-1 bg-[#0a0a0a]">
+          <!-- Terminal Tab Bar -->
+          <div
+            class="terminal-tab-bar flex items-center bg-[#0a0a0a]/50 border-b border-zinc-800"
+          >
+            <div class="flex items-center h-full min-w-0 flex-1">
+              <button class="terminal-tab active" data-terminal-tab="tab1">
+                <span class="terminal-tab-label">✻ Claude Code</span>
+                <span class="terminal-tab-close">
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </span>
+              </button>
+              <button class="terminal-tab" data-terminal-tab="tab2">
+                <span class="terminal-tab-label">pnpm dev</span>
+                <span class="terminal-tab-close">
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </span>
+              </button>
+            </div>
+            <div class="flex items-center flex-shrink-0 px-2">
+              <span class="terminal-tab-add" title="new terminal (⌘T)">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </span>
+            </div>
+          </div>
+          <!-- Claude Code tab content -->
+          <div
+            class="terminal-tab-content active p-4 text-xs space-y-3 font-jetbrains flex-1 bg-[#0a0a0a]"
+            data-terminal-content="tab1"
+          >
             <div class="border border-orange-500 rounded p-3 space-y-2">
               <div class="text-orange-400 border-b border-orange-900 pb-2">
                 ━━━━━ Claude Code ━━━━━━━━━━━━━━━━━━
@@ -337,6 +324,57 @@ import TaskTablePreview from "./TaskTablePreview.astro"
             </div>
 
             <div class="text-zinc-600 text-xs pt-2">? for shortcuts</div>
+          </div>
+
+          <!-- pnpm dev tab content -->
+          <div
+            class="terminal-tab-content p-4 text-xs space-y-2 font-jetbrains flex-1 bg-[#0a0a0a]"
+            data-terminal-content="tab2"
+          >
+            <div class="text-zinc-500">$ pnpm dev</div>
+            <div class="space-y-0.5 pt-1">
+              <div>
+                <span class="text-cyan-400 font-bold">VITE</span>
+                <span class="text-zinc-500"> v6.2.0</span>
+                <span class="text-emerald-400"> ready in</span>
+                <span class="text-white"> 284</span>
+                <span class="text-zinc-500">ms</span>
+              </div>
+              <div class="pt-2 space-y-0.5">
+                <div>
+                  <span class="text-emerald-400">➜</span>
+                  <span class="text-white font-bold">&nbsp; Local: &nbsp;</span>
+                  <span class="text-cyan-400">http://localhost:5173/</span>
+                </div>
+                <div>
+                  <span class="text-emerald-400">➜</span>
+                  <span class="text-zinc-500"
+                    >&nbsp; Network: http://192.168.1.42:5173/</span
+                  >
+                </div>
+                <div>
+                  <span class="text-emerald-400">➜</span>
+                  <span class="text-zinc-500"
+                    >&nbsp; press
+                    <span class="text-white font-bold">h + enter</span> to show help</span
+                  >
+                </div>
+              </div>
+              <div class="pt-3 space-y-1">
+                <div class="text-zinc-600">
+                  10:31:42
+                  <span class="text-cyan-400">[vite]</span>
+                  <span class="text-emerald-400"> hmr update /src/app.tsx</span>
+                </div>
+                <div class="text-zinc-600">
+                  10:31:44
+                  <span class="text-cyan-400">[vite]</span>
+                  <span class="text-emerald-400">
+                    hmr update /src/components/editor.tsx</span
+                  >
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -482,6 +520,77 @@ import TaskTablePreview from "./TaskTablePreview.astro"
       </div>
     </div>
 
+    <!-- Bottom Status Bar -->
+    <div class="status-bar">
+      <div class="status-bar-left">
+        <button class="dock-tab active" data-dock="terminal" title="terminal">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><polyline points="4 17 10 11 4 5"></polyline><line
+              x1="12"
+              y1="19"
+              x2="20"
+              y2="19"></line></svg
+          >
+        </button>
+        <button class="dock-tab" data-dock="git" title="git">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><line x1="6" y1="3" x2="6" y2="15"></line><circle
+              cx="18"
+              cy="6"
+              r="3"></circle><circle cx="6" cy="18" r="3"></circle><path
+              d="M18 9a9 9 0 0 1-9 9"></path></svg
+          >
+        </button>
+        <div class="status-bar-branch">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="text-zinc-500"
+            ><line x1="6" y1="3" x2="6" y2="15"></line><circle
+              cx="18"
+              cy="6"
+              r="3"></circle><circle cx="6" cy="18" r="3"></circle><path
+              d="M18 9a9 9 0 0 1-9 9"></path></svg
+          >
+          <span>main</span>
+        </div>
+      </div>
+      <div class="status-bar-right">
+        <div class="status-badge-claude">
+          <div class="status-dot"></div>
+          <span>Claude</span>
+        </div>
+        <div class="status-badge-info">
+          <span>Opus 4.6 | 🧠 67% | 💰 $4.20</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Task Table - Desktop Only -->
     <div class="task-panel-desktop">
       <TaskTablePreview embedded />
@@ -531,13 +640,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     min-height: 320px;
   }
 
-  /* Toolbar rows must be exactly the same height */
-  .toolbar-row {
-    height: 32px;
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-  }
+  /* legacy toolbar-row removed — replaced by status-bar */
 
   @media (min-width: 550px) {
     .editor-layout {
@@ -650,22 +753,81 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     padding: 3px 8px !important;
   }
 
-  .toolbar-badges {
+  /* Bottom status bar */
+  .status-bar {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    flex-wrap: nowrap;
+    justify-content: space-between;
+    height: 28px;
+    padding: 0 12px;
+    background: rgba(10, 10, 10, 0.5);
+    border-top: 1px solid #27272a;
     flex-shrink: 0;
   }
 
-  .toolbar-badge {
-    flex-shrink: 0;
-    white-space: nowrap;
+  .status-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
   }
 
-  /* Hide secondary badges at narrow widths */
-  @media (max-width: 1600px) {
-    .toolbar-badge-secondary {
+  .status-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .status-bar-branch {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 4px;
+    padding: 1px 6px;
+    border: 1px solid rgba(63, 63, 70, 0.5);
+    border-radius: 4px;
+    color: #71717a;
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.65rem;
+  }
+
+  .status-badge-claude {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 7px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 4px;
+    background: rgba(16, 185, 129, 0.06);
+    color: #34d399;
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.65rem;
+    font-weight: 500;
+  }
+
+  .status-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #34d399;
+    flex-shrink: 0;
+  }
+
+  .status-badge-info {
+    display: flex;
+    align-items: center;
+    padding: 1px 7px;
+    border: 1px solid rgba(63, 63, 70, 0.5);
+    border-radius: 4px;
+    color: #71717a;
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.65rem;
+  }
+
+  /* Hide status bar info badge at narrow widths */
+  @media (max-width: 1100px) {
+    .status-badge-info {
       display: none;
     }
   }
@@ -689,52 +851,96 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   /* Tab bar styling */
   .tab-bar {
     height: 32px;
-    border-bottom: 1px solid #27272a; /* zinc-800 */
     flex-shrink: 0;
   }
 
   .editor-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     height: 100%;
+    padding: 0 6px 0 10px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
     background: transparent;
     color: #71717a; /* zinc-500 */
-    border: none;
-    border-bottom: 2px solid transparent;
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s;
     margin-bottom: -1px;
+    white-space: nowrap;
+  }
+
+  .editor-tab:first-child {
+    padding-left: 14px;
+    border-top-left-radius: 0;
+    border-left-color: transparent;
   }
 
   .editor-tab:hover {
     color: #a1a1aa; /* zinc-400 */
-    background: rgba(63, 63, 70, 0.3); /* zinc-700/30 */
+    background: rgba(63, 63, 70, 0.3);
   }
 
   .editor-tab.active {
     color: #e4e4e7; /* zinc-200 */
     background: #0a0a0a;
-    border-bottom: 2px solid oklch(0.6963 0.0866 40.28); /* brand color */
+    border-color: #27272a; /* zinc-800 */
+    border-bottom-color: #0a0a0a;
+  }
+
+  .editor-tab:first-child.active {
+    border-left-color: transparent;
   }
 
   .editor-tab .tab-icon {
-    opacity: 0.6;
+    opacity: 0.5;
+    flex-shrink: 0;
   }
 
   .editor-tab.active .tab-icon {
-    opacity: 1;
-    color: oklch(0.6963 0.0866 40.28); /* brand color */
+    opacity: 0.8;
   }
 
   .tab-filename {
     white-space: nowrap;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .editor-tab {
-    font-family: var(--sl-font-mono) !important;
-    font-size: 0.75rem !important; /* text-xs to match badges */
-    padding: 6px 10px !important;
+  .editor-tab-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    color: #52525b; /* zinc-600 */
+    opacity: 0;
+    transition: opacity 0.15s;
   }
 
-  .editor-tab svg {
-    width: 11px;
-    height: 11px;
+  .editor-tab:hover .editor-tab-close,
+  .editor-tab.active .editor-tab-close {
+    opacity: 1;
+  }
+
+  .editor-tab-close:hover {
+    background: rgba(161, 161, 170, 0.2);
+  }
+
+  /* Terminal tab content visibility */
+  .terminal-tab-content {
+    display: none;
+  }
+
+  .terminal-tab-content.active {
+    display: block;
   }
 
   /* Tab content visibility */
@@ -797,17 +1003,13 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     color: #71717a;
   }
 
-  /* Dock switcher tabs */
-  .dock-tabs {
-    flex-shrink: 0;
-  }
-
+  /* Dock switcher tabs (now in status bar) */
   .dock-tab {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 24px;
+    width: 24px;
+    height: 20px;
     border: none;
     border-radius: 4px;
     background: transparent;
@@ -827,19 +1029,6 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   .dock-tab.active {
     color: #34d399; /* emerald-400 */
     background: rgba(16, 185, 129, 0.1);
-  }
-
-  /* Dock badges show/hide */
-  .dock-badges {
-    display: none;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: nowrap;
-    flex-shrink: 0;
-  }
-
-  .dock-badges.active {
-    display: flex;
   }
 
   /* Dock content show/hide */
@@ -1065,6 +1254,101 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     background: rgba(239, 68, 68, 0.15);
   }
 
+  /* Terminal tab bar */
+  .terminal-tab-bar {
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  .terminal-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    padding: 0 6px 0 10px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    background: transparent;
+    color: #71717a; /* zinc-500 */
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s;
+    margin-bottom: -1px;
+    white-space: nowrap;
+  }
+
+  .terminal-tab:first-child {
+    padding-left: 14px;
+    border-top-left-radius: 0;
+    border-left-color: transparent;
+  }
+
+  .terminal-tab:hover {
+    color: #a1a1aa; /* zinc-400 */
+    background: rgba(63, 63, 70, 0.3);
+  }
+
+  .terminal-tab.active {
+    color: #e4e4e7; /* zinc-200 */
+    background: #0a0a0a;
+    border-color: #27272a; /* zinc-800 */
+    border-bottom-color: #0a0a0a;
+  }
+
+  .terminal-tab:first-child.active {
+    border-left-color: transparent;
+  }
+
+  .terminal-tab-label {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .terminal-tab-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    color: #52525b; /* zinc-600 */
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .terminal-tab:hover .terminal-tab-close,
+  .terminal-tab.active .terminal-tab-close {
+    opacity: 1;
+  }
+
+  .terminal-tab-close:hover {
+    background: rgba(161, 161, 170, 0.2);
+  }
+
+  .terminal-tab-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    color: #71717a; /* zinc-500 */
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s;
+  }
+
+  .terminal-tab-add:hover {
+    color: #e4e4e7; /* zinc-200 */
+    background: rgba(63, 63, 70, 0.3);
+  }
+
   /* Hide commit messages on very narrow widths */
   @media (max-width: 400px) {
     .git-commit-msg {
@@ -1147,7 +1431,6 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   function initDockSwitcher() {
     const dockTabs = document.querySelectorAll(".dock-tab")
     const dockContents = document.querySelectorAll(".dock-content")
-    const dockBadges = document.querySelectorAll(".dock-badges")
 
     dockTabs.forEach((tab) => {
       tab.addEventListener("click", () => {
@@ -1166,15 +1449,6 @@ import TaskTablePreview from "./TaskTablePreview.astro"
           }
         })
 
-        // update visible badges
-        dockBadges.forEach((badges) => {
-          if (badges.getAttribute("data-dock-badges") === dockId) {
-            badges.classList.add("active")
-          } else {
-            badges.classList.remove("active")
-          }
-        })
-
         // handle terminal animation
         if (dockId !== "terminal") {
           // switching away from terminal — clear animations
@@ -1188,11 +1462,42 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     })
   }
 
+  function initTerminalTabs() {
+    const termTabs = document.querySelectorAll(".terminal-tab")
+    const termContents = document.querySelectorAll(".terminal-tab-content")
+
+    termTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const tabId = tab.getAttribute("data-terminal-tab")
+
+        termTabs.forEach((t) => t.classList.remove("active"))
+        tab.classList.add("active")
+
+        termContents.forEach((content) => {
+          if (content.getAttribute("data-terminal-content") === tabId) {
+            content.classList.add("active")
+          } else {
+            content.classList.remove("active")
+          }
+        })
+
+        // handle terminal animation
+        if (tabId === "tab1") {
+          initTerminal()
+        } else {
+          if (typingInterval) clearInterval(typingInterval)
+          if (cursorInterval) clearInterval(cursorInterval)
+        }
+      })
+    })
+  }
+
   // Initialize on load
   initTerminal()
   initTabs()
   initChecklist()
   initDockSwitcher()
+  initTerminalTabs()
 
   // Re-initialize when navigating with View Transitions
   document.addEventListener("astro:page-load", () => {
@@ -1200,5 +1505,6 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     initTabs()
     initChecklist()
     initDockSwitcher()
+    initTerminalTabs()
   })
 </script>

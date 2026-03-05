@@ -184,8 +184,8 @@
               role="tabpanel"
               aria-labelledby="tab-editor"
             >
-              <div class="panel-toolbar">
-                <div class="panel-tab">
+              <div class="panel-toolbar panel-toolbar-tabs">
+                <div class="panel-tab active">
                   <svg
                     width="11"
                     height="11"
@@ -195,6 +195,7 @@
                     stroke-width="2"
                     stroke-linecap="round"
                     stroke-linejoin="round"
+                    class="panel-tab-icon-svg"
                   >
                     <path
                       d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
@@ -202,6 +203,21 @@
                     <polyline points="14 2 14 8 20 8"></polyline>
                   </svg>
                   <span>ship-faster.md</span>
+                  <span class="panel-tab-close">
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </span>
                 </div>
               </div>
               <div class="panel-body editor-body">
@@ -250,37 +266,79 @@
               aria-labelledby="tab-terminal"
               hidden
             >
-              <div class="panel-toolbar">
-                <div class="panel-tab-icon">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="icon-active"
+              <!-- single toolbar: tabs left, badges right -->
+              <div class="panel-toolbar panel-toolbar-terminal">
+                <div class="sc-terminal-tabs">
+                  <button
+                    class="sc-terminal-tab active"
+                    data-sc-term-tab="tab1"
                   >
-                    <polyline points="4 17 10 11 4 5"></polyline>
-                    <line x1="12" y1="19" x2="20" y2="19"></line>
-                  </svg>
+                    <span class="sc-terminal-tab-label">✻ Claude Code</span>
+                    <span class="sc-terminal-tab-close">
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </span>
+                  </button>
+                  <button class="sc-terminal-tab" data-sc-term-tab="tab2">
+                    <span class="sc-terminal-tab-label">pnpm dev</span>
+                    <span class="sc-terminal-tab-close">
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </span>
+                  </button>
+                  <span class="sc-terminal-tab-add" title="new terminal (⌘T)">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                  </span>
                 </div>
                 <div class="toolbar-badges-row">
-                  <div class="panel-badge panel-badge-secondary">
-                    <span>🧠 67%</span>
-                  </div>
-                  <div class="panel-badge panel-badge-secondary">
-                    <span>💰 $4.20</span>
-                  </div>
                   <div class="panel-badge panel-badge-accent">
                     <div class="accent-dot"></div>
-                    <span>Opus 4.5</span>
+                    <span>Claude</span>
+                  </div>
+                  <div class="panel-badge panel-badge-outline">
+                    <span>Opus 4.6 | 🧠 67% | 💰 $4.20</span>
                   </div>
                 </div>
               </div>
-              <div class="panel-body terminal-body">
+              <!-- Claude Code tab content -->
+              <div
+                class="panel-body terminal-body sc-term-content active"
+                data-sc-term-content="tab1"
+              >
                 <div class="terminal-ascii-overlay" id="terminal-ascii-overlay">
                   <pre class="ascii-pre" id="showcase-ascii-text"></pre>
                   <p class="ascii-message" id="showcase-ascii-message"></p>
@@ -328,6 +386,63 @@
                 </div>
 
                 <div class="terminal-hint">? for shortcuts</div>
+              </div>
+
+              <!-- pnpm dev tab content -->
+              <div
+                class="panel-body terminal-body sc-term-content sc-vite-body"
+                data-sc-term-content="tab2"
+              >
+                <div class="sc-vite-output">
+                  <div class="sc-vite-cmd">$ pnpm dev</div>
+                  <div class="sc-vite-ready">
+                    <span class="sc-vite-brand">VITE</span>
+                    <span class="sc-vite-dim"> v6.2.0</span>
+                    <span class="sc-vite-green"> ready in</span>
+                    <span class="sc-vite-white"> 284</span>
+                    <span class="sc-vite-dim">ms</span>
+                  </div>
+                  <div class="sc-vite-urls">
+                    <div>
+                      <span class="sc-vite-green">➜</span>
+                      <span class="sc-vite-white sc-vite-bold"
+                        >&nbsp; Local: &nbsp;</span
+                      >
+                      <span class="sc-vite-cyan">http://localhost:5173/</span>
+                    </div>
+                    <div>
+                      <span class="sc-vite-green">➜</span>
+                      <span class="sc-vite-dim"
+                        >&nbsp; Network: http://192.168.1.42:5173/</span
+                      >
+                    </div>
+                    <div>
+                      <span class="sc-vite-green">➜</span>
+                      <span class="sc-vite-dim"
+                        >&nbsp; press
+                        <span class="sc-vite-white sc-vite-bold">h + enter</span
+                        >
+                        to show help</span
+                      >
+                    </div>
+                  </div>
+                  <div class="sc-vite-hmr">
+                    <div>
+                      <span class="sc-vite-dim">10:31:42</span>
+                      <span class="sc-vite-cyan"> [vite]</span>
+                      <span class="sc-vite-green">
+                        hmr update /src/app.tsx</span
+                      >
+                    </div>
+                    <div>
+                      <span class="sc-vite-dim">10:31:44</span>
+                      <span class="sc-vite-cyan"> [vite]</span>
+                      <span class="sc-vite-green">
+                        hmr update /src/components/editor.tsx</span
+                      >
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -886,8 +1001,8 @@
   /* ── panels area ── */
   .panels-area {
     position: relative;
-    flex: 1;
-    min-height: 420px;
+    flex: 1 0 auto;
+    height: 420px;
     min-width: 0;
   }
 
@@ -906,7 +1021,6 @@
   }
 
   .showcase-panel.active {
-    position: relative;
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
@@ -931,19 +1045,67 @@
     flex-shrink: 0;
   }
 
+  .panel-toolbar-tabs {
+    justify-content: flex-start;
+    background: #111114;
+    padding-left: 0;
+  }
+
   .panel-tab {
     display: flex;
     align-items: center;
-    gap: 0.375rem;
+    gap: 4px;
+    height: 100%;
+    padding: 0 6px 0 14px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    background: transparent;
+    color: #71717a;
     font-family: var(--sl-font-mono);
-    font-size: 0.75rem;
-    color: #e4e4e7;
-    padding: 0.25rem 0;
-    border-bottom: 2px solid oklch(0.6963 0.0866 40.28);
+    font-size: 0.7rem;
+    cursor: pointer;
+    margin-bottom: -1px;
+    white-space: nowrap;
   }
 
-  .panel-tab svg {
-    color: oklch(0.6963 0.0866 40.28);
+  .panel-tab:first-child {
+    border-top-left-radius: 0;
+    border-left-color: transparent;
+  }
+
+  .panel-tab.active {
+    color: #e4e4e7;
+    background: #0a0a0a;
+    border-color: #27272a;
+    border-bottom-color: #0a0a0a;
+  }
+
+  .panel-tab:first-child.active {
+    border-left-color: transparent;
+  }
+
+  .panel-tab-icon-svg {
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  .panel-tab.active .panel-tab-icon-svg {
+    opacity: 0.8;
+  }
+
+  .panel-tab-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    color: #52525b;
+  }
+
+  .panel-tab-close:hover {
+    background: rgba(161, 161, 170, 0.2);
   }
 
   .panel-tab-icon {
@@ -984,9 +1146,14 @@
   }
 
   .panel-badge-accent {
-    background: rgba(16, 185, 129, 0.15);
-    border: 1px solid rgba(16, 185, 129, 0.25);
+    background: rgba(16, 185, 129, 0.06);
+    border: 1px solid rgba(16, 185, 129, 0.3);
     color: #34d399;
+  }
+
+  .panel-badge-outline {
+    border: 1px solid rgba(63, 63, 70, 0.5);
+    color: #71717a;
   }
 
   .accent-dot {
@@ -1005,7 +1172,7 @@
   }
 
   @media (max-width: 500px) {
-    .panel-badge-secondary {
+    .panel-badge-outline {
       display: none;
     }
   }
@@ -1586,6 +1753,177 @@
     }
   }
 
+  /* ── terminal tab bar (showcase) ── */
+  .panel-toolbar-terminal {
+    justify-content: space-between;
+    background: #111114;
+    padding-left: 0;
+  }
+
+  .sc-terminal-tabs {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .sc-terminal-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    padding: 0 6px 0 10px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    background: transparent;
+    color: #71717a;
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s;
+    margin-bottom: -1px;
+    white-space: nowrap;
+  }
+
+  .sc-terminal-tab:first-child {
+    padding-left: 14px;
+    border-top-left-radius: 0;
+    border-left-color: transparent;
+  }
+
+  .sc-terminal-tab:hover {
+    color: #a1a1aa;
+    background: rgba(63, 63, 70, 0.3);
+  }
+
+  .sc-terminal-tab:first-child {
+    border-top-left-radius: 0;
+    border-left-color: transparent;
+  }
+
+  .sc-terminal-tab.active {
+    color: #e4e4e7;
+    background: #0a0a0a;
+    border-color: #27272a;
+    border-bottom-color: #0a0a0a;
+  }
+
+  .sc-terminal-tab:first-child.active {
+    border-left-color: transparent;
+  }
+
+  .sc-terminal-tab-label {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sc-terminal-tab-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    color: #52525b;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .sc-terminal-tab:hover .sc-terminal-tab-close,
+  .sc-terminal-tab.active .sc-terminal-tab-close {
+    opacity: 1;
+  }
+
+  .sc-terminal-tab-close:hover {
+    background: rgba(161, 161, 170, 0.2);
+  }
+
+  .sc-terminal-tab-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-left: 2px;
+    border-radius: 4px;
+    color: #71717a;
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s;
+  }
+
+  .sc-terminal-tab-add:hover {
+    color: #e4e4e7;
+    background: rgba(63, 63, 70, 0.3);
+  }
+
+  /* Terminal tab content switching */
+  .sc-term-content {
+    display: none;
+  }
+
+  .sc-term-content.active {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* vite output styling */
+  .sc-vite-body {
+    flex-direction: column;
+  }
+
+  .sc-vite-output {
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    line-height: 1.6;
+  }
+
+  .sc-vite-cmd {
+    color: #71717a;
+    margin-bottom: 0.5rem;
+  }
+
+  .sc-vite-brand {
+    color: #22d3ee;
+    font-weight: 700;
+  }
+
+  .sc-vite-dim {
+    color: #71717a;
+  }
+
+  .sc-vite-green {
+    color: #34d399;
+  }
+
+  .sc-vite-white {
+    color: #ffffff;
+  }
+
+  .sc-vite-bold {
+    font-weight: 700;
+  }
+
+  .sc-vite-cyan {
+    color: #22d3ee;
+  }
+
+  .sc-vite-urls {
+    margin-top: 0.75rem;
+    line-height: 1.8;
+  }
+
+  .sc-vite-hmr {
+    margin-top: 1rem;
+    line-height: 1.8;
+  }
+
   /* ── terminal panel ── */
   .terminal-body {
     font-family: var(--sl-font-jetbrains);
@@ -1794,7 +2132,33 @@
     }
 
     .panels-area {
-      min-height: 360px;
+      height: 420px;
+    }
+
+    /* simplify terminal tab bar on mobile */
+    .sc-terminal-tab:not(.active) {
+      display: none;
+    }
+
+    .sc-terminal-tab-close {
+      display: none;
+    }
+
+    .sc-terminal-tab {
+      padding-right: 10px;
+    }
+
+    .sc-terminal-tab-add {
+      display: none;
+    }
+
+    /* simplify editor tab bar on mobile */
+    .panel-tab-close {
+      display: none;
+    }
+
+    .panel-tab {
+      padding-right: 14px;
     }
   }
 </style>
@@ -2094,9 +2458,35 @@
     })
   }
 
+  function initScTerminalTabs() {
+    const tabs = document.querySelectorAll("[data-sc-term-tab]")
+    const contents = document.querySelectorAll("[data-sc-term-content]")
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const tabId = tab.getAttribute("data-sc-term-tab")
+
+        tabs.forEach((t) => t.classList.remove("active"))
+        tab.classList.add("active")
+
+        contents.forEach((content) => {
+          if (content.getAttribute("data-sc-term-content") === tabId) {
+            content.classList.add("active")
+          } else {
+            content.classList.remove("active")
+          }
+        })
+      })
+    })
+  }
+
   // initialize
   initFeatureShowcase()
+  initScTerminalTabs()
 
   // re-initialize on Astro view transitions
-  document.addEventListener("astro:page-load", initFeatureShowcase)
+  document.addEventListener("astro:page-load", () => {
+    initFeatureShowcase()
+    initScTerminalTabs()
+  })
 </script>
