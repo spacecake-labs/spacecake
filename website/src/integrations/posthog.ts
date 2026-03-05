@@ -20,8 +20,8 @@ const createPlugin = (config: PluginConfig): AstroIntegration => {
         injectScript(
           "page",
           `import posthog from 'posthog-js';posthog.init('${posthogKey}', ${JSON.stringify(
-            initConfig
-          )});${registerOnceCode}`
+            initConfig,
+          )});${registerOnceCode}`,
         )
       },
     },

@@ -5,10 +5,8 @@
     "module": "ESNext",
     "allowJs": true,
     "skipLibCheck": true,
-    "esModuleInterop": true,
     "strict": true,
     "sourceMap": true,
-    "baseUrl": ".",
     "outDir": "dist",
     "paths": {
       "@/*": ["./src/*"]
@@ -18,5 +16,5 @@
     "jsx": "react-jsx"
   },
   "include": [".astro/types.d.ts", "**/*", "src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["dist"]
+  "exclude": ["dist", "node_modules"]
 }

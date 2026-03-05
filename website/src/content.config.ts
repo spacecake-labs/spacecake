@@ -1,7 +1,7 @@
 import { docsLoader } from "@astrojs/starlight/loaders"
 import { docsSchema } from "@astrojs/starlight/schema"
-import { defineCollection, z } from "astro:content"
 import { glob } from "astro/loaders"
+import { defineCollection, z } from "astro:content"
 
 export const collections = {
   docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
@@ -36,7 +36,7 @@ export const collections = {
           z.object({
             question: z.string(),
             answer: z.string(),
-          })
+          }),
         )
         .optional(),
     }),
@@ -55,9 +55,7 @@ export const collections = {
       keywords: z.array(z.string()).optional(),
       canonical: z.string().url().optional(),
       noindex: z.boolean().default(false),
-      faq: z
-        .array(z.object({ question: z.string(), answer: z.string() }))
-        .optional(),
+      faq: z.array(z.object({ question: z.string(), answer: z.string() })).optional(),
     }),
   }),
 }
