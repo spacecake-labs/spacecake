@@ -6,7 +6,7 @@ import type { AbsolutePath, FileContent, FileTree, FileTreeEvent } from "@/types
 import { FileSystemError, type IndexedFile } from "@/services/file-system"
 import { type Either } from "@/types/adt"
 
-export type MenuAction = "new-file" | "open-folder" | "save"
+export type MenuAction = "new-file" | "open-folder" | "save" | "save-all"
 
 /** serialized PgliteError for IPC transport */
 export type SerializedPgliteError = { _tag: "PgliteError"; cause: string }

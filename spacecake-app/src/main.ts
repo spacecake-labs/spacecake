@@ -182,6 +182,12 @@ function buildAppMenu(win: BrowserWindow): Menu {
         registerAccelerator: false,
         click: () => win.webContents.send("menu:action", "save"),
       },
+      {
+        label: "Save All",
+        accelerator: "CmdOrCtrl+Shift+S",
+        registerAccelerator: false,
+        click: () => win.webContents.send("menu:action", "save-all"),
+      },
       { type: "separator" },
       isMac ? { role: "close" } : { role: "quit" },
     ],

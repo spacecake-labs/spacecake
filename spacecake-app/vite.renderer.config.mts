@@ -52,7 +52,6 @@ export default defineConfig({
       "@effect/platform",
       "@effect/platform-browser",
       "lexical",
-      "@lexical/react",
       "@lexical/code",
       "@lexical/history",
       "@lexical/link",
