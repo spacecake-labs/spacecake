@@ -153,10 +153,52 @@ function getTitleBarOverlay(dark: boolean): true | Electron.TitleBarOverlay {
   return { ...colors, height: TITLEBAR_HEIGHT }
 }
 
+function buildAppMenu(win: BrowserWindow): Menu {
+  const template: Electron.MenuItemConstructorOptions[] = []
+
+  if (isMac) {
+    template.push({ role: "appMenu" })
+  }
+
+  template.push({
+    label: "File",
+    submenu: [
+      {
+        label: "New File",
+        accelerator: "CmdOrCtrl+N",
+        registerAccelerator: false,
+        click: () => {
+          win.webContents.sendInputEvent({
+            type: "keyDown",
+            keyCode: "n",
+            modifiers: [isMac ? "meta" : "control"],
+          })
+        },
+      },
+      { type: "separator" },
+      isMac ? { role: "close" } : { role: "quit" },
+    ],
+  })
+
+  template.push({ role: "editMenu" })
+  template.push({ role: "viewMenu" })
+  template.push({ role: "windowMenu" })
+
+  return Menu.buildFromTemplate(template)
+}
+
 ipcMain.handle("set-title-bar-overlay", (event, dark: boolean) => {
   if (isMac) return
   const win = BrowserWindow.fromWebContents(event.sender)
   win?.setTitleBarOverlay(getTitleBarOverlay(dark) as Electron.TitleBarOverlay)
+})
+
+ipcMain.handle("menu:popup", (event, { x, y }: { x: number; y: number }) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  const menu = Menu.getApplicationMenu()
+  if (menu && win) {
+    menu.popup({ window: win, x, y })
+  }
 })
 
 const createWindow = () => {
@@ -179,6 +221,8 @@ const createWindow = () => {
       webgl: true,
     },
   })
+
+  Menu.setApplicationMenu(buildAppMenu(mainWindow))
 
   windowCounter++
 

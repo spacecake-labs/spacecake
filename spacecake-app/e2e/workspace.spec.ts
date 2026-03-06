@@ -2,7 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForEditorFocus, waitForWorkspace } from "@/../e2e/fixtures"
-import { locateSidebarItem, locateTab, locateTabCloseButton } from "@/../e2e/utils"
+import { clickMenuItem, locateSidebarItem, locateTab, locateTabCloseButton } from "@/../e2e/utils"
 
 test.describe("spacecake app", () => {
   test("open electron app", async ({ electronApp }, testInfo) => {
@@ -26,6 +26,15 @@ test.describe("spacecake app", () => {
     // verify getting-started.md is open in the editor
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
     await expect(window.getByText("welcome to spacecake")).toBeVisible()
+
+    // hamburger menu button: visible on win/linux, hidden on macOS
+    const hamburger = window.getByRole("button", { name: "menu" })
+    const platform = await window.evaluate(() => window.electronAPI.platform)
+    if (platform === "darwin") {
+      await expect(hamburger).not.toBeVisible()
+    } else {
+      await expect(hamburger).toBeVisible()
+    }
   })
 
   test("open workspace; create file with button", async ({
@@ -75,7 +84,7 @@ test.describe("spacecake app", () => {
     })
   })
 
-  test("open workspace; create file with key command", async ({
+  test("open workspace; create file with key command and application menu", async ({
     electronApp,
     tempTestDir,
   }, testInfo) => {
@@ -95,27 +104,28 @@ test.describe("spacecake app", () => {
     // open the temp test directory as workspace
     await waitForWorkspace(window)
 
+    // 1. create file via keyboard shortcut
     await window.keyboard.press("ControlOrMeta+n")
 
     const textbox = window.getByRole("textbox", { name: "filename.txt" })
 
     await textbox.fill("test.txt")
-    await textbox.press("Enter", { delay: 100 }) // Added delay
+    await textbox.press("Enter", { delay: 100 })
 
-    // Wait for the new file to appear in the sidebar
     await expect(locateSidebarItem(window, "test.txt")).toBeVisible()
-
-    // Wait for the create file input to disappear (indicating state reset)
     await expect(textbox).not.toBeVisible()
+    expect(fs.existsSync(path.join(tempTestDir, "test.txt"))).toBe(true)
 
-    // Verify the file was actually created in the filesystem
-    const expectedFilePath = path.join(tempTestDir, "test.txt")
-    const fileExists = fs.existsSync(expectedFilePath)
+    // 2. create file via application menu (File > New File)
+    await clickMenuItem(electronApp, "File", "New File")
 
-    testInfo.annotations.push({
-      type: "info",
-      description: `File test.txt exists at ${expectedFilePath}: ${fileExists}`,
-    })
+    const textbox2 = window.getByRole("textbox", { name: "filename.txt" })
+    await textbox2.fill("menu-created.txt")
+    await textbox2.press("Enter", { delay: 100 })
+
+    await expect(locateSidebarItem(window, "menu-created.txt")).toBeVisible()
+    await expect(textbox2).not.toBeVisible()
+    expect(fs.existsSync(path.join(tempTestDir, "menu-created.txt"))).toBe(true)
   })
 
   test("nested folder structure and recursive expansion", async ({

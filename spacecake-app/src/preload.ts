@@ -108,6 +108,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   notifyFileClosed: (filePath: string) => ipcRenderer.invoke("cli:file-closed", filePath),
   updateCliWorkspaces: (workspaceFolders: string[]) =>
     ipcRenderer.invoke("cli:update-workspaces", workspaceFolders),
+  popupMenu: (position: { x: number; y: number }) => ipcRenderer.invoke("menu:popup", position),
   isPlaywright: process.env.IS_PLAYWRIGHT === "true",
   // Database IPC
   db: {

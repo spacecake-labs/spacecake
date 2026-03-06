@@ -81,6 +81,7 @@ export interface ElectronAPI {
   setTitleBarOverlay: (dark: boolean) => Promise<void>
   /** platform-specific titlebar height in px (accounts for macOS version) */
   titlebarHeight: number
+  popupMenu: (position: { x: number; y: number }) => Promise<void>
   isPlaywright: boolean
   platform: string
   checkWatchmanInstalled: () => Promise<boolean>
