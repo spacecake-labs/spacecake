@@ -1201,29 +1201,9 @@ function WorkspaceLayout() {
 
   const titlebarHeight = window.electronAPI.titlebarHeight
 
-  if (!workspace?.path) {
-    return (
-      <CollectionsProvider collections={collections}>
-        <div className="flex h-screen flex-col overflow-hidden">
-          {/* app-wide drag region for window controls */}
-          <div
-            className="app-drag shrink-0 bg-sidebar flex items-center"
-            style={{ height: titlebarHeight }}
-          >
-            {window.electronAPI.platform !== "darwin" && <MenuButton />}
-          </div>
-          <FocusManagerProvider>
-            <SidebarProvider className="flex-1 min-h-0">
-              <LayoutContent />
-            </SidebarProvider>
-          </FocusManagerProvider>
-        </div>
-      </CollectionsProvider>
-    )
-  }
   return (
     <CollectionsProvider collections={collections}>
-      <WorkspaceWatcher workspacePath={workspace.path} />
+      {workspace?.path && <WorkspaceWatcher workspacePath={workspace.path} />}
       <div className="flex h-screen flex-col overflow-hidden">
         {/* app-wide drag region for window controls */}
         <div
@@ -1238,7 +1218,7 @@ function WorkspaceLayout() {
           </SidebarProvider>
         </FocusManagerProvider>
       </div>
-      <QuickOpen workspacePath={workspace.path} machine={machine} />
+      {workspace?.path && <QuickOpen workspacePath={workspace.path} machine={machine} />}
     </CollectionsProvider>
   )
 }
