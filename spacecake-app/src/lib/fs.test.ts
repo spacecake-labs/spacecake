@@ -50,6 +50,7 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
   notifyFileClosed: async () => {},
   updateCliWorkspaces: async () => {},
   popupMenu: async () => {},
+  onMenuAction: () => () => {},
   setTitleBarOverlay: async () => {},
   titlebarHeight: 35,
   isPlaywright: false,

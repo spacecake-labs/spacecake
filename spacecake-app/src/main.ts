@@ -167,13 +167,20 @@ function buildAppMenu(win: BrowserWindow): Menu {
         label: "New File",
         accelerator: "CmdOrCtrl+N",
         registerAccelerator: false,
-        click: () => {
-          win.webContents.sendInputEvent({
-            type: "keyDown",
-            keyCode: "n",
-            modifiers: [isMac ? "meta" : "control"],
-          })
-        },
+        click: () => win.webContents.send("menu:action", "new-file"),
+      },
+      {
+        label: "Open Folder",
+        accelerator: "CmdOrCtrl+O",
+        registerAccelerator: false,
+        click: () => win.webContents.send("menu:action", "open-folder"),
+      },
+      { type: "separator" },
+      {
+        label: "Save",
+        accelerator: "CmdOrCtrl+S",
+        registerAccelerator: false,
+        click: () => win.webContents.send("menu:action", "save"),
       },
       { type: "separator" },
       isMac ? { role: "close" } : { role: "quit" },

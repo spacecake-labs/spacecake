@@ -11,6 +11,7 @@ import { useEffect } from "react"
 
 import { useEditor } from "@/contexts/editor-context"
 import { useHotkey } from "@/hooks/use-hotkey"
+import { useMenuAction } from "@/hooks/use-menu-action"
 import { useRoute } from "@/hooks/use-route"
 import { getOrCreateFileStateAtom } from "@/lib/atoms/file-tree"
 import { serializeEditorToSource } from "@/lib/editor"
@@ -92,6 +93,9 @@ export function SaveCommandPlugin() {
   useHotkey("mod+s", () => editor.dispatchCommand(SAVE_FILE_COMMAND, undefined), {
     guard: (e) => !e.defaultPrevented,
   })
+
+  // listen for save triggered from the native application menu (File > Save)
+  useMenuAction("save", () => editor.dispatchCommand(SAVE_FILE_COMMAND, undefined))
 
   return null
 }

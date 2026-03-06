@@ -51,6 +51,7 @@ import { CollectionsProvider } from "@/contexts/collections-context"
 import { FocusManagerProvider, useFocusablePanel, useFocusManager } from "@/contexts/focus-manager"
 import { useClaudeTaskWatcher } from "@/hooks/use-claude-task-watcher"
 import { useHotkey } from "@/hooks/use-hotkey"
+import { useMenuAction } from "@/hooks/use-menu-action"
 import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
 import { usePaneMachine } from "@/hooks/use-pane-machine"
 import { useRoute } from "@/hooks/use-route"
@@ -1192,12 +1193,15 @@ function WorkspaceLayout() {
     }
   }, [workspace.path, workspace.id])
 
-  useHotkey("mod+n", () => {
+  const handleNewFile = useCallback(() => {
     if (workspace?.path) {
       setIsCreatingInContext({ kind: "file", parentPath: workspace.path })
       setContextItemName("")
     }
-  })
+  }, [workspace?.path, setIsCreatingInContext, setContextItemName])
+
+  useHotkey("mod+n", handleNewFile)
+  useMenuAction("new-file", handleNewFile)
 
   const titlebarHeight = window.electronAPI.titlebarHeight
 

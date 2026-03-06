@@ -6,6 +6,8 @@ import type { AbsolutePath, FileContent, FileTree, FileTreeEvent } from "@/types
 import { FileSystemError, type IndexedFile } from "@/services/file-system"
 import { type Either } from "@/types/adt"
 
+export type MenuAction = "new-file" | "open-folder" | "save"
+
 /** serialized PgliteError for IPC transport */
 export type SerializedPgliteError = { _tag: "PgliteError"; cause: string }
 
@@ -82,6 +84,7 @@ export interface ElectronAPI {
   /** platform-specific titlebar height in px (accounts for macOS version) */
   titlebarHeight: number
   popupMenu: (position: { x: number; y: number }) => Promise<void>
+  onMenuAction: (handler: (action: MenuAction) => void) => () => void
   isPlaywright: boolean
   platform: string
   checkWatchmanInstalled: () => Promise<boolean>
