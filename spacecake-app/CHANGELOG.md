@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.58
+
+### Patch Changes
+
+- d44c507: Feat: single instance lock.
+
 ## 0.1.0-alpha.57
 
 ### Patch Changes
