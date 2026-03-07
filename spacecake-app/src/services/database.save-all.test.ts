@@ -2,7 +2,6 @@ import { it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { beforeAll, describe, expect } from "vitest"
 
-import { EditorPrimaryKey } from "@/schema/editor"
 import { Database } from "@/services/database"
 import { setupPaneWithTabs } from "@/services/test-utils/pane-factories"
 import { initCachedDataDir, TestDatabaseLayer } from "@/services/test-utils/pane-test-layer"
