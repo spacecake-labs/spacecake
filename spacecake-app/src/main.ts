@@ -50,6 +50,10 @@ if (started) {
   app.quit()
 }
 
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+}
+
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
 const isTest = process.env.IS_PLAYWRIGHT === "true"
 const showWindow = process.env.SHOW_WINDOW === "true"
@@ -423,6 +427,15 @@ async function main() {
   process.on("unhandledRejection", (reason) => {
     if (isBrokenStdoutError(reason)) return
     console.error("Unhandled rejection in main process:", reason)
+  })
+
+  app.on("second-instance", () => {
+    const windows = BrowserWindow.getAllWindows()
+    const win = windows[0]
+    if (win) {
+      if (win.isMinimized()) win.restore()
+      win.focus()
+    }
   })
 
   app.addListener("before-quit", beforeQuitListener)
