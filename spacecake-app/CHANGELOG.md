@@ -1,5 +1,14 @@
 # spacecake-app
 
+## 0.1.0-alpha.57
+
+### Patch Changes
+
+- d33f160: Disable GPU rasterisation.
+- d33f160: Feat: save-all command.
+- d33f160: Feat: native app menu.
+- d33f160: Fix pane machine cleanup (issue #182).
+
 ## 0.1.0-alpha.56
 
 ### Patch Changes
