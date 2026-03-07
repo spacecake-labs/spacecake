@@ -8,6 +8,7 @@ import posthogPlugin from "./src/integrations/posthog"
 
 const PUBLIC_POSTHOG_KEY = "phc_tie9HcJtBH5SkcTLpsJaUnq7X8adjIpDU4flhefHdWJ"
 const PUBLIC_POSTHOG_HOST = "https://us.i.posthog.com"
+const isDev = process.env.NODE_ENV === "development"
 
 // https://astro.build/config
 export default defineConfig({
@@ -21,7 +22,8 @@ export default defineConfig({
     }),
     posthogPlugin({
       posthogKey: PUBLIC_POSTHOG_KEY,
-      api_host: PUBLIC_POSTHOG_HOST,
+      api_host: isDev ? PUBLIC_POSTHOG_HOST : "/ph",
+      ui_host: "https://us.posthog.com",
       capture_pageview: "history_change",
       capture_exceptions: true,
       cookieless_mode: "always",
