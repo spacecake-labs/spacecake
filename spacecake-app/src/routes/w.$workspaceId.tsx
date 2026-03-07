@@ -27,6 +27,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { DeleteButton } from "@/components/delete-button"
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { LoadingAnimation } from "@/components/loading-animation"
+import { MenuButton } from "@/components/menu-button"
 import { QuickOpen } from "@/components/quick-open"
 import { TabBar } from "@/components/tab-bar"
 
@@ -50,6 +51,7 @@ import { CollectionsProvider } from "@/contexts/collections-context"
 import { FocusManagerProvider, useFocusablePanel, useFocusManager } from "@/contexts/focus-manager"
 import { useClaudeTaskWatcher } from "@/hooks/use-claude-task-watcher"
 import { useHotkey } from "@/hooks/use-hotkey"
+import { useMenuAction } from "@/hooks/use-menu-action"
 import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
 import { usePaneMachine } from "@/hooks/use-pane-machine"
 import { useRoute } from "@/hooks/use-route"
@@ -62,7 +64,7 @@ import {
   setFileTreeAtom,
 } from "@/lib/atoms/file-tree"
 import { gitBranchAtom } from "@/lib/atoms/git"
-import { clearPaneMachineCache } from "@/lib/atoms/pane"
+import { cleanupPaneMachine } from "@/lib/atoms/pane"
 import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
 import { createWorkspaceCollections } from "@/lib/db/collections"
 import * as mutations from "@/lib/db/mutations"
@@ -1176,12 +1178,16 @@ function WorkspaceLayout() {
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
 
-  // clean up all file state atoms and settings machine when workspace unmounts
+  // clean up all file state atoms and settings machine when workspace unmounts.
+  // important: only clean up THIS workspace's pane machine (not the entire cache),
+  // because on workspace switch React reuses the component — the new machine is
+  // created during render before this cleanup effect runs.
   useEffect(() => {
     const id = workspace.id
+    const currentPaneId = paneId
     return () => {
       cleanupSettingsMachine(id)
-      clearPaneMachineCache()
+      cleanupPaneMachine(currentPaneId)
       store.set(quickOpenIndexAtom, [])
       store.set(quickOpenIndexReadyAtom, false)
       // defer so child components unmount first (prevents re-creation during teardown)
@@ -1189,56 +1195,38 @@ function WorkspaceLayout() {
         clearFileStateAtoms()
       }, 0)
     }
-  }, [workspace.path, workspace.id])
+  }, [workspace.path, workspace.id, paneId])
 
-  useHotkey(
-    "mod+n",
-    () => {
-      if (workspace?.path) {
-        setIsCreatingInContext({ kind: "file", parentPath: workspace.path })
-        setContextItemName("")
-      }
-    },
-    {
-      capture: true,
-      // let CodeMirror handle its own shortcut
-      guard: (e) => {
-        const target = e.target as EventTarget | null
-        return !(target instanceof Element && !!target.closest(".cm-editor"))
-      },
-    },
-  )
+  const handleNewFile = useCallback(() => {
+    if (workspace?.path) {
+      setIsCreatingInContext({ kind: "file", parentPath: workspace.path })
+      setContextItemName("")
+    }
+  }, [workspace?.path, setIsCreatingInContext, setContextItemName])
+
+  useHotkey("mod+n", handleNewFile)
+  useMenuAction("new-file", handleNewFile)
 
   const titlebarHeight = window.electronAPI.titlebarHeight
 
-  if (!workspace?.path) {
-    return (
-      <CollectionsProvider collections={collections}>
-        <div className="flex h-screen flex-col overflow-hidden">
-          {/* app-wide drag region for window controls */}
-          <div className="app-drag shrink-0 bg-sidebar" style={{ height: titlebarHeight }} />
-          <FocusManagerProvider>
-            <SidebarProvider className="flex-1 min-h-0">
-              <LayoutContent />
-            </SidebarProvider>
-          </FocusManagerProvider>
-        </div>
-      </CollectionsProvider>
-    )
-  }
   return (
     <CollectionsProvider collections={collections}>
-      <WorkspaceWatcher workspacePath={workspace.path} />
+      {workspace?.path && <WorkspaceWatcher workspacePath={workspace.path} />}
       <div className="flex h-screen flex-col overflow-hidden">
         {/* app-wide drag region for window controls */}
-        <div className="app-drag shrink-0 bg-sidebar" style={{ height: titlebarHeight }} />
+        <div
+          className="app-drag shrink-0 bg-sidebar flex items-center"
+          style={{ height: titlebarHeight }}
+        >
+          {window.electronAPI.platform !== "darwin" && <MenuButton />}
+        </div>
         <FocusManagerProvider>
           <SidebarProvider className="flex-1 min-h-0">
             <LayoutContent />
           </SidebarProvider>
         </FocusManagerProvider>
       </div>
-      <QuickOpen workspacePath={workspace.path} machine={machine} />
+      {workspace?.path && <QuickOpen workspacePath={workspace.path} machine={machine} />}
     </CollectionsProvider>
   )
 }

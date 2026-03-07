@@ -688,6 +688,19 @@ export const makeDatabaseService = (client: PGliteInterface, orm: Orm) => {
           .from(workspaceTable)
           .where(eq(workspaceTable.id, workspaceId)),
       ),
+
+    selectEditorsWithCachedState: (workspacePath: AbsolutePath) =>
+      query((_) =>
+        _.select({
+          editorId: editorTable.id,
+          state: editorTable.state,
+          view_kind: editorTable.view_kind,
+          filePath: fileTable.path,
+        })
+          .from(editorTable)
+          .innerJoin(fileTable, eq(editorTable.file_id, fileTable.id))
+          .where(and(like(fileTable.path, `${workspacePath}%`), isNotNull(editorTable.state))),
+      ),
   }
 }
 

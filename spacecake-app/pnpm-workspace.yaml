@@ -8,12 +8,14 @@ onlyBuiltDependencies:
   - "@parcel/watcher"
   - "@swc/core"
   - "@tailwindcss/oxide"
+  - "@vscode/ripgrep"
   - core-js
   - electron
   - electron-winstaller
   - esbuild
   - fs-xattr
   - macos-alias
+  - protobufjs
   - tree-sitter
   - tree-sitter-javascript
   - tree-sitter-python

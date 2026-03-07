@@ -50,11 +50,6 @@ if (started) {
   app.quit()
 }
 
-// sharper text rendering — use gpu rasterization and disable lcd text
-// (lcd/subpixel antialiasing looks blurry on non-retina and mixed-dpi setups)
-app.commandLine.appendSwitch("enable-gpu-rasterization")
-app.commandLine.appendSwitch("disable-lcd-text")
-
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
 const isTest = process.env.IS_PLAYWRIGHT === "true"
 const showWindow = process.env.SHOW_WINDOW === "true"
@@ -153,10 +148,65 @@ function getTitleBarOverlay(dark: boolean): true | Electron.TitleBarOverlay {
   return { ...colors, height: TITLEBAR_HEIGHT }
 }
 
+function buildAppMenu(win: BrowserWindow): Menu {
+  const template: Electron.MenuItemConstructorOptions[] = []
+
+  if (isMac) {
+    template.push({ role: "appMenu" })
+  }
+
+  template.push({
+    label: "File",
+    submenu: [
+      {
+        label: "New File",
+        accelerator: "CmdOrCtrl+N",
+        registerAccelerator: false,
+        click: () => win.webContents.send("menu:action", "new-file"),
+      },
+      {
+        label: "Open Folder",
+        accelerator: "CmdOrCtrl+O",
+        registerAccelerator: false,
+        click: () => win.webContents.send("menu:action", "open-folder"),
+      },
+      { type: "separator" },
+      {
+        label: "Save",
+        accelerator: "CmdOrCtrl+S",
+        registerAccelerator: false,
+        click: () => win.webContents.send("menu:action", "save"),
+      },
+      {
+        label: "Save All",
+        accelerator: "CmdOrCtrl+Shift+S",
+        registerAccelerator: false,
+        click: () => win.webContents.send("menu:action", "save-all"),
+      },
+      { type: "separator" },
+      isMac ? { role: "close" } : { role: "quit" },
+    ],
+  })
+
+  template.push({ role: "editMenu" })
+  template.push({ role: "viewMenu" })
+  template.push({ role: "windowMenu" })
+
+  return Menu.buildFromTemplate(template)
+}
+
 ipcMain.handle("set-title-bar-overlay", (event, dark: boolean) => {
   if (isMac) return
   const win = BrowserWindow.fromWebContents(event.sender)
   win?.setTitleBarOverlay(getTitleBarOverlay(dark) as Electron.TitleBarOverlay)
+})
+
+ipcMain.handle("menu:popup", (event, { x, y }: { x: number; y: number }) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  const menu = Menu.getApplicationMenu()
+  if (menu && win) {
+    menu.popup({ window: win, x, y })
+  }
 })
 
 const createWindow = () => {
@@ -165,6 +215,7 @@ const createWindow = () => {
     width: 800,
     height: 600,
     show: !isTest || showWindow,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#0a0a0a" : "#ffffff",
     titleBarStyle: "hidden",
     titleBarOverlay: getTitleBarOverlay(nativeTheme.shouldUseDarkColors),
     ...(isMac ? { trafficLightPosition: getTrafficLightPosition(TITLEBAR_HEIGHT) } : {}),
@@ -179,6 +230,8 @@ const createWindow = () => {
       webgl: true,
     },
   })
+
+  Menu.setApplicationMenu(buildAppMenu(mainWindow))
 
   windowCounter++
 

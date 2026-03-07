@@ -108,6 +108,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   notifyFileClosed: (filePath: string) => ipcRenderer.invoke("cli:file-closed", filePath),
   updateCliWorkspaces: (workspaceFolders: string[]) =>
     ipcRenderer.invoke("cli:update-workspaces", workspaceFolders),
+  popupMenu: (position: { x: number; y: number }) => ipcRenderer.invoke("menu:popup", position),
+  onMenuAction: (handler: (action: string) => void) => {
+    const listener = (_e: Electron.IpcRendererEvent, action: string) => handler(action)
+    ipcRenderer.on("menu:action", listener)
+    return () => ipcRenderer.removeListener("menu:action", listener)
+  },
   isPlaywright: process.env.IS_PLAYWRIGHT === "true",
   // Database IPC
   db: {

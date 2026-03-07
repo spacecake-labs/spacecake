@@ -11,6 +11,7 @@ import { useEffect } from "react"
 import type { RouterContext } from "@/router"
 
 import { useHotkey } from "@/hooks/use-hotkey"
+import { useMenuAction } from "@/hooks/use-menu-action"
 import { useOpenWorkspace } from "@/lib/open-workspace"
 
 export const Route = createRootRouteWithContext<RouterContext>()({
@@ -25,6 +26,7 @@ function RootComponent() {
 
   // global keyboard shortcut for opening workspace
   useHotkey("mod+o", () => handleOpenWorkspace())
+  useMenuAction("open-folder", () => handleOpenWorkspace())
 
   useEffect(() => {
     if (posthog) {

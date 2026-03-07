@@ -112,6 +112,8 @@ const methods = {
   selectAllEditors: (workspaceId: WorkspacePrimaryKey) => invokeDb("selectAllEditors", workspaceId),
   selectWorkspaceById: (workspaceId: WorkspacePrimaryKey) =>
     invokeDb("selectWorkspaceById", workspaceId),
+  selectEditorsWithCachedState: (workspacePath: AbsolutePath) =>
+    invokeDb("selectEditorsWithCachedState", workspacePath),
 } satisfies DatabaseMethods
 
 const ipcUnavailable = (name: string): never => {
