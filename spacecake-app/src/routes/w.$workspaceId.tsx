@@ -64,7 +64,7 @@ import {
   setFileTreeAtom,
 } from "@/lib/atoms/file-tree"
 import { gitBranchAtom } from "@/lib/atoms/git"
-import { clearPaneMachineCache } from "@/lib/atoms/pane"
+import { cleanupPaneMachine } from "@/lib/atoms/pane"
 import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
 import { createWorkspaceCollections } from "@/lib/db/collections"
 import * as mutations from "@/lib/db/mutations"
@@ -1178,12 +1178,16 @@ function WorkspaceLayout() {
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
 
-  // clean up all file state atoms and settings machine when workspace unmounts
+  // clean up all file state atoms and settings machine when workspace unmounts.
+  // important: only clean up THIS workspace's pane machine (not the entire cache),
+  // because on workspace switch React reuses the component — the new machine is
+  // created during render before this cleanup effect runs.
   useEffect(() => {
     const id = workspace.id
+    const currentPaneId = paneId
     return () => {
       cleanupSettingsMachine(id)
-      clearPaneMachineCache()
+      cleanupPaneMachine(currentPaneId)
       store.set(quickOpenIndexAtom, [])
       store.set(quickOpenIndexReadyAtom, false)
       // defer so child components unmount first (prevents re-creation during teardown)
@@ -1191,7 +1195,7 @@ function WorkspaceLayout() {
         clearFileStateAtoms()
       }, 0)
     }
-  }, [workspace.path, workspace.id])
+  }, [workspace.path, workspace.id, paneId])
 
   const handleNewFile = useCallback(() => {
     if (workspace?.path) {
