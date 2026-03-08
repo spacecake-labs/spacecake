@@ -80,11 +80,9 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             COLORTERM: "truecolor",
             // CLI integration — allows `spacecake open` to find the running instance
             SPACECAKE_IPC_HOOK: cliSocketPath,
-            // Set EDITOR/VISUAL so tools (including Claude Code plan mode) open files in spacecake
+            // Set EDITOR/VISUAL so tools open files in spacecake
             EDITOR: "spacecake open --wait",
             VISUAL: "spacecake open --wait",
-            // Claude Code defaults to plan mode when run inside spacecake
-            CLAUDE_CODE_ACTION: "plan",
             // Marks this terminal as owned by spacecake — the statusline hook
             // script uses this to decide whether to POST to the socket
             SPACECAKE_TERMINAL: "1",
