@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "electron-playwright-cli": {
+      "source": "spacecake-labs/electron-playwright-cli",
+      "sourceType": "github",
+      "computedHash": "68725202fda73b48f3eec26ebc0848fcbddb48c110c6af81f8b3d7d678f74494"
+    }
+  }
+}

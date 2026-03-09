@@ -2,6 +2,7 @@
 .vscode
 .claude
 .notes
+.agents
 GEMINI.md
 .gemini*
 

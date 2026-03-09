@@ -2,6 +2,10 @@
   "browser": {
     "launchOptions": {
       "args": [".vite/build/main.js"]
+    },
+    "readyCondition": {
+      "waitForSelector": "[data-testid=\"sidebar\"]",
+      "timeout": 5000
     }
   }
 }

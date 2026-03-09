@@ -40,11 +40,11 @@ the integrated terminal is at the bottom of the screen. click it or drag to resi
 
 ## 🦀 claude code integration
 
-run \`claude\` from the integrated terminal - it automatically connects to spacecake and defaults to plan mode.
+run \`claude\` from the integrated terminal - it automatically connects to spacecake.
 
-### plan mode & ctrl+g
+### ctrl+g
 
-when Claude creates a plan, press \`ctrl+g\` in the terminal to open it in spacecake. the tab shows a green "claude" badge, and you'll see **save & close** / **close** buttons to return to Claude when done.
+if Claude creates a plan, press \`ctrl+g\` in the terminal to open it in spacecake. the tab shows a green "claude" badge, and you'll see **save & close** / **close** buttons to return to Claude when done.
 
 ### troubleshooting connection
 

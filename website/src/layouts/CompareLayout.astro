@@ -16,6 +16,7 @@ interface Props {
   updatedAt?: Date
   author?: string
   faq?: Array<{ question: string; answer: string }>
+  keywords?: string[]
   canonical?: string
   noindex?: boolean
 }
@@ -30,11 +31,12 @@ const {
   updatedAt,
   author = "spacecake team",
   faq,
+  keywords,
   canonical,
   noindex = false,
 } = Astro.props
 
-const currentUrl = Astro.url.href
+const currentUrl = new URL(Astro.url.pathname, Astro.site).href
 const canonicalUrl = canonical || currentUrl
 
 const formatDate = (date: Date) =>
@@ -58,6 +60,10 @@ const articleSchema = {
     "@type": "Organization",
     name: "spacecake",
     url: "https://www.spacecake.ai",
+    logo: {
+      "@type": "ImageObject",
+      url: "https://www.spacecake.ai/favicon.svg",
+    },
   },
   datePublished: publishedAt.toISOString(),
   dateModified: (updatedAt || publishedAt).toISOString(),
@@ -113,10 +119,14 @@ const faqSchema = faq?.length
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Primary Meta Tags -->
-    <title>{title} | spacecake</title>
-    <meta name="title" content={`${title} | spacecake`} />
+    <title>{title}</title>
+    <meta name="title" content={title} />
     <meta name="description" content={description} />
+    {keywords && <meta name="keywords" content={keywords.join(", ")} />}
     {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
     <!-- Canonical -->
     <link rel="canonical" href={canonicalUrl} />
