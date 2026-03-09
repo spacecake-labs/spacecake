@@ -162,7 +162,7 @@
     "electron-playwright-helpers": "^1.8.2",
     "eslint-plugin-no-relative-import-paths": "^1.6.1",
     "husky": "^9.1.7",
-    "jsdom": "^27.4.0",
+    "jsdom": "^28.1.0",
     "lint-staged": "^16.3.2",
     "oxfmt": "^0.36.0",
     "oxlint": "^1.51.0",
