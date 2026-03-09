@@ -1,13 +1,12 @@
 import { useSetAtom, useStore } from "jotai"
 import { useCallback } from "react"
 
-import type { FileTreeEvent, WorkspaceInfo } from "@/types/workspace"
-
 import { useRoute } from "@/hooks/use-route"
 import { fileTreeEventAtom, sortedFileTreeAtom } from "@/lib/atoms/file-tree"
 import { quickOpenIndexAtom } from "@/lib/atoms/quick-open-index"
 import * as mutations from "@/lib/db/mutations"
 import { handleFileEvent } from "@/lib/file-event-handler"
+import type { FileTreeEvent, WorkspaceInfo } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
 
 export const useFileEventHandler = (workspacePath: WorkspaceInfo["path"]) => {

@@ -1,6 +1,7 @@
-import { stubDialog } from "electron-playwright-helpers"
 import fs from "fs"
 import path from "path"
+
+import { stubDialog } from "electron-playwright-helpers"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import {

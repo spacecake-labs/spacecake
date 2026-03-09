@@ -1,6 +1,5 @@
-import type { DelimitedString, RegexDelimiters, StringDelimiters } from "@/types/parser"
-
 import { SPACE_CONSUMER_PATTERN } from "@/lib/parser/regex"
+import type { DelimitedString, RegexDelimiters, StringDelimiters } from "@/types/parser"
 
 function escapeRegex(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")

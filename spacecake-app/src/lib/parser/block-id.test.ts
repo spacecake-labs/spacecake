@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest"
 
-import type { Block, PyBlock } from "@/types/parser"
-
 import { blockId } from "@/lib/parser/block-id"
+import type { Block, PyBlock } from "@/types/parser"
 import { anonymousName, namedBlock } from "@/types/parser"
 
 describe("blockId", () => {

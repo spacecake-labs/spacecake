@@ -2,13 +2,12 @@
 import { atom } from "jotai"
 import { atomWithMachine } from "jotai-xstate"
 
-import type { File, FileTree, FileTreeEvent, Folder, WorkspaceInfo } from "@/types/workspace"
-
 import { expandedFoldersAtom, fileTreeAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import { replaceEqualDeep } from "@/lib/structural-sharing"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 import { fileStateMachine } from "@/machines/file-tree"
 import { router } from "@/router"
+import type { File, FileTree, FileTreeEvent, Folder, WorkspaceInfo } from "@/types/workspace"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 import { WorkspaceNotFound } from "@/types/workspace-error"
 

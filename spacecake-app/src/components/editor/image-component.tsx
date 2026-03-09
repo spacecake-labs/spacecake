@@ -6,14 +6,13 @@
  *
  */
 
-import type { BaseSelection, LexicalCommand, LexicalEditor, NodeKey } from "lexical"
-import type { JSX } from "react"
-
-import "@/components/editor/nodes/image-node.css"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { useLexicalEditable } from "@lexical/react/useLexicalEditable"
+
+import "@/components/editor/nodes/image-node.css"
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
 import { mergeRegister } from "@lexical/utils"
+import type { BaseSelection, LexicalCommand, LexicalEditor, NodeKey } from "lexical"
 import {
   $getNodeByKey,
   $getSelection,
@@ -25,6 +24,7 @@ import {
   DRAGSTART_COMMAND,
   SELECTION_CHANGE_COMMAND,
 } from "lexical"
+import type { JSX } from "react"
 import React, { Suspense, useCallback, useEffect, useRef, useState } from "react"
 
 import ImageResizer from "@/components/editor/image-resizer"

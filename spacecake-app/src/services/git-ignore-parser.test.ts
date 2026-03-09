@@ -1,8 +1,9 @@
-import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
 import * as fs from "node:fs/promises"
 import * as os from "node:os"
 import * as path from "node:path"
+
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { GitIgnore, GitIgnoreConfig } from "@/services/git-ignore-parser"

@@ -1,7 +1,7 @@
-import type Parser from "tree-sitter"
-
 import { readFileSync } from "fs"
 import { join } from "path"
+
+import type Parser from "tree-sitter"
 import { beforeEach, describe, expect, it } from "vitest"
 
 import { createParser } from "@/lib/parser/languages"

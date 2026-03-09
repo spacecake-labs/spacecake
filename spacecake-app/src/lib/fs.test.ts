@@ -1,11 +1,10 @@
 import { assert, describe, expect, test, vi } from "vitest"
 
-import type { ElectronAPI } from "@/types/electron"
-import type { FileContent } from "@/types/workspace"
-
 import { openDirectory, readFile, saveFile } from "@/lib/fs"
 import { NotFoundError, PermissionDeniedError, UnknownFSError } from "@/services/file-system"
 import { left, match, right } from "@/types/adt"
+import type { ElectronAPI } from "@/types/electron"
+import type { FileContent } from "@/types/workspace"
 import { AbsolutePath, FileType } from "@/types/workspace"
 
 // Create test implementations of the ElectronAPI interface

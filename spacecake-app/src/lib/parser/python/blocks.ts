@@ -1,7 +1,5 @@
 import type Parser from "tree-sitter"
 
-import type { EditorFile } from "@/types/workspace"
-
 import { fnv1a64Hex } from "@/lib/hash"
 import { type SyntaxNode, createParser } from "@/lib/parser/languages"
 import { dedentDocstring, findDocstringNode } from "@/lib/parser/python/docstring"
@@ -14,6 +12,7 @@ import {
   PyBlock,
   PyDecoratedKind,
 } from "@/types/parser"
+import type { EditorFile } from "@/types/workspace"
 
 let _parser: Parser | null = null
 

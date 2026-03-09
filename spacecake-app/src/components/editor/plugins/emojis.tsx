@@ -6,11 +6,10 @@
  *
  */
 
-import type { LexicalEditor } from "lexical"
-import type { JSX } from "react"
-
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
+import type { LexicalEditor } from "lexical"
 import { TextNode } from "lexical"
+import type { JSX } from "react"
 import { useEffect } from "react"
 
 import { $createEmojiNode, EmojiNode } from "@/components/editor/nodes/emoji-node"

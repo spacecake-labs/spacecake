@@ -4,8 +4,6 @@ import { FileWarning, Loader2Icon, RotateCcw, Trash2 } from "lucide-react"
 import * as React from "react"
 import { toast } from "sonner"
 
-import type { File, Folder, WorkspaceInfo } from "@/types/workspace"
-
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -41,6 +39,7 @@ import {
 } from "@/lib/atoms/file-tree"
 import { createFolder, remove, rename, saveFile } from "@/lib/fs"
 import { match } from "@/types/adt"
+import type { File, Folder, WorkspaceInfo } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
 
 function DeleteConfirmDialog({ workspace }: { workspace: WorkspaceInfo }) {

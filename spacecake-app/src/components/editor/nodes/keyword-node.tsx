@@ -7,7 +7,6 @@
  */
 
 import type { EditorConfig, LexicalNode, SerializedTextNode } from "lexical"
-
 import { $applyNodeReplacement, TextNode } from "lexical"
 
 export type SerializedKeywordNode = SerializedTextNode

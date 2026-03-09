@@ -1,7 +1,8 @@
-import type { PlatformError } from "@effect/platform/Error"
+import path from "path"
 
 import { FileSystem } from "@effect/platform"
 import { NodeFileSystem } from "@effect/platform-node"
+import type { PlatformError } from "@effect/platform/Error"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
@@ -11,7 +12,6 @@ import * as Queue from "effect/Queue"
 import * as Schedule from "effect/Schedule"
 import * as Stream from "effect/Stream"
 import { BrowserWindow } from "electron"
-import path from "path"
 
 import { fnv1a64Hex } from "@/lib/hash"
 import { normalizePath } from "@/lib/utils"

@@ -3,10 +3,6 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Check, FileWarning, Loader2, Save, X } from "lucide-react"
 import * as React from "react"
 
-import type { PaneMachineRef } from "@/machines/pane"
-import type { PaneItemPrimaryKey } from "@/schema/pane"
-import type { OpenFileSource } from "@/types/claude-code"
-
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { ViewToggleButton } from "@/components/editor/view-toggle-button"
 import { Button } from "@/components/ui/button"
@@ -14,6 +10,9 @@ import { useEditor } from "@/contexts/editor-context"
 import { saveResultAtom } from "@/lib/atoms/atoms"
 import { getOrCreateFileStateAtom } from "@/lib/atoms/file-tree"
 import { cn } from "@/lib/utils"
+import type { PaneMachineRef } from "@/machines/pane"
+import type { PaneItemPrimaryKey } from "@/schema/pane"
+import type { OpenFileSource } from "@/types/claude-code"
 import { RouteContext } from "@/types/workspace"
 
 interface EditorToolbarProps {

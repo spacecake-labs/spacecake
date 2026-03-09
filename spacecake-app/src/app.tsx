@@ -1,8 +1,7 @@
-import type { PostHog } from "posthog-js"
-
 import { QueryClientProvider } from "@tanstack/react-query"
 import { RouterProvider } from "@tanstack/react-router"
 import { Provider } from "jotai"
+import type { PostHog } from "posthog-js"
 import { useEffect, useState } from "react"
 import ReactDOM from "react-dom/client"
 

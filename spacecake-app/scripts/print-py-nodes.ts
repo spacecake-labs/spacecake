@@ -1,8 +1,8 @@
-import type { TreeCursor } from "@lezer/common"
-
-import { pythonLanguage } from "@codemirror/lang-python"
 import { readFile } from "node:fs/promises"
 import { argv, exit } from "node:process"
+
+import { pythonLanguage } from "@codemirror/lang-python"
+import type { TreeCursor } from "@lezer/common"
 
 function makeSnippet(text: string, from: number, to: number, maxLen: number = 80): string {
   const slice = text.slice(from, to).replace(/\s+/g, " ").trim()

@@ -4,7 +4,6 @@ import { SerializedEditorState } from "lexical"
 
 import type { DisplayStatusline } from "@/lib/statusline-parser"
 import type { ExpandedFolders, File, FileTree, Folder } from "@/types/workspace"
-
 import { AbsolutePath } from "@/types/workspace"
 
 export function atomWithToggle(initialValue?: boolean): WritableAtom<boolean, [boolean?], void> {

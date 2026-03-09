@@ -4,9 +4,6 @@ import { ChevronRight, Loader2, MoreHorizontal, Plus, X } from "lucide-react"
 import { useEffect, useRef } from "react"
 import * as React from "react"
 
-import type { WorkspaceCache } from "@/hooks/use-workspace-cache"
-import type { FlatFileTreeItem } from "@/lib/atoms/file-tree"
-
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -17,7 +14,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
+import type { WorkspaceCache } from "@/hooks/use-workspace-cache"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
+import type { FlatFileTreeItem } from "@/lib/atoms/file-tree"
 import { getFileStateAtom, hasFileStateAtom } from "@/lib/atoms/file-tree"
 import { supportedViews } from "@/lib/language-support"
 import { cn, encodeBase64Url } from "@/lib/utils"

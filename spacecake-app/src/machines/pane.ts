@@ -1,8 +1,6 @@
 import { toast } from "sonner"
 import { assertEvent, fromPromise, setup, type ActorRefFrom } from "xstate"
 
-import type { OpenFileSource } from "@/types/claude-code"
-
 import { removeFileStateAtom } from "@/lib/atoms/file-tree"
 import * as mutations from "@/lib/db/mutations"
 import { supportsRichView } from "@/lib/language-support"
@@ -13,6 +11,7 @@ import { EditorPrimaryKey } from "@/schema/editor"
 import { PaneItemPrimaryKey, PaneItemWithFile, PanePrimaryKey } from "@/schema/pane"
 import { getPersistableViewKind } from "@/services/editor-manager"
 import { isSome } from "@/types/adt"
+import type { OpenFileSource } from "@/types/claude-code"
 import { ViewKind } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 

@@ -1,5 +1,4 @@
 import type { LexicalEditor } from "lexical"
-
 import {
   $createParagraphNode,
   $createTextNode,
@@ -10,8 +9,6 @@ import {
   createEditor,
 } from "lexical"
 import { beforeEach, describe, expect, it } from "vitest"
-
-import type { SerializedSelection } from "@/types/lexical"
 
 import { nodes } from "@/components/editor/nodes"
 import {
@@ -28,6 +25,7 @@ import {
 } from "@/lib/editor"
 import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import { JsonValue } from "@/schema/drizzle-effect"
+import type { SerializedSelection } from "@/types/lexical"
 import { AbsolutePath, EditorFile, FileType } from "@/types/workspace"
 
 describe("Editor Integration", () => {

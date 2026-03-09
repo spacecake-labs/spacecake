@@ -1,6 +1,7 @@
+import path from "path"
+
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import path from "path"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import WebSocket from "ws"
 

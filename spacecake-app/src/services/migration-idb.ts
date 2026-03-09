@@ -1,6 +1,7 @@
-import { BrowserWindow, ipcMain } from "electron"
 import fs from "node:fs"
 import path from "node:path"
+
+import { BrowserWindow, ipcMain } from "electron"
 
 export type MigrationResult = "migrated" | "fresh-install"
 

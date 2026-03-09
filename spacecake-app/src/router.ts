@@ -1,7 +1,6 @@
 import { createMemoryHistory, createRouter } from "@tanstack/react-router"
 
 import type { DatabaseInstance } from "@/lib/init-database"
-
 // Import the generated route tree
 import { routeTree } from "@/routeTree.gen"
 

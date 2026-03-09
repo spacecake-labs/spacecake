@@ -1,18 +1,18 @@
-import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
 import fs from "node:fs"
 import http from "node:http"
 import os from "node:os"
 import path from "node:path"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { OpenFilePayload } from "@/types/claude-code"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { toIpcPath } from "@/lib/ipc-path"
 import { normalizePath } from "@/lib/utils"
 import { FileSystem } from "@/services/file-system"
 import { makeSpacecakeHomeTestLayer } from "@/services/spacecake-home"
 import { waitForServer } from "@/test-utils/platform"
+import type { OpenFilePayload } from "@/types/claude-code"
 
 // ---------------------------------------------------------------------------
 // Electron mock — capture ipcMain.handle calls + spy on webContents.send

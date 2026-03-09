@@ -1,6 +1,7 @@
+import path from "node:path"
+
 import * as Effect from "effect/Effect"
 import { BrowserWindow } from "electron"
-import path from "node:path"
 
 import { buildPathWithCli } from "@/lib/utils"
 import defaultShell from "@/main-process/default-shell"

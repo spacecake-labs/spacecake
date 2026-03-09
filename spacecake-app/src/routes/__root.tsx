@@ -8,11 +8,10 @@ import {
 import { usePostHog } from "posthog-js/react"
 import { useEffect } from "react"
 
-import type { RouterContext } from "@/router"
-
 import { useHotkey } from "@/hooks/use-hotkey"
 import { useMenuAction } from "@/hooks/use-menu-action"
 import { useOpenWorkspace } from "@/lib/open-workspace"
+import type { RouterContext } from "@/router"
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,

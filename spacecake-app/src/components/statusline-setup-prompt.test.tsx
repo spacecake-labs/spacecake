@@ -7,14 +7,13 @@ import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { FileSystemError } from "@/services/file-system"
-import type { ElectronAPI, StatuslineConfigStatus } from "@/types/electron"
-
 import {
   statuslineConflictAtom,
   useStatuslineAutoSetup,
 } from "@/components/statusline-setup-prompt"
+import type { FileSystemError } from "@/services/file-system"
 import { left, right } from "@/types/adt"
+import type { ElectronAPI, StatuslineConfigStatus } from "@/types/electron"
 
 // vi.hoisted runs before vi.mock hoisting, so the atom is available.
 const { mockServerReadyAtom } = vi.hoisted(() => {

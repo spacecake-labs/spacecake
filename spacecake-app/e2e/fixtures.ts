@@ -1,7 +1,8 @@
-import { _electron, test as base, ElectronApplication, expect, Page } from "@playwright/test"
 import fs from "fs"
 import os from "os"
 import path from "path"
+
+import { _electron, test as base, ElectronApplication, expect, Page } from "@playwright/test"
 import treeKill from "tree-kill"
 
 export type TestFixtures = {

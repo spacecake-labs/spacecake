@@ -1,11 +1,12 @@
 import { execFile } from "child_process"
+import fsNode from "fs/promises"
+import path from "path"
+import { promisify } from "util"
+
 import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import { BrowserWindow, dialog, ipcMain, shell } from "electron"
-import fsNode from "fs/promises"
-import path from "path"
-import { promisify } from "util"
 
 import { MUTATION_METHOD_NAMES } from "@/lib/db/mutation-methods"
 import { normalizePath } from "@/lib/utils"

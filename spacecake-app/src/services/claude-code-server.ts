@@ -1,18 +1,18 @@
+import crypto from "node:crypto"
+import fs from "node:fs"
+import path from "node:path"
+
 import * as Effect from "effect/Effect"
 import * as Either from "effect/Either"
 import * as Schema from "effect/Schema"
 import { BrowserWindow, ipcMain } from "electron"
-import crypto from "node:crypto"
-import fs from "node:fs"
-import path from "node:path"
 import { WebSocket, WebSocketServer } from "ws"
 
 import type { DisplayStatusline } from "@/lib/statusline-parser"
-import type { ClaudeCodeStatus, OpenFilePayload } from "@/types/claude-code"
-
 import { ClaudeConfig } from "@/services/claude-config"
 import { ClaudeHooksServer } from "@/services/claude-hooks-server"
 import { FileSystem } from "@/services/file-system"
+import type { ClaudeCodeStatus, OpenFilePayload } from "@/types/claude-code"
 import {
   AtMentionedPayloadSchema,
   OpenFileArgsSchema,

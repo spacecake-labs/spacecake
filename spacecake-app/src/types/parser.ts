@@ -1,8 +1,7 @@
 import * as Schema from "effect/Schema"
 
-import type { FileContent } from "@/types/workspace"
-
 import { ContextLanguageSchema } from "@/types/language"
+import type { FileContent } from "@/types/workspace"
 
 // Discriminated union for block names
 export type BlockName = { kind: "anonymous"; value: "anonymous" } | { kind: "named"; value: string }

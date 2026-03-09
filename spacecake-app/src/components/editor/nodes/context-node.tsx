@@ -3,9 +3,8 @@
  * It is kept here for future reference.
  */
 
-import type { DOMConversionMap, DOMExportOutput, EditorConfig } from "lexical"
-
 import { addClassNamesToElement } from "@lexical/utils"
+import type { DOMConversionMap, DOMExportOutput, EditorConfig } from "lexical"
 import {
   $applyNodeReplacement,
   ElementNode,

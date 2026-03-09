@@ -1,6 +1,5 @@
-import type { JSX } from "react"
-
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
+import type { JSX } from "react"
 import { useEffect } from "react"
 
 import { MermaidNode } from "@/components/editor/nodes/mermaid-node"

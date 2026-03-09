@@ -17,8 +17,6 @@ import {
   type EditorState,
 } from "lexical"
 
-import type { EditorFile, FileType } from "@/types/workspace"
-
 import { editorConfig } from "@/components/editor/editor"
 import { nodeToMdBlock } from "@/components/editor/markdown-utils"
 import { $createCodeBlockNode, $isCodeBlockNode } from "@/components/editor/nodes/code-node"
@@ -30,6 +28,7 @@ import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown
 import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
 import { JsonValue } from "@/schema/drizzle-effect"
 import { type SerializedSelection } from "@/types/lexical"
+import type { EditorFile, FileType } from "@/types/workspace"
 
 export const createEditorConfigFromState = (
   serializedState: JsonValue,

@@ -1,8 +1,8 @@
-import type { QueryClient } from "@tanstack/react-query"
-
 import { createCollection } from "@tanstack/db"
 import { queryCollectionOptions } from "@tanstack/query-db-collection"
+import type { QueryClient } from "@tanstack/react-query"
 
+import { fetchDb } from "@/lib/db/fetchers"
 import type {
   editorTable,
   fileTable,
@@ -12,8 +12,6 @@ import type {
 } from "@/schema/drizzle"
 import type { WorkspacePrimaryKey } from "@/schema/workspace"
 import type { AbsolutePath } from "@/types/workspace"
-
-import { fetchDb } from "@/lib/db/fetchers"
 
 // row types matching Drizzle's getTableColumns output
 export type FileRow = typeof fileTable.$inferSelect

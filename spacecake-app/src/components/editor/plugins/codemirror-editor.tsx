@@ -9,9 +9,6 @@ import { basicSetup } from "codemirror"
 import { $addUpdateTag, SKIP_DOM_SELECTION_TAG } from "lexical"
 import React from "react"
 
-import type { LanguageSpec } from "@/types/language"
-import type { BlockMeta } from "@/types/parser"
-
 import { CodeBlock } from "@/components/code-block"
 import { CodeBlockNode, useCodeBlockEditorContext } from "@/components/editor/nodes/code-node"
 import { CODEMIRROR_SELECTION_COMMAND } from "@/components/editor/plugins/codemirror-commands"
@@ -21,6 +18,8 @@ import { githubDark, githubLight } from "@/components/editor/themes"
 import { useTheme } from "@/components/theme-provider"
 import { extractCodeMirrorSelectionInfo } from "@/lib/selection-utils"
 import { debounce } from "@/lib/utils"
+import type { LanguageSpec } from "@/types/language"
+import type { BlockMeta } from "@/types/parser"
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]
 

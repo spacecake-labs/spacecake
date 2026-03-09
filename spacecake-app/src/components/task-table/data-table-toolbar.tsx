@@ -1,5 +1,4 @@
 import type { Table } from "@tanstack/react-table"
-
 import { X } from "lucide-react"
 
 const statuses = [

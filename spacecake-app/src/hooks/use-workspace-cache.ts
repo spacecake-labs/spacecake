@@ -1,10 +1,9 @@
 import { eq, useLiveQuery } from "@tanstack/react-db"
 import { useMemo } from "react"
 
-import type { WorkspaceCacheRow } from "@/schema/workspace-cache"
-
 import { useCollections } from "@/contexts/collections-context"
 import { FilePrimaryKey } from "@/schema/file"
+import type { WorkspaceCacheRow } from "@/schema/workspace-cache"
 import { AbsolutePath } from "@/types/workspace"
 
 /**

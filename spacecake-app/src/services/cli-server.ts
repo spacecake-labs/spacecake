@@ -1,5 +1,3 @@
-import * as Effect from "effect/Effect"
-import { BrowserWindow, ipcMain } from "electron"
 /**
  * CLI Server — IPC server for the `spacecake` CLI tool.
  *
@@ -13,12 +11,14 @@ import { BrowserWindow, ipcMain } from "electron"
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http"
 import path from "node:path"
 
-import type { OpenFilePayload } from "@/types/claude-code"
+import * as Effect from "effect/Effect"
+import { BrowserWindow, ipcMain } from "electron"
 
 import { toIpcPath } from "@/lib/ipc-path"
 import { normalizePath } from "@/lib/utils"
 import { FileSystem } from "@/services/file-system"
 import { SpacecakeHome } from "@/services/spacecake-home"
+import type { OpenFilePayload } from "@/types/claude-code"
 
 // --- Types ---
 

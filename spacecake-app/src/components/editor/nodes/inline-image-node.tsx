@@ -6,6 +6,7 @@
  *
  */
 
+import { addClassNamesToElement, removeClassNamesFromElement } from "@lexical/utils"
 import type {
   DOMConversionMap,
   DOMConversionOutput,
@@ -19,10 +20,8 @@ import type {
   SerializedLexicalNode,
   Spread,
 } from "lexical"
-import type { JSX } from "react"
-
-import { addClassNamesToElement, removeClassNamesFromElement } from "@lexical/utils"
 import { $applyNodeReplacement, createEditor, DecoratorNode, isHTMLElement } from "lexical"
+import type { JSX } from "react"
 import * as React from "react"
 
 import InlineImageComponent from "@/components/editor/inline-image-component"

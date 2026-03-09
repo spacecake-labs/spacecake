@@ -3,8 +3,6 @@
  * If the workspace path is not valid, it redirects to the home route.
  */
 
-import type { ImperativePanelHandle } from "react-resizable-panels"
-
 import { createFileRoute, ErrorComponent, Outlet, redirect } from "@tanstack/react-router"
 import * as Match from "effect/Match"
 import { useAtom, useSetAtom } from "jotai"
@@ -19,9 +17,7 @@ import {
   X,
 } from "lucide-react"
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
-
-import type { DockAction } from "@/lib/dock-transition"
-import type { DockablePanelKind, DockPosition, FullDock } from "@/schema/workspace-layout"
+import type { ImperativePanelHandle } from "react-resizable-panels"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DeleteButton } from "@/components/delete-button"
@@ -30,6 +26,8 @@ import { LoadingAnimation } from "@/components/loading-animation"
 import { MenuButton } from "@/components/menu-button"
 import { QuickOpen } from "@/components/quick-open"
 import { TabBar } from "@/components/tab-bar"
+import type { DockAction } from "@/lib/dock-transition"
+import type { DockablePanelKind, DockPosition, FullDock } from "@/schema/workspace-layout"
 
 const GitPanel = lazy(() => import("@/components/git-panel").then((m) => ({ default: m.GitPanel })))
 const TaskTable = lazy(() =>

@@ -7,11 +7,10 @@ import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { GitCommit, GitStatus } from "@/lib/atoms/git"
-import type { ElectronAPI } from "@/types/electron"
-
 import { GitPanel } from "@/components/git-panel"
+import type { GitCommit, GitStatus } from "@/lib/atoms/git"
 import { type Either, right } from "@/types/adt"
+import type { ElectronAPI } from "@/types/electron"
 import { AbsolutePath } from "@/types/workspace"
 
 // mock useRoute hook and router - use vi.hoisted since vi.mock is hoisted

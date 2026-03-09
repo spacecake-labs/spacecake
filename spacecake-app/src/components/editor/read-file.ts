@@ -11,13 +11,12 @@ import {
 } from "lexical"
 import { toast } from "sonner"
 
-import type { PyBlock } from "@/types/parser"
-
 import { delimitPyBlock } from "@/components/editor/block-utils"
 import { emptyMdNode, mdBlockToNode } from "@/components/editor/markdown-utils"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 import { $restoreNodeSelection, $restoreSelection, convertToSourceView } from "@/lib/editor"
 import { INITIAL_LOAD_TAG, SerializedSelection } from "@/types/lexical"
+import type { PyBlock } from "@/types/parser"
 import { EditorFile, FileType } from "@/types/workspace"
 
 /**

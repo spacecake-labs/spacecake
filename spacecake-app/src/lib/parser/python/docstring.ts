@@ -1,5 +1,4 @@
 import type { SyntaxNode } from "@/lib/parser/languages"
-
 import { isDocstring } from "@/lib/parser/python/blocks"
 
 /**

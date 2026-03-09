@@ -1,13 +1,13 @@
-import type { ForgeConfig } from "@electron-forge/shared-types"
+import { cp, mkdir } from "node:fs/promises"
+import path from "path"
 
 import { MakerDeb } from "@electron-forge/maker-deb"
 import { MakerZIP } from "@electron-forge/maker-zip"
 // import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives"
 import { FusesPlugin } from "@electron-forge/plugin-fuses"
 import { VitePlugin } from "@electron-forge/plugin-vite"
+import type { ForgeConfig } from "@electron-forge/shared-types"
 import { FuseV1Options, FuseVersion } from "@electron/fuses"
-import { cp, mkdir } from "node:fs/promises"
-import path from "path"
 
 // eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
 import packageJson from "./package.json"

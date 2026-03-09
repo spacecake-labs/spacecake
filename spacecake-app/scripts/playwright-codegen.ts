@@ -1,4 +1,5 @@
 import { setTimeout } from "node:timers/promises"
+
 import { _electron } from "playwright"
 
 ;(async () => {

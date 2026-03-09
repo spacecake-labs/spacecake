@@ -1,17 +1,15 @@
-import type { BaseSelection, LexicalEditor, NodeKey } from "lexical"
-import type { JSX } from "react"
-
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin"
-
-import "@/components/editor/inline-image-node.css"
 import { ClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
+
+import "@/components/editor/inline-image-node.css"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { LexicalNestedComposer } from "@lexical/react/LexicalNestedComposer"
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
 import { useLexicalEditable } from "@lexical/react/useLexicalEditable"
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
 import { mergeRegister } from "@lexical/utils"
+import type { BaseSelection, LexicalEditor, NodeKey } from "lexical"
 import {
   $getNodeByKey,
   $getSelection,
@@ -24,12 +22,12 @@ import {
   KEY_ESCAPE_COMMAND,
   SELECTION_CHANGE_COMMAND,
 } from "lexical"
+import type { JSX } from "react"
 import * as React from "react"
 import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 
-import type { Position } from "@/components/editor/nodes/inline-image-node"
-
 import { ContentEditable } from "@/components/editor/content-editable"
+import type { Position } from "@/components/editor/nodes/inline-image-node"
 import { InlineImageNode } from "@/components/editor/nodes/inline-image-node"
 import { Button } from "@/components/ui/button"
 import {

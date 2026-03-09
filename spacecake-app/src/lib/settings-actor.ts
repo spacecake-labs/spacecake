@@ -1,9 +1,8 @@
 import { createActor, fromPromise, setup, type Actor } from "xstate"
 
-import type { WorkspaceSettings } from "@/schema/workspace-settings"
-
 import * as mutations from "@/lib/db/mutations"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
+import type { WorkspaceSettings } from "@/schema/workspace-settings"
 
 /**
  * Settings machine that handles workspace settings updates.

@@ -1,9 +1,10 @@
+import fs from "node:fs"
+import path from "node:path"
+
 import { PGlite } from "@electric-sql/pglite"
 import { drizzle } from "drizzle-orm/pglite"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import fs from "node:fs"
-import path from "node:path"
 
 import { Database, makeDatabaseService, PgliteError } from "@/services/database"
 import { SpacecakeHome } from "@/services/spacecake-home"
