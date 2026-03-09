@@ -48,7 +48,9 @@ import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
 export function createCodeTransformer(): MultilineElementTransformer {
   return {
     ...CODE,
-    // dependencies: [CodeBlockNode],
+    // override the new handleImportAfterStartMatch (0.41.0) which hardcodes CODE.replace,
+    // bypassing our custom replace. setting to undefined falls back to regExpStart/regExpEnd matching.
+    handleImportAfterStartMatch: undefined,
     export: (node: LexicalNode) => {
       if ($isMermaidNode(node)) {
         return "```mermaid\n" + node.getDiagram() + "\n```"
@@ -68,7 +70,8 @@ export function createCodeTransformer(): MultilineElementTransformer {
       )
     },
     replace: (rootNode, _children, startMatch, endMatch, linesInBetween) => {
-      const language = startMatch[1] ?? ""
+      // startMatch[2] is the language (0.41.0 regex: startMatch[1] is the fence, [2] is the language)
+      const language = startMatch[2] ?? ""
 
       if (linesInBetween) {
         if (linesInBetween?.[0]?.trim().length === 0) {
