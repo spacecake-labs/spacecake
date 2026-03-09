@@ -395,6 +395,9 @@ importers:
       electron-devtools-installer:
         specifier: ^4.0.0
         version: 4.0.0
+      electron-playwright-cli:
+        specifier: ^0.1.3
+        version: 0.1.3(playwright@1.58.2)
       electron-playwright-helpers:
         specifier: ^1.8.2
         version: 1.8.2
@@ -4533,6 +4536,13 @@ packages:
     engines: {node: '>= 16'}
     hasBin: true
 
+  electron-playwright-cli@0.1.3:
+    resolution: {integrity: sha512-9pOxkhS7psrxfxIns22CiecVW3sbgMn0BOxZoEpKQdgUA8HxMOPcHCEqGzVZ2nmiUM0heg/0iWZEuG+Hyn7voA==}
+    engines: {node: '>=18'}
+    hasBin: true
+    peerDependencies:
+      playwright: '>=1.52.0'
+
   electron-playwright-helpers@1.8.2:
     resolution: {integrity: sha512-sM9fDSEFDOptKDa8oiNphiXdR1KR1uFe8yHnlrnvyQE1ScnHizca/SoYvUdtn+5IuVNTkT8MesKWJ6seS4/zuA==}
 
@@ -5661,8 +5671,8 @@ packages:
   minimatch@3.1.2:
     resolution: {integrity: sha512-J7p63hRiAjw1NDEww1W7i37+ByIrOWO5XQQAzZ3VOcL0PNybwpfmV/N05zFAzwQ9USyEcX6t3UO+K5aqBQOIHw==}
 
-  minimatch@5.1.6:
-    resolution: {integrity: sha512-lKwV/1brpG6mBUFHtb7NUmtABCb2WZZmm2wNiOA5hAb8VdCS4B3dtMWyvcoViccwAW/COERjXLt0zP1zXUN26g==}
+  minimatch@5.1.9:
+    resolution: {integrity: sha512-7o1wEA2RyMP7Iu7GNba9vc0RWWGACJOCZBJX2GJWip0ikV+wcOsgVuY9uE8CPiyQhkGFSlhuSkZPavN7u1c2Fw==}
     engines: {node: '>=10'}
 
   minimatch@9.0.5:
@@ -11789,6 +11799,11 @@ snapshots:
       - supports-color
     optional: true
 
+  electron-playwright-cli@0.1.3(playwright@1.58.2):
+    dependencies:
+      minimist: 1.2.8
+      playwright: 1.58.2
+
   electron-playwright-helpers@1.8.2:
     dependencies:
       '@electron/asar': 3.4.1
@@ -12285,7 +12300,7 @@ snapshots:
       fs.realpath: 1.0.0
       inflight: 1.0.6
       inherits: 2.0.4
-      minimatch: 5.1.6
+      minimatch: 5.1.9
       once: 1.4.0
 
   global-agent@3.0.0:
@@ -13085,7 +13100,7 @@ snapshots:
     dependencies:
       brace-expansion: 1.1.12
 
-  minimatch@5.1.6:
+  minimatch@5.1.9:
     dependencies:
       brace-expansion: 2.0.2
 

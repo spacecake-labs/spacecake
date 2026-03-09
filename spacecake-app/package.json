@@ -158,6 +158,7 @@
     "drizzle-kit": "^0.31.9",
     "electron": "^39.6.0",
     "electron-devtools-installer": "^4.0.0",
+    "electron-playwright-cli": "^0.1.3",
     "electron-playwright-helpers": "^1.8.2",
     "eslint-plugin-no-relative-import-paths": "^1.6.1",
     "husky": "^9.1.7",
