@@ -51,11 +51,15 @@ if (started) {
   app.quit()
 }
 
+const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
+
+if (isDev) {
+  app.name = "spacecake-dev"
+}
+
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 }
-
-const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
 const isTest = process.env.IS_PLAYWRIGHT === "true"
 const showWindow = process.env.SHOW_WINDOW === "true"
 
