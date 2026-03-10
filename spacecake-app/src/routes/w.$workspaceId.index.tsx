@@ -4,13 +4,14 @@
  */
 
 import { createFileRoute, ErrorComponent } from "@tanstack/react-router"
-import { AlertCircleIcon, CakeSlice } from "lucide-react"
+import { AlertCircleIcon } from "lucide-react"
 import { useEffect, useRef } from "react"
 
 import { LoadingAnimation } from "@/components/loading-animation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CommandShortcut } from "@/components/ui/command"
 import { usePaneMachine } from "@/hooks/use-pane-machine"
+import iconSvg from "@/images/icon.svg"
 import { exists } from "@/lib/fs"
 import { condensePath, decodeBase64Url, normalizePath } from "@/lib/utils"
 import { RuntimeClient } from "@/services/runtime-client"
@@ -124,21 +125,23 @@ function WorkspaceIndex() {
   return (
     <div className="flex flex-col items-center justify-center h-full max-w-2xl mx-auto text-center">
       <div className="mb-8">
-        <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mb-4 mx-auto">
-          <CakeSlice className="w-8 h-" />
-        </div>
+        <img src={iconSvg} alt="spacecake" className="w-16 h-16 mb-4 mx-auto" />
         <h1 className="text-2xl font-bold mb-2">spacecake</h1>
         <p className="text-muted-foreground text-sm">{condensePath(workspacePath)}</p>
       </div>
       <h3 className="text-sm font-medium m-3">commands</h3>
       <div className="w-full max-w-sm mx-auto grid grid-cols-1 gap-2 text-sm">
         <div className="flex justify-between items-center py-1">
-          <span className="text-muted-foreground">quick open</span>
+          <span className="text-muted-foreground">quick open file</span>
           <CommandShortcut>⌘P</CommandShortcut>
         </div>
         <div className="flex justify-between items-center py-1">
           <span className="text-muted-foreground">new file</span>
           <CommandShortcut>⌘N</CommandShortcut>
+        </div>
+        <div className="flex justify-between items-center py-1">
+          <span className="text-muted-foreground">toggle terminal</span>
+          <CommandShortcut>ctrl+`</CommandShortcut>
         </div>
       </div>
     </div>
