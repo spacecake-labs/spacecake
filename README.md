@@ -6,7 +6,7 @@ You can run agents, write specs, and see what's happening in one place.
 
 For full documentation, visit [spacecake.ai](https://www.spacecake.ai/getting-started).
 
-> ℹ️ `spacecake` is in public alpha. Supported platforms: macOS (Apple Silicon & Intel), Windows (x64), and Linux (x64).
+> ℹ️ `spacecake` is in public alpha.
 > If you find any bugs, please open an issue in this repo or join us on [Discord](https://discord.com/invite/CwFnxfkGHB).
 
 ### 📦 project structure
