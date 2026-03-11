@@ -1,6 +1,7 @@
 import { useAtom, useAtomValue } from "jotai"
+import type { LucideIcon } from "lucide-react"
 import { GitBranch, ListTodo, PanelLeft, Terminal, TriangleAlert } from "lucide-react"
-import { useCallback, useState } from "react"
+import { memo, useCallback, useState } from "react"
 
 import { ClaudeStatusBadge } from "@/components/claude-status-badge"
 import { ClaudeStatuslineBadge } from "@/components/claude-statusline-badge"
@@ -100,6 +101,41 @@ function StatuslineConflictLink() {
   )
 }
 
+const StatusToggleButton = memo(function StatusToggleButton({
+  icon: Icon,
+  label,
+  accessibilityLabel,
+  isExpanded,
+  onClick,
+  testId,
+}: {
+  icon: LucideIcon
+  label: string
+  accessibilityLabel?: string
+  isExpanded: boolean
+  onClick: () => void
+  testId?: string
+}) {
+  const a11yLabel = accessibilityLabel ?? label
+  return (
+    <button
+      onClick={onClick}
+      data-testid={testId}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-all cursor-pointer",
+        isExpanded
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
+          : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300",
+      )}
+      aria-label={isExpanded ? `hide ${a11yLabel}` : `show ${a11yLabel}`}
+      title={isExpanded ? `hide ${a11yLabel}` : `show ${a11yLabel}`}
+    >
+      <Icon className="h-3 w-3" />
+      {label}
+    </button>
+  )
+})
+
 export function WorkspaceStatusBar({
   onToggleSidebar,
   isTerminalExpanded,
@@ -128,53 +164,30 @@ export function WorkspaceStatusBar({
           </button>
         )}
         {onToggleTerminal && (
-          <button
+          <StatusToggleButton
+            icon={Terminal}
+            label="terminal"
+            isExpanded={!!isTerminalExpanded}
             onClick={onToggleTerminal}
-            data-testid="statusbar-terminal-toggle"
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-all cursor-pointer",
-              isTerminalExpanded
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
-                : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300",
-            )}
-            aria-label={isTerminalExpanded ? "hide terminal" : "show terminal"}
-            title={isTerminalExpanded ? "hide terminal" : "show terminal"}
-          >
-            <Terminal className="h-3 w-3" />
-            terminal
-          </button>
+            testId="statusbar-terminal-toggle"
+          />
         )}
         {onToggleTask && (
-          <button
+          <StatusToggleButton
+            icon={ListTodo}
+            label="tasks"
+            isExpanded={!!isTaskExpanded}
             onClick={onToggleTask}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-all cursor-pointer",
-              isTaskExpanded
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
-                : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300",
-            )}
-            aria-label={isTaskExpanded ? "hide tasks" : "show tasks"}
-            title={isTaskExpanded ? "hide tasks" : "show tasks"}
-          >
-            <ListTodo className="h-3 w-3" />
-            tasks
-          </button>
+          />
         )}
         {onToggleGit && gitBranch && (
-          <button
+          <StatusToggleButton
+            icon={GitBranch}
+            label={gitBranch}
+            accessibilityLabel="git panel"
+            isExpanded={!!isGitExpanded}
             onClick={onToggleGit}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-all cursor-pointer",
-              isGitExpanded
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
-                : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300",
-            )}
-            aria-label={isGitExpanded ? "hide git panel" : "show git panel"}
-            title={isGitExpanded ? "hide git panel" : "show git panel"}
-          >
-            <GitBranch className="h-3 w-3" />
-            {gitBranch}
-          </button>
+          />
         )}
       </div>
 

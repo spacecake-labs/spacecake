@@ -101,6 +101,8 @@ const TASK_STATUSES = [
   { value: "completed", label: "completed" },
 ]
 
+const panelFallback = <div className="h-full w-full bg-background" />
+
 export const Route = createFileRoute("/w/$workspaceId")({
   beforeLoad: async ({ params, context }) => {
     const { db } = context
@@ -286,6 +288,126 @@ function DockPositionDropdown({
   )
 }
 
+// task panel toolbar — owns taskStatusFilter to avoid re-rendering LayoutContent on filter changes
+function TaskToolbar({
+  isExpanded,
+  dock,
+  onExpandedChange,
+  onDockChange,
+}: {
+  isExpanded: boolean
+  dock: DockPosition
+  onExpandedChange: (expanded: boolean) => void
+  onDockChange: (dock: DockPosition) => void
+}) {
+  const [taskStatusFilter, setTaskStatusFilter] = useAtom(taskStatusFilterAtom)
+  const isCollapsed = !isExpanded
+
+  const toggleTaskStatus = useCallback(
+    (status: string) => {
+      setTaskStatusFilter((prev) =>
+        prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status],
+      )
+    },
+    [setTaskStatusFilter],
+  )
+
+  return (
+    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+        <ListTodo
+          className={cn(
+            "h-3.5 w-3.5 shrink-0",
+            isExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+          )}
+        />
+        <DockPositionDropdown currentDock={dock} onDockChange={onDockChange} label="task" />
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {TASK_STATUSES.map((status) => {
+          const isActive = taskStatusFilter.includes(status.value)
+          return (
+            <button
+              key={status.value}
+              onClick={() => toggleTaskStatus(status.value)}
+              className={cn(
+                "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-colors cursor-pointer shrink-0",
+                isActive
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
+                  : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300",
+              )}
+            >
+              {status.label}
+            </button>
+          )
+        })}
+        {taskStatusFilter.length > 0 && (
+          <button
+            onClick={() => setTaskStatusFilter([])}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+          >
+            <X className="h-3 w-3" />
+            reset
+          </button>
+        )}
+        <button
+          onClick={() => onExpandedChange(!isExpanded)}
+          className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          aria-label={isCollapsed ? "show tasks" : "hide tasks"}
+        >
+          {isCollapsed ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// git panel toolbar
+function GitToolbar({
+  isExpanded,
+  dock,
+  onExpandedChange,
+  onDockChange,
+}: {
+  isExpanded: boolean
+  dock: DockPosition
+  onExpandedChange: (expanded: boolean) => void
+  onDockChange: (dock: DockPosition) => void
+}) {
+  const isCollapsed = !isExpanded
+
+  return (
+    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+        <GitBranch
+          className={cn(
+            "h-3.5 w-3.5 shrink-0",
+            isExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+          )}
+        />
+        <DockPositionDropdown currentDock={dock} onDockChange={onDockChange} label="git" />
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <button
+          onClick={() => onExpandedChange(!isExpanded)}
+          className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          aria-label={isCollapsed ? "show git" : "hide git"}
+        >
+          {isCollapsed ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function LayoutContent() {
   const { workspace, paneId } = Route.useRouteContext()
   const { open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
@@ -354,6 +476,9 @@ function LayoutContent() {
 
   // Get layout from database with live updates
   const { layout } = useWorkspaceLayout(workspace.id)
+  const layoutRef = useRef(layout)
+  layoutRef.current = layout
+
   const terminalDock = getDockPosition(layout.dock, "terminal")
   const isTerminalExpanded = layout.panels.terminal.isExpanded
   const terminalSize = clampSize(layout.panels.terminal.size, terminalDock)
@@ -364,7 +489,6 @@ function LayoutContent() {
   const isTaskExpanded = layout.panels.task.isExpanded
   const taskSize = clampSize(layout.panels.task.size, taskDock)
   const isTaskCollapsed = !isTaskExpanded
-  const [taskStatusFilter, setTaskStatusFilter] = useAtom(taskStatusFilterAtom)
 
   // Git panel state
   const gitDock = getDockPosition(layout.dock, "git")
@@ -395,26 +519,33 @@ function LayoutContent() {
   const gitPanelRef = useRef<HTMLDivElement>(null)
   const gitResizablePanelRef = useRef<PanelImperativeHandle>(null)
 
-  // Helper to dispatch a dock action and persist the result
+  // Helper to dispatch a dock action and persist the result.
+  // Reads layout from ref so this callback is stable across renders.
   const dispatch = useCallback(
     (action: DockAction) => {
-      const newLayout = transition(layout, action)
-      if (newLayout === layout) return
+      const currentLayout = layoutRef.current
+      const newLayout = transition(currentLayout, action)
+      if (newLayout === currentLayout) return
 
-      const newGitDock = getDockPosition(newLayout.dock as FullDock, "git")
-      const newTaskDock = getDockPosition(newLayout.dock as FullDock, "task")
+      // auto-close/open sidebar when a left-docked panel expands/collapses
+      const oldDock = currentLayout.dock
+      const newDock = newLayout.dock as FullDock
       const hadExpandedLeft =
-        (gitDock === "left" && isGitExpanded) || (taskDock === "left" && isTaskExpanded)
+        (getDockPosition(oldDock, "git") === "left" && currentLayout.panels.git.isExpanded) ||
+        (getDockPosition(oldDock, "task") === "left" && currentLayout.panels.task.isExpanded)
       const hasExpandedLeft =
-        (newGitDock === "left" && newLayout.panels.git.isExpanded) ||
-        (newTaskDock === "left" && newLayout.panels.task.isExpanded)
+        (getDockPosition(newDock, "git") === "left" && newLayout.panels.git.isExpanded) ||
+        (getDockPosition(newDock, "task") === "left" && newLayout.panels.task.isExpanded)
       if (hasExpandedLeft !== hadExpandedLeft) {
         setSidebarOpen(!hasExpandedLeft)
       }
 
+      // optimistically update ref so rapid dispatches chain correctly
+      // transition preserves the FullDock shape when input is normalized
+      layoutRef.current = newLayout as typeof currentLayout
       mutations.updateWorkspaceLayout(workspace.id, newLayout)
     },
-    [layout, workspace.id, gitDock, taskDock, isGitExpanded, isTaskExpanded, setSidebarOpen],
+    [workspace.id, setSidebarOpen],
   )
 
   // Helper to blur terminal focus (prevents aria-hidden focus warning when collapsing)
@@ -656,27 +787,9 @@ function LayoutContent() {
     [handleGitFileClick],
   )
 
-  const toggleTaskStatus = useCallback(
-    (status: string) => {
-      setTaskStatusFilter((prev) =>
-        prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status],
-      )
-    },
-    [setTaskStatusFilter],
-  )
-
   // Layout direction based on dock position
   const panelDirection = terminalDock === "bottom" ? "vertical" : "horizontal"
   const terminalFirst = terminalDock === "left"
-
-  // Always use up/down chevrons - CSS rotation handles the rest
-  const collapseIcon = isTerminalCollapsed ? (
-    <ChevronUp className="cursor-pointer h-4 w-4" />
-  ) : (
-    <ChevronDown className="cursor-pointer h-4 w-4" />
-  )
-
-  // Note: No border class needed - ResizableHandle provides the visual divider
 
   // Controls injected into the right side of the tab bar
   const terminalToolbarRight = useMemo(
@@ -711,116 +824,22 @@ function LayoutContent() {
           className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           aria-label={isTerminalCollapsed ? "show terminal" : "hide terminal"}
         >
-          {collapseIcon}
+          {isTerminalCollapsed ? (
+            <ChevronUp className="cursor-pointer h-4 w-4" />
+          ) : (
+            <ChevronDown className="cursor-pointer h-4 w-4" />
+          )}
         </button>
       </div>
     ),
     [
       isTerminalCollapsed,
+      isTerminalExpanded,
       isTerminalSessionActive,
-      setIsTerminalSessionActive,
       setTerminalExpanded,
       terminalDock,
       setTerminalDock,
-      collapseIcon,
     ],
-  )
-
-  // Task toolbar content - h-10 + border-b to match editor header
-  const taskToolbarContent = useMemo(
-    () => (
-      <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
-        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-          <ListTodo
-            className={cn(
-              "h-3.5 w-3.5 shrink-0",
-              isTaskExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
-            )}
-          />
-          <DockPositionDropdown currentDock={taskDock} onDockChange={setTaskDock} label="task" />
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {TASK_STATUSES.map((status) => {
-            const isActive = taskStatusFilter.includes(status.value)
-            return (
-              <button
-                key={status.value}
-                onClick={() => toggleTaskStatus(status.value)}
-                className={cn(
-                  "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-colors cursor-pointer shrink-0",
-                  isActive
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
-                    : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300",
-                )}
-              >
-                {status.label}
-              </button>
-            )
-          })}
-          {taskStatusFilter.length > 0 && (
-            <button
-              onClick={() => setTaskStatusFilter([])}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
-            >
-              <X className="h-3 w-3" />
-              reset
-            </button>
-          )}
-          <button
-            onClick={() => setTaskExpanded(!isTaskExpanded)}
-            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            aria-label={isTaskCollapsed ? "show tasks" : "hide tasks"}
-          >
-            {isTaskCollapsed ? (
-              <ChevronUp className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5" />
-            )}
-          </button>
-        </div>
-      </div>
-    ),
-    [
-      isTaskExpanded,
-      isTaskCollapsed,
-      taskDock,
-      setTaskDock,
-      taskStatusFilter,
-      setTaskStatusFilter,
-      toggleTaskStatus,
-      setTaskExpanded,
-    ],
-  )
-
-  // Git toolbar content - h-10 + border-b to match editor header
-  const gitToolbarContent = useMemo(
-    () => (
-      <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
-        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-          <GitBranch
-            className={cn(
-              "h-3.5 w-3.5 shrink-0",
-              isGitExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
-            )}
-          />
-          <DockPositionDropdown currentDock={gitDock} onDockChange={setGitDock} label="git" />
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={() => setGitExpanded(!isGitExpanded)}
-            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            aria-label={isGitCollapsed ? "show git" : "hide git"}
-          >
-            {isGitCollapsed ? (
-              <ChevronUp className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5" />
-            )}
-          </button>
-        </div>
-      </div>
-    ),
-    [isGitExpanded, isGitCollapsed, gitDock, setGitDock, setGitExpanded],
   )
 
   // Determine which panel (if any) is docked at bottom
@@ -866,14 +885,21 @@ function LayoutContent() {
               data-collapsed={isTaskCollapsed || undefined}
             >
               <div ref={taskPanelRef} className="flex h-full w-full flex-col">
-                {!isTaskCollapsed && taskToolbarContent}
+                {!isTaskCollapsed && (
+                  <TaskToolbar
+                    isExpanded={isTaskExpanded}
+                    dock={taskDock}
+                    onExpandedChange={setTaskExpanded}
+                    onDockChange={setTaskDock}
+                  />
+                )}
                 <div
                   className={cn(
                     "flex-1 min-h-0 min-w-0 overflow-hidden",
                     isTaskCollapsed && "hidden",
                   )}
                 >
-                  <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                  <Suspense fallback={panelFallback}>
                     <TaskTable />
                   </Suspense>
                 </div>
@@ -891,14 +917,21 @@ function LayoutContent() {
               data-collapsed={isGitCollapsed || undefined}
             >
               <div ref={gitPanelRef} className="flex h-full w-full flex-col">
-                {!isGitCollapsed && gitToolbarContent}
+                {!isGitCollapsed && (
+                  <GitToolbar
+                    isExpanded={isGitExpanded}
+                    dock={gitDock}
+                    onExpandedChange={setGitExpanded}
+                    onDockChange={setGitDock}
+                  />
+                )}
                 <div
                   className={cn(
                     "flex-1 min-h-0 min-w-0 overflow-hidden",
                     isGitCollapsed && "hidden",
                   )}
                 >
-                  <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                  <Suspense fallback={panelFallback}>
                     <GitPanel
                       workspacePath={workspace.path}
                       onFileClick={handleGitFileClick}
@@ -940,7 +973,7 @@ function LayoutContent() {
     >
       <div ref={terminalPanelRef} className={cn("h-full w-full", isTerminalCollapsed && "hidden")}>
         {isTerminalSessionActive && (
-          <Suspense fallback={<div className="h-full w-full bg-background" />}>
+          <Suspense fallback={panelFallback}>
             <Terminal
               cwd={workspace.path}
               toolbarRight={terminalToolbarRight}
@@ -999,14 +1032,21 @@ function LayoutContent() {
                     data-collapsed={isGitCollapsed || undefined}
                   >
                     <div ref={gitPanelRef} className="flex h-full w-full flex-col">
-                      {!isGitCollapsed && gitToolbarContent}
+                      {!isGitCollapsed && (
+                        <GitToolbar
+                          isExpanded={isGitExpanded}
+                          dock={gitDock}
+                          onExpandedChange={setGitExpanded}
+                          onDockChange={setGitDock}
+                        />
+                      )}
                       <div
                         className={cn(
                           "flex-1 min-h-0 min-w-0 overflow-hidden",
                           isGitCollapsed && "hidden",
                         )}
                       >
-                        <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                        <Suspense fallback={panelFallback}>
                           <GitPanel
                             workspacePath={workspace.path}
                             onFileClick={handleGitFileClick}
@@ -1034,14 +1074,21 @@ function LayoutContent() {
                     data-collapsed={isTaskCollapsed || undefined}
                   >
                     <div ref={taskPanelRef} className="flex h-full w-full flex-col">
-                      {!isTaskCollapsed && taskToolbarContent}
+                      {!isTaskCollapsed && (
+                        <TaskToolbar
+                          isExpanded={isTaskExpanded}
+                          dock={taskDock}
+                          onExpandedChange={setTaskExpanded}
+                          onDockChange={setTaskDock}
+                        />
+                      )}
                       <div
                         className={cn(
                           "flex-1 min-h-0 min-w-0 overflow-hidden",
                           isTaskCollapsed && "hidden",
                         )}
                       >
-                        <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                        <Suspense fallback={panelFallback}>
                           <TaskTable />
                         </Suspense>
                       </div>
@@ -1103,14 +1150,21 @@ function LayoutContent() {
                     data-collapsed={isTaskCollapsed || undefined}
                   >
                     <div ref={taskPanelRef} className="flex h-full w-full flex-col">
-                      {!isTaskCollapsed && taskToolbarContent}
+                      {!isTaskCollapsed && (
+                        <TaskToolbar
+                          isExpanded={isTaskExpanded}
+                          dock={taskDock}
+                          onExpandedChange={setTaskExpanded}
+                          onDockChange={setTaskDock}
+                        />
+                      )}
                       <div
                         className={cn(
                           "flex-1 min-h-0 min-w-0 overflow-hidden",
                           isTaskCollapsed && "hidden",
                         )}
                       >
-                        <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                        <Suspense fallback={panelFallback}>
                           <TaskTable />
                         </Suspense>
                       </div>
@@ -1134,14 +1188,21 @@ function LayoutContent() {
                     data-collapsed={isGitCollapsed || undefined}
                   >
                     <div ref={gitPanelRef} className="flex h-full w-full flex-col">
-                      {!isGitCollapsed && gitToolbarContent}
+                      {!isGitCollapsed && (
+                        <GitToolbar
+                          isExpanded={isGitExpanded}
+                          dock={gitDock}
+                          onExpandedChange={setGitExpanded}
+                          onDockChange={setGitDock}
+                        />
+                      )}
                       <div
                         className={cn(
                           "flex-1 min-h-0 min-w-0 overflow-hidden",
                           isGitCollapsed && "hidden",
                         )}
                       >
-                        <Suspense fallback={<div className="h-full w-full bg-background" />}>
+                        <Suspense fallback={panelFallback}>
                           <GitPanel
                             workspacePath={workspace.path}
                             onFileClick={handleGitFileClick}
