@@ -416,7 +416,11 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
         return
       }
 
-      const result = await window.electronAPI.git.getStatus(workspacePath)
+      const [result, logResult] = await Promise.all([
+        window.electronAPI.git.getStatus(workspacePath),
+        window.electronAPI.git.getCommitLog(workspacePath, 100),
+      ])
+
       match(result, {
         onLeft: (err) => {
           console.error("Git status error:", err)
@@ -426,7 +430,6 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
         },
       })
 
-      const logResult = await window.electronAPI.git.getCommitLog(workspacePath, 100)
       match(logResult, {
         onLeft: (err) => {
           console.error("Git log error:", err)
@@ -501,43 +504,51 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
     }
   }, [workspacePath, refreshStatus, setGitBranch])
 
-  // get current route to detect stale diff views
+  // get current route to detect stale diff views — narrow to primitive deps
+  // so this effect only re-runs when the relevant route fields actually change
   const currentRoute = useRoute()
+  const routeViewKind = currentRoute?.viewKind
+  const routeFilePath = currentRoute?.filePath
+  const routeBaseRef = currentRoute?.baseRef
+  const routeTargetRef = currentRoute?.targetRef
+  const routeWorkspaceId = currentRoute?.workspaceId
 
   // navigate away from stale diff views when file is no longer in changes list
   // only applies to working tree diffs, not historical commit diffs
   useEffect(() => {
-    if (!status || !currentRoute) return
-    if (currentRoute.viewKind !== "diff") return
+    if (!status || !routeFilePath || routeViewKind !== "diff") return
 
     // historical commit diffs have baseRef/targetRef - don't close them based on working tree status
-    if (currentRoute.baseRef || currentRoute.targetRef) return
+    if (routeBaseRef || routeTargetRef) return
 
     // check if the current file is still in the working tree changes
-    const allChangedFiles = [
-      ...status.modified,
-      ...status.staged,
-      ...status.untracked,
-      ...status.deleted,
-    ]
+    const isFileStillChanged =
+      status.modified.some((f) => `${workspacePath}/${f}` === routeFilePath) ||
+      status.staged.some((f) => `${workspacePath}/${f}` === routeFilePath) ||
+      status.untracked.some((f) => `${workspacePath}/${f}` === routeFilePath) ||
+      status.deleted.some((f) => `${workspacePath}/${f}` === routeFilePath)
 
-    // convert relative paths to absolute for comparison
-    const changedAbsolutePaths = allChangedFiles.map((f) => `${workspacePath}/${f}`)
-    const isFileStillChanged = changedAbsolutePaths.includes(currentRoute.filePath)
-
-    if (!isFileStillChanged) {
+    if (!isFileStillChanged && routeWorkspaceId) {
       // navigate to the same file without the diff view
       router.navigate({
         to: "/w/$workspaceId/f/$filePath",
         params: {
-          workspaceId: encodeBase64Url(currentRoute.workspaceId),
-          filePath: encodeBase64Url(currentRoute.filePath),
+          workspaceId: encodeBase64Url(routeWorkspaceId),
+          filePath: encodeBase64Url(routeFilePath),
         },
         // remove view=diff by not passing it
         search: {},
       })
     }
-  }, [status, currentRoute, workspacePath])
+  }, [
+    status,
+    routeViewKind,
+    routeFilePath,
+    routeBaseRef,
+    routeTargetRef,
+    routeWorkspaceId,
+    workspacePath,
+  ])
 
   const totalChanges =
     (status?.modified.length ?? 0) +

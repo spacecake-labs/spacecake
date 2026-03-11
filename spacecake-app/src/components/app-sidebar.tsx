@@ -15,6 +15,7 @@ import {
 /*
 AppSidebar handles sidebar UI and folder expansion state.
 */
+import { useRoute } from "@/hooks/use-route"
 import iconSvg from "@/images/icon.svg"
 import { expandedFoldersAtom, fileTreeAtom, loadingFoldersAtom } from "@/lib/atoms/atoms"
 import { findFolderInTree, sortTree, updateFolderInTree } from "@/lib/atoms/file-tree"
@@ -27,10 +28,11 @@ import { AbsolutePath, ExpandedFolders, Folder, WorkspaceInfo } from "@/types/wo
 interface AppSidebarProps {
   onFileClick?: (filePath: AbsolutePath) => void
   workspace: WorkspaceInfo
-  selectedFilePath?: AbsolutePath | null
 }
 
-export function AppSidebar({ onFileClick, workspace, selectedFilePath }: AppSidebarProps) {
+export function AppSidebar({ onFileClick, workspace }: AppSidebarProps) {
+  const route = useRoute()
+  const selectedFilePath = route?.filePath || null
   const [expandedFolders, setExpandedFolders] = useAtom(expandedFoldersAtom)
   const fileTree = useAtomValue(fileTreeAtom)
   const setFileTree = useSetAtom(fileTreeAtom)
