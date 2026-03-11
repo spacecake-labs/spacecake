@@ -136,7 +136,7 @@ const StatusToggleButton = memo(function StatusToggleButton({
   )
 })
 
-export function WorkspaceStatusBar({
+export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
   onToggleSidebar,
   isTerminalExpanded,
   isTaskExpanded,
@@ -200,4 +200,4 @@ export function WorkspaceStatusBar({
       </div>
     </div>
   )
-}
+})

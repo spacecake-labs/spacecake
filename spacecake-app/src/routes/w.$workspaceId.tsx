@@ -408,20 +408,17 @@ function GitToolbar({
   )
 }
 
-function LayoutContent() {
-  const { workspace, paneId } = Route.useRouteContext()
-  const { open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
-  const sidebarPanelRef = useRef<PanelImperativeHandle>(null)
-  const verticalPanelGroupRef = useRef<GroupImperativeHandle>(null)
-  const { focus } = useFocusManager()
-
-  // Pane machine for serializing tab operations
-  const workspaceIdEncoded = encodeBase64Url(workspace.path)
-  const machine = usePaneMachine(paneId, workspace.path, workspaceIdEncoded)
+// isolates pane-item live queries so LayoutContent doesn't re-render on tab changes
+function TabCloseHotkey({
+  paneId,
+  machine,
+}: {
+  paneId: Parameters<typeof usePaneItems>[0]
+  machine: ReturnType<typeof usePaneMachine>
+}) {
   const { items: paneItems } = usePaneItems(paneId)
   const activePaneItemId = useActivePaneItemId(paneId)
 
-  // Ctrl+W / Cmd+W to close active editor tab (skip when terminal is focused — terminal handles its own Cmd+W)
   useHotkey(
     "mod+w",
     () => {
@@ -442,6 +439,20 @@ function LayoutContent() {
       },
     },
   )
+
+  return null
+}
+
+function LayoutContent() {
+  const { workspace, paneId } = Route.useRouteContext()
+  const { open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
+  const sidebarPanelRef = useRef<PanelImperativeHandle>(null)
+  const verticalPanelGroupRef = useRef<GroupImperativeHandle>(null)
+  const { focus } = useFocusManager()
+
+  // Pane machine for serializing tab operations
+  const workspaceIdEncoded = encodeBase64Url(workspace.path)
+  const machine = usePaneMachine(paneId, workspace.path, workspaceIdEncoded)
 
   // Cmd+1 / Ctrl+1 to focus editor
   useHotkey("mod+1", () => focus("editor"), { capture: true })
@@ -466,10 +477,6 @@ function LayoutContent() {
       panel.collapse()
     }
   }, [sidebarOpen])
-
-  // this hook is still needed here because AppSidebar needs the path as a prop
-  const route = useRoute()
-  const selectedFilePath = route?.filePath || null
 
   // Start watching Claude tasks
   useClaudeTaskWatcher()
@@ -760,6 +767,12 @@ function LayoutContent() {
     setSidebarOpen(!sidebarPanelRef.current?.isCollapsed())
   }, [setSidebarOpen])
 
+  const sidebarOpenRef = useRef(sidebarOpen)
+  sidebarOpenRef.current = sidebarOpen
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen(!sidebarOpenRef.current)
+  }, [setSidebarOpen])
+
   const handleFileClick = useCallback(
     (filePath: AbsolutePath) => {
       if (workspace?.path) {
@@ -995,6 +1008,7 @@ function LayoutContent() {
       enabled={!isTerminalCollapsed}
       machine={machine}
     >
+      <TabCloseHotkey paneId={paneId} machine={machine} />
       <ResizablePanelGroup orientation="horizontal" className="h-full">
         <ResizablePanel
           id="sidebar-panel"
@@ -1008,11 +1022,7 @@ function LayoutContent() {
           onResize={handleSidebarResize}
           className="flex flex-col h-full *:flex-1 *:min-h-0"
         >
-          <AppSidebar
-            onFileClick={handleFileClick}
-            workspace={workspace}
-            selectedFilePath={selectedFilePath}
-          />
+          <AppSidebar onFileClick={handleFileClick} workspace={workspace} />
         </ResizablePanel>
         <ResizableHandle withHandle className={cn("w-0", !sidebarOpen && "hidden")} />
         <ResizablePanel id="main-content-panel" defaultSize="85%" className="p-2 overflow-hidden">
@@ -1216,7 +1226,7 @@ function LayoutContent() {
               )}
             </ResizablePanelGroup>
             <WorkspaceStatusBar
-              onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+              onToggleSidebar={toggleSidebar}
               isTerminalExpanded={isTerminalExpanded}
               isTaskExpanded={isTaskExpanded}
               isGitExpanded={isGitExpanded}

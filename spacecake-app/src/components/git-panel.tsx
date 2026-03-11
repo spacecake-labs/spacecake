@@ -416,7 +416,11 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
         return
       }
 
-      const result = await window.electronAPI.git.getStatus(workspacePath)
+      const [result, logResult] = await Promise.all([
+        window.electronAPI.git.getStatus(workspacePath),
+        window.electronAPI.git.getCommitLog(workspacePath, 100),
+      ])
+
       match(result, {
         onLeft: (err) => {
           console.error("Git status error:", err)
@@ -426,7 +430,6 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
         },
       })
 
-      const logResult = await window.electronAPI.git.getCommitLog(workspacePath, 100)
       match(logResult, {
         onLeft: (err) => {
           console.error("Git log error:", err)
