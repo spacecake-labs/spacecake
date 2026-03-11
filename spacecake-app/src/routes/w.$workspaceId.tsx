@@ -390,10 +390,10 @@ function LayoutContent() {
   const terminalResizablePanelRef = useRef<PanelImperativeHandle>(null)
 
   const taskPanelRef = useRef<HTMLDivElement>(null)
-  const taskBottomPanelGroupRef = useRef<GroupImperativeHandle>(null)
+  const taskResizablePanelRef = useRef<PanelImperativeHandle>(null)
 
   const gitPanelRef = useRef<HTMLDivElement>(null)
-  const gitPanelGroupRef = useRef<GroupImperativeHandle>(null)
+  const gitResizablePanelRef = useRef<PanelImperativeHandle>(null)
 
   // Helper to dispatch a dock action and persist the result
   const dispatch = useCallback(
@@ -556,90 +556,6 @@ function LayoutContent() {
     [isTerminalExpanded, debouncedSaveTerminalSize],
   )
 
-  // Reset bottom panel size when toggling collapse state
-  useEffect(() => {
-    if (!taskBottomPanelGroupRef.current) return
-    const bottomPanel = taskDock === "bottom" ? "task" : gitDock === "bottom" ? "git" : null
-    if (!bottomPanel) return
-
-    const isCollapsed = bottomPanel === "task" ? isTaskCollapsed : isGitCollapsed
-    const size = bottomPanel === "task" ? taskSize : gitSize
-    const bottomPanelId = bottomPanel === "task" ? "task-panel-bottom" : "git-panel-bottom"
-    const layout = isCollapsed
-      ? { "editor-main-panel": 100, [bottomPanelId]: 0 }
-      : { "editor-main-panel": 100 - size, [bottomPanelId]: size }
-    const ref = taskBottomPanelGroupRef.current
-    let rafId: number
-    const applyLayout = () => {
-      const registeredCount = Object.keys(ref.getLayout()).length
-      if (registeredCount === Object.keys(layout).length) {
-        ref.setLayout(layout)
-      } else {
-        rafId = requestAnimationFrame(applyLayout)
-      }
-    }
-    applyLayout()
-    return () => cancelAnimationFrame(rafId)
-  }, [isTaskCollapsed, isGitCollapsed, taskSize, gitSize, taskDock, gitDock])
-
-  // Reset outer panel group (gitPanelGroupRef) layout when dock positions or collapse states change
-  // This group can have 2-4 panels: [git-left?] [task-left?] [center] [task-right?] [git-right?]
-  useEffect(() => {
-    if (!gitPanelGroupRef.current) return
-    // skip if both git and task are at bottom (only center panel present)
-    if ((gitDock === "bottom" || gitDock === null) && (taskDock === "bottom" || taskDock === null))
-      return
-
-    // build layout object based on which panels are present
-    const layout: Layout = {}
-    let usedSize = 0
-
-    // git-left (order 0)
-    if (gitDock === "left") {
-      const s = isGitCollapsed ? 0 : gitSize
-      layout["git-panel-left"] = s
-      usedSize += s
-    }
-    // task-left (order 1)
-    if (taskDock === "left") {
-      const s = isTaskCollapsed ? 0 : taskSize
-      layout["task-panel-left"] = s
-      usedSize += s
-    }
-    // task-right (order 3)
-    if (taskDock === "right") {
-      const s = isTaskCollapsed ? 0 : taskSize
-      layout["task-panel-right"] = s
-      usedSize += s
-    }
-    // git-right (order 4)
-    if (gitDock === "right") {
-      const s = isGitCollapsed ? 0 : gitSize
-      layout["git-panel-right"] = s
-      usedSize += s
-    }
-
-    // center panel gets the remainder
-    layout["center-panel"] = 100 - usedSize
-
-    // v4 throws if layout entry count doesn't match registered panel count.
-    // when dock positions change, panels mount/unmount and registration may
-    // lag behind this effect. defer the call so panels finish registering.
-    const ref = gitPanelGroupRef.current
-    let rafId: number
-    const applyLayout = () => {
-      const registeredCount = Object.keys(ref.getLayout()).length
-      const desiredCount = Object.keys(layout).length
-      if (registeredCount === desiredCount) {
-        ref.setLayout(layout)
-      } else {
-        rafId = requestAnimationFrame(applyLayout)
-      }
-    }
-    applyLayout()
-    return () => cancelAnimationFrame(rafId)
-  }, [isGitCollapsed, isTaskCollapsed, gitSize, taskSize, gitDock, taskDock])
-
   // reset terminal panel size when toggling collapse state
   // uses useLayoutEffect + v4's built-in collapse/expand to ensure the panel
   // is sized before the browser paints — prevents ghostty from seeing a
@@ -658,6 +574,56 @@ function LayoutContent() {
       }
     }
   }, [isTerminalCollapsed, terminalSize])
+
+  // collapse/expand git panel using the v4 imperative API.
+  // uses useEffect (not useLayoutEffect) so the panel has time to register
+  // with its group after dock position changes.
+  useEffect(() => {
+    const panel = gitResizablePanelRef.current
+    if (!panel) return
+    let rafId: number
+    const apply = () => {
+      try {
+        if (isGitCollapsed) {
+          panel.collapse()
+        } else {
+          panel.expand()
+          if (panel.getSize().asPercentage < gitSize) {
+            panel.resize(`${gitSize}%`)
+          }
+        }
+      } catch {
+        // panel not yet registered with group — retry next frame
+        rafId = requestAnimationFrame(apply)
+      }
+    }
+    apply()
+    return () => cancelAnimationFrame(rafId)
+  }, [isGitCollapsed, gitSize])
+
+  // collapse/expand task panel using the v4 imperative API
+  useEffect(() => {
+    const panel = taskResizablePanelRef.current
+    if (!panel) return
+    let rafId: number
+    const apply = () => {
+      try {
+        if (isTaskCollapsed) {
+          panel.collapse()
+        } else {
+          panel.expand()
+          if (panel.getSize().asPercentage < taskSize) {
+            panel.resize(`${taskSize}%`)
+          }
+        }
+      } catch {
+        // panel not yet registered with group — retry next frame
+        rafId = requestAnimationFrame(apply)
+      }
+    }
+    apply()
+    return () => cancelAnimationFrame(rafId)
+  }, [isTaskCollapsed, taskSize])
 
   const handleSidebarResize = useCallback(() => {
     setSidebarOpen(!sidebarPanelRef.current?.isCollapsed())
@@ -869,11 +835,7 @@ function LayoutContent() {
       minSize="30%"
     >
       {bottomDockedPanel ? (
-        <ResizablePanelGroup
-          groupRef={taskBottomPanelGroupRef}
-          orientation="vertical"
-          className="h-full"
-        >
+        <ResizablePanelGroup orientation="vertical" className="h-full">
           <ResizablePanel
             id="editor-main-panel"
             defaultSize={bottomPanelCollapsed ? "100%" : `${100 - bottomPanelSize}%`}
@@ -895,9 +857,12 @@ function LayoutContent() {
           {bottomDockedPanel === "task" ? (
             <ResizablePanel
               id="task-panel-bottom"
+              panelRef={taskResizablePanelRef}
               defaultSize={isTaskCollapsed ? "0%" : `${taskSize}%`}
-              minSize={isTaskCollapsed ? "0%" : "15%"}
-              maxSize={isTaskCollapsed ? "0%" : "50%"}
+              minSize="10%"
+              maxSize="70%"
+              collapsible
+              collapsedSize="0%"
               data-collapsed={isTaskCollapsed || undefined}
             >
               <div ref={taskPanelRef} className="flex h-full w-full flex-col">
@@ -917,9 +882,12 @@ function LayoutContent() {
           ) : (
             <ResizablePanel
               id="git-panel-bottom"
+              panelRef={gitResizablePanelRef}
               defaultSize={isGitCollapsed ? "0%" : `${gitSize}%`}
-              minSize={isGitCollapsed ? "0%" : "15%"}
-              maxSize={isGitCollapsed ? "0%" : "50%"}
+              minSize="10%"
+              maxSize="70%"
+              collapsible
+              collapsedSize="0%"
               data-collapsed={isGitCollapsed || undefined}
             >
               <div ref={gitPanelRef} className="flex h-full w-full flex-col">
@@ -1016,19 +984,18 @@ function LayoutContent() {
         <ResizableHandle withHandle className={cn("w-0", !sidebarOpen && "hidden")} />
         <ResizablePanel id="main-content-panel" defaultSize="85%" className="p-2 overflow-hidden">
           <div className="flex flex-col h-full bg-background rounded-md shadow-sm overflow-hidden">
-            <ResizablePanelGroup
-              groupRef={gitPanelGroupRef}
-              orientation="horizontal"
-              className="flex-1 min-h-0"
-            >
+            <ResizablePanelGroup orientation="horizontal" className="flex-1 min-h-0">
               {/* Left git panel - full height */}
               {gitDock === "left" && (
                 <>
                   <ResizablePanel
                     id="git-panel-left"
+                    panelRef={gitResizablePanelRef}
                     defaultSize={isGitCollapsed ? "0%" : `${gitSize}%`}
-                    minSize={isGitCollapsed ? "0%" : "15%"}
-                    maxSize={isGitCollapsed ? "0%" : "50%"}
+                    minSize="10%"
+                    maxSize="40%"
+                    collapsible
+                    collapsedSize="0%"
                     data-collapsed={isGitCollapsed || undefined}
                   >
                     <div ref={gitPanelRef} className="flex h-full w-full flex-col">
@@ -1058,9 +1025,12 @@ function LayoutContent() {
                 <>
                   <ResizablePanel
                     id="task-panel-left"
+                    panelRef={taskResizablePanelRef}
                     defaultSize={isTaskCollapsed ? "0%" : `${taskSize}%`}
-                    minSize={isTaskCollapsed ? "0%" : "15%"}
-                    maxSize={isTaskCollapsed ? "0%" : "50%"}
+                    minSize="10%"
+                    maxSize="40%"
+                    collapsible
+                    collapsedSize="0%"
                     data-collapsed={isTaskCollapsed || undefined}
                   >
                     <div ref={taskPanelRef} className="flex h-full w-full flex-col">
@@ -1124,9 +1094,12 @@ function LayoutContent() {
                   <ResizableHandle withHandle className={isTaskCollapsed ? "invisible" : ""} />
                   <ResizablePanel
                     id="task-panel-right"
+                    panelRef={taskResizablePanelRef}
                     defaultSize={isTaskCollapsed ? "0%" : `${taskSize}%`}
-                    minSize={isTaskCollapsed ? "0%" : "15%"}
-                    maxSize={isTaskCollapsed ? "0%" : "50%"}
+                    minSize="10%"
+                    maxSize="50%"
+                    collapsible
+                    collapsedSize="0%"
                     data-collapsed={isTaskCollapsed || undefined}
                   >
                     <div ref={taskPanelRef} className="flex h-full w-full flex-col">
@@ -1152,9 +1125,12 @@ function LayoutContent() {
                   <ResizableHandle withHandle className={isGitCollapsed ? "invisible" : ""} />
                   <ResizablePanel
                     id="git-panel-right"
+                    panelRef={gitResizablePanelRef}
                     defaultSize={isGitCollapsed ? "0%" : `${gitSize}%`}
-                    minSize={isGitCollapsed ? "0%" : "15%"}
-                    maxSize={isGitCollapsed ? "0%" : "50%"}
+                    minSize="10%"
+                    maxSize="50%"
+                    collapsible
+                    collapsedSize="0%"
                     data-collapsed={isGitCollapsed || undefined}
                   >
                     <div ref={gitPanelRef} className="flex h-full w-full flex-col">
