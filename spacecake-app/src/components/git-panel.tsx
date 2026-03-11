@@ -557,8 +557,8 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
 
   return (
     <div className="h-full">
-      <ResizablePanelGroup direction="horizontal">
-        <ResizablePanel defaultSize={40} minSize={25}>
+      <ResizablePanelGroup orientation="horizontal">
+        <ResizablePanel defaultSize="40%" minSize="25%">
           <CommitPane
             commits={commits}
             selectedCommit={selectedCommit}
@@ -567,7 +567,7 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
           />
         </ResizablePanel>
         <ResizableHandle />
-        <ResizablePanel defaultSize={60} minSize={30}>
+        <ResizablePanel defaultSize="60%" minSize="30%">
           {selectedCommit === "working-tree" ? (
             <WorkingTreeFilesPane
               status={status}

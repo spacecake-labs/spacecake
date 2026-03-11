@@ -171,6 +171,17 @@
     @apply bg-transparent;
   }
 
+  /* react-resizable-panels v4 sets overflow:visible on the panel outer div
+     which causes collapsed panels to intercept pointer events */
+  [data-panel] {
+    overflow: hidden !important;
+  }
+
+  /* collapsed panels (0-size) must not intercept pointer events */
+  [data-panel][data-collapsed] {
+    pointer-events: none !important;
+  }
+
   /* Hide scrollbar utility */
   .scrollbar-none {
     -ms-overflow-style: none;
