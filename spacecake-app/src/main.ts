@@ -1,3 +1,7 @@
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
+
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
@@ -14,9 +18,6 @@ import {
 } from "electron"
 import { installExtension, REACT_DEVELOPER_TOOLS } from "electron-devtools-installer"
 import started from "electron-squirrel-startup"
-import fs from "node:fs"
-import os from "node:os"
-import path from "node:path"
 
 import { buildCSPString } from "@/csp"
 import { fixPath } from "@/main-process/fix-path"
@@ -50,11 +51,15 @@ if (started) {
   app.quit()
 }
 
+const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
+
+if (isDev) {
+  app.name = "spacecake-dev"
+}
+
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 }
-
-const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
 const isTest = process.env.IS_PLAYWRIGHT === "true"
 const showWindow = process.env.SHOW_WINDOW === "true"
 

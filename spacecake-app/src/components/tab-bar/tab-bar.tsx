@@ -1,13 +1,12 @@
 import { useSearch } from "@tanstack/react-router"
 import { useCallback, useEffect, useRef } from "react"
 
-import type { PaneMachineRef } from "@/machines/pane"
-import type { OpenFileSource } from "@/types/claude-code"
-
 import { TabItem } from "@/components/tab-bar/tab-item"
 import { Tabs, TabsList } from "@/components/ui/tabs"
 import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
+import type { PaneMachineRef } from "@/machines/pane"
 import { PaneItemWithFile, PanePrimaryKey } from "@/schema/pane"
+import type { OpenFileSource } from "@/types/claude-code"
 
 interface TabBarProps {
   paneId: PanePrimaryKey

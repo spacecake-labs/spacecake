@@ -1,17 +1,15 @@
-import type { PlatformError } from "@effect/platform/Error"
+import { execFile } from "node:child_process"
+import NFS from "node:fs/promises"
+import path from "path"
 
 import { FileSystem as EffectFileSystem } from "@effect/platform"
+import type { PlatformError } from "@effect/platform/Error"
 import { rgPath } from "@vscode/ripgrep"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Either from "effect/Either"
 import * as Option from "effect/Option"
-import { execFile } from "node:child_process"
-import NFS from "node:fs/promises"
-import path from "path"
 import writeFileAtomic from "write-file-atomic"
-
-import type { File, FileContent, FileTree, Folder } from "@/types/workspace"
 
 import { fnv1a64Hex } from "@/lib/hash"
 import { EXCLUDED_ENTRIES } from "@/lib/ignore-patterns"
@@ -20,6 +18,7 @@ import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 import { WatcherFileSystemLive, WatcherService } from "@/main-process/watcher"
 import { GitIgnore, GitIgnoreLive } from "@/services/git-ignore-parser"
 import { SpacecakeHome } from "@/services/spacecake-home"
+import type { File, FileContent, FileTree, Folder } from "@/types/workspace"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 
 /** lightweight file entry for quick-open index (no stat, no cid, no etag) */

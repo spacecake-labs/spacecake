@@ -1,11 +1,10 @@
-import type { AddressInfo } from "node:net"
-
-import * as Effect from "effect/Effect"
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http"
+import type { AddressInfo } from "node:net"
 import path from "node:path"
 
-import type { DisplayStatusline } from "@/lib/statusline-parser"
+import * as Effect from "effect/Effect"
 
+import type { DisplayStatusline } from "@/lib/statusline-parser"
 import { parseStatuslineInput } from "@/lib/statusline-parser"
 import { ClaudeConfig } from "@/services/claude-config"
 import { FileSystem } from "@/services/file-system"

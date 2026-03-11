@@ -1,10 +1,9 @@
 import type { DisplayStatusline } from "@/lib/statusline-parser"
+import { FileSystemError, type IndexedFile } from "@/services/file-system"
+import { type Either } from "@/types/adt"
 import type { ClaudeTask, ClaudeTaskError } from "@/types/claude-task"
 import type { PyBlock } from "@/types/parser"
 import type { AbsolutePath, FileContent, FileTree, FileTreeEvent } from "@/types/workspace"
-
-import { FileSystemError, type IndexedFile } from "@/services/file-system"
-import { type Either } from "@/types/adt"
 
 export type MenuAction = "new-file" | "open-folder" | "save" | "save-all"
 
@@ -12,7 +11,6 @@ export type MenuAction = "new-file" | "open-folder" | "save" | "save-all"
 export type SerializedPgliteError = { _tag: "PgliteError"; cause: string }
 
 import type { DatabaseMethodName } from "@/services/database"
-
 import {
   AtMentionedPayload,
   ClaudeCodeStatus,

@@ -1,7 +1,8 @@
-import { app, dialog } from "electron"
 import { createWriteStream } from "node:fs"
 import { chmod, unlink, rename } from "node:fs/promises"
 import * as https from "node:https"
+
+import { app, dialog } from "electron"
 
 const REPO = "spacecake-labs/spacecake"
 const UPDATE_INTERVAL_MS = 60 * 60 * 1000 // 1 hour

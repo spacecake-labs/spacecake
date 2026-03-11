@@ -2,10 +2,9 @@ import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { ReactNode, useEffect, useRef } from "react"
 import { toast } from "sonner"
 
+import { claudeStatuslineAtom, ideDisconnectedToastShownAtom } from "@/lib/atoms/atoms"
 import type { PaneMachineRef } from "@/machines/pane"
 import type { ClaudeCodeStatus } from "@/types/claude-code"
-
-import { claudeStatuslineAtom, ideDisconnectedToastShownAtom } from "@/lib/atoms/atoms"
 import { AbsolutePath } from "@/types/workspace"
 
 // Atoms for Claude integration state

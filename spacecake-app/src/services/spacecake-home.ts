@@ -1,7 +1,8 @@
-import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
 import fs from "node:fs"
 import path from "node:path"
+
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 
 import { GETTING_STARTED_CONTENT } from "@/guides/getting-started"
 import { normalizePath } from "@/lib/utils"

@@ -12,18 +12,17 @@ import type {
   WorkspaceInsert,
   WorkspaceLayout,
 } from "@/schema"
-import type { WorkspaceSettings } from "@/schema/workspace-settings"
-import type { PersistableViewKind } from "@/types/lexical"
-
 import { EditorPrimaryKey } from "@/schema/editor"
 import { PaneItemPrimaryKey, PanePrimaryKey } from "@/schema/pane"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
+import type { WorkspaceSettings } from "@/schema/workspace-settings"
 import {
   Database,
   PgliteError,
   type DatabaseMethodName,
   type DatabaseMethods,
 } from "@/services/database"
+import type { PersistableViewKind } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 
 /**

@@ -1,3 +1,4 @@
+import { fetchDb } from "@/lib/db/fetchers"
 import type { EditorInsert, EditorSelectionUpdate, EditorStateUpdate, FileInsert } from "@/schema"
 import type {
   EditorPrimaryKey,
@@ -12,8 +13,6 @@ import type { WorkspaceSettings } from "@/schema/workspace-settings"
 import type { Maybe } from "@/types/adt"
 import type { PersistableViewKind, SerializedSelection } from "@/types/lexical"
 import type { AbsolutePath } from "@/types/workspace"
-
-import { fetchDb } from "@/lib/db/fetchers"
 
 type EditorStateWithFileId = typeof EditorStateWithFileIdSelectSchema.Type
 type EditorStateWithFileIdFlat = Omit<EditorStateWithFileId, "selection"> & {

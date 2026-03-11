@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest"
 
-import type { RecentFile } from "@/types/storage"
-
 import {
   createQuickOpenItems,
   RECENCY_BOOST,
   sortFilesByMatchingScore,
   sortFilesByRecency,
 } from "@/lib/filter-files"
+import type { RecentFile } from "@/types/storage"
 import { AbsolutePath, FileType, type File, type QuickOpenFileItem } from "@/types/workspace"
 
 describe("sortFilesByMatchingScore", () => {

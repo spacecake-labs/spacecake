@@ -1,10 +1,9 @@
 import { atom, useAtomValue, useSetAtom } from "jotai"
 import { useCallback, useEffect, useRef } from "react"
 
-import type { StatuslineConfigStatus } from "@/types/electron"
-
 import { claudeServerReadyAtom } from "@/providers/claude-integration-provider"
 import { match } from "@/types/adt"
+import type { StatuslineConfigStatus } from "@/types/electron"
 
 /** Conflict info when another tool owns the statusline */
 export interface StatuslineConflict {

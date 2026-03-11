@@ -1,16 +1,6 @@
-import type { TableCellNode, TableDOMCell, TableMapType } from "@lexical/table"
-import type { LexicalEditor, NodeKey } from "lexical"
-/**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- */
-import type { JSX } from "react"
-
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { useLexicalEditable } from "@lexical/react/useLexicalEditable"
+import type { TableCellNode, TableDOMCell, TableMapType } from "@lexical/table"
 import {
   $computeTableMapSkipCellCheck,
   $getTableNodeFromLexicalNodeOrThrow,
@@ -22,7 +12,16 @@ import {
   TableNode,
 } from "@lexical/table"
 import { calculateZoomLevel, mergeRegister } from "@lexical/utils"
+import type { LexicalEditor, NodeKey } from "lexical"
 import { $getNearestNodeFromDOMNode, isHTMLElement, SKIP_SCROLL_INTO_VIEW_TAG } from "lexical"
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ */
+import type { JSX } from "react"
 import * as React from "react"
 import {
   CSSProperties,

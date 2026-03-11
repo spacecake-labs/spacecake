@@ -1,10 +1,7 @@
 import React from "react"
 
-import type { CodeBlockEditorContextValue } from "@/components/editor/nodes/code-node"
-import type { LanguageSpec } from "@/types/language"
-import type { BlockMeta } from "@/types/parser"
-
 import { BlockHeader } from "@/components/editor/block-header"
+import type { CodeBlockEditorContextValue } from "@/components/editor/nodes/code-node"
 import { TypographyH3, TypographyP } from "@/components/typography"
 import {
   Select,
@@ -18,7 +15,9 @@ import { blockId } from "@/lib/parser/block-id"
 import { delimitPythonDocString } from "@/lib/parser/python/utils"
 import { cn } from "@/lib/utils"
 import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace"
+import type { LanguageSpec } from "@/types/language"
 import { LANGUAGE_SUPPORT } from "@/types/language"
+import type { BlockMeta } from "@/types/parser"
 import { FileType } from "@/types/workspace"
 
 type CodeMirrorLanguage = LanguageSpec["codemirrorName"]

@@ -6,9 +6,8 @@
  *
  */
 
-import type { EditorState, LexicalEditor } from "lexical"
-
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
+import type { EditorState, LexicalEditor } from "lexical"
 import { HISTORY_MERGE_TAG } from "lexical"
 import { useLayoutEffect } from "react"
 

@@ -1,8 +1,7 @@
-import type { RecentFile } from "@/types/storage"
-import type { AbsolutePath, FileType, QuickOpenFileItem } from "@/types/workspace"
-
 import { commandScore } from "@/lib/command-score"
 import { parentFolderName } from "@/lib/utils"
+import type { RecentFile } from "@/types/storage"
+import type { AbsolutePath, FileType, QuickOpenFileItem } from "@/types/workspace"
 import { ZERO_HASH } from "@/types/workspace"
 
 // Recency boost: recent files get a 15% score boost.

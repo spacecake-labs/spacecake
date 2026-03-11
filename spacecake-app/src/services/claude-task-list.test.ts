@@ -1,9 +1,10 @@
+import fs from "node:fs"
+import path from "node:path"
+
 import { it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
-import fs from "node:fs"
-import path from "node:path"
 import { afterEach, beforeEach, describe, expect, vi } from "vitest"
 
 import { WatcherService } from "@/main-process/watcher"

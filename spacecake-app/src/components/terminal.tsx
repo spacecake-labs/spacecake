@@ -1,17 +1,15 @@
-import type { ReactNode } from "react"
-
 import { useSetAtom } from "jotai"
 import { Plus } from "lucide-react"
+import type { ReactNode } from "react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { flushSync } from "react-dom"
-
-import type { TerminalAPI } from "@/hooks/use-ghostty-engine"
 
 import { TabCloseButton, tabTriggerClasses } from "@/components/tab-bar/tab-close-button"
 import { TerminalTab } from "@/components/terminal-tab"
 import { useTheme } from "@/components/theme-provider"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import type { TerminalAPI } from "@/hooks/use-ghostty-engine"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { useLatest } from "@/hooks/use-latest"
 import { terminalProfileLoadedAtom } from "@/lib/atoms/atoms"
@@ -277,7 +275,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
   })
 
   return (
-    <div className="flex h-full w-full flex-col" data-testid="terminal-panel">
+    <div className="flex h-full w-full flex-col">
       {/* tab bar + toolbar */}
       <div className="h-10 shrink-0 w-full bg-background/50 flex items-center overflow-hidden border-b">
         {/* tabs — uses Radix Tabs identical to the editor tab bar */}

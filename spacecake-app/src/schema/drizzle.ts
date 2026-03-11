@@ -12,10 +12,9 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core"
 
+import { type JsonValue } from "@/schema/drizzle-effect"
 import type { WorkspaceLayout } from "@/schema/workspace-layout"
 import type { WorkspaceSettings } from "@/schema/workspace-settings"
-
-import { type JsonValue } from "@/schema/drizzle-effect"
 import { PersistableViewKindSchema, SerializedSelection } from "@/types/lexical"
 
 export const systemTable = pgTable("system", {

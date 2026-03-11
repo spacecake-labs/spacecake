@@ -1,9 +1,8 @@
 import type { ColumnDef } from "@tanstack/react-table"
 
-import type { ClaudeTask } from "@/types/claude-task"
-
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import type { ClaudeTask } from "@/types/claude-task"
 
 export const columns: ColumnDef<ClaudeTask>[] = [
   {

@@ -1,13 +1,12 @@
 import { Check, Copy, MoveHorizontal } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
-import type { OpenFileSource } from "@/types/claude-code"
-
 import { TabCloseButton, tabTriggerClasses } from "@/components/tab-bar/tab-close-button"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { TabsTrigger } from "@/components/ui/tabs"
 import { condensePath } from "@/lib/utils"
+import type { OpenFileSource } from "@/types/claude-code"
 
 interface TabItemProps {
   id: string

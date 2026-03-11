@@ -3,8 +3,6 @@ import { atom, useAtom, useAtomValue, useStore } from "jotai"
 import { File as FileIcon } from "lucide-react"
 import * as React from "react"
 
-import type { PaneMachineRef } from "@/machines/pane"
-
 import {
   CommandDialog,
   CommandEmpty,
@@ -19,6 +17,7 @@ import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-o
 import { createQuickOpenItems } from "@/lib/filter-files"
 import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromFileName } from "@/lib/workspace"
+import type { PaneMachineRef } from "@/machines/pane"
 import { match } from "@/types/adt"
 import {
   AbsolutePath,

@@ -1,5 +1,4 @@
 import type { PGliteInterface } from "@electric-sql/pglite"
-
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 

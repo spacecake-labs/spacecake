@@ -1,5 +1,4 @@
 import type { PGliteInterface } from "@electric-sql/pglite"
-
 import { and, desc, eq, getTableColumns, isNotNull, like, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 import * as Context from "effect/Context"
@@ -9,8 +8,6 @@ import * as Effect from "effect/Effect"
 import { flow } from "effect/Function"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-
-import type { PersistableViewKind } from "@/types/lexical"
 
 import {
   activePaneItemQuery,
@@ -61,6 +58,7 @@ import {
 } from "@/schema/workspace-settings"
 import { maybeSingleResult, singleResult } from "@/services/utils"
 import { none, some, type Maybe } from "@/types/adt"
+import type { PersistableViewKind } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 
 const toMaybe = <A>(option: Option.Option<A>): Maybe<A> =>

@@ -1,7 +1,6 @@
+import { normalizePath } from "@/lib/utils"
 import type { ElectronAPI } from "@/types/electron"
 import type { AbsolutePath } from "@/types/workspace"
-
-import { normalizePath } from "@/lib/utils"
 
 export const openDirectory = async (
   electronAPI: ElectronAPI = window.electronAPI,

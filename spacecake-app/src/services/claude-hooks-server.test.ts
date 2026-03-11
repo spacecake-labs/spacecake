@@ -1,9 +1,10 @@
-import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
 import fs from "node:fs"
 import http from "node:http"
 import os from "node:os"
 import path from "node:path"
+
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { toIpcPath } from "@/lib/ipc-path"

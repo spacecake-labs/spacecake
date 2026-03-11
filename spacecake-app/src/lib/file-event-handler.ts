@@ -1,7 +1,6 @@
-import type { File, FileTree, FileTreeEvent, Folder, WorkspaceInfo } from "@/types/workspace"
-
 import { readFile } from "@/lib/fs"
 import { match } from "@/types/adt"
+import type { File, FileTree, FileTreeEvent, Folder, WorkspaceInfo } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
 
 // pending saves map: tracks files being saved by the app

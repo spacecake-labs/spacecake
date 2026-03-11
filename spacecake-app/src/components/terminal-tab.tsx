@@ -1,8 +1,7 @@
 import { memo, useCallback, useEffect } from "react"
 
-import type { TerminalAPI } from "@/hooks/use-ghostty-engine"
-
 import { TerminalMountPoint } from "@/components/terminal-mount-point"
+import type { TerminalAPI } from "@/hooks/use-ghostty-engine"
 import { useGhosttyEngine } from "@/hooks/use-ghostty-engine"
 import { useLatest } from "@/hooks/use-latest"
 

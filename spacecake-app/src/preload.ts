@@ -1,14 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron"
 
 import type { DisplayStatusline } from "@/lib/statusline-parser"
-import type { FileContent, FileTreeEvent } from "@/types/workspace"
-
 import {
   AtMentionedPayload,
   ClaudeCodeStatus,
   OpenFilePayload,
   SelectionChangedPayload,
 } from "@/types/claude-code"
+import type { FileContent, FileTreeEvent } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
 
 // titlebar height is passed from the main process via additionalArguments

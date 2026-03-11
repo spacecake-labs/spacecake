@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest"
 
-import type {
-  DockablePanelKind,
-  DockPosition,
-  FullDock,
-  WorkspaceLayout,
-} from "@/schema/workspace-layout"
-
 import {
   clampSize,
   DOCK_SIZE_CONSTRAINTS,
@@ -16,6 +9,12 @@ import {
   normalizeDock,
   transition,
 } from "@/lib/dock-transition"
+import type {
+  DockablePanelKind,
+  DockPosition,
+  FullDock,
+  WorkspaceLayout,
+} from "@/schema/workspace-layout"
 
 // ============================================
 // Test Helpers

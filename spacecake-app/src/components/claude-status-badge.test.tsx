@@ -1,20 +1,20 @@
-import * as Effect from "effect/Effect"
-import * as Fiber from "effect/Fiber"
-import * as Layer from "effect/Layer"
-import { Provider } from "jotai"
 /**
  * @vitest-environment jsdom
  */
 import path from "path"
+
+import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
+import * as Layer from "effect/Layer"
+import { Provider } from "jotai"
 import * as React from "react"
 import { act } from "react"
 import { createRoot } from "react-dom/client"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import WebSocket from "ws"
 
-import type { PaneMachineRef } from "@/machines/pane"
-
 import { ClaudeStatusBadge } from "@/components/claude-status-badge"
+import type { PaneMachineRef } from "@/machines/pane"
 import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
 import { makeClaudeCodeServer } from "@/services/claude-code-server"
 import { makeClaudeConfigTestLayer } from "@/services/claude-config"

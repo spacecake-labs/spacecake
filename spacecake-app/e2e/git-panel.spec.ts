@@ -78,7 +78,7 @@ test.describe("git panel", () => {
       await button.click()
       const menuItem = window.getByText(option)
       await expect(menuItem).toBeVisible()
-      await menuItem.click()
+      await menuItem.click({ force: true })
     }
 
     // switch to right

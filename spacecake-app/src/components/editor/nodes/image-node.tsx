@@ -6,6 +6,8 @@
  *
  */
 
+import { HashtagNode } from "@lexical/hashtag"
+import { LinkNode } from "@lexical/link"
 import type {
   DOMConversionMap,
   DOMConversionOutput,
@@ -19,10 +21,6 @@ import type {
   SerializedLexicalNode,
   Spread,
 } from "lexical"
-import type { JSX } from "react"
-
-import { HashtagNode } from "@lexical/hashtag"
-import { LinkNode } from "@lexical/link"
 import {
   $applyNodeReplacement,
   createEditor,
@@ -32,6 +30,7 @@ import {
   RootNode,
   TextNode,
 } from "lexical"
+import type { JSX } from "react"
 import * as React from "react"
 
 import { EmojiNode } from "@/components/editor/nodes/emoji-node"

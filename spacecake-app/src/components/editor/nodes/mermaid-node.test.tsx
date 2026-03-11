@@ -41,6 +41,8 @@ const Plugins = React.memo(function Plugins() {
   )
 })
 
+const waitForEffects = () => act(() => new Promise((r) => setTimeout(r, 50)))
+
 describe("Mermaid node", () => {
   initializeUnitTest(
     (testEnv) => {
@@ -63,6 +65,9 @@ graph TD;
             discrete: true,
           })
         })
+
+        // let lazy-loaded mermaid components settle
+        await waitForEffects()
 
         testEnv.editor.getEditorState().read(() => {
           const root = $getRoot()

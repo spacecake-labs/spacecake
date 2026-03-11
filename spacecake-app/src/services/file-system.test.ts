@@ -1,10 +1,11 @@
+import fs from "node:fs"
+import path from "node:path"
+
 import { FileSystem as EffectFileSystem } from "@effect/platform"
 import { NodeFileSystem } from "@effect/platform-node"
 import { it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import fs from "node:fs"
-import path from "node:path"
 import { describe, expect } from "vitest"
 
 import { WatcherService } from "@/main-process/watcher"

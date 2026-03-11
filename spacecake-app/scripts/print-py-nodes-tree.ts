@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises"
 import { argv, exit } from "node:process"
+
 import Parser from "tree-sitter"
 
 import { createParser } from "../src/lib/parser/languages"

@@ -1,5 +1,3 @@
-import type { JSX } from "react"
-
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
 import { mergeRegister } from "@lexical/utils"
 import {
@@ -19,9 +17,8 @@ import {
   Spread,
 } from "lexical"
 import { Code2, Eye } from "lucide-react"
+import type { JSX } from "react"
 import * as React from "react"
-
-import type { BaseCodeMirrorEditorProps } from "@/components/editor/plugins/codemirror-editor"
 
 import { BlockHeader } from "@/components/editor/block-header"
 import {
@@ -29,6 +26,7 @@ import {
   type CodeBlockEditorContextValue,
   type CodeMirrorFocusManager,
 } from "@/components/editor/nodes/code-node"
+import type { BaseCodeMirrorEditorProps } from "@/components/editor/plugins/codemirror-editor"
 const MermaidDiagram = React.lazy(() => import("@/components/editor/nodes/mermaid-diagram"))
 
 const LazyMermaidCodeEditor = React.lazy(async () => {

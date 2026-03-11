@@ -2,13 +2,12 @@ import { createFileRoute, ErrorComponent, useNavigate } from "@tanstack/react-ro
 import { X } from "lucide-react"
 import { useCallback, useMemo, useOptimistic, useRef, useState } from "react"
 
-import type { WorkspaceSettings } from "@/schema/workspace-settings"
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { useWorkspaceSettings } from "@/hooks/use-workspace-settings"
 import { getOrCreateSettingsMachine } from "@/lib/settings-actor"
 import { cn, encodeBase64Url } from "@/lib/utils"
+import type { WorkspaceSettings } from "@/schema/workspace-settings"
 
 export const Route = createFileRoute("/w/$workspaceId/settings")({
   errorComponent: ({ error }) => <ErrorComponent error={error} />,
