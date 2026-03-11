@@ -569,15 +569,17 @@ function LayoutContent() {
       ? { "editor-main-panel": 100, [bottomPanelId]: 0 }
       : { "editor-main-panel": 100 - size, [bottomPanelId]: size }
     const ref = taskBottomPanelGroupRef.current
+    let rafId: number
     const applyLayout = () => {
       const registeredCount = Object.keys(ref.getLayout()).length
       if (registeredCount === Object.keys(layout).length) {
         ref.setLayout(layout)
       } else {
-        requestAnimationFrame(applyLayout)
+        rafId = requestAnimationFrame(applyLayout)
       }
     }
     applyLayout()
+    return () => cancelAnimationFrame(rafId)
   }, [isTaskCollapsed, isGitCollapsed, taskSize, gitSize, taskDock, gitDock])
 
   // Reset outer panel group (gitPanelGroupRef) layout when dock positions or collapse states change
@@ -624,16 +626,18 @@ function LayoutContent() {
     // when dock positions change, panels mount/unmount and registration may
     // lag behind this effect. defer the call so panels finish registering.
     const ref = gitPanelGroupRef.current
+    let rafId: number
     const applyLayout = () => {
       const registeredCount = Object.keys(ref.getLayout()).length
       const desiredCount = Object.keys(layout).length
       if (registeredCount === desiredCount) {
         ref.setLayout(layout)
       } else {
-        requestAnimationFrame(applyLayout)
+        rafId = requestAnimationFrame(applyLayout)
       }
     }
     applyLayout()
+    return () => cancelAnimationFrame(rafId)
   }, [isGitCollapsed, isTaskCollapsed, gitSize, taskSize, gitDock, taskDock])
 
   // reset terminal panel size when toggling collapse state
@@ -654,6 +658,10 @@ function LayoutContent() {
       }
     }
   }, [isTerminalCollapsed, terminalSize])
+
+  const handleSidebarResize = useCallback(() => {
+    setSidebarOpen(!sidebarPanelRef.current?.isCollapsed())
+  }, [setSidebarOpen])
 
   const handleFileClick = useCallback(
     (filePath: AbsolutePath) => {
@@ -996,13 +1004,7 @@ function LayoutContent() {
           collapsible
           collapsedSize="0%"
           data-collapsed={!sidebarOpen || undefined}
-          onResize={() => {
-            if (sidebarPanelRef.current?.isCollapsed()) {
-              setSidebarOpen(false)
-            } else {
-              setSidebarOpen(true)
-            }
-          }}
+          onResize={handleSidebarResize}
           className="flex flex-col h-full *:flex-1 *:min-h-0"
         >
           <AppSidebar
