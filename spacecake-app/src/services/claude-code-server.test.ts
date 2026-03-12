@@ -5,6 +5,7 @@ import * as Layer from "effect/Layer"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import WebSocket from "ws"
 
+import type { DisplayStatusline } from "@/lib/statusline-parser"
 import { makeClaudeCodeServer } from "@/services/claude-code-server"
 import { makeClaudeConfigTestLayer } from "@/services/claude-config"
 import { ClaudeHooksServer } from "@/services/claude-hooks-server"
@@ -95,25 +96,47 @@ describe("ClaudeCodeServer", () => {
     }
   })
 
+  // captured callbacks so tests can simulate statusline events
+  let statuslineUpdateCallback: ((data: DisplayStatusline) => void) | null = null
+  let statuslineClearedCallback: ((surfaceId?: string) => void) | null = null
+
   const createTestLayer = () => {
+    statuslineUpdateCallback = null
+    statuslineClearedCallback = null
+
     const mockClaudeHooksServer = {
       ensureStarted: vi.fn(() => Promise.resolve(10000)),
       isStarted: vi.fn(() => true),
       getLastStatusline: vi.fn(() => null),
-      onStatuslineUpdate: vi.fn(() => () => {}),
-      onStatuslineCleared: vi.fn(() => () => {}),
+      clearSurface: vi.fn(),
+      onStatuslineUpdate: vi.fn((cb: (data: DisplayStatusline) => void) => {
+        statuslineUpdateCallback = cb
+        return () => {
+          statuslineUpdateCallback = null
+        }
+      }),
+      onStatuslineCleared: vi.fn((cb: (surfaceId?: string) => void) => {
+        statuslineClearedCallback = cb
+        return () => {
+          statuslineClearedCallback = null
+        }
+      }),
     }
-    return Layer.mergeAll(
-      makeClaudeConfigTestLayer("/tmp/test-claude"),
-      Layer.succeed(FileSystem, mockFileSystem as FileSystem),
-      Layer.succeed(ClaudeHooksServer, mockClaudeHooksServer as unknown as ClaudeHooksServer),
-    )
+    return {
+      layer: Layer.mergeAll(
+        makeClaudeConfigTestLayer("/tmp/test-claude"),
+        Layer.succeed(FileSystem, mockFileSystem as FileSystem),
+        Layer.succeed(ClaudeHooksServer, mockClaudeHooksServer as unknown as ClaudeHooksServer),
+      ),
+      mockClaudeHooksServer,
+    }
   }
 
   const runTestServer = () => {
+    const { layer, mockClaudeHooksServer } = createTestLayer()
     return Effect.gen(function* (_) {
       const scope = yield* _(Effect.scope)
-      const server = yield* _(makeClaudeCodeServer.pipe(Effect.provide(createTestLayer())))
+      const server = yield* _(makeClaudeCodeServer.pipe(Effect.provide(layer)))
 
       // Actually start the server (it's lazy now)
       yield* _(Effect.promise(() => server.ensureStarted(["/test/workspace"])))
@@ -137,6 +160,7 @@ describe("ClaudeCodeServer", () => {
         serverFiber,
         lockFileData: lockFileData as LockFileData,
         port: serverPort,
+        mockClaudeHooksServer,
       }
     })
   }
@@ -599,6 +623,63 @@ describe("ClaudeCodeServer", () => {
           expect(response.result.resources).toEqual([])
 
           ws.close()
+        }),
+      ),
+    )
+  })
+
+  it("should broadcast statusline update with surfaceId to renderer", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          yield* _(runTestServer())
+
+          // simulate a statusline update with surfaceId
+          const statusline: DisplayStatusline = {
+            model: "Opus",
+            contextUsagePercent: 42.5,
+            contextRemainingPercent: 57.5,
+            costUsd: 0.01,
+            cwd: "/home/user",
+            sessionId: "session-1",
+            timestamp: Date.now(),
+            surfaceId: "abc123",
+          }
+
+          statuslineUpdateCallback?.(statusline)
+
+          expect(mocks.webContentsSend).toHaveBeenCalledWith("statusline-update", statusline)
+        }),
+      ),
+    )
+  })
+
+  it("should broadcast statusline cleared with surfaceId to renderer", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          yield* _(runTestServer())
+
+          statuslineClearedCallback?.("abc123")
+
+          expect(mocks.webContentsSend).toHaveBeenCalledWith("statusline-cleared", "abc123")
+        }),
+      ),
+    )
+  })
+
+  it("should call hooksServer.clearSurface when statusline:clear-surface IPC is invoked", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const { mockClaudeHooksServer } = yield* _(runTestServer())
+
+          const handler = mocks.ipcHandlers.get("statusline:clear-surface")
+          expect(handler).toBeDefined()
+
+          handler!({}, "abc123")
+
+          expect(mockClaudeHooksServer.clearSurface).toHaveBeenCalledWith("abc123")
         }),
       ),
     )

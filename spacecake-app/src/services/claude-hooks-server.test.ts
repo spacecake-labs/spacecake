@@ -459,6 +459,179 @@ describe("ClaudeHooksServer", () => {
     expect(cleared.called).toBe(false)
   })
 
+  it("should store statusline under surface key when ?surface= query param is provided", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const server = yield* _(runTestServer())
+
+          const receivedData: unknown[] = []
+          server.onStatuslineUpdate((data) => {
+            receivedData.push(data)
+          })
+
+          yield* _(
+            Effect.promise(() =>
+              makeRequest(
+                "POST",
+                "/statusline?surface=abc123def456",
+                JSON.stringify(validStatuslineInput),
+              ),
+            ),
+          )
+
+          yield* _(
+            Effect.promise(async () => {
+              let attempts = 0
+              while (receivedData.length === 0 && attempts < 20) {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+                attempts++
+              }
+            }),
+          )
+
+          expect(receivedData.length).toBe(1)
+          expect(receivedData[0]).toMatchObject({
+            model: "Opus",
+            surfaceId: "abc123def456",
+          })
+        }),
+      ),
+    )
+  })
+
+  it("should store statusline without surfaceId when no ?surface= query param", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const server = yield* _(runTestServer())
+
+          const receivedData: unknown[] = []
+          server.onStatuslineUpdate((data) => {
+            receivedData.push(data)
+          })
+
+          yield* _(
+            Effect.promise(() =>
+              makeRequest("POST", "/statusline", JSON.stringify(validStatuslineInput)),
+            ),
+          )
+
+          yield* _(
+            Effect.promise(async () => {
+              let attempts = 0
+              while (receivedData.length === 0 && attempts < 20) {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+                attempts++
+              }
+            }),
+          )
+
+          expect(receivedData.length).toBe(1)
+          expect(receivedData[0]).toMatchObject({
+            model: "Opus",
+            surfaceId: undefined,
+          })
+        }),
+      ),
+    )
+  })
+
+  it("should keep independent statusline data for different surfaces", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const server = yield* _(runTestServer())
+
+          const receivedData: unknown[] = []
+          server.onStatuslineUpdate((data) => {
+            receivedData.push(data)
+          })
+
+          // post to surface A
+          yield* _(
+            Effect.promise(() =>
+              makeRequest("POST", "/statusline?surface=aaaa", JSON.stringify(validStatuslineInput)),
+            ),
+          )
+
+          // post to surface B
+          yield* _(
+            Effect.promise(() =>
+              makeRequest("POST", "/statusline?surface=bbbb", JSON.stringify(validStatuslineInput)),
+            ),
+          )
+
+          yield* _(
+            Effect.promise(async () => {
+              let attempts = 0
+              while (receivedData.length < 2 && attempts < 20) {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+                attempts++
+              }
+            }),
+          )
+
+          expect(receivedData.length).toBe(2)
+          // both callbacks fired with their respective surfaceId
+          expect(receivedData[0]).toMatchObject({ surfaceId: "aaaa" })
+          expect(receivedData[1]).toMatchObject({ surfaceId: "bbbb" })
+
+          // getLastStatusline returns the most recent
+          const last = server.getLastStatusline()
+          expect(last).not.toBeNull()
+        }),
+      ),
+    )
+  })
+
+  it("should clear only the target surface when clearSurface is called", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const server = yield* _(runTestServer())
+
+          // post to two surfaces
+          yield* _(
+            Effect.promise(() =>
+              makeRequest("POST", "/statusline?surface=aaaa", JSON.stringify(validStatuslineInput)),
+            ),
+          )
+          yield* _(
+            Effect.promise(() =>
+              makeRequest("POST", "/statusline?surface=bbbb", JSON.stringify(validStatuslineInput)),
+            ),
+          )
+
+          // wait for processing
+          yield* _(
+            Effect.promise(async () => {
+              let attempts = 0
+              while (server.getLastStatusline() === null && attempts < 20) {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+                attempts++
+              }
+            }),
+          )
+
+          const clearedSurfaces: (string | undefined)[] = []
+          server.onStatuslineCleared((surfaceId) => {
+            clearedSurfaces.push(surfaceId)
+          })
+
+          // clear surface A only
+          server.clearSurface("aaaa")
+
+          expect(clearedSurfaces).toEqual(["aaaa"])
+          // last statusline should still return surface B
+          const last = server.getLastStatusline()
+          expect(last).not.toBeNull()
+          expect(last?.surfaceId).toBe("bbbb")
+        }),
+      ),
+    )
+  })
+
   it("should handle OPTIONS request for CORS preflight", async () => {
     await Effect.runPromise(
       Effect.scoped(

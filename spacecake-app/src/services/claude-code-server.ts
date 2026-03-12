@@ -39,9 +39,9 @@ function broadcastStatusline(statusline: DisplayStatusline) {
   })
 }
 
-function broadcastStatuslineCleared() {
+function broadcastStatuslineCleared(surfaceId?: string) {
   BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send("statusline-cleared")
+    win.webContents.send("statusline-cleared", surfaceId)
   })
 }
 
@@ -197,8 +197,8 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
       hooksServer.onStatuslineUpdate((statusline) => {
         broadcastStatusline(statusline)
       }),
-      hooksServer.onStatuslineCleared(() => {
-        broadcastStatuslineCleared()
+      hooksServer.onStatuslineCleared((surfaceId) => {
+        broadcastStatuslineCleared(surfaceId)
       }),
     ]
     const lockFilePath = AbsolutePath(path.join(claudeConfig.ideDir, `${port}.lock`))
@@ -475,6 +475,10 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
       return
     }
     broadcast("selection_changed", decoded.right)
+  })
+
+  ipcMain.handle("statusline:clear-surface", (_, surfaceId: string) => {
+    hooksServer.clearSurface(surfaceId)
   })
 
   ipcMain.handle("claude:at-mentioned", (_, payload) => {

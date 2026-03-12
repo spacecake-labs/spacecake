@@ -26,6 +26,7 @@ export interface TerminalAPI {
 
 interface UseGhosttyEngineOptions {
   id: string
+  surfaceId?: string
   enabled: boolean
   autoFocus?: boolean
   cwd?: string
@@ -57,6 +58,7 @@ const terminalTheme: Record<"light" | "dark", ITheme> = {
 
 export function useGhosttyEngine({
   id,
+  surfaceId,
   enabled,
   autoFocus = false,
   cwd,
@@ -143,7 +145,7 @@ export function useGhosttyEngine({
         const rows = term.rows || 24
 
         // Create terminal on backend
-        const result = await createTerminal(id, cols, rows, cwd)
+        const result = await createTerminal(id, cols, rows, cwd, surfaceId)
         if (isLeft(result)) {
           console.error("failed to create terminal:", result.value)
           setError("failed to create terminal session")

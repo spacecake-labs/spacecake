@@ -54,6 +54,7 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
       cols: number,
       rows: number,
       cwd: string = process.env.HOME || process.env.USERPROFILE || "",
+      surfaceId?: string,
     ) =>
       Effect.tryPromise({
         try: async () => {
@@ -73,7 +74,7 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           // /usr/local/bin symlink wasn't created (e.g. no permissions)
           const pathWithCli = buildPathWithCli(cliBinDir, currentPath, path.delimiter)
 
-          const env = {
+          const env: Record<string, string> = {
             ...(process.env as Record<string, string>),
             PATH: pathWithCli,
             BASH_SILENCE_DEPRECATION_WARNING: "1",
@@ -87,6 +88,11 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             // Marks this terminal as owned by spacecake — the statusline hook
             // script uses this to decide whether to POST to the socket
             SPACECAKE_TERMINAL: "1",
+          }
+
+          // correlates statusline POSTs back to this terminal tab
+          if (surfaceId) {
+            env.SPACECAKE_SURFACE_ID = surfaceId
           }
 
           const ptyProcess = pty.spawn(defaultShell, [], {
