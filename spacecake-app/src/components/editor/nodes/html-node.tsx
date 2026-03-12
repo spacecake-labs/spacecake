@@ -355,7 +355,7 @@ const HTMLBlockNodeEditorContainer: React.FC<HTMLBlockNodeEditorContainerProps> 
   }, [parentEditor, nodeKey])
 
   const sanitizedHtml = React.useMemo(
-    () => DOMPurify.sanitize(htmlContent, SANITIZE_CONFIG),
+    () => DOMPurify.sanitize(htmlContent, SANITIZE_CONFIG).replace(/>\s+</g, "><").trim(),
     [htmlContent],
   )
 
@@ -413,7 +413,7 @@ const HTMLBlockNodeEditorContainer: React.FC<HTMLBlockNodeEditorContainerProps> 
           </HTMLBlockEditorContextProvider>
         ) : (
           <div
-            className="p-4 prose prose-sm dark:prose-invert max-w-none"
+            className="p-3 text-sm [&_img]:block [&_img]:max-w-full [&_img]:h-auto [&_picture]:block"
             data-testid="html-preview"
             dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
           />
