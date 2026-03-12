@@ -108,26 +108,19 @@ test.describe("route not found", () => {
       return (window as any).electronAPI.killTerminal("main-terminal")
     })
 
-    // delete the workspace directory
-    // on windows, file handles may linger briefly after stopping watchers/terminals,
-    // so retry a few times before giving up
+    // delete the workspace directory.
+    // on windows, file handles may linger after stopping watchers/terminals,
+    // causing EBUSY on rmSync. renaming the directory is more reliable because
+    // it doesn't require releasing all handles — the original path ceases to
+    // exist immediately, which is what the test needs.
     if (isWindows) {
-      for (let attempt = 0; attempt < 5; attempt++) {
-        try {
-          fs.rmSync(tempTestDir, { recursive: true, force: true })
-          break
-        } catch (err: unknown) {
-          if (
-            err instanceof Error &&
-            "code" in err &&
-            (err as NodeJS.ErrnoException).code === "EBUSY" &&
-            attempt < 4
-          ) {
-            await window.waitForTimeout(1000)
-          } else {
-            throw err
-          }
-        }
+      const movedDir = `${tempTestDir}-moved`
+      fs.renameSync(tempTestDir, movedDir)
+      // best-effort cleanup of the renamed dir (may still be locked)
+      try {
+        fs.rmSync(movedDir, { recursive: true, force: true })
+      } catch {
+        // will be cleaned up by OS or next CI run
       }
     } else {
       fs.rmSync(tempTestDir, { recursive: true, force: true })
