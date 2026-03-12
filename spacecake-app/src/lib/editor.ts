@@ -38,19 +38,20 @@ export const createEditorConfigFromState = (
     return {
       ...editorConfig,
       editorState: (editor: LexicalEditor) => {
-        /*
-        Reset the ID for the first node back to 1.
-        This is a bit of a hack but is necessary for now
-        to ensure that selection is restored correctly.
-        Otherwise the nodeKey values don't align
-        when switching files.
-        */
         resetRandomKey()
 
-        const parsedEditorState = editor.parseEditorState(JSON.stringify(serializedState), () => {
-          $restoreSelection(initialSelection)
-        })
+        const parsedEditorState = editor.parseEditorState(JSON.stringify(serializedState))
         editor.setEditorState(parsedEditorState)
+
+        const removeListener = editor.registerUpdateListener(() => {
+          removeListener()
+          editor.update(
+            () => {
+              $restoreSelection(initialSelection)
+            },
+            { discrete: true },
+          )
+        })
       },
     }
   }

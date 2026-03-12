@@ -11,6 +11,7 @@ import { CodeBlockNode } from "@/components/editor/nodes/code-node"
 import { ContainerNode } from "@/components/editor/nodes/container-node"
 import { DiffBlockNode } from "@/components/editor/nodes/diff-node"
 import { FrontmatterNode } from "@/components/editor/nodes/frontmatter-node"
+import { HTMLBlockNode } from "@/components/editor/nodes/html-node"
 import { ImageNode } from "@/components/editor/nodes/image-node"
 import { InlineImageNode } from "@/components/editor/nodes/inline-image-node"
 import { MermaidNode } from "@/components/editor/nodes/mermaid-node"
@@ -37,5 +38,6 @@ export const nodes: ReadonlyArray<Klass<LexicalNode> | LexicalNodeReplacement> =
   InlineImageNode,
   ContainerNode,
   FrontmatterNode,
+  HTMLBlockNode,
   MermaidNode,
 ]
