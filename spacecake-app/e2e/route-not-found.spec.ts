@@ -85,6 +85,9 @@ test.describe("route not found", () => {
     electronApp,
     tempTestDir,
   }) => {
+    // skip on windows: node-pty locks the cwd directory, preventing deletion/rename
+    // even after killing the terminal. see https://github.com/microsoft/node-pty/issues/647
+    test.skip(isWindows, "node-pty locks cwd on Windows, preventing workspace deletion")
     const window = await electronApp.firstWindow()
 
     // open the temp test directory as workspace
@@ -99,39 +102,14 @@ test.describe("route not found", () => {
       return (window as any).electronAPI.stopWatcher(watchPath)
     }, tempTestDir)
 
-    // Kill the terminal and wait for process exit before deleting.
-    // On Windows, a process's cwd locks the directory until fully terminated.
-    // The killTerminal API now awaits the onExit event to ensure handles are released.
-    // See: https://github.com/microsoft/node-pty/issues/647
+    // kill the terminal before deleting to release file handles
     await window.evaluate(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (window as any).electronAPI.killTerminal("main-terminal")
     })
 
     // delete the workspace directory
-    // on windows, file handles may linger briefly after stopping watchers/terminals,
-    // so retry a few times before giving up
-    if (isWindows) {
-      for (let attempt = 0; attempt < 5; attempt++) {
-        try {
-          fs.rmSync(tempTestDir, { recursive: true, force: true })
-          break
-        } catch (err: unknown) {
-          if (
-            err instanceof Error &&
-            "code" in err &&
-            (err as NodeJS.ErrnoException).code === "EBUSY" &&
-            attempt < 4
-          ) {
-            await window.waitForTimeout(1000)
-          } else {
-            throw err
-          }
-        }
-      }
-    } else {
-      fs.rmSync(tempTestDir, { recursive: true, force: true })
-    }
+    fs.rmSync(tempTestDir, { recursive: true, force: true })
 
     // reload the window - this should trigger the workspace not found error
     await window.reload()

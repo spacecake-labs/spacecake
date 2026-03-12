@@ -274,11 +274,18 @@ describe("ensureHomeFolderExists", () => {
         expect(fs.existsSync(path.join(hooksDir, "statusline.ps1"))).toBe(true)
         const ps1Content = fs.readFileSync(path.join(hooksDir, "statusline.ps1"), "utf-8")
         expect(ps1Content).toContain("Invoke-RestMethod")
+        // surface ID support — appends ?surface= query param when env is set
+        expect(ps1Content).toContain("SPACECAKE_SURFACE_ID")
+        expect(ps1Content).toContain("?surface=")
       } else {
         expect(fs.existsSync(path.join(hooksDir, "statusline.sh"))).toBe(true)
         const stat = fs.statSync(path.join(hooksDir, "statusline.sh"))
         // check owner-executable bit
         expect(stat.mode & 0o755).toBe(0o755)
+        // surface ID support — appends ?surface= query param when env is set
+        const shContent = fs.readFileSync(path.join(hooksDir, "statusline.sh"), "utf-8")
+        expect(shContent).toContain("SPACECAKE_SURFACE_ID")
+        expect(shContent).toContain("?surface=")
       }
     }).pipe(Effect.provide(NodeFileSystem.layer)),
   )

@@ -39,9 +39,9 @@ function broadcastStatusline(statusline: DisplayStatusline) {
   })
 }
 
-function broadcastStatuslineCleared() {
+function broadcastStatuslineCleared(surfaceId?: string) {
   BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send("statusline-cleared")
+    win.webContents.send("statusline-cleared", surfaceId)
   })
 }
 
@@ -150,6 +150,8 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
 
   let startPromise: Promise<void> | null = null
   let statuslineCleanup: (() => void)[] = []
+  let exitListener: (() => void) | null = null
+  let activeWss: WebSocketServer | null = null
 
   const startServerEffect = Effect.gen(function* () {
     const port = getRandomPort()
@@ -168,6 +170,9 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
 
       server.once("listening", onListening)
       server.once("error", onError)
+      return Effect.sync(() => {
+        server.close()
+      })
     })
     return { wss, port }
   }).pipe(
@@ -177,265 +182,271 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
     }),
   )
 
-  const doStart = async (workspaceFolders: string[]): Promise<void> => {
-    const { wss, port } = await Effect.runPromise(startServerEffect)
-    const authToken = crypto.randomUUID()
+  const doStartEffect = (workspaceFolders: string[]) =>
+    Effect.gen(function* () {
+      const { wss, port } = yield* startServerEffect
+      activeWss = wss
+      const authToken = crypto.randomUUID()
 
-    // parallelize independent startup: hooks server vs ide dir preparation
-    await Promise.all([
-      hooksServer.ensureStarted(),
-      Effect.runPromise(
-        fsService
-          .createFolder(claudeConfig.ideDir, { recursive: true })
-          .pipe(Effect.andThen(() => cleanStaleLockFiles(claudeConfig.ideDir))),
-      ),
-    ])
+      // parallelize independent startup: hooks server vs ide dir preparation
+      yield* Effect.all(
+        [
+          Effect.promise(() => hooksServer.ensureStarted()),
+          fsService
+            .createFolder(claudeConfig.ideDir, { recursive: true })
+            .pipe(Effect.andThen(() => cleanStaleLockFiles(claudeConfig.ideDir))),
+        ],
+        { concurrency: "unbounded" },
+      )
 
-    // register statusline callbacks to broadcast to renderer
-    statuslineCleanup.forEach((fn) => fn())
-    statuslineCleanup = [
-      hooksServer.onStatuslineUpdate((statusline) => {
-        broadcastStatusline(statusline)
-      }),
-      hooksServer.onStatuslineCleared(() => {
-        broadcastStatuslineCleared()
-      }),
-    ]
-    const lockFilePath = AbsolutePath(path.join(claudeConfig.ideDir, `${port}.lock`))
+      // register statusline callbacks to broadcast to renderer
+      statuslineCleanup.forEach((fn) => fn())
+      statuslineCleanup = [
+        hooksServer.onStatuslineUpdate((statusline) => {
+          broadcastStatusline(statusline)
+        }),
+        hooksServer.onStatuslineCleared((surfaceId) => {
+          broadcastStatuslineCleared(surfaceId)
+        }),
+      ]
+      const lockFilePath = AbsolutePath(path.join(claudeConfig.ideDir, `${port}.lock`))
 
-    wss.on("connection", (ws, req) => {
-      const authHeader = req.headers["x-claude-code-ide-authorization"]
-      if (authHeader !== authToken) {
-        console.warn("Claude Code Server: Unauthorized connection attempt")
-        ws.close(1008, "Unauthorized")
-        return
-      }
-
-      ws.on("close", () => {
-        broadcastClaudeCodeStatus("disconnected")
-      })
-
-      ws.on("message", (message) => {
-        let parsed: unknown
-        try {
-          parsed = JSON.parse(message.toString())
-        } catch (err) {
-          console.error("claude code server: failed to parse json", err)
+      wss.on("connection", (ws, req) => {
+        const authHeader = req.headers["x-claude-code-ide-authorization"]
+        if (authHeader !== authToken) {
+          console.warn("Claude Code Server: Unauthorized connection attempt")
+          ws.close(1008, "Unauthorized")
           return
         }
 
-        const decoded = Schema.decodeUnknownEither(JsonRpcMessageSchema)(parsed)
-        if (Either.isLeft(decoded)) {
-          console.error("claude code server: invalid json-rpc message", decoded.left)
-          return
-        }
+        ws.on("close", () => {
+          broadcastClaudeCodeStatus("disconnected")
+        })
 
-        const data = decoded.right
-        // Handle initialize request - broadcast "connecting" status
-        if (data.method === "initialize" && data.id !== null && data.id !== undefined) {
-          broadcastClaudeCodeStatus("connecting")
-          const initResponse = {
-            jsonrpc: "2.0",
-            id: data.id,
-            result: {
-              protocolVersion: "2025-11-25",
-              capabilities: {
-                tools: {
-                  listChanged: true,
-                },
-              },
-              serverInfo: { name: "spacecake", version: "1.0" },
-            },
-          } satisfies JsonRpcResponse
-          ws.send(JSON.stringify(initResponse))
-          return
-        }
+        ws.on("message", (message) => {
+          let parsed: unknown
+          try {
+            parsed = JSON.parse(message.toString())
+          } catch (err) {
+            console.error("claude code server: failed to parse json", err)
+            return
+          }
 
-        // Track when Claude Code IDE is fully connected
-        if (data.method === "ide_connected") {
-          broadcastClaudeCodeStatus("connected")
-          return
-        }
+          const decoded = Schema.decodeUnknownEither(JsonRpcMessageSchema)(parsed)
+          if (Either.isLeft(decoded)) {
+            console.error("claude code server: invalid json-rpc message", decoded.left)
+            return
+          }
 
-        // Handle tools/list request - respond with available tools
-        if (data.method === "tools/list" && data.id !== null && data.id !== undefined) {
-          const toolsListResponse = {
-            jsonrpc: "2.0",
-            id: data.id,
-            result: {
-              tools: [OPEN_FILE_TOOL],
-            },
-          } satisfies JsonRpcResponse
-          ws.send(JSON.stringify(toolsListResponse))
-          return
-        }
-
-        // Handle tools/call request
-        if (data.method === "tools/call" && data.id !== null && data.id !== undefined) {
-          const paramsDecoded = Schema.decodeUnknownEither(ToolCallParamsSchema)(data.params)
-          if (Either.isLeft(paramsDecoded)) {
-            console.error("claude code server: invalid tools/call params", paramsDecoded.left)
-            const errorResponse = {
+          const data = decoded.right
+          // Handle initialize request - broadcast "connecting" status
+          if (data.method === "initialize" && data.id !== null && data.id !== undefined) {
+            broadcastClaudeCodeStatus("connecting")
+            const initResponse = {
               jsonrpc: "2.0",
               id: data.id,
               result: {
-                content: [{ type: "text", text: "Error: Invalid tool call params" }],
+                protocolVersion: "2025-11-25",
+                capabilities: {
+                  tools: {
+                    listChanged: true,
+                  },
+                },
+                serverInfo: { name: "spacecake", version: "1.0" },
+              },
+            } satisfies JsonRpcResponse
+            ws.send(JSON.stringify(initResponse))
+            return
+          }
+
+          // Track when Claude Code IDE is fully connected
+          if (data.method === "ide_connected") {
+            broadcastClaudeCodeStatus("connected")
+            return
+          }
+
+          // Handle tools/list request - respond with available tools
+          if (data.method === "tools/list" && data.id !== null && data.id !== undefined) {
+            const toolsListResponse = {
+              jsonrpc: "2.0",
+              id: data.id,
+              result: {
+                tools: [OPEN_FILE_TOOL],
+              },
+            } satisfies JsonRpcResponse
+            ws.send(JSON.stringify(toolsListResponse))
+            return
+          }
+
+          // Handle tools/call request
+          if (data.method === "tools/call" && data.id !== null && data.id !== undefined) {
+            const paramsDecoded = Schema.decodeUnknownEither(ToolCallParamsSchema)(data.params)
+            if (Either.isLeft(paramsDecoded)) {
+              console.error("claude code server: invalid tools/call params", paramsDecoded.left)
+              const errorResponse = {
+                jsonrpc: "2.0",
+                id: data.id,
+                result: {
+                  content: [{ type: "text", text: "Error: Invalid tool call params" }],
+                  isError: true,
+                },
+              } satisfies JsonRpcResponse
+              ws.send(JSON.stringify(errorResponse))
+              return
+            }
+
+            const toolParams = paramsDecoded.right
+
+            if (toolParams.name === "openFile") {
+              const argsDecoded = Schema.decodeUnknownEither(OpenFileArgsSchema)(
+                toolParams.arguments,
+              )
+              if (Either.isLeft(argsDecoded)) {
+                console.error("claude code server: invalid openFile args", argsDecoded.left)
+                const errorResponse = {
+                  jsonrpc: "2.0",
+                  id: data.id,
+                  result: {
+                    content: [{ type: "text", text: "Error: Invalid openFile arguments" }],
+                    isError: true,
+                  },
+                } satisfies JsonRpcResponse
+                ws.send(JSON.stringify(errorResponse))
+                return
+              }
+
+              const args = argsDecoded.right
+
+              // Find which workspace contains this file
+              const matchingWorkspace = workspaceFolders.find((folder) =>
+                args.filePath.startsWith(folder),
+              )
+
+              if (!matchingWorkspace) {
+                console.warn("claude code server: file not in any workspace", args.filePath)
+                const errorResponse = {
+                  jsonrpc: "2.0",
+                  id: data.id,
+                  result: {
+                    content: [
+                      {
+                        type: "text",
+                        text: `Error: File ${args.filePath} is not in any open workspace`,
+                      },
+                    ],
+                    isError: true,
+                  },
+                } satisfies JsonRpcResponse
+                ws.send(JSON.stringify(errorResponse))
+                return
+              }
+
+              // Broadcast to renderer to open the file
+              broadcastOpenFile({
+                workspacePath: matchingWorkspace,
+                filePath: args.filePath,
+                source: "claude",
+              })
+
+              // Send success response
+              const successResponse = {
+                jsonrpc: "2.0",
+                id: data.id,
+                result: {
+                  content: [{ type: "text", text: `Opened file: ${args.filePath}` }],
+                },
+              } satisfies JsonRpcResponse
+              ws.send(JSON.stringify(successResponse))
+              return
+            }
+
+            // Unknown tool
+            const unknownToolResponse = {
+              jsonrpc: "2.0",
+              id: data.id,
+              result: {
+                content: [
+                  {
+                    type: "text",
+                    text: `Error: Unknown tool: ${toolParams.name}`,
+                  },
+                ],
                 isError: true,
               },
             } satisfies JsonRpcResponse
-            ws.send(JSON.stringify(errorResponse))
+            ws.send(JSON.stringify(unknownToolResponse))
             return
           }
 
-          const toolParams = paramsDecoded.right
-
-          if (toolParams.name === "openFile") {
-            const argsDecoded = Schema.decodeUnknownEither(OpenFileArgsSchema)(toolParams.arguments)
-            if (Either.isLeft(argsDecoded)) {
-              console.error("claude code server: invalid openFile args", argsDecoded.left)
-              const errorResponse = {
-                jsonrpc: "2.0",
-                id: data.id,
-                result: {
-                  content: [{ type: "text", text: "Error: Invalid openFile arguments" }],
-                  isError: true,
-                },
-              } satisfies JsonRpcResponse
-              ws.send(JSON.stringify(errorResponse))
-              return
-            }
-
-            const args = argsDecoded.right
-
-            // Find which workspace contains this file
-            const matchingWorkspace = workspaceFolders.find((folder) =>
-              args.filePath.startsWith(folder),
-            )
-
-            if (!matchingWorkspace) {
-              console.warn("claude code server: file not in any workspace", args.filePath)
-              const errorResponse = {
-                jsonrpc: "2.0",
-                id: data.id,
-                result: {
-                  content: [
-                    {
-                      type: "text",
-                      text: `Error: File ${args.filePath} is not in any open workspace`,
-                    },
-                  ],
-                  isError: true,
-                },
-              } satisfies JsonRpcResponse
-              ws.send(JSON.stringify(errorResponse))
-              return
-            }
-
-            // Broadcast to renderer to open the file
-            broadcastOpenFile({
-              workspacePath: matchingWorkspace,
-              filePath: args.filePath,
-              source: "claude",
-            })
-
-            // Send success response
-            const successResponse = {
+          // Handle resources/list request - return empty resources (safety net)
+          if (data.method === "resources/list" && data.id !== null && data.id !== undefined) {
+            const resourcesListResponse = {
               jsonrpc: "2.0",
               id: data.id,
               result: {
-                content: [{ type: "text", text: `Opened file: ${args.filePath}` }],
+                resources: [],
               },
             } satisfies JsonRpcResponse
-            ws.send(JSON.stringify(successResponse))
+            ws.send(JSON.stringify(resourcesListResponse))
             return
           }
 
-          // Unknown tool
-          const unknownToolResponse = {
-            jsonrpc: "2.0",
-            id: data.id,
-            result: {
-              content: [
-                {
-                  type: "text",
-                  text: `Error: Unknown tool: ${toolParams.name}`,
-                },
-              ],
-              isError: true,
-            },
-          } satisfies JsonRpcResponse
-          ws.send(JSON.stringify(unknownToolResponse))
-          return
-        }
-
-        // Handle resources/list request - return empty resources (safety net)
-        if (data.method === "resources/list" && data.id !== null && data.id !== undefined) {
-          const resourcesListResponse = {
-            jsonrpc: "2.0",
-            id: data.id,
-            result: {
-              resources: [],
-            },
-          } satisfies JsonRpcResponse
-          ws.send(JSON.stringify(resourcesListResponse))
-          return
-        }
-
-        // Catch-all: respond with Method not found for any unhandled request expecting a response
-        if (data.id !== null && data.id !== undefined) {
-          const errorResponse = {
-            jsonrpc: "2.0",
-            id: data.id,
-            error: {
-              code: -32601,
-              message: `Method not found: ${data.method}`,
-            },
+          // Catch-all: respond with Method not found for any unhandled request expecting a response
+          if (data.id !== null && data.id !== undefined) {
+            const errorResponse = {
+              jsonrpc: "2.0",
+              id: data.id,
+              error: {
+                code: -32601,
+                message: `Method not found: ${data.method}`,
+              },
+            }
+            ws.send(JSON.stringify(errorResponse))
+            return
           }
-          ws.send(JSON.stringify(errorResponse))
-          return
-        }
+        })
       })
-    })
 
-    const lockData = {
-      pid: process.pid,
-      workspaceFolders,
-      ideName: "spacecake",
-      transport: "ws",
-      authToken: authToken,
-    }
-
-    try {
-      await Effect.runPromise(fsService.writeTextFile(lockFilePath, JSON.stringify(lockData)))
-      console.log(`Claude Code Server listening on port ${port}, lock file: ${lockFilePath}`)
-    } catch (error) {
-      console.error("Failed to write lock file", error)
-    }
-
-    // synchronous safety net: delete lock file on process exit.
-    // the "exit" event fires for normal exits and SIGTERM (but not SIGKILL).
-    // this catches cases where the async Effect finalizer doesn't get a chance to run
-    // (e.g. e2e test teardown, ctrl+C during dev).
-    process.once("exit", () => {
-      try {
-        fs.unlinkSync(lockFilePath)
-      } catch {
-        // already deleted or inaccessible, ignore
+      const lockData = {
+        pid: process.pid,
+        workspaceFolders,
+        ideName: "spacecake",
+        transport: "ws",
+        authToken: authToken,
       }
+
+      yield* fsService.writeTextFile(lockFilePath, JSON.stringify(lockData)).pipe(
+        Effect.tap(() =>
+          Effect.log(`claude code server listening on port ${port}, lock file: ${lockFilePath}`),
+        ),
+        Effect.catchAll(() => Effect.logError("failed to write lock file")),
+      )
+
+      // synchronous safety net: delete lock file on process exit.
+      // the "exit" event fires for normal exits and SIGTERM (but not SIGKILL).
+      // this catches cases where the async Effect finalizer doesn't get a chance to run
+      // (e.g. e2e test teardown, ctrl+C during dev).
+      exitListener = () => {
+        try {
+          fs.unlinkSync(lockFilePath)
+        } catch {
+          // already deleted or inaccessible, ignore
+        }
+      }
+      process.once("exit", exitListener)
+
+      // Store state for cleanup and broadcast
+      serverState = { wss, port, lockFilePath, authToken, workspaceFolders }
+
+      process.env.CLAUDE_CODE_SSE_PORT = port.toString()
+      process.env.ENABLE_IDE_INTEGRATION = "true"
     })
-
-    // Store state for cleanup and broadcast
-    serverState = { wss, port, lockFilePath, authToken, workspaceFolders }
-
-    process.env.CLAUDE_CODE_SSE_PORT = port.toString()
-    process.env.ENABLE_IDE_INTEGRATION = "true"
-  }
 
   const ensureStarted = async (workspaceFolders: string[]): Promise<void> => {
     if (serverState) return // Already started
     if (startPromise) return startPromise // Currently starting
 
-    startPromise = doStart(workspaceFolders).catch((err) => {
+    startPromise = Effect.runPromise(doStartEffect(workspaceFolders)).catch((err) => {
       // If server fails to start, reset to disconnected state
       broadcastClaudeCodeStatus("disconnected")
       startPromise = null // Allow retry
@@ -477,6 +488,10 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
     broadcast("selection_changed", decoded.right)
   })
 
+  ipcMain.handle("statusline:clear-surface", (_, surfaceId: string) => {
+    hooksServer.clearSurface(surfaceId)
+  })
+
   ipcMain.handle("claude:at-mentioned", (_, payload) => {
     if (!serverState) return
     const decoded = Schema.decodeUnknownEither(AtMentionedPayloadSchema)(payload)
@@ -487,28 +502,40 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
     broadcast("at_mentioned", decoded.right)
   })
 
-  // Finalizer only cleans up if server was actually started
+  // Finalizer cleans up server and lock file. Uses activeWss as a fallback
+  // in case the scope closes while doStartEffect is still in progress
+  // (after the WebSocket server is listening but before serverState is set).
   yield* Effect.addFinalizer(() =>
     Effect.gen(function* () {
-      if (!serverState) {
+      if (!serverState && !activeWss) {
         return
       }
 
-      console.log("Claude Code Server: Stopping...")
+      yield* Effect.log("claude code server: stopping...")
+      if (exitListener) {
+        process.removeListener("exit", exitListener)
+        exitListener = null
+      }
       statuslineCleanup.forEach((fn) => fn())
       statuslineCleanup = []
       broadcastClaudeCodeStatus("disconnected")
-      // Terminate all connected clients so wss.close() can complete
-      for (const client of serverState.wss.clients) {
-        client.terminate()
+      // terminate all connected clients so wss.close() can complete
+      const wss = activeWss ?? serverState?.wss
+      if (wss) {
+        for (const client of wss.clients) {
+          client.terminate()
+        }
+        yield* Effect.async<void, never>((resume) => {
+          wss.close(() => resume(Effect.void))
+        })
+        activeWss = null
       }
-      yield* Effect.async<void, never>((resume) => {
-        serverState!.wss.close(() => resume(Effect.void))
-      })
 
-      const exists = yield* fsService.exists(serverState.lockFilePath)
-      if (exists) {
-        yield* fsService.remove(serverState.lockFilePath)
+      if (serverState) {
+        const exists = yield* fsService.exists(serverState.lockFilePath)
+        if (exists) {
+          yield* fsService.remove(serverState.lockFilePath)
+        }
       }
     }).pipe(Effect.catchAll(() => Effect.void)),
   )

@@ -49,11 +49,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.on("statusline-update", listener)
       return () => ipcRenderer.removeListener("statusline-update", listener)
     },
-    onStatuslineCleared: (handler: () => void) => {
-      const listener = () => handler()
+    onStatuslineCleared: (handler: (surfaceId?: string) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, surfaceId?: string) => handler(surfaceId)
       ipcRenderer.on("statusline-cleared", listener)
       return () => ipcRenderer.removeListener("statusline-cleared", listener)
     },
+    clearSurface: (surfaceId: string) => ipcRenderer.invoke("statusline:clear-surface", surfaceId),
     tasks: {
       startWatching: (sessionId?: string) =>
         ipcRenderer.invoke("claude:tasks:start-watching", sessionId),
@@ -144,8 +145,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("git:commit-log", workspacePath, limit),
   },
   exists: (path: string) => ipcRenderer.invoke("path-exists", path),
-  createTerminal: (id: string, cols: number, rows: number, cwd?: string) =>
-    ipcRenderer.invoke("terminal:create", id, cols, rows, cwd),
+  createTerminal: (id: string, cols: number, rows: number, cwd?: string, surfaceId?: string) =>
+    ipcRenderer.invoke("terminal:create", id, cols, rows, cwd, surfaceId),
   resizeTerminal: (id: string, cols: number, rows: number) =>
     ipcRenderer.invoke("terminal:resize", id, cols, rows),
   writeTerminal: (id: string, data: string) => ipcRenderer.invoke("terminal:write", id, data),

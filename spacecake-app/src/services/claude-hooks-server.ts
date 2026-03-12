@@ -13,17 +13,19 @@ import { AbsolutePath } from "@/types/workspace"
 
 const isWindows = process.platform === "win32"
 
-// Statusline service to manage subscribers and state
+// Statusline service to manage subscribers and per-surface state
 export class StatuslineService extends Effect.Service<StatuslineService>()("StatuslineService", {
   effect: Effect.sync(() => {
-    let lastStatusline: DisplayStatusline | null = null
+    const statuslineMap = new Map<string, DisplayStatusline>()
+    const GLOBAL_KEY = "__global__"
     const updateCallbacks: Set<(data: DisplayStatusline) => void> = new Set()
-    const clearCallbacks: Set<() => void> = new Set()
+    const clearCallbacks: Set<(surfaceId?: string) => void> = new Set()
 
     return {
-      processStatusline: (input: StatuslineInput) => {
-        const statuslineData = parseStatuslineInput(input)
-        lastStatusline = statuslineData
+      processStatusline: (input: StatuslineInput, surfaceId?: string) => {
+        const key = surfaceId ?? GLOBAL_KEY
+        const statuslineData = parseStatuslineInput(input, surfaceId)
+        statuslineMap.set(key, statuslineData)
         updateCallbacks.forEach((callback) => {
           try {
             callback(statuslineData)
@@ -34,7 +36,7 @@ export class StatuslineService extends Effect.Service<StatuslineService>()("Stat
         return statuslineData
       },
       clearStatusline: () => {
-        lastStatusline = null
+        statuslineMap.clear()
         clearCallbacks.forEach((callback) => {
           try {
             callback()
@@ -43,14 +45,31 @@ export class StatuslineService extends Effect.Service<StatuslineService>()("Stat
           }
         })
       },
-      getLastStatusline: () => lastStatusline,
+      clearSurface: (surfaceId: string) => {
+        statuslineMap.delete(surfaceId)
+        clearCallbacks.forEach((callback) => {
+          try {
+            callback(surfaceId)
+          } catch (err) {
+            console.error("Statusline Service: clear callback error", err)
+          }
+        })
+      },
+      getLastStatusline: () => {
+        // return the most recently updated entry (backwards compat)
+        let latest: DisplayStatusline | null = null
+        for (const entry of statuslineMap.values()) {
+          if (!latest || entry.timestamp > latest.timestamp) latest = entry
+        }
+        return latest
+      },
       onStatuslineUpdate: (callback: (data: DisplayStatusline) => void) => {
         updateCallbacks.add(callback)
         return () => {
           updateCallbacks.delete(callback)
         }
       },
-      onStatuslineCleared: (callback: () => void) => {
+      onStatuslineCleared: (callback: (surfaceId?: string) => void) => {
         clearCallbacks.add(callback)
         return () => {
           clearCallbacks.delete(callback)
@@ -66,11 +85,12 @@ const respondJson = (res: ServerResponse, statusCode: number, data: unknown) => 
 }
 
 interface StatuslineServiceInstance {
-  processStatusline: (input: StatuslineInput) => DisplayStatusline
+  processStatusline: (input: StatuslineInput, surfaceId?: string) => DisplayStatusline
   clearStatusline: () => void
+  clearSurface: (surfaceId: string) => void
   getLastStatusline: () => DisplayStatusline | null
   onStatuslineUpdate: (callback: (data: DisplayStatusline) => void) => () => void
-  onStatuslineCleared: (callback: () => void) => () => void
+  onStatuslineCleared: (callback: (surfaceId?: string) => void) => () => void
 }
 
 const handleRequest = async (
@@ -91,8 +111,10 @@ const handleRequest = async (
       return
     }
 
-    // Handle POST /statusline
-    if (req.method === "POST" && req.url === "/statusline") {
+    // Handle POST /statusline or /statusline?surface=<id>
+    const parsedUrl = new URL(req.url ?? "/", "http://localhost")
+    if (req.method === "POST" && parsedUrl.pathname === "/statusline") {
+      const surfaceId = parsedUrl.searchParams.get("surface") ?? undefined
       let body = ""
 
       req.on("data", (chunk) => {
@@ -116,7 +138,7 @@ const handleRequest = async (
           }
 
           const input = parsed as StatuslineInput
-          service.processStatusline(input)
+          service.processStatusline(input, surfaceId)
           respondJson(res, 200, { success: true })
         } catch (err) {
           console.error("Statusline Server: failed to parse JSON", err)
@@ -128,7 +150,7 @@ const handleRequest = async (
     }
 
     // Handle health check
-    if (req.method === "GET" && req.url === "/health") {
+    if (req.method === "GET" && parsedUrl.pathname === "/health") {
       respondJson(res, 200, { status: "ok" })
       return
     }
@@ -203,7 +225,8 @@ export interface ClaudeHooksServerService {
   readonly isStarted: () => boolean
   readonly getLastStatusline: () => DisplayStatusline | null
   readonly onStatuslineUpdate: (callback: (data: DisplayStatusline) => void) => () => void
-  readonly onStatuslineCleared: (callback: () => void) => () => void
+  readonly onStatuslineCleared: (callback: (surfaceId?: string) => void) => () => void
+  readonly clearSurface: (surfaceId: string) => void
 }
 
 export const makeClaudeHooksServer = Effect.gen(function* () {
@@ -299,8 +322,12 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
     return statuslineService.onStatuslineUpdate(callback)
   }
 
-  const onStatuslineCleared = (callback: () => void) => {
+  const onStatuslineCleared = (callback: (surfaceId?: string) => void) => {
     return statuslineService.onStatuslineCleared(callback)
+  }
+
+  const clearSurface = (surfaceId: string) => {
+    statuslineService.clearSurface(surfaceId)
   }
 
   // finalizer to clean up on shutdown
@@ -329,6 +356,7 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
     getLastStatusline,
     onStatuslineUpdate,
     onStatuslineCleared,
+    clearSurface,
   } as const
 })
 

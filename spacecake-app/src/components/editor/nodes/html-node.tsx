@@ -1,5 +1,6 @@
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
 import { mergeRegister } from "@lexical/utils"
+import DOMPurify from "dompurify"
 import {
   $addUpdateTag,
   $applyNodeReplacement,
@@ -27,91 +28,158 @@ import {
   type CodeMirrorFocusManager,
 } from "@/components/editor/nodes/code-node"
 import type { BaseCodeMirrorEditorProps } from "@/components/editor/plugins/codemirror-editor"
+import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 import { VIEW_MODE_TAG } from "@/types/lexical"
-const MermaidDiagram = React.lazy(() => import("@/components/editor/nodes/mermaid-diagram"))
 
-const LazyMermaidCodeEditor = React.lazy(async () => {
-  const [{ BaseCodeMirrorEditor }, { mermaid }] = await Promise.all([
+const LazyHtmlCodeEditor = React.lazy(async () => {
+  const [{ BaseCodeMirrorEditor }, { html }] = await Promise.all([
     import("@/components/editor/plugins/codemirror-editor"),
-    import("codemirror-lang-mermaid"),
+    import("@codemirror/lang-html"),
   ])
-  const ext = mermaid()
+  const ext = html()
   return {
     default: (props: Omit<BaseCodeMirrorEditorProps, "language">) => (
       <BaseCodeMirrorEditor {...props} language={ext} />
     ),
   }
 })
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils"
 
-// WeakMap to store focus managers for mermaid block nodes
-const focusManagerMap = new WeakMap<MermaidNode, CodeMirrorFocusManager>()
-
-export interface CreateMermaidNodeOptions {
-  diagram: string
-  key?: NodeKey
-  viewMode?: "diagram" | "code"
+const SANITIZE_CONFIG = {
+  ALLOWED_TAGS: [
+    "picture",
+    "source",
+    "img",
+    "div",
+    "span",
+    "p",
+    "br",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "ul",
+    "ol",
+    "li",
+    "b",
+    "i",
+    "em",
+    "strong",
+    "a",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "details",
+    "summary",
+    "figure",
+    "figcaption",
+    "blockquote",
+    "hr",
+    "dl",
+    "dt",
+    "dd",
+    "sup",
+    "sub",
+    "abbr",
+    "mark",
+    "del",
+    "ins",
+    "kbd",
+    "code",
+    "pre",
+  ],
+  ALLOWED_ATTR: [
+    "src",
+    "srcset",
+    "alt",
+    "width",
+    "height",
+    "href",
+    "media",
+    "class",
+    "title",
+    "id",
+    "target",
+    "rel",
+    "colspan",
+    "rowspan",
+    "open",
+  ],
+  ALLOW_DATA_ATTR: false,
 }
 
-export type SerializedMermaidNode = Spread<
+// WeakMap to store focus managers for html block nodes
+const focusManagerMap = new WeakMap<HTMLBlockNode, CodeMirrorFocusManager>()
+
+export interface CreateHTMLBlockNodeOptions {
+  html: string
+  key?: NodeKey
+  viewMode?: "preview" | "code"
+}
+
+export type SerializedHTMLBlockNode = Spread<
   {
-    diagram: string
-    type: "mermaid"
+    html: string
+    type: "html-block"
     version: 1
-    viewMode: "diagram" | "code"
+    viewMode: "preview" | "code"
   },
   SerializedLexicalNode
 >
 
-function $convertMermaidElement(domNode: Node): null | DOMConversionOutput {
+function $convertHtmlBlockElement(domNode: Node): null | DOMConversionOutput {
   const element = domNode as HTMLElement
-  const diagram = element.getAttribute("data-diagram")
-  if (!diagram) {
+  const htmlContent = element.getAttribute("data-html-block")
+  if (!htmlContent) {
     return null
   }
-  const node = $createMermaidNode({ diagram })
+  const node = $createHTMLBlockNode({ html: htmlContent })
   return { node }
 }
 
-export class MermaidNode extends DecoratorNode<JSX.Element> {
-  __diagram: string
-  __viewMode: "diagram" | "code"
+export class HTMLBlockNode extends DecoratorNode<JSX.Element> {
+  __html: string
+  __viewMode: "preview" | "code"
 
   static getType(): string {
-    return "mermaid"
+    return "html-block"
   }
 
-  static clone(node: MermaidNode): MermaidNode {
-    return new MermaidNode(node.__diagram, node.__key, node.__viewMode)
+  static clone(node: HTMLBlockNode): HTMLBlockNode {
+    return new HTMLBlockNode(node.__html, node.__key, node.__viewMode)
   }
 
-  static importJSON(serializedNode: SerializedMermaidNode): MermaidNode {
-    const { diagram, viewMode } = serializedNode
-    return $createMermaidNode({ diagram, viewMode: viewMode ?? "diagram" })
+  static importJSON(serializedNode: SerializedHTMLBlockNode): HTMLBlockNode {
+    const { html, viewMode } = serializedNode
+    return $createHTMLBlockNode({ html, viewMode: viewMode ?? "preview" })
   }
 
   static importDOM(): DOMConversionMap {
     return {
       div: () => ({
-        conversion: $convertMermaidElement,
+        conversion: $convertHtmlBlockElement,
         priority: 0,
       }),
     }
   }
 
-  constructor(diagram: string, key?: NodeKey, viewMode: "diagram" | "code" = "diagram") {
+  constructor(html: string, key?: NodeKey, viewMode: "preview" | "code" = "preview") {
     super(key)
-    this.__diagram = diagram
+    this.__html = html
     this.__viewMode = viewMode
   }
 
-  exportJSON(): SerializedMermaidNode {
+  exportJSON(): SerializedHTMLBlockNode {
     return {
       ...super.exportJSON(),
-      diagram: this.__diagram,
-      type: "mermaid",
+      html: this.__html,
+      type: "html-block",
       version: 1,
       viewMode: this.__viewMode,
     }
@@ -119,14 +187,12 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
 
   exportDOM(): { element: HTMLElement } {
     const element = document.createElement("div")
-    element.setAttribute("data-diagram", this.__diagram)
-    element.className = "mermaid"
+    element.setAttribute("data-html-block", this.__html)
     return { element }
   }
 
   createDOM(): HTMLElement {
     const div = document.createElement("div")
-    // padding between blocks, consistent with CodeBlockNode
     div.className = "mt-2"
     return div
   }
@@ -139,31 +205,29 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
     return false
   }
 
-  getDiagram(): string {
-    return this.__diagram
+  getHtml(): string {
+    return this.__html
   }
 
-  // This is called by Lexica's `$convertToMarkdownString` function
   getTextContent(): string {
-    return this.__diagram
+    return this.__html
   }
 
-  setDiagram(diagram: string): void {
+  setHtml(html: string): void {
     const writable = this.getWritable()
-    writable.__diagram = diagram
+    writable.__html = html
   }
 
-  getViewMode(): "diagram" | "code" {
+  getViewMode(): "preview" | "code" {
     return this.__viewMode
   }
 
-  setViewMode(viewMode: "diagram" | "code"): void {
+  setViewMode(viewMode: "preview" | "code"): void {
     const writable = this.getWritable()
     writable.__viewMode = viewMode
   }
 
   select = () => {
-    // focus the CodeMirror editor directly
     const focusManager = focusManagerMap.get(this)
     focusManager?.focus()
   }
@@ -174,28 +238,28 @@ export class MermaidNode extends DecoratorNode<JSX.Element> {
 
   decorate(editor: LexicalEditor): JSX.Element {
     return (
-      <MermaidNodeEditorContainer
+      <HTMLBlockNodeEditorContainer
         parentEditor={editor}
-        mermaidNode={this}
+        htmlBlockNode={this}
         nodeKey={this.getKey()}
       />
     )
   }
 }
 
-interface MermaidNodeEditorContainerProps {
+interface HTMLBlockNodeEditorContainerProps {
   parentEditor: LexicalEditor
-  mermaidNode: MermaidNode
+  htmlBlockNode: HTMLBlockNode
   nodeKey: NodeKey
 }
 
-interface MermaidEditorContextProviderProps {
+interface HTMLBlockEditorContextProviderProps {
   parentEditor: LexicalEditor
   nodeKey: NodeKey
   children: React.ReactNode
 }
 
-const MermaidEditorContextProvider: React.FC<MermaidEditorContextProviderProps> = ({
+const HTMLBlockEditorContextProvider: React.FC<HTMLBlockEditorContextProviderProps> = ({
   parentEditor,
   nodeKey,
   children,
@@ -209,20 +273,14 @@ const MermaidEditorContextProvider: React.FC<MermaidEditorContextProviderProps> 
         parentEditor.update(() => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           const node = $getNodeByKey(nodeKey)
-          if (node && $isMermaidNode(node)) {
-            ;(node as MermaidNode).setDiagram(code)
+          if (node && $isHTMLBlockNode(node)) {
+            node.setHtml(code)
           }
         })
       },
-      setLanguage: () => {
-        // no-op for mermaid
-      },
-      setMeta: () => {
-        // no-op for mermaid
-      },
-      setSrc: () => {
-        // no-op for mermaid
-      },
+      setLanguage: () => {},
+      setMeta: () => {},
+      setSrc: () => {},
     } as CodeBlockEditorContextValue
   }, [parentEditor, nodeKey])
 
@@ -233,24 +291,24 @@ const MermaidEditorContextProvider: React.FC<MermaidEditorContextProviderProps> 
   )
 }
 
-const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
+const HTMLBlockNodeEditorContainer: React.FC<HTMLBlockNodeEditorContainerProps> = ({
   parentEditor,
-  mermaidNode,
+  htmlBlockNode,
   nodeKey,
 }) => {
   const [isNodeSelected, setNodeSelected, clearNodeSelection] = useLexicalNodeSelection(nodeKey)
 
-  const viewMode = mermaidNode.__viewMode
-  const diagram = mermaidNode.__diagram
+  const viewMode = htmlBlockNode.__viewMode
+  const htmlContent = htmlBlockNode.__html
 
   React.useEffect(() => {
     return mergeRegister(
       parentEditor.registerCommand(
         CLICK_COMMAND,
         (event: MouseEvent) => {
-          const mermaidElem = parentEditor.getElementByKey(nodeKey)
+          const elem = parentEditor.getElementByKey(nodeKey)
 
-          if (mermaidElem && mermaidElem.contains(event.target as Node)) {
+          if (elem && elem.contains(event.target as Node)) {
             if (!event.shiftKey) {
               clearNodeSelection()
             }
@@ -270,10 +328,10 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
       parentEditor.update(() => {
         $addUpdateTag(SKIP_DOM_SELECTION_TAG)
         const node = $getNodeByKey(nodeKey)
-        if (node && $isMermaidNode(node)) {
+        if (node && $isHTMLBlockNode(node)) {
           // skip no-op writes (e.g. flush on codemirror unmount during view toggle)
-          if ((node as MermaidNode).getDiagram() === code) return
-          ;(node as MermaidNode).setDiagram(code)
+          if (node.getHtml() === code) return
+          node.setHtml(code)
         }
       })
     },
@@ -284,8 +342,8 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
     parentEditor.update(() => {
       $addUpdateTag(VIEW_MODE_TAG)
       const node = $getNodeByKey(nodeKey)
-      if (node && $isMermaidNode(node)) {
-        node.setViewMode(viewMode === "diagram" ? "code" : "diagram")
+      if (node && $isHTMLBlockNode(node)) {
+        node.setViewMode(viewMode === "preview" ? "code" : "preview")
       }
     })
   }, [parentEditor, nodeKey, viewMode])
@@ -300,6 +358,11 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
     })
   }, [parentEditor, nodeKey])
 
+  const sanitizedHtml = React.useMemo(
+    () => DOMPurify.sanitize(htmlContent, SANITIZE_CONFIG).replace(/>\s+</g, "><").trim(),
+    [htmlContent],
+  )
+
   const toggleButton = (
     <TooltipProvider>
       <Tooltip>
@@ -309,13 +372,13 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
             size="sm"
             onClick={handleToggleViewMode}
             className="h-6 w-6 p-0 cursor-pointer"
-            data-testid="mermaid-toggle-view-mode"
+            data-testid="html-toggle-view-mode"
           >
-            {viewMode === "diagram" ? <Code2 className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {viewMode === "preview" ? <Code2 className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          {viewMode === "diagram" ? "edit code" : "view diagram"}
+          {viewMode === "preview" ? "edit code" : "view preview"}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -327,50 +390,51 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
         "group relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
         "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
       )}
-      data-testid="mermaid-node"
+      data-testid="html-block-node"
     >
       <BlockHeader
         title="anonymous"
-        emoji="📊"
-        badge="diagram"
+        emoji="🌐"
+        badge="html"
         rightActions={toggleButton}
         onDelete={handleDelete}
       />
 
-      {/* Content area */}
-      <div className="overflow-hidden rounded-b-lg" data-testid="mermaid-node-content">
+      <div className="overflow-hidden rounded-b-lg" data-testid="html-block-node-content">
         {viewMode === "code" ? (
-          <MermaidEditorContextProvider parentEditor={parentEditor} nodeKey={nodeKey}>
-            <div data-testid="mermaid-code-editor">
+          <HTMLBlockEditorContextProvider parentEditor={parentEditor} nodeKey={nodeKey}>
+            <div data-testid="html-code-editor">
               <React.Suspense fallback={null}>
-                <LazyMermaidCodeEditor
-                  code={diagram}
+                <LazyHtmlCodeEditor
+                  code={htmlContent}
                   nodeKey={nodeKey}
                   onCodeChange={handleCodeChange}
                   showLineNumbers={true}
-                  mermaidNode={mermaidNode}
+                  mermaidNode={htmlBlockNode}
                 />
               </React.Suspense>
             </div>
-          </MermaidEditorContextProvider>
+          </HTMLBlockEditorContextProvider>
         ) : (
-          <React.Suspense fallback={null}>
-            <MermaidDiagram diagram={diagram} nodeKey={nodeKey} />
-          </React.Suspense>
+          <div
+            className="p-3 text-sm [&_img]:block [&_img]:max-w-full [&_img]:h-auto [&_picture]:block"
+            data-testid="html-preview"
+            dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+          />
         )}
       </div>
     </div>
   )
 }
 
-export function $createMermaidNode({
-  diagram,
+export function $createHTMLBlockNode({
+  html,
   key,
-  viewMode = "diagram",
-}: CreateMermaidNodeOptions): MermaidNode {
-  return $applyNodeReplacement(new MermaidNode(diagram, key, viewMode))
+  viewMode = "preview",
+}: CreateHTMLBlockNodeOptions): HTMLBlockNode {
+  return $applyNodeReplacement(new HTMLBlockNode(html, key, viewMode))
 }
 
-export function $isMermaidNode(node: LexicalNode | null | undefined): node is MermaidNode {
-  return node instanceof MermaidNode
+export function $isHTMLBlockNode(node: LexicalNode | null | undefined): node is HTMLBlockNode {
+  return node instanceof HTMLBlockNode
 }

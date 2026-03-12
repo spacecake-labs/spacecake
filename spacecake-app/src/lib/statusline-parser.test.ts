@@ -350,6 +350,22 @@ describe("statusline-parser", () => {
     })
   })
 
+  describe("surfaceId", () => {
+    it("should include surfaceId when provided", () => {
+      const input = createStatuslineInput()
+      const result = parseStatuslineInput(input, "abc123def456")
+
+      expect(result.surfaceId).toBe("abc123def456")
+    })
+
+    it("should set surfaceId to undefined when omitted", () => {
+      const input = createStatuslineInput()
+      const result = parseStatuslineInput(input)
+
+      expect(result.surfaceId).toBeUndefined()
+    })
+  })
+
   describe("edge cases", () => {
     it("should handle very small cost values", () => {
       const input = createStatuslineInput({

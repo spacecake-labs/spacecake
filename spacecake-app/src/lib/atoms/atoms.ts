@@ -79,8 +79,18 @@ export const themeAtom = atomWithStorage<Theme>("spacecake-theme", "system")
 // terminal shell profile loaded (initialized when bracketed paste mode is enabled)
 export const terminalProfileLoadedAtom = atom<boolean>(false)
 
-// Claude statusline data (model, context usage, cost)
-export const claudeStatuslineAtom = atom<DisplayStatusline | null>(null)
+// per-surface statusline map (keyed by terminal surface ID)
+export const statuslineMapAtom = atom<Map<string, DisplayStatusline>>(new Map())
+
+// active terminal surface ID (set when switching tabs)
+export const activeTerminalSurfaceIdAtom = atom<string | null>(null)
+
+// Claude statusline data — derived from the active terminal's surface ID
+export const claudeStatuslineAtom = atom<DisplayStatusline | null>((get) => {
+  const surfaceId = get(activeTerminalSurfaceIdAtom)
+  if (!surfaceId) return null
+  return get(statuslineMapAtom).get(surfaceId) ?? null
+})
 
 // derived: only the session id (avoids re-renders when other statusline fields change)
 export const claudeSessionIdAtom = atom((get) => get(claudeStatuslineAtom)?.sessionId ?? null)

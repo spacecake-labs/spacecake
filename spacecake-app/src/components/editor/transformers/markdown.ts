@@ -41,6 +41,11 @@ import {
   $isFrontmatterNode,
   FrontmatterNode,
 } from "@/components/editor/nodes/frontmatter-node"
+import {
+  $createHTMLBlockNode,
+  $isHTMLBlockNode,
+  HTMLBlockNode,
+} from "@/components/editor/nodes/html-node"
 import { $createImageNode, $isImageNode, ImageNode } from "@/components/editor/nodes/image-node"
 import { $createMermaidNode, $isMermaidNode } from "@/components/editor/nodes/mermaid-node"
 import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
@@ -485,6 +490,42 @@ const DOUBLE_BACKTICK_INLINE_CODE: TextMatchTransformer = {
   type: "text-match",
 }
 
+// CommonMark HTML block type 6 — block-level tags
+// source: https://github.com/markdown-it/markdown-it/blob/master/lib/common/html_blocks.mjs
+const HTML_BLOCK_TAGS =
+  "address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h1|h2|h3|h4|h5|h6|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|picture|search|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul"
+
+export function createHtmlBlockTransformer(): MultilineElementTransformer {
+  return {
+    dependencies: [HTMLBlockNode],
+    export: (node: LexicalNode) => {
+      if (!$isHTMLBlockNode(node)) {
+        return null
+      }
+      return node.getHtml()
+    },
+    regExpStart: new RegExp(`^<(/?(?:${HTML_BLOCK_TAGS}))(?:\\s|/?>|$).*`, "i"),
+    regExpEnd: /^$/,
+    replace: (rootNode, _children, startMatch, _endMatch, linesInBetween) => {
+      const between = linesInBetween ?? []
+      // the regex consumes the full first line, so lexical may pass
+      // the empty remainder as the first element of linesInBetween
+      const start = between[0] === "" ? 1 : 0
+      const lines = [startMatch[0], ...between.slice(start)]
+      const html = lines.join("\n")
+
+      const htmlBlockNode = $createHTMLBlockNode({ html, viewMode: "preview" })
+
+      if (!rootNode.getParent()) {
+        rootNode.append(htmlBlockNode)
+      } else {
+        rootNode.replace(htmlBlockNode)
+      }
+    },
+    type: "multiline-element",
+  }
+}
+
 // Filter out conflicting code transformers
 const MULTILINE_ELEMENT_TRANSFORMERS_FILTERED = MULTILINE_ELEMENT_TRANSFORMERS.filter(
   (transformer) => {
@@ -498,6 +539,7 @@ const MULTILINE_ELEMENT_TRANSFORMERS_FILTERED = MULTILINE_ELEMENT_TRANSFORMERS.f
 
 export const MARKDOWN_TRANSFORMERS = [
   createFrontmatterTransformer(), // Must be first to check position before other transformers
+  createHtmlBlockTransformer(),
   TABLE,
   CHECK_LIST,
   ...ELEMENT_TRANSFORMERS,

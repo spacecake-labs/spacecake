@@ -5,8 +5,9 @@ export const createTerminal = (
   cols: number,
   rows: number,
   cwd?: string,
+  surfaceId?: string,
   electronAPI: ElectronAPI = window.electronAPI,
-) => electronAPI.createTerminal(id, cols, rows, cwd)
+) => electronAPI.createTerminal(id, cols, rows, cwd, surfaceId)
 
 export const resizeTerminal = (
   id: string,

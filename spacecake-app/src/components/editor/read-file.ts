@@ -117,54 +117,34 @@ export function getInitialEditorStateFromContent(
   onComplete?: () => void,
 ) {
   return (editor: LexicalEditor) => {
-    /*
-    Reset the ID for the first node back to 1.
-    This is a bit of a hack but is necessary for now
-    to ensure that selection is restored correctly.
-    Otherwise the nodeKey values don't align
-    when switching files.
-    */
     resetRandomKey()
-    // If viewKind is explicitly provided, use it
+
     if (viewKind === "source") {
-      convertToSourceView(file.content, file, editor, selection)
+      convertToSourceView(file.content, file, editor)
+    } else if (file.fileType === FileType.Python) {
+      convertPythonBlocksToLexical(file, editor, null, null, undefined, () => {
+        onComplete?.()
+        if (selection) {
+          editor.update(() => $restoreSelection(selection), { discrete: true })
+        }
+      })
       return
-    }
-
-    // Default behavior based on file type
-    if (file.fileType === FileType.Python) {
-      // Python defaults to rich view if no view specified
-      convertPythonBlocksToLexical(
-        file,
-        editor,
-        selection,
-        undefined,
-        undefined,
-
-        onComplete,
-      )
     } else if (file.fileType === FileType.Markdown) {
-      // Markdown defaults to rich view (rendered markdown) when viewKind is "rich" or undefined
       editor.update(
         () => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
           if (file.content.trim()) {
             $convertFromMarkdownString(file.content, MARKDOWN_TRANSFORMERS, undefined, true)
           } else {
-            // Empty markdown file - create empty paragraph
             const root = $getRoot()
             root.clear()
             const paragraph = $createParagraphNode()
             root.append(paragraph)
           }
-          if (selection) {
-            $restoreSelection(selection)
-          }
         },
         { tag: INITIAL_LOAD_TAG },
       )
     } else if (file.fileType === FileType.Plaintext) {
-      // Plaintext files go to plaintext view
       editor.update(
         () => {
           $addUpdateTag(SKIP_DOM_SELECTION_TAG)
@@ -175,15 +155,18 @@ export function getInitialEditorStateFromContent(
             paragraph.append($createTextNode(file.content))
           }
           root.append(paragraph)
-          if (selection) {
-            $restoreSelection(selection)
-          }
         },
         { tag: INITIAL_LOAD_TAG },
       )
     } else {
-      // All other programming languages (JS, TS, JSX, TSX) go to source view
-      convertToSourceView(file.content, file, editor, selection)
+      convertToSourceView(file.content, file, editor)
+    }
+
+    if (selection) {
+      const removeListener = editor.registerUpdateListener(() => {
+        removeListener()
+        editor.update(() => $restoreSelection(selection), { discrete: true })
+      })
     }
   }
 }

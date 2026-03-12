@@ -12,12 +12,17 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { TerminalAPI } from "@/hooks/use-ghostty-engine"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { useLatest } from "@/hooks/use-latest"
-import { terminalProfileLoadedAtom } from "@/lib/atoms/atoms"
+import {
+  activeTerminalSurfaceIdAtom,
+  statuslineMapAtom,
+  terminalProfileLoadedAtom,
+} from "@/lib/atoms/atoms"
 import { condensePath } from "@/lib/utils"
 
 interface TabState {
   id: string
   label: string
+  surfaceId: string
 }
 
 interface TerminalProps {
@@ -29,7 +34,10 @@ interface TerminalProps {
 
 function makeTab(label?: string): TabState {
   const id = `terminal-tab-${crypto.randomUUID()}`
-  return { id, label: label ?? "\u{1F370}" }
+  const surfaceId = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) =>
+    b.toString(16).padStart(2, "0"),
+  ).join("")
+  return { id, label: label ?? "\u{1F370}", surfaceId }
 }
 
 /** extract a short display name from a terminal title (path → basename, command → as-is) */
@@ -54,6 +62,10 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
 
   // track APIs per tab so we can expose the active one
   const tabApisRef = useRef<Map<string, TerminalAPI>>(new Map())
+
+  // per-surface statusline tracking
+  const setActiveSurfaceId = useSetAtom(activeTerminalSurfaceIdAtom)
+  const setStatuslineMap = useSetAtom(statuslineMapAtom)
 
   // per-tab profile loaded tracking
   const setProfileLoaded = useSetAtom(terminalProfileLoadedAtom)
@@ -101,6 +113,10 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
       syncActiveApi(tabId)
       setProfileLoaded(profileLoadedTabsRef.current.has(tabId))
 
+      // set active surface so the derived statusline atom picks the right entry
+      const tab = tabsRef.current.find((t) => t.id === tabId)
+      if (tab) setActiveSurfaceId(tab.surfaceId)
+
       // immediate attempt (works for keyboard-triggered switches)
       focusTerminal(tabId)
       // deferred attempt (handles click-triggered switches where the browser
@@ -114,7 +130,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
           ?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
       })
     },
-    [syncActiveApi, setProfileLoaded, focusTerminal],
+    [syncActiveApi, setProfileLoaded, focusTerminal, setActiveSurfaceId],
   )
 
   const handleTabReady = useCallback(
@@ -167,8 +183,19 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
   const closeTab = useCallback(
     (tabId: string) => {
       const prev = tabsRef.current
+      const closedTab = prev.find((t) => t.id === tabId)
       const idx = prev.findIndex((t) => t.id === tabId)
       const next = prev.filter((t) => t.id !== tabId)
+
+      // clean up server-side and renderer statusline for this surface
+      if (closedTab) {
+        window.electronAPI.claude.clearSurface(closedTab.surfaceId)
+        setStatuslineMap((map) => {
+          const next = new Map(map)
+          next.delete(closedTab.surfaceId)
+          return next
+        })
+      }
 
       setTabs(next)
 
@@ -177,11 +204,12 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
           const newIdx = Math.min(idx, next.length - 1)
           activateTab(next[newIdx].id)
         } else {
+          setActiveSurfaceId(null)
           onLastTabClosedRef.current?.()
         }
       }
     },
-    [activateTab],
+    [activateTab, setStatuslineMap, setActiveSurfaceId],
   )
 
   const switchTab = useCallback(
@@ -350,6 +378,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
           <TerminalTab
             key={tab.id}
             id={tab.id}
+            surfaceId={tab.surfaceId}
             cwd={cwd}
             isActive={tab.id === activeTabId}
             lockedTheme={lockedTheme}

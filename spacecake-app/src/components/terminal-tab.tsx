@@ -7,6 +7,7 @@ import { useLatest } from "@/hooks/use-latest"
 
 interface TerminalTabProps {
   id: string
+  surfaceId: string
   cwd: string
   isActive: boolean
   lockedTheme: "light" | "dark"
@@ -18,6 +19,7 @@ interface TerminalTabProps {
 
 export const TerminalTab = memo(function TerminalTab({
   id,
+  surfaceId,
   cwd,
   isActive,
   lockedTheme,
@@ -40,6 +42,7 @@ export const TerminalTab = memo(function TerminalTab({
 
   const { containerEl, api, error, fit } = useGhosttyEngine({
     id,
+    surfaceId,
     enabled: true,
     cwd,
     onTitleChange: handleTitleChange,

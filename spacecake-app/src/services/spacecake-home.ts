@@ -56,12 +56,17 @@ const STATUSLINE_SCRIPT_UNIX = `#!/usr/bin/env bash
 configDir="\${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 socketPath="\${configDir}/spacecake.sock"
 
+url="http://localhost/statusline"
+if [ -n "\${SPACECAKE_SURFACE_ID}" ]; then
+  url="\${url}?surface=\${SPACECAKE_SURFACE_ID}"
+fi
+
 input=$(cat)
 
 if [ -S "$socketPath" ]; then
   echo "$input" | curl -s -X POST -H "Content-Type: application/json" -d @- \\
     --unix-socket "$socketPath" --max-time 2 \\
-    http://localhost/statusline >/dev/null 2>&1 &
+    "$url" >/dev/null 2>&1 &
 fi
 exit 0
 `
@@ -75,8 +80,10 @@ if (-not (Test-Path $portFile)) { exit 0 }
 $port = Get-Content $portFile -Raw
 $input = [Console]::In.ReadToEnd()
 if (-not $input) { exit 0 }
+$url = "http://127.0.0.1:$port/statusline"
+if ($env:SPACECAKE_SURFACE_ID) { $url = "$url?surface=$env:SPACECAKE_SURFACE_ID" }
 try {
-  Invoke-RestMethod -Uri "http://127.0.0.1:$port/statusline" -Method POST -Body $input -ContentType "application/json" -TimeoutSec 2 | Out-Null
+  Invoke-RestMethod -Uri $url -Method POST -Body $input -ContentType "application/json" -TimeoutSec 2 | Out-Null
 } catch {}
 exit 0
 `

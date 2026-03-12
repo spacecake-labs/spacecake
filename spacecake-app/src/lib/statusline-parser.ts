@@ -8,6 +8,7 @@ export interface DisplayStatusline {
   cwd: string
   sessionId: string
   timestamp: number
+  surfaceId?: string
 }
 
 export interface StatuslineData {
@@ -60,7 +61,10 @@ export function hasStatuslineData(data: string): boolean {
  * Parse statusline input from Claude Code HTTP POST
  * Extracts display-relevant fields from full Claude Code schema
  */
-export function parseStatuslineInput(input: StatuslineInput): DisplayStatusline {
+export function parseStatuslineInput(
+  input: StatuslineInput,
+  surfaceId?: string,
+): DisplayStatusline {
   return {
     model: input.model.display_name,
     contextUsagePercent: input.context_window.used_percentage,
@@ -69,5 +73,6 @@ export function parseStatuslineInput(input: StatuslineInput): DisplayStatusline 
     cwd: input.cwd,
     sessionId: input.session_id,
     timestamp: Date.now(),
+    surfaceId,
   }
 }

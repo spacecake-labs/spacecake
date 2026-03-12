@@ -218,13 +218,15 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     ipcMain.handle("get-home-folder-path", () => home.homeDir)
 
     // Terminal IPC handlers
-    ipcMain.handle("terminal:create", (_, id: string, cols: number, rows: number, cwd?: string) =>
-      Effect.runPromise(
-        Effect.match(terminal.create(id, cols, rows, cwd), {
-          onFailure: (error) => left(error),
-          onSuccess: () => right(undefined),
-        }),
-      ),
+    ipcMain.handle(
+      "terminal:create",
+      (_, id: string, cols: number, rows: number, cwd?: string, surfaceId?: string) =>
+        Effect.runPromise(
+          Effect.match(terminal.create(id, cols, rows, cwd, surfaceId), {
+            onFailure: (error) => left(error),
+            onSuccess: () => right(undefined),
+          }),
+        ),
     )
 
     ipcMain.handle("terminal:resize", (_, id: string, cols: number, rows: number) =>

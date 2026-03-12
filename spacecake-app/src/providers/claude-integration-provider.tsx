@@ -2,7 +2,7 @@ import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { ReactNode, useEffect, useRef } from "react"
 import { toast } from "sonner"
 
-import { claudeStatuslineAtom, ideDisconnectedToastShownAtom } from "@/lib/atoms/atoms"
+import { ideDisconnectedToastShownAtom, statuslineMapAtom } from "@/lib/atoms/atoms"
 import type { PaneMachineRef } from "@/machines/pane"
 import type { ClaudeCodeStatus } from "@/types/claude-code"
 import { AbsolutePath } from "@/types/workspace"
@@ -25,7 +25,7 @@ export function ClaudeIntegrationProvider({
   machine,
 }: ClaudeIntegrationProviderProps) {
   const setStatus = useSetAtom(claudeStatusAtom)
-  const setStatusline = useSetAtom(claudeStatuslineAtom)
+  const setStatuslineMap = useSetAtom(statuslineMapAtom)
   const serverReady = useAtomValue(claudeServerReadyAtom)
   const setServerReady = useSetAtom(claudeServerReadyAtom)
   const serverStarted = useRef(false)
@@ -55,9 +55,31 @@ export function ClaudeIntegrationProvider({
 
     cleanups.push(window.electronAPI.claude.onStatusChange(setStatus))
 
-    cleanups.push(window.electronAPI.claude.onStatuslineUpdate(setStatusline))
+    cleanups.push(
+      window.electronAPI.claude.onStatuslineUpdate((statusline) => {
+        const key = statusline.surfaceId
+        if (!key) return
+        setStatuslineMap((map) => {
+          const next = new Map(map)
+          next.set(key, statusline)
+          return next
+        })
+      }),
+    )
 
-    cleanups.push(window.electronAPI.claude.onStatuslineCleared(() => setStatusline(null)))
+    cleanups.push(
+      window.electronAPI.claude.onStatuslineCleared((surfaceId) => {
+        if (surfaceId) {
+          setStatuslineMap((map) => {
+            const next = new Map(map)
+            next.delete(surfaceId)
+            return next
+          })
+        } else {
+          setStatuslineMap(new Map())
+        }
+      }),
+    )
 
     cleanups.push(
       window.electronAPI.claude.onOpenFile((payload) => {
@@ -72,7 +94,7 @@ export function ClaudeIntegrationProvider({
     )
 
     return () => cleanups.forEach((c) => c())
-  }, [serverReady, setStatus, setStatusline, machine])
+  }, [serverReady, setStatus, setStatuslineMap, machine])
 
   // Show a one-time toast when Claude Code prints "IDE disconnected" in the terminal
   useEffect(() => {

@@ -39,7 +39,8 @@ export interface ElectronAPI {
     onStatusChange: (handler: (status: ClaudeCodeStatus) => void) => () => void
     onOpenFile: (handler: (payload: OpenFilePayload) => void) => () => void
     onStatuslineUpdate: (handler: (statusline: DisplayStatusline) => void) => () => void
-    onStatuslineCleared: (handler: () => void) => () => void
+    onStatuslineCleared: (handler: (surfaceId?: string) => void) => () => void
+    clearSurface: (surfaceId: string) => Promise<void>
     tasks: {
       startWatching: (sessionId?: string) => Promise<Either<ClaudeTaskError, void>>
       list: (sessionId?: string) => Promise<Either<ClaudeTaskError, ClaudeTask[]>>
@@ -94,6 +95,7 @@ export interface ElectronAPI {
     cols: number,
     rows: number,
     cwd?: string,
+    surfaceId?: string,
   ) => Promise<Either<TerminalError, void>>
   resizeTerminal: (id: string, cols: number, rows: number) => Promise<Either<TerminalError, void>>
   writeTerminal: (id: string, data: string) => Promise<Either<TerminalError, void>>

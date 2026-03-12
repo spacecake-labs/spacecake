@@ -11,7 +11,7 @@ import type { EditorState, LexicalEditor } from "lexical"
 import { HISTORY_MERGE_TAG } from "lexical"
 import { useLayoutEffect } from "react"
 
-import { INITIAL_LOAD_TAG, type ChangeType } from "@/types/lexical"
+import { INITIAL_LOAD_TAG, VIEW_MODE_TAG, type ChangeType } from "@/types/lexical"
 
 // this is not yet exported by lexical
 // https://github.com/facebook/lexical/blob/main/packages/lexical/src/LexicalUpdateTags.ts
@@ -38,6 +38,8 @@ export function OnChangePlugin({
             tags.has(HISTORY_MERGE_TAG) ||
             // custom tag added by file parser
             tags.has(INITIAL_LOAD_TAG) ||
+            // custom tag added by decorator node view mode toggles
+            tags.has(VIEW_MODE_TAG) ||
             prevEditorState.isEmpty()
           ) {
             return

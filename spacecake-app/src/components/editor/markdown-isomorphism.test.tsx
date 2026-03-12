@@ -150,6 +150,74 @@ Here's a simple flow showing how data moves through the system.`
         expect(result).toBe(text)
       })
 
+      it("html block should have isomorphic parsing & serialization", async () => {
+        const text = `# Project
+
+<picture>
+  <source
+    srcset="https://example.com/dark.png"
+    media="(prefers-color-scheme: dark)"
+  />
+  <img
+    width="1072"
+    src="https://example.com/light.png"
+    alt="a screenshot"
+  />
+</picture>
+
+some text after the html block.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
+      it("html table block should have isomorphic parsing & serialization", async () => {
+        const text = `<table>
+  <thead>
+    <tr><th>name</th><th>value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>alpha</td><td>1</td></tr>
+    <tr><td>beta</td><td>2</td></tr>
+  </tbody>
+</table>
+
+done.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
+      it("details/summary html block should have isomorphic parsing & serialization", async () => {
+        const text = `<details>
+  <summary>click to expand</summary>
+  <p>hidden content here</p>
+</details>
+
+visible content.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
       it("markdown file with images and links should have isomorphic parsing & serialization", async () => {
         const text = `# Project README
 
