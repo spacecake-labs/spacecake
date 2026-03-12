@@ -31,6 +31,7 @@ import type { BaseCodeMirrorEditorProps } from "@/components/editor/plugins/code
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { VIEW_MODE_TAG } from "@/types/lexical"
 
 const LazyHtmlCodeEditor = React.lazy(async () => {
   const [{ BaseCodeMirrorEditor }, { html }] = await Promise.all([
@@ -328,6 +329,8 @@ const HTMLBlockNodeEditorContainer: React.FC<HTMLBlockNodeEditorContainerProps> 
         $addUpdateTag(SKIP_DOM_SELECTION_TAG)
         const node = $getNodeByKey(nodeKey)
         if (node && $isHTMLBlockNode(node)) {
+          // skip no-op writes (e.g. flush on codemirror unmount during view toggle)
+          if (node.getHtml() === code) return
           node.setHtml(code)
         }
       })
@@ -337,6 +340,7 @@ const HTMLBlockNodeEditorContainer: React.FC<HTMLBlockNodeEditorContainerProps> 
 
   const handleToggleViewMode = React.useCallback(() => {
     parentEditor.update(() => {
+      $addUpdateTag(VIEW_MODE_TAG)
       const node = $getNodeByKey(nodeKey)
       if (node && $isHTMLBlockNode(node)) {
         node.setViewMode(viewMode === "preview" ? "code" : "preview")

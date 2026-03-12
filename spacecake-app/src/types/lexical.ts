@@ -6,6 +6,8 @@ import { SerializedEditorState } from "lexical"
 export const INITIAL_LOAD_TAG = "initial-load" as const
 export type InitialLoadTag = typeof INITIAL_LOAD_TAG
 
+export const VIEW_MODE_TAG = "view-mode" as const
+
 // view kinds for editor modes
 // persistable view kinds are stored in the database
 export const PersistableViewKindSchema = Schema.Literal("rich", "source")

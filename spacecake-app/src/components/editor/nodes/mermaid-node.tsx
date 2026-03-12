@@ -27,6 +27,7 @@ import {
   type CodeMirrorFocusManager,
 } from "@/components/editor/nodes/code-node"
 import type { BaseCodeMirrorEditorProps } from "@/components/editor/plugins/codemirror-editor"
+import { VIEW_MODE_TAG } from "@/types/lexical"
 const MermaidDiagram = React.lazy(() => import("@/components/editor/nodes/mermaid-diagram"))
 
 const LazyMermaidCodeEditor = React.lazy(async () => {
@@ -270,6 +271,8 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
         $addUpdateTag(SKIP_DOM_SELECTION_TAG)
         const node = $getNodeByKey(nodeKey)
         if (node && $isMermaidNode(node)) {
+          // skip no-op writes (e.g. flush on codemirror unmount during view toggle)
+          if ((node as MermaidNode).getDiagram() === code) return
           ;(node as MermaidNode).setDiagram(code)
         }
       })
@@ -279,6 +282,7 @@ const MermaidNodeEditorContainer: React.FC<MermaidNodeEditorContainerProps> = ({
 
   const handleToggleViewMode = React.useCallback(() => {
     parentEditor.update(() => {
+      $addUpdateTag(VIEW_MODE_TAG)
       const node = $getNodeByKey(nodeKey)
       if (node && $isMermaidNode(node)) {
         node.setViewMode(viewMode === "diagram" ? "code" : "diagram")
