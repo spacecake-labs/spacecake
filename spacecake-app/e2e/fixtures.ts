@@ -55,7 +55,7 @@ export const test = base.extend<TestFixtures>({
 
       const cleanupDataDir = () => {
         if (fs.existsSync(dataDir)) {
-          fs.rmSync(dataDir, { recursive: true, force: true, maxRetries: 5 })
+          fs.rmSync(dataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 })
           testInfo.annotations.push({
             type: "info",
             description: `cleaned up temp data directory: ${dataDir}`,

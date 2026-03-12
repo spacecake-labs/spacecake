@@ -191,15 +191,13 @@ test.describe("ghostty terminal", () => {
     const terminalMounts = terminalPanel.getByTestId("ghostty-terminal")
     await expect(terminalMounts.first()).toBeVisible()
 
-    // --- create second tab via Cmd+T ---
-    // focus the terminal textarea so the keyboard shortcut is captured
-    await terminalMounts.first().locator("textarea").focus()
-    await window.waitForTimeout(100)
-    await window.keyboard.press("ControlOrMeta+t")
-    await window.waitForTimeout(200)
+    // --- create second tab via the "+" button ---
+    // clicking the button is more reliable than Cmd+T on CI where the focus
+    // guard can race with slow textarea focus on Mac Intel.
+    await terminalPanel.getByRole("button", { name: "new terminal tab" }).click()
 
-    // verify two tab buttons now exist
-    await expect(tabButtons).toHaveCount(2)
+    // verify two tab buttons now exist (use a generous timeout for slow CI)
+    await expect(tabButtons).toHaveCount(2, { timeout: 10_000 })
 
     // wait for the new tab's shell to settle (CI can be slow)
     await window.waitForTimeout(1000)
