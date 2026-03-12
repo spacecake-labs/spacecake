@@ -73,7 +73,7 @@ test.describe("slash commands e2e", () => {
     await window.keyboard.press("ArrowDown", { delay: 100 })
     await window.keyboard.press("/", { delay: 200 })
 
-    await window.getByRole("option", { name: "heading 1 #" }).click({ delay: 100 })
+    await window.getByRole("option", { name: "heading 1 #" }).click({ force: true })
     await window.keyboard.type("TEST_HEADING", { delay: 100 })
 
     await expect(window.getByRole("heading", { name: "TEST_HEADING" })).toBeVisible()
@@ -85,7 +85,7 @@ test.describe("slash commands e2e", () => {
     await window.keyboard.press("Enter", { delay: 100 })
     await window.keyboard.press("/", { delay: 200 })
 
-    await window.getByRole("option", { name: "text" }).click({ delay: 100 })
+    await window.getByRole("option", { name: "text" }).click({ force: true })
     await window.keyboard.type("TEST_PARA", { delay: 100 })
 
     await expect(window.getByRole("paragraph").filter({ hasText: "TEST_PARA" })).toBeVisible()
