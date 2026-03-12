@@ -26,7 +26,7 @@
     "e2e-test": "cross-env IS_PLAYWRIGHT=true playwright test",
     "e2e-show": "cross-env IS_PLAYWRIGHT=true SHOW_WINDOW=true playwright test",
     "changeset": "changeset",
-    "prepare": "husky"
+    "prepare": "cd .. && husky spacecake-app/.husky"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.3",
