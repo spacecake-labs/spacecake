@@ -1,5 +1,12 @@
 # spacecake-app
 
+## 0.1.0-alpha.59
+
+### Patch Changes
+
+- bfaaddb: Fix: track concurrent Claude Code terminal sessions separately.
+- 67cfd69: Feat: HTML rendering in markdown files.
+
 ## 0.1.0-alpha.58
 
 ### Patch Changes
