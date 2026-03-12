@@ -110,12 +110,24 @@ test.describe("route not found", () => {
 
     // delete the workspace directory.
     // on windows, file handles may linger after stopping watchers/terminals,
-    // causing EBUSY on rmSync. renaming the directory is more reliable because
-    // it doesn't require releasing all handles — the original path ceases to
-    // exist immediately, which is what the test needs.
+    // causing EBUSY on rmSync/renameSync. retry with delays to give processes
+    // time to fully release handles.
     if (isWindows) {
       const movedDir = `${tempTestDir}-moved`
-      fs.renameSync(tempTestDir, movedDir)
+      const maxRetries = 5
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          fs.renameSync(tempTestDir, movedDir)
+          break
+        } catch (err: unknown) {
+          const isLastAttempt = attempt === maxRetries - 1
+          const isBusy =
+            err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "EBUSY"
+          if (!isBusy || isLastAttempt) throw err
+          // wait before retrying — handles take time to release on windows
+          await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)))
+        }
+      }
       // best-effort cleanup of the renamed dir (may still be locked)
       try {
         fs.rmSync(movedDir, { recursive: true, force: true })
