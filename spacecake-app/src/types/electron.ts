@@ -41,6 +41,7 @@ export interface ElectronAPI {
     onStatuslineUpdate: (handler: (statusline: DisplayStatusline) => void) => () => void
     onStatuslineCleared: (handler: (surfaceId?: string) => void) => () => void
     clearSurface: (surfaceId: string) => Promise<void>
+    checkSurfaceAlive: (surfaceId: string) => Promise<void>
     tasks: {
       startWatching: (sessionId?: string) => Promise<Either<ClaudeTaskError, void>>
       list: (sessionId?: string) => Promise<Either<ClaudeTaskError, ClaudeTask[]>>

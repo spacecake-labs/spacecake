@@ -17,6 +17,7 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
     onStatuslineUpdate: () => () => {},
     onStatuslineCleared: () => () => {},
     clearSurface: async () => {},
+    checkSurfaceAlive: async () => {},
     ensureServer: async () => {},
     tasks: {
       startWatching: async () => right(undefined),

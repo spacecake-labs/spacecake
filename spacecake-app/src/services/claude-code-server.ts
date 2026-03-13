@@ -261,6 +261,10 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
 
           // Track when Claude Code IDE is fully connected
           if (data.method === "ide_connected") {
+            const params = data.params as { pid?: number } | undefined
+            if (params?.pid) {
+              hooksServer.setPendingPid(params.pid)
+            }
             broadcastClaudeCodeStatus("connected")
             return
           }
@@ -490,6 +494,12 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
 
   ipcMain.handle("statusline:clear-surface", (_, surfaceId: string) => {
     hooksServer.clearSurface(surfaceId)
+  })
+
+  ipcMain.handle("claude:check-surface-alive", (_, surfaceId: string) => {
+    if (!hooksServer.isSurfaceAlive(surfaceId)) {
+      hooksServer.clearSurface(surfaceId)
+    }
   })
 
   ipcMain.handle("claude:at-mentioned", (_, payload) => {

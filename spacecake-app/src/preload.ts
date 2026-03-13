@@ -55,6 +55,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       return () => ipcRenderer.removeListener("statusline-cleared", listener)
     },
     clearSurface: (surfaceId: string) => ipcRenderer.invoke("statusline:clear-surface", surfaceId),
+    checkSurfaceAlive: (surfaceId: string): Promise<void> =>
+      ipcRenderer.invoke("claude:check-surface-alive", surfaceId),
     tasks: {
       startWatching: (sessionId?: string) =>
         ipcRenderer.invoke("claude:tasks:start-watching", sessionId),

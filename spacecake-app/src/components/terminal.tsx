@@ -170,6 +170,10 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
   )
 
   const handleTitleChange = useCallback((tabId: string, title: string) => {
+    const tab = tabsRef.current.find((t) => t.id === tabId)
+    if (tab) {
+      window.electronAPI.claude.checkSurfaceAlive(tab.surfaceId)
+    }
     setTabs((prev) => prev.map((t) => (t.id === tabId ? { ...t, label: title } : t)))
   }, [])
 

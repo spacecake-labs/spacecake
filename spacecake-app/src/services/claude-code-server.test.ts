@@ -109,6 +109,8 @@ describe("ClaudeCodeServer", () => {
       isStarted: vi.fn(() => true),
       getLastStatusline: vi.fn(() => null),
       clearSurface: vi.fn(),
+      setPendingPid: vi.fn(),
+      isSurfaceAlive: vi.fn(() => true),
       onStatuslineUpdate: vi.fn((cb: (data: DisplayStatusline) => void) => {
         statuslineUpdateCallback = cb
         return () => {
