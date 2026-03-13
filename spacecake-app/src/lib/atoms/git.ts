@@ -37,6 +37,8 @@ export const commitAmendAtom = atom<boolean>(false)
 // operation state (prevents concurrent ops, shows spinners)
 export type GitOperation = "idle" | "staging" | "committing" | "pushing" | "pulling" | "fetching"
 export const gitOperationAtom = atom<GitOperation>("idle")
+export const isCommittingAtom = atom((get) => get(gitOperationAtom) === "committing")
+export const isBusyAtom = atom((get) => get(gitOperationAtom) !== "idle")
 
 // remote tracking
 export type GitRemoteStatus = { ahead: number; behind: number; tracking: string | null }

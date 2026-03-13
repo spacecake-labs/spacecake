@@ -389,28 +389,21 @@ function TaskToolbar({
   )
 }
 
-// git panel toolbar
-function GitToolbar({
-  isExpanded,
-  dock,
+// branch popover — owns branch CRUD, popover state, and delete confirmation
+function BranchPopover({
   workspacePath,
-  onExpandedChange,
-  onDockChange,
+  isExpanded,
 }: {
-  isExpanded: boolean
-  dock: DockPosition
   workspacePath: string
-  onExpandedChange: (expanded: boolean) => void
-  onDockChange: (dock: DockPosition) => void
+  isExpanded: boolean
 }) {
-  const isCollapsed = !isExpanded
   const gitBranch = useAtomValue(gitBranchAtom)
   const [branchList, setBranchList] = useAtom(gitBranchListAtom)
-  const [remoteStatus, setRemoteStatus] = useAtom(gitRemoteStatusAtom)
-  const [operation, setOperation] = useAtom(gitOperationAtom)
   const [branchDeleteState, setBranchDeleteState] = useAtom(branchDeleteStateAtom)
-  const [branchPopoverOpen, setBranchPopoverOpen] = useState(false)
+  const [open, setOpen] = useState(false)
   const [newBranchName, setNewBranchName] = useState("")
+  const newBranchNameRef = useRef("")
+  newBranchNameRef.current = newBranchName
 
   const refreshBranches = useCallback(async () => {
     const result = await window.electronAPI.git.listBranches(workspacePath)
@@ -419,27 +412,15 @@ function GitToolbar({
     }
   }, [workspacePath, setBranchList])
 
-  const refreshRemoteStatus = useCallback(async () => {
-    const result = await window.electronAPI.git.getRemoteStatus(workspacePath)
-    if (isRight(result)) {
-      setRemoteStatus({
-        ahead: result.value.ahead,
-        behind: result.value.behind,
-        tracking: result.value.tracking,
-      })
-    }
-  }, [workspacePath, setRemoteStatus])
-
   useEffect(() => {
     refreshBranches()
-    refreshRemoteStatus()
-  }, [refreshBranches, refreshRemoteStatus])
+  }, [refreshBranches])
 
   const handleSwitchBranch = useCallback(
     async (name: string) => {
       const result = await window.electronAPI.git.switchBranch(workspacePath, name)
       if (isRight(result)) {
-        setBranchPopoverOpen(false)
+        setOpen(false)
       } else {
         toast.error(result.value.description)
       }
@@ -448,16 +429,17 @@ function GitToolbar({
   )
 
   const handleCreateBranch = useCallback(async () => {
-    if (!newBranchName.trim()) return
-    const result = await window.electronAPI.git.createBranch(workspacePath, newBranchName.trim())
+    const name = newBranchNameRef.current.trim()
+    if (!name) return
+    const result = await window.electronAPI.git.createBranch(workspacePath, name)
     if (isRight(result)) {
       setNewBranchName("")
-      setBranchPopoverOpen(false)
-      toast.success(`created branch ${newBranchName.trim()}`)
+      setOpen(false)
+      toast.success(`created branch ${name}`)
     } else {
       toast.error(result.value.description)
     }
-  }, [workspacePath, newBranchName])
+  }, [workspacePath])
 
   const handleDeleteBranch = useCallback(async () => {
     if (!branchDeleteState.isOpen) return
@@ -473,6 +455,138 @@ function GitToolbar({
     }
     setBranchDeleteState({ isOpen: false })
   }, [workspacePath, branchDeleteState, setBranchDeleteState, refreshBranches])
+
+  return (
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            title="switch branch"
+          >
+            <GitBranch
+              className={cn(
+                "h-3.5 w-3.5 shrink-0",
+                isExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+              )}
+            />
+            {gitBranch && <span className="text-xs truncate max-w-[120px]">{gitBranch}</span>}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-64 p-2">
+          <div className="space-y-2">
+            <div className="flex items-center gap-1">
+              <Input
+                placeholder="new branch name"
+                value={newBranchName}
+                onChange={(e) => setNewBranchName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateBranch()
+                }}
+                className="h-7 text-xs"
+              />
+              <Button
+                size="sm"
+                className="h-7 text-xs px-2 shrink-0"
+                onClick={handleCreateBranch}
+                disabled={!newBranchName.trim()}
+              >
+                create
+              </Button>
+            </div>
+            <div className="max-h-48 overflow-auto space-y-0.5">
+              {branchList.map((branch) => (
+                <div
+                  key={branch}
+                  className={cn(
+                    "flex items-center justify-between gap-1 px-2 py-1 rounded text-xs",
+                    branch === gitBranch
+                      ? "bg-accent font-medium"
+                      : "hover:bg-accent cursor-pointer",
+                  )}
+                >
+                  <button
+                    className="flex-1 text-left truncate cursor-pointer"
+                    onClick={() => branch !== gitBranch && handleSwitchBranch(branch)}
+                    disabled={branch === gitBranch}
+                  >
+                    {branch}
+                  </button>
+                  {branch !== gitBranch && (
+                    <button
+                      onClick={() => setBranchDeleteState({ isOpen: true, branchName: branch })}
+                      className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer shrink-0"
+                      title="delete branch"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+      <Dialog
+        open={branchDeleteState.isOpen}
+        onOpenChange={(open) => {
+          if (!open) setBranchDeleteState({ isOpen: false })
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>delete branch</DialogTitle>
+            <DialogDescription>
+              {branchDeleteState.isOpen &&
+                `delete branch "${branchDeleteState.branchName}"? this cannot be undone.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBranchDeleteState({ isOpen: false })}>
+              cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteBranch}>
+              delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+// git panel toolbar
+function GitToolbar({
+  isExpanded,
+  dock,
+  workspacePath,
+  onExpandedChange,
+  onDockChange,
+}: {
+  isExpanded: boolean
+  dock: DockPosition
+  workspacePath: string
+  onExpandedChange: (expanded: boolean) => void
+  onDockChange: (dock: DockPosition) => void
+}) {
+  const isCollapsed = !isExpanded
+  const [remoteStatus, setRemoteStatus] = useAtom(gitRemoteStatusAtom)
+  const [operation, setOperation] = useAtom(gitOperationAtom)
+
+  const refreshRemoteStatus = useCallback(async () => {
+    const result = await window.electronAPI.git.getRemoteStatus(workspacePath)
+    if (isRight(result)) {
+      setRemoteStatus({
+        ahead: result.value.ahead,
+        behind: result.value.behind,
+        tracking: result.value.tracking,
+      })
+    }
+  }, [workspacePath, setRemoteStatus])
+
+  useEffect(() => {
+    refreshRemoteStatus()
+  }, [refreshRemoteStatus])
 
   const handleFetch = useCallback(async () => {
     setOperation("fetching")
@@ -521,149 +635,55 @@ function GitToolbar({
   const isBusy = operation !== "idle"
 
   return (
-    <>
-      <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
-        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-          <Popover open={branchPopoverOpen} onOpenChange={setBranchPopoverOpen}>
-            <PopoverTrigger asChild>
-              <button
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                title="switch branch"
-              >
-                <GitBranch
-                  className={cn(
-                    "h-3.5 w-3.5 shrink-0",
-                    isExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
-                  )}
-                />
-                {gitBranch && <span className="text-xs truncate max-w-[120px]">{gitBranch}</span>}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-64 p-2">
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Input
-                    placeholder="new branch name"
-                    value={newBranchName}
-                    onChange={(e) => setNewBranchName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleCreateBranch()
-                    }}
-                    className="h-7 text-xs"
-                  />
-                  <Button
-                    size="sm"
-                    className="h-7 text-xs px-2 shrink-0"
-                    onClick={handleCreateBranch}
-                    disabled={!newBranchName.trim()}
-                  >
-                    create
-                  </Button>
-                </div>
-                <div className="max-h-48 overflow-auto space-y-0.5">
-                  {branchList.map((branch) => (
-                    <div
-                      key={branch}
-                      className={cn(
-                        "flex items-center justify-between gap-1 px-2 py-1 rounded text-xs",
-                        branch === gitBranch
-                          ? "bg-accent font-medium"
-                          : "hover:bg-accent cursor-pointer",
-                      )}
-                    >
-                      <button
-                        className="flex-1 text-left truncate cursor-pointer"
-                        onClick={() => branch !== gitBranch && handleSwitchBranch(branch)}
-                        disabled={branch === gitBranch}
-                      >
-                        {branch}
-                      </button>
-                      {branch !== gitBranch && (
-                        <button
-                          onClick={() => setBranchDeleteState({ isOpen: true, branchName: branch })}
-                          className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer shrink-0"
-                          title="delete branch"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <DockPositionDropdown currentDock={dock} onDockChange={onDockChange} label="git" />
-        </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {remoteStatus && (remoteStatus.ahead > 0 || remoteStatus.behind > 0) && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              {remoteStatus.ahead > 0 && <span title="ahead">↑{remoteStatus.ahead}</span>}
-              {remoteStatus.behind > 0 && <span title="behind">↓{remoteStatus.behind}</span>}
-            </div>
-          )}
-          <button
-            onClick={handleFetch}
-            disabled={isBusy}
-            className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            title="fetch"
-          >
-            <RefreshCw className={cn("h-3.5 w-3.5", operation === "fetching" && "animate-spin")} />
-          </button>
-          <button
-            onClick={handlePull}
-            disabled={isBusy}
-            className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            title="pull"
-          >
-            <ArrowDown className={cn("h-3.5 w-3.5", operation === "pulling" && "animate-bounce")} />
-          </button>
-          <button
-            onClick={handlePush}
-            disabled={isBusy}
-            className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            title="push"
-          >
-            <ArrowUp className={cn("h-3.5 w-3.5", operation === "pushing" && "animate-bounce")} />
-          </button>
-          <button
-            onClick={() => onExpandedChange(!isExpanded)}
-            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            aria-label={isCollapsed ? "show git" : "hide git"}
-          >
-            {isCollapsed ? (
-              <ChevronUp className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5" />
-            )}
-          </button>
-        </div>
+    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+        <BranchPopover workspacePath={workspacePath} isExpanded={isExpanded} />
+        <DockPositionDropdown currentDock={dock} onDockChange={onDockChange} label="git" />
       </div>
-      <Dialog
-        open={branchDeleteState.isOpen}
-        onOpenChange={(open) => {
-          if (!open) setBranchDeleteState({ isOpen: false })
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>delete branch</DialogTitle>
-            <DialogDescription>
-              {branchDeleteState.isOpen &&
-                `delete branch "${branchDeleteState.branchName}"? this cannot be undone.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBranchDeleteState({ isOpen: false })}>
-              cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteBranch}>
-              delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {remoteStatus && (remoteStatus.ahead > 0 || remoteStatus.behind > 0) && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            {remoteStatus.ahead > 0 && <span title="ahead">↑{remoteStatus.ahead}</span>}
+            {remoteStatus.behind > 0 && <span title="behind">↓{remoteStatus.behind}</span>}
+          </div>
+        )}
+        <button
+          onClick={handleFetch}
+          disabled={isBusy}
+          className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          title="fetch"
+        >
+          <RefreshCw className={cn("h-3.5 w-3.5", operation === "fetching" && "animate-spin")} />
+        </button>
+        <button
+          onClick={handlePull}
+          disabled={isBusy}
+          className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          title="pull"
+        >
+          <ArrowDown className={cn("h-3.5 w-3.5", operation === "pulling" && "animate-bounce")} />
+        </button>
+        <button
+          onClick={handlePush}
+          disabled={isBusy}
+          className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          title="push"
+        >
+          <ArrowUp className={cn("h-3.5 w-3.5", operation === "pushing" && "animate-bounce")} />
+        </button>
+        <button
+          onClick={() => onExpandedChange(!isExpanded)}
+          className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          aria-label={isCollapsed ? "show git" : "hide git"}
+        >
+          {isCollapsed ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+        </button>
+      </div>
+    </div>
   )
 }
 

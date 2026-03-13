@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { useAtom, useSetAtom } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
   Check,
   ChevronDown,
@@ -38,6 +38,8 @@ import {
   GitCommit as GitCommitType,
   gitCommitsAtom,
   gitOperationAtom,
+  isBusyAtom,
+  isCommittingAtom,
   isGitRepoAtom,
   GitStatus,
   gitStatusAtom,
@@ -423,9 +425,8 @@ function CommitForm({
 }) {
   const [message, setMessage] = useAtom(commitMessageAtom)
   const [amend, setAmend] = useAtom(commitAmendAtom)
-  const [operation, setOperation] = useAtom(gitOperationAtom)
-
-  const isCommitting = operation === "committing"
+  const isCommitting = useAtomValue(isCommittingAtom)
+  const setOperation = useSetAtom(gitOperationAtom)
   const canCommit = hasStagedFiles && (message.trim() !== "" || amend) && !isCommitting
 
   const handleCommit = useCallback(async () => {
@@ -485,7 +486,8 @@ function CommitForm({
 
 function DiscardConfirmDialog({ workspacePath }: { workspacePath: AbsolutePath }) {
   const [discardState, setDiscardState] = useAtom(discardStateAtom)
-  const [operation, setOperation] = useAtom(gitOperationAtom)
+  const isBusy = useAtomValue(isBusyAtom)
+  const setOperation = useSetAtom(gitOperationAtom)
 
   const handleDiscard = useCallback(async () => {
     if (!discardState.isOpen) return
@@ -530,7 +532,7 @@ function DiscardConfirmDialog({ workspacePath }: { workspacePath: AbsolutePath }
           <Button variant="outline" onClick={() => setDiscardState({ isOpen: false })}>
             cancel
           </Button>
-          <Button variant="destructive" onClick={handleDiscard} disabled={operation !== "idle"}>
+          <Button variant="destructive" onClick={handleDiscard} disabled={isBusy}>
             discard
           </Button>
         </DialogFooter>

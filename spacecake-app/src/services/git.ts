@@ -111,39 +111,32 @@ const makeGitService = Effect.gen(function* () {
     baseRef?: string,
     targetRef?: string,
   ): Effect.Effect<GitFileDiff, GitError> =>
-    Effect.tryPromise({
-      try: async () => {
-        const git = getGit(workspacePath)
+    Effect.gen(function* () {
+      const git = getGit(workspacePath)
 
-        // Get old content (from baseRef, default HEAD)
-        let oldContent = ""
-        try {
-          const ref = baseRef ?? "HEAD"
-          oldContent = await git.show([`${ref}:${filePath}`])
-        } catch {
-          // File doesn't exist in base ref (new file)
-          oldContent = ""
-        }
+      // get old content (from baseRef, default HEAD)
+      const ref = baseRef ?? "HEAD"
+      const oldContent = yield* Effect.tryPromise(() => git.show([`${ref}:${filePath}`])).pipe(
+        Effect.catchAll(() => Effect.succeed("")),
+      )
 
-        // Get new content (from targetRef, default working directory)
-        let newContent = ""
-        if (targetRef) {
-          try {
-            newContent = await git.show([`${targetRef}:${filePath}`])
-          } catch {
-            newContent = ""
-          }
-        } else {
-          // Read from working directory
-          const fullPath = AbsolutePath(`${workspacePath}/${filePath}`)
-          const file = await Effect.runPromise(fs.readTextFile(fullPath))
-          newContent = file.content
-        }
+      // get new content (from targetRef, default working directory)
+      let newContent: string
+      if (targetRef) {
+        newContent = yield* Effect.tryPromise(() => git.show([`${targetRef}:${filePath}`])).pipe(
+          Effect.catchAll(() => Effect.succeed("")),
+        )
+      } else {
+        const fullPath = AbsolutePath(`${workspacePath}/${filePath}`)
+        const file = yield* fs.readTextFile(fullPath)
+        newContent = file.content
+      }
 
-        return { oldContent, newContent }
-      },
-      catch: (e) => new GitError({ description: "Failed to get file diff", cause: e }),
-    })
+      return { oldContent, newContent }
+    }).pipe(
+      Effect.mapError((e) => new GitError({ description: "failed to get file diff", cause: e })),
+      Effect.withSpan("GitService.getFileDiff"),
+    )
 
   const getCommitLog = (workspacePath: string, limit = 50): Effect.Effect<GitCommit[], GitError> =>
     Effect.gen(function* () {
@@ -184,7 +177,7 @@ const makeGitService = Effect.gen(function* () {
         await git.add(files)
       },
       catch: (e) => new GitError({ description: "failed to stage files", cause: e }),
-    })
+    }).pipe(Effect.withSpan("GitService.stageFiles"))
 
   const unstageFiles = (workspacePath: string, files: string[]) =>
     Effect.tryPromise({
@@ -193,7 +186,7 @@ const makeGitService = Effect.gen(function* () {
         await git.reset(["HEAD", "--", ...files])
       },
       catch: (e) => new GitError({ description: "failed to unstage files", cause: e }),
-    })
+    }).pipe(Effect.withSpan("GitService.unstageFiles"))
 
   const commit = (
     workspacePath: string,
@@ -220,7 +213,7 @@ const makeGitService = Effect.gen(function* () {
         }
       },
       catch: (e) => new GitError({ description: "failed to commit", cause: e }),
-    })
+    }).pipe(Effect.withSpan("GitService.commit"))
 
   const listBranches = (workspacePath: string): Effect.Effect<GitBranchList, GitError> =>
     Effect.tryPromise({
@@ -234,7 +227,7 @@ const makeGitService = Effect.gen(function* () {
         }
       },
       catch: (e) => new GitError({ description: "failed to list branches", cause: e }),
-    })
+    }).pipe(Effect.withSpan("GitService.listBranches"))
 
   const createBranch = (workspacePath: string, name: string) =>
     Effect.tryPromise({
@@ -243,7 +236,7 @@ const makeGitService = Effect.gen(function* () {
         await git.checkoutLocalBranch(name)
       },
       catch: (e) => new GitError({ description: "failed to create branch", cause: e }),
-    })
+    }).pipe(Effect.withSpan("GitService.createBranch"))
 
   const switchBranch = (workspacePath: string, name: string) =>
     Effect.tryPromise({
@@ -252,7 +245,7 @@ const makeGitService = Effect.gen(function* () {
         await git.checkout(name)
       },
       catch: (e) => new GitError({ description: "failed to switch branch", cause: e }),
-    })
+    }).pipe(Effect.withSpan("GitService.switchBranch"))
 
   const deleteBranch = (workspacePath: string, name: string, force?: boolean) =>
     Effect.tryPromise({
@@ -261,7 +254,7 @@ const makeGitService = Effect.gen(function* () {
         await git.deleteLocalBranch(name, force)
       },
       catch: (e) => new GitError({ description: "failed to delete branch", cause: e }),
-    })
+    }).pipe(Effect.withSpan("GitService.deleteBranch"))
 
   const push = (workspacePath: string): Effect.Effect<void, GitError> =>
     Effect.tryPromise({
@@ -275,7 +268,7 @@ const makeGitService = Effect.gen(function* () {
         }
       },
       catch: (e) => new GitError({ description: "failed to push", cause: e }),
-    })
+    }).pipe(Effect.withSpan("GitService.push"))
 
   const pull = (workspacePath: string) =>
     Effect.tryPromise({
@@ -284,7 +277,7 @@ const makeGitService = Effect.gen(function* () {
         await git.pull()
       },
       catch: (e) => new GitError({ description: "failed to pull", cause: e }),
-    })
+    }).pipe(Effect.withSpan("GitService.pull"))
 
   const fetchAll = (workspacePath: string) =>
     Effect.tryPromise({
@@ -293,7 +286,7 @@ const makeGitService = Effect.gen(function* () {
         await git.fetch(["--all"])
       },
       catch: (e) => new GitError({ description: "failed to fetch", cause: e }),
-    })
+    }).pipe(Effect.withSpan("GitService.fetchAll"))
 
   const getRemoteStatus = (workspacePath: string): Effect.Effect<GitRemoteStatus, GitError> =>
     Effect.tryPromise({
@@ -308,7 +301,7 @@ const makeGitService = Effect.gen(function* () {
         }
       },
       catch: (e) => new GitError({ description: "failed to get remote status", cause: e }),
-    })
+    }).pipe(Effect.withSpan("GitService.getRemoteStatus"))
 
   const discardFileChanges = (workspacePath: string, file: string) =>
     Effect.tryPromise({
@@ -323,7 +316,7 @@ const makeGitService = Effect.gen(function* () {
         }
       },
       catch: (e) => new GitError({ description: "failed to discard file changes", cause: e }),
-    })
+    }).pipe(Effect.withSpan("GitService.discardFileChanges"))
 
   const discardAllChanges = (workspacePath: string) =>
     Effect.tryPromise({
@@ -333,7 +326,7 @@ const makeGitService = Effect.gen(function* () {
         await git.clean("f", ["-d"])
       },
       catch: (e) => new GitError({ description: "failed to discard all changes", cause: e }),
-    })
+    }).pipe(Effect.withSpan("GitService.discardAllChanges"))
 
   return {
     getCurrentBranch,
