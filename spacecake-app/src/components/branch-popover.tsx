@@ -105,6 +105,7 @@ export function BranchPopover({ workspacePath, isExpanded }: BranchPopoverProps)
             <div className="flex items-center gap-1">
               <Input
                 placeholder="new branch name"
+                data-testid="new-branch-input"
                 value={newBranchName}
                 onChange={(e) => setNewBranchName(e.target.value)}
                 onKeyDown={(e) => {
@@ -117,14 +118,16 @@ export function BranchPopover({ workspacePath, isExpanded }: BranchPopoverProps)
                 className="h-7 text-xs px-2 shrink-0"
                 onClick={handleCreateBranch}
                 disabled={!newBranchName.trim()}
+                data-testid="create-branch-button"
               >
                 create
               </Button>
             </div>
-            <div className="max-h-48 overflow-auto space-y-0.5">
+            <div className="max-h-48 overflow-auto space-y-0.5" data-testid="branch-list">
               {branchList.map((branch) => (
                 <div
                   key={branch}
+                  data-testid={`branch-row-${branch}`}
                   className={cn(
                     "flex items-center justify-between gap-1 px-2 py-1 rounded text-xs",
                     branch === gitBranch
@@ -136,6 +139,7 @@ export function BranchPopover({ workspacePath, isExpanded }: BranchPopoverProps)
                     className="flex-1 text-left truncate cursor-pointer"
                     onClick={() => branch !== gitBranch && handleSwitchBranch(branch)}
                     disabled={branch === gitBranch}
+                    data-testid={`branch-switch-${branch}`}
                   >
                     {branch}
                   </button>
@@ -144,6 +148,7 @@ export function BranchPopover({ workspacePath, isExpanded }: BranchPopoverProps)
                       onClick={() => setBranchDeleteState({ isOpen: true, branchName: branch })}
                       className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer shrink-0"
                       title="delete branch"
+                      data-testid={`branch-delete-${branch}`}
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>

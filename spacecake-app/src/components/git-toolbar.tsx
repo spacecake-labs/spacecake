@@ -98,9 +98,20 @@ export const GitToolbar = memo(function GitToolbar({
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {remoteStatus && (remoteStatus.ahead > 0 || remoteStatus.behind > 0) && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            {remoteStatus.ahead > 0 && <span title="ahead">↑{remoteStatus.ahead}</span>}
-            {remoteStatus.behind > 0 && <span title="behind">↓{remoteStatus.behind}</span>}
+          <div
+            className="flex items-center gap-1 text-xs text-muted-foreground"
+            data-testid="remote-indicators"
+          >
+            {remoteStatus.ahead > 0 && (
+              <span data-testid="ahead-count" title="ahead">
+                ↑{remoteStatus.ahead}
+              </span>
+            )}
+            {remoteStatus.behind > 0 && (
+              <span data-testid="behind-count" title="behind">
+                ↓{remoteStatus.behind}
+              </span>
+            )}
           </div>
         )}
         <button
