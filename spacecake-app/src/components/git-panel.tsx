@@ -116,8 +116,16 @@ function FileItem({
   return (
     <HoverCard openDelay={300} closeDelay={100}>
       <HoverCardTrigger asChild>
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           onClick={onClick}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault()
+              onClick?.()
+            }
+          }}
           className="group @container flex items-center gap-2 w-full px-2 py-1 text-sm hover:bg-accent rounded cursor-pointer text-left"
         >
           <File className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
@@ -183,7 +191,7 @@ function FileItem({
               {statusLabels[status]}
             </span>
           )}
-        </button>
+        </div>
       </HoverCardTrigger>
       <HoverCardContent side="bottom" align="start" className="w-auto max-w-md p-2">
         <div className="flex items-center gap-2">

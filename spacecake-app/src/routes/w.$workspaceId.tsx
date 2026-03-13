@@ -3,71 +3,35 @@
  * If the workspace path is not valid, it redirects to the home route.
  */
 
-import { createFileRoute, ErrorComponent, Outlet, redirect } from "@tanstack/react-router"
+import { createFileRoute, ErrorComponent, redirect } from "@tanstack/react-router"
 import * as Match from "effect/Match"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronDown,
-  ChevronUp,
-  GitBranch,
-  ListTodo,
-  PanelBottom,
-  PanelLeft,
-  PanelRight,
-  RefreshCw,
-  Trash2,
-  X,
-} from "lucide-react"
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
+import { useSetAtom } from "jotai"
+import { ChevronDown, ChevronUp } from "lucide-react"
+import { lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { GroupImperativeHandle, Layout, PanelImperativeHandle } from "react-resizable-panels"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DeleteButton } from "@/components/delete-button"
+import { DockPositionDropdown } from "@/components/dock-position-dropdown"
+import { EditorPanel } from "@/components/editor-panel"
 import { EditorToolbar } from "@/components/editor/toolbar"
+import { GitToolbar } from "@/components/git-toolbar"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { MenuButton } from "@/components/menu-button"
 import { QuickOpen } from "@/components/quick-open"
-import { TabBar } from "@/components/tab-bar"
+import { TaskToolbar } from "@/components/task-toolbar"
+import { TerminalPanel } from "@/components/terminal-panel"
 import type { DockAction } from "@/lib/dock-transition"
-import type { DockablePanelKind, DockPosition, FullDock } from "@/schema/workspace-layout"
+import type { DockPosition, FullDock } from "@/schema/workspace-layout"
 
 const GitPanel = lazy(() => import("@/components/git-panel").then((m) => ({ default: m.GitPanel })))
 const TaskTable = lazy(() =>
   import("@/components/task-table/task-table").then((m) => ({ default: m.TaskTable })),
 )
-const Terminal = lazy(() => import("@/components/terminal").then((m) => ({ default: m.Terminal })))
 
-import { toast } from "sonner"
+import { Suspense } from "react"
 
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { WorkspaceStatusBar } from "@/components/workspace-status-bar"
@@ -81,30 +45,18 @@ import { usePaneMachine } from "@/hooks/use-pane-machine"
 import { useRoute } from "@/hooks/use-route"
 import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
 import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
-import { taskStatusFilterAtom } from "@/lib/atoms/claude-tasks"
 import {
   clearFileStateAtoms,
   getOrCreateFileStateAtom,
   setFileTreeAtom,
 } from "@/lib/atoms/file-tree"
-import {
-  branchDeleteStateAtom,
-  gitBranchAtom,
-  gitBranchListAtom,
-  gitOperationAtom,
-  gitRemoteStatusAtom,
-} from "@/lib/atoms/git"
+import { gitBranchAtom } from "@/lib/atoms/git"
 import { cleanupPaneMachine } from "@/lib/atoms/pane"
 import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
 import { createWorkspaceCollections } from "@/lib/db/collections"
 import * as mutations from "@/lib/db/mutations"
 import { queryClient } from "@/lib/db/query-client"
-import {
-  clampSize,
-  DOCK_SIZE_CONSTRAINTS,
-  getDockPosition,
-  transition,
-} from "@/lib/dock-transition"
+import { clampSize, getDockPosition, transition } from "@/lib/dock-transition"
 import { exists, readDirectory } from "@/lib/fs"
 import { cleanupSettingsMachine } from "@/lib/settings-actor"
 import { store } from "@/lib/store"
@@ -114,15 +66,9 @@ import { FileStateHydrationEvent } from "@/machines/file-tree"
 import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
 import { RuntimeClient } from "@/services/runtime-client"
-import { isRight, match } from "@/types/adt"
+import { match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 import { WorkspaceNotAccessible, WorkspaceNotFound } from "@/types/workspace-error"
-
-const TASK_STATUSES = [
-  { value: "pending", label: "pending" },
-  { value: "in_progress", label: "in progress" },
-  { value: "completed", label: "completed" },
-]
 
 const panelFallback = <div className="h-full w-full bg-background" />
 
@@ -263,430 +209,6 @@ function HeaderToolbar() {
   return null
 }
 
-// Dock position dropdown - shows current dock icon and allows switching
-function DockPositionDropdown({
-  currentDock,
-  onDockChange,
-  label,
-}: {
-  currentDock: DockPosition
-  onDockChange: (dock: DockPosition) => void
-  label: DockablePanelKind
-}) {
-  const CurrentIcon =
-    currentDock === "left" ? PanelLeft : currentDock === "right" ? PanelRight : PanelBottom
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-0"
-          aria-label={`change ${label} dock position`}
-          title={`change ${label} dock position`}
-        >
-          <CurrentIcon className="h-3.5 w-3.5" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align={currentDock === "right" ? "end" : "start"}>
-        {currentDock !== "left" && (
-          <DropdownMenuItem onClick={() => onDockChange("left")} className="cursor-pointer">
-            <PanelLeft className="h-4 w-4" />
-            dock left
-          </DropdownMenuItem>
-        )}
-        {currentDock !== "bottom" && (
-          <DropdownMenuItem onClick={() => onDockChange("bottom")} className="cursor-pointer">
-            <PanelBottom className="h-4 w-4" />
-            dock bottom
-          </DropdownMenuItem>
-        )}
-        {currentDock !== "right" && (
-          <DropdownMenuItem onClick={() => onDockChange("right")} className="cursor-pointer">
-            <PanelRight className="h-4 w-4" />
-            dock right
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
-// task panel toolbar — owns taskStatusFilter to avoid re-rendering LayoutContent on filter changes
-function TaskToolbar({
-  isExpanded,
-  dock,
-  onExpandedChange,
-  onDockChange,
-}: {
-  isExpanded: boolean
-  dock: DockPosition
-  onExpandedChange: (expanded: boolean) => void
-  onDockChange: (dock: DockPosition) => void
-}) {
-  const [taskStatusFilter, setTaskStatusFilter] = useAtom(taskStatusFilterAtom)
-  const isCollapsed = !isExpanded
-
-  const toggleTaskStatus = useCallback(
-    (status: string) => {
-      setTaskStatusFilter((prev) =>
-        prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status],
-      )
-    },
-    [setTaskStatusFilter],
-  )
-
-  return (
-    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
-      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-        <ListTodo
-          className={cn(
-            "h-3.5 w-3.5 shrink-0",
-            isExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
-          )}
-        />
-        <DockPositionDropdown currentDock={dock} onDockChange={onDockChange} label="task" />
-      </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        {TASK_STATUSES.map((status) => {
-          const isActive = taskStatusFilter.includes(status.value)
-          return (
-            <button
-              key={status.value}
-              onClick={() => toggleTaskStatus(status.value)}
-              className={cn(
-                "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium font-mono transition-colors cursor-pointer shrink-0",
-                isActive
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400"
-                  : "border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-800 dark:border-zinc-700/50 dark:bg-zinc-900/40 dark:text-zinc-500 dark:hover:text-zinc-300",
-              )}
-            >
-              {status.label}
-            </button>
-          )
-        })}
-        {taskStatusFilter.length > 0 && (
-          <button
-            onClick={() => setTaskStatusFilter([])}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
-          >
-            <X className="h-3 w-3" />
-            reset
-          </button>
-        )}
-        <button
-          onClick={() => onExpandedChange(!isExpanded)}
-          className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          aria-label={isCollapsed ? "show tasks" : "hide tasks"}
-        >
-          {isCollapsed ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// branch popover — owns branch CRUD, popover state, and delete confirmation
-function BranchPopover({
-  workspacePath,
-  isExpanded,
-}: {
-  workspacePath: string
-  isExpanded: boolean
-}) {
-  const gitBranch = useAtomValue(gitBranchAtom)
-  const [branchList, setBranchList] = useAtom(gitBranchListAtom)
-  const [branchDeleteState, setBranchDeleteState] = useAtom(branchDeleteStateAtom)
-  const [open, setOpen] = useState(false)
-  const [newBranchName, setNewBranchName] = useState("")
-  const newBranchNameRef = useRef("")
-  newBranchNameRef.current = newBranchName
-
-  const refreshBranches = useCallback(async () => {
-    const result = await window.electronAPI.git.listBranches(workspacePath)
-    if (isRight(result)) {
-      setBranchList(result.value.all)
-    }
-  }, [workspacePath, setBranchList])
-
-  useEffect(() => {
-    refreshBranches()
-  }, [refreshBranches])
-
-  const handleSwitchBranch = useCallback(
-    async (name: string) => {
-      const result = await window.electronAPI.git.switchBranch(workspacePath, name)
-      if (isRight(result)) {
-        setOpen(false)
-      } else {
-        toast.error(result.value.description)
-      }
-    },
-    [workspacePath],
-  )
-
-  const handleCreateBranch = useCallback(async () => {
-    const name = newBranchNameRef.current.trim()
-    if (!name) return
-    const result = await window.electronAPI.git.createBranch(workspacePath, name)
-    if (isRight(result)) {
-      setNewBranchName("")
-      setOpen(false)
-      toast.success(`created branch ${name}`)
-    } else {
-      toast.error(result.value.description)
-    }
-  }, [workspacePath])
-
-  const handleDeleteBranch = useCallback(async () => {
-    if (!branchDeleteState.isOpen) return
-    const result = await window.electronAPI.git.deleteBranch(
-      workspacePath,
-      branchDeleteState.branchName,
-    )
-    if (isRight(result)) {
-      toast.success(`deleted branch ${branchDeleteState.branchName}`)
-      refreshBranches()
-    } else {
-      toast.error(result.value.description)
-    }
-    setBranchDeleteState({ isOpen: false })
-  }, [workspacePath, branchDeleteState, setBranchDeleteState, refreshBranches])
-
-  return (
-    <>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            title="switch branch"
-          >
-            <GitBranch
-              className={cn(
-                "h-3.5 w-3.5 shrink-0",
-                isExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
-              )}
-            />
-            {gitBranch && <span className="text-xs truncate max-w-[120px]">{gitBranch}</span>}
-          </button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-64 p-2">
-          <div className="space-y-2">
-            <div className="flex items-center gap-1">
-              <Input
-                placeholder="new branch name"
-                value={newBranchName}
-                onChange={(e) => setNewBranchName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCreateBranch()
-                }}
-                className="h-7 text-xs"
-              />
-              <Button
-                size="sm"
-                className="h-7 text-xs px-2 shrink-0"
-                onClick={handleCreateBranch}
-                disabled={!newBranchName.trim()}
-              >
-                create
-              </Button>
-            </div>
-            <div className="max-h-48 overflow-auto space-y-0.5">
-              {branchList.map((branch) => (
-                <div
-                  key={branch}
-                  className={cn(
-                    "flex items-center justify-between gap-1 px-2 py-1 rounded text-xs",
-                    branch === gitBranch
-                      ? "bg-accent font-medium"
-                      : "hover:bg-accent cursor-pointer",
-                  )}
-                >
-                  <button
-                    className="flex-1 text-left truncate cursor-pointer"
-                    onClick={() => branch !== gitBranch && handleSwitchBranch(branch)}
-                    disabled={branch === gitBranch}
-                  >
-                    {branch}
-                  </button>
-                  {branch !== gitBranch && (
-                    <button
-                      onClick={() => setBranchDeleteState({ isOpen: true, branchName: branch })}
-                      className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer shrink-0"
-                      title="delete branch"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
-      <Dialog
-        open={branchDeleteState.isOpen}
-        onOpenChange={(open) => {
-          if (!open) setBranchDeleteState({ isOpen: false })
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>delete branch</DialogTitle>
-            <DialogDescription>
-              {branchDeleteState.isOpen &&
-                `delete branch "${branchDeleteState.branchName}"? this cannot be undone.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBranchDeleteState({ isOpen: false })}>
-              cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteBranch}>
-              delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  )
-}
-
-// git panel toolbar
-function GitToolbar({
-  isExpanded,
-  dock,
-  workspacePath,
-  onExpandedChange,
-  onDockChange,
-}: {
-  isExpanded: boolean
-  dock: DockPosition
-  workspacePath: string
-  onExpandedChange: (expanded: boolean) => void
-  onDockChange: (dock: DockPosition) => void
-}) {
-  const isCollapsed = !isExpanded
-  const [remoteStatus, setRemoteStatus] = useAtom(gitRemoteStatusAtom)
-  const [operation, setOperation] = useAtom(gitOperationAtom)
-
-  const refreshRemoteStatus = useCallback(async () => {
-    const result = await window.electronAPI.git.getRemoteStatus(workspacePath)
-    if (isRight(result)) {
-      setRemoteStatus({
-        ahead: result.value.ahead,
-        behind: result.value.behind,
-        tracking: result.value.tracking,
-      })
-    }
-  }, [workspacePath, setRemoteStatus])
-
-  useEffect(() => {
-    refreshRemoteStatus()
-  }, [refreshRemoteStatus])
-
-  const handleFetch = useCallback(async () => {
-    setOperation("fetching")
-    try {
-      const result = await window.electronAPI.git.fetch(workspacePath)
-      if (isRight(result)) {
-        await refreshRemoteStatus()
-      } else {
-        toast.error(result.value.description)
-      }
-    } finally {
-      setOperation("idle")
-    }
-  }, [workspacePath, setOperation, refreshRemoteStatus])
-
-  const handlePull = useCallback(async () => {
-    setOperation("pulling")
-    try {
-      const result = await window.electronAPI.git.pull(workspacePath)
-      if (isRight(result)) {
-        toast.success("pulled")
-        await refreshRemoteStatus()
-      } else {
-        toast.error(result.value.description)
-      }
-    } finally {
-      setOperation("idle")
-    }
-  }, [workspacePath, setOperation, refreshRemoteStatus])
-
-  const handlePush = useCallback(async () => {
-    setOperation("pushing")
-    try {
-      const result = await window.electronAPI.git.push(workspacePath)
-      if (isRight(result)) {
-        toast.success("pushed")
-        await refreshRemoteStatus()
-      } else {
-        toast.error(result.value.description)
-      }
-    } finally {
-      setOperation("idle")
-    }
-  }, [workspacePath, setOperation, refreshRemoteStatus])
-
-  const isBusy = operation !== "idle"
-
-  return (
-    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
-      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-        <BranchPopover workspacePath={workspacePath} isExpanded={isExpanded} />
-        <DockPositionDropdown currentDock={dock} onDockChange={onDockChange} label="git" />
-      </div>
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        {remoteStatus && (remoteStatus.ahead > 0 || remoteStatus.behind > 0) && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            {remoteStatus.ahead > 0 && <span title="ahead">↑{remoteStatus.ahead}</span>}
-            {remoteStatus.behind > 0 && <span title="behind">↓{remoteStatus.behind}</span>}
-          </div>
-        )}
-        <button
-          onClick={handleFetch}
-          disabled={isBusy}
-          className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          title="fetch"
-        >
-          <RefreshCw className={cn("h-3.5 w-3.5", operation === "fetching" && "animate-spin")} />
-        </button>
-        <button
-          onClick={handlePull}
-          disabled={isBusy}
-          className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          title="pull"
-        >
-          <ArrowDown className={cn("h-3.5 w-3.5", operation === "pulling" && "animate-bounce")} />
-        </button>
-        <button
-          onClick={handlePush}
-          disabled={isBusy}
-          className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          title="push"
-        >
-          <ArrowUp className={cn("h-3.5 w-3.5", operation === "pushing" && "animate-bounce")} />
-        </button>
-        <button
-          onClick={() => onExpandedChange(!isExpanded)}
-          className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          aria-label={isCollapsed ? "show git" : "hide git"}
-        >
-          {isCollapsed ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // isolates pane-item live queries so LayoutContent doesn't re-render on tab changes
 function TabCloseHotkey({
   paneId,
@@ -796,7 +318,6 @@ function LayoutContent() {
     }
   }, [isTerminalExpanded, focus])
 
-  const terminalPanelRef = useRef<HTMLDivElement>(null)
   const terminalResizablePanelRef = useRef<PanelImperativeHandle>(null)
 
   const taskPanelRef = useRef<HTMLDivElement>(null)
@@ -1139,147 +660,55 @@ function LayoutContent() {
   const bottomPanelCollapsed = bottomDockedPanel === "task" ? isTaskCollapsed : isGitCollapsed
   const bottomPanelSize = bottomDockedPanel === "task" ? taskSize : gitSize
 
+  const headerToolbar = <HeaderToolbar />
+
+  const handleTerminalSessionEnd = useCallback(() => {
+    setIsTerminalSessionActive(false)
+    setTerminalExpanded(false)
+    focus("editor")
+  }, [setTerminalExpanded, focus])
+
   const editorPanel = (
-    <ResizablePanel
-      id="editor-panel"
-      defaultSize={isTerminalCollapsed ? "100%" : `${100 - terminalSize}%`}
-      minSize="30%"
-    >
-      {bottomDockedPanel ? (
-        <ResizablePanelGroup orientation="vertical" className="h-full">
-          <ResizablePanel
-            id="editor-main-panel"
-            defaultSize={bottomPanelCollapsed ? "100%" : `${100 - bottomPanelSize}%`}
-            minSize="30%"
-          >
-            <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
-              <header className="app-drag flex h-10 shrink-0 items-center gap-2 justify-between border-b">
-                <div className="app-no-drag flex h-full items-end flex-1 min-w-0 overflow-hidden">
-                  <TabBar paneId={paneId} machine={machine} />
-                </div>
-                <HeaderToolbar />
-              </header>
-              <div className="flex-1 min-h-0 overflow-hidden">
-                <Outlet />
-              </div>
-            </main>
-          </ResizablePanel>
-          <ResizableHandle withHandle className={bottomPanelCollapsed ? "invisible" : ""} />
-          {bottomDockedPanel === "task" ? (
-            <ResizablePanel
-              id="task-panel-bottom"
-              panelRef={taskResizablePanelRef}
-              defaultSize={isTaskCollapsed ? "0%" : `${taskSize}%`}
-              minSize="10%"
-              maxSize="70%"
-              collapsible
-              collapsedSize="0%"
-              data-collapsed={isTaskCollapsed || undefined}
-            >
-              <div ref={taskPanelRef} className="flex h-full w-full flex-col">
-                {!isTaskCollapsed && (
-                  <TaskToolbar
-                    isExpanded={isTaskExpanded}
-                    dock={taskDock}
-                    onExpandedChange={setTaskExpanded}
-                    onDockChange={setTaskDock}
-                  />
-                )}
-                <div
-                  className={cn(
-                    "flex-1 min-h-0 min-w-0 overflow-hidden",
-                    isTaskCollapsed && "hidden",
-                  )}
-                >
-                  <Suspense fallback={panelFallback}>
-                    <TaskTable />
-                  </Suspense>
-                </div>
-              </div>
-            </ResizablePanel>
-          ) : (
-            <ResizablePanel
-              id="git-panel-bottom"
-              panelRef={gitResizablePanelRef}
-              defaultSize={isGitCollapsed ? "0%" : `${gitSize}%`}
-              minSize="10%"
-              maxSize="70%"
-              collapsible
-              collapsedSize="0%"
-              data-collapsed={isGitCollapsed || undefined}
-            >
-              <div ref={gitPanelRef} className="flex h-full w-full flex-col">
-                {!isGitCollapsed && (
-                  <GitToolbar
-                    isExpanded={isGitExpanded}
-                    dock={gitDock}
-                    workspacePath={workspace.path}
-                    onExpandedChange={setGitExpanded}
-                    onDockChange={setGitDock}
-                  />
-                )}
-                <div
-                  className={cn(
-                    "flex-1 min-h-0 min-w-0 overflow-hidden",
-                    isGitCollapsed && "hidden",
-                  )}
-                >
-                  <Suspense fallback={panelFallback}>
-                    <GitPanel
-                      workspacePath={workspace.path}
-                      onFileClick={handleGitFileClick}
-                      onCommitFileClick={handleCommitFileClick}
-                    />
-                  </Suspense>
-                </div>
-              </div>
-            </ResizablePanel>
-          )}
-        </ResizablePanelGroup>
-      ) : (
-        <main className="relative flex w-full flex-1 flex-col overflow-hidden h-full">
-          <header className="app-drag flex h-10 shrink-0 items-center gap-2 justify-between border-b">
-            <div className="app-no-drag flex h-full items-end flex-1 min-w-0 overflow-hidden">
-              <TabBar paneId={paneId} machine={machine} />
-            </div>
-            <HeaderToolbar />
-          </header>
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <Outlet />
-          </div>
-        </main>
-      )}
-    </ResizablePanel>
+    <EditorPanel
+      paneId={paneId}
+      machine={machine}
+      headerToolbar={headerToolbar}
+      isTerminalCollapsed={isTerminalCollapsed}
+      terminalSize={terminalSize}
+      bottomDockedPanel={bottomDockedPanel}
+      bottomPanelCollapsed={bottomPanelCollapsed}
+      bottomPanelSize={bottomPanelSize}
+      isTaskExpanded={isTaskExpanded}
+      isTaskCollapsed={isTaskCollapsed}
+      taskDock={taskDock}
+      taskSize={taskSize}
+      isGitExpanded={isGitExpanded}
+      isGitCollapsed={isGitCollapsed}
+      gitDock={gitDock}
+      gitSize={gitSize}
+      workspace={workspace}
+      taskResizablePanelRef={taskResizablePanelRef}
+      gitResizablePanelRef={gitResizablePanelRef}
+      onTaskExpandedChange={setTaskExpanded}
+      onTaskDockChange={setTaskDock}
+      onGitExpandedChange={setGitExpanded}
+      onGitDockChange={setGitDock}
+      onGitFileClick={handleGitFileClick}
+      onCommitFileClick={handleCommitFileClick}
+    />
   )
 
-  const terminalConstraints = DOCK_SIZE_CONSTRAINTS[terminalDock]
   const terminalPanel = (
-    <ResizablePanel
-      id="terminal-panel"
-      panelRef={terminalResizablePanelRef}
-      defaultSize={isTerminalCollapsed ? "0%" : `${terminalSize}%`}
-      minSize={`${terminalConstraints.min}%`}
-      maxSize={`${terminalConstraints.max}%`}
-      collapsible
-      collapsedSize="0%"
-      data-collapsed={isTerminalCollapsed || undefined}
-    >
-      <div ref={terminalPanelRef} className={cn("h-full w-full", isTerminalCollapsed && "hidden")}>
-        {isTerminalSessionActive && (
-          <Suspense fallback={panelFallback}>
-            <Terminal
-              cwd={workspace.path}
-              toolbarRight={terminalToolbarRight}
-              onLastTabClosed={() => {
-                setIsTerminalSessionActive(false)
-                setTerminalExpanded(false)
-                focus("editor")
-              }}
-            />
-          </Suspense>
-        )}
-      </div>
-    </ResizablePanel>
+    <TerminalPanel
+      terminalResizablePanelRef={terminalResizablePanelRef}
+      isTerminalCollapsed={isTerminalCollapsed}
+      terminalSize={terminalSize}
+      terminalDock={terminalDock}
+      isTerminalSessionActive={isTerminalSessionActive}
+      workspace={workspace}
+      terminalToolbarRight={terminalToolbarRight}
+      onTerminalSessionEnd={handleTerminalSessionEnd}
+    />
   )
 
   return (

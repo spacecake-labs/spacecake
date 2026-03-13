@@ -285,11 +285,11 @@ describe("GitPanel", () => {
     renderPanel(api, { onFileClick })
     await waitForEffects()
 
-    const fileBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+    const fileBtn = Array.from(container.querySelectorAll('[role="button"]')).find((b) =>
       b.textContent?.includes("src/index.ts"),
     )
     expect(fileBtn).toBeDefined()
-    fileBtn!.click()
+    ;(fileBtn as HTMLElement).click()
 
     expect(onFileClick).toHaveBeenCalledWith(AbsolutePath("/test/workspace/src/index.ts"))
   })
@@ -321,11 +321,11 @@ describe("GitPanel", () => {
     await waitForEffects()
 
     // click the file in the commit
-    const fileBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+    const fileBtn = Array.from(container.querySelectorAll('[role="button"]')).find((b) =>
       b.textContent?.includes("src/main.ts"),
     )
     expect(fileBtn).toBeDefined()
-    fileBtn!.click()
+    ;(fileBtn as HTMLElement).click()
 
     expect(onCommitFileClick).toHaveBeenCalledWith(
       AbsolutePath("/test/workspace/src/main.ts"),
