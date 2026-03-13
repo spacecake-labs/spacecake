@@ -82,6 +82,8 @@ function createMockGitAPI(
   )
   const getCommitLog = vi.fn(async () => gitRight(overrides.commits ?? []))
 
+  const noop = vi.fn(async () => gitRight(undefined))
+
   return {
     api: {
       isGitRepo,
@@ -89,6 +91,27 @@ function createMockGitAPI(
       getCommitLog,
       getCurrentBranch: vi.fn(async () => "main"),
       getFileDiff: vi.fn(async () => gitRight({ oldContent: "", newContent: "" })),
+      stage: noop,
+      unstage: noop,
+      commit: vi.fn(async () =>
+        gitRight({
+          hash: "abc1234",
+          branch: "main",
+          summary: { changes: 0, insertions: 0, deletions: 0 },
+        }),
+      ),
+      listBranches: vi.fn(async () => gitRight({ current: "main", all: ["main"], branches: {} })),
+      createBranch: noop,
+      switchBranch: noop,
+      deleteBranch: noop,
+      push: noop,
+      pull: noop,
+      fetch: noop,
+      getRemoteStatus: vi.fn(async () =>
+        gitRight({ ahead: 0, behind: 0, tracking: null, current: "main" }),
+      ),
+      discardFile: noop,
+      discardAll: noop,
     } satisfies ElectronAPI["git"],
   }
 }

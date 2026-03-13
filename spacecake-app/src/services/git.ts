@@ -30,6 +30,30 @@ export type GitCommit = {
   files: string[]
 }
 
+export type GitCommitResult = {
+  hash: string
+  branch: string
+  summary: { changes: number; insertions: number; deletions: number }
+}
+
+export type GitBranchList = {
+  current: string
+  all: string[]
+  branches: Record<string, { name: string; commit: string; current: boolean; label: string }>
+}
+
+export type GitRemoteStatus = {
+  ahead: number
+  behind: number
+  tracking: string | null
+  current: string | null
+}
+
+export type GitRemoteInfo = {
+  name: string
+  refs: { fetch: string; push: string }
+}
+
 const makeGitService = Effect.gen(function* () {
   const fs = yield* FileSystem
   const instances = new Map<string, SimpleGit>()
@@ -153,12 +177,183 @@ const makeGitService = Effect.gen(function* () {
       })
     })
 
+  const stageFiles = (workspacePath: string, files: string[]) =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        await git.add(files)
+      },
+      catch: (e) => new GitError({ description: "failed to stage files", cause: e }),
+    })
+
+  const unstageFiles = (workspacePath: string, files: string[]) =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        await git.reset(["HEAD", "--", ...files])
+      },
+      catch: (e) => new GitError({ description: "failed to unstage files", cause: e }),
+    })
+
+  const commit = (
+    workspacePath: string,
+    message: string,
+    opts?: { amend?: boolean },
+  ): Effect.Effect<GitCommitResult, GitError> =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        const options: Record<string, string | null> = {}
+        if (opts?.amend) {
+          options["--amend"] = null
+          if (!message) options["--no-edit"] = null
+        }
+        const result = await git.commit(message || [], undefined, options)
+        return {
+          hash: result.commit || "",
+          branch: result.branch || "",
+          summary: {
+            changes: result.summary.changes,
+            insertions: result.summary.insertions,
+            deletions: result.summary.deletions,
+          },
+        }
+      },
+      catch: (e) => new GitError({ description: "failed to commit", cause: e }),
+    })
+
+  const listBranches = (workspacePath: string): Effect.Effect<GitBranchList, GitError> =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        const result = await git.branchLocal()
+        return {
+          current: result.current,
+          all: result.all,
+          branches: result.branches as GitBranchList["branches"],
+        }
+      },
+      catch: (e) => new GitError({ description: "failed to list branches", cause: e }),
+    })
+
+  const createBranch = (workspacePath: string, name: string) =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        await git.checkoutLocalBranch(name)
+      },
+      catch: (e) => new GitError({ description: "failed to create branch", cause: e }),
+    })
+
+  const switchBranch = (workspacePath: string, name: string) =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        await git.checkout(name)
+      },
+      catch: (e) => new GitError({ description: "failed to switch branch", cause: e }),
+    })
+
+  const deleteBranch = (workspacePath: string, name: string, force?: boolean) =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        await git.deleteLocalBranch(name, force)
+      },
+      catch: (e) => new GitError({ description: "failed to delete branch", cause: e }),
+    })
+
+  const push = (workspacePath: string): Effect.Effect<void, GitError> =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        const status = await git.status()
+        if (!status.tracking) {
+          await git.push(["-u", "origin", status.current!])
+        } else {
+          await git.push()
+        }
+      },
+      catch: (e) => new GitError({ description: "failed to push", cause: e }),
+    })
+
+  const pull = (workspacePath: string) =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        await git.pull()
+      },
+      catch: (e) => new GitError({ description: "failed to pull", cause: e }),
+    })
+
+  const fetchAll = (workspacePath: string) =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        await git.fetch(["--all"])
+      },
+      catch: (e) => new GitError({ description: "failed to fetch", cause: e }),
+    })
+
+  const getRemoteStatus = (workspacePath: string): Effect.Effect<GitRemoteStatus, GitError> =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        const status = await git.status()
+        return {
+          ahead: status.ahead,
+          behind: status.behind,
+          tracking: status.tracking,
+          current: status.current,
+        }
+      },
+      catch: (e) => new GitError({ description: "failed to get remote status", cause: e }),
+    })
+
+  const discardFileChanges = (workspacePath: string, file: string) =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        const status = await git.status()
+        const isUntracked = status.not_added.includes(file)
+        if (isUntracked) {
+          await git.clean("f", ["--", file])
+        } else {
+          await git.checkout(["--", file])
+        }
+      },
+      catch: (e) => new GitError({ description: "failed to discard file changes", cause: e }),
+    })
+
+  const discardAllChanges = (workspacePath: string) =>
+    Effect.tryPromise({
+      try: async () => {
+        const git = getGit(workspacePath)
+        await git.checkout(["--", "."])
+        await git.clean("f", ["-d"])
+      },
+      catch: (e) => new GitError({ description: "failed to discard all changes", cause: e }),
+    })
+
   return {
     getCurrentBranch,
     isGitRepo,
     getStatus,
     getFileDiff,
     getCommitLog,
+    stageFiles,
+    unstageFiles,
+    commit,
+    listBranches,
+    createBranch,
+    switchBranch,
+    deleteBranch,
+    push,
+    pull,
+    fetchAll,
+    getRemoteStatus,
+    discardFileChanges,
+    discardAllChanges,
   } as const
 })
 

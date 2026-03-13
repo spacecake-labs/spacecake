@@ -5,8 +5,10 @@
 
 import { createFileRoute, ErrorComponent, Outlet, redirect } from "@tanstack/react-router"
 import * as Match from "effect/Match"
-import { useAtom, useSetAtom } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
+  ArrowDown,
+  ArrowUp,
   ChevronDown,
   ChevronUp,
   GitBranch,
@@ -14,6 +16,8 @@ import {
   PanelBottom,
   PanelLeft,
   PanelRight,
+  RefreshCw,
+  Trash2,
   X,
 } from "lucide-react"
 import {
@@ -44,13 +48,26 @@ const TaskTable = lazy(() =>
 )
 const Terminal = lazy(() => import("@/components/terminal").then((m) => ({ default: m.Terminal })))
 
+import { toast } from "sonner"
+
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { WorkspaceStatusBar } from "@/components/workspace-status-bar"
@@ -70,7 +87,13 @@ import {
   getOrCreateFileStateAtom,
   setFileTreeAtom,
 } from "@/lib/atoms/file-tree"
-import { gitBranchAtom } from "@/lib/atoms/git"
+import {
+  branchDeleteStateAtom,
+  gitBranchAtom,
+  gitBranchListAtom,
+  gitOperationAtom,
+  gitRemoteStatusAtom,
+} from "@/lib/atoms/git"
 import { cleanupPaneMachine } from "@/lib/atoms/pane"
 import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
 import { createWorkspaceCollections } from "@/lib/db/collections"
@@ -91,7 +114,7 @@ import { FileStateHydrationEvent } from "@/machines/file-tree"
 import { ClaudeIntegrationProvider } from "@/providers/claude-integration-provider"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
 import { RuntimeClient } from "@/services/runtime-client"
-import { match } from "@/types/adt"
+import { isRight, match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 import { WorkspaceNotAccessible, WorkspaceNotFound } from "@/types/workspace-error"
 
@@ -370,41 +393,277 @@ function TaskToolbar({
 function GitToolbar({
   isExpanded,
   dock,
+  workspacePath,
   onExpandedChange,
   onDockChange,
 }: {
   isExpanded: boolean
   dock: DockPosition
+  workspacePath: string
   onExpandedChange: (expanded: boolean) => void
   onDockChange: (dock: DockPosition) => void
 }) {
   const isCollapsed = !isExpanded
+  const gitBranch = useAtomValue(gitBranchAtom)
+  const [branchList, setBranchList] = useAtom(gitBranchListAtom)
+  const [remoteStatus, setRemoteStatus] = useAtom(gitRemoteStatusAtom)
+  const [operation, setOperation] = useAtom(gitOperationAtom)
+  const [branchDeleteState, setBranchDeleteState] = useAtom(branchDeleteStateAtom)
+  const [branchPopoverOpen, setBranchPopoverOpen] = useState(false)
+  const [newBranchName, setNewBranchName] = useState("")
+
+  const refreshBranches = useCallback(async () => {
+    const result = await window.electronAPI.git.listBranches(workspacePath)
+    if (isRight(result)) {
+      setBranchList(result.value.all)
+    }
+  }, [workspacePath, setBranchList])
+
+  const refreshRemoteStatus = useCallback(async () => {
+    const result = await window.electronAPI.git.getRemoteStatus(workspacePath)
+    if (isRight(result)) {
+      setRemoteStatus({
+        ahead: result.value.ahead,
+        behind: result.value.behind,
+        tracking: result.value.tracking,
+      })
+    }
+  }, [workspacePath, setRemoteStatus])
+
+  useEffect(() => {
+    refreshBranches()
+    refreshRemoteStatus()
+  }, [refreshBranches, refreshRemoteStatus])
+
+  const handleSwitchBranch = useCallback(
+    async (name: string) => {
+      const result = await window.electronAPI.git.switchBranch(workspacePath, name)
+      if (isRight(result)) {
+        setBranchPopoverOpen(false)
+      } else {
+        toast.error(result.value.description)
+      }
+    },
+    [workspacePath],
+  )
+
+  const handleCreateBranch = useCallback(async () => {
+    if (!newBranchName.trim()) return
+    const result = await window.electronAPI.git.createBranch(workspacePath, newBranchName.trim())
+    if (isRight(result)) {
+      setNewBranchName("")
+      setBranchPopoverOpen(false)
+      toast.success(`created branch ${newBranchName.trim()}`)
+    } else {
+      toast.error(result.value.description)
+    }
+  }, [workspacePath, newBranchName])
+
+  const handleDeleteBranch = useCallback(async () => {
+    if (!branchDeleteState.isOpen) return
+    const result = await window.electronAPI.git.deleteBranch(
+      workspacePath,
+      branchDeleteState.branchName,
+    )
+    if (isRight(result)) {
+      toast.success(`deleted branch ${branchDeleteState.branchName}`)
+      refreshBranches()
+    } else {
+      toast.error(result.value.description)
+    }
+    setBranchDeleteState({ isOpen: false })
+  }, [workspacePath, branchDeleteState, setBranchDeleteState, refreshBranches])
+
+  const handleFetch = useCallback(async () => {
+    setOperation("fetching")
+    try {
+      const result = await window.electronAPI.git.fetch(workspacePath)
+      if (isRight(result)) {
+        await refreshRemoteStatus()
+      } else {
+        toast.error(result.value.description)
+      }
+    } finally {
+      setOperation("idle")
+    }
+  }, [workspacePath, setOperation, refreshRemoteStatus])
+
+  const handlePull = useCallback(async () => {
+    setOperation("pulling")
+    try {
+      const result = await window.electronAPI.git.pull(workspacePath)
+      if (isRight(result)) {
+        toast.success("pulled")
+        await refreshRemoteStatus()
+      } else {
+        toast.error(result.value.description)
+      }
+    } finally {
+      setOperation("idle")
+    }
+  }, [workspacePath, setOperation, refreshRemoteStatus])
+
+  const handlePush = useCallback(async () => {
+    setOperation("pushing")
+    try {
+      const result = await window.electronAPI.git.push(workspacePath)
+      if (isRight(result)) {
+        toast.success("pushed")
+        await refreshRemoteStatus()
+      } else {
+        toast.error(result.value.description)
+      }
+    } finally {
+      setOperation("idle")
+    }
+  }, [workspacePath, setOperation, refreshRemoteStatus])
+
+  const isBusy = operation !== "idle"
 
   return (
-    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
-      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-        <GitBranch
-          className={cn(
-            "h-3.5 w-3.5 shrink-0",
-            isExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+    <>
+      <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
+        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+          <Popover open={branchPopoverOpen} onOpenChange={setBranchPopoverOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                title="switch branch"
+              >
+                <GitBranch
+                  className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    isExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+                  )}
+                />
+                {gitBranch && <span className="text-xs truncate max-w-[120px]">{gitBranch}</span>}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-64 p-2">
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Input
+                    placeholder="new branch name"
+                    value={newBranchName}
+                    onChange={(e) => setNewBranchName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreateBranch()
+                    }}
+                    className="h-7 text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs px-2 shrink-0"
+                    onClick={handleCreateBranch}
+                    disabled={!newBranchName.trim()}
+                  >
+                    create
+                  </Button>
+                </div>
+                <div className="max-h-48 overflow-auto space-y-0.5">
+                  {branchList.map((branch) => (
+                    <div
+                      key={branch}
+                      className={cn(
+                        "flex items-center justify-between gap-1 px-2 py-1 rounded text-xs",
+                        branch === gitBranch
+                          ? "bg-accent font-medium"
+                          : "hover:bg-accent cursor-pointer",
+                      )}
+                    >
+                      <button
+                        className="flex-1 text-left truncate cursor-pointer"
+                        onClick={() => branch !== gitBranch && handleSwitchBranch(branch)}
+                        disabled={branch === gitBranch}
+                      >
+                        {branch}
+                      </button>
+                      {branch !== gitBranch && (
+                        <button
+                          onClick={() => setBranchDeleteState({ isOpen: true, branchName: branch })}
+                          className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer shrink-0"
+                          title="delete branch"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <DockPositionDropdown currentDock={dock} onDockChange={onDockChange} label="git" />
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {remoteStatus && (remoteStatus.ahead > 0 || remoteStatus.behind > 0) && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              {remoteStatus.ahead > 0 && <span title="ahead">↑{remoteStatus.ahead}</span>}
+              {remoteStatus.behind > 0 && <span title="behind">↓{remoteStatus.behind}</span>}
+            </div>
           )}
-        />
-        <DockPositionDropdown currentDock={dock} onDockChange={onDockChange} label="git" />
+          <button
+            onClick={handleFetch}
+            disabled={isBusy}
+            className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title="fetch"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", operation === "fetching" && "animate-spin")} />
+          </button>
+          <button
+            onClick={handlePull}
+            disabled={isBusy}
+            className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title="pull"
+          >
+            <ArrowDown className={cn("h-3.5 w-3.5", operation === "pulling" && "animate-bounce")} />
+          </button>
+          <button
+            onClick={handlePush}
+            disabled={isBusy}
+            className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title="push"
+          >
+            <ArrowUp className={cn("h-3.5 w-3.5", operation === "pushing" && "animate-bounce")} />
+          </button>
+          <button
+            onClick={() => onExpandedChange(!isExpanded)}
+            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            aria-label={isCollapsed ? "show git" : "hide git"}
+          >
+            {isCollapsed ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <button
-          onClick={() => onExpandedChange(!isExpanded)}
-          className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          aria-label={isCollapsed ? "show git" : "hide git"}
-        >
-          {isCollapsed ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
-        </button>
-      </div>
-    </div>
+      <Dialog
+        open={branchDeleteState.isOpen}
+        onOpenChange={(open) => {
+          if (!open) setBranchDeleteState({ isOpen: false })
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>delete branch</DialogTitle>
+            <DialogDescription>
+              {branchDeleteState.isOpen &&
+                `delete branch "${branchDeleteState.branchName}"? this cannot be undone.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBranchDeleteState({ isOpen: false })}>
+              cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteBranch}>
+              delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
@@ -934,6 +1193,7 @@ function LayoutContent() {
                   <GitToolbar
                     isExpanded={isGitExpanded}
                     dock={gitDock}
+                    workspacePath={workspace.path}
                     onExpandedChange={setGitExpanded}
                     onDockChange={setGitDock}
                   />
@@ -1046,6 +1306,7 @@ function LayoutContent() {
                         <GitToolbar
                           isExpanded={isGitExpanded}
                           dock={gitDock}
+                          workspacePath={workspace.path}
                           onExpandedChange={setGitExpanded}
                           onDockChange={setGitDock}
                         />
@@ -1202,6 +1463,7 @@ function LayoutContent() {
                         <GitToolbar
                           isExpanded={isGitExpanded}
                           dock={gitDock}
+                          workspacePath={workspace.path}
                           onExpandedChange={setGitExpanded}
                           onDockChange={setGitDock}
                         />

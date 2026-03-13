@@ -14,7 +14,16 @@ import { ClaudeSettingsFile, type StatuslineConfigStatus } from "@/services/clau
 import { ClaudeTaskListService } from "@/services/claude-task-list"
 import { Database, type DatabaseMethodName } from "@/services/database"
 import { FileSystem, type FileSystemError, type IndexedFile } from "@/services/file-system"
-import { GitCommit, GitError, GitFileDiff, GitService, GitStatus } from "@/services/git"
+import {
+  GitBranchList,
+  GitCommit,
+  GitCommitResult,
+  GitError,
+  GitFileDiff,
+  GitRemoteStatus,
+  GitService,
+  GitStatus,
+} from "@/services/git"
 import { SpacecakeHome } from "@/services/spacecake-home"
 import { Terminal } from "@/services/terminal"
 import { left, right, type Either } from "@/types/adt"
@@ -430,6 +439,159 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
           Effect.match(git.getCommitLog(workspacePath, limit), {
             onFailure: (error) => left(serializeGitError(error)),
             onSuccess: (commits) => right(commits),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:stage",
+      (_, workspacePath: string, files: string[]): Promise<Either<SerializedGitError, void>> =>
+        Effect.runPromise(
+          Effect.match(git.stageFiles(workspacePath, files), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: () => right(undefined),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:unstage",
+      (_, workspacePath: string, files: string[]): Promise<Either<SerializedGitError, void>> =>
+        Effect.runPromise(
+          Effect.match(git.unstageFiles(workspacePath, files), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: () => right(undefined),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:commit",
+      (
+        _,
+        workspacePath: string,
+        message: string,
+        opts?: { amend?: boolean },
+      ): Promise<Either<SerializedGitError, GitCommitResult>> =>
+        Effect.runPromise(
+          Effect.match(git.commit(workspacePath, message, opts), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: (result) => right(result),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:branch:list",
+      (_, workspacePath: string): Promise<Either<SerializedGitError, GitBranchList>> =>
+        Effect.runPromise(
+          Effect.match(git.listBranches(workspacePath), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: (result) => right(result),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:branch:create",
+      (_, workspacePath: string, name: string): Promise<Either<SerializedGitError, void>> =>
+        Effect.runPromise(
+          Effect.match(git.createBranch(workspacePath, name), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: () => right(undefined),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:branch:switch",
+      (_, workspacePath: string, name: string): Promise<Either<SerializedGitError, void>> =>
+        Effect.runPromise(
+          Effect.match(git.switchBranch(workspacePath, name), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: () => right(undefined),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:branch:delete",
+      (
+        _,
+        workspacePath: string,
+        name: string,
+        force?: boolean,
+      ): Promise<Either<SerializedGitError, void>> =>
+        Effect.runPromise(
+          Effect.match(git.deleteBranch(workspacePath, name, force), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: () => right(undefined),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:push",
+      (_, workspacePath: string): Promise<Either<SerializedGitError, void>> =>
+        Effect.runPromise(
+          Effect.match(git.push(workspacePath), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: () => right(undefined),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:pull",
+      (_, workspacePath: string): Promise<Either<SerializedGitError, void>> =>
+        Effect.runPromise(
+          Effect.match(git.pull(workspacePath), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: () => right(undefined),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:fetch",
+      (_, workspacePath: string): Promise<Either<SerializedGitError, void>> =>
+        Effect.runPromise(
+          Effect.match(git.fetchAll(workspacePath), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: () => right(undefined),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:remote-status",
+      (_, workspacePath: string): Promise<Either<SerializedGitError, GitRemoteStatus>> =>
+        Effect.runPromise(
+          Effect.match(git.getRemoteStatus(workspacePath), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: (status) => right(status),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:discard-file",
+      (_, workspacePath: string, file: string): Promise<Either<SerializedGitError, void>> =>
+        Effect.runPromise(
+          Effect.match(git.discardFileChanges(workspacePath, file), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: () => right(undefined),
+          }),
+        ),
+    )
+
+    ipcMain.handle(
+      "git:discard-all",
+      (_, workspacePath: string): Promise<Either<SerializedGitError, void>> =>
+        Effect.runPromise(
+          Effect.match(git.discardAllChanges(workspacePath), {
+            onFailure: (error) => left(serializeGitError(error)),
+            onSuccess: () => right(undefined),
           }),
         ),
     )

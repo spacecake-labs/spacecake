@@ -145,6 +145,27 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("git:file-diff", workspacePath, filePath, baseRef, targetRef),
     getCommitLog: (workspacePath: string, limit?: number) =>
       ipcRenderer.invoke("git:commit-log", workspacePath, limit),
+    stage: (workspacePath: string, files: string[]) =>
+      ipcRenderer.invoke("git:stage", workspacePath, files),
+    unstage: (workspacePath: string, files: string[]) =>
+      ipcRenderer.invoke("git:unstage", workspacePath, files),
+    commit: (workspacePath: string, message: string, opts?: { amend?: boolean }) =>
+      ipcRenderer.invoke("git:commit", workspacePath, message, opts),
+    listBranches: (workspacePath: string) => ipcRenderer.invoke("git:branch:list", workspacePath),
+    createBranch: (workspacePath: string, name: string) =>
+      ipcRenderer.invoke("git:branch:create", workspacePath, name),
+    switchBranch: (workspacePath: string, name: string) =>
+      ipcRenderer.invoke("git:branch:switch", workspacePath, name),
+    deleteBranch: (workspacePath: string, name: string, force?: boolean) =>
+      ipcRenderer.invoke("git:branch:delete", workspacePath, name, force),
+    push: (workspacePath: string) => ipcRenderer.invoke("git:push", workspacePath),
+    pull: (workspacePath: string) => ipcRenderer.invoke("git:pull", workspacePath),
+    fetch: (workspacePath: string) => ipcRenderer.invoke("git:fetch", workspacePath),
+    getRemoteStatus: (workspacePath: string) =>
+      ipcRenderer.invoke("git:remote-status", workspacePath),
+    discardFile: (workspacePath: string, file: string) =>
+      ipcRenderer.invoke("git:discard-file", workspacePath, file),
+    discardAll: (workspacePath: string) => ipcRenderer.invoke("git:discard-all", workspacePath),
   },
   exists: (path: string) => ipcRenderer.invoke("path-exists", path),
   createTerminal: (id: string, cols: number, rows: number, cwd?: string, surfaceId?: string) =>

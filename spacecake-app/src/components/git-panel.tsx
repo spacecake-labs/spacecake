@@ -1,18 +1,43 @@
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { useAtom, useSetAtom } from "jotai"
-import { Check, ChevronDown, ChevronRight, Circle, Copy, File } from "lucide-react"
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Circle,
+  Copy,
+  File,
+  Loader2,
+  Minus,
+  Plus,
+  Undo2,
+} from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { Input } from "@/components/ui/input"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { useRoute } from "@/hooks/use-route"
 import {
+  commitAmendAtom,
+  commitMessageAtom,
+  discardStateAtom,
   gitBranchAtom,
   GitCommit as GitCommitType,
   gitCommitsAtom,
+  gitOperationAtom,
   isGitRepoAtom,
   GitStatus,
   gitStatusAtom,
@@ -22,7 +47,7 @@ import {
 import { encodeBase64Url } from "@/lib/utils"
 import { cn, condensePath } from "@/lib/utils"
 import { router } from "@/router"
-import { match } from "@/types/adt"
+import { isRight, match } from "@/types/adt"
 import { AbsolutePath } from "@/types/workspace"
 
 interface GitPanelProps {
@@ -54,11 +79,17 @@ function FileItem({
   fullPath,
   status,
   onClick,
+  onStage,
+  onUnstage,
+  onDiscard,
 }: {
   file: string
   fullPath: string
   status?: FileStatus
   onClick?: () => void
+  onStage?: () => void
+  onUnstage?: () => void
+  onDiscard?: () => void
 }) {
   const [copied, setCopied] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -85,7 +116,7 @@ function FileItem({
       <HoverCardTrigger asChild>
         <button
           onClick={onClick}
-          className="@container flex items-center gap-2 w-full px-2 py-1 text-sm hover:bg-accent rounded cursor-pointer text-left"
+          className="group @container flex items-center gap-2 w-full px-2 py-1 text-sm hover:bg-accent rounded cursor-pointer text-left"
         >
           <File className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
           <span className="flex-1 min-w-0">
@@ -104,6 +135,44 @@ function FileItem({
               <span style={{ direction: "ltr", unicodeBidi: "embed" }}>{condensePath(file)}</span>
             </span>
           </span>
+          <div className="hidden group-hover:flex items-center gap-0.5 flex-shrink-0">
+            {onStage && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onStage()
+                }}
+                className="p-0.5 rounded hover:bg-accent-foreground/10 text-muted-foreground hover:text-foreground cursor-pointer"
+                title="stage"
+              >
+                <Plus className="h-3 w-3" />
+              </button>
+            )}
+            {onUnstage && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onUnstage()
+                }}
+                className="p-0.5 rounded hover:bg-accent-foreground/10 text-muted-foreground hover:text-foreground cursor-pointer"
+                title="unstage"
+              >
+                <Minus className="h-3 w-3" />
+              </button>
+            )}
+            {onDiscard && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDiscard()
+                }}
+                className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
+                title="discard"
+              >
+                <Undo2 className="h-3 w-3" />
+              </button>
+            )}
+          </div>
           {status && (
             <span
               className={cn("text-xs font-medium flex-shrink-0", statusColors[status])}
@@ -138,12 +207,24 @@ function FileSection({
   files,
   workspacePath,
   onFileClick,
+  onStageFile,
+  onUnstageFile,
+  onDiscardFile,
+  onStageAll,
+  onUnstageAll,
+  onDiscardAll,
   defaultOpen = true,
 }: {
   title: string
   files: Array<{ path: string; status: FileStatus }>
   workspacePath: AbsolutePath
   onFileClick?: (filePath: AbsolutePath) => void
+  onStageFile?: (filePath: string) => void
+  onUnstageFile?: (filePath: string) => void
+  onDiscardFile?: (filePath: string) => void
+  onStageAll?: () => void
+  onUnstageAll?: () => void
+  onDiscardAll?: () => void
   defaultOpen?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
@@ -152,17 +233,48 @@ function FileSection({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-medium hover:bg-accent rounded cursor-pointer">
-        {isOpen ? (
-          <ChevronDown className="h-3.5 w-3.5" />
-        ) : (
-          <ChevronRight className="h-3.5 w-3.5" />
-        )}
-        <span>{title.toLowerCase()}</span>
-        <Badge variant="secondary" className="ml-auto text-xs">
-          {files.length}
-        </Badge>
-      </CollapsibleTrigger>
+      <div className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-medium">
+        <CollapsibleTrigger className="flex items-center gap-2 flex-1 min-w-0 hover:bg-accent rounded cursor-pointer py-0.5 px-1">
+          {isOpen ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
+          <span>{title.toLowerCase()}</span>
+          <Badge variant="secondary" className="ml-auto text-xs">
+            {files.length}
+          </Badge>
+        </CollapsibleTrigger>
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          {onStageAll && (
+            <button
+              onClick={onStageAll}
+              className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
+              title="stage all"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+          )}
+          {onUnstageAll && (
+            <button
+              onClick={onUnstageAll}
+              className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
+              title="unstage all"
+            >
+              <Minus className="h-3 w-3" />
+            </button>
+          )}
+          {onDiscardAll && (
+            <button
+              onClick={onDiscardAll}
+              className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
+              title="discard all"
+            >
+              <Undo2 className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </div>
       <CollapsibleContent>
         <div className="ml-2 border-l pl-2">
           {files.map((file) => {
@@ -174,6 +286,9 @@ function FileSection({
                 fullPath={fullPath}
                 status={file.status}
                 onClick={() => onFileClick?.(AbsolutePath(fullPath))}
+                onStage={onStageFile ? () => onStageFile(file.path) : undefined}
+                onUnstage={onUnstageFile ? () => onUnstageFile(file.path) : undefined}
+                onDiscard={onDiscardFile ? () => onDiscardFile(file.path) : undefined}
               />
             )
           })}
@@ -299,6 +414,131 @@ function CommitPane({
   )
 }
 
+function CommitForm({
+  workspacePath,
+  hasStagedFiles,
+}: {
+  workspacePath: AbsolutePath
+  hasStagedFiles: boolean
+}) {
+  const [message, setMessage] = useAtom(commitMessageAtom)
+  const [amend, setAmend] = useAtom(commitAmendAtom)
+  const [operation, setOperation] = useAtom(gitOperationAtom)
+
+  const isCommitting = operation === "committing"
+  const canCommit = hasStagedFiles && (message.trim() !== "" || amend) && !isCommitting
+
+  const handleCommit = useCallback(async () => {
+    if (!canCommit) return
+    setOperation("committing")
+    try {
+      const result = await window.electronAPI.git.commit(
+        workspacePath,
+        message,
+        amend ? { amend: true } : undefined,
+      )
+      if (isRight(result)) {
+        toast.success(`committed ${result.value.hash.substring(0, 7)}`)
+        setMessage("")
+        setAmend(false)
+      } else {
+        toast.error(result.value.description)
+      }
+    } catch (err) {
+      toast.error(`commit failed: ${err}`)
+    } finally {
+      setOperation("idle")
+    }
+  }, [canCommit, workspacePath, message, amend, setOperation, setMessage, setAmend])
+
+  return (
+    <div className="px-2 py-2 border-b space-y-2">
+      <Input
+        placeholder="commit message"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleCommit()
+        }}
+        className="h-7 text-xs"
+        disabled={isCommitting}
+      />
+      <div className="flex items-center gap-2">
+        <Button size="sm" className="h-6 text-xs px-2" disabled={!canCommit} onClick={handleCommit}>
+          {isCommitting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+          commit
+        </Button>
+        <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
+          <input
+            type="checkbox"
+            checked={amend}
+            onChange={(e) => setAmend(e.target.checked)}
+            className="h-3 w-3 cursor-pointer"
+            disabled={isCommitting}
+          />
+          amend
+        </label>
+      </div>
+    </div>
+  )
+}
+
+function DiscardConfirmDialog({ workspacePath }: { workspacePath: AbsolutePath }) {
+  const [discardState, setDiscardState] = useAtom(discardStateAtom)
+  const [operation, setOperation] = useAtom(gitOperationAtom)
+
+  const handleDiscard = useCallback(async () => {
+    if (!discardState.isOpen) return
+    setOperation("staging")
+    try {
+      let result
+      if (discardState.kind === "file") {
+        result = await window.electronAPI.git.discardFile(workspacePath, discardState.filePath)
+      } else {
+        result = await window.electronAPI.git.discardAll(workspacePath)
+      }
+      if (isRight(result)) {
+        toast.success(discardState.kind === "file" ? "changes discarded" : "all changes discarded")
+      } else {
+        toast.error(result.value.description)
+      }
+    } catch (err) {
+      toast.error(`discard failed: ${err}`)
+    } finally {
+      setOperation("idle")
+      setDiscardState({ isOpen: false })
+    }
+  }, [discardState, workspacePath, setOperation, setDiscardState])
+
+  return (
+    <Dialog
+      open={discardState.isOpen}
+      onOpenChange={(open) => {
+        if (!open) setDiscardState({ isOpen: false })
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>discard changes</DialogTitle>
+          <DialogDescription>
+            {discardState.isOpen && discardState.kind === "file"
+              ? `discard changes to "${discardState.filePath}"? this cannot be undone.`
+              : "discard all changes? this cannot be undone."}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setDiscardState({ isOpen: false })}>
+            cancel
+          </Button>
+          <Button variant="destructive" onClick={handleDiscard} disabled={operation !== "idle"}>
+            discard
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function WorkingTreeFilesPane({
   status,
   workspacePath,
@@ -308,6 +548,9 @@ function WorkingTreeFilesPane({
   workspacePath: AbsolutePath
   onFileClick?: (filePath: AbsolutePath) => void
 }) {
+  const setDiscardState = useSetAtom(discardStateAtom)
+  const setOperation = useSetAtom(gitOperationAtom)
+
   // staged files with "added" status (A)
   const stagedFiles = useMemo<Array<{ path: string; status: FileStatus }>>(
     () => status?.staged.map((path) => ({ path, status: "added" as FileStatus })) ?? [],
@@ -324,6 +567,54 @@ function WorkingTreeFilesPane({
     [status?.modified, status?.untracked, status?.deleted],
   )
 
+  const handleStageFile = useCallback(
+    async (filePath: string) => {
+      setOperation("staging")
+      try {
+        const result = await window.electronAPI.git.stage(workspacePath, [filePath])
+        if (!isRight(result)) toast.error(result.value.description)
+      } finally {
+        setOperation("idle")
+      }
+    },
+    [workspacePath, setOperation],
+  )
+
+  const handleUnstageFile = useCallback(
+    async (filePath: string) => {
+      setOperation("staging")
+      try {
+        const result = await window.electronAPI.git.unstage(workspacePath, [filePath])
+        if (!isRight(result)) toast.error(result.value.description)
+      } finally {
+        setOperation("idle")
+      }
+    },
+    [workspacePath, setOperation],
+  )
+
+  const handleStageAll = useCallback(async () => {
+    setOperation("staging")
+    try {
+      const allPaths = changesFiles.map((f) => f.path)
+      const result = await window.electronAPI.git.stage(workspacePath, allPaths)
+      if (!isRight(result)) toast.error(result.value.description)
+    } finally {
+      setOperation("idle")
+    }
+  }, [workspacePath, changesFiles, setOperation])
+
+  const handleUnstageAll = useCallback(async () => {
+    setOperation("staging")
+    try {
+      const allPaths = stagedFiles.map((f) => f.path)
+      const result = await window.electronAPI.git.unstage(workspacePath, allPaths)
+      if (!isRight(result)) toast.error(result.value.description)
+    } finally {
+      setOperation("idle")
+    }
+  }, [workspacePath, stagedFiles, setOperation])
+
   const hasNoChanges = stagedFiles.length === 0 && changesFiles.length === 0
 
   return (
@@ -331,6 +622,7 @@ function WorkingTreeFilesPane({
       <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">
         changed files
       </div>
+      <CommitForm workspacePath={workspacePath} hasStagedFiles={stagedFiles.length > 0} />
       <div className="flex-1 overflow-auto p-1">
         {hasNoChanges ? (
           <div className="text-sm text-muted-foreground text-center py-4">no changes</div>
@@ -341,16 +633,25 @@ function WorkingTreeFilesPane({
               files={stagedFiles}
               workspacePath={workspacePath}
               onFileClick={onFileClick}
+              onUnstageFile={handleUnstageFile}
+              onUnstageAll={handleUnstageAll}
             />
             <FileSection
               title="changes"
               files={changesFiles}
               workspacePath={workspacePath}
               onFileClick={onFileClick}
+              onStageFile={handleStageFile}
+              onStageAll={handleStageAll}
+              onDiscardFile={(filePath) =>
+                setDiscardState({ isOpen: true, kind: "file", filePath })
+              }
+              onDiscardAll={() => setDiscardState({ isOpen: true, kind: "all" })}
             />
           </div>
         )}
       </div>
+      <DiscardConfirmDialog workspacePath={workspacePath} />
     </div>
   )
 }
