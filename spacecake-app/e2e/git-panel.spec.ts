@@ -42,8 +42,10 @@ test.describe("git panel", () => {
     await showToggle.click()
     await expect(window.getByText("history")).toBeVisible()
 
-    // hide git panel
-    const hideToggle = window.getByRole("button", { name: "hide git panel" })
+    // hide git panel (scoped to panel — status bar also has a "hide git panel" button)
+    const hideToggle = window
+      .getByTestId("git-panel-left")
+      .getByRole("button", { name: "hide git panel" })
     await hideToggle.click()
     await expect(window.getByText("history")).not.toBeVisible()
 

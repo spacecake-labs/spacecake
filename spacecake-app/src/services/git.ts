@@ -5,6 +5,13 @@ import simpleGit, { type SimpleGit } from "simple-git"
 import { FileSystem } from "@/services/file-system"
 import { AbsolutePath } from "@/types/workspace"
 
+// -- simpleGit factory with github desktop-aligned defaults --
+
+const createGit = (workspacePath: string) =>
+  simpleGit(workspacePath, {
+    config: ["rebase.backend=merge"],
+  }).env({ ...process.env, GIT_TERMINAL_PROMPT: "0" })
+
 // -- error classification --
 
 export type GitErrorCode =
@@ -94,6 +101,120 @@ export type GitRemoteInfo = {
   refs: { fetch: string; push: string }
 }
 
+// -- porcelain v2 status parser --
+
+type PorcelainStatus = GitStatus & {
+  ahead: number
+  behind: number
+  tracking: string | null
+  current: string | null
+}
+
+const parsePorcelainV2 = (raw: string): PorcelainStatus => {
+  const result: PorcelainStatus = {
+    modified: [],
+    staged: [],
+    untracked: [],
+    deleted: [],
+    conflicted: [],
+    ahead: 0,
+    behind: 0,
+    tracking: null,
+    current: null,
+  }
+
+  // split on NUL — porcelain v2 -z uses NUL as record terminator
+  const entries = raw.split("\0").filter(Boolean)
+
+  let i = 0
+  while (i < entries.length) {
+    const entry = entries[i]
+
+    // branch headers
+    if (entry.startsWith("# branch.head ")) {
+      result.current = entry.slice("# branch.head ".length)
+      i++
+      continue
+    }
+    if (entry.startsWith("# branch.upstream ")) {
+      result.tracking = entry.slice("# branch.upstream ".length)
+      i++
+      continue
+    }
+    if (entry.startsWith("# branch.ab ")) {
+      const match = entry.match(/\+(\d+) -(\d+)/)
+      if (match) {
+        result.ahead = Number(match[1])
+        result.behind = Number(match[2])
+      }
+      i++
+      continue
+    }
+    if (entry.startsWith("#")) {
+      i++
+      continue
+    }
+
+    // untracked
+    if (entry.startsWith("? ")) {
+      result.untracked.push(entry.slice(2))
+      i++
+      continue
+    }
+
+    // ignored
+    if (entry.startsWith("! ")) {
+      i++
+      continue
+    }
+
+    // unmerged (conflicted)
+    if (entry.startsWith("u ")) {
+      const path = entry.split("\t")[0].split(" ").pop()!
+      result.conflicted.push(path)
+      i++
+      continue
+    }
+
+    // ordinary change: "1 XY ..."
+    if (entry.startsWith("1 ")) {
+      const xy = entry.substring(2, 4)
+      const path = entry.split("\t")[0].split(" ").pop()!
+      classifyXY(xy, path, result)
+      i++
+      continue
+    }
+
+    // rename/copy: "2 XY ..." — next NUL-separated entry is the original path
+    if (entry.startsWith("2 ")) {
+      const xy = entry.substring(2, 4)
+      const path = entry.split("\t")[0].split(" ").pop()!
+      classifyXY(xy, path, result)
+      i += 2 // skip the origPath entry
+      continue
+    }
+
+    i++
+  }
+
+  return result
+}
+
+const classifyXY = (xy: string, path: string, result: PorcelainStatus) => {
+  const [x, y] = xy
+
+  // index (staged) changes
+  if (x === "A" || x === "M" || x === "R" || x === "C") result.staged.push(path)
+  if (x === "D") {
+    result.staged.push(path)
+    result.deleted.push(path)
+  }
+
+  // worktree changes
+  if (y === "M") result.modified.push(path)
+  if (y === "D") result.deleted.push(path)
+}
+
 // -- lock retry helpers --
 
 const withLockRetry = <A>(effect: Effect.Effect<A, GitError>) =>
@@ -114,7 +235,7 @@ const makeGitService = Effect.gen(function* () {
   const getWorkspace = (workspacePath: string): WorkspaceState => {
     if (!workspaces.has(workspacePath)) {
       workspaces.set(workspacePath, {
-        git: simpleGit(workspacePath),
+        git: createGit(workspacePath),
         semaphore: Effect.unsafeMakeSemaphore(1),
       })
     }
@@ -191,13 +312,21 @@ const makeGitService = Effect.gen(function* () {
     Effect.tryPromise({
       try: async () => {
         const git = getGit(workspacePath)
-        const status = await git.status()
+        const raw = await git.raw([
+          "--no-optional-locks",
+          "status",
+          "--porcelain=v2",
+          "-z",
+          "--branch",
+          "--untracked-files=all",
+        ])
+        const parsed = parsePorcelainV2(raw)
         return {
-          modified: status.modified,
-          staged: status.staged,
-          untracked: status.not_added,
-          deleted: status.deleted,
-          conflicted: status.conflicted,
+          modified: parsed.modified,
+          staged: parsed.staged,
+          untracked: parsed.untracked,
+          deleted: parsed.deleted,
+          conflicted: parsed.conflicted,
         }
       },
       catch: (e) => {
@@ -255,15 +384,17 @@ const makeGitService = Effect.gen(function* () {
 
       return yield* Effect.tryPromise({
         try: () =>
-          git.log({ maxCount: limit, "--name-only": null }).then((log) =>
-            log.all.map((commit) => ({
-              hash: commit.hash,
-              message: commit.message,
-              author: commit.author_name,
-              date: new Date(commit.date),
-              files: (commit.diff?.files ?? []).map((f) => f.file),
-            })),
-          ),
+          git
+            .log({ maxCount: limit, "--name-only": null, "--no-show-signature": null })
+            .then((log) =>
+              log.all.map((commit) => ({
+                hash: commit.hash,
+                message: commit.message,
+                author: commit.author_name,
+                date: new Date(commit.date),
+                files: (commit.diff?.files ?? []).map((f) => f.file),
+              })),
+            ),
         catch: (e) => {
           console.error("git log error for path:", workspacePath, e)
           return gitError(
@@ -295,12 +426,19 @@ const makeGitService = Effect.gen(function* () {
     Effect.tryPromise({
       try: async () => {
         const git = getGit(workspacePath)
-        const status = await git.status()
+        const raw = await git.raw([
+          "--no-optional-locks",
+          "status",
+          "--porcelain=v2",
+          "-z",
+          "--branch",
+        ])
+        const parsed = parsePorcelainV2(raw)
         return {
-          ahead: status.ahead,
-          behind: status.behind,
-          tracking: status.tracking,
-          current: status.current,
+          ahead: parsed.ahead,
+          behind: parsed.behind,
+          tracking: parsed.tracking,
+          current: parsed.current,
         }
       },
       catch: (e) => gitError("failed to get remote status", e),
@@ -310,7 +448,7 @@ const makeGitService = Effect.gen(function* () {
     Effect.tryPromise({
       try: async () => {
         const git = getGit(workspacePath)
-        await git.fetch(["--all"])
+        await git.fetch(["--all", "--prune", "--recurse-submodules=on-demand"])
       },
       catch: (e) => gitError("failed to fetch", e),
     }).pipe(Effect.withSpan("GitService.fetchAll"))
@@ -427,19 +565,27 @@ const makeGitService = Effect.gen(function* () {
       ),
     )
 
-  const push = (workspacePath: string): Effect.Effect<void, GitError> =>
+  const push = (workspacePath: string, opts?: { force?: boolean }): Effect.Effect<void, GitError> =>
     withMutex(
       workspacePath,
       withLockRetry(
         Effect.tryPromise({
           try: async () => {
             const git = getGit(workspacePath)
-            const status = await git.status()
-            if (!status.tracking) {
-              await git.push(["-u", "origin", status.current!])
-            } else {
-              await git.push()
+            const raw = await git.raw([
+              "--no-optional-locks",
+              "status",
+              "--porcelain=v2",
+              "-z",
+              "--branch",
+            ])
+            const parsed = parsePorcelainV2(raw)
+            const args: string[] = []
+            if (opts?.force) args.push("--force-with-lease")
+            if (!parsed.tracking) {
+              args.push("-u", "origin", parsed.current!)
             }
+            await git.push(args)
           },
           catch: (e) => gitError("failed to push", e),
         }).pipe(Effect.withSpan("GitService.push")),
@@ -453,7 +599,7 @@ const makeGitService = Effect.gen(function* () {
         Effect.tryPromise({
           try: async () => {
             const git = getGit(workspacePath)
-            await git.pull()
+            await git.pull(["--recurse-submodules", "--ff"])
           },
           catch: (e) => gitError("failed to pull", e),
         }).pipe(Effect.withSpan("GitService.pull")),
@@ -469,8 +615,9 @@ const makeGitService = Effect.gen(function* () {
             const git = getGit(workspacePath)
             // unstage first so checkout restores from HEAD, not the index
             await git.reset(["HEAD", "--", file]).catch(() => {})
-            const status = await git.status()
-            const isUntracked = status.not_added.includes(file)
+            const raw = await git.raw(["status", "--porcelain=v2", "-z", "--untracked-files=all"])
+            const parsed = parsePorcelainV2(raw)
+            const isUntracked = parsed.untracked.includes(file)
             if (isUntracked) {
               await git.clean("f", ["--", file])
             } else {

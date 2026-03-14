@@ -23,25 +23,35 @@ const mockPush = vi.fn()
 const mockPull = vi.fn()
 const mockFetch = vi.fn()
 const mockClean = vi.fn()
+const mockRaw = vi.fn()
+const mockEnv = vi.fn()
 vi.mock("simple-git", () => ({
-  default: () => ({
-    checkIsRepo: mockCheckIsRepo,
-    branchLocal: mockBranchLocal,
-    revparse: mockRevparse,
-    log: mockLog,
-    status: mockStatus,
-    show: mockShow,
-    add: mockAdd,
-    reset: mockReset,
-    commit: mockCommit,
-    checkoutLocalBranch: mockCheckoutLocalBranch,
-    checkout: mockCheckout,
-    deleteLocalBranch: mockDeleteLocalBranch,
-    push: mockPush,
-    pull: mockPull,
-    fetch: mockFetch,
-    clean: mockClean,
-  }),
+  default: (_path: string, _opts?: unknown) => {
+    const instance = {
+      checkIsRepo: mockCheckIsRepo,
+      branchLocal: mockBranchLocal,
+      revparse: mockRevparse,
+      log: mockLog,
+      status: mockStatus,
+      show: mockShow,
+      add: mockAdd,
+      reset: mockReset,
+      commit: mockCommit,
+      checkoutLocalBranch: mockCheckoutLocalBranch,
+      checkout: mockCheckout,
+      deleteLocalBranch: mockDeleteLocalBranch,
+      push: mockPush,
+      pull: mockPull,
+      fetch: mockFetch,
+      clean: mockClean,
+      raw: mockRaw,
+      env: (...args: unknown[]) => {
+        mockEnv(...args)
+        return instance
+      },
+    }
+    return instance
+  },
 }))
 
 const mockReadTextFile = vi.fn()
@@ -166,15 +176,19 @@ describe("GitService", () => {
   })
 
   describe("getStatus", () => {
+    const porcelainV2Status = [
+      "# branch.oid abc123",
+      "# branch.head main",
+      "1 .M N... 100644 100644 100644 abc def a.ts",
+      "? b.ts",
+      "1 A. N... 000000 100644 100644 000 abc c.ts",
+      "1 .D N... 100644 000000 000000 abc 000 d.ts",
+      "u UU N... 100644 100644 100644 100644 abc def ghi e.ts",
+    ].join("\0")
+
     it.effect("returns mapped status fields including conflicted", () =>
       Effect.gen(function* () {
-        mockStatus.mockResolvedValue({
-          modified: ["a.ts"],
-          not_added: ["b.ts"],
-          staged: ["c.ts"],
-          deleted: ["d.ts"],
-          conflicted: ["e.ts"],
-        })
+        mockRaw.mockResolvedValue(porcelainV2Status)
         const service = yield* GitService
         const result = yield* service.getStatus("/my/workspace")
         expect(result.modified).toEqual(["a.ts"])
@@ -182,13 +196,21 @@ describe("GitService", () => {
         expect(result.staged).toEqual(["c.ts"])
         expect(result.deleted).toEqual(["d.ts"])
         expect(result.conflicted).toEqual(["e.ts"])
+        expect(mockRaw).toHaveBeenCalledWith([
+          "--no-optional-locks",
+          "status",
+          "--porcelain=v2",
+          "-z",
+          "--branch",
+          "--untracked-files=all",
+        ])
       }).pipe(Effect.provide(createTestLayer())),
     )
 
     it.effect("fails with GitError when status rejects", () =>
       Effect.gen(function* () {
         vi.spyOn(console, "error").mockImplementation(() => {})
-        mockStatus.mockRejectedValue(new Error("boom"))
+        mockRaw.mockRejectedValue(new Error("boom"))
         const service = yield* GitService
         const error = yield* service.getStatus("/my/workspace").pipe(Effect.flip)
         expect(error._tag).toBe("GitError")
@@ -198,16 +220,10 @@ describe("GitService", () => {
     it.effect("deduplicates concurrent calls", () =>
       Effect.gen(function* () {
         let callCount = 0
-        mockStatus.mockImplementation(async () => {
+        mockRaw.mockImplementation(async () => {
           callCount++
           await new Promise((r) => setTimeout(r, 50))
-          return {
-            modified: [],
-            not_added: [],
-            staged: [],
-            deleted: [],
-            conflicted: [],
-          }
+          return ""
         })
         const service = yield* GitService
         // fire two concurrent getStatus calls
@@ -216,7 +232,7 @@ describe("GitService", () => {
           { concurrency: "unbounded" },
         )
         expect(r1).toEqual(r2)
-        // only one actual git.status() call should have been made
+        // only one actual git raw call should have been made
         expect(callCount).toBe(1)
       }).pipe(Effect.provide(createTestLayer())),
     )
@@ -303,6 +319,11 @@ describe("GitService", () => {
         expect(result).toHaveLength(1)
         expect(result[0].hash).toBe("abc1234")
         expect(result[0].files).toEqual(["src/index.ts"])
+        expect(mockLog).toHaveBeenCalledWith({
+          maxCount: 10,
+          "--name-only": null,
+          "--no-show-signature": null,
+        })
       }).pipe(Effect.provide(createTestLayer())),
     )
 
@@ -549,19 +570,28 @@ describe("GitService", () => {
   })
 
   describe("push", () => {
-    it.effect("calls git.push() directly when tracking branch exists", () =>
+    const trackingStatus = [
+      "# branch.oid abc123",
+      "# branch.head main",
+      "# branch.upstream origin/main",
+      "# branch.ab +0 -0",
+    ].join("\0")
+
+    const noTrackingStatus = ["# branch.oid abc123", "# branch.head feat"].join("\0")
+
+    it.effect("calls git.push() with empty args when tracking branch exists", () =>
       Effect.gen(function* () {
-        mockStatus.mockResolvedValue({ tracking: "origin/main", current: "main" })
+        mockRaw.mockResolvedValue(trackingStatus)
         mockPush.mockResolvedValue(undefined)
         const service = yield* GitService
         yield* service.push("/my/workspace")
-        expect(mockPush).toHaveBeenCalledWith()
+        expect(mockPush).toHaveBeenCalledWith([])
       }).pipe(Effect.provide(createTestLayer())),
     )
 
     it.effect("calls git.push with -u origin <branch> when no tracking branch", () =>
       Effect.gen(function* () {
-        mockStatus.mockResolvedValue({ tracking: null, current: "feat" })
+        mockRaw.mockResolvedValue(noTrackingStatus)
         mockPush.mockResolvedValue(undefined)
         const service = yield* GitService
         yield* service.push("/my/workspace")
@@ -569,9 +599,19 @@ describe("GitService", () => {
       }).pipe(Effect.provide(createTestLayer())),
     )
 
+    it.effect("adds --force-with-lease when force option is true", () =>
+      Effect.gen(function* () {
+        mockRaw.mockResolvedValue(trackingStatus)
+        mockPush.mockResolvedValue(undefined)
+        const service = yield* GitService
+        yield* service.push("/my/workspace", { force: true })
+        expect(mockPush).toHaveBeenCalledWith(["--force-with-lease"])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
     it.effect("fails with GitError when push rejects", () =>
       Effect.gen(function* () {
-        mockStatus.mockResolvedValue({ tracking: "origin/main", current: "main" })
+        mockRaw.mockResolvedValue(trackingStatus)
         mockPush.mockRejectedValue(new Error("boom"))
         const service = yield* GitService
         const error = yield* service.push("/my/workspace").pipe(Effect.flip)
@@ -581,12 +621,12 @@ describe("GitService", () => {
   })
 
   describe("pull", () => {
-    it.effect("calls git.pull()", () =>
+    it.effect("calls git.pull with --recurse-submodules", () =>
       Effect.gen(function* () {
         mockPull.mockResolvedValue(undefined)
         const service = yield* GitService
         yield* service.pull("/my/workspace")
-        expect(mockPull).toHaveBeenCalled()
+        expect(mockPull).toHaveBeenCalledWith(["--recurse-submodules", "--ff"])
       }).pipe(Effect.provide(createTestLayer())),
     )
 
@@ -601,12 +641,16 @@ describe("GitService", () => {
   })
 
   describe("fetchAll", () => {
-    it.effect("calls git.fetch with --all", () =>
+    it.effect("calls git.fetch with --all --prune", () =>
       Effect.gen(function* () {
         mockFetch.mockResolvedValue(undefined)
         const service = yield* GitService
         yield* service.fetchAll("/my/workspace")
-        expect(mockFetch).toHaveBeenCalledWith(["--all"])
+        expect(mockFetch).toHaveBeenCalledWith([
+          "--all",
+          "--prune",
+          "--recurse-submodules=on-demand",
+        ])
       }).pipe(Effect.provide(createTestLayer())),
     )
 
@@ -623,24 +667,32 @@ describe("GitService", () => {
   describe("getRemoteStatus", () => {
     it.effect("returns mapped remote status fields", () =>
       Effect.gen(function* () {
-        mockStatus.mockResolvedValue({
-          ahead: 2,
-          behind: 1,
-          tracking: "origin/main",
-          current: "main",
-        })
+        const raw = [
+          "# branch.oid abc123",
+          "# branch.head main",
+          "# branch.upstream origin/main",
+          "# branch.ab +2 -1",
+        ].join("\0")
+        mockRaw.mockResolvedValue(raw)
         const service = yield* GitService
         const result = yield* service.getRemoteStatus("/my/workspace")
         expect(result.ahead).toBe(2)
         expect(result.behind).toBe(1)
         expect(result.tracking).toBe("origin/main")
         expect(result.current).toBe("main")
+        expect(mockRaw).toHaveBeenCalledWith([
+          "--no-optional-locks",
+          "status",
+          "--porcelain=v2",
+          "-z",
+          "--branch",
+        ])
       }).pipe(Effect.provide(createTestLayer())),
     )
 
-    it.effect("fails with GitError when status rejects", () =>
+    it.effect("fails with GitError when raw rejects", () =>
       Effect.gen(function* () {
-        mockStatus.mockRejectedValue(new Error("boom"))
+        mockRaw.mockRejectedValue(new Error("boom"))
         const service = yield* GitService
         const error = yield* service.getRemoteStatus("/my/workspace").pipe(Effect.flip)
         expect(error._tag).toBe("GitError")
@@ -652,7 +704,7 @@ describe("GitService", () => {
     it.effect("unstages then calls git.clean for untracked files", () =>
       Effect.gen(function* () {
         mockReset.mockResolvedValue(undefined)
-        mockStatus.mockResolvedValue({ not_added: ["untracked.ts"], modified: [] })
+        mockRaw.mockResolvedValue("? untracked.ts")
         mockClean.mockResolvedValue(undefined)
         const service = yield* GitService
         yield* service.discardFileChanges("/my/workspace", "untracked.ts")
@@ -664,7 +716,7 @@ describe("GitService", () => {
     it.effect("unstages then calls git.checkout for tracked files", () =>
       Effect.gen(function* () {
         mockReset.mockResolvedValue(undefined)
-        mockStatus.mockResolvedValue({ not_added: [], modified: ["tracked.ts"] })
+        mockRaw.mockResolvedValue("1 .M N... 100644 100644 100644 abc def tracked.ts")
         mockCheckout.mockResolvedValue(undefined)
         const service = yield* GitService
         yield* service.discardFileChanges("/my/workspace", "tracked.ts")
@@ -673,9 +725,9 @@ describe("GitService", () => {
       }).pipe(Effect.provide(createTestLayer())),
     )
 
-    it.effect("fails with GitError when status rejects", () =>
+    it.effect("fails with GitError when raw rejects", () =>
       Effect.gen(function* () {
-        mockStatus.mockRejectedValue(new Error("boom"))
+        mockRaw.mockRejectedValue(new Error("boom"))
         const service = yield* GitService
         const error = yield* service
           .discardFileChanges("/my/workspace", "file.ts")

@@ -488,7 +488,9 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       gitHandler(git.deleteBranch(workspacePath, name, force)),
     )
 
-    ipcMain.handle("git:push", (_, workspacePath: string) => gitHandler(git.push(workspacePath)))
+    ipcMain.handle("git:push", (_, workspacePath: string, opts?: { force?: boolean }) =>
+      gitHandler(git.push(workspacePath, opts)),
+    )
 
     ipcMain.handle("git:pull", (_, workspacePath: string) => gitHandler(git.pull(workspacePath)))
 
