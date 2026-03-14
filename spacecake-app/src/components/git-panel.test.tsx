@@ -958,3 +958,517 @@ describe("ui-only inclusion state", () => {
     expect(api.unstage).not.toHaveBeenCalled()
   })
 })
+
+describe("conflicted files", () => {
+  let container: HTMLDivElement
+  let root: Root
+  let store: ReturnType<typeof createStore>
+
+  beforeEach(() => {
+    container = document.createElement("div")
+    document.body.appendChild(container)
+    root = createRoot(container)
+    store = createStore()
+  })
+
+  afterEach(() => {
+    act(() => root.unmount())
+    container.remove()
+    vi.restoreAllMocks()
+  })
+
+  function renderPanel(
+    gitApi: ReturnType<typeof createMockGitAPI>["api"],
+    props?: { onFileClick?: (p: AbsolutePath) => void },
+  ) {
+    window.electronAPI = {
+      git: gitApi,
+      onFileEvent: vi.fn(() => () => {}),
+    } as unknown as ElectronAPI
+    act(() => {
+      root.render(
+        <Provider store={store}>
+          <GitPanel workspacePath={TEST_WORKSPACE} onFileClick={props?.onFileClick} />
+        </Provider>,
+      )
+    })
+  }
+
+  it("renders conflicted files with C badge (orange) in merge conflicts section", async () => {
+    const { api } = createMockGitAPI({
+      status: {
+        modified: [],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: ["src/conflict.ts"],
+      },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // merge conflicts section header
+    expect(container.textContent).toContain("merge conflicts")
+
+    // C badge (orange)
+    const cBadge = Array.from(container.querySelectorAll("span")).find(
+      (s) => s.textContent === "C" && s.classList.contains("text-orange-500"),
+    )
+    expect(cBadge).toBeDefined()
+    expect(cBadge!.title).toBe("conflicted")
+  })
+
+  it("renders conflicted files alongside changed files", async () => {
+    const { api } = createMockGitAPI({
+      status: {
+        modified: ["src/modified.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: ["src/conflict.ts"],
+      },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    expect(container.textContent).toContain("merge conflicts")
+    expect(container.textContent).toContain("src/conflict.ts")
+    expect(container.textContent).toContain("changes")
+    expect(container.textContent).toContain("src/modified.ts")
+  })
+
+  it("clicking a conflicted file calls onFileClick", async () => {
+    const onFileClick = vi.fn()
+    const { api } = createMockGitAPI({
+      status: {
+        modified: [],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: ["src/conflict.ts"],
+      },
+    })
+    renderPanel(api, { onFileClick })
+    await waitForEffects()
+
+    const fileBtn = Array.from(container.querySelectorAll('[role="button"]')).find((b) =>
+      b.textContent?.includes("src/conflict.ts"),
+    )
+    expect(fileBtn).toBeDefined()
+    ;(fileBtn as HTMLElement).click()
+
+    expect(onFileClick).toHaveBeenCalledWith(AbsolutePath("/test/workspace/src/conflict.ts"))
+  })
+
+  it("does not show merge conflicts section when no conflicted files", async () => {
+    const { api } = createMockGitAPI({
+      status: {
+        modified: ["src/file.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    expect(container.textContent).not.toContain("merge conflicts")
+  })
+})
+
+describe("discard confirmation", () => {
+  let container: HTMLDivElement
+  let root: Root
+  let store: ReturnType<typeof createStore>
+
+  beforeEach(() => {
+    container = document.createElement("div")
+    document.body.appendChild(container)
+    root = createRoot(container)
+    store = createStore()
+  })
+
+  afterEach(() => {
+    act(() => root.unmount())
+    container.remove()
+    vi.restoreAllMocks()
+  })
+
+  function renderPanel(gitApi: ReturnType<typeof createMockGitAPI>["api"]) {
+    window.electronAPI = {
+      git: gitApi,
+      onFileEvent: vi.fn(() => () => {}),
+    } as unknown as ElectronAPI
+    act(() => {
+      root.render(
+        <Provider store={store}>
+          <GitPanel workspacePath={TEST_WORKSPACE} />
+        </Provider>,
+      )
+    })
+  }
+
+  it("clicking discard button on a file opens confirmation dialog", async () => {
+    const { api } = createMockGitAPI({
+      status: {
+        modified: ["src/file.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // hover-revealed discard button
+    const discardBtn = container.querySelector(
+      'button[aria-label="discard changes"]',
+    ) as HTMLButtonElement
+    expect(discardBtn).not.toBeNull()
+
+    await act(async () => {
+      discardBtn.click()
+    })
+    await waitForEffects()
+
+    // dialog should appear with file name
+    expect(document.body.textContent).toContain("discard changes")
+    expect(document.body.textContent).toContain("src/file.ts")
+    expect(document.body.textContent).toContain("this action cannot be undone")
+  })
+
+  it("confirming file discard calls electronAPI.git.discardFile", async () => {
+    const { api } = createMockGitAPI({
+      status: {
+        modified: ["src/file.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // open discard dialog
+    const discardBtn = container.querySelector(
+      'button[aria-label="discard changes"]',
+    ) as HTMLButtonElement
+    await act(async () => {
+      discardBtn.click()
+    })
+    await waitForEffects()
+
+    // click "discard" in the dialog
+    const confirmBtn = Array.from(document.body.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "discard",
+    )
+    expect(confirmBtn).toBeDefined()
+    await act(async () => {
+      confirmBtn!.click()
+    })
+    await waitForEffects()
+
+    expect(api.discardFile).toHaveBeenCalledWith(TEST_WORKSPACE, "src/file.ts")
+  })
+
+  it("cancelling discard dialog does not call discardFile", async () => {
+    const { api } = createMockGitAPI({
+      status: {
+        modified: ["src/file.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // open discard dialog
+    const discardBtn = container.querySelector(
+      'button[aria-label="discard changes"]',
+    ) as HTMLButtonElement
+    await act(async () => {
+      discardBtn.click()
+    })
+    await waitForEffects()
+
+    // click "cancel"
+    const cancelBtn = Array.from(document.body.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "cancel",
+    )
+    expect(cancelBtn).toBeDefined()
+    await act(async () => {
+      cancelBtn!.click()
+    })
+    await waitForEffects()
+
+    expect(api.discardFile).not.toHaveBeenCalled()
+  })
+
+  it("discard all button opens confirmation dialog for all changes", async () => {
+    const { api } = createMockGitAPI({
+      status: {
+        modified: ["a.ts", "b.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // "discard all changes" button in the changes section header
+    const discardAllBtn = container.querySelector(
+      'button[aria-label="discard all changes"]',
+    ) as HTMLButtonElement
+    expect(discardAllBtn).not.toBeNull()
+
+    await act(async () => {
+      discardAllBtn.click()
+    })
+    await waitForEffects()
+
+    expect(document.body.textContent).toContain("discard all changes")
+    expect(document.body.textContent).toContain("this action cannot be undone")
+  })
+
+  it("confirming discard all calls electronAPI.git.discardAll", async () => {
+    const { api } = createMockGitAPI({
+      status: {
+        modified: ["a.ts", "b.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // open discard all dialog
+    const discardAllBtn = container.querySelector(
+      'button[aria-label="discard all changes"]',
+    ) as HTMLButtonElement
+    await act(async () => {
+      discardAllBtn.click()
+    })
+    await waitForEffects()
+
+    // confirm
+    const confirmBtn = Array.from(document.body.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "discard",
+    )
+    await act(async () => {
+      confirmBtn!.click()
+    })
+    await waitForEffects()
+
+    expect(api.discardAll).toHaveBeenCalledWith(TEST_WORKSPACE)
+  })
+})
+
+describe("amend checkbox", () => {
+  let container: HTMLDivElement
+  let root: Root
+  let store: ReturnType<typeof createStore>
+
+  beforeEach(() => {
+    container = document.createElement("div")
+    document.body.appendChild(container)
+    root = createRoot(container)
+    store = createStore()
+  })
+
+  afterEach(() => {
+    act(() => root.unmount())
+    container.remove()
+    vi.restoreAllMocks()
+  })
+
+  function renderPanel(gitApi: ReturnType<typeof createMockGitAPI>["api"]) {
+    window.electronAPI = {
+      git: gitApi,
+      onFileEvent: vi.fn(() => () => {}),
+    } as unknown as ElectronAPI
+    act(() => {
+      root.render(
+        <Provider store={store}>
+          <GitPanel workspacePath={TEST_WORKSPACE} />
+        </Provider>,
+      )
+    })
+  }
+
+  it("amend checkbox is unchecked by default", async () => {
+    const { api } = createMockGitAPI({
+      status: { modified: ["a.ts"], staged: [], untracked: [], deleted: [], conflicted: [] },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    const amendCheckbox = container.querySelector<HTMLInputElement>(
+      'input[type="checkbox"][aria-label="amend last commit"]',
+    )
+    expect(amendCheckbox).not.toBeNull()
+    expect(amendCheckbox!.checked).toBe(false)
+  })
+
+  it("commit with amend passes amend option to ipc call", async () => {
+    const { api } = createMockGitAPI({
+      status: { modified: ["a.ts"], staged: [], untracked: [], deleted: [], conflicted: [] },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // check amend
+    const amendCheckbox = container.querySelector<HTMLInputElement>(
+      'input[type="checkbox"][aria-label="amend last commit"]',
+    )
+    await act(async () => {
+      amendCheckbox!.click()
+    })
+
+    // type a message
+    const input = container.querySelector<HTMLInputElement>('input[placeholder="commit message"]')!
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!
+      setter.call(input, "amended commit")
+      input.dispatchEvent(new Event("input", { bubbles: true }))
+      input.dispatchEvent(new Event("change", { bubbles: true }))
+    })
+    await waitForEffects()
+
+    // click commit
+    const commitBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "commit",
+    )
+    await act(async () => {
+      commitBtn!.click()
+    })
+    await waitForEffects()
+
+    expect(api.commit).toHaveBeenCalledWith(
+      TEST_WORKSPACE,
+      "amended commit",
+      expect.objectContaining({ amend: true }),
+    )
+  })
+
+  it("amend without message is allowed (enables commit button)", async () => {
+    const { api } = createMockGitAPI({
+      status: { modified: ["a.ts"], staged: [], untracked: [], deleted: [], conflicted: [] },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // check amend — no message typed
+    const amendCheckbox = container.querySelector<HTMLInputElement>(
+      'input[type="checkbox"][aria-label="amend last commit"]',
+    )
+    await act(async () => {
+      amendCheckbox!.click()
+    })
+    await waitForEffects()
+
+    // commit button should be enabled (amend allows empty message)
+    const commitBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "commit",
+    )
+    expect(commitBtn).toBeDefined()
+    expect(commitBtn!.disabled).toBe(false)
+  })
+})
+
+describe("commit error handling", () => {
+  let container: HTMLDivElement
+  let root: Root
+  let store: ReturnType<typeof createStore>
+
+  const mockToast = vi.hoisted(() => ({
+    success: vi.fn(),
+    error: vi.fn(),
+  }))
+
+  beforeEach(() => {
+    container = document.createElement("div")
+    document.body.appendChild(container)
+    root = createRoot(container)
+    store = createStore()
+    mockToast.success.mockClear()
+    mockToast.error.mockClear()
+  })
+
+  afterEach(() => {
+    act(() => root.unmount())
+    container.remove()
+    vi.restoreAllMocks()
+  })
+
+  function renderPanel(gitApi: ReturnType<typeof createMockGitAPI>["api"]) {
+    window.electronAPI = {
+      git: gitApi,
+      onFileEvent: vi.fn(() => () => {}),
+    } as unknown as ElectronAPI
+    act(() => {
+      root.render(
+        <Provider store={store}>
+          <GitPanel workspacePath={TEST_WORKSPACE} />
+        </Provider>,
+      )
+    })
+  }
+
+  it("commit button is disabled when no files are included", async () => {
+    const { api } = createMockGitAPI({
+      status: { modified: ["a.ts"], staged: [], untracked: [], deleted: [], conflicted: [] },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // type a message
+    const input = container.querySelector<HTMLInputElement>('input[placeholder="commit message"]')!
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!
+      setter.call(input, "test")
+      input.dispatchEvent(new Event("input", { bubbles: true }))
+      input.dispatchEvent(new Event("change", { bubbles: true }))
+    })
+    await waitForEffects()
+
+    // exclude all files
+    const headerCheckbox = container.querySelector<HTMLInputElement>(
+      'input[type="checkbox"][aria-label="exclude all changes"]',
+    )
+    await act(async () => {
+      headerCheckbox!.click()
+    })
+    await waitForEffects()
+
+    // commit button should be disabled
+    const commitBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "commit",
+    )
+    expect(commitBtn).toBeDefined()
+    expect(commitBtn!.disabled).toBe(true)
+  })
+
+  it("commit button is disabled when message is empty and amend is not checked", async () => {
+    const { api } = createMockGitAPI({
+      status: { modified: ["a.ts"], staged: [], untracked: [], deleted: [], conflicted: [] },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // no message typed, no amend
+    const commitBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "commit",
+    )
+    expect(commitBtn).toBeDefined()
+    expect(commitBtn!.disabled).toBe(true)
+  })
+})

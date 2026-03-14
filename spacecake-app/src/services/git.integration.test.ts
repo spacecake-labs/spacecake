@@ -12,9 +12,17 @@ import { GitService } from "@/services/git"
 
 // integration tests that run against a real git repo in a temp directory
 
+// mock filesystem for getFileDiff — returns file content from disk
+const mockFileSystem = {
+  readTextFile: (filePath: string) =>
+    Effect.try(() => ({ content: fs.readFileSync(filePath, "utf-8") })),
+} as unknown as FileSystem
+const fileSystemLayer = Layer.succeed(FileSystem, mockFileSystem)
+
 // stub filesystem — discard/commit operations use simple-git directly
 const stubFileSystem = Layer.succeed(FileSystem, {} as unknown as FileSystem)
 const testLayer = GitService.DefaultWithoutDependencies.pipe(Layer.provide(stubFileSystem))
+const testLayerWithFs = GitService.DefaultWithoutDependencies.pipe(Layer.provide(fileSystemLayer))
 
 describe("git service integration", () => {
   let tmpDir: string
@@ -148,6 +156,300 @@ describe("git service integration", () => {
       expect(status.staged.length).toBe(0)
       expect(status.modified.length).toBe(0)
       expect(status.not_added.length).toBe(0)
+    })
+  })
+
+  describe("getStatus", () => {
+    it("returns modified, untracked, staged, and deleted files", async () => {
+      const git = simpleGit(tmpDir)
+
+      // create various file states
+      fs.writeFileSync(path.join(tmpDir, "initial.txt"), "modified content")
+      fs.writeFileSync(path.join(tmpDir, "untracked.txt"), "new file")
+      fs.writeFileSync(path.join(tmpDir, "staged.txt"), "staged content")
+      await git.add("staged.txt")
+
+      const status = await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.getStatus(tmpDir)
+        }),
+      )
+
+      expect(status.modified).toContain("initial.txt")
+      expect(status.untracked).toContain("untracked.txt")
+      expect(status.staged).toContain("staged.txt")
+    })
+
+    it("returns empty arrays for clean repo", async () => {
+      const status = await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.getStatus(tmpDir)
+        }),
+      )
+
+      expect(status.modified).toEqual([])
+      expect(status.staged).toEqual([])
+      expect(status.untracked).toEqual([])
+      expect(status.deleted).toEqual([])
+      expect(status.conflicted).toEqual([])
+    })
+
+    it("detects deleted files", async () => {
+      fs.unlinkSync(path.join(tmpDir, "initial.txt"))
+
+      const status = await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.getStatus(tmpDir)
+        }),
+      )
+
+      expect(status.deleted).toContain("initial.txt")
+    })
+  })
+
+  describe("getCommitLog", () => {
+    it("returns commits with files", async () => {
+      const commits = await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.getCommitLog(tmpDir)
+        }),
+      )
+
+      expect(commits.length).toBe(1)
+      expect(commits[0].message).toBe("initial commit")
+      expect(commits[0].files).toContain("initial.txt")
+      expect(commits[0].hash).toBeTruthy()
+      expect(commits[0].date).toBeInstanceOf(Date)
+    })
+
+    it("respects limit parameter", async () => {
+      const git = simpleGit(tmpDir)
+      fs.writeFileSync(path.join(tmpDir, "second.txt"), "second")
+      await git.add("second.txt")
+      await git.commit("second commit")
+
+      const commits = await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.getCommitLog(tmpDir, 1)
+        }),
+      )
+
+      expect(commits.length).toBe(1)
+      expect(commits[0].message).toBe("second commit")
+    })
+
+    it("returns empty array for repo with no commits", async () => {
+      // create a fresh repo with no commits
+      const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), "spacecake-git-empty-"))
+      const git = simpleGit(emptyDir)
+      await git.init()
+
+      const commits = await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.getCommitLog(emptyDir)
+        }),
+      )
+
+      expect(commits).toEqual([])
+      fs.rmSync(emptyDir, { recursive: true, force: true })
+    })
+  })
+
+  describe("getFileDiff", () => {
+    const runWithFs = <A>(effect: Effect.Effect<A, unknown, GitService>) =>
+      Effect.runPromise(effect.pipe(Effect.provide(testLayerWithFs)))
+
+    it("returns old and new content for a modified file", async () => {
+      fs.writeFileSync(path.join(tmpDir, "initial.txt"), "modified content")
+
+      const diff = await runWithFs(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.getFileDiff(tmpDir, "initial.txt")
+        }),
+      )
+
+      expect(diff.oldContent).toBe("initial content")
+      expect(diff.newContent).toBe("modified content")
+    })
+
+    it("returns empty old content for a new file", async () => {
+      fs.writeFileSync(path.join(tmpDir, "brand-new.txt"), "brand new")
+
+      const diff = await runWithFs(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.getFileDiff(tmpDir, "brand-new.txt")
+        }),
+      )
+
+      expect(diff.oldContent).toBe("")
+      expect(diff.newContent).toBe("brand new")
+    })
+
+    it("compares between two refs when both provided", async () => {
+      const git = simpleGit(tmpDir)
+
+      // make a second commit with modified content
+      fs.writeFileSync(path.join(tmpDir, "initial.txt"), "second version")
+      await git.add("initial.txt")
+      await git.commit("second commit")
+
+      const log = await git.log({ maxCount: 2 })
+      const oldHash = log.all[1].hash
+      const newHash = log.all[0].hash
+
+      const diff = await runWithFs(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.getFileDiff(tmpDir, "initial.txt", oldHash, newHash)
+        }),
+      )
+
+      expect(diff.oldContent).toBe("initial content")
+      expect(diff.newContent).toBe("second version")
+    })
+  })
+
+  describe("branch operations", () => {
+    let defaultBranch: string
+
+    beforeEach(async () => {
+      const git = simpleGit(tmpDir)
+      defaultBranch = (await git.branchLocal()).current
+    })
+
+    it("creates and lists branches", async () => {
+      await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          yield* svc.createBranch(tmpDir, "feature-branch")
+          const branches = yield* svc.listBranches(tmpDir)
+          expect(branches.all).toContain("feature-branch")
+          expect(branches.current).toBe("feature-branch")
+        }),
+      )
+    })
+
+    it("switches between branches", async () => {
+      await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          yield* svc.createBranch(tmpDir, "other-branch")
+
+          // createBranch also switches to it — switch back to default
+          yield* svc.switchBranch(tmpDir, defaultBranch)
+
+          const branch = yield* svc.getCurrentBranch(tmpDir)
+          expect(branch).toBe(defaultBranch)
+        }),
+      )
+    })
+
+    it("deletes a branch", async () => {
+      await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          yield* svc.createBranch(tmpDir, "to-delete")
+
+          // switch away first (can't delete current branch)
+          yield* svc.switchBranch(tmpDir, defaultBranch)
+          yield* svc.deleteBranch(tmpDir, "to-delete")
+
+          const branches = yield* svc.listBranches(tmpDir)
+          expect(branches.all).not.toContain("to-delete")
+        }),
+      )
+    })
+
+    it("getCurrentBranch returns current branch name", async () => {
+      const branch = await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.getCurrentBranch(tmpDir)
+        }),
+      )
+
+      expect(branch).toBe(defaultBranch)
+    })
+  })
+
+  describe("isGitRepo", () => {
+    it("returns true for a git repo", async () => {
+      const result = await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.isGitRepo(tmpDir)
+        }),
+      )
+
+      expect(result).toBe(true)
+    })
+
+    it("returns false for a non-git directory", async () => {
+      const nonGitDir = fs.mkdtempSync(path.join(os.tmpdir(), "spacecake-nongit-"))
+
+      const result = await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.isGitRepo(nonGitDir)
+        }),
+      )
+
+      expect(result).toBe(false)
+      fs.rmSync(nonGitDir, { recursive: true, force: true })
+    })
+  })
+
+  describe("stageFiles and unstageFiles", () => {
+    it("stages files and shows them in status", async () => {
+      fs.writeFileSync(path.join(tmpDir, "to-stage.txt"), "stage me")
+
+      await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          yield* svc.stageFiles(tmpDir, ["to-stage.txt"])
+          const status = yield* svc.getStatus(tmpDir)
+          expect(status.staged).toContain("to-stage.txt")
+        }),
+      )
+    })
+
+    it("unstages files and removes them from staged", async () => {
+      fs.writeFileSync(path.join(tmpDir, "staged.txt"), "staged content")
+      const git = simpleGit(tmpDir)
+      await git.add("staged.txt")
+
+      await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          yield* svc.unstageFiles(tmpDir, ["staged.txt"])
+          const status = yield* svc.getStatus(tmpDir)
+          expect(status.staged).not.toContain("staged.txt")
+          expect(status.untracked).toContain("staged.txt")
+        }),
+      )
+    })
+  })
+
+  describe("getRemoteStatus", () => {
+    it("returns zero ahead/behind for local-only repo", async () => {
+      const status = await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.getRemoteStatus(tmpDir)
+        }),
+      )
+
+      expect(status.ahead).toBe(0)
+      expect(status.behind).toBe(0)
+      expect(status.tracking).toBeNull()
     })
   })
 
