@@ -1,11 +1,11 @@
-import { useAtom } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, RefreshCw } from "lucide-react"
 import { memo, useCallback, useEffect } from "react"
 import { toast } from "sonner"
 
 import { BranchPopover } from "@/components/branch-popover"
 import { DockPositionDropdown } from "@/components/dock-position-dropdown"
-import { gitOperationAtom, gitRemoteStatusAtom } from "@/lib/atoms/git"
+import { gitOperationAtom, gitRemoteStatusAtom, isBusyAtom } from "@/lib/atoms/git"
 import { cn } from "@/lib/utils"
 import type { DockPosition } from "@/schema/workspace-layout"
 import { isRight } from "@/types/adt"
@@ -88,11 +88,7 @@ export const GitToolbar = memo(function GitToolbar({
     }
   }, [workspacePath, setOperation, refreshRemoteStatus])
 
-  const isBusy =
-    operation === "fetching" ||
-    operation === "pulling" ||
-    operation === "pushing" ||
-    operation === "committing"
+  const isBusy = useAtomValue(isBusyAtom)
 
   return (
     <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">

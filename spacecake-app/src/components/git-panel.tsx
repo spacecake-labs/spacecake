@@ -230,7 +230,7 @@ const FileItem = memo(function FileItem({
   )
 })
 
-function ConflictSection({
+const ConflictSection = memo(function ConflictSection({
   files,
   workspacePath,
   onFileClick,
@@ -276,9 +276,9 @@ function ConflictSection({
       </CollapsibleContent>
     </Collapsible>
   )
-}
+})
 
-function WorkingTreeItem({
+const WorkingTreeItem = memo(function WorkingTreeItem({
   isSelected,
   hasChanges,
   onClick,
@@ -303,9 +303,9 @@ function WorkingTreeItem({
       <span className="font-medium whitespace-nowrap">working tree</span>
     </button>
   )
-}
+})
 
-function CommitListItem({
+const CommitListItem = memo(function CommitListItem({
   commit,
   isSelected,
   onClick,
@@ -335,7 +335,7 @@ function CommitListItem({
       <p className="mt-0.5 text-sm truncate">{commit.message}</p>
     </button>
   )
-}
+})
 
 function CommitPane({
   commits,
@@ -671,15 +671,17 @@ function WorkingTreeFilesPane({
     }
   }, [allIncluded, changedPaths])
 
+  const includedFiles = useMemo(
+    () => allFiles.filter((f) => f.isIncluded).map((f) => f.path),
+    [allFiles],
+  )
+
   const hasNoChanges = conflictedFiles.length === 0 && allFiles.length === 0
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">&nbsp;</div>
-      <CommitForm
-        workspacePath={workspacePath}
-        includedFiles={allFiles.filter((f) => f.isIncluded).map((f) => f.path)}
-      />
+      <CommitForm workspacePath={workspacePath} includedFiles={includedFiles} />
       <div className="flex-1 overflow-auto p-1">
         {hasNoChanges ? (
           <div className="text-sm text-muted-foreground text-center py-4">no changes</div>
@@ -896,6 +898,18 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
   const routeTargetRef = currentRoute?.targetRef
   const routeWorkspaceId = currentRoute?.workspaceId
 
+  const allChangedPaths = useMemo(() => {
+    if (!status) return new Set<string>()
+    const paths = [
+      ...status.modified,
+      ...status.staged,
+      ...status.untracked,
+      ...status.deleted,
+      ...status.conflicted,
+    ]
+    return new Set(paths.map((f) => `${workspacePath}/${f}`))
+  }, [status, workspacePath])
+
   // navigate away from stale diff views when file is no longer in changes list
   // only applies to working tree diffs, not historical commit diffs
   useEffect(() => {
@@ -904,15 +918,7 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
     // historical commit diffs have baseRef/targetRef - don't close them based on working tree status
     if (routeBaseRef || routeTargetRef) return
 
-    // check if the current file is still in the working tree changes
-    const isFileStillChanged =
-      status.modified.some((f) => `${workspacePath}/${f}` === routeFilePath) ||
-      status.staged.some((f) => `${workspacePath}/${f}` === routeFilePath) ||
-      status.untracked.some((f) => `${workspacePath}/${f}` === routeFilePath) ||
-      status.deleted.some((f) => `${workspacePath}/${f}` === routeFilePath) ||
-      status.conflicted.some((f) => `${workspacePath}/${f}` === routeFilePath)
-
-    if (!isFileStillChanged && routeWorkspaceId) {
+    if (!allChangedPaths.has(routeFilePath) && routeWorkspaceId) {
       // navigate to the same file without the diff view
       router.navigate({
         to: "/w/$workspaceId/f/$filePath",
@@ -926,12 +932,12 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
     }
   }, [
     status,
+    allChangedPaths,
     routeViewKind,
     routeFilePath,
     routeBaseRef,
     routeTargetRef,
     routeWorkspaceId,
-    workspacePath,
   ])
 
   const totalChanges =
@@ -941,7 +947,10 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
     (status?.deleted.length ?? 0) +
     (status?.conflicted.length ?? 0)
 
-  const selectedCommitData = commits.find((c) => c.hash === selectedCommit)
+  const selectedCommitData = useMemo(
+    () => commits.find((c) => c.hash === selectedCommit),
+    [commits, selectedCommit],
+  )
 
   if (isGitRepo === false) {
     return (
