@@ -17,6 +17,7 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
     onStatuslineUpdate: () => () => {},
     onStatuslineCleared: () => () => {},
     clearSurface: async () => {},
+    checkSurfaceAlive: async () => {},
     ensureServer: async () => {},
     tasks: {
       startWatching: async () => right(undefined),
@@ -75,9 +76,24 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
   git: {
     getCurrentBranch: async () => null,
     isGitRepo: async () => false,
-    getStatus: async () => right({ modified: [], staged: [], untracked: [], deleted: [] }),
+    getStatus: async () =>
+      right({ modified: [], staged: [], untracked: [], deleted: [], conflicted: [] }),
     getFileDiff: async () => right({ oldContent: "", newContent: "" }),
     getCommitLog: async () => right([]),
+    stage: async () => right(undefined),
+    unstage: async () => right(undefined),
+    commit: async () =>
+      right({ hash: "", branch: "", summary: { changes: 0, insertions: 0, deletions: 0 } }),
+    listBranches: async () => right({ current: "main", all: ["main"], branches: {} }),
+    createBranch: async () => right(undefined),
+    switchBranch: async () => right(undefined),
+    deleteBranch: async () => right(undefined),
+    push: async () => right(undefined),
+    pull: async () => right(undefined),
+    fetch: async () => right(undefined),
+    getRemoteStatus: async () => right({ ahead: 0, behind: 0, tracking: null, current: "main" }),
+    discardFile: async () => right(undefined),
+    discardAll: async () => right(undefined),
   },
   ...overrides,
 })

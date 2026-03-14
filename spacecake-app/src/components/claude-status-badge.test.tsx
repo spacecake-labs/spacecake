@@ -127,6 +127,9 @@ const mockClaudeHooksServer = {
   getLastStatusline: vi.fn(() => null),
   onStatuslineUpdate: vi.fn(() => () => {}),
   onStatuslineCleared: vi.fn(() => () => {}),
+  clearSurface: vi.fn(),
+  setPendingPid: vi.fn(),
+  isSurfaceAlive: vi.fn(() => true),
 }
 
 const FileSystemTestLayer = Layer.succeed(FileSystem, mockFileSystem as FileSystem)

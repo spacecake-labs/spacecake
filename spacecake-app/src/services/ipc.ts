@@ -19,6 +19,7 @@ import { SpacecakeHome } from "@/services/spacecake-home"
 import { Terminal } from "@/services/terminal"
 import { left, right, type Either } from "@/types/adt"
 import { ClaudeTaskError } from "@/types/claude-task"
+import type { SerializedGitError } from "@/types/electron"
 import { AbsolutePath, FileContent } from "@/types/workspace"
 
 // Plain object representation of FileSystemError for IPC serialization
@@ -380,16 +381,39 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       Effect.runPromise(git.isGitRepo(workspacePath)),
     )
 
-    // Plain object representation of GitError for IPC serialization
-    type SerializedGitError = {
-      _tag: "GitError"
-      description: string
+    const tailLines = (text: string, max: number): string => {
+      const lines = text.split("\n").filter((l) => l.trim())
+      return lines.slice(-max).join("\n")
+    }
+
+    const extractDetail = (cause: unknown): string | undefined => {
+      if (!cause) return undefined
+      if (cause instanceof Error) {
+        const stderr = (cause as { stderr?: string }).stderr
+        const msg = cause.message
+        // for verbose output (hook failures, build logs), show the last few lines
+        // which typically contain the actual error reason
+        if (stderr) return tailLines(stderr, 4)
+        if (msg) return tailLines(msg, 4)
+        return undefined
+      }
+      return tailLines(String(cause), 4)
     }
 
     const serializeGitError = (error: GitError): SerializedGitError => ({
       _tag: "GitError",
       description: error.description,
+      code: error.code,
+      detail: extractDetail(error.cause),
     })
+
+    const gitHandler = <A>(effect: Effect.Effect<A, GitError>) =>
+      Effect.runPromise(
+        Effect.match(effect, {
+          onFailure: (error) => left(serializeGitError(error)),
+          onSuccess: (result) => right(result),
+        }),
+      )
 
     ipcMain.handle(
       "git:status",
@@ -432,6 +456,58 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
             onSuccess: (commits) => right(commits),
           }),
         ),
+    )
+
+    ipcMain.handle("git:stage", (_, workspacePath: string, files: string[]) =>
+      gitHandler(git.stageFiles(workspacePath, files)),
+    )
+
+    ipcMain.handle("git:unstage", (_, workspacePath: string, files: string[]) =>
+      gitHandler(git.unstageFiles(workspacePath, files)),
+    )
+
+    ipcMain.handle(
+      "git:commit",
+      (_, workspacePath: string, message: string, opts?: { amend?: boolean; files?: string[] }) =>
+        gitHandler(git.commit(workspacePath, message, opts)),
+    )
+
+    ipcMain.handle("git:branch:list", (_, workspacePath: string) =>
+      gitHandler(git.listBranches(workspacePath)),
+    )
+
+    ipcMain.handle("git:branch:create", (_, workspacePath: string, name: string) =>
+      gitHandler(git.createBranch(workspacePath, name)),
+    )
+
+    ipcMain.handle("git:branch:switch", (_, workspacePath: string, name: string) =>
+      gitHandler(git.switchBranch(workspacePath, name)),
+    )
+
+    ipcMain.handle("git:branch:delete", (_, workspacePath: string, name: string, force?: boolean) =>
+      gitHandler(git.deleteBranch(workspacePath, name, force)),
+    )
+
+    ipcMain.handle("git:push", (_, workspacePath: string, opts?: { force?: boolean }) =>
+      gitHandler(git.push(workspacePath, opts)),
+    )
+
+    ipcMain.handle("git:pull", (_, workspacePath: string) => gitHandler(git.pull(workspacePath)))
+
+    ipcMain.handle("git:fetch", (_, workspacePath: string) =>
+      gitHandler(git.fetchAll(workspacePath)),
+    )
+
+    ipcMain.handle("git:remote-status", (_, workspacePath: string) =>
+      gitHandler(git.getRemoteStatus(workspacePath)),
+    )
+
+    ipcMain.handle("git:discard-file", (_, workspacePath: string, file: string) =>
+      gitHandler(git.discardFileChanges(workspacePath, file)),
+    )
+
+    ipcMain.handle("git:discard-all", (_, workspacePath: string) =>
+      gitHandler(git.discardAllChanges(workspacePath)),
     )
 
     return {}

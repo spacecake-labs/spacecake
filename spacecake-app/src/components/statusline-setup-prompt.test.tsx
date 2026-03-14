@@ -45,6 +45,7 @@ const createMockElectronAPI = (overrides: {
       onStatuslineUpdate: () => () => {},
       onStatuslineCleared: () => () => {},
       clearSurface: async () => {},
+      checkSurfaceAlive: async () => {},
       ensureServer: async () => {},
       tasks: {
         startWatching: async () => right(undefined),

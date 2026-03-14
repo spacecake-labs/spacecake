@@ -21,11 +21,21 @@ export class StatuslineService extends Effect.Service<StatuslineService>()("Stat
     const updateCallbacks: Set<(data: DisplayStatusline) => void> = new Set()
     const clearCallbacks: Set<(surfaceId?: string) => void> = new Set()
 
+    // pid tracking: associates surfaceId → claude code process pid
+    const surfacePidMap = new Map<string, number>()
+    const pendingPids: number[] = []
+
     return {
       processStatusline: (input: StatuslineInput, surfaceId?: string) => {
         const key = surfaceId ?? GLOBAL_KEY
         const statuslineData = parseStatuslineInput(input, surfaceId)
         statuslineMap.set(key, statuslineData)
+
+        // associate pending pid with this surface (first statusline after ide_connected)
+        if (surfaceId && pendingPids.length > 0 && !surfacePidMap.has(surfaceId)) {
+          surfacePidMap.set(surfaceId, pendingPids.shift()!)
+        }
+
         updateCallbacks.forEach((callback) => {
           try {
             callback(statuslineData)
@@ -37,6 +47,8 @@ export class StatuslineService extends Effect.Service<StatuslineService>()("Stat
       },
       clearStatusline: () => {
         statuslineMap.clear()
+        surfacePidMap.clear()
+        pendingPids.length = 0
         clearCallbacks.forEach((callback) => {
           try {
             callback()
@@ -47,6 +59,7 @@ export class StatuslineService extends Effect.Service<StatuslineService>()("Stat
       },
       clearSurface: (surfaceId: string) => {
         statuslineMap.delete(surfaceId)
+        surfacePidMap.delete(surfaceId)
         clearCallbacks.forEach((callback) => {
           try {
             callback(surfaceId)
@@ -75,6 +88,25 @@ export class StatuslineService extends Effect.Service<StatuslineService>()("Stat
           clearCallbacks.delete(callback)
         }
       },
+      setPendingPid: (pid: number) => {
+        pendingPids.push(pid)
+      },
+      /**
+       * check if the claude process for a surface is still alive.
+       * returns true if no pid is tracked (unknown), or if the process is alive.
+       * returns false if the tracked pid is dead.
+       */
+      isSurfaceAlive: (surfaceId: string): boolean => {
+        const pid = surfacePidMap.get(surfaceId)
+        if (pid === undefined) return true // no pid tracked, assume alive
+        try {
+          process.kill(pid, 0)
+          return true
+        } catch {
+          console.log(`statusline service: surface ${surfaceId} pid ${pid} is dead`)
+          return false
+        }
+      },
     }
   }),
 }) {}
@@ -84,14 +116,15 @@ const respondJson = (res: ServerResponse, statusCode: number, data: unknown) => 
   res.end(JSON.stringify(data))
 }
 
-interface StatuslineServiceInstance {
-  processStatusline: (input: StatuslineInput, surfaceId?: string) => DisplayStatusline
-  clearStatusline: () => void
-  clearSurface: (surfaceId: string) => void
-  getLastStatusline: () => DisplayStatusline | null
-  onStatuslineUpdate: (callback: (data: DisplayStatusline) => void) => () => void
-  onStatuslineCleared: (callback: (surfaceId?: string) => void) => () => void
-}
+type StatuslineServiceInstance = Pick<
+  StatuslineService,
+  | "processStatusline"
+  | "clearStatusline"
+  | "clearSurface"
+  | "getLastStatusline"
+  | "onStatuslineUpdate"
+  | "onStatuslineCleared"
+>
 
 const handleRequest = async (
   req: IncomingMessage,
@@ -220,15 +253,6 @@ const startServerTcpEffect = (service: StatuslineServiceInstance) =>
     })
   })
 
-export interface ClaudeHooksServerService {
-  readonly ensureStarted: () => Promise<string>
-  readonly isStarted: () => boolean
-  readonly getLastStatusline: () => DisplayStatusline | null
-  readonly onStatuslineUpdate: (callback: (data: DisplayStatusline) => void) => () => void
-  readonly onStatuslineCleared: (callback: (surfaceId?: string) => void) => () => void
-  readonly clearSurface: (surfaceId: string) => void
-}
-
 export const makeClaudeHooksServer = Effect.gen(function* () {
   const claudeConfig = yield* ClaudeConfig
   const fsService = yield* FileSystem
@@ -330,6 +354,14 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
     statuslineService.clearSurface(surfaceId)
   }
 
+  const setPendingPid = (pid: number) => {
+    statuslineService.setPendingPid(pid)
+  }
+
+  const isSurfaceAlive = (surfaceId: string): boolean => {
+    return statuslineService.isSurfaceAlive(surfaceId)
+  }
+
   // finalizer to clean up on shutdown
   yield* Effect.addFinalizer(() => {
     if (!serverState) {
@@ -357,6 +389,8 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
     onStatuslineUpdate,
     onStatuslineCleared,
     clearSurface,
+    setPendingPid,
+    isSurfaceAlive,
   } as const
 })
 
