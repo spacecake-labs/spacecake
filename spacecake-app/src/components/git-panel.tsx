@@ -155,7 +155,8 @@ function FileItem({
                   onStage()
                 }}
                 className="p-0.5 rounded hover:bg-accent-foreground/10 text-muted-foreground hover:text-foreground cursor-pointer"
-                title="stage"
+                title="stage changes"
+                aria-label="stage changes"
               >
                 <Plus className="h-3 w-3" />
               </button>
@@ -167,7 +168,8 @@ function FileItem({
                   onUnstage()
                 }}
                 className="p-0.5 rounded hover:bg-accent-foreground/10 text-muted-foreground hover:text-foreground cursor-pointer"
-                title="unstage"
+                title="unstage changes"
+                aria-label="unstage changes"
               >
                 <Minus className="h-3 w-3" />
               </button>
@@ -179,7 +181,8 @@ function FileItem({
                   onDiscard()
                 }}
                 className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
-                title="discard"
+                title="discard changes"
+                aria-label="discard changes"
               >
                 <Undo2 className="h-3 w-3" />
               </button>
@@ -262,7 +265,8 @@ function FileSection({
             <button
               onClick={onStageAll}
               className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
-              title="stage all"
+              title="stage all changes"
+              aria-label="stage all changes"
             >
               <Plus className="h-3 w-3" />
             </button>
@@ -271,7 +275,8 @@ function FileSection({
             <button
               onClick={onUnstageAll}
               className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
-              title="unstage all"
+              title="unstage all changes"
+              aria-label="unstage all changes"
             >
               <Minus className="h-3 w-3" />
             </button>
@@ -280,7 +285,8 @@ function FileSection({
             <button
               onClick={onDiscardAll}
               className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
-              title="discard all"
+              title="discard all changes"
+              aria-label="discard all changes"
             >
               <Undo2 className="h-3 w-3" />
             </button>
@@ -463,19 +469,22 @@ function CommitForm({
   }, [canCommit, workspacePath, message, amend, setOperation, setMessage, setAmend])
 
   return (
-    <div className="px-2 py-2 border-b space-y-2">
+    <form
+      className="px-2 py-2 border-b space-y-2"
+      onSubmit={(e) => {
+        e.preventDefault()
+        handleCommit()
+      }}
+    >
       <Input
         placeholder="commit message"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") handleCommit()
-        }}
         className="h-7 text-xs"
         disabled={isCommitting}
       />
       <div className="flex items-center gap-2">
-        <Button size="sm" className="h-6 text-xs px-2" disabled={!canCommit} onClick={handleCommit}>
+        <Button type="submit" size="sm" className="h-6 text-xs px-2" disabled={!canCommit}>
           {isCommitting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
           commit
         </Button>
@@ -490,7 +499,7 @@ function CommitForm({
           amend
         </label>
       </div>
-    </div>
+    </form>
   )
 }
 
@@ -534,8 +543,8 @@ function DiscardConfirmDialog({ workspacePath }: { workspacePath: AbsolutePath }
           <DialogTitle>discard changes</DialogTitle>
           <DialogDescription>
             {discardState.isOpen && discardState.kind === "file"
-              ? `discard changes to "${discardState.filePath}"? this cannot be undone.`
-              : "discard all changes? this cannot be undone."}
+              ? `discard changes to "${discardState.filePath}"? this action cannot be undone.`
+              : "discard all changes? this action cannot be undone."}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -639,7 +648,7 @@ function WorkingTreeFilesPane({
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">
-        changed files
+        working tree
       </div>
       <CommitForm workspacePath={workspacePath} hasStagedFiles={stagedFiles.length > 0} />
       <div className="flex-1 overflow-auto p-1">

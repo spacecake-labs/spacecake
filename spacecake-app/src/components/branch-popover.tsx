@@ -139,6 +139,11 @@ export function BranchPopover({ workspacePath, isExpanded }: BranchPopoverProps)
                     className="flex-1 text-left truncate cursor-pointer"
                     onClick={() => branch !== gitBranch && handleSwitchBranch(branch)}
                     disabled={branch === gitBranch}
+                    aria-label={
+                      branch === gitBranch
+                        ? `current branch: ${branch}`
+                        : `switch to branch ${branch}`
+                    }
                     data-testid={`branch-switch-${branch}`}
                   >
                     {branch}
@@ -147,7 +152,8 @@ export function BranchPopover({ workspacePath, isExpanded }: BranchPopoverProps)
                     <button
                       onClick={() => setBranchDeleteState({ isOpen: true, branchName: branch })}
                       className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer shrink-0"
-                      title="delete branch"
+                      title={`delete branch ${branch}`}
+                      aria-label={`delete branch ${branch}`}
                       data-testid={`branch-delete-${branch}`}
                     >
                       <Trash2 className="h-3 w-3" />

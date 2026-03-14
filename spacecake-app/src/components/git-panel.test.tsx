@@ -181,7 +181,7 @@ describe("GitPanel", () => {
     await waitForEffects()
 
     expect(container.textContent).toContain("commits")
-    expect(container.textContent).toContain("changed files")
+    expect(container.textContent).toContain("working tree")
   })
 
   it('"working tree" selected by default', async () => {

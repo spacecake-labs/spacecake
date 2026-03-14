@@ -214,7 +214,9 @@ describe("GitToolbar", () => {
     renderToolbar(gitApi, { isExpanded: true, onExpandedChange })
     await waitForEffects()
 
-    const collapseBtn = container.querySelector('[aria-label="hide git"]') as HTMLButtonElement
+    const collapseBtn = container.querySelector(
+      '[aria-label="hide git panel"]',
+    ) as HTMLButtonElement
     await act(async () => {
       collapseBtn.click()
     })

@@ -119,6 +119,7 @@ export const GitToolbar = memo(function GitToolbar({
           disabled={isBusy}
           className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           title="fetch"
+          aria-label="fetch"
         >
           <RefreshCw className={cn("h-3.5 w-3.5", operation === "fetching" && "animate-spin")} />
         </button>
@@ -127,6 +128,7 @@ export const GitToolbar = memo(function GitToolbar({
           disabled={isBusy}
           className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           title="pull"
+          aria-label="pull"
         >
           <ArrowDown className={cn("h-3.5 w-3.5", operation === "pulling" && "animate-bounce")} />
         </button>
@@ -135,13 +137,14 @@ export const GitToolbar = memo(function GitToolbar({
           disabled={isBusy}
           className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           title="push"
+          aria-label="push"
         >
           <ArrowUp className={cn("h-3.5 w-3.5", operation === "pushing" && "animate-bounce")} />
         </button>
         <button
           onClick={() => onExpandedChange(!isExpanded)}
           className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          aria-label={isCollapsed ? "show git" : "hide git"}
+          aria-label={isCollapsed ? "show git panel" : "hide git panel"}
         >
           {isCollapsed ? (
             <ChevronUp className="h-3.5 w-3.5" />
