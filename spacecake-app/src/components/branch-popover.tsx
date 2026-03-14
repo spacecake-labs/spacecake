@@ -49,7 +49,7 @@ export function BranchPopover({ workspacePath, isExpanded }: BranchPopoverProps)
       if (isRight(result)) {
         setOpen(false)
       } else {
-        toast.error(result.value.description)
+        toast.error(result.value.description, { description: result.value.detail })
       }
     },
     [workspacePath],
@@ -64,7 +64,7 @@ export function BranchPopover({ workspacePath, isExpanded }: BranchPopoverProps)
       setOpen(false)
       toast.success(`created branch ${name}`)
     } else {
-      toast.error(result.value.description)
+      toast.error(result.value.description, { description: result.value.detail })
     }
   }, [workspacePath])
 
@@ -78,7 +78,7 @@ export function BranchPopover({ workspacePath, isExpanded }: BranchPopoverProps)
       toast.success(`deleted branch ${branchDeleteState.branchName}`)
       refreshBranches()
     } else {
-      toast.error(result.value.description)
+      toast.error(result.value.description, { description: result.value.detail })
     }
     setBranchDeleteState({ isOpen: false })
   }, [workspacePath, branchDeleteState, setBranchDeleteState, refreshBranches])

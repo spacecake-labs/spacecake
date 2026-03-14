@@ -8,6 +8,13 @@ import type { AbsolutePath, FileContent, FileTree, FileTreeEvent } from "@/types
 
 export type MenuAction = "new-file" | "open-folder" | "save" | "save-all"
 
+export type SerializedGitError = {
+  _tag: "GitError"
+  description: string
+  code?: GitErrorCode
+  detail?: string
+}
+
 /** serialized PgliteError for IPC transport */
 export type SerializedPgliteError = { _tag: "PgliteError"; cause: string }
 
@@ -122,7 +129,7 @@ export interface ElectronAPI {
     isGitRepo: (workspacePath: string) => Promise<boolean>
     getStatus: (workspacePath: string) => Promise<
       Either<
-        { _tag: "GitError"; description: string; code?: GitErrorCode },
+        SerializedGitError,
         {
           modified: string[]
           staged: string[]
@@ -137,36 +144,25 @@ export interface ElectronAPI {
       filePath: string,
       baseRef?: string,
       targetRef?: string,
-    ) => Promise<
-      Either<
-        { _tag: "GitError"; description: string; code?: GitErrorCode },
-        { oldContent: string; newContent: string }
-      >
-    >
+    ) => Promise<Either<SerializedGitError, { oldContent: string; newContent: string }>>
     getCommitLog: (
       workspacePath: string,
       limit?: number,
     ) => Promise<
       Either<
-        { _tag: "GitError"; description: string; code?: GitErrorCode },
+        SerializedGitError,
         Array<{ hash: string; message: string; author: string; date: Date; files: string[] }>
       >
     >
-    stage: (
-      workspacePath: string,
-      files: string[],
-    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
-    unstage: (
-      workspacePath: string,
-      files: string[],
-    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
+    stage: (workspacePath: string, files: string[]) => Promise<Either<SerializedGitError, void>>
+    unstage: (workspacePath: string, files: string[]) => Promise<Either<SerializedGitError, void>>
     commit: (
       workspacePath: string,
       message: string,
       opts?: { amend?: boolean },
     ) => Promise<
       Either<
-        { _tag: "GitError"; description: string; code?: GitErrorCode },
+        SerializedGitError,
         {
           hash: string
           branch: string
@@ -176,7 +172,7 @@ export interface ElectronAPI {
     >
     listBranches: (workspacePath: string) => Promise<
       Either<
-        { _tag: "GitError"; description: string; code?: GitErrorCode },
+        SerializedGitError,
         {
           current: string
           all: string[]
@@ -187,43 +183,26 @@ export interface ElectronAPI {
         }
       >
     >
-    createBranch: (
-      workspacePath: string,
-      name: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
-    switchBranch: (
-      workspacePath: string,
-      name: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
+    createBranch: (workspacePath: string, name: string) => Promise<Either<SerializedGitError, void>>
+    switchBranch: (workspacePath: string, name: string) => Promise<Either<SerializedGitError, void>>
     deleteBranch: (
       workspacePath: string,
       name: string,
       force?: boolean,
-    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
-    push: (
-      workspacePath: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
-    pull: (
-      workspacePath: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
-    fetch: (
-      workspacePath: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
+    ) => Promise<Either<SerializedGitError, void>>
+    push: (workspacePath: string) => Promise<Either<SerializedGitError, void>>
+    pull: (workspacePath: string) => Promise<Either<SerializedGitError, void>>
+    fetch: (workspacePath: string) => Promise<Either<SerializedGitError, void>>
     getRemoteStatus: (
       workspacePath: string,
     ) => Promise<
       Either<
-        { _tag: "GitError"; description: string; code?: GitErrorCode },
+        SerializedGitError,
         { ahead: number; behind: number; tracking: string | null; current: string | null }
       >
     >
-    discardFile: (
-      workspacePath: string,
-      file: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
-    discardAll: (
-      workspacePath: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
+    discardFile: (workspacePath: string, file: string) => Promise<Either<SerializedGitError, void>>
+    discardAll: (workspacePath: string) => Promise<Either<SerializedGitError, void>>
   }
 }
 

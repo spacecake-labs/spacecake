@@ -205,7 +205,7 @@ describe("GitToolbar", () => {
     })
     await waitForEffects()
 
-    expect(mockToast.error).toHaveBeenCalledWith("network error")
+    expect(mockToast.error).toHaveBeenCalledWith("network error", { description: undefined })
   })
 
   it("expand/collapse button toggles and calls onExpandedChange", async () => {

@@ -175,7 +175,7 @@ const makeGitService = Effect.gen(function* () {
         const result = await git.branchLocal()
         return result.current
       },
-      catch: (e) => gitError("Failed to get branch", e),
+      catch: (e) => gitError("failed to get branch", e),
     })
 
   const isGitRepo = (workspacePath: string) =>
@@ -202,10 +202,7 @@ const makeGitService = Effect.gen(function* () {
       },
       catch: (e) => {
         console.error("Git status error for path:", workspacePath, e)
-        return gitError(
-          `Failed to get git status: ${e instanceof Error ? e.message : String(e)}`,
-          e,
-        )
+        return gitError("failed to get git status", e)
       },
     })
 

@@ -14,18 +14,12 @@ import { ClaudeSettingsFile, type StatuslineConfigStatus } from "@/services/clau
 import { ClaudeTaskListService } from "@/services/claude-task-list"
 import { Database, type DatabaseMethodName } from "@/services/database"
 import { FileSystem, type FileSystemError, type IndexedFile } from "@/services/file-system"
-import {
-  GitCommit,
-  GitError,
-  type GitErrorCode,
-  GitFileDiff,
-  GitService,
-  GitStatus,
-} from "@/services/git"
+import { GitCommit, GitError, GitFileDiff, GitService, GitStatus } from "@/services/git"
 import { SpacecakeHome } from "@/services/spacecake-home"
 import { Terminal } from "@/services/terminal"
 import { left, right, type Either } from "@/types/adt"
 import { ClaudeTaskError } from "@/types/claude-task"
+import type { SerializedGitError } from "@/types/electron"
 import { AbsolutePath, FileContent } from "@/types/workspace"
 
 // Plain object representation of FileSystemError for IPC serialization
@@ -387,17 +381,30 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       Effect.runPromise(git.isGitRepo(workspacePath)),
     )
 
-    // Plain object representation of GitError for IPC serialization
-    type SerializedGitError = {
-      _tag: "GitError"
-      description: string
-      code?: GitErrorCode
+    const tailLines = (text: string, max: number): string => {
+      const lines = text.split("\n").filter((l) => l.trim())
+      return lines.slice(-max).join("\n")
+    }
+
+    const extractDetail = (cause: unknown): string | undefined => {
+      if (!cause) return undefined
+      if (cause instanceof Error) {
+        const stderr = (cause as { stderr?: string }).stderr
+        const msg = cause.message
+        // for verbose output (hook failures, build logs), show the last few lines
+        // which typically contain the actual error reason
+        if (stderr) return tailLines(stderr, 4)
+        if (msg) return tailLines(msg, 4)
+        return undefined
+      }
+      return tailLines(String(cause), 4)
     }
 
     const serializeGitError = (error: GitError): SerializedGitError => ({
       _tag: "GitError",
       description: error.description,
       code: error.code,
+      detail: extractDetail(error.cause),
     })
 
     const gitHandler = <A>(effect: Effect.Effect<A, GitError>) =>

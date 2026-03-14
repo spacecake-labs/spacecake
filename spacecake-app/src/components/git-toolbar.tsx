@@ -51,7 +51,7 @@ export const GitToolbar = memo(function GitToolbar({
       if (isRight(result)) {
         await refreshRemoteStatus()
       } else {
-        toast.error(result.value.description)
+        toast.error(result.value.description, { description: result.value.detail })
       }
     } finally {
       setOperation("idle")
@@ -66,7 +66,7 @@ export const GitToolbar = memo(function GitToolbar({
         toast.success("pulled")
         await refreshRemoteStatus()
       } else {
-        toast.error(result.value.description)
+        toast.error(result.value.description, { description: result.value.detail })
       }
     } finally {
       setOperation("idle")
@@ -81,14 +81,18 @@ export const GitToolbar = memo(function GitToolbar({
         toast.success("pushed")
         await refreshRemoteStatus()
       } else {
-        toast.error(result.value.description)
+        toast.error(result.value.description, { description: result.value.detail })
       }
     } finally {
       setOperation("idle")
     }
   }, [workspacePath, setOperation, refreshRemoteStatus])
 
-  const isBusy = operation === "fetching" || operation === "pulling" || operation === "pushing" || operation === "committing"
+  const isBusy =
+    operation === "fetching" ||
+    operation === "pulling" ||
+    operation === "pushing" ||
+    operation === "committing"
 
   return (
     <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">

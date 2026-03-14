@@ -1,15 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import {
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Circle,
-  Copy,
-  File,
-  Loader2,
-  Undo2,
-} from "lucide-react"
+import { Check, ChevronDown, ChevronRight, Circle, Copy, File, Loader2, Undo2 } from "lucide-react"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -84,7 +75,7 @@ function GitCheckbox({
       }}
       onClick={(e) => e.stopPropagation()}
       className={cn(
-        "size-3.5 shrink-0 cursor-pointer appearance-none rounded-[3px] border border-input",
+        "size-3.5 shrink-0 cursor-pointer appearance-none rounded-[3px] border border-muted-foreground/60 bg-background hover:border-muted-foreground transition-colors",
         "checked:border-primary checked:bg-primary checked:bg-[url('data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22white%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M12.207%204.793a1%201%200%200%201%200%201.414l-5%205a1%201%200%200%201-1.414%200l-2-2a1%201%200%200%201%201.414-1.414L6.5%209.086l4.293-4.293a1%201%200%200%201%201.414%200z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-center",
         "indeterminate:border-primary indeterminate:bg-primary indeterminate:bg-[url('data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22white%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20x%3D%224%22%20y%3D%227%22%20width%3D%228%22%20height%3D%222%22%20rx%3D%221%22%2F%3E%3C%2Fsvg%3E')]",
       )}
@@ -430,10 +421,12 @@ function CommitForm({
         setMessage("")
         setAmend(false)
       } else {
-        toast.error(result.value.description)
+        toast.error(result.value.description, {
+          description: result.value.detail,
+        })
       }
     } catch (err) {
-      toast.error(`commit failed: ${err}`)
+      toast.error("commit failed", { description: String(err) })
     } finally {
       setOperation("idle")
     }
@@ -455,7 +448,12 @@ function CommitForm({
         disabled={isCommitting}
       />
       <div className="flex items-center justify-between">
-        <Button type="submit" size="sm" className="h-6 text-xs px-2 cursor-pointer" disabled={!canCommit}>
+        <Button
+          type="submit"
+          size="sm"
+          className="h-6 text-xs px-2 cursor-pointer"
+          disabled={!canCommit}
+        >
           {isCommitting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
           commit
         </Button>
@@ -491,10 +489,10 @@ function DiscardConfirmDialog({ workspacePath }: { workspacePath: AbsolutePath }
       if (isRight(result)) {
         toast.success(discardState.kind === "file" ? "changes discarded" : "all changes discarded")
       } else {
-        toast.error(result.value.description)
+        toast.error(result.value.description, { description: result.value.detail })
       }
     } catch (err) {
-      toast.error(`discard failed: ${err}`)
+      toast.error("discard failed", { description: String(err) })
     } finally {
       setOperation("idle")
       setDiscardState({ isOpen: false })
@@ -518,10 +516,19 @@ function DiscardConfirmDialog({ workspacePath }: { workspacePath: AbsolutePath }
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" className="cursor-pointer" onClick={() => setDiscardState({ isOpen: false })}>
+          <Button
+            variant="outline"
+            className="cursor-pointer"
+            onClick={() => setDiscardState({ isOpen: false })}
+          >
             cancel
           </Button>
-          <Button variant="destructive" className="cursor-pointer" onClick={handleDiscard} disabled={isBusy}>
+          <Button
+            variant="destructive"
+            className="cursor-pointer"
+            onClick={handleDiscard}
+            disabled={isBusy}
+          >
             discard
           </Button>
         </DialogFooter>
@@ -650,6 +657,22 @@ function WorkingTreeFilesPane({
     })
   }, [baseFiles, optimisticToggles])
 
+  // auto-stage newly detected unstaged files (default "select all" like github desktop)
+  const knownPathsRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    const newUnstaged = baseFiles.filter((f) => !f.isStaged && !knownPathsRef.current.has(f.path))
+    knownPathsRef.current = new Set(baseFiles.map((f) => f.path))
+
+    if (newUnstaged.length > 0) {
+      const paths = newUnstaged.map((f) => f.path)
+      window.electronAPI.git.stage(workspacePath, paths).then((result) => {
+        if (!isRight(result)) {
+          console.error("auto-stage failed:", result.value)
+        }
+      })
+    }
+  }, [baseFiles, workspacePath])
+
   const stagedCount = useMemo(() => allFiles.filter((f) => f.isStaged).length, [allFiles])
   const allStaged = allFiles.length > 0 && stagedCount === allFiles.length
   const someStaged = stagedCount > 0 && !allStaged
@@ -663,7 +686,8 @@ function WorkingTreeFilesPane({
         const result = newStaged
           ? await window.electronAPI.git.stage(workspacePath, [filePath])
           : await window.electronAPI.git.unstage(workspacePath, [filePath])
-        if (!isRight(result)) toast.error(result.value.description)
+        if (!isRight(result))
+          toast.error(result.value.description, { description: result.value.detail })
       } finally {
         setOperation("idle")
       }
@@ -689,11 +713,13 @@ function WorkingTreeFilesPane({
       if (allStaged) {
         const paths = allFiles.filter((f) => f.isStaged).map((f) => f.path)
         const result = await window.electronAPI.git.unstage(workspacePath, paths)
-        if (!isRight(result)) toast.error(result.value.description)
+        if (!isRight(result))
+          toast.error(result.value.description, { description: result.value.detail })
       } else {
         const paths = allFiles.filter((f) => !f.isStaged).map((f) => f.path)
         const result = await window.electronAPI.git.stage(workspacePath, paths)
-        if (!isRight(result)) toast.error(result.value.description)
+        if (!isRight(result))
+          toast.error(result.value.description, { description: result.value.detail })
       }
     } finally {
       setOperation("idle")

@@ -268,6 +268,6 @@ describe("BranchPopover", () => {
     })
     await waitForEffects()
 
-    expect(mockToast.error).toHaveBeenCalledWith("branch error")
+    expect(mockToast.error).toHaveBeenCalledWith("branch error", { description: undefined })
   })
 })

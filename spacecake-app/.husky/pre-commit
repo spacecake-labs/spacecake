@@ -1,2 +1,16 @@
 cd spacecake-app
-just check
+
+# capture the list of currently staged files before running fixers
+staged=$(git diff --cached --name-only --diff-filter=d --relative)
+
+# auto-fix: format and lint the whole codebase
+just format
+just lint
+
+# re-stage only files that were already staged (preserves partial staging)
+if [ -n "$staged" ]; then
+  echo "$staged" | xargs git add
+fi
+
+# type check — block the commit if this fails
+just tc
