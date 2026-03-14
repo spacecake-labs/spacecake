@@ -100,6 +100,7 @@ jobs:
           cwd: ./spacecake-app
           publish: pnpm run publish -- --arch=${{ matrix.arch }}
         env:
+          HUSKY: "0"
           # changesets action uses this for PR creation
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Credentials for Apple Notarization
