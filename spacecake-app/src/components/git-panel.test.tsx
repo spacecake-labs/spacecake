@@ -180,7 +180,7 @@ describe("GitPanel", () => {
     renderPanel(api)
     await waitForEffects()
 
-    expect(container.textContent).toContain("commits")
+    expect(container.textContent).toContain("history")
     expect(container.textContent).toContain("working tree")
   })
 
@@ -481,7 +481,7 @@ describe("working tree files", () => {
     renderPanel(api)
     await waitForEffects()
 
-    expect(container.textContent).toContain("staged changes")
+    expect(container.textContent).toContain("changes")
     const aBadge = Array.from(container.querySelectorAll("span")).find(
       (s) => s.textContent === "A" && s.classList.contains("text-green-500"),
     )
@@ -526,7 +526,7 @@ describe("working tree files", () => {
     expect(dBadge!.title).toBe("deleted")
   })
 
-  it("both sections render when both exist", async () => {
+  it("both staged and unstaged files render in unified changes section", async () => {
     const { api } = createMockGitAPI({
       status: {
         modified: ["mod.ts"],
@@ -539,48 +539,9 @@ describe("working tree files", () => {
     renderPanel(api)
     await waitForEffects()
 
-    expect(container.textContent).toContain("staged changes")
     expect(container.textContent).toContain("changes")
-  })
-
-  it("sections collapse/expand on click", async () => {
-    const { api } = createMockGitAPI({
-      status: {
-        modified: ["mod.ts"],
-        staged: [],
-        untracked: [],
-        deleted: [],
-        conflicted: [],
-      },
-    })
-    renderPanel(api)
-    await waitForEffects()
-
-    // find the collapsible trigger for "changes"
-    const trigger = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("changes"),
-    )
-    expect(trigger).toBeDefined()
-
-    // content should start open
-    const collapsibleContent = container.querySelector('[data-state="open"]')
-    expect(collapsibleContent).not.toBeNull()
-
-    // click to collapse
-    await act(async () => {
-      trigger!.click()
-    })
-
-    const closedContent = container.querySelector('[data-state="closed"]')
-    expect(closedContent).not.toBeNull()
-
-    // click to re-expand
-    await act(async () => {
-      trigger!.click()
-    })
-
-    const reopenedContent = container.querySelector('[data-state="open"]')
-    expect(reopenedContent).not.toBeNull()
+    expect(container.textContent).toContain("mod.ts")
+    expect(container.textContent).toContain("staged.ts")
   })
 })
 

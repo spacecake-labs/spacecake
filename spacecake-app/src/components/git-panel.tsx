@@ -358,7 +358,7 @@ function CommitPane({
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">commits</div>
+      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">history</div>
       <div ref={scrollRef} className="flex-1 overflow-auto p-1">
         <WorkingTreeItem
           isSelected={selectedCommit === "working-tree"}
@@ -730,9 +730,7 @@ function WorkingTreeFilesPane({
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">
-        working tree
-      </div>
+      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">&nbsp;</div>
       <CommitForm workspacePath={workspacePath} hasStagedFiles={stagedCount > 0} />
       <div className="flex-1 overflow-auto p-1">
         {hasNoChanges ? (
