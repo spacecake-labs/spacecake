@@ -165,8 +165,8 @@ const FileItem = memo(function FileItem({
             <GitCheckbox
               checked={isStaged ?? false}
               onChange={onToggleStage}
-              title={isStaged ? "unstage changes" : "stage changes"}
-              aria-label={isStaged ? "unstage changes" : "stage changes"}
+              title={isStaged ? "exclude from commit" : "include in commit"}
+              aria-label={isStaged ? "exclude from commit" : "include in commit"}
             />
           )}
           <File className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
@@ -396,26 +396,25 @@ function CommitPane({
 
 function CommitForm({
   workspacePath,
-  hasStagedFiles,
+  includedFiles,
 }: {
   workspacePath: AbsolutePath
-  hasStagedFiles: boolean
+  includedFiles: string[]
 }) {
   const [message, setMessage] = useAtom(commitMessageAtom)
   const [amend, setAmend] = useAtom(commitAmendAtom)
   const isCommitting = useAtomValue(isCommittingAtom)
   const setOperation = useSetAtom(gitOperationAtom)
-  const canCommit = hasStagedFiles && (message.trim() !== "" || amend) && !isCommitting
+  const canCommit = includedFiles.length > 0 && (message.trim() !== "" || amend) && !isCommitting
 
   const handleCommit = useCallback(async () => {
     if (!canCommit) return
     setOperation("committing")
     try {
-      const result = await window.electronAPI.git.commit(
-        workspacePath,
-        message,
-        amend ? { amend: true } : undefined,
-      )
+      const result = await window.electronAPI.git.commit(workspacePath, message, {
+        amend: amend || undefined,
+        files: includedFiles,
+      })
       if (isRight(result)) {
         toast.success(`committed ${result.value.hash.substring(0, 7)}`)
         setMessage("")
@@ -430,7 +429,7 @@ function CommitForm({
     } finally {
       setOperation("idle")
     }
-  }, [canCommit, workspacePath, message, amend, setOperation, setMessage, setAmend])
+  }, [canCommit, workspacePath, message, amend, includedFiles, setOperation, setMessage, setAmend])
 
   return (
     <form
@@ -540,20 +539,20 @@ function DiscardConfirmDialog({ workspacePath }: { workspacePath: AbsolutePath }
 interface UnifiedFile {
   path: string
   status: FileStatus
-  isStaged: boolean
+  isIncluded: boolean
 }
 
 const ChangeFileRow = memo(function ChangeFileRow({
   file,
   workspacePath,
   onFileClick,
-  onToggleStage,
+  onToggleInclude,
   onDiscard,
 }: {
   file: UnifiedFile
   workspacePath: AbsolutePath
   onFileClick?: (filePath: AbsolutePath) => void
-  onToggleStage: (filePath: string, isCurrentlyStaged: boolean) => void
+  onToggleInclude: (filePath: string) => void
   onDiscard: (filePath: string) => void
 }) {
   const fullPath = `${workspacePath}/${file.path}`
@@ -563,8 +562,8 @@ const ChangeFileRow = memo(function ChangeFileRow({
   }, [onFileClick, fullPath])
 
   const handleToggle = useCallback(() => {
-    onToggleStage(file.path, file.isStaged)
-  }, [onToggleStage, file.path, file.isStaged])
+    onToggleInclude(file.path)
+  }, [onToggleInclude, file.path])
 
   const handleDiscard = useCallback(() => {
     onDiscard(file.path)
@@ -575,7 +574,7 @@ const ChangeFileRow = memo(function ChangeFileRow({
       file={file.path}
       fullPath={fullPath}
       status={file.status}
-      isStaged={file.isStaged}
+      isStaged={file.isIncluded}
       onClick={handleClick}
       onToggleStage={handleToggle}
       onDiscard={handleDiscard}
@@ -593,107 +592,69 @@ function WorkingTreeFilesPane({
   onFileClick?: (filePath: AbsolutePath) => void
 }) {
   const setDiscardState = useSetAtom(discardStateAtom)
-  const setOperation = useSetAtom(gitOperationAtom)
 
   const conflictedFiles = useMemo<Array<{ path: string; status: FileStatus }>>(
     () => status?.conflicted.map((path) => ({ path, status: "conflicted" as FileStatus })) ?? [],
     [status?.conflicted],
   )
 
-  // unified file list: staged + unstaged deduplicated by path
-  const baseFiles = useMemo<UnifiedFile[]>(() => {
-    const fileMap = new Map<string, UnifiedFile>()
+  // unified file list from git status — all files default to included (ui-only state)
+  const changedPaths = useMemo(() => {
+    const fileMap = new Map<string, FileStatus>()
 
     for (const path of status?.staged ?? []) {
-      fileMap.set(path, { path, status: "added", isStaged: true })
+      fileMap.set(path, "added")
     }
     for (const path of status?.modified ?? []) {
-      const existing = fileMap.get(path)
-      if (existing) {
-        existing.status = "modified"
-      } else {
-        fileMap.set(path, { path, status: "modified", isStaged: false })
-      }
+      fileMap.set(path, "modified")
     }
     for (const path of status?.untracked ?? []) {
-      fileMap.set(path, { path, status: "untracked", isStaged: false })
+      fileMap.set(path, "untracked")
     }
     for (const path of status?.deleted ?? []) {
-      const existing = fileMap.get(path)
-      if (existing) {
-        existing.status = "deleted"
-      } else {
-        fileMap.set(path, { path, status: "deleted", isStaged: false })
-      }
+      fileMap.set(path, "deleted")
     }
 
-    return Array.from(fileMap.values()).sort((a, b) => a.path.localeCompare(b.path))
+    return Array.from(fileMap.entries())
+      .map(([path, fileStatus]) => ({ path, status: fileStatus }))
+      .sort((a, b) => a.path.localeCompare(b.path))
   }, [status?.staged, status?.modified, status?.untracked, status?.deleted])
 
-  // optimistic checkbox state — reconciled when real git status arrives
-  const [optimisticToggles, setOptimisticToggles] = useState<Map<string, boolean>>(new Map())
+  // ui-only inclusion state — tracks which files are unchecked (all included by default)
+  const [excludedPaths, setExcludedPaths] = useState<Set<string>>(new Set())
+
+  // clean up excluded paths when files disappear from the working tree
   useEffect(() => {
-    setOptimisticToggles((prev) => {
-      if (prev.size === 0) return prev
-      const stagedSet = new Set(status?.staged)
-      const remaining = new Map<string, boolean>()
-      for (const [path, optimisticStaged] of prev) {
-        const reallyStaged = stagedSet.has(path)
-        if (reallyStaged !== optimisticStaged) {
-          remaining.set(path, optimisticStaged)
-        }
+    const currentPaths = new Set(changedPaths.map((f) => f.path))
+    setExcludedPaths((prev) => {
+      const next = new Set<string>()
+      for (const p of prev) {
+        if (currentPaths.has(p)) next.add(p)
       }
-      // return same reference if nothing was cleared — avoids re-render loop
-      return remaining.size === prev.size ? prev : remaining
+      return next.size === prev.size ? prev : next
     })
-  }, [status])
+  }, [changedPaths])
 
-  // apply optimistic overrides so checkboxes respond immediately
-  const allFiles = useMemo(() => {
-    if (optimisticToggles.size === 0) return baseFiles
-    return baseFiles.map((f) => {
-      const override = optimisticToggles.get(f.path)
-      return override !== undefined ? { ...f, isStaged: override } : f
-    })
-  }, [baseFiles, optimisticToggles])
-
-  // auto-stage newly detected unstaged files (default "select all" like github desktop)
-  const knownPathsRef = useRef<Set<string>>(new Set())
-  useEffect(() => {
-    const newUnstaged = baseFiles.filter((f) => !f.isStaged && !knownPathsRef.current.has(f.path))
-    knownPathsRef.current = new Set(baseFiles.map((f) => f.path))
-
-    if (newUnstaged.length > 0) {
-      const paths = newUnstaged.map((f) => f.path)
-      window.electronAPI.git.stage(workspacePath, paths).then((result) => {
-        if (!isRight(result)) {
-          console.error("auto-stage failed:", result.value)
-        }
-      })
-    }
-  }, [baseFiles, workspacePath])
-
-  const stagedCount = useMemo(() => allFiles.filter((f) => f.isStaged).length, [allFiles])
-  const allStaged = allFiles.length > 0 && stagedCount === allFiles.length
-  const someStaged = stagedCount > 0 && !allStaged
-
-  const handleToggleFile = useCallback(
-    async (filePath: string, isCurrentlyStaged: boolean) => {
-      const newStaged = !isCurrentlyStaged
-      setOptimisticToggles((prev) => new Map(prev).set(filePath, newStaged))
-      setOperation("staging")
-      try {
-        const result = newStaged
-          ? await window.electronAPI.git.stage(workspacePath, [filePath])
-          : await window.electronAPI.git.unstage(workspacePath, [filePath])
-        if (!isRight(result))
-          toast.error(result.value.description, { description: result.value.detail })
-      } finally {
-        setOperation("idle")
-      }
-    },
-    [workspacePath, setOperation],
+  const allFiles = useMemo<UnifiedFile[]>(
+    () => changedPaths.map((f) => ({ ...f, isIncluded: !excludedPaths.has(f.path) })),
+    [changedPaths, excludedPaths],
   )
+
+  const includedCount = useMemo(() => allFiles.filter((f) => f.isIncluded).length, [allFiles])
+  const allIncluded = allFiles.length > 0 && includedCount === allFiles.length
+  const someIncluded = includedCount > 0 && !allIncluded
+
+  const handleToggleFile = useCallback((filePath: string) => {
+    setExcludedPaths((prev) => {
+      const next = new Set(prev)
+      if (next.has(filePath)) {
+        next.delete(filePath)
+      } else {
+        next.add(filePath)
+      }
+      return next
+    })
+  }, [])
 
   const handleDiscard = useCallback(
     (filePath: string) => {
@@ -702,36 +663,23 @@ function WorkingTreeFilesPane({
     [setDiscardState],
   )
 
-  const handleToggleAll = useCallback(async () => {
-    const toggleMap = new Map<string, boolean>()
-    for (const f of allFiles) {
-      toggleMap.set(f.path, !allStaged)
+  const handleToggleAll = useCallback(() => {
+    if (allIncluded) {
+      setExcludedPaths(new Set(changedPaths.map((f) => f.path)))
+    } else {
+      setExcludedPaths(new Set())
     }
-    setOptimisticToggles(toggleMap)
-    setOperation("staging")
-    try {
-      if (allStaged) {
-        const paths = allFiles.filter((f) => f.isStaged).map((f) => f.path)
-        const result = await window.electronAPI.git.unstage(workspacePath, paths)
-        if (!isRight(result))
-          toast.error(result.value.description, { description: result.value.detail })
-      } else {
-        const paths = allFiles.filter((f) => !f.isStaged).map((f) => f.path)
-        const result = await window.electronAPI.git.stage(workspacePath, paths)
-        if (!isRight(result))
-          toast.error(result.value.description, { description: result.value.detail })
-      }
-    } finally {
-      setOperation("idle")
-    }
-  }, [workspacePath, allFiles, allStaged, setOperation])
+  }, [allIncluded, changedPaths])
 
   const hasNoChanges = conflictedFiles.length === 0 && allFiles.length === 0
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">&nbsp;</div>
-      <CommitForm workspacePath={workspacePath} hasStagedFiles={stagedCount > 0} />
+      <CommitForm
+        workspacePath={workspacePath}
+        includedFiles={allFiles.filter((f) => f.isIncluded).map((f) => f.path)}
+      />
       <div className="flex-1 overflow-auto p-1">
         {hasNoChanges ? (
           <div className="text-sm text-muted-foreground text-center py-4">no changes</div>
@@ -746,11 +694,11 @@ function WorkingTreeFilesPane({
               <div>
                 <div className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-medium">
                   <GitCheckbox
-                    checked={allStaged}
-                    indeterminate={someStaged}
+                    checked={allIncluded}
+                    indeterminate={someIncluded}
                     onChange={handleToggleAll}
-                    title={allStaged ? "unstage all changes" : "stage all changes"}
-                    aria-label={allStaged ? "unstage all changes" : "stage all changes"}
+                    title={allIncluded ? "exclude all changes" : "include all changes"}
+                    aria-label={allIncluded ? "exclude all changes" : "include all changes"}
                   />
                   <span>changes</span>
                   <Badge variant="secondary" className="ml-auto text-xs">
@@ -772,7 +720,7 @@ function WorkingTreeFilesPane({
                       file={file}
                       workspacePath={workspacePath}
                       onFileClick={onFileClick}
-                      onToggleStage={handleToggleFile}
+                      onToggleInclude={handleToggleFile}
                       onDiscard={handleDiscard}
                     />
                   ))}

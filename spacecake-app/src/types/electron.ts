@@ -159,7 +159,7 @@ export interface ElectronAPI {
     commit: (
       workspacePath: string,
       message: string,
-      opts?: { amend?: boolean },
+      opts?: { amend?: boolean; files?: string[] },
     ) => Promise<
       Either<
         SerializedGitError,

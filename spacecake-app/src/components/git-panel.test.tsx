@@ -782,3 +782,179 @@ describe("commit selection", () => {
     expect(container.textContent).toContain("dirty.ts")
   })
 })
+
+describe("ui-only inclusion state", () => {
+  let container: HTMLDivElement
+  let root: Root
+  let store: ReturnType<typeof createStore>
+
+  beforeEach(() => {
+    container = document.createElement("div")
+    document.body.appendChild(container)
+    root = createRoot(container)
+    store = createStore()
+  })
+
+  afterEach(() => {
+    act(() => root.unmount())
+    container.remove()
+    vi.restoreAllMocks()
+  })
+
+  function renderPanel(gitApi: ReturnType<typeof createMockGitAPI>["api"]) {
+    window.electronAPI = {
+      git: gitApi,
+      onFileEvent: vi.fn(() => () => {}),
+    } as unknown as ElectronAPI
+    act(() => {
+      root.render(
+        <Provider store={store}>
+          <GitPanel workspacePath={TEST_WORKSPACE} />
+        </Provider>,
+      )
+    })
+  }
+
+  it("all file checkboxes are checked by default (no git.stage called)", async () => {
+    const { api } = createMockGitAPI({
+      status: {
+        modified: ["a.ts", "b.ts"],
+        staged: [],
+        untracked: ["c.ts"],
+        deleted: [],
+        conflicted: [],
+      },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // file-level checkboxes have "include in commit" or "exclude from commit" labels
+    const checkboxes = Array.from(
+      container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+    ).filter((cb) => {
+      const label = cb.getAttribute("aria-label") ?? ""
+      return label === "include in commit" || label === "exclude from commit"
+    })
+    expect(checkboxes.length).toBe(3)
+    expect(checkboxes.every((cb) => cb.checked)).toBe(true)
+
+    // git.stage should never have been called
+    expect(api.stage).not.toHaveBeenCalled()
+  })
+
+  it("toggling a checkbox does not call git.stage or git.unstage", async () => {
+    const { api } = createMockGitAPI({
+      status: {
+        modified: ["a.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    const checkbox = container.querySelector<HTMLInputElement>(
+      'input[type="checkbox"][aria-label="exclude from commit"]',
+    )
+    expect(checkbox).toBeDefined()
+
+    await act(async () => {
+      checkbox!.click()
+    })
+
+    expect(api.stage).not.toHaveBeenCalled()
+    expect(api.unstage).not.toHaveBeenCalled()
+    expect(checkbox!.checked).toBe(false)
+  })
+
+  it("commit passes included files to the ipc call", async () => {
+    const { api } = createMockGitAPI({
+      status: {
+        modified: ["a.ts", "b.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // uncheck b.ts — find the checkbox in the row containing "b.ts"
+    const fileRows = Array.from(container.querySelectorAll('[role="button"]'))
+    const bRow = fileRows.find((r) => r.textContent?.includes("b.ts"))
+    const bCheckbox = bRow?.querySelector<HTMLInputElement>('input[type="checkbox"]')
+    expect(bCheckbox).toBeDefined()
+    await act(async () => {
+      bCheckbox!.click()
+    })
+
+    // type commit message and submit
+    const input = container.querySelector<HTMLInputElement>('input[placeholder="commit message"]')!
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!
+      nativeInputValueSetter.call(input, "test commit")
+      input.dispatchEvent(new Event("input", { bubbles: true }))
+      input.dispatchEvent(new Event("change", { bubbles: true }))
+    })
+    await waitForEffects()
+
+    const commitBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "commit",
+    )
+    expect(commitBtn).toBeDefined()
+    await act(async () => {
+      commitBtn!.click()
+    })
+    await waitForEffects()
+
+    expect(api.commit).toHaveBeenCalledWith(
+      TEST_WORKSPACE,
+      "test commit",
+      expect.objectContaining({ files: ["a.ts"] }),
+    )
+  })
+
+  it("toggling header checkbox excludes/includes all files", async () => {
+    const { api } = createMockGitAPI({
+      status: {
+        modified: ["a.ts", "b.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    // find the header checkbox ("exclude all changes")
+    const headerCheckbox = container.querySelector<HTMLInputElement>(
+      'input[type="checkbox"][aria-label="exclude all changes"]',
+    )
+    expect(headerCheckbox).toBeDefined()
+
+    // click to exclude all
+    await act(async () => {
+      headerCheckbox!.click()
+    })
+
+    // all file checkboxes should be unchecked
+    const fileCheckboxes = Array.from(
+      container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+    ).filter((cb) => {
+      const label = cb.getAttribute("aria-label") ?? ""
+      return label === "include in commit" || label === "exclude from commit"
+    })
+    expect(fileCheckboxes.every((cb) => !cb.checked)).toBe(true)
+
+    // no staging ipc calls
+    expect(api.stage).not.toHaveBeenCalled()
+    expect(api.unstage).not.toHaveBeenCalled()
+  })
+})

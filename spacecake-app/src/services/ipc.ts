@@ -468,7 +468,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
 
     ipcMain.handle(
       "git:commit",
-      (_, workspacePath: string, message: string, opts?: { amend?: boolean }) =>
+      (_, workspacePath: string, message: string, opts?: { amend?: boolean; files?: string[] }) =>
         gitHandler(git.commit(workspacePath, message, opts)),
     )
 

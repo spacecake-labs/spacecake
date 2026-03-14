@@ -351,7 +351,7 @@ const makeGitService = Effect.gen(function* () {
   const commit = (
     workspacePath: string,
     message: string,
-    opts?: { amend?: boolean },
+    opts?: { amend?: boolean; files?: string[] },
   ): Effect.Effect<GitCommitResult, GitError> =>
     withMutex(
       workspacePath,
@@ -359,6 +359,11 @@ const makeGitService = Effect.gen(function* () {
         Effect.tryPromise({
           try: async () => {
             const git = getGit(workspacePath)
+            // github desktop pattern: unstage all → stage selected → commit
+            if (opts?.files) {
+              await git.reset(["--", "."])
+              await git.add(opts.files)
+            }
             const options: Record<string, string | null> = {}
             if (opts?.amend) {
               options["--amend"] = null
@@ -462,6 +467,8 @@ const makeGitService = Effect.gen(function* () {
         Effect.tryPromise({
           try: async () => {
             const git = getGit(workspacePath)
+            // unstage first so checkout restores from HEAD, not the index
+            await git.reset(["HEAD", "--", file]).catch(() => {})
             const status = await git.status()
             const isUntracked = status.not_added.includes(file)
             if (isUntracked) {
@@ -482,6 +489,8 @@ const makeGitService = Effect.gen(function* () {
         Effect.tryPromise({
           try: async () => {
             const git = getGit(workspacePath)
+            // unstage everything first so checkout restores from HEAD
+            await git.reset(["HEAD"]).catch(() => {})
             await git.checkout(["--", "."])
             await git.clean("f", ["-d"])
           },

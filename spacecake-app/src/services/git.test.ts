@@ -406,6 +406,48 @@ describe("GitService", () => {
         expect(error._tag).toBe("GitError")
       }).pipe(Effect.provide(createTestLayer())),
     )
+
+    it.effect("with files: resets staging, adds selected files, then commits", () =>
+      Effect.gen(function* () {
+        mockReset.mockResolvedValue(undefined)
+        mockAdd.mockResolvedValue(undefined)
+        mockCommit.mockResolvedValue(mockResult)
+        const service = yield* GitService
+        yield* service.commit("/my/workspace", "selective commit", {
+          files: ["src/a.ts", "src/b.ts"],
+        })
+        expect(mockReset).toHaveBeenCalledWith(["--", "."])
+        expect(mockAdd).toHaveBeenCalledWith(["src/a.ts", "src/b.ts"])
+        expect(mockCommit).toHaveBeenCalledWith("selective commit", undefined, {})
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("with files + amend: resets, adds, then amend-commits", () =>
+      Effect.gen(function* () {
+        mockReset.mockResolvedValue(undefined)
+        mockAdd.mockResolvedValue(undefined)
+        mockCommit.mockResolvedValue(mockResult)
+        const service = yield* GitService
+        yield* service.commit("/my/workspace", "amend msg", {
+          files: ["src/a.ts"],
+          amend: true,
+        })
+        expect(mockReset).toHaveBeenCalledWith(["--", "."])
+        expect(mockAdd).toHaveBeenCalledWith(["src/a.ts"])
+        expect(mockCommit).toHaveBeenCalledWith("amend msg", undefined, { "--amend": null })
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("without files: does not call reset or add", () =>
+      Effect.gen(function* () {
+        mockCommit.mockResolvedValue(mockResult)
+        const service = yield* GitService
+        yield* service.commit("/my/workspace", "normal commit")
+        expect(mockReset).not.toHaveBeenCalled()
+        expect(mockAdd).not.toHaveBeenCalled()
+        expect(mockCommit).toHaveBeenCalledWith("normal commit", undefined, {})
+      }).pipe(Effect.provide(createTestLayer())),
+    )
   })
 
   describe("listBranches", () => {
@@ -607,22 +649,26 @@ describe("GitService", () => {
   })
 
   describe("discardFileChanges", () => {
-    it.effect("calls git.clean for untracked files", () =>
+    it.effect("unstages then calls git.clean for untracked files", () =>
       Effect.gen(function* () {
+        mockReset.mockResolvedValue(undefined)
         mockStatus.mockResolvedValue({ not_added: ["untracked.ts"], modified: [] })
         mockClean.mockResolvedValue(undefined)
         const service = yield* GitService
         yield* service.discardFileChanges("/my/workspace", "untracked.ts")
+        expect(mockReset).toHaveBeenCalledWith(["HEAD", "--", "untracked.ts"])
         expect(mockClean).toHaveBeenCalledWith("f", ["--", "untracked.ts"])
       }).pipe(Effect.provide(createTestLayer())),
     )
 
-    it.effect("calls git.checkout for tracked files", () =>
+    it.effect("unstages then calls git.checkout for tracked files", () =>
       Effect.gen(function* () {
+        mockReset.mockResolvedValue(undefined)
         mockStatus.mockResolvedValue({ not_added: [], modified: ["tracked.ts"] })
         mockCheckout.mockResolvedValue(undefined)
         const service = yield* GitService
         yield* service.discardFileChanges("/my/workspace", "tracked.ts")
+        expect(mockReset).toHaveBeenCalledWith(["HEAD", "--", "tracked.ts"])
         expect(mockCheckout).toHaveBeenCalledWith(["--", "tracked.ts"])
       }).pipe(Effect.provide(createTestLayer())),
     )
@@ -640,12 +686,14 @@ describe("GitService", () => {
   })
 
   describe("discardAllChanges", () => {
-    it.effect("calls git.checkout then git.clean", () =>
+    it.effect("unstages then calls git.checkout then git.clean", () =>
       Effect.gen(function* () {
+        mockReset.mockResolvedValue(undefined)
         mockCheckout.mockResolvedValue(undefined)
         mockClean.mockResolvedValue(undefined)
         const service = yield* GitService
         yield* service.discardAllChanges("/my/workspace")
+        expect(mockReset).toHaveBeenCalledWith(["HEAD"])
         expect(mockCheckout).toHaveBeenCalledWith(["--", "."])
         expect(mockClean).toHaveBeenCalledWith("f", ["-d"])
       }).pipe(Effect.provide(createTestLayer())),

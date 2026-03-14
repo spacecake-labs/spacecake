@@ -149,8 +149,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("git:stage", workspacePath, files),
     unstage: (workspacePath: string, files: string[]) =>
       ipcRenderer.invoke("git:unstage", workspacePath, files),
-    commit: (workspacePath: string, message: string, opts?: { amend?: boolean }) =>
-      ipcRenderer.invoke("git:commit", workspacePath, message, opts),
+    commit: (
+      workspacePath: string,
+      message: string,
+      opts?: { amend?: boolean; files?: string[] },
+    ) => ipcRenderer.invoke("git:commit", workspacePath, message, opts),
     listBranches: (workspacePath: string) => ipcRenderer.invoke("git:branch:list", workspacePath),
     createBranch: (workspacePath: string, name: string) =>
       ipcRenderer.invoke("git:branch:create", workspacePath, name),
