@@ -1,4 +1,5 @@
 import * as Data from "effect/Data"
+import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
 import simpleGit, { type SimpleGit } from "simple-git"
 
@@ -230,7 +231,7 @@ type WorkspaceState = {
 const makeGitService = Effect.gen(function* () {
   const fs = yield* FileSystem
   const workspaces = new Map<string, WorkspaceState>()
-  const dedup = new Map<string, Promise<unknown>>()
+  const dedup = new Map<string, Deferred.Deferred<unknown, GitError>>()
 
   const getWorkspace = (workspacePath: string): WorkspaceState => {
     if (!workspaces.has(workspacePath)) {
@@ -251,35 +252,27 @@ const makeGitService = Effect.gen(function* () {
     return semaphore.withPermits(1)(effect)
   }
 
-  // -- dedup throttle for reads --
+  // -- dedup using Effect Deferred (stays in fiber context) --
 
   const deduplicated = <A>(
     key: string,
     effect: Effect.Effect<A, GitError>,
   ): Effect.Effect<A, GitError> =>
     Effect.suspend(() => {
-      const inflight = dedup.get(key)
-      if (inflight) {
-        return Effect.tryPromise({
-          try: () => inflight as Promise<A>,
-          catch: (e) => new GitError({ description: String(e), code: classifyGitError(e) }),
-        })
+      const existing = dedup.get(key)
+      if (existing) {
+        return Deferred.await(existing) as Effect.Effect<A, GitError>
       }
 
-      const promise = Effect.runPromise(
-        effect.pipe(
-          Effect.tapBoth({
-            onFailure: () => Effect.sync(() => dedup.delete(key)),
-            onSuccess: () => Effect.sync(() => dedup.delete(key)),
-          }),
-        ),
-      )
-      dedup.set(key, promise)
-
-      return Effect.tryPromise({
-        try: () => promise,
-        catch: (e) => new GitError({ description: String(e), code: classifyGitError(e) }),
-      })
+      return Effect.gen(function* () {
+        const d = yield* Deferred.make<unknown, GitError>()
+        dedup.set(key, d)
+        return yield* effect.pipe(
+          Effect.tap((a) => Deferred.succeed(d, a)),
+          Effect.tapError((e) => Deferred.fail(d, e)),
+          Effect.ensuring(Effect.sync(() => dedup.delete(key))),
+        )
+      }) as Effect.Effect<A, GitError>
     })
 
   // -- git error helper --
@@ -289,62 +282,55 @@ const makeGitService = Effect.gen(function* () {
 
   // -- read operations --
 
-  const getCurrentBranch = (workspacePath: string) =>
-    Effect.tryPromise({
-      try: async () => {
-        const git = getGit(workspacePath)
-        const result = await git.branchLocal()
-        return result.current
-      },
+  const getCurrentBranch = Effect.fn("GitService.getCurrentBranch")(function* (
+    workspacePath: string,
+  ) {
+    const git = getGit(workspacePath)
+    const result = yield* Effect.tryPromise({
+      try: () => git.branchLocal(),
       catch: (e) => gitError("failed to get branch", e),
     })
+    return result.current
+  })
 
   const isGitRepo = (workspacePath: string) =>
-    Effect.tryPromise({
-      try: async () => {
-        const git = getGit(workspacePath)
-        return await git.checkIsRepo()
-      },
-      catch: () => false,
-    }).pipe(Effect.catchAll(() => Effect.succeed(false)))
+    Effect.tryPromise(() => getGit(workspacePath).checkIsRepo()).pipe(
+      Effect.catchAll(() => Effect.succeed(false)),
+      Effect.withSpan("GitService.isGitRepo"),
+    )
 
-  const _getStatus = (workspacePath: string): Effect.Effect<GitStatus, GitError> =>
-    Effect.tryPromise({
-      try: async () => {
-        const git = getGit(workspacePath)
-        const raw = await git.raw([
+  const _getStatus = Effect.fn("GitService.getStatus")(function* (workspacePath: string) {
+    const git = getGit(workspacePath)
+    const raw = yield* Effect.tryPromise({
+      try: () =>
+        git.raw([
           "--no-optional-locks",
           "status",
           "--porcelain=v2",
           "-z",
           "--branch",
           "--untracked-files=all",
-        ])
-        const parsed = parsePorcelainV2(raw)
-        return {
-          modified: parsed.modified,
-          staged: parsed.staged,
-          untracked: parsed.untracked,
-          deleted: parsed.deleted,
-          conflicted: parsed.conflicted,
-        }
-      },
+        ]),
       catch: (e) => {
-        console.error("Git status error for path:", workspacePath, e)
+        Effect.runSync(Effect.logError("git status error", { workspacePath, error: e }))
         return gitError("failed to get git status", e)
       },
     })
+    const parsed = parsePorcelainV2(raw)
+    return {
+      modified: parsed.modified,
+      staged: parsed.staged,
+      untracked: parsed.untracked,
+      deleted: parsed.deleted,
+      conflicted: parsed.conflicted,
+    }
+  })
 
   const getStatus = (workspacePath: string): Effect.Effect<GitStatus, GitError> =>
     deduplicated(`status:${workspacePath}`, _getStatus(workspacePath))
 
-  const getFileDiff = (
-    workspacePath: string,
-    filePath: string,
-    baseRef?: string,
-    targetRef?: string,
-  ): Effect.Effect<GitFileDiff, GitError> =>
-    Effect.gen(function* () {
+  const getFileDiff = Effect.fn("GitService.getFileDiff")(
+    function* (workspacePath: string, filePath: string, baseRef?: string, targetRef?: string) {
       const git = getGit(workspacePath)
 
       // get old content (from baseRef, default HEAD)
@@ -365,133 +351,127 @@ const makeGitService = Effect.gen(function* () {
         newContent = file.content
       }
 
-      return { oldContent, newContent }
-    }).pipe(
-      Effect.mapError((e) => gitError("failed to get file diff", e)),
-      Effect.withSpan("GitService.getFileDiff"),
+      return { oldContent, newContent } as GitFileDiff
+    },
+    Effect.mapError((e) => gitError("failed to get file diff", e)),
+  )
+
+  const _getCommitLog = Effect.fn("GitService.getCommitLog")(function* (
+    workspacePath: string,
+    limit = 50,
+  ) {
+    const git = getGit(workspacePath)
+
+    // guard: if HEAD doesn't resolve (no commits yet), return empty
+    const headExists = yield* Effect.tryPromise(() => git.revparse(["HEAD"])).pipe(
+      Effect.map(() => true),
+      Effect.catchAll(() => Effect.succeed(false)),
     )
+    if (!headExists) return [] as GitCommit[]
 
-  const _getCommitLog = (workspacePath: string, limit = 50): Effect.Effect<GitCommit[], GitError> =>
-    Effect.gen(function* () {
-      const git = getGit(workspacePath)
-
-      // guard: if HEAD doesn't resolve (no commits yet), return empty
-      const headExists = yield* Effect.tryPromise(() => git.revparse(["HEAD"])).pipe(
-        Effect.map(() => true),
-        Effect.catchAll(() => Effect.succeed(false)),
-      )
-      if (!headExists) return []
-
-      return yield* Effect.tryPromise({
-        try: () =>
-          git
-            .log({ maxCount: limit, "--name-only": null, "--no-show-signature": null })
-            .then((log) =>
-              log.all.map((commit) => ({
-                hash: commit.hash,
-                message: commit.message,
-                author: commit.author_name,
-                date: new Date(commit.date),
-                files: (commit.diff?.files ?? []).map((f) => f.file),
-              })),
-            ),
-        catch: (e) => {
-          console.error("git log error for path:", workspacePath, e)
-          return gitError(
-            `Failed to get commit log: ${e instanceof Error ? e.message : String(e)}`,
-            e,
-          )
-        },
-      })
+    return yield* Effect.tryPromise({
+      try: () =>
+        git.log({ maxCount: limit, "--name-only": null, "--no-show-signature": null }).then((log) =>
+          log.all.map((commit) => ({
+            hash: commit.hash,
+            message: commit.message,
+            author: commit.author_name,
+            date: new Date(commit.date),
+            files: (commit.diff?.files ?? []).map((f) => f.file),
+          })),
+        ),
+      catch: (e) => {
+        Effect.runSync(Effect.logError("git log error", { workspacePath, error: e }))
+        return gitError(
+          `Failed to get commit log: ${e instanceof Error ? e.message : String(e)}`,
+          e,
+        )
+      },
     })
+  })
 
   const getCommitLog = (workspacePath: string, limit = 50): Effect.Effect<GitCommit[], GitError> =>
     deduplicated(`log:${workspacePath}`, _getCommitLog(workspacePath, limit))
 
-  const listBranches = (workspacePath: string): Effect.Effect<GitBranchList, GitError> =>
-    Effect.tryPromise({
-      try: async () => {
-        const git = getGit(workspacePath)
-        const result = await git.branchLocal()
-        return {
-          current: result.current,
-          all: result.all,
-          branches: result.branches as GitBranchList["branches"],
-        }
-      },
+  const listBranches = Effect.fn("GitService.listBranches")(function* (workspacePath: string) {
+    const git = getGit(workspacePath)
+    const result = yield* Effect.tryPromise({
+      try: () => git.branchLocal(),
       catch: (e) => gitError("failed to list branches", e),
-    }).pipe(Effect.withSpan("GitService.listBranches"))
+    })
+    return {
+      current: result.current,
+      all: result.all,
+      branches: result.branches as GitBranchList["branches"],
+    }
+  })
 
-  const getRemoteStatus = (workspacePath: string): Effect.Effect<GitRemoteStatus, GitError> =>
-    Effect.tryPromise({
-      try: async () => {
-        const git = getGit(workspacePath)
-        const raw = await git.raw([
-          "--no-optional-locks",
-          "status",
-          "--porcelain=v2",
-          "-z",
-          "--branch",
-        ])
-        const parsed = parsePorcelainV2(raw)
-        return {
-          ahead: parsed.ahead,
-          behind: parsed.behind,
-          tracking: parsed.tracking,
-          current: parsed.current,
-        }
-      },
+  const getRemoteStatus = Effect.fn("GitService.getRemoteStatus")(function* (
+    workspacePath: string,
+  ) {
+    const git = getGit(workspacePath)
+    const raw = yield* Effect.tryPromise({
+      try: () => git.raw(["--no-optional-locks", "status", "--porcelain=v2", "-z", "--branch"]),
       catch: (e) => gitError("failed to get remote status", e),
-    }).pipe(Effect.withSpan("GitService.getRemoteStatus"))
+    })
+    const parsed = parsePorcelainV2(raw)
+    return {
+      ahead: parsed.ahead,
+      behind: parsed.behind,
+      tracking: parsed.tracking,
+      current: parsed.current,
+    } as GitRemoteStatus
+  })
 
-  const _fetchAll = (workspacePath: string) =>
-    Effect.tryPromise({
-      try: async () => {
-        const git = getGit(workspacePath)
-        await git.fetch(["--all", "--prune", "--recurse-submodules=on-demand"])
-      },
+  const _fetchAll = Effect.fn("GitService.fetchAll")(function* (workspacePath: string) {
+    const git = getGit(workspacePath)
+    yield* Effect.tryPromise({
+      try: () => git.fetch(["--all", "--prune", "--recurse-submodules=on-demand"]),
       catch: (e) => gitError("failed to fetch", e),
-    }).pipe(Effect.withSpan("GitService.fetchAll"))
+    })
+  })
 
   const fetchAll = (workspacePath: string) =>
     deduplicated(`fetch:${workspacePath}`, _fetchAll(workspacePath))
 
   // -- mutating operations (serialized + lock-retried) --
 
-  const stageFiles = (workspacePath: string, files: string[]) =>
-    withMutex(
+  const stageFiles = Effect.fn("GitService.stageFiles")(function* (
+    workspacePath: string,
+    files: string[],
+  ) {
+    yield* withMutex(
       workspacePath,
       withLockRetry(
         Effect.tryPromise({
-          try: async () => {
-            const git = getGit(workspacePath)
-            await git.add(files)
-          },
+          try: () => getGit(workspacePath).add(files),
           catch: (e) => gitError("failed to stage files", e),
-        }).pipe(Effect.withSpan("GitService.stageFiles")),
+        }),
       ),
     )
+  })
 
-  const unstageFiles = (workspacePath: string, files: string[]) =>
-    withMutex(
+  const unstageFiles = Effect.fn("GitService.unstageFiles")(function* (
+    workspacePath: string,
+    files: string[],
+  ) {
+    yield* withMutex(
       workspacePath,
       withLockRetry(
         Effect.tryPromise({
-          try: async () => {
-            const git = getGit(workspacePath)
-            await git.reset(["HEAD", "--", ...files])
-          },
+          try: () => getGit(workspacePath).reset(["HEAD", "--", ...files]),
           catch: (e) => gitError("failed to unstage files", e),
-        }).pipe(Effect.withSpan("GitService.unstageFiles")),
+        }),
       ),
     )
+  })
 
-  const commit = (
+  const commit = Effect.fn("GitService.commit")(function* (
     workspacePath: string,
     message: string,
     opts?: { amend?: boolean; files?: string[] },
-  ): Effect.Effect<GitCommitResult, GitError> =>
-    withMutex(
+  ) {
+    return yield* withMutex(
       workspacePath,
       withLockRetry(
         Effect.tryPromise({
@@ -516,57 +496,65 @@ const makeGitService = Effect.gen(function* () {
                 insertions: result.summary.insertions,
                 deletions: result.summary.deletions,
               },
-            }
+            } as GitCommitResult
           },
           catch: (e) => gitError("failed to commit", e),
-        }).pipe(Effect.withSpan("GitService.commit")),
+        }),
       ),
     )
+  })
 
-  const createBranch = (workspacePath: string, name: string) =>
-    withMutex(
+  const createBranch = Effect.fn("GitService.createBranch")(function* (
+    workspacePath: string,
+    name: string,
+  ) {
+    yield* withMutex(
       workspacePath,
       withLockRetry(
         Effect.tryPromise({
-          try: async () => {
-            const git = getGit(workspacePath)
-            await git.checkoutLocalBranch(name)
-          },
+          try: () => getGit(workspacePath).checkoutLocalBranch(name),
           catch: (e) => gitError("failed to create branch", e),
-        }).pipe(Effect.withSpan("GitService.createBranch")),
+        }),
       ),
     )
+  })
 
-  const switchBranch = (workspacePath: string, name: string) =>
-    withMutex(
+  const switchBranch = Effect.fn("GitService.switchBranch")(function* (
+    workspacePath: string,
+    name: string,
+  ) {
+    yield* withMutex(
       workspacePath,
       withLockRetry(
         Effect.tryPromise({
-          try: async () => {
-            const git = getGit(workspacePath)
-            await git.checkout(name)
-          },
+          try: () => getGit(workspacePath).checkout(name),
           catch: (e) => gitError("failed to switch branch", e),
-        }).pipe(Effect.withSpan("GitService.switchBranch")),
+        }),
       ),
     )
+  })
 
-  const deleteBranch = (workspacePath: string, name: string, force?: boolean) =>
-    withMutex(
+  const deleteBranch = Effect.fn("GitService.deleteBranch")(function* (
+    workspacePath: string,
+    name: string,
+    force?: boolean,
+  ) {
+    yield* withMutex(
       workspacePath,
       withLockRetry(
         Effect.tryPromise({
-          try: async () => {
-            const git = getGit(workspacePath)
-            await git.deleteLocalBranch(name, force)
-          },
+          try: () => getGit(workspacePath).deleteLocalBranch(name, force),
           catch: (e) => gitError("failed to delete branch", e),
-        }).pipe(Effect.withSpan("GitService.deleteBranch")),
+        }),
       ),
     )
+  })
 
-  const push = (workspacePath: string, opts?: { force?: boolean }): Effect.Effect<void, GitError> =>
-    withMutex(
+  const push = Effect.fn("GitService.push")(function* (
+    workspacePath: string,
+    opts?: { force?: boolean },
+  ) {
+    yield* withMutex(
       workspacePath,
       withLockRetry(
         Effect.tryPromise({
@@ -588,26 +576,28 @@ const makeGitService = Effect.gen(function* () {
             await git.push(args)
           },
           catch: (e) => gitError("failed to push", e),
-        }).pipe(Effect.withSpan("GitService.push")),
+        }),
       ),
     )
+  })
 
-  const pull = (workspacePath: string) =>
-    withMutex(
+  const pull = Effect.fn("GitService.pull")(function* (workspacePath: string) {
+    yield* withMutex(
       workspacePath,
       withLockRetry(
         Effect.tryPromise({
-          try: async () => {
-            const git = getGit(workspacePath)
-            await git.pull(["--recurse-submodules", "--ff"])
-          },
+          try: () => getGit(workspacePath).pull(["--recurse-submodules", "--ff"]),
           catch: (e) => gitError("failed to pull", e),
-        }).pipe(Effect.withSpan("GitService.pull")),
+        }),
       ),
     )
+  })
 
-  const discardFileChanges = (workspacePath: string, file: string) =>
-    withMutex(
+  const discardFileChanges = Effect.fn("GitService.discardFileChanges")(function* (
+    workspacePath: string,
+    file: string,
+  ) {
+    yield* withMutex(
       workspacePath,
       withLockRetry(
         Effect.tryPromise({
@@ -625,12 +615,15 @@ const makeGitService = Effect.gen(function* () {
             }
           },
           catch: (e) => gitError("failed to discard file changes", e),
-        }).pipe(Effect.withSpan("GitService.discardFileChanges")),
+        }),
       ),
     )
+  })
 
-  const discardAllChanges = (workspacePath: string) =>
-    withMutex(
+  const discardAllChanges = Effect.fn("GitService.discardAllChanges")(function* (
+    workspacePath: string,
+  ) {
+    yield* withMutex(
       workspacePath,
       withLockRetry(
         Effect.tryPromise({
@@ -642,9 +635,10 @@ const makeGitService = Effect.gen(function* () {
             await git.clean("f", ["-d"])
           },
           catch: (e) => gitError("failed to discard all changes", e),
-        }).pipe(Effect.withSpan("GitService.discardAllChanges")),
+        }),
       ),
     )
+  })
 
   return {
     getCurrentBranch,
@@ -669,12 +663,12 @@ const makeGitService = Effect.gen(function* () {
 })
 
 /**
- * Git service for interacting with git repositories.
+ * git service for interacting with git repositories.
  *
- * Use `GitService.Default` for production (includes FileSystem.Default).
- * Use `GitService.DefaultWithoutDependencies` for tests (provide mock FileSystem).
+ * use `GitService.Default` for production (includes FileSystem.Default).
+ * use `GitService.DefaultWithoutDependencies` for tests (provide mock FileSystem).
  */
 export class GitService extends Effect.Service<GitService>()("service/git", {
-  effect: makeGitService,
+  scoped: makeGitService,
   dependencies: [FileSystem.Default],
 }) {}
