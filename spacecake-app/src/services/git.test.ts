@@ -4,7 +4,7 @@ import * as Layer from "effect/Layer"
 import { describe, expect, vi, beforeEach } from "vitest"
 
 import { FileSystem } from "@/services/file-system"
-import { GitError, GitService } from "@/services/git"
+import { classifyGitError, GitError, GitService } from "@/services/git"
 
 // Mock simple-git
 const mockCheckIsRepo = vi.fn()
@@ -62,6 +62,60 @@ describe("GitService", () => {
   const createTestLayer = () =>
     GitService.DefaultWithoutDependencies.pipe(Layer.provide(createMockFileSystem()))
 
+  describe("classifyGitError", () => {
+    it("classifies lock errors", () => {
+      expect(classifyGitError(new Error("'.git/index.lock' exists"))).toBe("locked")
+      expect(classifyGitError(new Error("unable to create '.git/index.lock': is locked"))).toBe(
+        "locked",
+      )
+    })
+
+    it("classifies auth errors", () => {
+      expect(classifyGitError(new Error("could not read Username for"))).toBe("auth")
+      expect(classifyGitError(new Error("Authentication failed for"))).toBe("auth")
+      expect(classifyGitError(new Error("Permission denied (publickey)"))).toBe("auth")
+    })
+
+    it("classifies conflict errors", () => {
+      expect(classifyGitError(new Error("merge conflict in file.ts"))).toBe("conflict")
+      expect(classifyGitError(new Error("fix conflicts and then commit"))).toBe("conflict")
+    })
+
+    it("classifies network errors", () => {
+      expect(classifyGitError(new Error("Could not resolve host: github.com"))).toBe("network")
+      expect(classifyGitError(new Error("Connection refused"))).toBe("network")
+      expect(classifyGitError(new Error("Operation timed out"))).toBe("network")
+    })
+
+    it("classifies dirty tree errors", () => {
+      expect(classifyGitError(new Error("Your local changes would be overwritten"))).toBe(
+        "dirty_tree",
+      )
+      expect(classifyGitError(new Error("Please commit or stash them"))).toBe("dirty_tree")
+    })
+
+    it("classifies not merged errors", () => {
+      expect(classifyGitError(new Error("branch is not fully merged"))).toBe("not_merged")
+    })
+
+    it("classifies push rejected errors", () => {
+      expect(classifyGitError(new Error("[rejected] main -> main (non-fast-forward)"))).toBe(
+        "push_rejected",
+      )
+    })
+
+    it("returns unknown for unrecognized errors", () => {
+      expect(classifyGitError(new Error("something else entirely"))).toBe("unknown")
+      expect(classifyGitError("not an error object")).toBe("unknown")
+    })
+
+    it("checks stderr property on errors", () => {
+      const err = new Error("git failed") as Error & { stderr: string }
+      err.stderr = "unable to create '.git/index.lock': is locked"
+      expect(classifyGitError(err)).toBe("locked")
+    })
+  })
+
   describe("isGitRepo", () => {
     it.effect("returns true when checkIsRepo returns true", () =>
       Effect.gen(function* () {
@@ -112,13 +166,14 @@ describe("GitService", () => {
   })
 
   describe("getStatus", () => {
-    it.effect("returns mapped status fields", () =>
+    it.effect("returns mapped status fields including conflicted", () =>
       Effect.gen(function* () {
         mockStatus.mockResolvedValue({
           modified: ["a.ts"],
           not_added: ["b.ts"],
           staged: ["c.ts"],
           deleted: ["d.ts"],
+          conflicted: ["e.ts"],
         })
         const service = yield* GitService
         const result = yield* service.getStatus("/my/workspace")
@@ -126,6 +181,7 @@ describe("GitService", () => {
         expect(result.untracked).toEqual(["b.ts"])
         expect(result.staged).toEqual(["c.ts"])
         expect(result.deleted).toEqual(["d.ts"])
+        expect(result.conflicted).toEqual(["e.ts"])
       }).pipe(Effect.provide(createTestLayer())),
     )
 
@@ -136,6 +192,32 @@ describe("GitService", () => {
         const service = yield* GitService
         const error = yield* service.getStatus("/my/workspace").pipe(Effect.flip)
         expect(error._tag).toBe("GitError")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("deduplicates concurrent calls", () =>
+      Effect.gen(function* () {
+        let callCount = 0
+        mockStatus.mockImplementation(async () => {
+          callCount++
+          await new Promise((r) => setTimeout(r, 50))
+          return {
+            modified: [],
+            not_added: [],
+            staged: [],
+            deleted: [],
+            conflicted: [],
+          }
+        })
+        const service = yield* GitService
+        // fire two concurrent getStatus calls
+        const [r1, r2] = yield* Effect.all(
+          [service.getStatus("/my/workspace"), service.getStatus("/my/workspace")],
+          { concurrency: "unbounded" },
+        )
+        expect(r1).toEqual(r2)
+        // only one actual git.status() call should have been made
+        expect(callCount).toBe(1)
       }).pipe(Effect.provide(createTestLayer())),
     )
   })
@@ -575,6 +657,77 @@ describe("GitService", () => {
         const service = yield* GitService
         const error = yield* service.discardAllChanges("/my/workspace").pipe(Effect.flip)
         expect(error._tag).toBe("GitError")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
+  describe("lock retry", () => {
+    it.effect("retries lock errors then succeeds", () =>
+      Effect.gen(function* () {
+        mockAdd
+          .mockRejectedValueOnce(new Error("'.git/index.lock' exists"))
+          .mockRejectedValueOnce(new Error("'.git/index.lock' exists"))
+          .mockResolvedValueOnce(undefined)
+        const service = yield* GitService
+        yield* service.stageFiles("/my/workspace", ["a.ts"])
+        expect(mockAdd).toHaveBeenCalledTimes(3)
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("exhausts retries on persistent lock errors", () =>
+      Effect.gen(function* () {
+        mockAdd.mockRejectedValue(new Error("'.git/index.lock' exists"))
+        const service = yield* GitService
+        const error = yield* service.stageFiles("/my/workspace", ["a.ts"]).pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+        expect(error.code).toBe("locked")
+        // initial attempt + 3 retries = 4 calls
+        expect(mockAdd).toHaveBeenCalledTimes(4)
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("does not retry non-lock errors", () =>
+      Effect.gen(function* () {
+        mockAdd.mockRejectedValue(new Error("permission denied"))
+        const service = yield* GitService
+        const error = yield* service.stageFiles("/my/workspace", ["a.ts"]).pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+        expect(error.code).not.toBe("locked")
+        expect(mockAdd).toHaveBeenCalledTimes(1)
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
+  describe("semaphore serialization", () => {
+    it.effect("serializes concurrent mutations on the same workspace", () =>
+      Effect.gen(function* () {
+        const order: string[] = []
+        mockAdd.mockImplementation(async () => {
+          order.push("add-start")
+          await new Promise((r) => setTimeout(r, 50))
+          order.push("add-end")
+        })
+        mockReset.mockImplementation(async () => {
+          order.push("reset-start")
+          await new Promise((r) => setTimeout(r, 50))
+          order.push("reset-end")
+        })
+        const service = yield* GitService
+        yield* Effect.all(
+          [
+            service.stageFiles("/my/workspace", ["a.ts"]),
+            service.unstageFiles("/my/workspace", ["b.ts"]),
+          ],
+          { concurrency: "unbounded" },
+        )
+        // the semaphore ensures one completes before the other starts
+        // either add then reset, or reset then add — but never interleaved
+        const firstEnd = order.indexOf("add-end") < order.indexOf("reset-end") ? "add" : "reset"
+        if (firstEnd === "add") {
+          expect(order.indexOf("add-end")).toBeLessThan(order.indexOf("reset-start"))
+        } else {
+          expect(order.indexOf("reset-end")).toBeLessThan(order.indexOf("add-start"))
+        }
       }).pipe(Effect.provide(createTestLayer())),
     )
   })

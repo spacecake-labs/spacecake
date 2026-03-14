@@ -14,7 +14,14 @@ import { ClaudeSettingsFile, type StatuslineConfigStatus } from "@/services/clau
 import { ClaudeTaskListService } from "@/services/claude-task-list"
 import { Database, type DatabaseMethodName } from "@/services/database"
 import { FileSystem, type FileSystemError, type IndexedFile } from "@/services/file-system"
-import { GitCommit, GitError, GitFileDiff, GitService, GitStatus } from "@/services/git"
+import {
+  GitCommit,
+  GitError,
+  type GitErrorCode,
+  GitFileDiff,
+  GitService,
+  GitStatus,
+} from "@/services/git"
 import { SpacecakeHome } from "@/services/spacecake-home"
 import { Terminal } from "@/services/terminal"
 import { left, right, type Either } from "@/types/adt"
@@ -384,11 +391,13 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     type SerializedGitError = {
       _tag: "GitError"
       description: string
+      code?: GitErrorCode
     }
 
     const serializeGitError = (error: GitError): SerializedGitError => ({
       _tag: "GitError",
       description: error.description,
+      code: error.code,
     })
 
     const gitHandler = <A>(effect: Effect.Effect<A, GitError>) =>

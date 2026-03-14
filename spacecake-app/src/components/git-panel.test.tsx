@@ -77,6 +77,7 @@ function createMockGitAPI(
         staged: [],
         untracked: [],
         deleted: [],
+        conflicted: [],
       },
     ),
   )
@@ -250,7 +251,13 @@ describe("GitPanel", () => {
 
   it("yellow dot when changes exist", async () => {
     const { api } = createMockGitAPI({
-      status: { modified: ["src/index.ts"], staged: [], untracked: [], deleted: [] },
+      status: {
+        modified: ["src/index.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
     })
     renderPanel(api)
     await waitForEffects()
@@ -264,7 +271,7 @@ describe("GitPanel", () => {
 
   it("gray dot when no changes", async () => {
     const { api } = createMockGitAPI({
-      status: { modified: [], staged: [], untracked: [], deleted: [] },
+      status: { modified: [], staged: [], untracked: [], deleted: [], conflicted: [] },
     })
     renderPanel(api)
     await waitForEffects()
@@ -280,7 +287,13 @@ describe("GitPanel", () => {
   it("onFileClick called with correct AbsolutePath", async () => {
     const onFileClick = vi.fn()
     const { api } = createMockGitAPI({
-      status: { modified: ["src/index.ts"], staged: [], untracked: [], deleted: [] },
+      status: {
+        modified: ["src/index.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
     })
     renderPanel(api, { onFileClick })
     await waitForEffects()
@@ -344,7 +357,13 @@ describe("GitPanel", () => {
 
     // git status does NOT include the file we're viewing
     const { api } = createMockGitAPI({
-      status: { modified: ["src/other.ts"], staged: [], untracked: [], deleted: [] },
+      status: {
+        modified: ["src/other.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
     })
     renderPanel(api)
     await waitForEffects()
@@ -369,7 +388,13 @@ describe("GitPanel", () => {
 
     // git status DOES include the file we're viewing
     const { api } = createMockGitAPI({
-      status: { modified: ["src/modified.ts"], staged: [], untracked: [], deleted: [] },
+      status: {
+        modified: ["src/modified.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
     })
     renderPanel(api)
     await waitForEffects()
@@ -391,7 +416,13 @@ describe("GitPanel", () => {
 
     // git status does NOT include this file (it's not in working tree changes)
     const { api } = createMockGitAPI({
-      status: { modified: ["src/other.ts"], staged: [], untracked: [], deleted: [] },
+      status: {
+        modified: ["src/other.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
     })
     renderPanel(api)
     await waitForEffects()
@@ -435,7 +466,7 @@ describe("working tree files", () => {
 
   it('shows "no changes" when empty status', async () => {
     const { api } = createMockGitAPI({
-      status: { modified: [], staged: [], untracked: [], deleted: [] },
+      status: { modified: [], staged: [], untracked: [], deleted: [], conflicted: [] },
     })
     renderPanel(api)
     await waitForEffects()
@@ -445,7 +476,7 @@ describe("working tree files", () => {
 
   it("staged files show with A badge (green)", async () => {
     const { api } = createMockGitAPI({
-      status: { modified: [], staged: ["new-file.ts"], untracked: [], deleted: [] },
+      status: { modified: [], staged: ["new-file.ts"], untracked: [], deleted: [], conflicted: [] },
     })
     renderPanel(api)
     await waitForEffects()
@@ -465,6 +496,7 @@ describe("working tree files", () => {
         staged: [],
         untracked: ["new.ts"],
         deleted: ["gone.ts"],
+        conflicted: [],
       },
     })
     renderPanel(api)
@@ -501,6 +533,7 @@ describe("working tree files", () => {
         staged: ["staged.ts"],
         untracked: [],
         deleted: [],
+        conflicted: [],
       },
     })
     renderPanel(api)
@@ -517,6 +550,7 @@ describe("working tree files", () => {
         staged: [],
         untracked: [],
         deleted: [],
+        conflicted: [],
       },
     })
     renderPanel(api)
@@ -676,6 +710,7 @@ describe("commit selection", () => {
     staged: [],
     untracked: [],
     deleted: [],
+    conflicted: [],
   }
 
   const COMMITS: GitCommit[] = [

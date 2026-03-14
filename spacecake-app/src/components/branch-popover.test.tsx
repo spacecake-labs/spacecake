@@ -35,12 +35,19 @@ function createMockGitAPI(
     getStatus: vi.fn(async () =>
       right<
         GitError,
-        { modified: string[]; staged: string[]; untracked: string[]; deleted: string[] }
+        {
+          modified: string[]
+          staged: string[]
+          untracked: string[]
+          deleted: string[]
+          conflicted: string[]
+        }
       >({
         modified: [],
         staged: [],
         untracked: [],
         deleted: [],
+        conflicted: [],
       }),
     ),
     getCommitLog: vi.fn(async () => right<GitError, never[]>([])),

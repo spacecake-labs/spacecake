@@ -1,5 +1,6 @@
 import type { DisplayStatusline } from "@/lib/statusline-parser"
 import { FileSystemError, type IndexedFile } from "@/services/file-system"
+import type { GitErrorCode } from "@/services/git"
 import { type Either } from "@/types/adt"
 import type { ClaudeTask, ClaudeTaskError } from "@/types/claude-task"
 import type { PyBlock } from "@/types/parser"
@@ -119,12 +120,16 @@ export interface ElectronAPI {
   git: {
     getCurrentBranch: (workspacePath: string) => Promise<string | null>
     isGitRepo: (workspacePath: string) => Promise<boolean>
-    getStatus: (
-      workspacePath: string,
-    ) => Promise<
+    getStatus: (workspacePath: string) => Promise<
       Either<
-        { _tag: "GitError"; description: string },
-        { modified: string[]; staged: string[]; untracked: string[]; deleted: string[] }
+        { _tag: "GitError"; description: string; code?: GitErrorCode },
+        {
+          modified: string[]
+          staged: string[]
+          untracked: string[]
+          deleted: string[]
+          conflicted: string[]
+        }
       >
     >
     getFileDiff: (
@@ -133,32 +138,35 @@ export interface ElectronAPI {
       baseRef?: string,
       targetRef?: string,
     ) => Promise<
-      Either<{ _tag: "GitError"; description: string }, { oldContent: string; newContent: string }>
+      Either<
+        { _tag: "GitError"; description: string; code?: GitErrorCode },
+        { oldContent: string; newContent: string }
+      >
     >
     getCommitLog: (
       workspacePath: string,
       limit?: number,
     ) => Promise<
       Either<
-        { _tag: "GitError"; description: string },
+        { _tag: "GitError"; description: string; code?: GitErrorCode },
         Array<{ hash: string; message: string; author: string; date: Date; files: string[] }>
       >
     >
     stage: (
       workspacePath: string,
       files: string[],
-    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
+    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
     unstage: (
       workspacePath: string,
       files: string[],
-    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
+    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
     commit: (
       workspacePath: string,
       message: string,
       opts?: { amend?: boolean },
     ) => Promise<
       Either<
-        { _tag: "GitError"; description: string },
+        { _tag: "GitError"; description: string; code?: GitErrorCode },
         {
           hash: string
           branch: string
@@ -168,7 +176,7 @@ export interface ElectronAPI {
     >
     listBranches: (workspacePath: string) => Promise<
       Either<
-        { _tag: "GitError"; description: string },
+        { _tag: "GitError"; description: string; code?: GitErrorCode },
         {
           current: string
           all: string[]
@@ -182,40 +190,40 @@ export interface ElectronAPI {
     createBranch: (
       workspacePath: string,
       name: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
+    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
     switchBranch: (
       workspacePath: string,
       name: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
+    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
     deleteBranch: (
       workspacePath: string,
       name: string,
       force?: boolean,
-    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
+    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
     push: (
       workspacePath: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
+    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
     pull: (
       workspacePath: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
+    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
     fetch: (
       workspacePath: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
+    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
     getRemoteStatus: (
       workspacePath: string,
     ) => Promise<
       Either<
-        { _tag: "GitError"; description: string },
+        { _tag: "GitError"; description: string; code?: GitErrorCode },
         { ahead: number; behind: number; tracking: string | null; current: string | null }
       >
     >
     discardFile: (
       workspacePath: string,
       file: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
+    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
     discardAll: (
       workspacePath: string,
-    ) => Promise<Either<{ _tag: "GitError"; description: string }, void>>
+    ) => Promise<Either<{ _tag: "GitError"; description: string; code?: GitErrorCode }, void>>
   }
 }
 

@@ -7,6 +7,7 @@ export type GitStatus = {
   staged: string[]
   untracked: string[]
   deleted: string[]
+  conflicted: string[]
 }
 
 export const gitStatusAtom = atom<GitStatus | null>(null)

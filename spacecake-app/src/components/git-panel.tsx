@@ -58,7 +58,7 @@ interface GitPanelProps {
   onCommitFileClick?: (filePath: AbsolutePath, commitHash: string) => void
 }
 
-type FileStatus = "modified" | "staged" | "untracked" | "deleted" | "added"
+type FileStatus = "modified" | "staged" | "untracked" | "deleted" | "added" | "conflicted"
 
 const statusColors: Record<FileStatus, string> = {
   modified: "text-yellow-500",
@@ -66,6 +66,7 @@ const statusColors: Record<FileStatus, string> = {
   untracked: "text-blue-500",
   deleted: "text-red-500",
   added: "text-green-500",
+  conflicted: "text-orange-500",
 }
 
 const statusLabels: Record<FileStatus, string> = {
@@ -74,6 +75,7 @@ const statusLabels: Record<FileStatus, string> = {
   untracked: "U",
   deleted: "D",
   added: "A",
+  conflicted: "C",
 }
 
 function FileItem({
@@ -561,6 +563,12 @@ function WorkingTreeFilesPane({
   const setDiscardState = useSetAtom(discardStateAtom)
   const setOperation = useSetAtom(gitOperationAtom)
 
+  // conflicted files
+  const conflictedFiles = useMemo<Array<{ path: string; status: FileStatus }>>(
+    () => status?.conflicted.map((path) => ({ path, status: "conflicted" as FileStatus })) ?? [],
+    [status?.conflicted],
+  )
+
   // staged files with "added" status (A)
   const stagedFiles = useMemo<Array<{ path: string; status: FileStatus }>>(
     () => status?.staged.map((path) => ({ path, status: "added" as FileStatus })) ?? [],
@@ -625,7 +633,8 @@ function WorkingTreeFilesPane({
     }
   }, [workspacePath, stagedFiles, setOperation])
 
-  const hasNoChanges = stagedFiles.length === 0 && changesFiles.length === 0
+  const hasNoChanges =
+    conflictedFiles.length === 0 && stagedFiles.length === 0 && changesFiles.length === 0
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -638,6 +647,12 @@ function WorkingTreeFilesPane({
           <div className="text-sm text-muted-foreground text-center py-4">no changes</div>
         ) : (
           <div className="space-y-1">
+            <FileSection
+              title="merge conflicts"
+              files={conflictedFiles}
+              workspacePath={workspacePath}
+              onFileClick={onFileClick}
+            />
             <FileSection
               title="staged changes"
               files={stagedFiles}
@@ -787,6 +802,9 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
     const cleanup = window.electronAPI.onFileEvent((event) => {
       if (!event.path.startsWith(workspacePath)) return
 
+      // skip .lock files — git creates/removes index.lock during operations
+      if (event.path.endsWith(".lock")) return
+
       // skip git polling when workspace is not a git repo
       if (isGitRepoRef.current === false) return
 
@@ -837,7 +855,8 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
       status.modified.some((f) => `${workspacePath}/${f}` === routeFilePath) ||
       status.staged.some((f) => `${workspacePath}/${f}` === routeFilePath) ||
       status.untracked.some((f) => `${workspacePath}/${f}` === routeFilePath) ||
-      status.deleted.some((f) => `${workspacePath}/${f}` === routeFilePath)
+      status.deleted.some((f) => `${workspacePath}/${f}` === routeFilePath) ||
+      status.conflicted.some((f) => `${workspacePath}/${f}` === routeFilePath)
 
     if (!isFileStillChanged && routeWorkspaceId) {
       // navigate to the same file without the diff view
@@ -865,7 +884,8 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
     (status?.modified.length ?? 0) +
     (status?.staged.length ?? 0) +
     (status?.untracked.length ?? 0) +
-    (status?.deleted.length ?? 0)
+    (status?.deleted.length ?? 0) +
+    (status?.conflicted.length ?? 0)
 
   const selectedCommitData = commits.find((c) => c.hash === selectedCommit)
 
