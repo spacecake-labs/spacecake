@@ -88,7 +88,7 @@ export const GitToolbar = memo(function GitToolbar({
     }
   }, [workspacePath, setOperation, refreshRemoteStatus])
 
-  const isBusy = operation !== "idle"
+  const isBusy = operation === "fetching" || operation === "pulling" || operation === "pushing" || operation === "committing"
 
   return (
     <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
@@ -103,12 +103,18 @@ export const GitToolbar = memo(function GitToolbar({
             data-testid="remote-indicators"
           >
             {remoteStatus.ahead > 0 && (
-              <span data-testid="ahead-count" title="ahead">
+              <span
+                data-testid="ahead-count"
+                title={`${remoteStatus.ahead} commit${remoteStatus.ahead === 1 ? "" : "s"} ahead of ${remoteStatus.tracking ?? "remote"}`}
+              >
                 ↑{remoteStatus.ahead}
               </span>
             )}
             {remoteStatus.behind > 0 && (
-              <span data-testid="behind-count" title="behind">
+              <span
+                data-testid="behind-count"
+                title={`${remoteStatus.behind} commit${remoteStatus.behind === 1 ? "" : "s"} behind ${remoteStatus.tracking ?? "remote"}`}
+              >
                 ↓{remoteStatus.behind}
               </span>
             )}
