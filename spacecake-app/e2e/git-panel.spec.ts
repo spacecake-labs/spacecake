@@ -40,30 +40,31 @@ test.describe("git panel", () => {
     const showToggle = window.getByRole("button", { name: "show git panel" })
     await expect(showToggle).toBeVisible()
     await showToggle.click()
-    await expect(window.getByText("history")).toBeVisible()
+    await expect(window.getByRole("tab", { name: "history" })).toBeVisible()
 
     // hide git panel (scoped to panel — status bar also has a "hide git panel" button)
     const hideToggle = window
       .getByTestId("git-panel-left")
       .getByRole("button", { name: "hide git panel" })
     await hideToggle.click()
-    await expect(window.getByText("history")).not.toBeVisible()
+    await expect(window.getByRole("tab", { name: "history" })).not.toBeVisible()
 
     // show again
     await window.getByRole("button", { name: "show git panel" }).click()
-    await expect(window.getByText("history")).toBeVisible()
+    await expect(window.getByRole("tab", { name: "history" })).toBeVisible()
 
-    // --- working tree content ---
+    // --- changes tab content ---
 
     const gitPanel = window.locator("#git-panel-left")
-    await expect(gitPanel.getByText("working tree")).toBeVisible()
+    await expect(gitPanel.getByRole("tab", { name: "changes" })).toBeVisible()
     await expect(gitPanel.getByRole("button", { name: /committed\.md/ })).toBeVisible()
     await expect(gitPanel.getByTitle("modified").first()).toBeVisible()
     await expect(gitPanel.getByRole("button", { name: /untracked\.md/ })).toBeVisible()
     await expect(gitPanel.getByTitle("untracked").first()).toBeVisible()
 
-    // --- commit selection ---
+    // --- commit selection (history tab) ---
 
+    await gitPanel.getByRole("tab", { name: "history" }).click()
     await expect(gitPanel.getByText("initial commit")).toBeVisible()
     await gitPanel.getByText("initial commit").click()
     await expect(gitPanel.getByRole("button", { name: /committed\.md/ })).toBeVisible()
@@ -101,8 +102,8 @@ test.describe("git panel", () => {
     const newFile = path.join(tempTestDir, "created-during-test.md")
     fs.writeFileSync(newFile, "# initial content")
 
-    // select working tree to see current changes
-    await gitPanel.getByText("working tree").click()
+    // select changes tab to see current changes
+    await gitPanel.getByRole("tab", { name: "changes" }).click()
 
     // verify the new file appears as untracked in git panel
     await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()

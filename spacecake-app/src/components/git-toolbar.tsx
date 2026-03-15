@@ -5,6 +5,9 @@ import { toast } from "sonner"
 
 import { BranchPopover } from "@/components/branch-popover"
 import { DockPositionDropdown } from "@/components/dock-position-dropdown"
+import { tabTriggerClasses } from "@/components/tab-bar/tab-close-button"
+import { Badge } from "@/components/ui/badge"
+import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { gitOperationAtom, gitRemoteStatusAtom, isBusyAtom } from "@/lib/atoms/git"
 import { cn } from "@/lib/utils"
 import type { DockPosition } from "@/schema/workspace-layout"
@@ -14,6 +17,7 @@ interface GitToolbarProps {
   isExpanded: boolean
   dock: DockPosition
   workspacePath: string
+  totalChanges: number
   onExpandedChange: (expanded: boolean) => void
   onDockChange: (dock: DockPosition) => void
 }
@@ -22,6 +26,7 @@ export const GitToolbar = memo(function GitToolbar({
   isExpanded,
   dock,
   workspacePath,
+  totalChanges,
   onExpandedChange,
   onDockChange,
 }: GitToolbarProps) {
@@ -91,12 +96,26 @@ export const GitToolbar = memo(function GitToolbar({
   const isBusy = useAtomValue(isBusyAtom)
 
   return (
-    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center justify-between px-4 overflow-hidden border-b">
-      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-        <BranchPopover workspacePath={workspacePath} isExpanded={isExpanded} />
-        <DockPositionDropdown currentDock={dock} onDockChange={onDockChange} label="git" />
+    <div className="h-10 shrink-0 w-full bg-background/50 flex items-center overflow-hidden border-b">
+      {/* tabs */}
+      <div className="h-full flex-1 min-w-0">
+        <TabsList className="!h-full gap-0 bg-transparent justify-start rounded-none p-0 shrink-0">
+          <TabsTrigger value="changes" className={cn("gap-1.5 !pr-3", tabTriggerClasses(true))}>
+            changes
+            {totalChanges > 0 && (
+              <Badge variant="secondary" className="text-xs px-1.5 py-0 min-w-[1.25rem] h-4">
+                {totalChanges}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="history" className={cn("!pr-3", tabTriggerClasses())}>
+            history
+          </TabsTrigger>
+        </TabsList>
       </div>
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+
+      {/* right controls */}
+      <div className="flex items-center gap-2 flex-shrink-0 px-2">
         {remoteStatus && (remoteStatus.ahead > 0 || remoteStatus.behind > 0) && (
           <div
             className="flex items-center gap-1 text-xs text-muted-foreground"
@@ -147,6 +166,9 @@ export const GitToolbar = memo(function GitToolbar({
         >
           <ArrowUp className={cn("h-3.5 w-3.5", operation === "pushing" && "animate-bounce")} />
         </button>
+        <div className="w-px h-4 bg-border" />
+        <BranchPopover workspacePath={workspacePath} isExpanded={isExpanded} />
+        <DockPositionDropdown currentDock={dock} onDockChange={onDockChange} label="git" />
         <button
           onClick={() => onExpandedChange(!isExpanded)}
           className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"

@@ -1,4 +1,5 @@
 import { Outlet } from "@tanstack/react-router"
+import { useAtom, useAtomValue } from "jotai"
 import { lazy, memo, type RefObject, Suspense } from "react"
 import type { PanelImperativeHandle } from "react-resizable-panels"
 
@@ -6,7 +7,9 @@ import { GitToolbar } from "@/components/git-toolbar"
 import { TabBar } from "@/components/tab-bar"
 import { TaskToolbar } from "@/components/task-toolbar"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
+import { Tabs } from "@/components/ui/tabs"
 import type { usePaneMachine } from "@/hooks/use-pane-machine"
+import { gitPanelTabAtom, gitTotalChangesAtom } from "@/lib/atoms/git"
 import { cn } from "@/lib/utils"
 import type { PanePrimaryKey } from "@/schema/pane"
 import type { WorkspacePrimaryKey } from "@/schema/workspace"
@@ -75,6 +78,9 @@ export const EditorPanel = memo(function EditorPanel({
   onGitFileClick,
   onCommitFileClick,
 }: EditorPanelProps) {
+  const [currentGitTab, setCurrentGitTab] = useAtom(gitPanelTabAtom)
+  const gitTotalChanges = useAtomValue(gitTotalChangesAtom)
+
   return (
     <ResizablePanel
       id="editor-panel"
@@ -144,31 +150,38 @@ export const EditorPanel = memo(function EditorPanel({
               collapsedSize="0%"
               data-collapsed={isGitCollapsed || undefined}
             >
-              <div className="flex h-full w-full flex-col">
-                {!isGitCollapsed && (
-                  <GitToolbar
-                    isExpanded={isGitExpanded}
-                    dock={gitDock}
-                    workspacePath={workspace.path}
-                    onExpandedChange={onGitExpandedChange}
-                    onDockChange={onGitDockChange}
-                  />
-                )}
-                <div
-                  className={cn(
-                    "flex-1 min-h-0 min-w-0 overflow-hidden",
-                    isGitCollapsed && "hidden",
-                  )}
-                >
-                  <Suspense fallback={panelFallback}>
-                    <GitPanel
+              <Tabs
+                value={currentGitTab}
+                onValueChange={(v) => setCurrentGitTab(v as "changes" | "history")}
+                className="flex h-full w-full flex-col"
+              >
+                <div className="flex h-full w-full flex-col">
+                  {!isGitCollapsed && (
+                    <GitToolbar
+                      isExpanded={isGitExpanded}
+                      dock={gitDock}
                       workspacePath={workspace.path}
-                      onFileClick={onGitFileClick}
-                      onCommitFileClick={onCommitFileClick}
+                      totalChanges={gitTotalChanges}
+                      onExpandedChange={onGitExpandedChange}
+                      onDockChange={onGitDockChange}
                     />
-                  </Suspense>
+                  )}
+                  <div
+                    className={cn(
+                      "flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden",
+                      isGitCollapsed && "hidden",
+                    )}
+                  >
+                    <Suspense fallback={panelFallback}>
+                      <GitPanel
+                        workspacePath={workspace.path}
+                        onFileClick={onGitFileClick}
+                        onCommitFileClick={onCommitFileClick}
+                      />
+                    </Suspense>
+                  </div>
                 </div>
-              </div>
+              </Tabs>
             </ResizablePanel>
           )}
         </ResizablePanelGroup>

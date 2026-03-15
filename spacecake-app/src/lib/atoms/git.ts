@@ -55,6 +55,26 @@ export type DiscardState =
   | { isOpen: true; kind: "all" }
 export const discardStateAtom = atom<DiscardState>({ isOpen: false })
 
+// total change count for git panel tab badge
+export const gitTotalChangesAtom = atom((get) => {
+  const status = get(gitStatusAtom)
+  if (!status) return 0
+  return (
+    status.modified.length +
+    status.staged.length +
+    status.untracked.length +
+    status.deleted.length +
+    status.conflicted.length
+  )
+})
+
+// git panel tab
+export type GitPanelTab = "changes" | "history"
+export const gitPanelTabAtom = atom<GitPanelTab>("changes")
+
+// ui-only excluded paths (persists across tab switches)
+export const gitExcludedPathsAtom = atom<Set<string>>(new Set<string>())
+
 // branch delete confirmation
 export type BranchDeleteState = { isOpen: false } | { isOpen: true; branchName: string }
 export const branchDeleteStateAtom = atom<BranchDeleteState>({ isOpen: false })

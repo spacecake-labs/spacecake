@@ -1,6 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { Check, ChevronDown, ChevronRight, Circle, Copy, File, Loader2, Undo2 } from "lucide-react"
+import { Check, ChevronDown, ChevronRight, Copy, File, Loader2, Undo2 } from "lucide-react"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -18,6 +18,7 @@ import {
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Input } from "@/components/ui/input"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
+import { TabsContent } from "@/components/ui/tabs"
 import { useRoute } from "@/hooks/use-route"
 import {
   commitAmendAtom,
@@ -26,7 +27,9 @@ import {
   gitBranchAtom,
   GitCommit as GitCommitType,
   gitCommitsAtom,
+  gitExcludedPathsAtom,
   gitOperationAtom,
+  gitPanelTabAtom,
   isBusyAtom,
   isCommittingAtom,
   isGitRepoAtom,
@@ -278,33 +281,6 @@ const ConflictSection = memo(function ConflictSection({
   )
 })
 
-const WorkingTreeItem = memo(function WorkingTreeItem({
-  isSelected,
-  hasChanges,
-  onClick,
-}: {
-  isSelected: boolean
-  hasChanges: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent rounded cursor-pointer text-left",
-        isSelected && "bg-accent",
-      )}
-    >
-      {hasChanges ? (
-        <Circle className="h-2 w-2 fill-yellow-500 text-yellow-500 flex-shrink-0" />
-      ) : (
-        <Circle className="h-2 w-2 text-muted-foreground flex-shrink-0" />
-      )}
-      <span className="font-medium whitespace-nowrap">working tree</span>
-    </button>
-  )
-})
-
 const CommitListItem = memo(function CommitListItem({
   commit,
   isSelected,
@@ -336,63 +312,6 @@ const CommitListItem = memo(function CommitListItem({
     </button>
   )
 })
-
-function CommitPane({
-  commits,
-  selectedCommit,
-  hasChanges,
-  onSelectCommit,
-}: {
-  commits: GitCommitType[]
-  selectedCommit: string
-  hasChanges: boolean
-  onSelectCommit: (commitHash: string) => void
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const rowVirtualizer = useVirtualizer({
-    count: commits.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => 52,
-    overscan: 5,
-  })
-
-  return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">history</div>
-      <div ref={scrollRef} className="flex-1 overflow-auto p-1">
-        <WorkingTreeItem
-          isSelected={selectedCommit === "working-tree"}
-          hasChanges={hasChanges}
-          onClick={() => onSelectCommit("working-tree")}
-        />
-        <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
-          {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-            const commit = commits[virtualItem.index]
-            return (
-              <div
-                key={commit.hash}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: `${virtualItem.size}px`,
-                  transform: `translateY(${virtualItem.start}px)`,
-                }}
-              >
-                <CommitListItem
-                  commit={commit}
-                  isSelected={selectedCommit === commit.hash}
-                  onClick={() => onSelectCommit(commit.hash)}
-                />
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function CommitForm({
   workspacePath,
@@ -433,7 +352,7 @@ function CommitForm({
 
   return (
     <form
-      className="px-2 py-2 border-b space-y-2"
+      className="px-2 py-3 border-b space-y-3"
       onSubmit={(e) => {
         e.preventDefault()
         handleCommit()
@@ -592,6 +511,7 @@ function WorkingTreeFilesPane({
   onFileClick?: (filePath: AbsolutePath) => void
 }) {
   const setDiscardState = useSetAtom(discardStateAtom)
+  const [excludedPaths, setExcludedPaths] = useAtom(gitExcludedPathsAtom)
 
   const conflictedFiles = useMemo<Array<{ path: string; status: FileStatus }>>(
     () => status?.conflicted.map((path) => ({ path, status: "conflicted" as FileStatus })) ?? [],
@@ -620,20 +540,17 @@ function WorkingTreeFilesPane({
       .sort((a, b) => a.path.localeCompare(b.path))
   }, [status?.staged, status?.modified, status?.untracked, status?.deleted])
 
-  // ui-only inclusion state — tracks which files are unchecked (all included by default)
-  const [excludedPaths, setExcludedPaths] = useState<Set<string>>(new Set())
-
   // clean up excluded paths when files disappear from the working tree
   useEffect(() => {
     const currentPaths = new Set(changedPaths.map((f) => f.path))
-    setExcludedPaths((prev) => {
+    setExcludedPaths((prev: Set<string>) => {
       const next = new Set<string>()
       for (const p of prev) {
         if (currentPaths.has(p)) next.add(p)
       }
       return next.size === prev.size ? prev : next
     })
-  }, [changedPaths])
+  }, [changedPaths, setExcludedPaths])
 
   const allFiles = useMemo<UnifiedFile[]>(
     () => changedPaths.map((f) => ({ ...f, isIncluded: !excludedPaths.has(f.path) })),
@@ -644,17 +561,20 @@ function WorkingTreeFilesPane({
   const allIncluded = allFiles.length > 0 && includedCount === allFiles.length
   const someIncluded = includedCount > 0 && !allIncluded
 
-  const handleToggleFile = useCallback((filePath: string) => {
-    setExcludedPaths((prev) => {
-      const next = new Set(prev)
-      if (next.has(filePath)) {
-        next.delete(filePath)
-      } else {
-        next.add(filePath)
-      }
-      return next
-    })
-  }, [])
+  const handleToggleFile = useCallback(
+    (filePath: string) => {
+      setExcludedPaths((prev: Set<string>) => {
+        const next = new Set(prev)
+        if (next.has(filePath)) {
+          next.delete(filePath)
+        } else {
+          next.add(filePath)
+        }
+        return next
+      })
+    },
+    [setExcludedPaths],
+  )
 
   const handleDiscard = useCallback(
     (filePath: string) => {
@@ -669,7 +589,7 @@ function WorkingTreeFilesPane({
     } else {
       setExcludedPaths(new Set())
     }
-  }, [allIncluded, changedPaths])
+  }, [allIncluded, changedPaths, setExcludedPaths])
 
   const includedFiles = useMemo(
     () => allFiles.filter((f) => f.isIncluded).map((f) => f.path),
@@ -680,9 +600,8 @@ function WorkingTreeFilesPane({
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">&nbsp;</div>
       <CommitForm workspacePath={workspacePath} includedFiles={includedFiles} />
-      <div className="flex-1 overflow-auto p-1">
+      <div className="flex-1 overflow-auto px-1">
         {hasNoChanges ? (
           <div className="text-sm text-muted-foreground text-center py-4">no changes</div>
         ) : (
@@ -774,20 +693,109 @@ function CommitFilesPane({
   )
 }
 
+function HistoryView({
+  commits,
+  workspacePath,
+  onFileClick,
+}: {
+  commits: GitCommitType[]
+  workspacePath: AbsolutePath
+  onFileClick?: (filePath: AbsolutePath, commitHash: string) => void
+}) {
+  const [selectedCommit, setSelectedCommit] = useAtom(selectedCommitAtom)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  const rowVirtualizer = useVirtualizer({
+    count: commits.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 52,
+    overscan: 5,
+  })
+
+  // auto-select first commit when entering history with no valid selection
+  useEffect(() => {
+    if (commits.length > 0) {
+      const hasValidSelection = commits.some((c) => c.hash === selectedCommit)
+      if (!hasValidSelection) {
+        setSelectedCommit(commits[0].hash)
+      }
+    }
+  }, [commits, selectedCommit, setSelectedCommit])
+
+  const selectedCommitData = useMemo(
+    () => commits.find((c) => c.hash === selectedCommit),
+    [commits, selectedCommit],
+  )
+
+  return (
+    <ResizablePanelGroup orientation="vertical">
+      <ResizablePanel defaultSize="50%" minSize="20%">
+        <div className="h-full flex flex-col overflow-hidden">
+          <div ref={scrollRef} className="flex-1 overflow-auto p-1">
+            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
+              {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                const commit = commits[virtualItem.index]
+                return (
+                  <div
+                    key={commit.hash}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: `${virtualItem.size}px`,
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                  >
+                    <CommitListItem
+                      commit={commit}
+                      isSelected={selectedCommit === commit.hash}
+                      onClick={() => setSelectedCommit(commit.hash)}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </ResizablePanel>
+      <ResizableHandle />
+      <ResizablePanel defaultSize="50%" minSize="20%">
+        {selectedCommitData ? (
+          <CommitFilesPane
+            commit={selectedCommitData}
+            workspacePath={workspacePath}
+            onFileClick={onFileClick}
+          />
+        ) : (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-sm text-muted-foreground">select a commit</div>
+          </div>
+        )}
+      </ResizablePanel>
+    </ResizablePanelGroup>
+  )
+}
+
 export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitPanelProps) {
   const [status, setStatus] = useAtom(gitStatusAtom)
   const [commits, setCommits] = useAtom(gitCommitsAtom)
   const setIsLoading = useSetAtom(gitStatusLoadingAtom)
-  const [selectedCommit, setSelectedCommit] = useAtom(selectedCommitAtom)
   const [isGitRepo, setIsGitRepo] = useAtom(isGitRepoAtom)
   const isGitRepoRef = useRef<boolean | null>(null)
   const setGitBranch = useSetAtom(gitBranchAtom)
   const initialBranchFetched = useRef(false)
+  const currentTab = useAtomValue(gitPanelTabAtom)
+  const currentTabRef = useRef(currentTab)
 
-  const refreshStatus = useCallback(async () => {
+  // keep ref in sync without re-subscribing the file event effect
+  useEffect(() => {
+    currentTabRef.current = currentTab
+  }, [currentTab])
+
+  const refreshWorkingTree = useCallback(async () => {
     setIsLoading(true)
     try {
-      // first check if this is a git repo
       const isRepo = await window.electronAPI.git.isGitRepo(workspacePath)
       setIsGitRepo(isRepo)
       isGitRepoRef.current = isRepo
@@ -798,10 +806,7 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
         return
       }
 
-      const [result, logResult] = await Promise.all([
-        window.electronAPI.git.getStatus(workspacePath),
-        window.electronAPI.git.getCommitLog(workspacePath, 100),
-      ])
+      const result = await window.electronAPI.git.getStatus(workspacePath)
 
       match(result, {
         onLeft: (err) => {
@@ -811,13 +816,22 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
           setStatus(status as GitStatus)
         },
       })
+    } catch (err) {
+      console.error("Git refresh error:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [workspacePath, setStatus, setCommits, setIsLoading, setIsGitRepo])
+
+  const refreshHistory = useCallback(async () => {
+    try {
+      const logResult = await window.electronAPI.git.getCommitLog(workspacePath, 100)
 
       match(logResult, {
         onLeft: (err) => {
           console.error("Git log error:", err)
         },
         onRight: (commits) => {
-          // convert date strings back to Date objects
           const parsed = (
             commits as Array<{
               hash: string
@@ -834,63 +848,65 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
         },
       })
     } catch (err) {
-      console.error("Git refresh error:", err)
-    } finally {
-      setIsLoading(false)
+      console.error("Git log error:", err)
     }
-  }, [workspacePath, setStatus, setCommits, setIsLoading, setIsGitRepo])
+  }, [workspacePath, setCommits])
 
+  // initial fetch
   useEffect(() => {
-    // initial fetch
-    refreshStatus()
+    refreshWorkingTree()
 
-    // fetch initial git branch (once per mount)
     if (!initialBranchFetched.current) {
       initialBranchFetched.current = true
       window.electronAPI.git.getCurrentBranch(workspacePath).then(setGitBranch)
     }
-  }, [workspacePath, refreshStatus, setGitBranch])
+  }, [workspacePath, refreshWorkingTree, setGitBranch])
 
-  // subscribe to file-event for all workspace changes (working tree + git state)
+  // fetch history when switching to history tab
+  useEffect(() => {
+    if (currentTab === "history") {
+      refreshHistory()
+    }
+  }, [currentTab, refreshHistory])
+
+  // subscribe to file-event for all workspace changes
   useEffect(() => {
     let debounceTimer: NodeJS.Timeout
 
     const cleanup = window.electronAPI.onFileEvent((event) => {
       if (!event.path.startsWith(workspacePath)) return
-
-      // skip .lock files — git creates/removes index.lock during operations
       if (event.path.endsWith(".lock")) return
-
-      // skip git polling when workspace is not a git repo
       if (isGitRepoRef.current === false) return
 
-      // check if this is a git state change we care about
       const isGitStateChange =
         event.path.includes("/.git/") &&
         (event.path.endsWith("/HEAD") ||
           event.path.endsWith("/index") ||
           event.path.includes("/refs/"))
 
-      // skip other .git changes (logs, objects, etc.)
       if (event.path.includes("/.git/") && !isGitStateChange) return
 
-      // refresh git branch when HEAD changes
       if (event.path.endsWith("/.git/HEAD")) {
         window.electronAPI.git.getCurrentBranch(workspacePath).then(setGitBranch)
       }
 
       clearTimeout(debounceTimer)
-      debounceTimer = setTimeout(() => refreshStatus(), 300)
+      debounceTimer = setTimeout(() => {
+        refreshWorkingTree()
+        // only refresh history if the history tab is active and it's a git state change
+        if (currentTabRef.current === "history" && isGitStateChange) {
+          refreshHistory()
+        }
+      }, 300)
     })
 
     return () => {
       cleanup()
       clearTimeout(debounceTimer)
     }
-  }, [workspacePath, refreshStatus, setGitBranch])
+  }, [workspacePath, refreshWorkingTree, refreshHistory, setGitBranch])
 
-  // get current route to detect stale diff views — narrow to primitive deps
-  // so this effect only re-runs when the relevant route fields actually change
+  // get current route to detect stale diff views
   const currentRoute = useRoute()
   const routeViewKind = currentRoute?.viewKind
   const routeFilePath = currentRoute?.filePath
@@ -911,22 +927,17 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
   }, [status, workspacePath])
 
   // navigate away from stale diff views when file is no longer in changes list
-  // only applies to working tree diffs, not historical commit diffs
   useEffect(() => {
     if (!status || !routeFilePath || routeViewKind !== "diff") return
-
-    // historical commit diffs have baseRef/targetRef - don't close them based on working tree status
     if (routeBaseRef || routeTargetRef) return
 
     if (!allChangedPaths.has(routeFilePath) && routeWorkspaceId) {
-      // navigate to the same file without the diff view
       router.navigate({
         to: "/w/$workspaceId/f/$filePath",
         params: {
           workspaceId: encodeBase64Url(routeWorkspaceId),
           filePath: encodeBase64Url(routeFilePath),
         },
-        // remove view=diff by not passing it
         search: {},
       })
     }
@@ -940,18 +951,6 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
     routeWorkspaceId,
   ])
 
-  const totalChanges =
-    (status?.modified.length ?? 0) +
-    (status?.staged.length ?? 0) +
-    (status?.untracked.length ?? 0) +
-    (status?.deleted.length ?? 0) +
-    (status?.conflicted.length ?? 0)
-
-  const selectedCommitData = useMemo(
-    () => commits.find((c) => c.hash === selectedCommit),
-    [commits, selectedCommit],
-  )
-
   if (isGitRepo === false) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -961,37 +960,21 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
   }
 
   return (
-    <div className="h-full">
-      <ResizablePanelGroup orientation="horizontal">
-        <ResizablePanel defaultSize="40%" minSize="25%">
-          <CommitPane
-            commits={commits}
-            selectedCommit={selectedCommit}
-            hasChanges={totalChanges > 0}
-            onSelectCommit={setSelectedCommit}
-          />
-        </ResizablePanel>
-        <ResizableHandle />
-        <ResizablePanel defaultSize="60%" minSize="30%">
-          {selectedCommit === "working-tree" ? (
-            <WorkingTreeFilesPane
-              status={status}
-              workspacePath={workspacePath}
-              onFileClick={onFileClick}
-            />
-          ) : selectedCommitData ? (
-            <CommitFilesPane
-              commit={selectedCommitData}
-              workspacePath={workspacePath}
-              onFileClick={onCommitFileClick}
-            />
-          ) : (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-sm text-muted-foreground">select a commit</div>
-            </div>
-          )}
-        </ResizablePanel>
-      </ResizablePanelGroup>
-    </div>
+    <>
+      <TabsContent value="changes" className="flex-1 min-h-0 overflow-hidden mt-0">
+        <WorkingTreeFilesPane
+          status={status}
+          workspacePath={workspacePath}
+          onFileClick={onFileClick}
+        />
+      </TabsContent>
+      <TabsContent value="history" className="flex-1 min-h-0 overflow-hidden mt-0">
+        <HistoryView
+          commits={commits}
+          workspacePath={workspacePath}
+          onFileClick={onCommitFileClick}
+        />
+      </TabsContent>
+    </>
   )
 }

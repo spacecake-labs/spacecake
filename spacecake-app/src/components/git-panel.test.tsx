@@ -2,13 +2,16 @@
  * @vitest-environment jsdom
  */
 import { createStore, Provider } from "jotai"
+import { useAtom } from "jotai"
 import * as React from "react"
 import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { GitPanel } from "@/components/git-panel"
-import type { GitCommit, GitStatus } from "@/lib/atoms/git"
+import { Tabs } from "@/components/ui/tabs"
+import type { GitCommit, GitPanelTab, GitStatus } from "@/lib/atoms/git"
+import { gitPanelTabAtom } from "@/lib/atoms/git"
 import { type Either, right } from "@/types/adt"
 import type { ElectronAPI } from "@/types/electron"
 import { AbsolutePath } from "@/types/workspace"
@@ -119,6 +122,15 @@ function createMockGitAPI(
 
 const TEST_WORKSPACE = AbsolutePath("/test/workspace")
 
+function GitTabsWrapper({ children }: { children: React.ReactNode }) {
+  const [tab, setTab] = useAtom(gitPanelTabAtom)
+  return (
+    <Tabs value={tab} onValueChange={(v) => setTab(v as GitPanelTab)}>
+      {children}
+    </Tabs>
+  )
+}
+
 describe("GitPanel", () => {
   let container: HTMLDivElement
   let root: Root
@@ -155,11 +167,13 @@ describe("GitPanel", () => {
     act(() => {
       root.render(
         <Provider store={store}>
-          <GitPanel
-            workspacePath={TEST_WORKSPACE}
-            onFileClick={props?.onFileClick}
-            onCommitFileClick={props?.onCommitFileClick}
-          />
+          <GitTabsWrapper>
+            <GitPanel
+              workspacePath={TEST_WORKSPACE}
+              onFileClick={props?.onFileClick}
+              onCommitFileClick={props?.onCommitFileClick}
+            />
+          </GitTabsWrapper>
         </Provider>,
       )
     })
@@ -171,29 +185,29 @@ describe("GitPanel", () => {
     await waitForEffects()
 
     expect(container.textContent).toContain("no git repository found")
-    // no resizable layout
-    expect(container.querySelector("[data-panel-group-id]")).toBeNull()
   })
 
-  it("renders 2-pane layout when isGitRepo=true", async () => {
-    const { api } = createMockGitAPI({ isGitRepo: true })
+  it("renders changes tab content by default", async () => {
+    const { api } = createMockGitAPI({
+      isGitRepo: true,
+      status: { modified: [], staged: [], untracked: [], deleted: [], conflicted: [] },
+    })
     renderPanel(api)
     await waitForEffects()
 
-    expect(container.textContent).toContain("history")
-    expect(container.textContent).toContain("working tree")
+    // changes tab content is visible by default
+    expect(container.textContent).toContain("no changes")
   })
 
-  it('"working tree" selected by default', async () => {
-    const { api } = createMockGitAPI()
+  it("changes tab is active by default", async () => {
+    const { api } = createMockGitAPI({
+      status: { modified: [], staged: [], untracked: [], deleted: [], conflicted: [] },
+    })
     renderPanel(api)
     await waitForEffects()
 
-    const workingTreeBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("working tree"),
-    )
-    expect(workingTreeBtn).toBeDefined()
-    expect(workingTreeBtn!.className).toContain("bg-accent")
+    // the changes tab content should be visible (shows commit form or "no changes")
+    expect(container.textContent).toContain("no changes")
   })
 
   it("does not call getStatus/getCommitLog again when file event fires on non-git workspace", async () => {
@@ -214,7 +228,9 @@ describe("GitPanel", () => {
     act(() => {
       root.render(
         <Provider store={store}>
-          <GitPanel workspacePath={TEST_WORKSPACE} />
+          <GitTabsWrapper>
+            <GitPanel workspacePath={TEST_WORKSPACE} />
+          </GitTabsWrapper>
         </Provider>,
       )
     })
@@ -239,49 +255,41 @@ describe("GitPanel", () => {
     expect(api.getCommitLog).not.toHaveBeenCalled()
   })
 
-  it("calls isGitRepo, getStatus, getCommitLog on mount", async () => {
+  it("calls isGitRepo and getStatus on mount (not getCommitLog)", async () => {
     const { api } = createMockGitAPI()
     renderPanel(api)
     await waitForEffects()
 
     expect(api.isGitRepo).toHaveBeenCalledWith(TEST_WORKSPACE)
     expect(api.getStatus).toHaveBeenCalledWith(TEST_WORKSPACE)
+    // commit log is lazy-loaded only when history tab is opened
+    expect(api.getCommitLog).not.toHaveBeenCalled()
+  })
+
+  it("calls getCommitLog when switching to history tab", async () => {
+    const { api } = createMockGitAPI({
+      commits: [
+        {
+          hash: "abc1234",
+          message: "test commit",
+          author: "test",
+          date: new Date("2024-01-01"),
+          files: [],
+        },
+      ],
+    })
+    renderPanel(api)
+    await waitForEffects()
+
+    expect(api.getCommitLog).not.toHaveBeenCalled()
+
+    // switch to history tab via atom (radix triggers don't fire onValueChange reliably in jsdom)
+    await act(async () => {
+      store.set(gitPanelTabAtom, "history")
+    })
+    await waitForEffects()
+
     expect(api.getCommitLog).toHaveBeenCalledWith(TEST_WORKSPACE, 100)
-  })
-
-  it("yellow dot when changes exist", async () => {
-    const { api } = createMockGitAPI({
-      status: {
-        modified: ["src/index.ts"],
-        staged: [],
-        untracked: [],
-        deleted: [],
-        conflicted: [],
-      },
-    })
-    renderPanel(api)
-    await waitForEffects()
-
-    const allSvgs = Array.from(container.querySelectorAll("svg"))
-    const hasYellow = allSvgs.some(
-      (svg) => svg.classList.contains("fill-yellow-500") || svg.closest(".fill-yellow-500"),
-    )
-    expect(hasYellow).toBe(true)
-  })
-
-  it("gray dot when no changes", async () => {
-    const { api } = createMockGitAPI({
-      status: { modified: [], staged: [], untracked: [], deleted: [], conflicted: [] },
-    })
-    renderPanel(api)
-    await waitForEffects()
-
-    const allSvgs = Array.from(container.querySelectorAll("svg"))
-    const hasYellow = allSvgs.some((svg) => svg.classList.contains("fill-yellow-500"))
-    expect(hasYellow).toBe(false)
-
-    const hasMuted = allSvgs.some((svg) => svg.classList.contains("text-muted-foreground"))
-    expect(hasMuted).toBe(true)
   })
 
   it("onFileClick called with correct AbsolutePath", async () => {
@@ -323,17 +331,13 @@ describe("GitPanel", () => {
     renderPanel(api, { onCommitFileClick })
     await waitForEffects()
 
-    // select the commit
-    const commitBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("initial commit"),
-    )
-    expect(commitBtn).toBeDefined()
+    // switch to history tab via atom
     await act(async () => {
-      commitBtn!.click()
+      store.set(gitPanelTabAtom, "history")
     })
     await waitForEffects()
 
-    // click the file in the commit
+    // the first commit is auto-selected, click the file
     const fileBtn = Array.from(container.querySelectorAll('[role="button"]')).find((b) =>
       b.textContent?.includes("src/main.ts"),
     )
@@ -458,7 +462,9 @@ describe("working tree files", () => {
     act(() => {
       root.render(
         <Provider store={store}>
-          <GitPanel workspacePath={TEST_WORKSPACE} />
+          <GitTabsWrapper>
+            <GitPanel workspacePath={TEST_WORKSPACE} />
+          </GitTabsWrapper>
         </Provider>,
       )
     })
@@ -568,10 +574,14 @@ describe("commit files", () => {
       git: gitApi,
       onFileEvent: vi.fn(() => () => {}),
     } as unknown as ElectronAPI
+    // start on history tab for commit tests
+    store.set(gitPanelTabAtom, "history")
     act(() => {
       root.render(
         <Provider store={store}>
-          <GitPanel workspacePath={TEST_WORKSPACE} />
+          <GitTabsWrapper>
+            <GitPanel workspacePath={TEST_WORKSPACE} />
+          </GitTabsWrapper>
         </Provider>,
       )
     })
@@ -592,16 +602,7 @@ describe("commit files", () => {
     renderPanel(api)
     await waitForEffects()
 
-    // select the commit
-    const commitBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("test commit"),
-    )
-    await act(async () => {
-      commitBtn!.click()
-    })
-    await waitForEffects()
-
-    // files should be visible
+    // first commit is auto-selected, files should be visible
     expect(container.textContent).toContain("src/file.ts")
     expect(container.textContent).toContain("readme.md")
 
@@ -635,15 +636,7 @@ describe("commit files", () => {
     renderPanel(api)
     await waitForEffects()
 
-    // select the commit
-    const commitBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("empty commit"),
-    )
-    await act(async () => {
-      commitBtn!.click()
-    })
-    await waitForEffects()
-
+    // first commit auto-selected
     expect(container.textContent).toContain("no files")
   })
 })
@@ -666,14 +659,6 @@ describe("commit selection", () => {
     vi.restoreAllMocks()
   })
 
-  const DIRTY_STATUS: GitStatus = {
-    modified: ["dirty.ts"],
-    staged: [],
-    untracked: [],
-    deleted: [],
-    conflicted: [],
-  }
-
   const COMMITS: GitCommit[] = [
     {
       hash: "abc1234",
@@ -682,6 +667,13 @@ describe("commit selection", () => {
       date: new Date("2024-01-01"),
       files: ["committed.ts"],
     },
+    {
+      hash: "def5678",
+      message: "second commit",
+      author: "test",
+      date: new Date("2024-01-02"),
+      files: ["other.ts"],
+    },
   ]
 
   function renderPanel(gitApi: ReturnType<typeof createMockGitAPI>["api"]) {
@@ -689,96 +681,102 @@ describe("commit selection", () => {
       git: gitApi,
       onFileEvent: vi.fn(() => () => {}),
     } as unknown as ElectronAPI
+    // start on history tab
+    store.set(gitPanelTabAtom, "history")
     act(() => {
       root.render(
         <Provider store={store}>
-          <GitPanel workspacePath={TEST_WORKSPACE} />
+          <GitTabsWrapper>
+            <GitPanel workspacePath={TEST_WORKSPACE} />
+          </GitTabsWrapper>
         </Provider>,
       )
     })
   }
 
-  it("clicking commit selects it (bg-accent)", async () => {
-    const { api } = createMockGitAPI({ commits: COMMITS, status: DIRTY_STATUS })
+  it("first commit is auto-selected in history tab", async () => {
+    const { api } = createMockGitAPI({ commits: COMMITS })
     renderPanel(api)
     await waitForEffects()
 
+    // first commit should have bg-accent
     const commitBtn = Array.from(container.querySelectorAll("button")).find((b) =>
       b.textContent?.includes("test commit"),
     )
     expect(commitBtn).toBeDefined()
-
-    await act(async () => {
-      commitBtn!.click()
-    })
-    await waitForEffects()
-
-    // commit button should have bg-accent class
     expect(commitBtn!.classList.contains("bg-accent")).toBe(true)
 
-    // working tree should lose bg-accent class (hover:bg-accent doesn't count)
-    const workingTreeBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("working tree"),
-    )
-    expect(workingTreeBtn!.classList.contains("bg-accent")).toBe(false)
+    // its files should be visible
+    expect(container.textContent).toContain("committed.ts")
   })
 
-  it('clicking "working tree" returns to working tree view', async () => {
-    const { api } = createMockGitAPI({ commits: COMMITS, status: DIRTY_STATUS })
+  it("clicking a different commit selects it", async () => {
+    const { api } = createMockGitAPI({ commits: COMMITS })
     renderPanel(api)
     await waitForEffects()
 
-    // select commit first
-    const commitBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("test commit"),
+    // click second commit
+    const secondCommitBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("second commit"),
     )
     await act(async () => {
-      commitBtn!.click()
+      secondCommitBtn!.click()
     })
     await waitForEffects()
 
-    // verify commit files
-    expect(container.textContent).toContain("committed.ts")
-
-    // click working tree
-    const workingTreeBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("working tree"),
-    )
-    await act(async () => {
-      workingTreeBtn!.click()
-    })
-    await waitForEffects()
-
-    // should show working tree files
-    expect(container.textContent).toContain("dirty.ts")
+    expect(secondCommitBtn!.classList.contains("bg-accent")).toBe(true)
+    expect(container.textContent).toContain("other.ts")
   })
 
-  it("right pane updates when selection changes", async () => {
-    const { api } = createMockGitAPI({ commits: COMMITS, status: DIRTY_STATUS })
-    renderPanel(api)
+  it("switching between changes and history tabs shows correct content", async () => {
+    const { api } = createMockGitAPI({
+      commits: COMMITS,
+      status: {
+        modified: ["dirty.ts"],
+        staged: [],
+        untracked: [],
+        deleted: [],
+        conflicted: [],
+      },
+    })
+    // start on changes tab
+    store.set(gitPanelTabAtom, "changes")
+
+    window.electronAPI = {
+      git: api,
+      onFileEvent: vi.fn(() => () => {}),
+    } as unknown as ElectronAPI
+    act(() => {
+      root.render(
+        <Provider store={store}>
+          <GitTabsWrapper>
+            <GitPanel workspacePath={TEST_WORKSPACE} />
+          </GitTabsWrapper>
+        </Provider>,
+      )
+    })
     await waitForEffects()
 
-    // working tree: dirty.ts
+    // changes tab shows working tree files
     expect(container.textContent).toContain("dirty.ts")
 
-    // select commit: committed.ts
-    const commitBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("test commit"),
-    )
+    // switch to history via atom
     await act(async () => {
-      commitBtn!.click()
+      store.set(gitPanelTabAtom, "history")
     })
     await waitForEffects()
+
+    // history tab shows commits
+    expect(container.textContent).toContain("test commit")
     expect(container.textContent).toContain("committed.ts")
 
-    // back to working tree
-    const workingTreeBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("working tree"),
-    )
+    // switch back to changes via atom
     await act(async () => {
-      workingTreeBtn!.click()
+      store.set(gitPanelTabAtom, "changes")
     })
     await waitForEffects()
+
+    // changes tab shows working tree again
     expect(container.textContent).toContain("dirty.ts")
   })
 })
@@ -809,7 +807,9 @@ describe("ui-only inclusion state", () => {
     act(() => {
       root.render(
         <Provider store={store}>
-          <GitPanel workspacePath={TEST_WORKSPACE} />
+          <GitTabsWrapper>
+            <GitPanel workspacePath={TEST_WORKSPACE} />
+          </GitTabsWrapper>
         </Provider>,
       )
     })
@@ -988,7 +988,9 @@ describe("conflicted files", () => {
     act(() => {
       root.render(
         <Provider store={store}>
-          <GitPanel workspacePath={TEST_WORKSPACE} onFileClick={props?.onFileClick} />
+          <GitTabsWrapper>
+            <GitPanel workspacePath={TEST_WORKSPACE} onFileClick={props?.onFileClick} />
+          </GitTabsWrapper>
         </Provider>,
       )
     })
@@ -1103,7 +1105,9 @@ describe("discard confirmation", () => {
     act(() => {
       root.render(
         <Provider store={store}>
-          <GitPanel workspacePath={TEST_WORKSPACE} />
+          <GitTabsWrapper>
+            <GitPanel workspacePath={TEST_WORKSPACE} />
+          </GitTabsWrapper>
         </Provider>,
       )
     })
@@ -1298,7 +1302,9 @@ describe("amend checkbox", () => {
     act(() => {
       root.render(
         <Provider store={store}>
-          <GitPanel workspacePath={TEST_WORKSPACE} />
+          <GitTabsWrapper>
+            <GitPanel workspacePath={TEST_WORKSPACE} />
+          </GitTabsWrapper>
         </Provider>,
       )
     })
@@ -1417,7 +1423,9 @@ describe("commit error handling", () => {
     act(() => {
       root.render(
         <Provider store={store}>
-          <GitPanel workspacePath={TEST_WORKSPACE} />
+          <GitTabsWrapper>
+            <GitPanel workspacePath={TEST_WORKSPACE} />
+          </GitTabsWrapper>
         </Provider>,
       )
     })
