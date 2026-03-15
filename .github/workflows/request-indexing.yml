@@ -1,0 +1,51 @@
+name: Request Google Indexing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/src/content/compare/**"
+      - "website/src/content/blog/**"
+
+jobs:
+  request-indexing:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./website
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect new articles
+        id: detect
+        run: |
+          paths=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- src/content/compare/ src/content/blog/ \
+            | sed 's|src/content/||' \
+            | sed 's|\.mdx$||' \
+            | tr '\n' ' ')
+          echo "paths=$paths" >> "$GITHUB_OUTPUT"
+          if [ -z "$paths" ]; then
+            echo "no new articles found"
+          else
+            echo "new articles: $paths"
+          fi
+
+      - name: Set up Node.js
+        if: steps.detect.outputs.paths != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install googleapis
+        if: steps.detect.outputs.paths != ''
+        run: npm install googleapis
+
+      - name: Request indexing
+        if: steps.detect.outputs.paths != ''
+        env:
+          GOOGLE_INDEXING_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_INDEXING_SERVICE_ACCOUNT_KEY }}
+        run: node scripts/request-indexing.mjs ${{ steps.detect.outputs.paths }}
