@@ -14,7 +14,6 @@ import { left, right, type Either } from "@/types/adt"
 import type { ElectronAPI } from "@/types/electron"
 
 vi.mock("@/components/branch-popover", () => ({ BranchPopover: () => null }))
-vi.mock("@/components/dock-position-dropdown", () => ({ DockPositionDropdown: () => null }))
 
 const mockToast = vi.hoisted(() => ({
   success: vi.fn(),
@@ -89,7 +88,6 @@ describe("GitToolbar", () => {
     props: {
       isExpanded?: boolean
       onExpandedChange?: (expanded: boolean) => void
-      onDockChange?: (dock: "bottom" | "left" | "right") => void
     } = {},
   ) {
     window.electronAPI = {
@@ -104,10 +102,8 @@ describe("GitToolbar", () => {
             <GitToolbar
               workspacePath={TEST_WORKSPACE}
               isExpanded={props.isExpanded ?? true}
-              dock="bottom"
               totalChanges={0}
               onExpandedChange={props.onExpandedChange ?? vi.fn()}
-              onDockChange={props.onDockChange ?? vi.fn()}
             />
           </Tabs>
         </Provider>,

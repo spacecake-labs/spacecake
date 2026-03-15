@@ -2,10 +2,8 @@ import { useAtom } from "jotai"
 import { ChevronDown, ChevronUp, ListTodo, X } from "lucide-react"
 import { memo, useCallback } from "react"
 
-import { DockPositionDropdown } from "@/components/dock-position-dropdown"
 import { taskStatusFilterAtom } from "@/lib/atoms/claude-tasks"
 import { cn } from "@/lib/utils"
-import type { DockPosition } from "@/schema/workspace-layout"
 
 const TASK_STATUSES = [
   { value: "pending", label: "pending" },
@@ -15,16 +13,12 @@ const TASK_STATUSES = [
 
 interface TaskToolbarProps {
   isExpanded: boolean
-  dock: DockPosition
   onExpandedChange: (expanded: boolean) => void
-  onDockChange: (dock: DockPosition) => void
 }
 
 export const TaskToolbar = memo(function TaskToolbar({
   isExpanded,
-  dock,
   onExpandedChange,
-  onDockChange,
 }: TaskToolbarProps) {
   const [taskStatusFilter, setTaskStatusFilter] = useAtom(taskStatusFilterAtom)
   const isCollapsed = !isExpanded
@@ -47,7 +41,6 @@ export const TaskToolbar = memo(function TaskToolbar({
             isExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
           )}
         />
-        <DockPositionDropdown currentDock={dock} onDockChange={onDockChange} label="task" />
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         {TASK_STATUSES.map((status) => {

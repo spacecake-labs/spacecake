@@ -11,7 +11,6 @@ import { memo, useCallback, useEffect } from "react"
 import { toast } from "sonner"
 
 import { BranchPopover } from "@/components/branch-popover"
-import { DockPositionDropdown } from "@/components/dock-position-dropdown"
 import { tabTriggerClasses } from "@/components/tab-bar/tab-close-button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -23,25 +22,20 @@ import {
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { gitOperationAtom, gitRemoteStatusAtom, isBusyAtom } from "@/lib/atoms/git"
 import { cn } from "@/lib/utils"
-import type { DockPosition } from "@/schema/workspace-layout"
 import { isRight } from "@/types/adt"
 
 interface GitToolbarProps {
   isExpanded: boolean
-  dock: DockPosition
   workspacePath: string
   totalChanges: number
   onExpandedChange: (expanded: boolean) => void
-  onDockChange: (dock: DockPosition) => void
 }
 
 export const GitToolbar = memo(function GitToolbar({
   isExpanded,
-  dock,
   workspacePath,
   totalChanges,
   onExpandedChange,
-  onDockChange,
 }: GitToolbarProps) {
   const isCollapsed = !isExpanded
   const [remoteStatus, setRemoteStatus] = useAtom(gitRemoteStatusAtom)
@@ -215,9 +209,7 @@ export const GitToolbar = memo(function GitToolbar({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <div className="w-px h-4 bg-border" />
         <BranchPopover workspacePath={workspacePath} isExpanded={isExpanded} />
-        <DockPositionDropdown currentDock={dock} onDockChange={onDockChange} label="git" />
         <button
           onClick={() => onExpandedChange(!isExpanded)}
           className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"

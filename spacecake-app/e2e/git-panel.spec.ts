@@ -91,11 +91,12 @@ test.describe("git panel", () => {
     // default is left
     await expect(window.locator("#git-panel-left")).toBeVisible()
 
-    // helper: open dock dropdown, wait for menu, click option
+    // helper: right-click status bar git toggle, wait for context menu, click option
     const switchDock = async (option: string) => {
-      const button = window.getByRole("button", { name: "change git dock position" })
-      await expect(button).toBeVisible()
-      await button.click()
+      const statusBarButton = window.locator(
+        'button[data-slot="context-menu-trigger"][aria-label*="git panel"]',
+      )
+      await statusBarButton.click({ button: "right" })
       const menuItem = window.getByText(option)
       await expect(menuItem).toBeVisible()
       await menuItem.click({ force: true })

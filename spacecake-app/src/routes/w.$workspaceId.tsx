@@ -12,7 +12,6 @@ import type { GroupImperativeHandle, Layout, PanelImperativeHandle } from "react
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DeleteButton } from "@/components/delete-button"
-import { DockPositionDropdown } from "@/components/dock-position-dropdown"
 import { EditorPanel } from "@/components/editor-panel"
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { GitToolbar } from "@/components/git-toolbar"
@@ -618,11 +617,6 @@ function LayoutContent() {
     () => (
       <div className="flex items-center gap-2">
         <TerminalStatusBadge />
-        <DockPositionDropdown
-          currentDock={terminalDock}
-          onDockChange={setTerminalDock}
-          label="terminal"
-        />
         <DeleteButton
           onDelete={
             isTerminalSessionActive
@@ -654,14 +648,7 @@ function LayoutContent() {
         </button>
       </div>
     ),
-    [
-      isTerminalCollapsed,
-      isTerminalExpanded,
-      isTerminalSessionActive,
-      setTerminalExpanded,
-      terminalDock,
-      setTerminalDock,
-    ],
+    [isTerminalCollapsed, isTerminalExpanded, isTerminalSessionActive, setTerminalExpanded],
   )
 
   // Determine which panel (if any) is docked at bottom
@@ -689,19 +676,15 @@ function LayoutContent() {
       bottomPanelSize={bottomPanelSize}
       isTaskExpanded={isTaskExpanded}
       isTaskCollapsed={isTaskCollapsed}
-      taskDock={taskDock}
       taskSize={taskSize}
       isGitExpanded={isGitExpanded}
       isGitCollapsed={isGitCollapsed}
-      gitDock={gitDock}
       gitSize={gitSize}
       workspace={workspace}
       taskResizablePanelRef={taskResizablePanelRef}
       gitResizablePanelRef={gitResizablePanelRef}
       onTaskExpandedChange={setTaskExpanded}
-      onTaskDockChange={setTaskDock}
       onGitExpandedChange={setGitExpanded}
-      onGitDockChange={setGitDock}
       onGitFileClick={handleGitFileClick}
       onCommitFileClick={handleCommitFileClick}
     />
@@ -768,11 +751,9 @@ function LayoutContent() {
                         {!isGitCollapsed && (
                           <GitToolbar
                             isExpanded={isGitExpanded}
-                            dock={gitDock}
                             workspacePath={workspace.path}
                             totalChanges={gitTotalChanges}
                             onExpandedChange={setGitExpanded}
-                            onDockChange={setGitDock}
                           />
                         )}
                         <div
@@ -813,9 +794,7 @@ function LayoutContent() {
                       {!isTaskCollapsed && (
                         <TaskToolbar
                           isExpanded={isTaskExpanded}
-                          dock={taskDock}
                           onExpandedChange={setTaskExpanded}
-                          onDockChange={setTaskDock}
                         />
                       )}
                       <div
@@ -889,9 +868,7 @@ function LayoutContent() {
                       {!isTaskCollapsed && (
                         <TaskToolbar
                           isExpanded={isTaskExpanded}
-                          dock={taskDock}
                           onExpandedChange={setTaskExpanded}
-                          onDockChange={setTaskDock}
                         />
                       )}
                       <div
@@ -932,11 +909,9 @@ function LayoutContent() {
                         {!isGitCollapsed && (
                           <GitToolbar
                             isExpanded={isGitExpanded}
-                            dock={gitDock}
                             workspacePath={workspace.path}
                             totalChanges={gitTotalChanges}
                             onExpandedChange={setGitExpanded}
-                            onDockChange={setGitDock}
                           />
                         )}
                         <div
@@ -967,6 +942,12 @@ function LayoutContent() {
               onToggleTerminal={toggleTerminal}
               onToggleTask={toggleTask}
               onToggleGit={toggleGit}
+              terminalDock={terminalDock}
+              taskDock={taskDock}
+              gitDock={gitDock}
+              onTerminalDockChange={setTerminalDock}
+              onTaskDockChange={setTaskDock}
+              onGitDockChange={setGitDock}
             />
           </div>
         </ResizablePanel>
