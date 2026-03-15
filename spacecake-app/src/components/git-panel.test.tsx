@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { GitPanel } from "@/components/git-panel"
 import { Tabs } from "@/components/ui/tabs"
 import type { GitCommit, GitPanelTab, GitStatus } from "@/lib/atoms/git"
-import { gitPanelTabAtom } from "@/lib/atoms/git"
+import { commitFilesAtom, gitPanelTabAtom } from "@/lib/atoms/git"
 import { type Either, right } from "@/types/adt"
 import type { ElectronAPI } from "@/types/electron"
 import { AbsolutePath } from "@/types/workspace"
@@ -70,6 +70,7 @@ function createMockGitAPI(
     isGitRepo?: boolean
     status?: GitStatus
     commits?: GitCommit[]
+    commitFiles?: Record<string, string[]>
   } = {},
 ) {
   const isGitRepo = vi.fn(async () => overrides.isGitRepo ?? true)
@@ -85,6 +86,9 @@ function createMockGitAPI(
     ),
   )
   const getCommitLog = vi.fn(async () => gitRight(overrides.commits ?? []))
+  const getCommitFiles = vi.fn(async (_ws: string, hash: string) =>
+    gitRight(overrides.commitFiles?.[hash] ?? []),
+  )
 
   const noop = vi.fn(async () => gitRight(undefined))
 
@@ -93,6 +97,7 @@ function createMockGitAPI(
       isGitRepo,
       getStatus,
       getCommitLog,
+      getCommitFiles,
       getCurrentBranch: vi.fn(async () => "main"),
       getFileDiff: vi.fn(async () => gitRight({ oldContent: "", newContent: "" })),
       stage: noop,
@@ -116,6 +121,7 @@ function createMockGitAPI(
       ),
       discardFile: noop,
       discardAll: noop,
+      removeWorkspace: vi.fn().mockResolvedValue(undefined),
     } satisfies ElectronAPI["git"],
   }
 }
@@ -274,7 +280,6 @@ describe("GitPanel", () => {
           message: "test commit",
           author: "test",
           date: new Date("2024-01-01"),
-          files: [],
         },
       ],
     })
@@ -324,9 +329,9 @@ describe("GitPanel", () => {
           message: "initial commit",
           author: "test",
           date: new Date("2024-01-01"),
-          files: ["src/main.ts"],
         },
       ],
+      commitFiles: { abc1234def5678: ["src/main.ts"] },
     })
     renderPanel(api, { onCommitFileClick })
     await waitForEffects()
@@ -595,9 +600,9 @@ describe("commit files", () => {
           message: "test commit",
           author: "test",
           date: new Date("2024-01-01"),
-          files: ["src/file.ts", "readme.md"],
         },
       ],
+      commitFiles: { abc1234: ["src/file.ts", "readme.md"] },
     })
     renderPanel(api)
     await waitForEffects()
@@ -629,9 +634,9 @@ describe("commit files", () => {
           message: "empty commit",
           author: "test",
           date: new Date("2024-01-01"),
-          files: [],
         },
       ],
+      commitFiles: { abc1234: [] },
     })
     renderPanel(api)
     await waitForEffects()
@@ -665,24 +670,28 @@ describe("commit selection", () => {
       message: "test commit",
       author: "test",
       date: new Date("2024-01-01"),
-      files: ["committed.ts"],
     },
     {
       hash: "def5678",
       message: "second commit",
       author: "test",
       date: new Date("2024-01-02"),
-      files: ["other.ts"],
     },
   ]
+
+  const COMMIT_FILES: Record<string, string[]> = {
+    abc1234: ["committed.ts"],
+    def5678: ["other.ts"],
+  }
 
   function renderPanel(gitApi: ReturnType<typeof createMockGitAPI>["api"]) {
     window.electronAPI = {
       git: gitApi,
       onFileEvent: vi.fn(() => () => {}),
     } as unknown as ElectronAPI
-    // start on history tab
+    // start on history tab; pre-seed commit files to avoid async jotai flush issues in jsdom
     store.set(gitPanelTabAtom, "history")
+    store.set(commitFilesAtom, new Map(Object.entries(COMMIT_FILES)))
     act(() => {
       root.render(
         <Provider store={store}>
@@ -695,7 +704,7 @@ describe("commit selection", () => {
   }
 
   it("first commit is auto-selected in history tab", async () => {
-    const { api } = createMockGitAPI({ commits: COMMITS })
+    const { api } = createMockGitAPI({ commits: COMMITS, commitFiles: COMMIT_FILES })
     renderPanel(api)
     await waitForEffects()
 
@@ -711,7 +720,7 @@ describe("commit selection", () => {
   })
 
   it("clicking a different commit selects it", async () => {
-    const { api } = createMockGitAPI({ commits: COMMITS })
+    const { api } = createMockGitAPI({ commits: COMMITS, commitFiles: COMMIT_FILES })
     renderPanel(api)
     await waitForEffects()
 
@@ -725,12 +734,14 @@ describe("commit selection", () => {
     await waitForEffects()
 
     expect(secondCommitBtn!.classList.contains("bg-accent")).toBe(true)
+    // files are pre-seeded in the atom, so they render immediately on selection
     expect(container.textContent).toContain("other.ts")
   })
 
   it("switching between changes and history tabs shows correct content", async () => {
     const { api } = createMockGitAPI({
       commits: COMMITS,
+      commitFiles: COMMIT_FILES,
       status: {
         modified: ["dirty.ts"],
         staged: [],

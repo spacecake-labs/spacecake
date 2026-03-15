@@ -310,7 +310,6 @@ describe("GitService", () => {
               message: "initial commit",
               author_name: "user",
               date: "2024-01-01T00:00:00.000Z",
-              diff: { files: [{ file: "src/index.ts" }] },
             },
           ],
         })
@@ -318,10 +317,9 @@ describe("GitService", () => {
         const result = yield* service.getCommitLog("/my/workspace", 10)
         expect(result).toHaveLength(1)
         expect(result[0].hash).toBe("abc1234")
-        expect(result[0].files).toEqual(["src/index.ts"])
+        expect(result[0]).not.toHaveProperty("files")
         expect(mockLog).toHaveBeenCalledWith({
           maxCount: 10,
-          "--name-only": null,
           "--no-show-signature": null,
         })
       }).pipe(Effect.provide(createTestLayer())),
@@ -334,6 +332,43 @@ describe("GitService", () => {
         mockLog.mockRejectedValue(new Error("boom"))
         const service = yield* GitService
         const error = yield* service.getCommitLog("/my/workspace").pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
+  describe("getCommitFiles", () => {
+    it.effect("returns file paths for a single commit", () =>
+      Effect.gen(function* () {
+        mockRaw.mockResolvedValue("src/index.ts\nreadme.md\n")
+        const service = yield* GitService
+        const result = yield* service.getCommitFiles("/my/workspace", "abc1234")
+        expect(result).toEqual(["src/index.ts", "readme.md"])
+        expect(mockRaw).toHaveBeenCalledWith([
+          "diff-tree",
+          "--no-commit-id",
+          "--name-only",
+          "-r",
+          "--root",
+          "abc1234",
+        ])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("returns empty array when no files changed", () =>
+      Effect.gen(function* () {
+        mockRaw.mockResolvedValue("")
+        const service = yield* GitService
+        const result = yield* service.getCommitFiles("/my/workspace", "abc1234")
+        expect(result).toEqual([])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("fails with GitError when raw rejects", () =>
+      Effect.gen(function* () {
+        mockRaw.mockRejectedValue(new Error("boom"))
+        const service = yield* GitService
+        const error = yield* service.getCommitFiles("/my/workspace", "abc1234").pipe(Effect.flip)
         expect(error._tag).toBe("GitError")
       }).pipe(Effect.provide(createTestLayer())),
     )

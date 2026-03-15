@@ -145,6 +145,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("git:file-diff", workspacePath, filePath, baseRef, targetRef),
     getCommitLog: (workspacePath: string, limit?: number) =>
       ipcRenderer.invoke("git:commit-log", workspacePath, limit),
+    getCommitFiles: (workspacePath: string, commitHash: string) =>
+      ipcRenderer.invoke("git:commit-files", workspacePath, commitHash),
     stage: (workspacePath: string, files: string[]) =>
       ipcRenderer.invoke("git:stage", workspacePath, files),
     unstage: (workspacePath: string, files: string[]) =>
@@ -170,6 +172,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     discardFile: (workspacePath: string, file: string) =>
       ipcRenderer.invoke("git:discard-file", workspacePath, file),
     discardAll: (workspacePath: string) => ipcRenderer.invoke("git:discard-all", workspacePath),
+    removeWorkspace: (workspacePath: string) =>
+      ipcRenderer.invoke("git:remove-workspace", workspacePath),
   },
   exists: (path: string) => ipcRenderer.invoke("path-exists", path),
   createTerminal: (id: string, cols: number, rows: number, cwd?: string, surfaceId?: string) =>

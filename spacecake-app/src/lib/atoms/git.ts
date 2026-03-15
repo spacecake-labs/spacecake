@@ -17,10 +17,12 @@ export type GitCommit = {
   message: string
   author: string
   date: Date
-  files: string[]
 }
 
 export const gitCommitsAtom = atom<GitCommit[]>([])
+
+// lazily-loaded commit file lists (keyed by commit hash)
+export const commitFilesAtom = atom<Map<string, string[]>>(new Map())
 
 // Loading state for git status
 export const gitStatusLoadingAtom = atom<boolean>(false)

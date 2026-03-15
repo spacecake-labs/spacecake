@@ -51,7 +51,12 @@ import {
   getOrCreateFileStateAtom,
   setFileTreeAtom,
 } from "@/lib/atoms/file-tree"
-import { gitBranchAtom, gitPanelTabAtom, gitTotalChangesAtom } from "@/lib/atoms/git"
+import {
+  commitFilesAtom,
+  gitBranchAtom,
+  gitPanelTabAtom,
+  gitTotalChangesAtom,
+} from "@/lib/atoms/git"
 import { cleanupPaneMachine } from "@/lib/atoms/pane"
 import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
 import { createWorkspaceCollections } from "@/lib/db/collections"
@@ -1003,11 +1008,15 @@ function WorkspaceLayout() {
   useEffect(() => {
     const id = workspace.id
     const currentPaneId = paneId
+    const currentPath = workspace.path
     return () => {
       cleanupSettingsMachine(id)
       cleanupPaneMachine(currentPaneId)
       store.set(quickOpenIndexAtom, [])
       store.set(quickOpenIndexReadyAtom, false)
+      // evict cached git workspace state so it doesn't leak across sessions
+      store.set(commitFilesAtom, new Map())
+      window.electronAPI.git.removeWorkspace(currentPath).catch(() => {})
       // defer so child components unmount first (prevents re-creation during teardown)
       setTimeout(() => {
         clearFileStateAtoms()

@@ -22,6 +22,7 @@ import { TabsContent } from "@/components/ui/tabs"
 import { useRoute } from "@/hooks/use-route"
 import {
   commitAmendAtom,
+  commitFilesAtom,
   commitMessageAtom,
   discardStateAtom,
   gitBranchAtom,
@@ -514,6 +515,7 @@ function WorkingTreeFilesPane({
 }) {
   const setDiscardState = useSetAtom(discardStateAtom)
   const [excludedPaths, setExcludedPaths] = useAtom(gitExcludedPathsAtom)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const conflictedFiles = useMemo<Array<{ path: string; status: FileStatus }>>(
     () => status?.conflicted.map((path) => ({ path, status: "conflicted" as FileStatus })) ?? [],
@@ -565,6 +567,13 @@ function WorkingTreeFilesPane({
     return { allFiles: all, includedFiles: included }
   }, [changedPaths, excludedPaths])
 
+  const rowVirtualizer = useVirtualizer({
+    count: allFiles.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 28,
+    overscan: 10,
+  })
+
   const allIncluded = allFiles.length > 0 && includedFiles.length === allFiles.length
   const someIncluded = includedFiles.length > 0 && !allIncluded
 
@@ -603,56 +612,77 @@ function WorkingTreeFilesPane({
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <CommitForm workspacePath={workspacePath} includedFiles={includedFiles} />
-      <div className="flex-1 overflow-auto px-1">
-        {hasNoChanges ? (
+      {hasNoChanges ? (
+        <div className="flex-1 px-1">
           <div className="text-sm text-muted-foreground text-center py-4">no changes</div>
-        ) : (
-          <div className="space-y-1">
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col overflow-hidden px-1">
+          <div className="space-y-1 flex-shrink-0">
             <ConflictSection
               files={conflictedFiles}
               workspacePath={workspacePath}
               onFileClick={onFileClick}
             />
             {allFiles.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-medium">
-                  <GitCheckbox
-                    checked={allIncluded}
-                    indeterminate={someIncluded}
-                    onChange={handleToggleAll}
-                    title={allIncluded ? "exclude all changes" : "include all changes"}
-                    aria-label={allIncluded ? "exclude all changes" : "include all changes"}
-                  />
-                  <span>changes</span>
-                  <Badge variant="secondary" className="ml-auto text-xs">
-                    {allFiles.length}
-                  </Badge>
-                  <button
-                    onClick={() => setDiscardState({ isOpen: true, kind: "all" })}
-                    className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer flex-shrink-0"
-                    title="discard all changes"
-                    aria-label="discard all changes"
-                  >
-                    <Undo2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <div className="ml-2 border-l pl-2">
-                  {allFiles.map((file) => (
-                    <ChangeFileRow
-                      key={file.path}
-                      file={file}
-                      workspacePath={workspacePath}
-                      onFileClick={onFileClick}
-                      onToggleInclude={handleToggleFile}
-                      onDiscard={handleDiscard}
-                    />
-                  ))}
-                </div>
+              <div className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-medium">
+                <GitCheckbox
+                  checked={allIncluded}
+                  indeterminate={someIncluded}
+                  onChange={handleToggleAll}
+                  title={allIncluded ? "exclude all changes" : "include all changes"}
+                  aria-label={allIncluded ? "exclude all changes" : "include all changes"}
+                />
+                <span>changes</span>
+                <Badge variant="secondary" className="ml-auto text-xs">
+                  {allFiles.length}
+                </Badge>
+                <button
+                  onClick={() => setDiscardState({ isOpen: true, kind: "all" })}
+                  className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer flex-shrink-0"
+                  title="discard all changes"
+                  aria-label="discard all changes"
+                >
+                  <Undo2 className="h-3.5 w-3.5" />
+                </button>
               </div>
             )}
           </div>
-        )}
-      </div>
+          {allFiles.length > 0 && (
+            <div ref={scrollRef} className="flex-1 overflow-auto">
+              <div
+                className="ml-2 border-l pl-2"
+                style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                  const file = allFiles[virtualItem.index]
+                  return (
+                    <div
+                      key={file.path}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: `${virtualItem.size}px`,
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                    >
+                      <ChangeFileRow
+                        file={file}
+                        workspacePath={workspacePath}
+                        onFileClick={onFileClick}
+                        onToggleInclude={handleToggleFile}
+                        onDiscard={handleDiscard}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       <DiscardConfirmDialog workspacePath={workspacePath} />
     </div>
   )
@@ -667,17 +697,53 @@ function CommitFilesPane({
   workspacePath: AbsolutePath
   onFileClick?: (filePath: AbsolutePath, commitHash: string) => void
 }) {
+  const [filesMap, setFilesMap] = useAtom(commitFilesAtom)
+  const files = filesMap.get(commit.hash)
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (files !== undefined) return
+
+    let cancelled = false
+    setIsLoading(true)
+
+    window.electronAPI.git
+      .getCommitFiles(workspacePath, commit.hash)
+      .then((result) => {
+        if (cancelled) return
+        if (isRight(result)) {
+          setFilesMap((prev) => {
+            const next = new Map(prev)
+            next.set(commit.hash, result.value)
+            return next
+          })
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [commit.hash, workspacePath, setFilesMap])
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">
         changed files
       </div>
       <div className="flex-1 overflow-auto p-1">
-        {commit.files.length === 0 ? (
+        {isLoading || files === undefined ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : files.length === 0 ? (
           <div className="text-sm text-muted-foreground text-center py-4">no files</div>
         ) : (
           <div className="space-y-0.5">
-            {commit.files.map((file) => {
+            {files.map((file) => {
               const fullPath = `${workspacePath}/${file}`
               return (
                 <FileItem
@@ -840,7 +906,6 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
               message: string
               author: string
               date: Date | string
-              files: string[]
             }>
           ).map((c) => ({
             ...c,

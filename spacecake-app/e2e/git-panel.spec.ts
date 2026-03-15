@@ -69,6 +69,23 @@ test.describe("git panel", () => {
     await gitPanel.getByText("initial commit").click()
     await expect(gitPanel.getByRole("button", { name: /committed\.md/ })).toBeVisible()
 
+    // --- git panel refreshes when file is saved in editor ---
+
+    // create a new file externally (file watcher adds to sidebar)
+    const newFile = path.join(tempTestDir, "created-during-test.md")
+    fs.writeFileSync(newFile, "# initial content")
+
+    // select changes tab to see current changes
+    await gitPanel.getByRole("tab", { name: "changes" }).click()
+
+    // verify the new file appears as untracked in git panel
+    await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
+    await expect(gitPanel.getByTitle("untracked").first()).toBeVisible()
+
+    // modify the file externally and verify git panel refreshes
+    fs.writeFileSync(newFile, "# initial content EDITED")
+    await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
+
     // --- dock switching ---
 
     // default is left
@@ -95,23 +112,6 @@ test.describe("git panel", () => {
     // switch back to left
     await switchDock("dock left")
     await expect(window.locator("#git-panel-left")).toBeVisible()
-
-    // --- git panel refreshes when file is saved in editor ---
-
-    // create a new file externally (file watcher adds to sidebar)
-    const newFile = path.join(tempTestDir, "created-during-test.md")
-    fs.writeFileSync(newFile, "# initial content")
-
-    // select changes tab to see current changes
-    await gitPanel.getByRole("tab", { name: "changes" }).click()
-
-    // verify the new file appears as untracked in git panel
-    await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
-    await expect(gitPanel.getByTitle("untracked").first()).toBeVisible()
-
-    // modify the file externally and verify git panel refreshes
-    fs.writeFileSync(newFile, "# initial content EDITED")
-    await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
   })
 
   test("non-git directory hides git toggle in status bar", async ({ electronApp, tempTestDir }) => {
