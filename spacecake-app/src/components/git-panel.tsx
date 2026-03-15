@@ -648,8 +648,8 @@ function WorkingTreeFilesPane({
               </div>
             )}
           </div>
-          {allFiles.length > 0 && (
-            <div ref={scrollRef} className="flex-1 overflow-auto">
+          <div ref={scrollRef} className="flex-1 overflow-auto">
+            {allFiles.length > 0 && (
               <div
                 className="ml-2 border-l pl-2"
                 style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}
@@ -679,8 +679,8 @@ function WorkingTreeFilesPane({
                   )
                 })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
       <DiscardConfirmDialog workspacePath={workspacePath} />
