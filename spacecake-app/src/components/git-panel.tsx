@@ -284,11 +284,11 @@ const ConflictSection = memo(function ConflictSection({
 const CommitListItem = memo(function CommitListItem({
   commit,
   isSelected,
-  onClick,
+  onSelect,
 }: {
   commit: GitCommitType
   isSelected: boolean
-  onClick: () => void
+  onSelect: (hash: string) => void
 }) {
   const shortHash = commit.hash.substring(0, 7)
   const formattedDate = new Date(commit.date).toLocaleDateString(undefined, {
@@ -296,9 +296,11 @@ const CommitListItem = memo(function CommitListItem({
     day: "numeric",
   })
 
+  const handleClick = useCallback(() => onSelect(commit.hash), [onSelect, commit.hash])
+
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         "w-full px-2 py-1.5 hover:bg-accent rounded cursor-pointer text-left text-sm",
         isSelected && "bg-accent",
@@ -552,14 +554,19 @@ function WorkingTreeFilesPane({
     })
   }, [changedPaths, setExcludedPaths])
 
-  const allFiles = useMemo<UnifiedFile[]>(
-    () => changedPaths.map((f) => ({ ...f, isIncluded: !excludedPaths.has(f.path) })),
-    [changedPaths, excludedPaths],
-  )
+  const { allFiles, includedFiles } = useMemo(() => {
+    const all: UnifiedFile[] = []
+    const included: string[] = []
+    for (const f of changedPaths) {
+      const isIncluded = !excludedPaths.has(f.path)
+      all.push({ ...f, isIncluded })
+      if (isIncluded) included.push(f.path)
+    }
+    return { allFiles: all, includedFiles: included }
+  }, [changedPaths, excludedPaths])
 
-  const includedCount = useMemo(() => allFiles.filter((f) => f.isIncluded).length, [allFiles])
-  const allIncluded = allFiles.length > 0 && includedCount === allFiles.length
-  const someIncluded = includedCount > 0 && !allIncluded
+  const allIncluded = allFiles.length > 0 && includedFiles.length === allFiles.length
+  const someIncluded = includedFiles.length > 0 && !allIncluded
 
   const handleToggleFile = useCallback(
     (filePath: string) => {
@@ -590,11 +597,6 @@ function WorkingTreeFilesPane({
       setExcludedPaths(new Set())
     }
   }, [allIncluded, changedPaths, setExcludedPaths])
-
-  const includedFiles = useMemo(
-    () => allFiles.filter((f) => f.isIncluded).map((f) => f.path),
-    [allFiles],
-  )
 
   const hasNoChanges = conflictedFiles.length === 0 && allFiles.length === 0
 
@@ -750,7 +752,7 @@ function HistoryView({
                     <CommitListItem
                       commit={commit}
                       isSelected={selectedCommit === commit.hash}
-                      onClick={() => setSelectedCommit(commit.hash)}
+                      onSelect={setSelectedCommit}
                     />
                   </div>
                 )
