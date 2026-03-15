@@ -38,7 +38,10 @@ import ProsCons from "../../components/compare/ProsCons.astro"
 <ComparisonTable
   products={["Claude Code", "GitHub Copilot"]}
   features={[
-    { name: "Approach", values: ["Terminal agent + IDE extensions", "IDE-integrated assistant + coding agent"] },
+    {
+      name: "Approach",
+      values: ["Terminal agent + IDE extensions", "IDE-integrated assistant + coding agent"],
+    },
     { name: "Inline completions", values: [false, true] },
     { name: "Agentic multi-file editing", values: [true, true] },
     {
@@ -46,7 +49,11 @@ import ProsCons from "../../components/compare/ProsCons.astro"
       values: ["200K tokens (up to 1M)", "Model dependent (varies by IDE mode)"],
       highlight: 0,
     },
-    { name: "Code reasoning", values: ["Excellent (Opus 4.6)", "Good (model dependent)"], highlight: 0 },
+    {
+      name: "Code reasoning",
+      values: ["Excellent (Opus 4.6)", "Good (model dependent)"],
+      highlight: 0,
+    },
     {
       name: "Model selection",
       values: ["Claude models only", "Claude, GPT, Gemini, and others"],
@@ -54,10 +61,16 @@ import ProsCons from "../../components/compare/ProsCons.astro"
     },
     {
       name: "IDE support",
-      values: ["VS Code, JetBrains, desktop, web, terminal", "VS Code, JetBrains, Visual Studio, Xcode, Eclipse, Neovim"],
+      values: [
+        "VS Code, JetBrains, desktop, web, terminal",
+        "VS Code, JetBrains, Visual Studio, Xcode, Eclipse, Neovim",
+      ],
       highlight: 1,
     },
-    { name: "Background/cloud agents", values: ["Agent teams (experimental)", "Coding agent (GitHub Actions)"] },
+    {
+      name: "Background/cloud agents",
+      values: ["Agent teams (experimental)", "Coding agent (GitHub Actions)"],
+    },
     { name: "CI/CD integration", values: [true, true] },
     { name: "MCP support", values: [true, true] },
     { name: "Code review", values: ["Via GitHub Actions", "Built-in AI review"] },
@@ -201,22 +214,22 @@ The pricing models are structured differently. Claude Code offers subscription p
 
 ### Claude Code Plans
 
-| Plan | Price | What you get |
-| --- | --- | --- |
-| Pro | $20/month | Claude Code with Sonnet 4.6, standard usage limits |
-| Max 5x | $100/month | Sonnet 4.6 + Opus 4.6 access, 5x Pro usage, 1M context |
-| Max 20x | $200/month | 20x Pro usage, priority access |
+| Plan    | Price      | What you get                                           |
+| ------- | ---------- | ------------------------------------------------------ |
+| Pro     | $20/month  | Claude Code with Sonnet 4.6, standard usage limits     |
+| Max 5x  | $100/month | Sonnet 4.6 + Opus 4.6 access, 5x Pro usage, 1M context |
+| Max 20x | $200/month | 20x Pro usage, priority access                         |
 
 Claude Code is also available through the API with pay-per-token pricing. Sonnet 4.6 costs [$3/$15 per million tokens](https://platform.claude.com/docs/en/about-claude/pricing) (input/output). Opus 4.6 costs $5/$25 per million tokens.
 
 ### GitHub Copilot Plans
 
-| Plan | Price | What you get |
-| --- | --- | --- |
-| Free | $0 | 2,000 completions + 50 premium requests/month |
-| Pro | $10/month | Unlimited completions, 300 premium requests, coding agent |
-| Pro+ | $39/month | 1,500 premium requests, all models including Opus |
-| Business | $19/user/month | 300 premium requests/user, IP indemnity, admin controls |
+| Plan       | Price          | What you get                                                |
+| ---------- | -------------- | ----------------------------------------------------------- |
+| Free       | $0             | 2,000 completions + 50 premium requests/month               |
+| Pro        | $10/month      | Unlimited completions, 300 premium requests, coding agent   |
+| Pro+       | $39/month      | 1,500 premium requests, all models including Opus           |
+| Business   | $19/user/month | 300 premium requests/user, IP indemnity, admin controls     |
 | Enterprise | $39/user/month | 1,000 premium requests/user, knowledge bases, custom models |
 
 Additional premium requests beyond your plan limit cost [$0.04 each](https://docs.github.com/en/copilot/concepts/billing/individual-plans).
