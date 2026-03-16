@@ -1,5 +1,12 @@
 # spacecake-app
 
+## 0.1.0-alpha.61
+
+### Patch Changes
+
+- 21d9c02: Move dock position controls from panel toolbars to status bar right-click menu.
+- b52c5bd: Git panel UI and performance improvements.
+
 ## 0.1.0-alpha.60
 
 ### Patch Changes
