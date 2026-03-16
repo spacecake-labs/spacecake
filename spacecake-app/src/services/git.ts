@@ -75,7 +75,6 @@ export type GitCommit = {
   message: string
   author: string
   date: Date
-  files: string[]
 }
 
 export type GitCommitResult = {
@@ -228,6 +227,8 @@ type WorkspaceState = {
   semaphore: Effect.Semaphore
 }
 
+const WORKSPACE_CACHE_MAX = 10
+
 const makeGitService = Effect.gen(function* () {
   const fs = yield* FileSystem
   const workspaces = new Map<string, WorkspaceState>()
@@ -235,6 +236,11 @@ const makeGitService = Effect.gen(function* () {
 
   const getWorkspace = (workspacePath: string): WorkspaceState => {
     if (!workspaces.has(workspacePath)) {
+      // evict oldest entry if cache is full (lru-style safety net)
+      if (workspaces.size >= WORKSPACE_CACHE_MAX) {
+        const oldest = workspaces.keys().next().value
+        if (oldest !== undefined) workspaces.delete(oldest)
+      }
       workspaces.set(workspacePath, {
         git: createGit(workspacePath),
         semaphore: Effect.unsafeMakeSemaphore(1),
@@ -242,6 +248,16 @@ const makeGitService = Effect.gen(function* () {
     }
     return workspaces.get(workspacePath)!
   }
+
+  const removeWorkspace = (workspacePath: string) =>
+    Effect.sync(() => {
+      workspaces.delete(workspacePath)
+      for (const key of dedup.keys()) {
+        if (key.startsWith(workspacePath)) {
+          dedup.delete(key)
+        }
+      }
+    })
 
   const getGit = (workspacePath: string) => getWorkspace(workspacePath).git
 
@@ -371,13 +387,12 @@ const makeGitService = Effect.gen(function* () {
 
     return yield* Effect.tryPromise({
       try: () =>
-        git.log({ maxCount: limit, "--name-only": null, "--no-show-signature": null }).then((log) =>
+        git.log({ maxCount: limit, "--no-show-signature": null }).then((log) =>
           log.all.map((commit) => ({
             hash: commit.hash,
             message: commit.message,
             author: commit.author_name,
             date: new Date(commit.date),
-            files: (commit.diff?.files ?? []).map((f) => f.file),
           })),
         ),
       catch: (e) => {
@@ -392,6 +407,22 @@ const makeGitService = Effect.gen(function* () {
 
   const getCommitLog = (workspacePath: string, limit = 50): Effect.Effect<GitCommit[], GitError> =>
     deduplicated(`log:${workspacePath}`, _getCommitLog(workspacePath, limit))
+
+  const getCommitFiles = Effect.fn("GitService.getCommitFiles")(function* (
+    workspacePath: string,
+    commitHash: string,
+  ) {
+    const git = getGit(workspacePath)
+    const raw = yield* Effect.tryPromise({
+      try: () =>
+        git.raw(["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", commitHash]),
+      catch: (e) => gitError("failed to get commit files", e),
+    })
+    return raw
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+  })
 
   const listBranches = Effect.fn("GitService.listBranches")(function* (workspacePath: string) {
     const git = getGit(workspacePath)
@@ -646,6 +677,7 @@ const makeGitService = Effect.gen(function* () {
     getStatus,
     getFileDiff,
     getCommitLog,
+    getCommitFiles,
     stageFiles,
     unstageFiles,
     commit,
@@ -659,6 +691,7 @@ const makeGitService = Effect.gen(function* () {
     getRemoteStatus,
     discardFileChanges,
     discardAllChanges,
+    removeWorkspace,
   } as const
 })
 

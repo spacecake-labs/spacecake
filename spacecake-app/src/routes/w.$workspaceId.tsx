@@ -5,14 +5,13 @@
 
 import { createFileRoute, ErrorComponent, redirect } from "@tanstack/react-router"
 import * as Match from "effect/Match"
-import { useSetAtom } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { GroupImperativeHandle, Layout, PanelImperativeHandle } from "react-resizable-panels"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DeleteButton } from "@/components/delete-button"
-import { DockPositionDropdown } from "@/components/dock-position-dropdown"
 import { EditorPanel } from "@/components/editor-panel"
 import { EditorToolbar } from "@/components/editor/toolbar"
 import { GitToolbar } from "@/components/git-toolbar"
@@ -34,6 +33,7 @@ import { Suspense } from "react"
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar"
+import { Tabs } from "@/components/ui/tabs"
 import { WorkspaceStatusBar } from "@/components/workspace-status-bar"
 import { CollectionsProvider } from "@/contexts/collections-context"
 import { FocusManagerProvider, useFocusablePanel, useFocusManager } from "@/contexts/focus-manager"
@@ -50,7 +50,12 @@ import {
   getOrCreateFileStateAtom,
   setFileTreeAtom,
 } from "@/lib/atoms/file-tree"
-import { gitBranchAtom } from "@/lib/atoms/git"
+import {
+  commitFilesAtom,
+  gitBranchAtom,
+  gitPanelTabAtom,
+  gitTotalChangesAtom,
+} from "@/lib/atoms/git"
 import { cleanupPaneMachine } from "@/lib/atoms/pane"
 import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
 import { createWorkspaceCollections } from "@/lib/db/collections"
@@ -325,6 +330,9 @@ function LayoutContent() {
 
   const gitPanelRef = useRef<HTMLDivElement>(null)
   const gitResizablePanelRef = useRef<PanelImperativeHandle>(null)
+
+  const [currentGitTab, setCurrentGitTab] = useAtom(gitPanelTabAtom)
+  const gitTotalChanges = useAtomValue(gitTotalChangesAtom)
 
   // Helper to dispatch a dock action and persist the result.
   // Reads layout from ref so this callback is stable across renders.
@@ -609,11 +617,6 @@ function LayoutContent() {
     () => (
       <div className="flex items-center gap-2">
         <TerminalStatusBadge />
-        <DockPositionDropdown
-          currentDock={terminalDock}
-          onDockChange={setTerminalDock}
-          label="terminal"
-        />
         <DeleteButton
           onDelete={
             isTerminalSessionActive
@@ -645,14 +648,7 @@ function LayoutContent() {
         </button>
       </div>
     ),
-    [
-      isTerminalCollapsed,
-      isTerminalExpanded,
-      isTerminalSessionActive,
-      setTerminalExpanded,
-      terminalDock,
-      setTerminalDock,
-    ],
+    [isTerminalCollapsed, isTerminalExpanded, isTerminalSessionActive, setTerminalExpanded],
   )
 
   // Determine which panel (if any) is docked at bottom
@@ -680,19 +676,15 @@ function LayoutContent() {
       bottomPanelSize={bottomPanelSize}
       isTaskExpanded={isTaskExpanded}
       isTaskCollapsed={isTaskCollapsed}
-      taskDock={taskDock}
       taskSize={taskSize}
       isGitExpanded={isGitExpanded}
       isGitCollapsed={isGitCollapsed}
-      gitDock={gitDock}
       gitSize={gitSize}
       workspace={workspace}
       taskResizablePanelRef={taskResizablePanelRef}
       gitResizablePanelRef={gitResizablePanelRef}
       onTaskExpandedChange={setTaskExpanded}
-      onTaskDockChange={setTaskDock}
       onGitExpandedChange={setGitExpanded}
-      onGitDockChange={setGitDock}
       onGitFileClick={handleGitFileClick}
       onCommitFileClick={handleCommitFileClick}
     />
@@ -750,31 +742,36 @@ function LayoutContent() {
                     collapsedSize="0%"
                     data-collapsed={isGitCollapsed || undefined}
                   >
-                    <div ref={gitPanelRef} className="flex h-full w-full flex-col">
-                      {!isGitCollapsed && (
-                        <GitToolbar
-                          isExpanded={isGitExpanded}
-                          dock={gitDock}
-                          workspacePath={workspace.path}
-                          onExpandedChange={setGitExpanded}
-                          onDockChange={setGitDock}
-                        />
-                      )}
-                      <div
-                        className={cn(
-                          "flex-1 min-h-0 min-w-0 overflow-hidden",
-                          isGitCollapsed && "hidden",
-                        )}
-                      >
-                        <Suspense fallback={panelFallback}>
-                          <GitPanel
+                    <Tabs
+                      value={currentGitTab}
+                      onValueChange={(v) => setCurrentGitTab(v as "changes" | "history")}
+                      className="flex h-full w-full flex-col"
+                    >
+                      <div ref={gitPanelRef} className="flex h-full w-full flex-col">
+                        {!isGitCollapsed && (
+                          <GitToolbar
+                            isExpanded={isGitExpanded}
                             workspacePath={workspace.path}
-                            onFileClick={handleGitFileClick}
-                            onCommitFileClick={handleCommitFileClick}
+                            totalChanges={gitTotalChanges}
+                            onExpandedChange={setGitExpanded}
                           />
-                        </Suspense>
+                        )}
+                        <div
+                          className={cn(
+                            "flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden",
+                            isGitCollapsed && "hidden",
+                          )}
+                        >
+                          <Suspense fallback={panelFallback}>
+                            <GitPanel
+                              workspacePath={workspace.path}
+                              onFileClick={handleGitFileClick}
+                              onCommitFileClick={handleCommitFileClick}
+                            />
+                          </Suspense>
+                        </div>
                       </div>
-                    </div>
+                    </Tabs>
                   </ResizablePanel>
                   <ResizableHandle withHandle className={isGitCollapsed ? "invisible" : ""} />
                 </>
@@ -797,9 +794,7 @@ function LayoutContent() {
                       {!isTaskCollapsed && (
                         <TaskToolbar
                           isExpanded={isTaskExpanded}
-                          dock={taskDock}
                           onExpandedChange={setTaskExpanded}
-                          onDockChange={setTaskDock}
                         />
                       )}
                       <div
@@ -873,9 +868,7 @@ function LayoutContent() {
                       {!isTaskCollapsed && (
                         <TaskToolbar
                           isExpanded={isTaskExpanded}
-                          dock={taskDock}
                           onExpandedChange={setTaskExpanded}
-                          onDockChange={setTaskDock}
                         />
                       )}
                       <div
@@ -907,31 +900,36 @@ function LayoutContent() {
                     collapsedSize="0%"
                     data-collapsed={isGitCollapsed || undefined}
                   >
-                    <div ref={gitPanelRef} className="flex h-full w-full flex-col">
-                      {!isGitCollapsed && (
-                        <GitToolbar
-                          isExpanded={isGitExpanded}
-                          dock={gitDock}
-                          workspacePath={workspace.path}
-                          onExpandedChange={setGitExpanded}
-                          onDockChange={setGitDock}
-                        />
-                      )}
-                      <div
-                        className={cn(
-                          "flex-1 min-h-0 min-w-0 overflow-hidden",
-                          isGitCollapsed && "hidden",
-                        )}
-                      >
-                        <Suspense fallback={panelFallback}>
-                          <GitPanel
+                    <Tabs
+                      value={currentGitTab}
+                      onValueChange={(v) => setCurrentGitTab(v as "changes" | "history")}
+                      className="flex h-full w-full flex-col"
+                    >
+                      <div ref={gitPanelRef} className="flex h-full w-full flex-col">
+                        {!isGitCollapsed && (
+                          <GitToolbar
+                            isExpanded={isGitExpanded}
                             workspacePath={workspace.path}
-                            onFileClick={handleGitFileClick}
-                            onCommitFileClick={handleCommitFileClick}
+                            totalChanges={gitTotalChanges}
+                            onExpandedChange={setGitExpanded}
                           />
-                        </Suspense>
+                        )}
+                        <div
+                          className={cn(
+                            "flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden",
+                            isGitCollapsed && "hidden",
+                          )}
+                        >
+                          <Suspense fallback={panelFallback}>
+                            <GitPanel
+                              workspacePath={workspace.path}
+                              onFileClick={handleGitFileClick}
+                              onCommitFileClick={handleCommitFileClick}
+                            />
+                          </Suspense>
+                        </div>
                       </div>
-                    </div>
+                    </Tabs>
                   </ResizablePanel>
                 </>
               )}
@@ -944,6 +942,12 @@ function LayoutContent() {
               onToggleTerminal={toggleTerminal}
               onToggleTask={toggleTask}
               onToggleGit={toggleGit}
+              terminalDock={terminalDock}
+              taskDock={taskDock}
+              gitDock={gitDock}
+              onTerminalDockChange={setTerminalDock}
+              onTaskDockChange={setTaskDock}
+              onGitDockChange={setGitDock}
             />
           </div>
         </ResizablePanel>
@@ -985,11 +989,15 @@ function WorkspaceLayout() {
   useEffect(() => {
     const id = workspace.id
     const currentPaneId = paneId
+    const currentPath = workspace.path
     return () => {
       cleanupSettingsMachine(id)
       cleanupPaneMachine(currentPaneId)
       store.set(quickOpenIndexAtom, [])
       store.set(quickOpenIndexReadyAtom, false)
+      // evict cached git workspace state so it doesn't leak across sessions
+      store.set(commitFilesAtom, new Map())
+      window.electronAPI.git.removeWorkspace(currentPath).catch(() => {})
       // defer so child components unmount first (prevents re-creation during teardown)
       setTimeout(() => {
         clearFileStateAtoms()

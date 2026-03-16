@@ -40,44 +40,63 @@ test.describe("git panel", () => {
     const showToggle = window.getByRole("button", { name: "show git panel" })
     await expect(showToggle).toBeVisible()
     await showToggle.click()
-    await expect(window.getByText("history")).toBeVisible()
+    await expect(window.getByRole("tab", { name: "history" })).toBeVisible()
 
     // hide git panel (scoped to panel — status bar also has a "hide git panel" button)
     const hideToggle = window
       .getByTestId("git-panel-left")
       .getByRole("button", { name: "hide git panel" })
     await hideToggle.click()
-    await expect(window.getByText("history")).not.toBeVisible()
+    await expect(window.getByRole("tab", { name: "history" })).not.toBeVisible()
 
     // show again
     await window.getByRole("button", { name: "show git panel" }).click()
-    await expect(window.getByText("history")).toBeVisible()
+    await expect(window.getByRole("tab", { name: "history" })).toBeVisible()
 
-    // --- working tree content ---
+    // --- changes tab content ---
 
     const gitPanel = window.locator("#git-panel-left")
-    await expect(gitPanel.getByText("working tree")).toBeVisible()
+    await expect(gitPanel.getByRole("tab", { name: "changes" })).toBeVisible()
     await expect(gitPanel.getByRole("button", { name: /committed\.md/ })).toBeVisible()
     await expect(gitPanel.getByTitle("modified").first()).toBeVisible()
     await expect(gitPanel.getByRole("button", { name: /untracked\.md/ })).toBeVisible()
     await expect(gitPanel.getByTitle("untracked").first()).toBeVisible()
 
-    // --- commit selection ---
+    // --- commit selection (history tab) ---
 
+    await gitPanel.getByRole("tab", { name: "history" }).click()
     await expect(gitPanel.getByText("initial commit")).toBeVisible()
     await gitPanel.getByText("initial commit").click()
     await expect(gitPanel.getByRole("button", { name: /committed\.md/ })).toBeVisible()
+
+    // --- git panel refreshes when file is saved in editor ---
+
+    // create a new file externally (file watcher adds to sidebar)
+    const newFile = path.join(tempTestDir, "created-during-test.md")
+    fs.writeFileSync(newFile, "# initial content")
+
+    // select changes tab to see current changes
+    await gitPanel.getByRole("tab", { name: "changes" }).click()
+
+    // verify the new file appears as untracked in git panel
+    await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
+    await expect(gitPanel.getByTitle("untracked").first()).toBeVisible()
+
+    // modify the file externally and verify git panel refreshes
+    fs.writeFileSync(newFile, "# initial content EDITED")
+    await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
 
     // --- dock switching ---
 
     // default is left
     await expect(window.locator("#git-panel-left")).toBeVisible()
 
-    // helper: open dock dropdown, wait for menu, click option
+    // helper: right-click status bar git toggle, wait for context menu, click option
     const switchDock = async (option: string) => {
-      const button = window.getByRole("button", { name: "change git dock position" })
-      await expect(button).toBeVisible()
-      await button.click()
+      const statusBarButton = window.locator(
+        'button[data-slot="context-menu-trigger"][aria-label*="git panel"]',
+      )
+      await statusBarButton.click({ button: "right" })
       const menuItem = window.getByText(option)
       await expect(menuItem).toBeVisible()
       await menuItem.click({ force: true })
@@ -94,23 +113,6 @@ test.describe("git panel", () => {
     // switch back to left
     await switchDock("dock left")
     await expect(window.locator("#git-panel-left")).toBeVisible()
-
-    // --- git panel refreshes when file is saved in editor ---
-
-    // create a new file externally (file watcher adds to sidebar)
-    const newFile = path.join(tempTestDir, "created-during-test.md")
-    fs.writeFileSync(newFile, "# initial content")
-
-    // select working tree to see current changes
-    await gitPanel.getByText("working tree").click()
-
-    // verify the new file appears as untracked in git panel
-    await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
-    await expect(gitPanel.getByTitle("untracked").first()).toBeVisible()
-
-    // modify the file externally and verify git panel refreshes
-    fs.writeFileSync(newFile, "# initial content EDITED")
-    await expect(gitPanel.getByRole("button", { name: "created-during-test.md" })).toBeVisible()
   })
 
   test("non-git directory hides git toggle in status bar", async ({ electronApp, tempTestDir }) => {

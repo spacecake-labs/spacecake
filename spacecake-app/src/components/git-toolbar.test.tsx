@@ -8,12 +8,12 @@ import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { GitToolbar } from "@/components/git-toolbar"
+import { Tabs } from "@/components/ui/tabs"
 import { gitRemoteStatusAtom } from "@/lib/atoms/git"
 import { left, right, type Either } from "@/types/adt"
 import type { ElectronAPI } from "@/types/electron"
 
 vi.mock("@/components/branch-popover", () => ({ BranchPopover: () => null }))
-vi.mock("@/components/dock-position-dropdown", () => ({ DockPositionDropdown: () => null }))
 
 const mockToast = vi.hoisted(() => ({
   success: vi.fn(),
@@ -88,7 +88,6 @@ describe("GitToolbar", () => {
     props: {
       isExpanded?: boolean
       onExpandedChange?: (expanded: boolean) => void
-      onDockChange?: (dock: "bottom" | "left" | "right") => void
     } = {},
   ) {
     window.electronAPI = {
@@ -99,13 +98,14 @@ describe("GitToolbar", () => {
     act(() => {
       root.render(
         <Provider store={store}>
-          <GitToolbar
-            workspacePath={TEST_WORKSPACE}
-            isExpanded={props.isExpanded ?? true}
-            dock="bottom"
-            onExpandedChange={props.onExpandedChange ?? vi.fn()}
-            onDockChange={props.onDockChange ?? vi.fn()}
-          />
+          <Tabs defaultValue="changes">
+            <GitToolbar
+              workspacePath={TEST_WORKSPACE}
+              isExpanded={props.isExpanded ?? true}
+              totalChanges={0}
+              onExpandedChange={props.onExpandedChange ?? vi.fn()}
+            />
+          </Tabs>
         </Provider>,
       )
     })

@@ -151,9 +151,13 @@ export interface ElectronAPI {
     ) => Promise<
       Either<
         SerializedGitError,
-        Array<{ hash: string; message: string; author: string; date: Date; files: string[] }>
+        Array<{ hash: string; message: string; author: string; date: Date }>
       >
     >
+    getCommitFiles: (
+      workspacePath: string,
+      commitHash: string,
+    ) => Promise<Either<SerializedGitError, string[]>>
     stage: (workspacePath: string, files: string[]) => Promise<Either<SerializedGitError, void>>
     unstage: (workspacePath: string, files: string[]) => Promise<Either<SerializedGitError, void>>
     commit: (
@@ -203,6 +207,7 @@ export interface ElectronAPI {
     >
     discardFile: (workspacePath: string, file: string) => Promise<Either<SerializedGitError, void>>
     discardAll: (workspacePath: string) => Promise<Either<SerializedGitError, void>>
+    removeWorkspace: (workspacePath: string) => Promise<void>
   }
 }
 

@@ -1,6 +1,14 @@
 import { useAtom, useAtomValue } from "jotai"
 import type { LucideIcon } from "lucide-react"
-import { GitBranch, ListTodo, PanelLeft, Terminal, TriangleAlert } from "lucide-react"
+import {
+  GitBranch,
+  ListTodo,
+  PanelBottom,
+  PanelLeft,
+  PanelRight,
+  Terminal,
+  TriangleAlert,
+} from "lucide-react"
 import { memo, useCallback, useState } from "react"
 
 import { ClaudeStatusBadge } from "@/components/claude-status-badge"
@@ -11,10 +19,17 @@ import {
   useStatuslineAutoSetup,
 } from "@/components/statusline-setup-prompt"
 import { Button } from "@/components/ui/button"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { WatchmanBadge } from "@/components/watchman-badge"
 import { gitBranchAtom } from "@/lib/atoms/git"
 import { cn } from "@/lib/utils"
+import type { DockPosition } from "@/schema/workspace-layout"
 import { match } from "@/types/adt"
 
 interface WorkspaceStatusBarProps {
@@ -25,6 +40,12 @@ interface WorkspaceStatusBarProps {
   onToggleTerminal?: () => void
   onToggleTask?: () => void
   onToggleGit?: () => void
+  terminalDock?: DockPosition
+  taskDock?: DockPosition
+  gitDock?: DockPosition
+  onTerminalDockChange?: (dock: DockPosition) => void
+  onTaskDockChange?: (dock: DockPosition) => void
+  onGitDockChange?: (dock: DockPosition) => void
 }
 
 function StatuslineConflictLink() {
@@ -101,6 +122,12 @@ function StatuslineConflictLink() {
   )
 }
 
+const dockOptions: { value: DockPosition; label: string; icon: LucideIcon }[] = [
+  { value: "left", label: "dock left", icon: PanelLeft },
+  { value: "bottom", label: "dock bottom", icon: PanelBottom },
+  { value: "right", label: "dock right", icon: PanelRight },
+]
+
 const StatusToggleButton = memo(function StatusToggleButton({
   icon: Icon,
   label,
@@ -108,6 +135,8 @@ const StatusToggleButton = memo(function StatusToggleButton({
   isExpanded,
   onClick,
   testId,
+  currentDock,
+  onDockChange,
 }: {
   icon: LucideIcon
   label: string
@@ -115,9 +144,11 @@ const StatusToggleButton = memo(function StatusToggleButton({
   isExpanded: boolean
   onClick: () => void
   testId?: string
+  currentDock?: DockPosition
+  onDockChange?: (dock: DockPosition) => void
 }) {
   const a11yLabel = accessibilityLabel ?? label
-  return (
+  const button = (
     <button
       onClick={onClick}
       data-testid={testId}
@@ -134,6 +165,28 @@ const StatusToggleButton = memo(function StatusToggleButton({
       {label}
     </button>
   )
+
+  if (!currentDock || !onDockChange) return button
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{button}</ContextMenuTrigger>
+      <ContextMenuContent>
+        {dockOptions
+          .filter((opt) => opt.value !== currentDock)
+          .map((opt) => (
+            <ContextMenuItem
+              key={opt.value}
+              onClick={() => onDockChange(opt.value)}
+              className="cursor-pointer"
+            >
+              <opt.icon className="h-4 w-4" />
+              {opt.label}
+            </ContextMenuItem>
+          ))}
+      </ContextMenuContent>
+    </ContextMenu>
+  )
 })
 
 export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
@@ -144,6 +197,12 @@ export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
   onToggleTerminal,
   onToggleTask,
   onToggleGit,
+  terminalDock,
+  taskDock,
+  gitDock,
+  onTerminalDockChange,
+  onTaskDockChange,
+  onGitDockChange,
 }: WorkspaceStatusBarProps) {
   useStatuslineAutoSetup()
   const gitBranch = useAtomValue(gitBranchAtom)
@@ -170,6 +229,8 @@ export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
             isExpanded={!!isTerminalExpanded}
             onClick={onToggleTerminal}
             testId="statusbar-terminal-toggle"
+            currentDock={terminalDock}
+            onDockChange={onTerminalDockChange}
           />
         )}
         {onToggleTask && (
@@ -178,6 +239,8 @@ export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
             label="tasks"
             isExpanded={!!isTaskExpanded}
             onClick={onToggleTask}
+            currentDock={taskDock}
+            onDockChange={onTaskDockChange}
           />
         )}
         {onToggleGit && gitBranch && (
@@ -187,6 +250,8 @@ export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
             accessibilityLabel="git panel"
             isExpanded={!!isGitExpanded}
             onClick={onToggleGit}
+            currentDock={gitDock}
+            onDockChange={onGitDockChange}
           />
         )}
       </div>

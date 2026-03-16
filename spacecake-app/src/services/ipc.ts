@@ -458,6 +458,10 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         ),
     )
 
+    ipcMain.handle("git:commit-files", (_, workspacePath: string, commitHash: string) =>
+      gitHandler(git.getCommitFiles(workspacePath, commitHash)),
+    )
+
     ipcMain.handle("git:stage", (_, workspacePath: string, files: string[]) =>
       gitHandler(git.stageFiles(workspacePath, files)),
     )
@@ -508,6 +512,10 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
 
     ipcMain.handle("git:discard-all", (_, workspacePath: string) =>
       gitHandler(git.discardAllChanges(workspacePath)),
+    )
+
+    ipcMain.handle("git:remove-workspace", (_, workspacePath: string) =>
+      Effect.runPromise(git.removeWorkspace(workspacePath)),
     )
 
     return {}

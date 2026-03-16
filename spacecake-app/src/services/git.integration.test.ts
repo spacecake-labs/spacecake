@@ -221,9 +221,17 @@ describe("git service integration", () => {
 
       expect(commits.length).toBe(1)
       expect(commits[0].message).toBe("initial commit")
-      expect(commits[0].files).toContain("initial.txt")
       expect(commits[0].hash).toBeTruthy()
       expect(commits[0].date).toBeInstanceOf(Date)
+
+      // files are now fetched separately via getCommitFiles
+      const files = await runEffect(
+        Effect.gen(function* () {
+          const svc = yield* GitService
+          return yield* svc.getCommitFiles(tmpDir, commits[0].hash)
+        }),
+      )
+      expect(files).toContain("initial.txt")
     })
 
     it("respects limit parameter", async () => {
