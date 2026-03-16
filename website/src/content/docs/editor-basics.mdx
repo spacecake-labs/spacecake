@@ -1,6 +1,6 @@
 ---
 title: editor basics
-description: Workspaces, files, tabs, keyboard shortcuts, and the integrated terminal.
+description: Workspaces, files, tabs, keyboard shortcuts, panels, and git integration.
 ---
 
 ## workspaces
@@ -43,8 +43,23 @@ when enabled, changes are saved to disk automatically - no need to press `⌘S` 
 | focus editor          | `⌘1`             | `ctrl+1`         |
 | refresh app           | `⌘R`             | `ctrl+R`         |
 
+## panels
+
+spacecake has three panels — terminal, git, and tasks. each panel can be docked to the left, bottom, or right of the editor. to change a panel's dock position, right-click its toggle button in the status bar and choose a new position.
+
 ## terminal
 
-the integrated terminal lives at the bottom of the screen. toggle it with `` ctrl+` ``, or click and drag the top edge to resize. it supports multiple tabs — press `⌘T` / `ctrl+T` to open a new tab, and `ctrl+Tab` to switch between them.
+the integrated terminal is docked to the right of the editor by default. toggle it with `` ctrl+` ``, or click and drag the edge to resize. it supports multiple tabs — press `⌘T` / `ctrl+T` to open a new tab, and `ctrl+Tab` to switch between them.
 
 see the [terminal guide](/terminal) for the full details on tabs, shell integration, and keyboard shortcuts.
+
+## git
+
+the git panel (docked to the left by default) gives you a visual interface for common git operations. it has two tabs:
+
+- **changes** — shows modified, staged, untracked, and deleted files. use the checkboxes to select which files to include in a commit, type a message, and hit commit. you can also discard changes per-file or all at once.
+- **history** — lists recent commits. select a commit to see the files it changed, and click a file to view its diff.
+
+the toolbar includes fetch, pull, and push buttons, along with a branch switcher for checking out or creating branches. ahead/behind indicators show how your local branch compares to the remote.
+
+clicking a changed file opens an inline diff in the editor.
