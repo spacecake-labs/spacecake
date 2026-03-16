@@ -38,20 +38,6 @@ vi.mock("@/router", () => ({
   },
 }))
 
-// bypass virtualization in jsdom (elements have zero dimensions)
-vi.mock("@tanstack/react-virtual", () => ({
-  useVirtualizer: (opts: { count: number; estimateSize: () => number }) => ({
-    getTotalSize: () => opts.count * opts.estimateSize(),
-    getVirtualItems: () =>
-      Array.from({ length: opts.count }, (_, i) => ({
-        index: i,
-        start: i * opts.estimateSize(),
-        size: opts.estimateSize(),
-        key: i,
-      })),
-  }),
-}))
-
 type GitError = { _tag: "GitError"; description: string }
 const gitRight = <T,>(value: T): Either<GitError, T> => right(value)
 

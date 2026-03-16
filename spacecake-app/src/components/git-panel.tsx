@@ -1,4 +1,3 @@
-import { useVirtualizer } from "@tanstack/react-virtual"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Check, ChevronDown, ChevronRight, Copy, File, Loader2, Undo2 } from "lucide-react"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -515,8 +514,6 @@ function WorkingTreeFilesPane({
 }) {
   const setDiscardState = useSetAtom(discardStateAtom)
   const [excludedPaths, setExcludedPaths] = useAtom(gitExcludedPathsAtom)
-  const scrollRef = useRef<HTMLDivElement>(null)
-
   const conflictedFiles = useMemo<Array<{ path: string; status: FileStatus }>>(
     () => status?.conflicted.map((path) => ({ path, status: "conflicted" as FileStatus })) ?? [],
     [status?.conflicted],
@@ -566,13 +563,6 @@ function WorkingTreeFilesPane({
     }
     return { allFiles: all, includedFiles: included }
   }, [changedPaths, excludedPaths])
-
-  const rowVirtualizer = useVirtualizer({
-    count: allFiles.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => 28,
-    overscan: 10,
-  })
 
   const allIncluded = allFiles.length > 0 && includedFiles.length === allFiles.length
   const someIncluded = includedFiles.length > 0 && !allIncluded
@@ -649,35 +639,18 @@ function WorkingTreeFilesPane({
             )}
           </div>
           {allFiles.length > 0 && (
-            <div ref={scrollRef} className="flex-1 overflow-auto">
-              <div
-                className="ml-2 border-l pl-2"
-                style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}
-              >
-                {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                  const file = allFiles[virtualItem.index]
-                  return (
-                    <div
-                      key={file.path}
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: `${virtualItem.size}px`,
-                        transform: `translateY(${virtualItem.start}px)`,
-                      }}
-                    >
-                      <ChangeFileRow
-                        file={file}
-                        workspacePath={workspacePath}
-                        onFileClick={onFileClick}
-                        onToggleInclude={handleToggleFile}
-                        onDiscard={handleDiscard}
-                      />
-                    </div>
-                  )
-                })}
+            <div className="flex-1 overflow-auto">
+              <div className="ml-2 border-l pl-2">
+                {allFiles.map((file) => (
+                  <ChangeFileRow
+                    key={file.path}
+                    file={file}
+                    workspacePath={workspacePath}
+                    onFileClick={onFileClick}
+                    onToggleInclude={handleToggleFile}
+                    onDiscard={handleDiscard}
+                  />
+                ))}
               </div>
             </div>
           )}
@@ -771,14 +744,6 @@ function HistoryView({
   onFileClick?: (filePath: AbsolutePath, commitHash: string) => void
 }) {
   const [selectedCommit, setSelectedCommit] = useAtom(selectedCommitAtom)
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  const rowVirtualizer = useVirtualizer({
-    count: commits.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => 52,
-    overscan: 5,
-  })
 
   // auto-select first commit when entering history with no valid selection
   useEffect(() => {
@@ -799,31 +764,15 @@ function HistoryView({
     <ResizablePanelGroup orientation="vertical">
       <ResizablePanel defaultSize="50%" minSize="20%">
         <div className="h-full flex flex-col overflow-hidden">
-          <div ref={scrollRef} className="flex-1 overflow-auto p-1">
-            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
-              {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                const commit = commits[virtualItem.index]
-                return (
-                  <div
-                    key={commit.hash}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: `${virtualItem.size}px`,
-                      transform: `translateY(${virtualItem.start}px)`,
-                    }}
-                  >
-                    <CommitListItem
-                      commit={commit}
-                      isSelected={selectedCommit === commit.hash}
-                      onSelect={setSelectedCommit}
-                    />
-                  </div>
-                )
-              })}
-            </div>
+          <div className="flex-1 overflow-auto p-1">
+            {commits.map((commit) => (
+              <CommitListItem
+                key={commit.hash}
+                commit={commit}
+                isSelected={selectedCommit === commit.hash}
+                onSelect={setSelectedCommit}
+              />
+            ))}
           </div>
         </div>
       </ResizablePanel>

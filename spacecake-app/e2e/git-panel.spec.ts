@@ -96,7 +96,7 @@ test.describe("git panel", () => {
       const statusBarButton = window.locator(
         'button[data-slot="context-menu-trigger"][aria-label*="git panel"]',
       )
-      await statusBarButton.click({ button: "right" })
+      await statusBarButton.click({ button: "right", force: true })
       const menuItem = window.getByText(option)
       await expect(menuItem).toBeVisible()
       await menuItem.click({ force: true })
