@@ -51,6 +51,7 @@ function createMockGitAPI(
       }),
     ),
     getCommitLog: vi.fn(async () => right<GitError, never[]>([])),
+    getCommitFiles: vi.fn(async () => right<GitError, string[]>([])),
     getCurrentBranch: vi.fn(async () => "main"),
     getFileDiff: vi.fn(async () =>
       right<GitError, { oldContent: string; newContent: string }>({
@@ -102,6 +103,7 @@ function createMockGitAPI(
     ),
     discardFile: noop,
     discardAll: noop,
+    removeWorkspace: vi.fn().mockResolvedValue(undefined),
   } satisfies ElectronAPI["git"]
 }
 

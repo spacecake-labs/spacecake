@@ -38,7 +38,10 @@ import ProsCons from "../../components/compare/ProsCons.astro"
 <ComparisonTable
   products={["Claude Code", "Cursor"]}
   features={[
-    { name: "Approach", values: ["Terminal agent + IDE extensions", "AI-native IDE (VS Code fork)"] },
+    {
+      name: "Approach",
+      values: ["Terminal agent + IDE extensions", "AI-native IDE (VS Code fork)"],
+    },
     { name: "Inline completions", values: [false, true] },
     { name: "Agentic multi-file editing", values: [true, true] },
     {
@@ -188,23 +191,23 @@ The pricing models are structured differently. Claude Code offers subscription p
 
 ### Claude Code Plans
 
-| Plan | Price | What you get |
-| --- | --- | --- |
-| Pro | $20/month | Claude Code with Sonnet, ~5x free-tier usage limits |
-| Max 5x | $100/month | Sonnet 4.6 + Opus 4.6 access, 5x Pro usage, 1M context |
-| Max 20x | $200/month | 20x Pro usage, priority access |
+| Plan    | Price      | What you get                                           |
+| ------- | ---------- | ------------------------------------------------------ |
+| Pro     | $20/month  | Claude Code with Sonnet, ~5x free-tier usage limits    |
+| Max 5x  | $100/month | Sonnet 4.6 + Opus 4.6 access, 5x Pro usage, 1M context |
+| Max 20x | $200/month | 20x Pro usage, priority access                         |
 
 Claude Code is also available through the API with pay-per-token pricing. Sonnet 4.6 costs [$3/$15 per million tokens](https://platform.claude.com/docs/en/about-claude/pricing) (input/output). Opus 4.6 costs $5/$25 per million tokens.
 
 ### Cursor Plans
 
-| Plan | Price | What you get |
-| --- | --- | --- |
-| Hobby | Free | Limited agent requests and tab completions |
-| Pro | $20/month | Extended agent limits, unlimited tab completions, cloud agents |
-| Pro+ | $60/month | 3x usage on all models |
-| Ultra | $200/month | 20x usage on all models, priority feature access |
-| Business | $40/user/month | Team features, SSO, admin controls |
+| Plan     | Price          | What you get                                                   |
+| -------- | -------------- | -------------------------------------------------------------- |
+| Hobby    | Free           | Limited agent requests and tab completions                     |
+| Pro      | $20/month      | Extended agent limits, unlimited tab completions, cloud agents |
+| Pro+     | $60/month      | 3x usage on all models                                         |
+| Ultra    | $200/month     | 20x usage on all models, priority feature access               |
+| Business | $40/user/month | Team features, SSO, admin controls                             |
 
 Cursor's paid plans include credits equal to the subscription price. When you choose higher-performance models, credits deplete faster. Usage beyond your included credits is charged separately.
 

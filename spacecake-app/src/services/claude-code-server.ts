@@ -178,7 +178,7 @@ export const makeClaudeCodeServer = Effect.gen(function* () {
   }).pipe(
     Effect.retry({
       times: 10,
-      while: (err: Error & { code?: string }) => err.code === "EADDRINUSE",
+      while: (err: Error & { code?: string }) => err.code === "EADDRINUSE" || err.code === "EACCES",
     }),
   )
 

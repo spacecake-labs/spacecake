@@ -80,6 +80,7 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
       right({ modified: [], staged: [], untracked: [], deleted: [], conflicted: [] }),
     getFileDiff: async () => right({ oldContent: "", newContent: "" }),
     getCommitLog: async () => right([]),
+    getCommitFiles: async () => right([]),
     stage: async () => right(undefined),
     unstage: async () => right(undefined),
     commit: async () =>
@@ -94,6 +95,7 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
     getRemoteStatus: async () => right({ ahead: 0, behind: 0, tracking: null, current: "main" }),
     discardFile: async () => right(undefined),
     discardAll: async () => right(undefined),
+    removeWorkspace: async () => {},
   },
   ...overrides,
 })
