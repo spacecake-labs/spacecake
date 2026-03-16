@@ -153,20 +153,17 @@ export const EditorPanel = memo(function EditorPanel({
                       onExpandedChange={onGitExpandedChange}
                     />
                   )}
-                  <div
-                    className={cn(
-                      "flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden",
-                      isGitCollapsed && "hidden",
-                    )}
-                  >
-                    <Suspense fallback={panelFallback}>
-                      <GitPanel
-                        workspacePath={workspace.path}
-                        onFileClick={onGitFileClick}
-                        onCommitFileClick={onCommitFileClick}
-                      />
-                    </Suspense>
-                  </div>
+                  {!isGitCollapsed && (
+                    <div className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden">
+                      <Suspense fallback={panelFallback}>
+                        <GitPanel
+                          workspacePath={workspace.path}
+                          onFileClick={onGitFileClick}
+                          onCommitFileClick={onCommitFileClick}
+                        />
+                      </Suspense>
+                    </div>
+                  )}
                 </div>
               </Tabs>
             </ResizablePanel>
