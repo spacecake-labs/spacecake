@@ -1,6 +1,6 @@
 ---
 title: editor basics
-description: Workspaces, files, tabs, keyboard shortcuts, panels, and git integration.
+description: Workspaces, files, tabs, sidebar, and panels.
 ---
 
 ## workspaces
@@ -9,57 +9,72 @@ a workspace is a folder you're working in. switch workspaces with `⌘O` / `ctrl
 
 your home folder (`~/.spacecake`) is always available for notes that aren't tied to a specific project.
 
+## sidebar
+
+the sidebar shows your workspace file tree. toggle it with `⌘B` / `ctrl+B`.
+
+folders load their contents on demand when you expand them. the current open file is highlighted.
+
+### file operations
+
+right-click a file or folder to access the context menu:
+
+**files:**
+
+- rename
+- delete
+- revert (if the file has unsaved changes)
+
+**folders:**
+
+- new file
+- new folder
+- rename
+- delete
+
+you can also use the **+** button at the top of the sidebar to create a new file or folder in the workspace root.
+
+renaming selects the filename without the extension, so you can quickly type a new name and press enter. press escape to cancel.
+
 ## files and tabs
 
 - **quick open**: press `⌘P` / `ctrl+P` to search and open files by name
 - **new file**: press `⌘N` / `ctrl+N` to create a new file
 - **close tab**: press `⌘W` / `ctrl+W` or click the × on the tab
 - **save**: press `⌘S` / `ctrl+S` to save the current file
+- **save all**: press `⌘⇧S` / `ctrl+shift+S` to save all open files
 
 tabs show open files at the top of the editor. scroll horizontally if you have many tabs open.
+
+if a file is modified outside spacecake while you have unsaved changes, you'll see a conflict indicator. you can choose to keep your changes or discard them and reload from disk.
 
 ## autosave
 
 spacecake can automatically save files as you edit. enable autosave in workspace settings:
 
-1. click the gear icon in the sidebar (or navigate to Settings)
+1. click the gear icon in the sidebar
 2. toggle **enable autosave** on
 
-when enabled, changes are saved to disk automatically - no need to press `⌘S` / `ctrl+S`.
+when enabled, changes are saved to disk automatically.
 
-## keyboard shortcuts
+## themes
 
-| action                | macos            | windows/linux    |
-| --------------------- | ---------------- | ---------------- |
-| open/switch workspace | `⌘O`             | `ctrl+O`         |
-| quick open file       | `⌘P`             | `ctrl+P`         |
-| new file              | `⌘N`             | `ctrl+N`         |
-| save file             | `⌘S`             | `ctrl+S`         |
-| close tab             | `⌘W`             | `ctrl+W`         |
-| toggle terminal       | `` ctrl+` ``     | `` ctrl+` ``     |
-| new terminal tab      | `⌘T`             | `ctrl+T`         |
-| next terminal tab     | `ctrl+Tab`       | `ctrl+Tab`       |
-| previous terminal tab | `ctrl+Shift+Tab` | `ctrl+Shift+Tab` |
-| focus editor          | `⌘1`             | `ctrl+1`         |
-| refresh app           | `⌘R`             | `ctrl+R`         |
+toggle between light and dark mode using the theme button in the status bar. the theme persists across sessions.
+
+note: the terminal theme is locked when each tab is created. see [troubleshooting](/troubleshooting#terminal-doesnt-match-the-app-theme) if the terminal doesn't match after switching themes.
 
 ## panels
 
-spacecake has three panels — terminal, git, and tasks. each panel can be docked to the left, bottom, or right of the editor. to change a panel's dock position, right-click its toggle button in the status bar and choose a new position.
+spacecake has three panels — [terminal](/terminal), [git](/git), and [tasks](/tasks). each panel can be docked to the left, bottom, or right of the editor.
 
-## terminal
+**default positions:**
 
-the integrated terminal is docked to the right of the editor by default. toggle it with `` ctrl+` ``, or click and drag the edge to resize. it supports multiple tabs — press `⌘T` / `ctrl+T` to open a new tab, and `ctrl+Tab` to switch between them.
+| panel    | default position |
+| -------- | ---------------- |
+| terminal | right            |
+| git      | left             |
+| tasks    | bottom           |
 
-see the [terminal guide](/terminal) for the full details on tabs, shell integration, and keyboard shortcuts.
+to change a panel's dock position, right-click its toggle button in the status bar and choose a new position. drag the panel edge to resize it. collapsing a panel preserves its state — the terminal keeps running, git status stays loaded.
 
-## git
-
-the git panel (docked to the left by default) gives you a visual interface for common git operations. it has two tabs:
-
-- **changes** — shows modified, staged, untracked, and deleted files. use the checkboxes to select which files to include in a commit, type a message, and hit commit. you can also discard changes per-file or all at once.
-- **history** — lists recent commits. select a commit to see the files it changed, and click a file to view its diff.
-
-the toolbar includes fetch, pull, and push buttons, along with a branch switcher for checking out or creating branches. ahead/behind indicators show how your local branch compares to the remote.
-
-clicking a changed file opens an inline diff in the editor.
+see the [keyboard shortcuts](/keyboard-shortcuts) page for a complete shortcut reference.

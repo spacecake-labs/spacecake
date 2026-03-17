@@ -98,8 +98,10 @@ export default defineConfig({
         {
           label: "features",
           items: [
-            { label: "terminal", slug: "terminal" },
             { label: "writing markdown", slug: "writing-markdown" },
+            { label: "terminal", slug: "terminal" },
+            { label: "git", slug: "git" },
+            { label: "tasks", slug: "tasks" },
             {
               label: "claude code integration",
               slug: "claude-code-integration",
@@ -108,7 +110,10 @@ export default defineConfig({
         },
         {
           label: "support",
-          items: [{ label: "troubleshooting", slug: "troubleshooting" }],
+          items: [
+            { label: "keyboard shortcuts", slug: "keyboard-shortcuts" },
+            { label: "troubleshooting", slug: "troubleshooting" },
+          ],
         },
       ],
       components: {

@@ -1,0 +1,72 @@
+---
+title: git
+description: Stage, commit, view history, and manage branches from the git panel.
+---
+
+## overview
+
+the git panel gives you a visual interface for common git operations without leaving the editor. toggle it from the status bar or right-click the git button to change its dock position (left by default).
+
+the panel has two tabs: **changes** and **history**.
+
+## changes tab
+
+the changes tab shows all modified, untracked, and deleted files in your working tree. each file has a status badge:
+
+| badge | meaning    | color  |
+| ----- | ---------- | ------ |
+| M     | modified   | yellow |
+| A     | added      | green  |
+| S     | staged     | green  |
+| U     | untracked  | blue   |
+| D     | deleted    | red    |
+| C     | conflicted | orange |
+
+### selecting files
+
+each file has a checkbox to include or exclude it from the next commit. use the header checkbox to toggle all files at once. excluded files are remembered while you work but aren't persisted between sessions.
+
+### discarding changes
+
+hover over a file to reveal a discard button that reverts that file to its last committed state. use the **discard all** button in the header to revert every changed file at once — both actions ask for confirmation first.
+
+### viewing diffs
+
+click any changed file to open an inline diff in the editor. the diff uses a unified view with word-level highlighting for additions and deletions, collapsible unchanged sections, and syntax highlighting.
+
+### merge conflicts
+
+conflicted files appear in a separate collapsible section at the top of the changes list with a file count badge.
+
+## committing
+
+type a commit message in the input at the bottom of the changes tab and press enter (or click **commit**). the button is disabled if no files are included or the message is empty.
+
+check **amend** to amend the previous commit. when amending, the message field is optional — leaving it empty keeps the previous message.
+
+## history tab
+
+the history tab lists recent commits. select a commit to see which files it changed, then click a file to view its diff.
+
+each entry shows the short hash, date, and commit message.
+
+## toolbar
+
+the toolbar sits at the top of the git panel:
+
+- **changes** / **history** tab switcher (changes tab shows a badge with the total file count)
+- ahead/behind indicators (↑N / ↓N relative to the remote)
+- **fetch**, **pull**, and **push** buttons (collapse into a dropdown on narrow panels)
+- **branch switcher** — checkout existing branches or create new ones. hover over a non-current branch to reveal a delete button.
+
+fetch, pull, and push show a spinner or bounce animation while the operation is running.
+
+## branch management
+
+click the branch button in the toolbar to open the branch popover. from here you can:
+
+- **switch branches** — click any branch name to check it out
+- **create a branch** — type a name and click **create**
+- **delete a branch** — hover over a non-current branch and click the trash icon (asks for confirmation)
+
+the current branch name is also shown in the status bar.
