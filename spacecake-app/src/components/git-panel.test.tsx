@@ -241,7 +241,7 @@ describe("GitPanel", () => {
       await new Promise((r) => setTimeout(r, 400))
     })
 
-    // should not have called isGitRepo again — ref-based guard prevents it
+    // should not have called isGitRepo again - ref-based guard prevents it
     expect(api.isGitRepo).not.toHaveBeenCalled()
     expect(api.getStatus).not.toHaveBeenCalled()
     expect(api.getCommitLog).not.toHaveBeenCalled()
@@ -879,7 +879,7 @@ describe("ui-only inclusion state", () => {
     renderPanel(api)
     await waitForEffects()
 
-    // uncheck b.ts — find the checkbox in the row containing "b.ts"
+    // uncheck b.ts - find the checkbox in the row containing "b.ts"
     const fileRows = Array.from(container.querySelectorAll('[role="button"]'))
     const bRow = fileRows.find((r) => r.textContent?.includes("b.ts"))
     const bCheckbox = bRow?.querySelector<HTMLInputElement>('input[type="checkbox"]')
@@ -1369,7 +1369,7 @@ describe("amend checkbox", () => {
     renderPanel(api)
     await waitForEffects()
 
-    // check amend — no message typed
+    // check amend - no message typed
     const amendCheckbox = container.querySelector<HTMLInputElement>(
       'input[type="checkbox"][aria-label="amend last commit"]',
     )

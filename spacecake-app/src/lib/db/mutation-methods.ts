@@ -31,5 +31,5 @@ export const MUTATION_INVALIDATION_MAP: Partial<Record<DatabaseMethodName, reado
   updateWorkspaceSettings: ["workspace"],
 }
 
-/** set of mutation method names — derived from MUTATION_INVALIDATION_MAP */
+/** set of mutation method names - derived from MUTATION_INVALIDATION_MAP */
 export const MUTATION_METHOD_NAMES = new Set(Object.keys(MUTATION_INVALIDATION_MAP))

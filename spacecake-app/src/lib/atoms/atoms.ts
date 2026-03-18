@@ -85,7 +85,7 @@ export const statuslineMapAtom = atom<Map<string, DisplayStatusline>>(new Map())
 // active terminal surface ID (set when switching tabs)
 export const activeTerminalSurfaceIdAtom = atom<string | null>(null)
 
-// Claude statusline data — derived from the active terminal's surface ID
+// Claude statusline data - derived from the active terminal's surface ID
 export const claudeStatuslineAtom = atom<DisplayStatusline | null>((get) => {
   const surfaceId = get(activeTerminalSurfaceIdAtom)
   if (!surfaceId) return null

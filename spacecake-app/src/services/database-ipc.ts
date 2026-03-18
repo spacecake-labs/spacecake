@@ -45,7 +45,7 @@ const invokeDb = <T>(
   )
 
 /**
- * typed proxy — TypeScript checks every method signature against DatabaseMethods.
+ * typed proxy - TypeScript checks every method signature against DatabaseMethods.
  * each method is listed once with args properly forwarded.
  */
 const methods = {
@@ -116,7 +116,7 @@ const methods = {
 } satisfies DatabaseMethods
 
 const ipcUnavailable = (name: string): never => {
-  throw new Error(`${name} is not available in the renderer — use IPC`)
+  throw new Error(`${name} is not available in the renderer - use IPC`)
 }
 
 type DatabaseService = typeof Database.Service

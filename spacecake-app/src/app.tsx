@@ -36,7 +36,7 @@ function DeferredPostHogProvider({ children }: { children: React.ReactNode }) {
         setCtx({ Provider: reactMod.PostHogProvider, client: clientMod.initPostHog() })
       })
       .catch(() => {
-        // posthog failed to load — app continues without analytics
+        // posthog failed to load - app continues without analytics
       })
   }, [])
 

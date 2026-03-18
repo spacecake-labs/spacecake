@@ -128,7 +128,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
         })
       },
       onRight: async (result) => {
-        // start pane activation early — don't block subsequent work
+        // start pane activation early - don't block subsequent work
         const activationPromise = !paneActivated
           ? RuntimeClient.runPromise(
               Effect.gen(function* () {

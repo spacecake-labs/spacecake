@@ -38,7 +38,7 @@ export async function migratePgliteFromIdb(
       resolve(result)
     }
 
-    // safety valve — if the renderer hangs, fall back to fresh install
+    // safety valve - if the renderer hangs, fall back to fresh install
     const timeout = setTimeout(() => {
       console.warn("migration: timed out waiting for IndexedDB dump, falling back to fresh install")
       settle("fresh-install")

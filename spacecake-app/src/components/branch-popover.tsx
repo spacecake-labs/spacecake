@@ -102,7 +102,7 @@ export function BranchPopover({ workspacePath, isExpanded }: BranchPopoverProps)
         </PopoverTrigger>
         <PopoverContent align="start" className="w-64 p-2">
           <div className="space-y-2">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <Input
                 placeholder="new branch name"
                 data-testid="new-branch-input"
@@ -111,11 +111,11 @@ export function BranchPopover({ workspacePath, isExpanded }: BranchPopoverProps)
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleCreateBranch()
                 }}
-                className="h-7 text-xs"
+                className="h-7 text-xs md:text-xs shadow-none focus-visible:!ring-0"
               />
               <Button
                 size="sm"
-                className="h-7 text-xs px-2 shrink-0"
+                className="h-7 text-xs px-2.5 shrink-0"
                 onClick={handleCreateBranch}
                 disabled={!newBranchName.trim()}
                 data-testid="create-branch-button"

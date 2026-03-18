@@ -65,7 +65,7 @@ export function useGhosttyEngine({
   onTitleChange,
   onProfileLoaded,
 }: UseGhosttyEngineOptions): UseGhosttyEngineResult {
-  // Persistent container div — survives across mount/unmount of the mount point
+  // Persistent container div - survives across mount/unmount of the mount point
   const [containerEl] = useState<HTMLDivElement>(() => {
     const el = document.createElement("div")
     el.className =
@@ -92,7 +92,7 @@ export function useGhosttyEngine({
   const { theme } = useTheme()
   const activeTheme = useRef(theme === "dark" ? terminalTheme.dark : terminalTheme.light)
 
-  // Initialization effect — runs when enabled becomes true, cleans up when false
+  // Initialization effect - runs when enabled becomes true, cleans up when false
   useEffect(() => {
     if (!enabled) return
 
@@ -131,7 +131,7 @@ export function useGhosttyEngine({
           term.open(containerEl)
         }
 
-        // Initial fit — will use default 80x24 if container is not mounted yet
+        // Initial fit - will use default 80x24 if container is not mounted yet
         fitAddon.fit()
 
         // Use built-in resize observation (handles ResizeObserver + window resize internally)

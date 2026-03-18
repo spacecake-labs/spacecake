@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/context-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { WatchmanBadge } from "@/components/watchman-badge"
-import { gitBranchAtom } from "@/lib/atoms/git"
+import { gitBranchAtom, gitRemoteStatusAtom } from "@/lib/atoms/git"
 import { cn } from "@/lib/utils"
 import type { DockablePanelKind, DockPosition } from "@/schema/workspace-layout"
 import { match } from "@/types/adt"
@@ -81,7 +81,7 @@ function StatuslineConflictLink() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 cursor-pointer dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-400 dark:hover:bg-amber-950/60">
+        <button className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs font-medium font-mono text-amber-700 transition-colors hover:bg-amber-100 cursor-pointer dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-400 dark:hover:bg-amber-950/60">
           <TriangleAlert className="h-3 w-3" />
           statusline
         </button>
@@ -207,6 +207,20 @@ export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
 }: WorkspaceStatusBarProps) {
   useStatuslineAutoSetup()
   const gitBranch = useAtomValue(gitBranchAtom)
+  const remoteStatus = useAtomValue(gitRemoteStatusAtom)
+
+  const gitLabel = gitBranch
+    ? gitBranch +
+      (remoteStatus && (remoteStatus.ahead > 0 || remoteStatus.behind > 0)
+        ? "  " +
+          [
+            remoteStatus.ahead > 0 ? `↑\u2009${remoteStatus.ahead}` : "",
+            remoteStatus.behind > 0 ? `↓\u2009${remoteStatus.behind}` : "",
+          ]
+            .filter(Boolean)
+            .join("  ")
+        : "")
+    : null
 
   const handleLayoutDockChange = useCallback(
     (panel: DockablePanelKind, dock: DockPosition) => {
@@ -292,10 +306,10 @@ export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
             onDockChange={onTaskDockChange}
           />
         )}
-        {onToggleGit && gitBranch && (
+        {onToggleGit && gitLabel && (
           <StatusToggleButton
             icon={GitBranch}
-            label={gitBranch}
+            label={gitLabel}
             accessibilityLabel="git panel"
             isExpanded={!!isGitExpanded}
             onClick={onToggleGit}

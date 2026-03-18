@@ -435,7 +435,7 @@ export function parseCodeBlocks(code: string, filePath?: string): PyBlock[] {
 
 /**
  * Parse Python content into blocks with fallback for empty/unparseable files.
- * Used by the IPC handler (main process) — accepts simple args, no EditorFile needed.
+ * Used by the IPC handler (main process) - accepts simple args, no EditorFile needed.
  */
 export function parseBlocksForFile(code: string, filePath?: string): PyBlock[] {
   try {

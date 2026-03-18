@@ -856,7 +856,7 @@ describe("GitService", () => {
           { concurrency: "unbounded" },
         )
         // the semaphore ensures one completes before the other starts
-        // either add then reset, or reset then add — but never interleaved
+        // either add then reset, or reset then add - but never interleaved
         const firstEnd = order.indexOf("add-end") < order.indexOf("reset-end") ? "add" : "reset"
         if (firstEnd === "add") {
           expect(order.indexOf("add-end")).toBeLessThan(order.indexOf("reset-start"))

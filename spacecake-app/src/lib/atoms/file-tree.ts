@@ -252,7 +252,7 @@ export const fileTreeEventAtom = atom(
         set(fileTreeAtom, newTree)
 
         // only notify files that already have state machines (i.e., were opened).
-        // watcher events fire for every file in the workspace — don't create
+        // watcher events fire for every file in the workspace - don't create
         // machine actors for files the user never opened.
         if (hasFileStateAtom(absolutePath)) {
           set(getOrCreateFileStateAtom(absolutePath), {
@@ -322,7 +322,7 @@ const createFileStateMachineAtom = (filePath: AbsolutePath) =>
 
 const fileStateAtoms = new Map<AbsolutePath, ReturnType<typeof createFileStateMachineAtom>>()
 
-/** get or create a file state atom — use at intentional creation sites only */
+/** get or create a file state atom - use at intentional creation sites only */
 export function getOrCreateFileStateAtom(filePath: AbsolutePath) {
   let atom = fileStateAtoms.get(filePath)
   if (!atom) {
@@ -332,7 +332,7 @@ export function getOrCreateFileStateAtom(filePath: AbsolutePath) {
   return atom
 }
 
-/** get a file state atom if it exists — returns undefined without creating */
+/** get a file state atom if it exists - returns undefined without creating */
 export function getFileStateAtom(filePath: AbsolutePath) {
   return fileStateAtoms.get(filePath)
 }

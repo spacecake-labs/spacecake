@@ -29,7 +29,7 @@ describe("ClaudeHooksServer", () => {
   let testDir: string
   let socketPath: string
   let mockFileSystem: Partial<FileSystem>
-  // on windows, the server uses TCP — this will hold the port after server starts
+  // on windows, the server uses TCP - this will hold the port after server starts
   let tcpPort: number | null = null
 
   beforeEach(() => {
@@ -44,7 +44,7 @@ describe("ClaudeHooksServer", () => {
       exists: vi.fn(() => Effect.succeed(false)),
       remove: vi.fn(() => Effect.void),
       writeTextFile: vi.fn((_path: string, content: string) => {
-        // on windows, the hooks server writes the port file — capture the port
+        // on windows, the hooks server writes the port file - capture the port
         const port = parseInt(content, 10)
         if (!isNaN(port)) tcpPort = port
         return Effect.void

@@ -168,7 +168,7 @@ describe("GitToolbar", () => {
     expect(mockToast.success).toHaveBeenCalledWith("pushed")
   })
 
-  it("ahead/behind indicators render when remoteStatus has values", async () => {
+  it("ahead/behind counts render on push/pull buttons when remoteStatus has values", async () => {
     store.set(gitRemoteStatusAtom, { ahead: 3, behind: 2, tracking: "origin/main" })
 
     const gitApi = createMockGitAPI({
@@ -178,18 +178,19 @@ describe("GitToolbar", () => {
     renderToolbar(gitApi)
     await waitForEffects()
 
-    expect(container.querySelector('[data-testid="ahead-count"]')?.textContent).toBe("↑3")
-    expect(container.querySelector('[data-testid="behind-count"]')?.textContent).toBe("↓2")
+    expect(container.querySelector('[data-testid="ahead-count"]')?.textContent).toBe("3")
+    expect(container.querySelector('[data-testid="behind-count"]')?.textContent).toBe("2")
   })
 
-  it("ahead/behind hidden when both are 0", async () => {
+  it("ahead/behind counts hidden when both are 0", async () => {
     store.set(gitRemoteStatusAtom, { ahead: 0, behind: 0, tracking: "origin/main" })
 
     const gitApi = createMockGitAPI()
     renderToolbar(gitApi)
     await waitForEffects()
 
-    expect(container.querySelector('[data-testid="remote-indicators"]')).toBeNull()
+    expect(container.querySelector('[data-testid="ahead-count"]')).toBeNull()
+    expect(container.querySelector('[data-testid="behind-count"]')).toBeNull()
   })
 
   it("error toast shown when operation fails", async () => {

@@ -519,7 +519,7 @@ function WorkingTreeFilesPane({
     [status?.conflicted],
   )
 
-  // unified file list from git status — all files default to included (ui-only state)
+  // unified file list from git status - all files default to included (ui-only state)
   const changedPaths = useMemo(() => {
     const fileMap = new Map<string, FileStatus>()
 

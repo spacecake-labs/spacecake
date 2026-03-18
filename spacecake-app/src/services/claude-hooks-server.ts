@@ -273,7 +273,7 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
     let listenAddress: string
 
     if (isWindows) {
-      // windows — listen on localhost TCP port (random)
+      // windows - listen on localhost TCP port (random)
       server = yield* startServerTcpEffect(statuslineService)
       const port = (server.address() as AddressInfo).port
       const portFilePath = path.join(claudeConfig.configDir, "spacecake.port")
@@ -293,7 +293,7 @@ export const makeClaudeHooksServer = Effect.gen(function* () {
       serverState = { server, socketPath: null, portFilePath }
       listenAddress = `tcp://127.0.0.1:${port}`
     } else {
-      // unix — existing unix socket logic
+      // unix - existing unix socket logic
       const { socketPath } = claudeConfig
 
       // clean up any existing socket file (ignore if doesn't exist)

@@ -1,9 +1,9 @@
 /**
- * CLI Server — IPC server for the `spacecake` CLI tool.
+ * CLI Server - IPC server for the `spacecake` CLI tool.
  *
  * Listens on ~/.spacecake/.app/cli.sock (Unix) or named pipe (Windows) and handles:
- *   POST /open  — open files in the editor
- *   GET /health — health check
+ *   POST /open  - open files in the editor
+ *   GET /health - health check
  *
  * When `wait: true`, holds the HTTP connection open until the file tab is
  * closed (signalled via IPC from the renderer).

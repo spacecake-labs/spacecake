@@ -2,7 +2,7 @@
  * Cross-platform IPC path utility.
  *
  * On Unix (macOS/Linux): Returns the path unchanged (Unix domain socket),
- *   unless the path exceeds the OS limit for sun_path — in that case, a
+ *   unless the path exceeds the OS limit for sun_path - in that case, a
  *   deterministic shorter path in os.tmpdir() is returned instead.
  * On Windows: Prepends //./pipe/ prefix (named pipe)
  *
@@ -26,7 +26,7 @@ const UNIX_SOCKET_PATH_MAX = process.platform === "darwin" ? 104 : 108
  */
 export function toIpcPath(inputPath: string): string {
   if (process.platform === "win32") {
-    // windows — normalize backslashes to forward slashes and strip drive letter colon
+    // windows - normalize backslashes to forward slashes and strip drive letter colon
     const normalized = inputPath.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "$1")
     const cleaned = normalized.startsWith("/") ? normalized.substring(1) : normalized
     return "//./pipe/" + cleaned

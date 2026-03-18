@@ -234,7 +234,7 @@ def my_function():
     // node.js has no `window`, so create one for this test
     const hadWindow = "window" in globalThis
     const origWindow = hadWindow ? globalThis.window : undefined
-    // @ts-expect-error — assigning mock window in Node.js test
+    // @ts-expect-error - assigning mock window in Node.js test
     globalThis.window = { ...globalThis.window, electronAPI: mockElectronAPI }
 
     try {
@@ -284,10 +284,10 @@ def my_function():
       })
     } finally {
       if (hadWindow) {
-        // @ts-expect-error — restoring original window
+        // @ts-expect-error - restoring original window
         globalThis.window = origWindow
       } else {
-        // @ts-expect-error — removing mock window
+        // @ts-expect-error - removing mock window
         delete globalThis.window
       }
     }

@@ -11,7 +11,7 @@ import { normalizePath } from "@/lib/utils"
 const EXECUTABLE_MODE = 0o755
 
 // ---------------------------------------------------------------------------
-// AppEnv — captures Electron-specific values so the rest is pure
+// AppEnv - captures Electron-specific values so the rest is pure
 // ---------------------------------------------------------------------------
 
 export class AppEnv extends Effect.Tag("AppEnv")<
@@ -91,11 +91,11 @@ exit 0
 const STATUSLINE_SCRIPT_CMD = `@echo off\r\nif "%SPACECAKE_TERMINAL%"=="" exit /b 0\r\npowershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0statusline.ps1"\r\nexit /b 0\r\n`
 
 // ---------------------------------------------------------------------------
-// SpacecakeHome — pure data service computed from AppEnv
+// SpacecakeHome - pure data service computed from AppEnv
 // ---------------------------------------------------------------------------
 
 /**
- * Core service effect — separated so tests can provide a custom AppEnv.
+ * Core service effect - separated so tests can provide a custom AppEnv.
  */
 export const makeSpacecakeHome = Effect.gen(function* () {
   const env = yield* AppEnv
@@ -138,7 +138,7 @@ export class SpacecakeHome extends Effect.Service<SpacecakeHome>()("SpacecakeHom
 }) {}
 
 // ---------------------------------------------------------------------------
-// Test layer factory — mirrors makeClaudeConfigTestLayer
+// Test layer factory - mirrors makeClaudeConfigTestLayer
 // ---------------------------------------------------------------------------
 
 export const makeSpacecakeHomeTestLayer = (opts: {
@@ -188,7 +188,7 @@ export const makeSpacecakeHomeTestLayer = (opts: {
 
 const installCliPackaged = (home: SpacecakeHome) =>
   Effect.try(() => {
-    // windows packaged mode — skip global symlink (requires admin privileges).
+    // windows packaged mode - skip global symlink (requires admin privileges).
     // the CLI is available via PATH prepending in terminal.ts.
     if (process.platform === "win32") return
 
@@ -208,7 +208,7 @@ const installCliPackaged = (home: SpacecakeHome) =>
           return
         }
       } catch {
-        // not installed via system package — continue with user-local install
+        // not installed via system package - continue with user-local install
       }
     }
 
@@ -233,7 +233,7 @@ const installCliPackaged = (home: SpacecakeHome) =>
         return
       }
     } catch {
-      // file doesn't exist — proceed with creation
+      // file doesn't exist - proceed with creation
     }
 
     try {
@@ -277,7 +277,7 @@ exec bun run "${home.cliSourceEntryPath}" "$@"
   })
 
 // ---------------------------------------------------------------------------
-// installCli — Effect requiring SpacecakeHome
+// installCli - Effect requiring SpacecakeHome
 // ---------------------------------------------------------------------------
 
 export const installCli: Effect.Effect<void, never, SpacecakeHome> = Effect.gen(function* () {
@@ -290,7 +290,7 @@ export const installCli: Effect.Effect<void, never, SpacecakeHome> = Effect.gen(
 })
 
 // ---------------------------------------------------------------------------
-// ensureHomeFolderExists — Effect requiring SpacecakeHome
+// ensureHomeFolderExists - Effect requiring SpacecakeHome
 // ---------------------------------------------------------------------------
 
 export const ensureHomeFolderExists: Effect.Effect<void, never, SpacecakeHome> = Effect.gen(
