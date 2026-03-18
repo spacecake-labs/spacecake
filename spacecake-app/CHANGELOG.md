@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.62
+
+### Patch Changes
+
+- 74af734: Feat: Dock layout switcher.
+
 ## 0.1.0-alpha.61
 
 ### Patch Changes
