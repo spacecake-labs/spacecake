@@ -52,16 +52,25 @@ export async function clickMenuItem(
   menuLabel: string,
   itemLabel: string,
 ): Promise<void> {
-  await app.evaluate(
-    ({ Menu }, { menuLabel, itemLabel }) => {
-      const appMenu = Menu.getApplicationMenu()
-      if (!appMenu) throw new Error("no application menu found")
-      const topLevel = appMenu.items.find((i) => i.label === menuLabel)
-      if (!topLevel?.submenu) throw new Error(`menu "${menuLabel}" not found`)
-      const item = topLevel.submenu.items.find((i) => i.label === itemLabel)
-      if (!item) throw new Error(`menu item "${itemLabel}" not found in "${menuLabel}"`)
-      item.click()
-    },
-    { menuLabel, itemLabel },
-  )
+  const maxRetries = 3
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await app.evaluate(
+        ({ Menu }, { menuLabel, itemLabel }) => {
+          const appMenu = Menu.getApplicationMenu()
+          if (!appMenu) throw new Error("no application menu found")
+          const topLevel = appMenu.items.find((i) => i.label === menuLabel)
+          if (!topLevel?.submenu) throw new Error(`menu "${menuLabel}" not found`)
+          const item = topLevel.submenu.items.find((i) => i.label === itemLabel)
+          if (!item) throw new Error(`menu item "${itemLabel}" not found in "${menuLabel}"`)
+          item.click()
+        },
+        { menuLabel, itemLabel },
+      )
+      return
+    } catch (error) {
+      if (i === maxRetries - 1) throw error
+      await new Promise((r) => setTimeout(r, 500))
+    }
+  }
 }

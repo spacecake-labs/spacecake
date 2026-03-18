@@ -21,7 +21,7 @@ import { QuickOpen } from "@/components/quick-open"
 import { TaskToolbar } from "@/components/task-toolbar"
 import { TerminalPanel } from "@/components/terminal-panel"
 import type { DockAction } from "@/lib/dock-transition"
-import type { DockPosition, FullDock } from "@/schema/workspace-layout"
+import type { DockPosition } from "@/schema/workspace-layout"
 
 const GitPanel = lazy(() => import("@/components/git-panel").then((m) => ({ default: m.GitPanel })))
 const TaskTable = lazy(() =>
@@ -342,25 +342,12 @@ function LayoutContent() {
       const newLayout = transition(currentLayout, action)
       if (newLayout === currentLayout) return
 
-      // auto-close/open sidebar when a left-docked panel expands/collapses
-      const oldDock = currentLayout.dock
-      const newDock = newLayout.dock as FullDock
-      const hadExpandedLeft =
-        (getDockPosition(oldDock, "git") === "left" && currentLayout.panels.git.isExpanded) ||
-        (getDockPosition(oldDock, "task") === "left" && currentLayout.panels.task.isExpanded)
-      const hasExpandedLeft =
-        (getDockPosition(newDock, "git") === "left" && newLayout.panels.git.isExpanded) ||
-        (getDockPosition(newDock, "task") === "left" && newLayout.panels.task.isExpanded)
-      if (hasExpandedLeft !== hadExpandedLeft) {
-        setSidebarOpen(!hasExpandedLeft)
-      }
-
       // optimistically update ref so rapid dispatches chain correctly
       // transition preserves the FullDock shape when input is normalized
       layoutRef.current = newLayout as typeof currentLayout
       mutations.updateWorkspaceLayout(workspace.id, newLayout)
     },
-    [workspace.id, setSidebarOpen],
+    [workspace.id],
   )
 
   // Helper to blur terminal focus (prevents aria-hidden focus warning when collapsing)

@@ -72,6 +72,12 @@ test.describe("route not found", () => {
       }),
     ).toBeVisible()
 
+    // stop the watcher to prevent it from reacting to the deletion
+    await window.evaluate((watchPath) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (window as any).electronAPI.stopWatcher(watchPath)
+    }, tempTestDir)
+
     // delete the file (not the directory)
     fs.unlinkSync(testFilePath)
 

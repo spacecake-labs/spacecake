@@ -1,16 +1,44 @@
-cd spacecake-app
+# detect which folders have staged changes
+staged_all=$(git diff --cached --name-only --diff-filter=d)
+has_app=$(echo "$staged_all" | grep -q '^spacecake-app/' && echo 1 || echo 0)
+has_website=$(echo "$staged_all" | grep -q '^website/' && echo 1 || echo 0)
+has_cli=$(echo "$staged_all" | grep -q '^cli/' && echo 1 || echo 0)
 
-# capture the list of currently staged files before running fixers
-staged=$(git diff --cached --name-only --diff-filter=d --relative)
-
-# auto-fix: format and lint the whole codebase
-just format
-just lint
-
-# re-stage only files that were already staged (preserves partial staging)
-if [ -n "$staged" ]; then
-  echo "$staged" | xargs git add
+# spacecake-app checks
+if [ "$has_app" = "1" ]; then
+  cd spacecake-app
+  staged=$(git diff --cached --name-only --diff-filter=d --relative)
+  just format
+  just lint
+  if [ -n "$staged" ]; then
+    echo "$staged" | xargs git add
+  fi
+  just tc
+  cd ..
 fi
 
-# type check — block the commit if this fails
-just tc
+# website checks
+if [ "$has_website" = "1" ]; then
+  cd website
+  staged=$(git diff --cached --name-only --diff-filter=d --relative)
+  just format
+  just lint
+  if [ -n "$staged" ]; then
+    echo "$staged" | xargs git add
+  fi
+  just tc
+  cd ..
+fi
+
+# cli checks
+if [ "$has_cli" = "1" ]; then
+  cd cli
+  staged=$(git diff --cached --name-only --diff-filter=d --relative)
+  just format
+  just lint
+  if [ -n "$staged" ]; then
+    echo "$staged" | xargs git add
+  fi
+  just tc
+  cd ..
+fi
