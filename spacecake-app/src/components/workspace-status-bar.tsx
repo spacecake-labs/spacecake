@@ -13,6 +13,7 @@ import { memo, useCallback, useState } from "react"
 
 import { ClaudeStatusBadge } from "@/components/claude-status-badge"
 import { ClaudeStatuslineBadge } from "@/components/claude-statusline-badge"
+import { DockLayoutSwitcher } from "@/components/dock-layout-switcher"
 import { ModeToggle } from "@/components/mode-toggle"
 import {
   statuslineConflictAtom,
@@ -222,6 +223,30 @@ export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
             <PanelLeft className="h-3.5 w-3.5" />
           </button>
         )}
+        {terminalDock &&
+          taskDock &&
+          gitDock &&
+          onTerminalDockChange &&
+          onTaskDockChange &&
+          onGitDockChange &&
+          onToggleTerminal &&
+          onToggleTask &&
+          onToggleGit && (
+            <DockLayoutSwitcher
+              terminalDock={terminalDock}
+              taskDock={taskDock}
+              gitDock={gitDock}
+              isTerminalExpanded={!!isTerminalExpanded}
+              isTaskExpanded={!!isTaskExpanded}
+              isGitExpanded={!!isGitExpanded}
+              onTerminalDockChange={onTerminalDockChange}
+              onTaskDockChange={onTaskDockChange}
+              onGitDockChange={onGitDockChange}
+              onToggleTerminal={onToggleTerminal}
+              onToggleTask={onToggleTask}
+              onToggleGit={onToggleGit}
+            />
+          )}
         {onToggleTerminal && (
           <StatusToggleButton
             icon={Terminal}

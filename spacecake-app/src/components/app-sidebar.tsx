@@ -126,7 +126,11 @@ export function AppSidebar({ onFileClick, workspace }: AppSidebarProps) {
                 if (isOnSettings) {
                   navigate({ to: "/w/$workspaceId", params: { workspaceId } })
                 } else {
-                  navigate({ to: "/w/$workspaceId/settings", params: { workspaceId } })
+                  navigate({
+                    to: "/w/$workspaceId/settings",
+                    params: { workspaceId },
+                    search: { tab: "general" },
+                  })
                 }
               }}
             >
