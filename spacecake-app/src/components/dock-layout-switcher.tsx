@@ -147,7 +147,7 @@ export const DockLayoutSwitcher = memo(function DockLayoutSwitcher(props: DockLa
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-72 p-0 bg-popover/95 backdrop-blur-sm"
+        className="w-80 p-0 bg-popover/95 backdrop-blur-sm"
         side="top"
         align="start"
         sideOffset={8}
@@ -199,18 +199,18 @@ function DockLayoutEditorContent({
       {/* header */}
       <div className="p-3 border-b border-border/50">
         <div className="flex items-center justify-between">
-          <span className="text-xs @xs:text-sm font-medium text-foreground">edit layout</span>
+          <span className="text-sm @xs:text-base font-medium text-foreground">edit layout</span>
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-[10px] @xs:text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+            className="h-6 px-2 text-xs @xs:text-sm text-muted-foreground hover:text-foreground cursor-pointer"
             onClick={resetLayout}
           >
-            <RotateCcw className="size-3 mr-1" />
+            <RotateCcw className="size-3" />
             restore defaults
           </Button>
         </div>
-        <p className="text-[10px] @xs:text-xs text-muted-foreground mt-1">
+        <p className="text-xs @xs:text-sm text-muted-foreground mt-1">
           {selectedPanel
             ? `select a new dock position for the ${PANEL_LABELS[selectedPanel]} panel`
             : "click a panel, then choose where to dock it"}
@@ -231,7 +231,7 @@ function DockLayoutEditorContent({
             />
             <div className="flex-1 flex flex-col gap-1.5">
               <div className="flex-1 rounded-md bg-background border border-border/50 flex items-center justify-center">
-                <span className="text-[9px] @xs:text-xs text-muted-foreground/60 font-medium">
+                <span className="text-xs @xs:text-sm text-muted-foreground/60 font-medium">
                   editor
                 </span>
               </div>
@@ -260,7 +260,7 @@ function DockLayoutEditorContent({
 
       {/* panel list */}
       <div className="px-3 pb-3">
-        <div className="text-[10px] @xs:text-xs text-muted-foreground mb-2 uppercase tracking-wider font-medium">
+        <div className="text-xs @xs:text-sm text-muted-foreground mb-2 uppercase tracking-wider font-medium">
           panels
         </div>
         <div className="space-y-1">
@@ -295,14 +295,14 @@ function DockLayoutEditorContent({
                   />
                   <span
                     className={cn(
-                      "text-xs @xs:text-sm font-medium truncate",
+                      "text-sm @xs:text-base font-medium truncate",
                       !expanded && !isSelected && "text-muted-foreground",
                     )}
                   >
                     {panel.label}
                   </span>
                 </div>
-                <span className="text-[9px] @xs:text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                <span className="text-xs @xs:text-sm text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                   {getDockForPanel(panel.id)}
                 </span>
                 <button
@@ -378,12 +378,12 @@ function DropDock({
       {panel ? (
         <>
           <div className={cn("size-3 rounded-sm", panel.color)} />
-          <span className="text-[8px] @xs:text-[10px] text-muted-foreground font-medium leading-none">
+          <span className="text-xs @xs:text-sm text-muted-foreground font-medium leading-none">
             {panel.label}
           </span>
         </>
       ) : (
-        <span className="text-[8px] @xs:text-[10px] text-muted-foreground/40">{dock}</span>
+        <span className="text-xs @xs:text-sm text-muted-foreground/40">{dock}</span>
       )}
     </div>
   )
