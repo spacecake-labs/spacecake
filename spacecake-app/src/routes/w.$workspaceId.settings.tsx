@@ -12,7 +12,7 @@ import { getDockPosition, transition } from "@/lib/dock-transition"
 import type { DockAction } from "@/lib/dock-transition"
 import { getOrCreateSettingsMachine } from "@/lib/settings-actor"
 import { cn, encodeBase64Url } from "@/lib/utils"
-import type { DockPosition } from "@/schema/workspace-layout"
+import type { DockablePanelKind, DockPosition } from "@/schema/workspace-layout"
 import type { WorkspaceSettings } from "@/schema/workspace-settings"
 
 export const Route = createFileRoute("/w/$workspaceId/settings")({
@@ -58,38 +58,15 @@ function SettingsPage() {
   const taskDock = getDockPosition(layout.dock, "task")
   const gitDock = getDockPosition(layout.dock, "git")
 
-  const setTerminalDock = useCallback(
-    (dock: DockPosition) => dispatchLayout({ kind: "move", panel: "terminal", to: dock }),
+  const handleDockChange = useCallback(
+    (panel: DockablePanelKind, dock: DockPosition) =>
+      dispatchLayout({ kind: "move", panel, to: dock }),
     [dispatchLayout],
   )
-  const setTaskDock = useCallback(
-    (dock: DockPosition) => dispatchLayout({ kind: "move", panel: "task", to: dock }),
+
+  const handleToggle = useCallback(
+    (panel: DockablePanelKind) => dispatchLayout({ kind: "toggle", panel }),
     [dispatchLayout],
-  )
-  const setGitDock = useCallback(
-    (dock: DockPosition) => dispatchLayout({ kind: "move", panel: "git", to: dock }),
-    [dispatchLayout],
-  )
-  const toggleTerminal = useCallback(
-    () =>
-      dispatchLayout({
-        kind: layout.panels.terminal.isExpanded ? "collapse" : "expand",
-        panel: "terminal",
-      }),
-    [dispatchLayout, layout.panels.terminal.isExpanded],
-  )
-  const toggleTask = useCallback(
-    () =>
-      dispatchLayout({
-        kind: layout.panels.task.isExpanded ? "collapse" : "expand",
-        panel: "task",
-      }),
-    [dispatchLayout, layout.panels.task.isExpanded],
-  )
-  const toggleGit = useCallback(
-    () =>
-      dispatchLayout({ kind: layout.panels.git.isExpanded ? "collapse" : "expand", panel: "git" }),
-    [dispatchLayout, layout.panels.git.isExpanded],
   )
 
   // Reactive settings from DB - updates automatically when DB changes
@@ -209,12 +186,8 @@ function SettingsPage() {
               isTerminalExpanded={layout.panels.terminal.isExpanded}
               isTaskExpanded={layout.panels.task.isExpanded}
               isGitExpanded={layout.panels.git.isExpanded}
-              onTerminalDockChange={setTerminalDock}
-              onTaskDockChange={setTaskDock}
-              onGitDockChange={setGitDock}
-              onToggleTerminal={toggleTerminal}
-              onToggleTask={toggleTask}
-              onToggleGit={toggleGit}
+              onDockChange={handleDockChange}
+              onToggle={handleToggle}
             />
           </div>
         )}

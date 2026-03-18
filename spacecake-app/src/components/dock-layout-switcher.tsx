@@ -1,6 +1,6 @@
 import { Eye, EyeOff, GitBranch, LayoutGrid, ListTodo, RotateCcw, Terminal } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import { memo, useCallback, useState } from "react"
+import { memo, useCallback, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -27,81 +27,48 @@ const PANEL_LABELS: Record<DockablePanelKind, string> = {
   task: "tasks",
 }
 
-interface DockLayoutSwitcherProps {
+export interface DockLayoutEditorProps {
   terminalDock: DockPosition
   taskDock: DockPosition
   gitDock: DockPosition
   isTerminalExpanded: boolean
   isTaskExpanded: boolean
   isGitExpanded: boolean
-  onTerminalDockChange: (dock: DockPosition) => void
-  onTaskDockChange: (dock: DockPosition) => void
-  onGitDockChange: (dock: DockPosition) => void
-  onToggleTerminal: () => void
-  onToggleTask: () => void
-  onToggleGit: () => void
+  onDockChange: (panel: DockablePanelKind, dock: DockPosition) => void
+  onToggle: (panel: DockablePanelKind) => void
 }
 
-export const DockLayoutSwitcher = memo(function DockLayoutSwitcher({
-  terminalDock,
-  taskDock,
-  gitDock,
-  isTerminalExpanded,
-  isTaskExpanded,
-  isGitExpanded,
-  onTerminalDockChange,
-  onTaskDockChange,
-  onGitDockChange,
-  onToggleTerminal,
-  onToggleTask,
-  onToggleGit,
-}: DockLayoutSwitcherProps) {
-  const [open, setOpen] = useState(false)
+function useDockLayout(props: DockLayoutEditorProps) {
   const [selectedPanel, setSelectedPanel] = useState<DockablePanelKind | null>(null)
+  const selectedPanelRef = useRef(selectedPanel)
+  selectedPanelRef.current = selectedPanel
 
   const getDockForPanel = useCallback(
     (panel: DockablePanelKind): DockPosition => {
       switch (panel) {
         case "terminal":
-          return terminalDock
+          return props.terminalDock
         case "task":
-          return taskDock
+          return props.taskDock
         case "git":
-          return gitDock
+          return props.gitDock
       }
     },
-    [terminalDock, taskDock, gitDock],
+    [props.terminalDock, props.taskDock, props.gitDock],
   )
 
   const isExpanded = useCallback(
     (panel: DockablePanelKind): boolean => {
       switch (panel) {
         case "terminal":
-          return isTerminalExpanded
+          return props.isTerminalExpanded
         case "task":
-          return isTaskExpanded
+          return props.isTaskExpanded
         case "git":
-          return isGitExpanded
+          return props.isGitExpanded
       }
     },
-    [isTerminalExpanded, isTaskExpanded, isGitExpanded],
-  )
-
-  const togglePanel = useCallback(
-    (panel: DockablePanelKind) => {
-      switch (panel) {
-        case "terminal":
-          onToggleTerminal()
-          break
-        case "task":
-          onToggleTask()
-          break
-        case "git":
-          onToggleGit()
-          break
-      }
-    },
-    [onToggleTerminal, onToggleTask, onToggleGit],
+    [props.isTerminalExpanded, props.isTaskExpanded, props.isGitExpanded],
   )
 
   const getPanelInDock = useCallback(
@@ -113,66 +80,61 @@ export const DockLayoutSwitcher = memo(function DockLayoutSwitcher({
     [getDockForPanel, isExpanded],
   )
 
-  const movePanelToDock = useCallback(
-    (panel: DockablePanelKind, to: DockPosition) => {
-      switch (panel) {
-        case "terminal":
-          onTerminalDockChange(to)
-          break
-        case "task":
-          onTaskDockChange(to)
-          break
-        case "git":
-          onGitDockChange(to)
-          break
-      }
-    },
-    [onTerminalDockChange, onTaskDockChange, onGitDockChange],
-  )
-
-  const handlePanelClick = useCallback(
-    (panelId: DockablePanelKind) => {
-      if (selectedPanel === panelId) {
-        setSelectedPanel(null)
-      } else {
-        setSelectedPanel(panelId)
-      }
-    },
-    [selectedPanel],
-  )
+  const handlePanelClick = useCallback((panelId: DockablePanelKind) => {
+    setSelectedPanel((prev) => (prev === panelId ? null : panelId))
+  }, [])
 
   const handleDockClick = useCallback(
     (dock: DockPosition) => {
-      if (!selectedPanel) {
-        // nothing selected yet — select the panel in this dock
+      const current = selectedPanelRef.current
+      if (!current) {
         const panelInDock = PANEL_CONFIGS.find((p) => getDockForPanel(p.id) === dock)
         if (panelInDock) setSelectedPanel(panelInDock.id)
         return
       }
-      if (getDockForPanel(selectedPanel) === dock) {
+      if (getDockForPanel(current) === dock) {
         setSelectedPanel(null)
         return
       }
-      movePanelToDock(selectedPanel, dock)
+      props.onDockChange(current, dock)
       setSelectedPanel(null)
     },
-    [selectedPanel, getDockForPanel, movePanelToDock],
+    [getDockForPanel, props.onDockChange],
   )
 
   const resetLayout = useCallback(() => {
     const defaults = defaultWorkspaceLayout.dock
-    if (defaults.left) movePanelToDock(defaults.left, "left")
-    if (defaults.right) movePanelToDock(defaults.right, "right")
-    if (defaults.bottom) movePanelToDock(defaults.bottom, "bottom")
+    if (defaults.left) props.onDockChange(defaults.left, "left")
+    if (defaults.right) props.onDockChange(defaults.right, "right")
+    if (defaults.bottom) props.onDockChange(defaults.bottom, "bottom")
     setSelectedPanel(null)
-  }, [movePanelToDock])
+  }, [props.onDockChange])
+
+  const clearSelection = useCallback(() => setSelectedPanel(null), [])
+
+  return {
+    selectedPanel,
+    clearSelection,
+    resetLayout,
+    getPanelInDock,
+    getDockForPanel,
+    handleDockClick,
+    handlePanelClick,
+    isExpanded,
+    togglePanel: props.onToggle,
+  }
+}
+
+export const DockLayoutSwitcher = memo(function DockLayoutSwitcher(props: DockLayoutEditorProps) {
+  const [open, setOpen] = useState(false)
+  const layout = useDockLayout(props)
 
   return (
     <Popover
       open={open}
       onOpenChange={(v) => {
         setOpen(v)
-        if (!v) setSelectedPanel(null)
+        if (!v) layout.clearSelection()
       }}
     >
       <PopoverTrigger asChild>
@@ -199,14 +161,14 @@ export const DockLayoutSwitcher = memo(function DockLayoutSwitcher({
         }}
       >
         <DockLayoutEditorContent
-          selectedPanel={selectedPanel}
-          resetLayout={resetLayout}
-          getPanelInDock={getPanelInDock}
-          getDockForPanel={getDockForPanel}
-          handleDockClick={handleDockClick}
-          handlePanelClick={handlePanelClick}
-          isExpanded={isExpanded}
-          togglePanel={togglePanel}
+          selectedPanel={layout.selectedPanel}
+          resetLayout={layout.resetLayout}
+          getPanelInDock={layout.getPanelInDock}
+          getDockForPanel={layout.getDockForPanel}
+          handleDockClick={layout.handleDockClick}
+          handlePanelClick={layout.handlePanelClick}
+          isExpanded={layout.isExpanded}
+          togglePanel={layout.togglePanel}
         />
       </PopoverContent>
     </Popover>
@@ -362,120 +324,20 @@ function DockLayoutEditorContent({
   )
 }
 
-export const DockLayoutEditor = memo(function DockLayoutEditor(props: DockLayoutSwitcherProps) {
-  const [selectedPanel, setSelectedPanel] = useState<DockablePanelKind | null>(null)
-
-  const getDockForPanel = useCallback(
-    (panel: DockablePanelKind): DockPosition => {
-      switch (panel) {
-        case "terminal":
-          return props.terminalDock
-        case "task":
-          return props.taskDock
-        case "git":
-          return props.gitDock
-      }
-    },
-    [props.terminalDock, props.taskDock, props.gitDock],
-  )
-
-  const isExpanded = useCallback(
-    (panel: DockablePanelKind): boolean => {
-      switch (panel) {
-        case "terminal":
-          return props.isTerminalExpanded
-        case "task":
-          return props.isTaskExpanded
-        case "git":
-          return props.isGitExpanded
-      }
-    },
-    [props.isTerminalExpanded, props.isTaskExpanded, props.isGitExpanded],
-  )
-
-  const togglePanel = useCallback(
-    (panel: DockablePanelKind) => {
-      switch (panel) {
-        case "terminal":
-          props.onToggleTerminal()
-          break
-        case "task":
-          props.onToggleTask()
-          break
-        case "git":
-          props.onToggleGit()
-          break
-      }
-    },
-    [props.onToggleTerminal, props.onToggleTask, props.onToggleGit],
-  )
-
-  const getPanelInDock = useCallback(
-    (dock: DockPosition): (PanelConfig & { expanded: boolean }) | undefined => {
-      const panel = PANEL_CONFIGS.find((p) => getDockForPanel(p.id) === dock)
-      if (!panel) return undefined
-      return { ...panel, expanded: isExpanded(panel.id) }
-    },
-    [getDockForPanel, isExpanded],
-  )
-
-  const movePanelToDock = useCallback(
-    (panel: DockablePanelKind, to: DockPosition) => {
-      switch (panel) {
-        case "terminal":
-          props.onTerminalDockChange(to)
-          break
-        case "task":
-          props.onTaskDockChange(to)
-          break
-        case "git":
-          props.onGitDockChange(to)
-          break
-      }
-    },
-    [props.onTerminalDockChange, props.onTaskDockChange, props.onGitDockChange],
-  )
-
-  const handlePanelClick = useCallback((panelId: DockablePanelKind) => {
-    setSelectedPanel((prev) => (prev === panelId ? null : panelId))
-  }, [])
-
-  const handleDockClick = useCallback(
-    (dock: DockPosition) => {
-      if (!selectedPanel) {
-        const panelInDock = PANEL_CONFIGS.find((p) => getDockForPanel(p.id) === dock)
-        if (panelInDock) setSelectedPanel(panelInDock.id)
-        return
-      }
-      if (getDockForPanel(selectedPanel) === dock) {
-        setSelectedPanel(null)
-        return
-      }
-      movePanelToDock(selectedPanel, dock)
-      setSelectedPanel(null)
-    },
-    [selectedPanel, getDockForPanel, movePanelToDock],
-  )
-
-  const resetLayout = useCallback(() => {
-    const defaults = defaultWorkspaceLayout.dock
-    if (defaults.left) movePanelToDock(defaults.left, "left")
-    if (defaults.right) movePanelToDock(defaults.right, "right")
-    if (defaults.bottom) movePanelToDock(defaults.bottom, "bottom")
-    setSelectedPanel(null)
-  }, [movePanelToDock])
+export const DockLayoutEditor = memo(function DockLayoutEditor(props: DockLayoutEditorProps) {
+  const layout = useDockLayout(props)
 
   return (
     <div className="@container">
       <DockLayoutEditorContent
-        selectedPanel={selectedPanel}
-        resetLayout={resetLayout}
-        getPanelInDock={getPanelInDock}
-        getDockForPanel={getDockForPanel}
-        handleDockClick={handleDockClick}
-        handlePanelClick={handlePanelClick}
-        isExpanded={isExpanded}
-        togglePanel={togglePanel}
+        selectedPanel={layout.selectedPanel}
+        resetLayout={layout.resetLayout}
+        getPanelInDock={layout.getPanelInDock}
+        getDockForPanel={layout.getDockForPanel}
+        handleDockClick={layout.handleDockClick}
+        handlePanelClick={layout.handlePanelClick}
+        isExpanded={layout.isExpanded}
+        togglePanel={layout.togglePanel}
       />
     </div>
   )

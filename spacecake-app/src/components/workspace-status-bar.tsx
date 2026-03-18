@@ -30,7 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { WatchmanBadge } from "@/components/watchman-badge"
 import { gitBranchAtom } from "@/lib/atoms/git"
 import { cn } from "@/lib/utils"
-import type { DockPosition } from "@/schema/workspace-layout"
+import type { DockablePanelKind, DockPosition } from "@/schema/workspace-layout"
 import { match } from "@/types/adt"
 
 interface WorkspaceStatusBarProps {
@@ -208,6 +208,42 @@ export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
   useStatuslineAutoSetup()
   const gitBranch = useAtomValue(gitBranchAtom)
 
+  const handleLayoutDockChange = useCallback(
+    (panel: DockablePanelKind, dock: DockPosition) => {
+      switch (panel) {
+        case "terminal":
+          onTerminalDockChange?.(dock)
+          break
+        case "task":
+          onTaskDockChange?.(dock)
+          break
+        case "git":
+          onGitDockChange?.(dock)
+          break
+      }
+    },
+    [onTerminalDockChange, onTaskDockChange, onGitDockChange],
+  )
+
+  const handleLayoutToggle = useCallback(
+    (panel: DockablePanelKind) => {
+      switch (panel) {
+        case "terminal":
+          onToggleTerminal?.()
+          break
+        case "task":
+          onToggleTask?.()
+          break
+        case "git":
+          onToggleGit?.()
+          break
+      }
+    },
+    [onToggleTerminal, onToggleTask, onToggleGit],
+  )
+
+  const hasDockControls = onToggleTerminal && onToggleTask && onToggleGit
+
   return (
     <div className="h-8 w-full bg-background/50 border-t flex items-center justify-between px-4 text-xs shrink-0">
       {/* Left side: theme toggle + sidebar toggle + terminal/task badges */}
@@ -223,30 +259,18 @@ export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
             <PanelLeft className="h-3.5 w-3.5" />
           </button>
         )}
-        {terminalDock &&
-          taskDock &&
-          gitDock &&
-          onTerminalDockChange &&
-          onTaskDockChange &&
-          onGitDockChange &&
-          onToggleTerminal &&
-          onToggleTask &&
-          onToggleGit && (
-            <DockLayoutSwitcher
-              terminalDock={terminalDock}
-              taskDock={taskDock}
-              gitDock={gitDock}
-              isTerminalExpanded={!!isTerminalExpanded}
-              isTaskExpanded={!!isTaskExpanded}
-              isGitExpanded={!!isGitExpanded}
-              onTerminalDockChange={onTerminalDockChange}
-              onTaskDockChange={onTaskDockChange}
-              onGitDockChange={onGitDockChange}
-              onToggleTerminal={onToggleTerminal}
-              onToggleTask={onToggleTask}
-              onToggleGit={onToggleGit}
-            />
-          )}
+        {hasDockControls && terminalDock && taskDock && gitDock && (
+          <DockLayoutSwitcher
+            terminalDock={terminalDock}
+            taskDock={taskDock}
+            gitDock={gitDock}
+            isTerminalExpanded={!!isTerminalExpanded}
+            isTaskExpanded={!!isTaskExpanded}
+            isGitExpanded={!!isGitExpanded}
+            onDockChange={handleLayoutDockChange}
+            onToggle={handleLayoutToggle}
+          />
+        )}
         {onToggleTerminal && (
           <StatusToggleButton
             icon={Terminal}

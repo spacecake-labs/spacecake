@@ -21,12 +21,8 @@ function makeProps(overrides: Partial<Parameters<typeof DockLayoutEditor>[0]> = 
     isTerminalExpanded: true,
     isTaskExpanded: false,
     isGitExpanded: false,
-    onTerminalDockChange: vi.fn(),
-    onTaskDockChange: vi.fn(),
-    onGitDockChange: vi.fn(),
-    onToggleTerminal: vi.fn(),
-    onToggleTask: vi.fn(),
-    onToggleGit: vi.fn(),
+    onDockChange: vi.fn(),
+    onToggle: vi.fn(),
     ...overrides,
   }
 }
@@ -235,7 +231,7 @@ describe("dock click", () => {
     act(() => rightDock.click())
 
     // git should have been moved to right
-    expect(props.onGitDockChange).toHaveBeenCalledWith("right")
+    expect(props.onDockChange).toHaveBeenCalledWith("git", "right")
     // selection should be cleared
     expect(getInstructionText(container)).toBe("click a panel, then choose where to dock it")
   })
@@ -254,7 +250,7 @@ describe("visibility toggle", () => {
     const toggleBtn = findToggleButton(gitRow)!
     act(() => toggleBtn.click())
 
-    expect(props.onToggleGit).toHaveBeenCalledOnce()
+    expect(props.onToggle).toHaveBeenCalledWith("git")
   })
 
   it("toggle click does not also select the panel", () => {
@@ -267,7 +263,7 @@ describe("visibility toggle", () => {
 
     // instruction text should still show default (no selection)
     expect(getInstructionText(container)).toBe("click a panel, then choose where to dock it")
-    expect(props.onToggleTerminal).toHaveBeenCalledOnce()
+    expect(props.onToggle).toHaveBeenCalledWith("terminal")
   })
 
   it("calls the correct toggle for each panel", () => {
@@ -276,15 +272,17 @@ describe("visibility toggle", () => {
 
     const taskRow = findPanelRow(container, "tasks")!
     act(() => findToggleButton(taskRow)!.click())
-    expect(props.onToggleTask).toHaveBeenCalledOnce()
+    expect(props.onToggle).toHaveBeenCalledWith("task")
 
     const terminalRow = findPanelRow(container, "terminal")!
     act(() => findToggleButton(terminalRow)!.click())
-    expect(props.onToggleTerminal).toHaveBeenCalledOnce()
+    expect(props.onToggle).toHaveBeenCalledWith("terminal")
 
     const gitRow = findPanelRow(container, "git")!
     act(() => findToggleButton(gitRow)!.click())
-    expect(props.onToggleGit).toHaveBeenCalledOnce()
+    expect(props.onToggle).toHaveBeenCalledWith("git")
+
+    expect(props.onToggle).toHaveBeenCalledTimes(3)
   })
 })
 
@@ -293,7 +291,7 @@ describe("visibility toggle", () => {
 // ============================================
 
 describe("restore defaults", () => {
-  it("calls all three dock change callbacks with default positions", () => {
+  it("calls onDockChange with default positions for each panel", () => {
     const props = makeProps({
       terminalDock: "left",
       taskDock: "right",
@@ -305,9 +303,9 @@ describe("restore defaults", () => {
     act(() => restoreBtn.click())
 
     // default layout: git=left, terminal=right, task=bottom
-    expect(props.onGitDockChange).toHaveBeenCalledWith("left")
-    expect(props.onTerminalDockChange).toHaveBeenCalledWith("right")
-    expect(props.onTaskDockChange).toHaveBeenCalledWith("bottom")
+    expect(props.onDockChange).toHaveBeenCalledWith("git", "left")
+    expect(props.onDockChange).toHaveBeenCalledWith("terminal", "right")
+    expect(props.onDockChange).toHaveBeenCalledWith("task", "bottom")
   })
 
   it("clears selection after restoring defaults", () => {
