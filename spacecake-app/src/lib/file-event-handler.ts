@@ -109,6 +109,15 @@ export const handleFileEvent = async (
       pendingRenamesByNewPath.delete(AbsolutePath(event.path))
       return
     }
+    // eagerly clean up folder renames when the new folder itself is added
+    if (event.kind === "addFolder") {
+      for (const [oldPrefix, newPrefix] of pendingFolderRenames) {
+        if (AbsolutePath(event.path) === newPrefix) {
+          pendingFolderRenames.delete(oldPrefix)
+          return
+        }
+      }
+    }
     if (isUnderPendingFolderRename(AbsolutePath(event.path))) return
   }
 

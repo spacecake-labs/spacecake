@@ -271,6 +271,10 @@ export function NavMain({
   const route = useRoute()
   const selectedFilePath = route?.filePath || null
 
+  // ref to always hold the latest selectedFilePath for async callbacks
+  const selectedFilePathRef = React.useRef(selectedFilePath)
+  selectedFilePathRef.current = selectedFilePath
+
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(null)
 
@@ -384,18 +388,19 @@ export function NavMain({
   )
 
   const handleRenameCallback = React.useCallback(async () => {
-    if (!editingItem || !workspace?.path) return
+    const currentEditingItem = store.get(editingItemAtom)
+    if (!currentEditingItem || !workspace?.path) return
 
-    const oldPath = AbsolutePath(editingItem.path)
-    const newName = editingItem.value.trim()
+    const oldPath = AbsolutePath(currentEditingItem.path)
+    const newName = currentEditingItem.value.trim()
 
-    if (!newName || newName === editingItem.originalValue) {
+    if (!newName || newName === currentEditingItem.originalValue) {
       setEditingItem(null)
       setValidationError(null)
       return
     }
 
-    const error = validateRenameTarget(newName, oldPath, editingItem.originalValue || "")
+    const error = validateRenameTarget(newName, oldPath, currentEditingItem.originalValue || "")
     if (error) {
       setValidationError(error)
       return
@@ -427,7 +432,7 @@ export function NavMain({
           e.path.startsWith(oldPath + "/")
             ? {
                 path: AbsolutePath(newPath + e.path.slice(oldPath.length)),
-                name: e.path.split("/").pop()!,
+                name: e.name,
               }
             : e,
         ),
@@ -455,26 +460,19 @@ export function NavMain({
           await mutations.renameFile(oldPath, newPath)
         }
 
-        // 6. navigate if current file was affected
-        if (selectedFilePath === oldPath) {
+        // 6. navigate if current file was affected (read fresh ref to avoid stale closure)
+        const currentFilePath = selectedFilePathRef.current
+        if (currentFilePath === oldPath) {
           handleFileClickCallback(newPath)
-        } else if (isFolder && selectedFilePath?.startsWith(oldPath + "/")) {
-          handleFileClickCallback(AbsolutePath(newPath + selectedFilePath.slice(oldPath.length)))
+        } else if (isFolder && currentFilePath?.startsWith(oldPath + "/")) {
+          handleFileClickCallback(AbsolutePath(newPath + currentFilePath.slice(oldPath.length)))
         }
 
         setEditingItem(null)
         setValidationError(null)
       },
     })
-  }, [
-    editingItem,
-    workspace,
-    validateRenameTarget,
-    selectedFilePath,
-    handleFileClickCallback,
-    setEditingItem,
-    store,
-  ])
+  }, [workspace, validateRenameTarget, handleFileClickCallback, setEditingItem, store])
 
   const handleRenameKeyDownCallback = React.useCallback(
     (e: React.KeyboardEvent) => {
@@ -494,16 +492,19 @@ export function NavMain({
 
   const handleRenameInputChangeCallback = React.useCallback(
     (value: string) => {
-      if (editingItem) {
-        // using the variable from closure
+      const currentEditingItem = store.get(editingItemAtom)
+      if (currentEditingItem) {
         setEditingItem((prev) => (prev ? { ...prev, value } : null))
 
-        // Validation needs state.
-        const error = validateRenameTarget(value, editingItem.path, editingItem.originalValue || "")
+        const error = validateRenameTarget(
+          value,
+          currentEditingItem.path,
+          currentEditingItem.originalValue || "",
+        )
         setValidationError(error)
       }
     },
-    [editingItem, setEditingItem, validateRenameTarget],
+    [store, setEditingItem, validateRenameTarget],
   )
 
   const handleStartDeleteCallback = React.useCallback(
