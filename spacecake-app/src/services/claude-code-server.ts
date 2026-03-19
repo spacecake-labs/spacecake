@@ -116,7 +116,7 @@ const cleanStaleLockFiles = (ideDir: string): Effect.Effect<void> =>
             () => JSON.parse(raw) as { ideName?: string; pid?: number },
           )
 
-          // only clean up spacecake lock files — other IDEs manage their own
+          // only clean up spacecake lock files - other IDEs manage their own
           if (data.ideName !== "spacecake") return
           if (typeof data.pid !== "number") return
 

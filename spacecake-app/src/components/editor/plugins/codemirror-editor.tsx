@@ -58,7 +58,7 @@ const EMPTY_VALUE = "__EMPTY_VALUE__"
 const legacy = (parser: Parameters<typeof StreamLanguage.define>[0]) =>
   new LanguageSupport(StreamLanguage.define(parser)).extension
 
-// hand-written map of supported languages — avoids importing the full
+// hand-written map of supported languages - avoids importing the full
 // @codemirror/language-data catalogue (127+ languages, ~1 MB metadata)
 const LANGUAGE_LOADERS: Record<string, () => Promise<Extension>> = {
   python: () => import("@codemirror/lang-python").then((m) => m.python().extension),

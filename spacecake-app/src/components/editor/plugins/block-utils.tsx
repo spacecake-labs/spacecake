@@ -6,7 +6,7 @@ import { maybeUpdateDocstring } from "@/components/editor/plugins/docstring-upda
 import { PyBlock } from "@/types/parser"
 
 /**
- * Parse code into blocks via IPC — tree-sitter runs in the main process.
+ * Parse code into blocks via IPC - tree-sitter runs in the main process.
  */
 export async function getBlocks(code: string): Promise<PyBlock[]> {
   return window.electronAPI.parser.parseBlocks(code)

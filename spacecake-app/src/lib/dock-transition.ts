@@ -48,7 +48,7 @@ const ALL_POSITIONS: DockPosition[] = ["left", "right", "bottom"]
 
 /**
  * Ensure every dockable panel is assigned to a dock position.
- * Older stored layouts may be missing "git" — this backfills
+ * Older stored layouts may be missing "git" - this backfills
  * any missing panel into the first empty slot.
  */
 export function normalizeDock(layout: WorkspaceLayout): NormalizedWorkspaceLayout {

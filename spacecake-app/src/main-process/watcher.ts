@@ -290,10 +290,10 @@ export class WatcherService extends Effect.Service<WatcherService>()("app/Watche
       Effect.forever,
     )
 
-    // Fork scoped — fiber is interrupted when scope closes
+    // Fork scoped - fiber is interrupted when scope closes
     yield* Effect.forkScoped(processCommands)
 
-    // Finalizer — shut down queue (interrupts Queue.take) and stop all watchers
+    // Finalizer - shut down queue (interrupts Queue.take) and stop all watchers
     yield* Effect.addFinalizer(() =>
       Effect.gen(function* () {
         yield* Effect.log("watcher service shutting down")

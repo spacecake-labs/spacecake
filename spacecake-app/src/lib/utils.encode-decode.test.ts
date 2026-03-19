@@ -19,7 +19,7 @@ describe("base64url encode/decode", () => {
   })
 
   it("roundtrips unicode", () => {
-    const input = "こんにちは世界🌍 — naïve café"
+    const input = "こんにちは世界🌍 - naïve café"
     const encoded = encodeBase64Url(input)
     const decoded = decodeBase64Url(encoded)
     expect(decoded).toBe(input)

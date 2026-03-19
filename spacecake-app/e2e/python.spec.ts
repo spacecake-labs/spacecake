@@ -5,16 +5,13 @@ import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
 test.describe("python e2e", () => {
-  test("open workspace and create an empty python file", async ({
-    electronApp,
-    tempTestDir,
-  }, testInfo) => {
+  test("open workspace and create an empty python file", async ({ electronApp, tempTestDir }) => {
     const window = await electronApp.firstWindow()
 
     // open the temp test directory as workspace
     await waitForWorkspace(window)
 
-    // create a python file
+    // create a python file (no tree item clicked yet, so it lands at workspace root)
     await window.getByRole("button", { name: "create file or folder" }).click()
     await window.getByRole("menuitem", { name: "new file" }).click()
 
@@ -24,26 +21,22 @@ test.describe("python e2e", () => {
 
     await expect(locateSidebarItem(window, "empty.py")).toBeVisible()
 
-    // Wait for the create file input to disappear (indicating state reset)
+    // wait for the create file input to disappear (indicating state reset)
     await expect(textbox).not.toBeVisible()
 
     // open the newly created file
     await locateSidebarItem(window, "empty.py").click()
 
-    // Explicitly wait for the Lexical editor to be visible for the empty file
+    // explicitly wait for the lexical editor to be visible for the empty file
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
     // focus the code block toolbar and verify default code block type appears
     await window.getByText("🐍").first().click()
     await expect(window.getByText("file").first()).toBeVisible()
 
+    // file is created at workspace root (no tree item was clicked before creation)
     const expectedFilePath = path.join(tempTestDir, "empty.py")
     expect(fs.existsSync(expectedFilePath)).toBe(true)
-
-    testInfo.annotations.push({
-      type: "info",
-      description: `created python file: ${expectedFilePath}`,
-    })
   })
 
   test("open workspace and render core.py rich", async ({ electronApp, tempTestDir }) => {

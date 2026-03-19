@@ -15,7 +15,7 @@ import { waitForServer } from "@/test-utils/platform"
 import type { OpenFilePayload } from "@/types/claude-code"
 
 // ---------------------------------------------------------------------------
-// Electron mock — capture ipcMain.handle calls + spy on webContents.send
+// Electron mock - capture ipcMain.handle calls + spy on webContents.send
 // ---------------------------------------------------------------------------
 
 interface IpcEvent {
@@ -309,7 +309,7 @@ describe("CliServer", () => {
     )
   })
 
-  it("POST /open with wait:true — held open, cli:file-closed resolves it", async () => {
+  it("POST /open with wait:true - held open, cli:file-closed resolves it", async () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
@@ -424,7 +424,7 @@ describe("CliServer", () => {
 
           const filePath = path.join(WS_PRIMARY, "src", "index.ts")
 
-          // Fire a wait request — won't resolve until file closed or server shuts down
+          // Fire a wait request - won't resolve until file closed or server shuts down
           responsePromise = makeRequest(
             "POST",
             "/open",
@@ -442,7 +442,7 @@ describe("CliServer", () => {
       ),
     )
 
-    // Now the scope has closed — the response should have been resolved by the finalizer
+    // Now the scope has closed - the response should have been resolved by the finalizer
     const res = await responsePromise!
     expect(res.statusCode).toBe(503)
     expect(res.body).toMatchObject({ closed: true })

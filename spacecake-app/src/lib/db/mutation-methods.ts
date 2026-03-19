@@ -26,10 +26,12 @@ export const MUTATION_INVALIDATION_MAP: Partial<Record<DatabaseMethodName, reado
   updateEditorViewKind: ["editors", "pane-items"],
   updateEditorSelection: [],
   deleteFile: ["files", "pane-items", "editors"],
+  renameFile: ["files", "pane-items", "editors"],
+  renameFilesUnderFolder: ["files", "pane-items", "editors"],
   clearEditorStatesForFile: ["editors"],
   updateWorkspaceLayout: ["workspace"],
   updateWorkspaceSettings: ["workspace"],
 }
 
-/** set of mutation method names — derived from MUTATION_INVALIDATION_MAP */
+/** set of mutation method names - derived from MUTATION_INVALIDATION_MAP */
 export const MUTATION_METHOD_NAMES = new Set(Object.keys(MUTATION_INVALIDATION_MAP))

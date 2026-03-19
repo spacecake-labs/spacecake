@@ -80,12 +80,12 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             BASH_SILENCE_DEPRECATION_WARNING: "1",
             TERM: "xterm-256color",
             COLORTERM: "truecolor",
-            // CLI integration — allows `spacecake open` to find the running instance
+            // CLI integration - allows `spacecake open` to find the running instance
             SPACECAKE_IPC_HOOK: cliSocketPath,
             // Set EDITOR/VISUAL so tools open files in spacecake
             EDITOR: "spacecake open --wait",
             VISUAL: "spacecake open --wait",
-            // Marks this terminal as owned by spacecake — the statusline hook
+            // Marks this terminal as owned by spacecake - the statusline hook
             // script uses this to decide whether to POST to the socket
             SPACECAKE_TERMINAL: "1",
           }

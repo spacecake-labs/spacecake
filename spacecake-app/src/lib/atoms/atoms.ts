@@ -45,6 +45,9 @@ export const isCreatingInContextAtom = atom<{
 } | null>(null)
 export const contextItemNameAtom = atom<string>("")
 
+// last-clicked tree item (used by smart creation to determine target directory)
+export const lastClickedTreeItemAtom = atom<{ path: string; kind: "file" | "folder" } | null>(null)
+
 // track which files have been opened (have state machines)
 export const openedFilesAtom = atom<Set<AbsolutePath>>(new Set<AbsolutePath>())
 
@@ -85,7 +88,7 @@ export const statuslineMapAtom = atom<Map<string, DisplayStatusline>>(new Map())
 // active terminal surface ID (set when switching tabs)
 export const activeTerminalSurfaceIdAtom = atom<string | null>(null)
 
-// Claude statusline data — derived from the active terminal's surface ID
+// Claude statusline data - derived from the active terminal's surface ID
 export const claudeStatuslineAtom = atom<DisplayStatusline | null>((get) => {
   const surfaceId = get(activeTerminalSurfaceIdAtom)
   if (!surfaceId) return null

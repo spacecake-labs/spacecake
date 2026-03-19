@@ -12,7 +12,7 @@ async function migrate() {
   try {
     const client = await PGlite.create("idb://spacecake")
 
-    // check if any user tables exist — empty db means fresh install
+    // check if any user tables exist - empty db means fresh install
     const result = await client.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM information_schema.tables WHERE table_schema = 'public'`,
     )

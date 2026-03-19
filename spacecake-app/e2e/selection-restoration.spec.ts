@@ -9,17 +9,13 @@ test.describe("selection restoration", () => {
     electronApp,
     tempTestDir,
   }) => {
-    const window = await electronApp.firstWindow()
-
-    // Wait for initial home folder load to complete
-    await expect(window.getByTestId("lexical-editor")).toBeVisible()
-
-    // create the markdown file on disk first
+    // create the markdown file on disk before workspace load so the initial
+    // directory listing picks it up (avoids relying on file watcher latency)
     const mdContent = `one three`
     const testFilePath = path.join(tempTestDir, "test-selection.md")
     fs.writeFileSync(testFilePath, mdContent, "utf8")
 
-    // open the temp test directory as workspace (triggers file tree refresh)
+    const window = await electronApp.firstWindow()
     await waitForWorkspace(window)
 
     // Wait for test file to appear
@@ -50,17 +46,13 @@ test.describe("selection restoration", () => {
     electronApp,
     tempTestDir,
   }) => {
-    const window = await electronApp.firstWindow()
-
-    // Wait for initial home folder load to complete
-    await expect(window.getByTestId("lexical-editor")).toBeVisible()
-
-    // create the markdown file on disk first
+    // create the markdown file on disk before workspace load so the initial
+    // directory listing picks it up (avoids relying on file watcher latency)
     const mdContent = `one three`
     const testFilePath = path.join(tempTestDir, "test-selection-reload.md")
     fs.writeFileSync(testFilePath, mdContent, "utf8")
 
-    // open the temp test directory as workspace (triggers file tree refresh)
+    const window = await electronApp.firstWindow()
     await waitForWorkspace(window)
 
     // Wait for the test file to appear in file tree

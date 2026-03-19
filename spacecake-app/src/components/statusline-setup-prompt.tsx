@@ -47,7 +47,7 @@ export function useStatuslineAutoSetup() {
         onLeft: (err) => console.error("failed to read statusline config:", err),
         onRight: (config: StatuslineConfigStatus) => {
           if (!config.configured || config.isInlineSpacecake) {
-            // Not configured, or old inline spacecake config — silently set up
+            // Not configured, or old inline spacecake config - silently set up
             autoSetup()
           } else if (!config.isSpacecake) {
             setConflict({ command: config.command })

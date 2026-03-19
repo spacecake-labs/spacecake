@@ -52,7 +52,7 @@ function terminalDisplayName(title: string): string {
 export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed }: TerminalProps) {
   const { theme } = useTheme()
   // ghostty cannot switch theme after initialization, so lock the terminal
-  // panel to the theme at first render — updates on app reload
+  // panel to the theme at first render - updates on app reload
   const lockedThemeRef = useRef(theme)
   const lockedTheme = lockedThemeRef.current
 
@@ -71,14 +71,14 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
   const setProfileLoaded = useSetAtom(terminalProfileLoadedAtom)
   const profileLoadedTabsRef = useRef<Set<string>>(new Set())
 
-  // tracks a tab created by addTab that hasn't mounted yet — used to
+  // tracks a tab created by addTab that hasn't mounted yet - used to
   // auto-focus only user-created tabs, not the initial tab on startup
   const pendingNewTabRef = useRef<string | null>(null)
 
   // scroll refs for the tab bar
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // latest refs — avoids stale closures without re-creating callbacks
+  // latest refs - avoids stale closures without re-creating callbacks
   const tabsRef = useLatest(tabs)
   const activeTabIdRef = useLatest(activeTabId)
   const onLastTabClosedRef = useLatest(onLastTabClosed)
@@ -102,7 +102,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
     tabContent?.querySelector<HTMLTextAreaElement>("textarea")?.focus()
   }, [])
 
-  // central handler for all tab activations — replaces 4 separate effects
+  // central handler for all tab activations - replaces 4 separate effects
   const activateTab = useCallback(
     (tabId: string) => {
       // flush synchronously so the target tab's display:block is committed
@@ -228,7 +228,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
     return () => setProfileLoaded(false)
   }, [setProfileLoaded])
 
-  // handle horizontal scroll on wheel — must use native event for non-passive option
+  // handle horizontal scroll on wheel - must use native event for non-passive option
   useEffect(() => {
     const container = scrollContainerRef.current
     if (!container) return
@@ -310,7 +310,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
     <div className="flex h-full w-full flex-col">
       {/* tab bar + toolbar */}
       <div className="h-10 shrink-0 w-full bg-background/50 flex items-center overflow-hidden border-b">
-        {/* tabs — uses Radix Tabs identical to the editor tab bar */}
+        {/* tabs - uses Radix Tabs identical to the editor tab bar */}
         <Tabs
           value={activeTabId ?? ""}
           onValueChange={switchTab}

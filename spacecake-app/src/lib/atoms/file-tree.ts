@@ -2,7 +2,13 @@
 import { atom } from "jotai"
 import { atomWithMachine } from "jotai-xstate"
 
-import { expandedFoldersAtom, fileTreeAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
+import {
+  expandedFoldersAtom,
+  fileTreeAtom,
+  isCreatingInContextAtom,
+  openedFilesAtom,
+} from "@/lib/atoms/atoms"
+import { findItemInTree } from "@/lib/file-event-handler"
 import { replaceEqualDeep } from "@/lib/structural-sharing"
 import { fileTypeFromExtension, fileTypeFromFileName } from "@/lib/workspace"
 import { fileStateMachine } from "@/machines/file-tree"
@@ -124,6 +130,22 @@ const removeItemFromTree = (tree: FileTree, path: string): FileTree => {
     return item
   })
 }
+
+/** recursively rewrite paths under a renamed folder */
+const rewriteChildPaths = (children: FileTree, oldPrefix: string, newPrefix: string): FileTree =>
+  children.map((item) => {
+    const newItemPath = AbsolutePath(newPrefix + item.path.slice(oldPrefix.length))
+    const newItemName = newItemPath.split("/").pop()!
+    if (item.kind === "folder") {
+      return {
+        ...item,
+        path: newItemPath,
+        name: newItemName,
+        children: rewriteChildPaths(item.children, oldPrefix, newPrefix),
+      }
+    }
+    return { ...item, path: newItemPath, name: newItemName }
+  })
 
 // Helper to merge new tree with existing, preserving expanded and resolved state
 const mergeTrees = (
@@ -252,7 +274,7 @@ export const fileTreeEventAtom = atom(
         set(fileTreeAtom, newTree)
 
         // only notify files that already have state machines (i.e., were opened).
-        // watcher events fire for every file in the workspace — don't create
+        // watcher events fire for every file in the workspace - don't create
         // machine actors for files the user never opened.
         if (hasFileStateAtom(absolutePath)) {
           set(getOrCreateFileStateAtom(absolutePath), {
@@ -322,7 +344,7 @@ const createFileStateMachineAtom = (filePath: AbsolutePath) =>
 
 const fileStateAtoms = new Map<AbsolutePath, ReturnType<typeof createFileStateMachineAtom>>()
 
-/** get or create a file state atom — use at intentional creation sites only */
+/** get or create a file state atom - use at intentional creation sites only */
 export function getOrCreateFileStateAtom(filePath: AbsolutePath) {
   let atom = fileStateAtoms.get(filePath)
   if (!atom) {
@@ -332,7 +354,7 @@ export function getOrCreateFileStateAtom(filePath: AbsolutePath) {
   return atom
 }
 
-/** get a file state atom if it exists — returns undefined without creating */
+/** get a file state atom if it exists - returns undefined without creating */
 export function getFileStateAtom(filePath: AbsolutePath) {
   return fileStateAtoms.get(filePath)
 }
@@ -351,6 +373,109 @@ export function removeFileStateAtom(filePath: AbsolutePath): boolean {
 export function clearFileStateAtoms() {
   fileStateAtoms.clear()
 }
+
+/** transfer file state atom from old path to new path */
+export function renameFileStateAtom(oldPath: AbsolutePath, newPath: AbsolutePath): void {
+  const existing = fileStateAtoms.get(oldPath)
+  if (existing) {
+    fileStateAtoms.delete(oldPath)
+    fileStateAtoms.set(newPath, existing)
+  }
+}
+
+/** transfer all file state atoms under a folder prefix */
+export function renameFileStateAtomsUnderPrefix(
+  oldPrefix: AbsolutePath,
+  newPrefix: AbsolutePath,
+): void {
+  const toMove: [AbsolutePath, ReturnType<typeof createFileStateMachineAtom>][] = []
+  for (const [path, atomRef] of fileStateAtoms) {
+    if (path.startsWith(oldPrefix + "/")) toMove.push([path, atomRef])
+  }
+  for (const [oldPath, atomRef] of toMove) {
+    fileStateAtoms.delete(oldPath)
+    fileStateAtoms.set(AbsolutePath(newPrefix + oldPath.slice(oldPrefix.length)), atomRef)
+  }
+}
+
+/** optimistic rename: update tree, expanded folders, file state atoms, and opened files */
+export const renameInTreeAtom = atom(
+  null,
+  (
+    get,
+    set,
+    {
+      oldPath,
+      newPath,
+      isFolder,
+    }: { oldPath: AbsolutePath; newPath: AbsolutePath; isFolder: boolean },
+  ) => {
+    const tree = get(fileTreeAtom)
+    const newName = newPath.split("/").pop()!
+    const parentPath = newPath.substring(0, newPath.lastIndexOf("/"))
+
+    // 1. find item, remove from old location
+    const item = findItemInTree(tree, oldPath)
+    if (!item) return
+    const treeWithout = removeItemFromTree(tree, oldPath)
+
+    // 2. create renamed item
+    const renamed =
+      item.kind === "folder"
+        ? {
+            ...item,
+            path: newPath,
+            name: newName,
+            children: rewriteChildPaths(item.children, oldPath, newPath),
+          }
+        : { ...item, path: newPath, name: newName }
+
+    // 3. insert into new location (same parent, just re-sorted)
+    // if parentPath doesn't match a folder in the tree (root-level items), use sortedInsert
+    const parentExists = parentPath ? findFolderInTree(treeWithout, parentPath) : undefined
+    const newTree = parentExists
+      ? addItemToTree(treeWithout, parentPath, renamed)
+      : sortedInsert(treeWithout, renamed)
+    set(fileTreeAtom, newTree)
+
+    // 4. migrate expanded folders
+    if (isFolder) {
+      set(expandedFoldersAtom, (prev) => {
+        const next: Record<string, boolean> = {}
+        for (const [p, v] of Object.entries(prev)) {
+          if (p === oldPath) next[newPath] = v
+          else if (p.startsWith(oldPath + "/")) next[newPath + p.slice(oldPath.length)] = v
+          else next[p] = v
+        }
+        return next
+      })
+    }
+
+    // 5. migrate file state atoms
+    if (isFolder) {
+      renameFileStateAtomsUnderPrefix(oldPath, newPath)
+    } else {
+      renameFileStateAtom(oldPath, newPath)
+    }
+
+    // 6. update opened files atom
+    set(openedFilesAtom, (prev) => {
+      const next = new Set(prev)
+      if (isFolder) {
+        for (const p of prev) {
+          if (p.startsWith(oldPath + "/")) {
+            next.delete(p)
+            next.add(AbsolutePath(newPath + p.slice(oldPath.length)))
+          }
+        }
+      } else if (next.has(oldPath)) {
+        next.delete(oldPath)
+        next.add(newPath)
+      }
+      return next
+    })
+  },
+)
 
 /**
  * Represents a creation input placeholder for virtualized rendering.

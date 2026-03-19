@@ -98,7 +98,7 @@ export const makeDatabaseFromDumpLayer = (
           ),
       )
 
-      // dump loaded successfully — delete the file (non-fatal if it fails)
+      // dump loaded successfully - delete the file (non-fatal if it fails)
       yield* Effect.try(() => fs.unlinkSync(dumpPath)).pipe(Effect.ignore)
 
       yield* Effect.log("migration: restored PGlite from IndexedDB dump")

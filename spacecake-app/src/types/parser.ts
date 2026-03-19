@@ -37,7 +37,7 @@ export interface Block<TKind = string> {
   doc?: Block<"doc">
 }
 
-// block metadata stored on editor nodes — omits `text` since the node's `__code` is canonical
+// block metadata stored on editor nodes - omits `text` since the node's `__code` is canonical
 export type BlockMeta = Omit<Block, "text">
 
 export function toBlockMeta({ text: _, ...rest }: Block): BlockMeta {

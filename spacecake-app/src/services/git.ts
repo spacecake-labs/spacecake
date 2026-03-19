@@ -123,7 +123,7 @@ const parsePorcelainV2 = (raw: string): PorcelainStatus => {
     current: null,
   }
 
-  // split on NUL — porcelain v2 -z uses NUL as record terminator
+  // split on NUL - porcelain v2 -z uses NUL as record terminator
   const entries = raw.split("\0").filter(Boolean)
 
   let i = 0
@@ -185,7 +185,7 @@ const parsePorcelainV2 = (raw: string): PorcelainStatus => {
       continue
     }
 
-    // rename/copy: "2 XY ..." — next NUL-separated entry is the original path
+    // rename/copy: "2 XY ..." - next NUL-separated entry is the original path
     if (entry.startsWith("2 ")) {
       const xy = entry.substring(2, 4)
       const path = entry.split("\t")[0].split(" ").pop()!

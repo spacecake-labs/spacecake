@@ -21,7 +21,7 @@ export class GitIgnore extends Effect.Service<GitIgnore>()("GitIgnore", {
     // Cache: Directory Path -> List of patterns (capped to prevent unbounded growth in deep repos)
     const CACHE_MAX = 500
     const cache = new Map<string, string[]>()
-    // Cache: Root Path -> Global patterns (.git/info/exclude) — bounded by number of roots (typically 1-2)
+    // Cache: Root Path -> Global patterns (.git/info/exclude) - bounded by number of roots (typically 1-2)
     const globalPatternsCache = new Map<string, string[]>()
 
     const processPatterns = (rawPatterns: string[], relativeBaseDir: string): string[] => {

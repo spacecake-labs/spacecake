@@ -167,6 +167,26 @@ export function toRelativePath(workspacePath: AbsolutePath, filePath: AbsolutePa
   return RelativePath(trimPath(filePath.replace(workspacePath, "")))
 }
 
+// resolve the parent path for file/folder creation based on the last-clicked tree item
+export function resolveCreationParentPath(
+  lastClicked: { path: string; kind: "file" | "folder" } | null,
+  workspacePath: string,
+): string {
+  if (!lastClicked) return workspacePath
+
+  if (lastClicked.kind === "folder") {
+    if (!lastClicked.path.startsWith(workspacePath)) return workspacePath
+    return lastClicked.path
+  }
+
+  // file: use its parent directory
+  const lastSlash = lastClicked.path.lastIndexOf("/")
+  if (lastSlash <= 0) return workspacePath
+  const parentDir = lastClicked.path.substring(0, lastSlash)
+  if (!parentDir.startsWith(workspacePath)) return workspacePath
+  return parentDir
+}
+
 // prepend a directory to a PATH string if it's not already present
 export function buildPathWithCli(
   cliBinDir: string,

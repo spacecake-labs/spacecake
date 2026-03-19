@@ -41,7 +41,7 @@ const makeLayerFromEnv = (env: {
 // Path computation tests
 // ---------------------------------------------------------------------------
 
-describe("SpacecakeHome — path computation", () => {
+describe("SpacecakeHome - path computation", () => {
   it.scoped("homeDir defaults to homePath/.spacecake", () =>
     Effect.gen(function* () {
       const effectFs = yield* EffectFileSystem.FileSystem
@@ -274,7 +274,7 @@ describe("ensureHomeFolderExists", () => {
         expect(fs.existsSync(path.join(hooksDir, "statusline.ps1"))).toBe(true)
         const ps1Content = fs.readFileSync(path.join(hooksDir, "statusline.ps1"), "utf-8")
         expect(ps1Content).toContain("Invoke-RestMethod")
-        // surface ID support — appends ?surface= query param when env is set
+        // surface ID support - appends ?surface= query param when env is set
         expect(ps1Content).toContain("SPACECAKE_SURFACE_ID")
         expect(ps1Content).toContain("?surface=")
       } else {
@@ -282,7 +282,7 @@ describe("ensureHomeFolderExists", () => {
         const stat = fs.statSync(path.join(hooksDir, "statusline.sh"))
         // check owner-executable bit
         expect(stat.mode & 0o755).toBe(0o755)
-        // surface ID support — appends ?surface= query param when env is set
+        // surface ID support - appends ?surface= query param when env is set
         const shContent = fs.readFileSync(path.join(hooksDir, "statusline.sh"), "utf-8")
         expect(shContent).toContain("SPACECAKE_SURFACE_ID")
         expect(shContent).toContain("?surface=")
@@ -290,7 +290,7 @@ describe("ensureHomeFolderExists", () => {
     }).pipe(Effect.provide(NodeFileSystem.layer)),
   )
 
-  it.scoped("is idempotent — running twice does not fail", () =>
+  it.scoped("is idempotent - running twice does not fail", () =>
     Effect.gen(function* () {
       const effectFs = yield* EffectFileSystem.FileSystem
       const tempDir = yield* effectFs.makeTempDirectoryScoped()
@@ -310,10 +310,10 @@ describe("ensureHomeFolderExists", () => {
 })
 
 // ---------------------------------------------------------------------------
-// installCli — dev mode
+// installCli - dev mode
 // ---------------------------------------------------------------------------
 
-describe("installCli — dev mode", () => {
+describe("installCli - dev mode", () => {
   const wrapperName = isWindows ? "spacecake.cmd" : "spacecake"
 
   it.scoped("writes wrapper to appDir/bin", () =>
@@ -407,10 +407,10 @@ describe("installCli — dev mode", () => {
 })
 
 // ---------------------------------------------------------------------------
-// installCli — packaged mode
+// installCli - packaged mode
 // ---------------------------------------------------------------------------
 
-describe.skipIf(isWindows)("installCli — packaged mode", () => {
+describe.skipIf(isWindows)("installCli - packaged mode", () => {
   it.scoped("creates symlink at globalBinTarget pointing to bundledCliBinaryPath", () =>
     Effect.gen(function* () {
       const effectFs = yield* EffectFileSystem.FileSystem
@@ -584,7 +584,7 @@ describe.skipIf(isWindows)("installCli — packaged mode", () => {
 
       yield* installCli.pipe(Effect.provide(layer))
 
-      // globalBinTarget symlink should NOT have been created — deb path was sufficient
+      // globalBinTarget symlink should NOT have been created - deb path was sufficient
       expect(fs.existsSync(globalBinTarget)).toBe(false)
     }).pipe(Effect.provide(NodeFileSystem.layer)),
   )

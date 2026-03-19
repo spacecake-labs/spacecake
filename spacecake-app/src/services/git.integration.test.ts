@@ -12,14 +12,14 @@ import { GitService } from "@/services/git"
 
 // integration tests that run against a real git repo in a temp directory
 
-// mock filesystem for getFileDiff — returns file content from disk
+// mock filesystem for getFileDiff - returns file content from disk
 const mockFileSystem = {
   readTextFile: (filePath: string) =>
     Effect.try(() => ({ content: fs.readFileSync(filePath, "utf-8") })),
 } as unknown as FileSystem
 const fileSystemLayer = Layer.succeed(FileSystem, mockFileSystem)
 
-// stub filesystem — discard/commit operations use simple-git directly
+// stub filesystem - discard/commit operations use simple-git directly
 const stubFileSystem = Layer.succeed(FileSystem, {} as unknown as FileSystem)
 const testLayer = GitService.DefaultWithoutDependencies.pipe(Layer.provide(stubFileSystem))
 const testLayerWithFs = GitService.DefaultWithoutDependencies.pipe(Layer.provide(fileSystemLayer))
@@ -351,7 +351,7 @@ describe("git service integration", () => {
           const svc = yield* GitService
           yield* svc.createBranch(tmpDir, "other-branch")
 
-          // createBranch also switches to it — switch back to default
+          // createBranch also switches to it - switch back to default
           yield* svc.switchBranch(tmpDir, defaultBranch)
 
           const branch = yield* svc.getCurrentBranch(tmpDir)

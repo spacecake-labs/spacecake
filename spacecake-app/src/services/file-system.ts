@@ -196,7 +196,7 @@ export class FileSystem extends Effect.Service<FileSystem>()("app/FileSystem", {
         for (const entry of dirents) {
           const entryName = entry.name
 
-          // skip .asar archives — Electron fakes fs.stat for these and causes issues
+          // skip .asar archives - Electron fakes fs.stat for these and causes issues
           if (entryName.endsWith(".asar")) {
             continue
           }

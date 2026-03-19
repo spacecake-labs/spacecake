@@ -129,7 +129,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       return () => ipcRenderer.removeListener("db:invalidate", listener)
     },
   },
-  // Parser — tree-sitter runs in main process
+  // Parser - tree-sitter runs in main process
   parser: {
     parseBlocks: (code: string, filePath?: string) =>
       ipcRenderer.invoke("parser:parse-blocks", code, filePath),

@@ -11,7 +11,7 @@ interface HotkeyOptions {
   preventDefault?: boolean
   /** call stopPropagation on the event (default: false) */
   stopPropagation?: boolean
-  /** guard function — return false to skip the callback */
+  /** guard function - return false to skip the callback */
   guard?: (e: KeyboardEvent) => boolean
 }
 
@@ -22,7 +22,7 @@ interface ParsedHotkey {
   shift: boolean
   /** lowercase key value (e.g. "s", "tab") */
   key: string | null
-  /** event.code match (e.g. "Backquote") — used instead of key when set */
+  /** event.code match (e.g. "Backquote") - used instead of key when set */
   code: string | null
   /** true when the original string used "mod" (resolved at match time) */
   mod: boolean
@@ -181,7 +181,7 @@ class HotkeyManager {
     const keyLower = e.key.toLowerCase()
     const codeVariant = `code:${e.code}`
 
-    // mod variant — "mod" absorbs the platform modifier (meta on mac, ctrl elsewhere),
+    // mod variant - "mod" absorbs the platform modifier (meta on mac, ctrl elsewhere),
     // so only add modifiers that aren't already represented by "mod"
     const isModPressed = isMac ? e.metaKey : e.ctrlKey
     if (isModPressed) {
@@ -277,7 +277,7 @@ export function useHotkey(
     }
 
     return manager.register(hotkey, callbackRef, stableOptions)
-    // guard is stored in a ref above — excluded from deps intentionally.
+    // guard is stored in a ref above - excluded from deps intentionally.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hotkey, enabled, options.capture, options.preventDefault, options.stopPropagation])
 }

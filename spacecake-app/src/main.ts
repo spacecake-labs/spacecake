@@ -148,7 +148,7 @@ function getTrafficLightPosition(titlebarHeight: number): Electron.Point {
   return { x: offset + 1, y: offset }
 }
 
-// window controls overlay — macOS only needs `true`; Windows/Linux needs height + colors
+// window controls overlay - macOS only needs `true`; Windows/Linux needs height + colors
 function getTitleBarOverlay(dark: boolean): true | Electron.TitleBarOverlay {
   if (isMac) return true
   const colors = dark
@@ -379,7 +379,7 @@ async function resolveDatabaseLayer(): Promise<
     return DatabaseMainLayer
   }
 
-  // path 2: crash recovery — dump was saved but PGlite didn't load it yet
+  // path 2: crash recovery - dump was saved but PGlite didn't load it yet
   if (fs.existsSync(dumpPath)) {
     console.log("migration: found existing dump file, restoring from crash recovery")
     return makeDatabaseFromDumpLayer(dumpPath)
@@ -387,7 +387,7 @@ async function resolveDatabaseLayer(): Promise<
 
   // path 3: attempt migration from IndexedDB
   // only launch the hidden migration window if Chromium's IndexedDB storage
-  // actually contains data — on fresh installs (and in tests) the directory
+  // actually contains data - on fresh installs (and in tests) the directory
   // won't exist, so we skip straight to an empty database.
   const storagePath = session.defaultSession?.storagePath
   if (storagePath) {
@@ -407,7 +407,7 @@ async function resolveDatabaseLayer(): Promise<
     return makeDatabaseFromDumpLayer(dumpPath)
   }
 
-  // fresh install or migration failed — use normal layer (creates empty db)
+  // fresh install or migration failed - use normal layer (creates empty db)
   return DatabaseMainLayer
 }
 

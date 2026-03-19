@@ -5,7 +5,7 @@
 
 import { createFileRoute, ErrorComponent, redirect } from "@tanstack/react-router"
 import * as Match from "effect/Match"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { GroupImperativeHandle, Layout, PanelImperativeHandle } from "react-resizable-panels"
@@ -43,8 +43,8 @@ import { useMenuAction } from "@/hooks/use-menu-action"
 import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
 import { usePaneMachine } from "@/hooks/use-pane-machine"
 import { useRoute } from "@/hooks/use-route"
+import { useStartCreating } from "@/hooks/use-start-creating"
 import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
-import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import {
   clearFileStateAtoms,
   getOrCreateFileStateAtom,
@@ -136,7 +136,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
     const { db, workspace } = context
 
     // fetch git branch early so status bar toggle is available sooner
-    // (fire-and-forget — don't block workspace loading)
+    // (fire-and-forget - don't block workspace loading)
     window.electronAPI.git
       .getCurrentBranch(workspace.path)
       .then((branch) => store.set(gitBranchAtom, branch))
@@ -263,7 +263,7 @@ function LayoutContent() {
   // Cmd+1 / Ctrl+1 to focus editor
   useHotkey("mod+1", () => focus("editor"), { capture: true })
 
-  // Register terminal focus callback — find the active tab's terminal textarea
+  // Register terminal focus callback - find the active tab's terminal textarea
   const focusTerminal = useCallback(() => {
     // find the visible (active) ghostty terminal mount point
     const terminalPanel = document.querySelector('[data-testid="terminal-panel"]')
@@ -491,7 +491,7 @@ function LayoutContent() {
 
   // reset terminal panel size when toggling collapse state
   // uses useLayoutEffect + v4's built-in collapse/expand to ensure the panel
-  // is sized before the browser paints — prevents ghostty from seeing a
+  // is sized before the browser paints - prevents ghostty from seeing a
   // 0-column terminal (which corrupts its buffer)
   useLayoutEffect(() => {
     const panel = terminalResizablePanelRef.current
@@ -526,7 +526,7 @@ function LayoutContent() {
           }
         }
       } catch {
-        // panel not yet registered with group — retry next frame
+        // panel not yet registered with group - retry next frame
         rafId = requestAnimationFrame(apply)
       }
     }
@@ -550,7 +550,7 @@ function LayoutContent() {
           }
         }
       } catch {
-        // panel not yet registered with group — retry next frame
+        // panel not yet registered with group - retry next frame
         rafId = requestAnimationFrame(apply)
       }
     }
@@ -956,7 +956,7 @@ function WorkspaceLayout() {
     const key = `${workspace.path}:${workspace.id}`
     if (collectionsKeyRef.current === key) return
 
-    // no manual cleanup — old collections are GC'd via the built-in 5-minute
+    // no manual cleanup - old collections are GC'd via the built-in 5-minute
     // timer. calling cleanup() while live queries exist causes react crashes.
     collectionsKeyRef.current = key
     setCollections(createWorkspaceCollections(workspace.path, workspace.id, queryClient))
@@ -966,12 +966,11 @@ function WorkspaceLayout() {
   const workspaceIdEncoded = encodeBase64Url(workspace.path)
   const machine = usePaneMachine(paneId, workspace.path, workspaceIdEncoded)
 
-  const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
-  const setContextItemName = useSetAtom(contextItemNameAtom)
+  const startCreating = useStartCreating(workspace?.path)
 
   // clean up all file state atoms and settings machine when workspace unmounts.
   // important: only clean up THIS workspace's pane machine (not the entire cache),
-  // because on workspace switch React reuses the component — the new machine is
+  // because on workspace switch React reuses the component - the new machine is
   // created during render before this cleanup effect runs.
   useEffect(() => {
     const id = workspace.id
@@ -992,12 +991,7 @@ function WorkspaceLayout() {
     }
   }, [workspace.path, workspace.id, paneId])
 
-  const handleNewFile = useCallback(() => {
-    if (workspace?.path) {
-      setIsCreatingInContext({ kind: "file", parentPath: workspace.path })
-      setContextItemName("")
-    }
-  }, [workspace?.path, setIsCreatingInContext, setContextItemName])
+  const handleNewFile = useCallback(() => startCreating("file"), [startCreating])
 
   useHotkey("mod+n", handleNewFile)
   useMenuAction("new-file", handleNewFile)

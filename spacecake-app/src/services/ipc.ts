@@ -60,13 +60,13 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     const db = yield* Database
 
     // ---------------------------------------------------------------------------
-    // Database IPC — routes method calls from renderer to main-process PGlite
+    // Database IPC - routes method calls from renderer to main-process PGlite
     // ---------------------------------------------------------------------------
 
     // non-callable properties that must not be dispatched via IPC
     const NON_CALLABLE = new Set<string>(["client", "orm", "query"])
 
-    // mutation methods that trigger invalidation — single source of truth in invalidation.ts
+    // mutation methods that trigger invalidation - single source of truth in invalidation.ts
 
     ipcMain.handle("db:invoke", async (event, method: string, ...args: unknown[]) => {
       if (NON_CALLABLE.has(method)) {
@@ -78,7 +78,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
         return left({ _tag: "PgliteError" as const, cause: `unknown db method: ${method}` })
       }
 
-      // single contained cast — args are untyped at the IPC boundary
+      // single contained cast - args are untyped at the IPC boundary
       const handler = fn as (...a: unknown[]) => Effect.Effect<unknown, unknown>
       const exit = await Effect.runPromiseExit(handler(...args))
 
@@ -206,7 +206,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
 
     ipcMain.handle("open-external", (_, url: string) => shell.openExternal(url))
 
-    // watchman detection — mirrors jest's execFile pattern
+    // watchman detection - mirrors jest's execFile pattern
     ipcMain.handle("check-watchman-installed", async () => {
       try {
         await promisify(execFile)("watchman", ["--version"])
@@ -340,7 +340,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
           const content = await fsNode.readFile(settingsPath, "utf-8")
           settings = JSON.parse(content)
         } catch {
-          // File doesn't exist or invalid JSON — start fresh
+          // File doesn't exist or invalid JSON - start fresh
         }
 
         // Only write if plansDirectory is not already configured
@@ -359,7 +359,7 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       }
     })
 
-    // Parser IPC handler — tree-sitter runs in main process (native module)
+    // Parser IPC handler - tree-sitter runs in main process (native module)
     let _parseBlocksForFile: typeof import("@/lib/parser/python/blocks").parseBlocksForFile | null =
       null
     ipcMain.handle("parser:parse-blocks", async (_, code: string, filePath?: string) => {

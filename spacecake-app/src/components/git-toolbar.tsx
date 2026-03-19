@@ -63,7 +63,9 @@ export const GitToolbar = memo(function GitToolbar({
       if (isRight(result)) {
         await refreshRemoteStatus()
       } else {
-        toast.error(result.value.description, { description: result.value.detail })
+        toast.error(result.value.description, {
+          description: result.value.detail,
+        })
       }
     } finally {
       setOperation("idle")
@@ -78,7 +80,9 @@ export const GitToolbar = memo(function GitToolbar({
         toast.success("pulled")
         await refreshRemoteStatus()
       } else {
-        toast.error(result.value.description, { description: result.value.detail })
+        toast.error(result.value.description, {
+          description: result.value.detail,
+        })
       }
     } finally {
       setOperation("idle")
@@ -93,7 +97,9 @@ export const GitToolbar = memo(function GitToolbar({
         toast.success("pushed")
         await refreshRemoteStatus()
       } else {
-        toast.error(result.value.description, { description: result.value.detail })
+        toast.error(result.value.description, {
+          description: result.value.detail,
+        })
       }
     } finally {
       setOperation("idle")
@@ -123,29 +129,6 @@ export const GitToolbar = memo(function GitToolbar({
 
       {/* right controls */}
       <div className="flex items-center gap-2 flex-shrink-0 px-2">
-        {remoteStatus && (remoteStatus.ahead > 0 || remoteStatus.behind > 0) && (
-          <div
-            className="flex items-center gap-1 text-xs text-muted-foreground"
-            data-testid="remote-indicators"
-          >
-            {remoteStatus.ahead > 0 && (
-              <span
-                data-testid="ahead-count"
-                title={`${remoteStatus.ahead} commit${remoteStatus.ahead === 1 ? "" : "s"} ahead of ${remoteStatus.tracking ?? "remote"}`}
-              >
-                ↑{remoteStatus.ahead}
-              </span>
-            )}
-            {remoteStatus.behind > 0 && (
-              <span
-                data-testid="behind-count"
-                title={`${remoteStatus.behind} commit${remoteStatus.behind === 1 ? "" : "s"} behind ${remoteStatus.tracking ?? "remote"}`}
-              >
-                ↓{remoteStatus.behind}
-              </span>
-            )}
-          </div>
-        )}
         {/* expanded: individual buttons (wide) */}
         <div className="hidden @[420px]:flex items-center gap-2">
           <button
@@ -160,20 +143,42 @@ export const GitToolbar = memo(function GitToolbar({
           <button
             onClick={handlePull}
             disabled={isBusy}
-            className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            title="pull"
+            className="flex items-center gap-0.5 p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title={
+              remoteStatus && remoteStatus.behind > 0
+                ? `pull - ${remoteStatus.behind} commit${
+                    remoteStatus.behind === 1 ? "" : "s"
+                  } behind ${remoteStatus.tracking ?? "remote"}`
+                : "pull"
+            }
             aria-label="pull"
           >
             <ArrowDown className={cn("h-3.5 w-3.5", operation === "pulling" && "animate-bounce")} />
+            {remoteStatus && remoteStatus.behind > 0 && (
+              <span className="text-[10px] font-mono font-medium" data-testid="behind-count">
+                {remoteStatus.behind}
+              </span>
+            )}
           </button>
           <button
             onClick={handlePush}
             disabled={isBusy}
-            className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            title="push"
+            className="flex items-center gap-0.5 p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title={
+              remoteStatus && remoteStatus.ahead > 0
+                ? `push - ${remoteStatus.ahead} commit${
+                    remoteStatus.ahead === 1 ? "" : "s"
+                  } ahead of ${remoteStatus.tracking ?? "remote"}`
+                : "push"
+            }
             aria-label="push"
           >
             <ArrowUp className={cn("h-3.5 w-3.5", operation === "pushing" && "animate-bounce")} />
+            {remoteStatus && remoteStatus.ahead > 0 && (
+              <span className="text-[10px] font-mono font-medium" data-testid="ahead-count">
+                {remoteStatus.ahead}
+              </span>
+            )}
           </button>
         </div>
         {/* collapsed: dropdown menu (narrow) */}
@@ -199,12 +204,18 @@ export const GitToolbar = memo(function GitToolbar({
                   className={cn("h-3.5 w-3.5", operation === "pulling" && "animate-bounce")}
                 />
                 pull
+                {remoteStatus && remoteStatus.behind > 0 && (
+                  <span className="ml-auto text-[10px] font-mono">{remoteStatus.behind}</span>
+                )}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handlePush} disabled={isBusy}>
                 <ArrowUp
                   className={cn("h-3.5 w-3.5", operation === "pushing" && "animate-bounce")}
                 />
                 push
+                {remoteStatus && remoteStatus.ahead > 0 && (
+                  <span className="ml-auto text-[10px] font-mono">{remoteStatus.ahead}</span>
+                )}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
