@@ -13,7 +13,8 @@ const normalizePath = (p: string) => p.replace(/\\/g, "/")
  * dispatches HTML5 drag events to simulate a drag-and-drop operation.
  * playwright's `dragTo` uses mouse events which don't reliably trigger
  * pragmatic-drag-and-drop's DragEvent listeners, so we dispatch
- * native DragEvent instances directly.
+ * native DragEvent instances directly on the [data-tree-path] wrapper
+ * where pragmatic-drag-and-drop registers its draggable.
  */
 async function dragTreeItem(page: Page, sourcePath: string, targetPath: string) {
   await page.evaluate(

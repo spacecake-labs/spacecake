@@ -290,6 +290,7 @@ function FileRowLinkWithState({
       search={{ view, editorId }}
       className="w-full"
       title={title}
+      draggable={false}
     >
       <SidebarMenuButton isActive={isSelected} className="cursor-pointer">
         <Icon className={iconClass} />
@@ -334,6 +335,7 @@ function FileRowLinkClean({
       search={{ view, editorId }}
       className="w-full"
       title={title}
+      draggable={false}
     >
       <SidebarMenuButton isActive={isSelected} className="cursor-pointer">
         <Icon />
