@@ -1,9 +1,15 @@
+import { extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item"
+import {
+  dropTargetForElements,
+  monitorForElements,
+} from "@atlaskit/pragmatic-drag-and-drop/element/adapter"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { useAtom, useAtomValue, useSetAtom, useStore } from "jotai"
 import { FileWarning, Loader2Icon, RotateCcw, Trash2 } from "lucide-react"
 import * as React from "react"
 import { toast } from "sonner"
 
+import { DraggableTreeRow } from "@/components/draggable-tree-row"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -34,14 +40,13 @@ import {
 import {
   getOrCreateFileStateAtom,
   flatVisibleTreeAtom,
-  renameInTreeAtom,
   sortedFileTreeAtom,
   type FlatFileTreeItem,
 } from "@/lib/atoms/file-tree"
-import { quickOpenIndexAtom } from "@/lib/atoms/quick-open-index"
-import * as mutations from "@/lib/db/mutations"
-import { addPendingFolderRename, addPendingRename, findItemInTree } from "@/lib/file-event-handler"
-import { createFolder, remove, rename, saveFile } from "@/lib/fs"
+import { canDropItem } from "@/lib/drag-drop-validation"
+import { findItemInTree } from "@/lib/file-event-handler"
+import { createFolder, remove, saveFile } from "@/lib/fs"
+import { moveOrRenameItem } from "@/lib/move-item"
 import { match } from "@/types/adt"
 import type { File, Folder, WorkspaceInfo } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
@@ -415,63 +420,21 @@ export function NavMain({
     const item = findItemInTree(sortedTree, oldPath)
     const isFolder = item?.kind === "folder"
 
-    // 1. register pending rename (suppresses watcher events)
-    if (isFolder) {
-      addPendingFolderRename(oldPath, newPath)
-    } else {
-      addPendingRename(oldPath, newPath)
-    }
-
-    // 2. optimistic UI update (tree + expanded folders + file state atoms + opened files)
-    store.set(renameInTreeAtom, { oldPath, newPath, isFolder: !!isFolder })
-
-    // 3. update quick-open index
-    if (isFolder) {
-      store.set(quickOpenIndexAtom, (prev) =>
-        prev.map((e) =>
-          e.path.startsWith(oldPath + "/")
-            ? {
-                path: AbsolutePath(newPath + e.path.slice(oldPath.length)),
-                name: e.name,
-              }
-            : e,
-        ),
-      )
-    } else {
-      store.set(quickOpenIndexAtom, (prev) =>
-        prev.map((e) => (e.path === oldPath ? { path: newPath, name: newName } : e)),
-      )
-    }
-
-    // 4. filesystem rename
-    const result = await rename(oldPath, newPath)
-
-    match(result, {
-      onLeft: (error) => {
-        console.error(error)
-        setValidationError("error renaming file")
-        // TODO: rollback optimistic state on failure
-      },
-      onRight: async () => {
-        // 5. atomic DB path update (preserves file.id → editor/pane_item survive)
-        if (isFolder) {
-          await mutations.renameFilesUnderFolder(oldPath, newPath)
-        } else {
-          await mutations.renameFile(oldPath, newPath)
-        }
-
-        // 6. navigate if current file was affected (read fresh ref to avoid stale closure)
-        const currentFilePath = selectedFilePathRef.current
-        if (currentFilePath === oldPath) {
-          handleFileClickCallback(newPath)
-        } else if (isFolder && currentFilePath?.startsWith(oldPath + "/")) {
-          handleFileClickCallback(AbsolutePath(newPath + currentFilePath.slice(oldPath.length)))
-        }
-
-        setEditingItem(null)
-        setValidationError(null)
-      },
+    const result = await moveOrRenameItem({
+      store,
+      oldPath,
+      newPath,
+      isFolder: !!isFolder,
+      navigate: handleFileClickCallback,
+      selectedFilePath: selectedFilePathRef.current,
     })
+
+    if (result.success) {
+      setEditingItem(null)
+      setValidationError(null)
+    } else {
+      setValidationError(result.error ?? "error renaming file")
+    }
   }, [workspace, validateRenameTarget, handleFileClickCallback, setEditingItem, store])
 
   const handleRenameKeyDownCallback = React.useCallback(
@@ -531,6 +494,85 @@ export function NavMain({
     setIsCreatingInContext(null)
     setContextItemName("")
   }
+
+  // stable callback for auto-expanding folders during drag hover
+  const handleDragExpandFolder = React.useCallback(
+    (folderPath: AbsolutePath) => {
+      if (onExpandFolder) {
+        onExpandFolder(folderPath, true)
+      }
+    },
+    [onExpandFolder],
+  )
+
+  // monitor for drop events and execute moves
+  React.useEffect(() => {
+    return monitorForElements({
+      onDrop: ({ source, location }) => {
+        const target = location.current.dropTargets[0]
+        if (!target) return
+
+        const sourcePath = source.data.path as AbsolutePath
+        const sourceKind = source.data.kind as "file" | "folder"
+        const targetPath = target.data.path as string
+        const targetKind = target.data.kind as string
+
+        const instruction = extractInstruction(target.data)
+
+        let targetFolderPath: AbsolutePath
+
+        if (instruction?.type === "make-child") {
+          // dropping into a folder
+          targetFolderPath = targetPath as AbsolutePath
+        } else if (instruction?.type === "reorder-above" || instruction?.type === "reorder-below") {
+          // dropping adjacent to an item — move into that item's parent
+          targetFolderPath = targetPath.substring(0, targetPath.lastIndexOf("/")) as AbsolutePath
+        } else if (targetKind === "root-drop-target") {
+          // dropped on empty space — move to workspace root
+          targetFolderPath = workspace.path as AbsolutePath
+        } else {
+          return
+        }
+
+        const currentTree = store.get(sortedFileTreeAtom)
+        const validation = canDropItem(sourcePath, sourceKind, targetFolderPath, currentTree)
+        if (!validation.valid) return
+
+        const sourceName = sourcePath.split("/").pop()!
+        const newPath = AbsolutePath(`${targetFolderPath}/${sourceName}`)
+        const isFolder = sourceKind === "folder"
+
+        moveOrRenameItem({
+          store,
+          oldPath: sourcePath,
+          newPath,
+          isFolder,
+          navigate: handleFileClickCallback,
+          selectedFilePath: selectedFilePathRef.current,
+        }).then((result) => {
+          if (!result.success) {
+            toast.error(result.error ?? "failed to move item")
+          }
+        })
+      },
+    })
+  }, [workspace.path, store, handleFileClickCallback])
+
+  // root-level drop target for dropping on empty space
+  React.useEffect(() => {
+    const el = parentRef.current
+    if (!el) return
+    return dropTargetForElements({
+      element: el,
+      canDrop: ({ source }) => {
+        // only allow drop if not already at root
+        const sourcePath = source.data.path as string
+        const sourceParent = sourcePath.substring(0, sourcePath.lastIndexOf("/"))
+        return sourceParent !== workspace.path
+      },
+      getData: () => ({ kind: "root-drop-target" }),
+    })
+  }, [workspace.path])
 
   return (
     <>
@@ -608,31 +650,37 @@ export function NavMain({
                         transform: `translateY(${virtualItem.start}px)`,
                       }}
                     >
-                      <TreeRow
+                      <DraggableTreeRow
                         flatItem={flatItem as FlatFileTreeItem}
-                        onFileClick={handleFileClickCallback}
-                        onFolderToggle={handleFolderToggleCallback}
-                        onStartRename={handleStartRenameCallback}
-                        onStartDelete={handleStartDeleteCallback}
-                        onStartRevert={handleStartRevertCallback}
-                        onCreateFile={handleCreateFile}
-                        onCreateFolder={handleCreateFolder}
-                        isCreatingInThisContext={
-                          isCreatingInContext?.parentPath ===
-                          (flatItem as FlatFileTreeItem).item.path
-                        }
-                        selectedFilePath={initialSelectedFilePath}
-                        editingItem={editingItem}
-                        setEditingItem={setEditingItem}
-                        onRename={handleRenameCallback}
-                        onRenameKeyDown={handleRenameKeyDownCallback}
-                        onCancelRename={cancelRenameCallback}
-                        onRenameInputChange={handleRenameInputChangeCallback}
-                        validationError={validationError}
-                        onExpandFolder={onExpandFolder}
-                        workspace={workspace}
-                        cacheMap={cacheMap}
-                      />
+                        isRenaming={editingItem?.path === (flatItem as FlatFileTreeItem).item.path}
+                        onExpandFolder={handleDragExpandFolder}
+                      >
+                        <TreeRow
+                          flatItem={flatItem as FlatFileTreeItem}
+                          onFileClick={handleFileClickCallback}
+                          onFolderToggle={handleFolderToggleCallback}
+                          onStartRename={handleStartRenameCallback}
+                          onStartDelete={handleStartDeleteCallback}
+                          onStartRevert={handleStartRevertCallback}
+                          onCreateFile={handleCreateFile}
+                          onCreateFolder={handleCreateFolder}
+                          isCreatingInThisContext={
+                            isCreatingInContext?.parentPath ===
+                            (flatItem as FlatFileTreeItem).item.path
+                          }
+                          selectedFilePath={initialSelectedFilePath}
+                          editingItem={editingItem}
+                          setEditingItem={setEditingItem}
+                          onRename={handleRenameCallback}
+                          onRenameKeyDown={handleRenameKeyDownCallback}
+                          onCancelRename={cancelRenameCallback}
+                          onRenameInputChange={handleRenameInputChangeCallback}
+                          validationError={validationError}
+                          onExpandFolder={onExpandFolder}
+                          workspace={workspace}
+                          cacheMap={cacheMap}
+                        />
+                      </DraggableTreeRow>
                     </div>
                   )
                 })}
