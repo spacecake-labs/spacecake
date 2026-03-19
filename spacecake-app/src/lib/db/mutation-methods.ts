@@ -26,6 +26,8 @@ export const MUTATION_INVALIDATION_MAP: Partial<Record<DatabaseMethodName, reado
   updateEditorViewKind: ["editors", "pane-items"],
   updateEditorSelection: [],
   deleteFile: ["files", "pane-items", "editors"],
+  renameFile: ["files", "pane-items", "editors"],
+  renameFilesUnderFolder: ["files", "pane-items", "editors"],
   clearEditorStatesForFile: ["editors"],
   updateWorkspaceLayout: ["workspace"],
   updateWorkspaceSettings: ["workspace"],

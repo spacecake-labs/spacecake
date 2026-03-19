@@ -7,6 +7,43 @@ import { AbsolutePath } from "@/types/workspace"
 // key: absolute file path, value: content hash (cid)
 const pendingSaves = new Map<AbsolutePath, string>()
 
+// file renames: suppress unlink(old) + add(new) watcher events for app-initiated renames
+const pendingRenames = new Map<AbsolutePath, AbsolutePath>() // old → new
+const pendingRenamesByNewPath = new Map<AbsolutePath, AbsolutePath>() // new → old
+
+export function addPendingRename(oldPath: AbsolutePath, newPath: AbsolutePath): void {
+  pendingRenames.set(oldPath, newPath)
+  pendingRenamesByNewPath.set(newPath, oldPath)
+  // safety cleanup if watcher events are missed
+  setTimeout(() => {
+    pendingRenames.delete(oldPath)
+    pendingRenamesByNewPath.delete(newPath)
+  }, 5_000)
+}
+
+// folder renames: suppress all events under old/new prefix
+const pendingFolderRenames = new Map<AbsolutePath, AbsolutePath>()
+
+export function addPendingFolderRename(oldPath: AbsolutePath, newPath: AbsolutePath): void {
+  pendingFolderRenames.set(oldPath, newPath)
+  setTimeout(() => {
+    pendingFolderRenames.delete(oldPath)
+  }, 5_000)
+}
+
+function isUnderPendingFolderRename(path: AbsolutePath): boolean {
+  for (const [oldPrefix, newPrefix] of pendingFolderRenames) {
+    if (
+      path === oldPrefix ||
+      path.startsWith(oldPrefix + "/") ||
+      path === newPrefix ||
+      path.startsWith(newPrefix + "/")
+    )
+      return true
+  }
+  return false
+}
+
 /**
  * adds a file path and its content hash to the pending saves map.
  * this "arms" the map to catch the resulting file watcher event.
@@ -30,7 +67,7 @@ function checkAndRemovePendingSave(filePath: AbsolutePath, onDiskCID: string): b
 }
 
 // helper to find an item in the tree.
-const findItemInTree = (tree: FileTree, path: string): File | Folder | null => {
+export const findItemInTree = (tree: FileTree, path: string): File | Folder | null => {
   for (const item of tree) {
     if (item.path === path) {
       return item
@@ -58,6 +95,22 @@ export const handleFileEvent = async (
   deleteFile: (filePath: AbsolutePath) => Promise<void>,
 ) => {
   let processedEvent = event
+
+  // suppress watcher echoes of app-initiated renames
+  if (event.kind === "unlinkFile" || event.kind === "unlinkFolder") {
+    if (pendingRenames.has(AbsolutePath(event.path))) return
+    if (isUnderPendingFolderRename(AbsolutePath(event.path))) return
+  }
+  if (event.kind === "addFile" || event.kind === "addFolder") {
+    const oldPath = pendingRenamesByNewPath.get(AbsolutePath(event.path))
+    if (oldPath !== undefined) {
+      // both events seen — clean up
+      pendingRenames.delete(oldPath)
+      pendingRenamesByNewPath.delete(AbsolutePath(event.path))
+      return
+    }
+    if (isUnderPendingFolderRename(AbsolutePath(event.path))) return
+  }
 
   if (event.kind === "addFile") {
     const fileInTree = findItemInTree(fileTree, event.path)

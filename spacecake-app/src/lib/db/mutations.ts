@@ -62,6 +62,12 @@ export const updateWorkspaceSettings = (
 
 export const deleteFile = (filePath: AbsolutePath) => fetchDb("deleteFile", filePath)
 
+export const renameFile = (oldPath: AbsolutePath, newPath: AbsolutePath) =>
+  fetchDb("renameFile", oldPath, newPath)
+
+export const renameFilesUnderFolder = (oldPrefix: AbsolutePath, newPrefix: AbsolutePath) =>
+  fetchDb("renameFilesUnderFolder", oldPrefix, newPrefix)
+
 // --- read queries still needed for compound operations ---
 
 export const selectLatestEditorStateForFile = (filePath: AbsolutePath) =>

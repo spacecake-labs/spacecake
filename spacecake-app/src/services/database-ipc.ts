@@ -79,6 +79,10 @@ const methods = {
     invokeDb("updateEditorViewKind", editorId, viewKind),
   updateEditorSelection: (input: EditorSelectionUpdate) => invokeDb("updateEditorSelection", input),
   deleteFile: (filePath: AbsolutePath) => invokeDb("deleteFile", filePath),
+  renameFile: (oldPath: AbsolutePath, newPath: AbsolutePath) =>
+    invokeDb("renameFile", oldPath, newPath),
+  renameFilesUnderFolder: (oldPrefix: AbsolutePath, newPrefix: AbsolutePath) =>
+    invokeDb("renameFilesUnderFolder", oldPrefix, newPrefix),
   selectLastOpenedFile: () => invokeDb("selectLastOpenedFile"),
   selectFile: (filePath: AbsolutePath) => invokeDb("selectFile", filePath),
   selectActiveEditorForWorkspace: (workspacePath: AbsolutePath) =>

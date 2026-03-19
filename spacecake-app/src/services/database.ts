@@ -448,6 +448,23 @@ export const makeDatabaseService = (client: PGliteInterface, orm: Orm) => {
         ).pipe(maybeSingleResult(), Effect.map(toMaybe))
       }),
 
+    renameFile: (oldPath: AbsolutePath, newPath: AbsolutePath) =>
+      Effect.gen(function* () {
+        return yield* query((_) =>
+          _.update(fileTable).set({ path: newPath }).where(eq(fileTable.path, oldPath)).returning(),
+        )
+      }).pipe(maybeSingleResult(), Effect.map(toMaybe)),
+
+    renameFilesUnderFolder: (oldPrefix: AbsolutePath, newPrefix: AbsolutePath) =>
+      query((_) =>
+        _.update(fileTable)
+          .set({
+            path: sql`${newPrefix} || substring(${fileTable.path} from ${oldPrefix.length + 1})`,
+          })
+          .where(like(fileTable.path, `${oldPrefix}/%`))
+          .returning(),
+      ),
+
     selectLastOpenedFile: () =>
       query((_) =>
         _.select(getTableColumns(fileTable))

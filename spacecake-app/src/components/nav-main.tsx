@@ -34,9 +34,13 @@ import {
 import {
   getOrCreateFileStateAtom,
   flatVisibleTreeAtom,
+  renameInTreeAtom,
   sortedFileTreeAtom,
   type FlatFileTreeItem,
 } from "@/lib/atoms/file-tree"
+import { quickOpenIndexAtom } from "@/lib/atoms/quick-open-index"
+import * as mutations from "@/lib/db/mutations"
+import { addPendingFolderRename, addPendingRename, findItemInTree } from "@/lib/file-event-handler"
 import { createFolder, remove, rename, saveFile } from "@/lib/fs"
 import { match } from "@/types/adt"
 import type { File, Folder, WorkspaceInfo } from "@/types/workspace"
@@ -327,7 +331,7 @@ export function NavMain({
     [isCreatingInContext, setContextItemName, setIsCreatingInContext],
   )
 
-  // Validate rename target - memoized
+  // validate rename target - uses recursive tree lookup
   const validateRenameTarget = React.useCallback(
     (newName: string, currentPath: string, originalName: string): string | null => {
       if (!newName.trim()) return "name cannot be empty"
@@ -337,8 +341,8 @@ export function NavMain({
       const newPath = `${currentDir}/${newName.trim()}`
 
       const sortedFileTree = store.get(sortedFileTreeAtom)
-      const existingFile = sortedFileTree.find((f: File | Folder) => f.path === newPath)
-      if (existingFile) {
+      const existing = findItemInTree(sortedFileTree, newPath)
+      if (existing) {
         return `'${newName.trim()}' already exists`
       }
       return null
@@ -382,15 +386,10 @@ export function NavMain({
   const handleRenameCallback = React.useCallback(async () => {
     if (!editingItem || !workspace?.path) return
 
-    const oldPath = editingItem.path
+    const oldPath = AbsolutePath(editingItem.path)
     const newName = editingItem.value.trim()
 
-    if (!newName) {
-      setEditingItem(null)
-      return
-    }
-
-    if (newName === editingItem.originalValue) {
+    if (!newName || newName === editingItem.originalValue) {
       setEditingItem(null)
       setValidationError(null)
       return
@@ -404,19 +403,65 @@ export function NavMain({
 
     const pathParts = oldPath.split("/")
     pathParts.pop()
-    const newPath = pathParts.length > 0 ? `${pathParts.join("/")}/${newName}` : newName
+    const newPath = AbsolutePath(pathParts.join("/") + "/" + newName)
 
-    const result = await rename(AbsolutePath(oldPath), AbsolutePath(newPath))
+    // determine file vs folder
+    const sortedTree = store.get(sortedFileTreeAtom)
+    const item = findItemInTree(sortedTree, oldPath)
+    const isFolder = item?.kind === "folder"
+
+    // 1. register pending rename (suppresses watcher events)
+    if (isFolder) {
+      addPendingFolderRename(oldPath, newPath)
+    } else {
+      addPendingRename(oldPath, newPath)
+    }
+
+    // 2. optimistic UI update (tree + expanded folders + file state atoms + opened files)
+    store.set(renameInTreeAtom, { oldPath, newPath, isFolder: !!isFolder })
+
+    // 3. update quick-open index
+    if (isFolder) {
+      store.set(quickOpenIndexAtom, (prev) =>
+        prev.map((e) =>
+          e.path.startsWith(oldPath + "/")
+            ? {
+                path: AbsolutePath(newPath + e.path.slice(oldPath.length)),
+                name: e.path.split("/").pop()!,
+              }
+            : e,
+        ),
+      )
+    } else {
+      store.set(quickOpenIndexAtom, (prev) =>
+        prev.map((e) => (e.path === oldPath ? { path: newPath, name: newName } : e)),
+      )
+    }
+
+    // 4. filesystem rename
+    const result = await rename(oldPath, newPath)
 
     match(result, {
       onLeft: (error) => {
         console.error(error)
         setValidationError("error renaming file")
+        // TODO: rollback optimistic state on failure
       },
-      onRight: () => {
-        if (selectedFilePath === oldPath) {
-          handleFileClickCallback(AbsolutePath(newPath))
+      onRight: async () => {
+        // 5. atomic DB path update (preserves file.id → editor/pane_item survive)
+        if (isFolder) {
+          await mutations.renameFilesUnderFolder(oldPath, newPath)
+        } else {
+          await mutations.renameFile(oldPath, newPath)
         }
+
+        // 6. navigate if current file was affected
+        if (selectedFilePath === oldPath) {
+          handleFileClickCallback(newPath)
+        } else if (isFolder && selectedFilePath?.startsWith(oldPath + "/")) {
+          handleFileClickCallback(AbsolutePath(newPath + selectedFilePath.slice(oldPath.length)))
+        }
+
         setEditingItem(null)
         setValidationError(null)
       },
@@ -428,6 +473,7 @@ export function NavMain({
     selectedFilePath,
     handleFileClickCallback,
     setEditingItem,
+    store,
   ])
 
   const handleRenameKeyDownCallback = React.useCallback(
