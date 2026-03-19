@@ -47,7 +47,7 @@ test.describe("smart file/folder creation", () => {
     expect(fs.existsSync(path.join(tempTestDir, "inside.txt"))).toBe(false)
 
     // --- ⌘N also respects last-clicked (still empty-folder) ---
-    await window.keyboard.press("Meta+n")
+    await window.keyboard.press("ControlOrMeta+n")
 
     const textbox3 = window.getByRole("textbox", { name: "filename.txt" })
     await textbox3.fill("hotkey.txt")
