@@ -1,4 +1,3 @@
-import { extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item"
 import {
   dropTargetForElements,
   monitorForElements,
@@ -505,6 +504,48 @@ export function NavMain({
     [onExpandFolder],
   )
 
+  // highlight overlay for drag-over feedback (spans the entire folder + children)
+  const highlightOverlayRef = React.useRef<HTMLDivElement>(null)
+
+  const handleHighlightFolder = React.useCallback(
+    (folderPath: string) => {
+      const overlay = highlightOverlayRef.current
+      if (!overlay) return
+
+      const folderIndex = flatVisibleTree.findIndex(
+        (item) => item.item.kind === "folder" && item.item.path === folderPath,
+      )
+      if (folderIndex === -1) {
+        overlay.style.display = "none"
+        return
+      }
+
+      const folderDepth = flatVisibleTree[folderIndex].depth
+      let lastIndex = folderIndex
+      for (let i = folderIndex + 1; i < flatVisibleTree.length; i++) {
+        if (flatVisibleTree[i].depth > folderDepth) {
+          lastIndex = i
+        } else {
+          break
+        }
+      }
+
+      const ROW_HEIGHT = 28
+      const top = folderIndex * ROW_HEIGHT
+      const height = (lastIndex - folderIndex + 1) * ROW_HEIGHT
+
+      overlay.style.display = "block"
+      overlay.style.top = `${top}px`
+      overlay.style.height = `${height}px`
+    },
+    [flatVisibleTree],
+  )
+
+  const handleClearHighlight = React.useCallback(() => {
+    const overlay = highlightOverlayRef.current
+    if (overlay) overlay.style.display = "none"
+  }, [])
+
   // monitor for drop events and execute moves
   React.useEffect(() => {
     return monitorForElements({
@@ -517,18 +558,13 @@ export function NavMain({
         const targetPath = target.data.path as string
         const targetKind = target.data.kind as string
 
-        const instruction = extractInstruction(target.data)
-
         let targetFolderPath: AbsolutePath
 
-        if (instruction?.type === "make-child") {
-          // dropping into a folder
+        if (targetKind === "folder") {
           targetFolderPath = targetPath as AbsolutePath
-        } else if (instruction?.type === "reorder-above" || instruction?.type === "reorder-below") {
-          // dropping adjacent to an item — move into that item's parent
+        } else if (targetKind === "file") {
           targetFolderPath = targetPath.substring(0, targetPath.lastIndexOf("/")) as AbsolutePath
         } else if (targetKind === "root-drop-target") {
-          // dropped on empty space — move to workspace root
           targetFolderPath = workspace.path as AbsolutePath
         } else {
           return
@@ -558,21 +594,36 @@ export function NavMain({
     })
   }, [workspace.path, store, handleFileClickCallback])
 
-  // root-level drop target for dropping on empty space
+  // root-level drop target for empty space below all rows
+  const rootDropRef = React.useRef<HTMLDivElement>(null)
+
   React.useEffect(() => {
-    const el = parentRef.current
+    const el = rootDropRef.current
     if (!el) return
     return dropTargetForElements({
       element: el,
       canDrop: ({ source }) => {
-        // only allow drop if not already at root
         const sourcePath = source.data.path as string
         const sourceParent = sourcePath.substring(0, sourcePath.lastIndexOf("/"))
         return sourceParent !== workspace.path
       },
       getData: () => ({ kind: "root-drop-target" }),
+      onDrag: () => {
+        // highlight the entire tree (all rows from index 0 to end)
+        const overlay = highlightOverlayRef.current
+        if (!overlay) return
+        overlay.style.display = "block"
+        overlay.style.top = "0px"
+        overlay.style.height = `${flatVisibleTree.length * 28}px`
+      },
+      onDragLeave: () => {
+        handleClearHighlight()
+      },
+      onDrop: () => {
+        handleClearHighlight()
+      },
     })
-  }, [workspace.path])
+  }, [workspace.path, flatVisibleTree.length, handleClearHighlight])
 
   return (
     <>
@@ -582,7 +633,11 @@ export function NavMain({
           {workspace?.path && <WorkspaceDropdownMenu workspace={workspace} />}
         </SidebarGroupLabel>
 
-        <div ref={parentRef} className="flex-1 overflow-auto" style={{ contain: "strict" }}>
+        <div
+          ref={parentRef}
+          className="relative flex-1 overflow-auto"
+          style={{ contain: "strict" }}
+        >
           <SidebarMenu>
             {isCreatingInWorkspace && workspace?.path && (
               <SidebarMenuItem>
@@ -604,6 +659,11 @@ export function NavMain({
                   position: "relative",
                 }}
               >
+                <div
+                  ref={highlightOverlayRef}
+                  className="pointer-events-none absolute left-0 right-0 rounded-md bg-primary/10"
+                  style={{ display: "none" }}
+                />
                 {rowVirtualizer.getVirtualItems().map((virtualItem) => {
                   const flatItem = flatVisibleTree[virtualItem.index]
                   const itemKey =
@@ -654,6 +714,8 @@ export function NavMain({
                         flatItem={flatItem as FlatFileTreeItem}
                         isRenaming={editingItem?.path === (flatItem as FlatFileTreeItem).item.path}
                         onExpandFolder={handleDragExpandFolder}
+                        onHighlightFolder={handleHighlightFolder}
+                        onClearHighlight={handleClearHighlight}
                       >
                         <TreeRow
                           flatItem={flatItem as FlatFileTreeItem}
@@ -699,6 +761,11 @@ export function NavMain({
               </SidebarMenuItem>
             )}
           </SidebarMenu>
+          <div
+            ref={rootDropRef}
+            className="absolute left-0 right-0 bottom-0"
+            style={{ top: `${rowVirtualizer.getTotalSize()}px` }}
+          />
         </div>
       </SidebarGroup>
 

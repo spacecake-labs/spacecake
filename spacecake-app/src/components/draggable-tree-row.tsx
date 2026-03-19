@@ -1,8 +1,3 @@
-import {
-  attachInstruction,
-  extractInstruction,
-  type Instruction,
-} from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item"
 import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter"
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview"
 import { useStore } from "jotai"
@@ -20,6 +15,12 @@ export interface DraggableTreeRowProps {
   isRenaming: boolean
   children: React.ReactNode
   onExpandFolder: (folderPath: AbsolutePath) => void
+  onHighlightFolder: (folderPath: string) => void
+  onClearHighlight: () => void
+}
+
+function getParentPath(path: string): string {
+  return path.substring(0, path.lastIndexOf("/"))
 }
 
 export function DraggableTreeRow({
@@ -27,35 +28,23 @@ export function DraggableTreeRow({
   isRenaming,
   children,
   onExpandFolder,
+  onHighlightFolder,
+  onClearHighlight,
 }: DraggableTreeRowProps) {
   const rowRef = useRef<HTMLDivElement>(null)
-  const makeChildRef = useRef<HTMLDivElement>(null)
-  const reorderAboveRef = useRef<HTMLDivElement>(null)
-  const reorderBelowRef = useRef<HTMLDivElement>(null)
   const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const onExpandFolderRef = useRef(onExpandFolder)
   onExpandFolderRef.current = onExpandFolder
+  const onHighlightFolderRef = useRef(onHighlightFolder)
+  onHighlightFolderRef.current = onHighlightFolder
+  const onClearHighlightRef = useRef(onClearHighlight)
+  onClearHighlightRef.current = onClearHighlight
 
   const store = useStore()
 
-  const { item, depth, isExpanded } = flatItem
+  const { item, isExpanded } = flatItem
   const isFolder = item.kind === "folder"
   const isSystemFolder = isFolder && item.isSystemFolder
-
-  function updateIndicators(inst: Instruction | null) {
-    makeChildRef.current?.style.setProperty(
-      "display",
-      inst?.type === "make-child" ? "block" : "none",
-    )
-    reorderAboveRef.current?.style.setProperty(
-      "display",
-      inst?.type === "reorder-above" ? "block" : "none",
-    )
-    reorderBelowRef.current?.style.setProperty(
-      "display",
-      inst?.type === "reorder-below" ? "block" : "none",
-    )
-  }
 
   // draggable registration
   useEffect(() => {
@@ -113,58 +102,46 @@ export function DraggableTreeRow({
     return dropTargetForElements({
       element: el,
       canDrop: ({ source }) => {
+        if (isSystemFolder) return false
         const sourcePath = source.data.path as AbsolutePath
         const sourceKind = source.data.kind as "file" | "folder"
         const targetFolderPath = isFolder
           ? (item.path as AbsolutePath)
-          : (item.path.substring(0, item.path.lastIndexOf("/")) as AbsolutePath)
+          : (getParentPath(item.path) as AbsolutePath)
         const currentTree = store.get(sortedFileTreeAtom)
         return canDropItem(sourcePath, sourceKind, targetFolderPath, currentTree).valid
       },
-      getData: ({ input, element }) => {
-        const data = { path: item.path, kind: item.kind }
-        return attachInstruction(data, {
-          input,
-          element,
-          currentLevel: depth,
-          indentPerLevel: 12,
-          mode: isFolder ? "expanded" : "standard",
-          block: isSystemFolder ? ["make-child", "reorder-above", "reorder-below"] : [],
-        })
-      },
-      onDrag: ({ self }) => {
-        const inst = extractInstruction(self.data)
-        updateIndicators(inst)
+      getData: () => ({ path: item.path, kind: item.kind }),
+      onDrag: () => {
+        const targetFolderPath = isFolder ? item.path : getParentPath(item.path)
+        onHighlightFolderRef.current(targetFolderPath)
 
         // auto-expand collapsed folders on hover
-        if (isFolder && !isExpanded && inst?.type === "make-child") {
+        if (isFolder && !isExpanded) {
           if (!expandTimerRef.current) {
             expandTimerRef.current = setTimeout(() => {
               onExpandFolderRef.current(item.path as AbsolutePath)
               expandTimerRef.current = null
             }, 500)
           }
-        } else if (expandTimerRef.current && inst?.type !== "make-child") {
-          clearTimeout(expandTimerRef.current)
-          expandTimerRef.current = null
         }
       },
       onDragLeave: () => {
-        updateIndicators(null)
+        onClearHighlightRef.current()
         if (expandTimerRef.current) {
           clearTimeout(expandTimerRef.current)
           expandTimerRef.current = null
         }
       },
       onDrop: () => {
-        updateIndicators(null)
+        onClearHighlightRef.current()
         if (expandTimerRef.current) {
           clearTimeout(expandTimerRef.current)
           expandTimerRef.current = null
         }
       },
     })
-  }, [item.path, item.kind, depth, isFolder, isSystemFolder, isExpanded, store])
+  }, [item.path, item.kind, isFolder, isSystemFolder, isExpanded, store])
 
   // cleanup expand timer on unmount
   useEffect(() => {
@@ -178,21 +155,6 @@ export function DraggableTreeRow({
   return (
     <div ref={rowRef} className="relative" data-tree-path={item.path}>
       {children}
-      <div
-        ref={makeChildRef}
-        className="pointer-events-none absolute inset-0 rounded-sm bg-accent/50 ring-1 ring-ring"
-        style={{ display: "none" }}
-      />
-      <div
-        ref={reorderAboveRef}
-        className="pointer-events-none absolute top-0 left-0 right-0 h-0.5 bg-primary"
-        style={{ display: "none" }}
-      />
-      <div
-        ref={reorderBelowRef}
-        className="pointer-events-none absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-        style={{ display: "none" }}
-      />
     </div>
   )
 }
