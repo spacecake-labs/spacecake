@@ -45,6 +45,9 @@ export const isCreatingInContextAtom = atom<{
 } | null>(null)
 export const contextItemNameAtom = atom<string>("")
 
+// last-clicked tree item (used by smart creation to determine target directory)
+export const lastClickedTreeItemAtom = atom<{ path: string; kind: "file" | "folder" } | null>(null)
+
 // track which files have been opened (have state machines)
 export const openedFilesAtom = atom<Set<AbsolutePath>>(new Set<AbsolutePath>())
 

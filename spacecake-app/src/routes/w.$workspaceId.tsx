@@ -5,7 +5,7 @@
 
 import { createFileRoute, ErrorComponent, redirect } from "@tanstack/react-router"
 import * as Match from "effect/Match"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { GroupImperativeHandle, Layout, PanelImperativeHandle } from "react-resizable-panels"
@@ -43,8 +43,8 @@ import { useMenuAction } from "@/hooks/use-menu-action"
 import { useActivePaneItemId, usePaneItems } from "@/hooks/use-pane-items"
 import { usePaneMachine } from "@/hooks/use-pane-machine"
 import { useRoute } from "@/hooks/use-route"
+import { useStartCreating } from "@/hooks/use-start-creating"
 import { useWorkspaceLayout } from "@/hooks/use-workspace-layout"
-import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
 import {
   clearFileStateAtoms,
   getOrCreateFileStateAtom,
@@ -966,8 +966,7 @@ function WorkspaceLayout() {
   const workspaceIdEncoded = encodeBase64Url(workspace.path)
   const machine = usePaneMachine(paneId, workspace.path, workspaceIdEncoded)
 
-  const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
-  const setContextItemName = useSetAtom(contextItemNameAtom)
+  const startCreating = useStartCreating(workspace?.path)
 
   // clean up all file state atoms and settings machine when workspace unmounts.
   // important: only clean up THIS workspace's pane machine (not the entire cache),
@@ -992,12 +991,7 @@ function WorkspaceLayout() {
     }
   }, [workspace.path, workspace.id, paneId])
 
-  const handleNewFile = useCallback(() => {
-    if (workspace?.path) {
-      setIsCreatingInContext({ kind: "file", parentPath: workspace.path })
-      setContextItemName("")
-    }
-  }, [workspace?.path, setIsCreatingInContext, setContextItemName])
+  const handleNewFile = useCallback(() => startCreating("file"), [startCreating])
 
   useHotkey("mod+n", handleNewFile)
   useMenuAction("new-file", handleNewFile)

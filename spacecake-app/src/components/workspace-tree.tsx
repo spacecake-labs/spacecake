@@ -14,8 +14,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
+import { useStartCreating } from "@/hooks/use-start-creating"
 import type { WorkspaceCache } from "@/hooks/use-workspace-cache"
-import { contextItemNameAtom, isCreatingInContextAtom } from "@/lib/atoms/atoms"
+import {
+  contextItemNameAtom,
+  isCreatingInContextAtom,
+  lastClickedTreeItemAtom,
+} from "@/lib/atoms/atoms"
 import type { FlatFileTreeItem } from "@/lib/atoms/file-tree"
 import { getFileStateAtom, hasFileStateAtom } from "@/lib/atoms/file-tree"
 import { supportedViews } from "@/lib/language-support"
@@ -192,25 +197,14 @@ function ItemDropdownMenu({
 export function WorkspaceDropdownMenu({ workspace }: { workspace: WorkspaceInfo }) {
   const [isCreatingInContext, setIsCreatingInContext] = useAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
-
-  const startCreatingFile = () => {
-    if (!workspace?.path) return
-    setIsCreatingInContext({ kind: "file", parentPath: workspace.path })
-    setContextItemName("")
-  }
-
-  const startCreatingFolder = () => {
-    if (!workspace?.path) return
-    setIsCreatingInContext({ kind: "folder", parentPath: workspace.path })
-    setContextItemName("")
-  }
+  const startCreating = useStartCreating(workspace?.path)
 
   const cancelCreating = () => {
     setIsCreatingInContext(null)
     setContextItemName("")
   }
 
-  const isCreatingInWorkspace = isCreatingInContext?.parentPath === workspace?.path
+  const isCreatingInWorkspace = isCreatingInContext !== null
 
   return (
     <>
@@ -233,11 +227,11 @@ export function WorkspaceDropdownMenu({ workspace }: { workspace: WorkspaceInfo 
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-48">
-            <DropdownMenuItem onClick={startCreatingFile}>
+            <DropdownMenuItem onClick={() => startCreating("file")}>
               <span>new file</span>
               <DropdownMenuShortcut>⌘N</DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={startCreatingFolder}>
+            <DropdownMenuItem onClick={() => startCreating("folder")}>
               <span>new folder</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -494,6 +488,7 @@ export const TreeRow = React.memo(function TreeRow({
 }: TreeRowProps) {
   const { item, depth, isExpanded, hasChildren: _hasChildren } = flatItem
   const filePath = item.path
+  const setLastClicked = useSetAtom(lastClickedTreeItemAtom)
 
   const isSelected = selectedFilePath === filePath
   const isRenaming = editingItem?.path === filePath
@@ -505,6 +500,13 @@ export const TreeRow = React.memo(function TreeRow({
   if (item.kind === "file") {
     return (
       <SidebarMenuItem
+        onClick={() =>
+          setLastClicked((prev) =>
+            prev?.path === filePath && prev.kind === "file"
+              ? prev
+              : { path: filePath, kind: "file" },
+          )
+        }
         style={{
           ...style,
           paddingLeft: `${indentPx}px`,
@@ -546,6 +548,13 @@ export const TreeRow = React.memo(function TreeRow({
   return (
     <>
       <SidebarMenuItem
+        onClick={() =>
+          setLastClicked((prev) =>
+            prev?.path === filePath && prev.kind === "folder"
+              ? prev
+              : { path: filePath, kind: "folder" },
+          )
+        }
         style={{
           ...style,
           paddingLeft: `${indentPx}px`,
