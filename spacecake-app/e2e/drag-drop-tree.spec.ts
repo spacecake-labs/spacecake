@@ -6,6 +6,9 @@ import type { Page } from "@playwright/test"
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
 import { locateSidebarItem } from "@/../e2e/utils"
 
+/** normalize path to forward slashes (matches how the UI stores data-tree-path) */
+const normalizePath = (p: string) => p.replace(/\\/g, "/")
+
 /**
  * dispatches HTML5 drag events to simulate a drag-and-drop operation.
  * playwright's `dragTo` uses mouse events which don't reliably trigger
@@ -66,8 +69,8 @@ test.describe("drag and drop in file tree", () => {
     // drag the file onto the folder using HTML5 DragEvent
     await dragTreeItem(
       window,
-      path.join(tempTestDir, "dragged-file.txt"),
-      path.join(tempTestDir, "target-folder"),
+      normalizePath(path.join(tempTestDir, "dragged-file.txt")),
+      normalizePath(path.join(tempTestDir, "target-folder")),
     )
 
     // verify the file moved into the folder on disk
@@ -94,8 +97,8 @@ test.describe("drag and drop in file tree", () => {
     // drag folder-a onto folder-b
     await dragTreeItem(
       window,
-      path.join(tempTestDir, "folder-a"),
-      path.join(tempTestDir, "folder-b"),
+      normalizePath(path.join(tempTestDir, "folder-a")),
+      normalizePath(path.join(tempTestDir, "folder-b")),
     )
 
     // verify the folder moved with its children
