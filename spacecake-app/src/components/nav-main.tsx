@@ -220,6 +220,8 @@ interface NavMainProps {
   workspace: WorkspaceInfo
 }
 
+const ROW_HEIGHT = 28
+
 function CreationInput({
   kind,
   onCreateFile,
@@ -292,7 +294,7 @@ export function NavMain({
   const rowVirtualizer = useVirtualizer({
     count: flatVisibleTree.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 28, // Estimated row height
+    estimateSize: () => ROW_HEIGHT,
     overscan: 10,
   })
 
@@ -506,40 +508,39 @@ export function NavMain({
 
   // highlight overlay for drag-over feedback (spans the entire folder + children)
   const highlightOverlayRef = React.useRef<HTMLDivElement>(null)
+  const flatVisibleTreeRef = React.useRef(flatVisibleTree)
+  flatVisibleTreeRef.current = flatVisibleTree
 
-  const handleHighlightFolder = React.useCallback(
-    (folderPath: string) => {
-      const overlay = highlightOverlayRef.current
-      if (!overlay) return
+  const handleHighlightFolder = React.useCallback((folderPath: string) => {
+    const overlay = highlightOverlayRef.current
+    if (!overlay) return
 
-      const folderIndex = flatVisibleTree.findIndex(
-        (item) => item.item.kind === "folder" && item.item.path === folderPath,
-      )
-      if (folderIndex === -1) {
-        overlay.style.display = "none"
-        return
+    const tree = flatVisibleTreeRef.current
+    const folderIndex = tree.findIndex(
+      (item) => item.item.kind === "folder" && item.item.path === folderPath,
+    )
+    if (folderIndex === -1) {
+      overlay.style.display = "none"
+      return
+    }
+
+    const folderDepth = tree[folderIndex].depth
+    let lastIndex = folderIndex
+    for (let i = folderIndex + 1; i < tree.length; i++) {
+      if (tree[i].depth > folderDepth) {
+        lastIndex = i
+      } else {
+        break
       }
+    }
 
-      const folderDepth = flatVisibleTree[folderIndex].depth
-      let lastIndex = folderIndex
-      for (let i = folderIndex + 1; i < flatVisibleTree.length; i++) {
-        if (flatVisibleTree[i].depth > folderDepth) {
-          lastIndex = i
-        } else {
-          break
-        }
-      }
+    const top = folderIndex * ROW_HEIGHT
+    const height = (lastIndex - folderIndex + 1) * ROW_HEIGHT
 
-      const ROW_HEIGHT = 28
-      const top = folderIndex * ROW_HEIGHT
-      const height = (lastIndex - folderIndex + 1) * ROW_HEIGHT
-
-      overlay.style.display = "block"
-      overlay.style.top = `${top}px`
-      overlay.style.height = `${height}px`
-    },
-    [flatVisibleTree],
-  )
+    overlay.style.display = "block"
+    overlay.style.top = `${top}px`
+    overlay.style.height = `${height}px`
+  }, [])
 
   const handleClearHighlight = React.useCallback(() => {
     const overlay = highlightOverlayRef.current
@@ -614,7 +615,7 @@ export function NavMain({
         if (!overlay) return
         overlay.style.display = "block"
         overlay.style.top = "0px"
-        overlay.style.height = `${flatVisibleTree.length * 28}px`
+        overlay.style.height = `${flatVisibleTreeRef.current.length * ROW_HEIGHT}px`
       },
       onDragLeave: () => {
         handleClearHighlight()
@@ -623,7 +624,7 @@ export function NavMain({
         handleClearHighlight()
       },
     })
-  }, [workspace.path, flatVisibleTree.length, handleClearHighlight])
+  }, [workspace.path, handleClearHighlight])
 
   return (
     <>
