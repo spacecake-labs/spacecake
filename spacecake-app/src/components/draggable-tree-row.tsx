@@ -4,9 +4,11 @@ import {
   type Instruction,
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item"
 import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter"
+import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview"
 import { useStore } from "jotai"
 import { useEffect, useRef } from "react"
 import * as React from "react"
+import { createRoot } from "react-dom/client"
 
 import type { FlatFileTreeItem } from "@/lib/atoms/file-tree"
 import { sortedFileTreeAtom } from "@/lib/atoms/file-tree"
@@ -68,6 +70,32 @@ export function DraggableTreeRow({
         kind: item.kind,
         name: item.name,
       }),
+      onGenerateDragPreview: ({ nativeSetDragImage }) => {
+        setCustomNativeDragPreview({
+          nativeSetDragImage,
+          render: ({ container }) => {
+            const root = createRoot(container)
+            root.render(
+              <div
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: "4px",
+                  background: "var(--sidebar-accent)",
+                  color: "var(--sidebar-accent-foreground)",
+                  fontSize: "12px",
+                  whiteSpace: "nowrap",
+                  maxWidth: "200px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {item.name}
+              </div>,
+            )
+            return () => root.unmount()
+          },
+        })
+      },
       onDragStart: () => {
         el.style.opacity = "0.4"
       },
