@@ -279,8 +279,6 @@ export function NavMain({
   // ref to always hold the latest selectedFilePath for async callbacks
   const selectedFilePathRef = React.useRef(selectedFilePath)
   selectedFilePathRef.current = selectedFilePath
-  const onExpandFolderRef = React.useRef(onExpandFolder)
-  onExpandFolderRef.current = onExpandFolder
 
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(null)
@@ -497,47 +495,29 @@ export function NavMain({
     setContextItemName("")
   }
 
-  // track folders auto-expanded during drag so we can collapse them later
-  const dragExpandedFoldersRef = React.useRef<Set<string>>(new Set())
-
   // stable callback for auto-expanding folders during drag hover
-  const handleDragExpandFolder = React.useCallback((folderPath: AbsolutePath) => {
-    const expand = onExpandFolderRef.current
-    if (!expand) return
-    // collapse previously drag-expanded folders that aren't ancestors of the new target
-    for (const expanded of [...dragExpandedFoldersRef.current]) {
-      if (!folderPath.startsWith(expanded + "/") && expanded !== folderPath) {
-        expand(expanded as AbsolutePath, false)
-        dragExpandedFoldersRef.current.delete(expanded)
+  const handleDragExpandFolder = React.useCallback(
+    (folderPath: AbsolutePath) => {
+      if (onExpandFolder) {
+        onExpandFolder(folderPath, true)
       }
-    }
-    expand(folderPath, true)
-    dragExpandedFoldersRef.current.add(folderPath)
-  }, [])
+    },
+    [onExpandFolder],
+  )
 
   // monitor for drop events and execute moves
   React.useEffect(() => {
     return monitorForElements({
       onDrop: ({ source, location }) => {
         const target = location.current.dropTargets[0]
-        const instruction = target ? extractInstruction(target.data) : null
-        const dropTargetPath = target?.data.path as string | undefined
-
-        // collapse drag-expanded folders, but keep the drop target folder expanded
-        for (const expanded of dragExpandedFoldersRef.current) {
-          const isDropTarget = instruction?.type === "make-child" && expanded === dropTargetPath
-          if (!isDropTarget) {
-            onExpandFolderRef.current?.(expanded as AbsolutePath, false)
-          }
-        }
-        dragExpandedFoldersRef.current.clear()
-
         if (!target) return
 
         const sourcePath = source.data.path as AbsolutePath
         const sourceKind = source.data.kind as "file" | "folder"
         const targetPath = target.data.path as string
         const targetKind = target.data.kind as string
+
+        const instruction = extractInstruction(target.data)
 
         let targetFolderPath: AbsolutePath
 
