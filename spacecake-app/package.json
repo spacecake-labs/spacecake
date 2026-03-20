@@ -30,7 +30,6 @@
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.7.9",
-    "@atlaskit/pragmatic-drag-and-drop-hitbox": "^1.1.0",
     "@codemirror/lang-cpp": "^6.0.3",
     "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-go": "^6.0.1",
@@ -147,7 +146,6 @@
     "@playwright/test": "^1.58.2",
     "@reforged/maker-appimage": "^5.2.0",
     "@tanstack/router-plugin": "^1.166.3",
-    "@types/dompurify": "^3.2.0",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/jest": "^30.0.0",
     "@types/micromatch": "^4.0.10",

@@ -1,4 +1,3 @@
-import { extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item"
 import {
   dropTargetForElements,
   monitorForElements,
@@ -221,6 +220,8 @@ interface NavMainProps {
   workspace: WorkspaceInfo
 }
 
+const ROW_HEIGHT = 28
+
 function CreationInput({
   kind,
   onCreateFile,
@@ -279,8 +280,6 @@ export function NavMain({
   // ref to always hold the latest selectedFilePath for async callbacks
   const selectedFilePathRef = React.useRef(selectedFilePath)
   selectedFilePathRef.current = selectedFilePath
-  const onExpandFolderRef = React.useRef(onExpandFolder)
-  onExpandFolderRef.current = onExpandFolder
 
   // Validation state for rename
   const [validationError, setValidationError] = React.useState<string | null>(null)
@@ -295,7 +294,7 @@ export function NavMain({
   const rowVirtualizer = useVirtualizer({
     count: flatVisibleTree.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 28, // Estimated row height
+    estimateSize: () => ROW_HEIGHT,
     overscan: 10,
   })
 
@@ -497,22 +496,55 @@ export function NavMain({
     setContextItemName("")
   }
 
-  // track folders auto-expanded during drag so we can collapse them later
-  const dragExpandedFoldersRef = React.useRef<Set<string>>(new Set())
-
   // stable callback for auto-expanding folders during drag hover
-  const handleDragExpandFolder = React.useCallback((folderPath: AbsolutePath) => {
-    const expand = onExpandFolderRef.current
-    if (!expand) return
-    // collapse previously drag-expanded folders that aren't ancestors of the new target
-    for (const expanded of [...dragExpandedFoldersRef.current]) {
-      if (!folderPath.startsWith(expanded + "/") && expanded !== folderPath) {
-        expand(expanded as AbsolutePath, false)
-        dragExpandedFoldersRef.current.delete(expanded)
+  const handleDragExpandFolder = React.useCallback(
+    (folderPath: AbsolutePath) => {
+      if (onExpandFolder) {
+        onExpandFolder(folderPath, true)
+      }
+    },
+    [onExpandFolder],
+  )
+
+  // highlight overlay for drag-over feedback (spans the entire folder + children)
+  const highlightOverlayRef = React.useRef<HTMLDivElement>(null)
+  const flatVisibleTreeRef = React.useRef(flatVisibleTree)
+  flatVisibleTreeRef.current = flatVisibleTree
+
+  const handleHighlightFolder = React.useCallback((folderPath: string) => {
+    const overlay = highlightOverlayRef.current
+    if (!overlay) return
+
+    const tree = flatVisibleTreeRef.current
+    const folderIndex = tree.findIndex(
+      (item) => item.item.kind === "folder" && item.item.path === folderPath,
+    )
+    if (folderIndex === -1) {
+      overlay.style.display = "none"
+      return
+    }
+
+    const folderDepth = tree[folderIndex].depth
+    let lastIndex = folderIndex
+    for (let i = folderIndex + 1; i < tree.length; i++) {
+      if (tree[i].depth > folderDepth) {
+        lastIndex = i
+      } else {
+        break
       }
     }
-    expand(folderPath, true)
-    dragExpandedFoldersRef.current.add(folderPath)
+
+    const top = folderIndex * ROW_HEIGHT
+    const height = (lastIndex - folderIndex + 1) * ROW_HEIGHT
+
+    overlay.style.display = "block"
+    overlay.style.top = `${top}px`
+    overlay.style.height = `${height}px`
+  }, [])
+
+  const handleClearHighlight = React.useCallback(() => {
+    const overlay = highlightOverlayRef.current
+    if (overlay) overlay.style.display = "none"
   }, [])
 
   // monitor for drop events and execute moves
@@ -520,18 +552,6 @@ export function NavMain({
     return monitorForElements({
       onDrop: ({ source, location }) => {
         const target = location.current.dropTargets[0]
-        const instruction = target ? extractInstruction(target.data) : null
-        const dropTargetPath = target?.data.path as string | undefined
-
-        // collapse drag-expanded folders, but keep the drop target folder expanded
-        for (const expanded of dragExpandedFoldersRef.current) {
-          const isDropTarget = instruction?.type === "make-child" && expanded === dropTargetPath
-          if (!isDropTarget) {
-            onExpandFolderRef.current?.(expanded as AbsolutePath, false)
-          }
-        }
-        dragExpandedFoldersRef.current.clear()
-
         if (!target) return
 
         const sourcePath = source.data.path as AbsolutePath
@@ -541,14 +561,11 @@ export function NavMain({
 
         let targetFolderPath: AbsolutePath
 
-        if (instruction?.type === "make-child") {
-          // dropping into a folder
+        if (targetKind === "folder") {
           targetFolderPath = targetPath as AbsolutePath
-        } else if (instruction?.type === "reorder-above" || instruction?.type === "reorder-below") {
-          // dropping adjacent to an item — move into that item's parent
+        } else if (targetKind === "file") {
           targetFolderPath = targetPath.substring(0, targetPath.lastIndexOf("/")) as AbsolutePath
         } else if (targetKind === "root-drop-target") {
-          // dropped on empty space — move to workspace root
           targetFolderPath = workspace.path as AbsolutePath
         } else {
           return
@@ -578,21 +595,36 @@ export function NavMain({
     })
   }, [workspace.path, store, handleFileClickCallback])
 
-  // root-level drop target for dropping on empty space
+  // root-level drop target for empty space below all rows
+  const rootDropRef = React.useRef<HTMLDivElement>(null)
+
   React.useEffect(() => {
-    const el = parentRef.current
+    const el = rootDropRef.current
     if (!el) return
     return dropTargetForElements({
       element: el,
       canDrop: ({ source }) => {
-        // only allow drop if not already at root
         const sourcePath = source.data.path as string
         const sourceParent = sourcePath.substring(0, sourcePath.lastIndexOf("/"))
         return sourceParent !== workspace.path
       },
       getData: () => ({ kind: "root-drop-target" }),
+      onDrag: () => {
+        // highlight the entire tree (all rows from index 0 to end)
+        const overlay = highlightOverlayRef.current
+        if (!overlay) return
+        overlay.style.display = "block"
+        overlay.style.top = "0px"
+        overlay.style.height = `${flatVisibleTreeRef.current.length * ROW_HEIGHT}px`
+      },
+      onDragLeave: () => {
+        handleClearHighlight()
+      },
+      onDrop: () => {
+        handleClearHighlight()
+      },
     })
-  }, [workspace.path])
+  }, [workspace.path, handleClearHighlight])
 
   return (
     <>
@@ -602,7 +634,11 @@ export function NavMain({
           {workspace?.path && <WorkspaceDropdownMenu workspace={workspace} />}
         </SidebarGroupLabel>
 
-        <div ref={parentRef} className="flex-1 overflow-auto" style={{ contain: "strict" }}>
+        <div
+          ref={parentRef}
+          className="relative flex-1 overflow-auto"
+          style={{ contain: "strict" }}
+        >
           <SidebarMenu>
             {isCreatingInWorkspace && workspace?.path && (
               <SidebarMenuItem>
@@ -624,6 +660,11 @@ export function NavMain({
                   position: "relative",
                 }}
               >
+                <div
+                  ref={highlightOverlayRef}
+                  className="pointer-events-none absolute left-0 right-0 rounded-md bg-primary/10"
+                  style={{ display: "none" }}
+                />
                 {rowVirtualizer.getVirtualItems().map((virtualItem) => {
                   const flatItem = flatVisibleTree[virtualItem.index]
                   const itemKey =
@@ -674,6 +715,8 @@ export function NavMain({
                         flatItem={flatItem as FlatFileTreeItem}
                         isRenaming={editingItem?.path === (flatItem as FlatFileTreeItem).item.path}
                         onExpandFolder={handleDragExpandFolder}
+                        onHighlightFolder={handleHighlightFolder}
+                        onClearHighlight={handleClearHighlight}
                       >
                         <TreeRow
                           flatItem={flatItem as FlatFileTreeItem}
@@ -719,6 +762,11 @@ export function NavMain({
               </SidebarMenuItem>
             )}
           </SidebarMenu>
+          <div
+            ref={rootDropRef}
+            className="absolute left-0 right-0 bottom-0"
+            style={{ top: `${rowVirtualizer.getTotalSize()}px` }}
+          />
         </div>
       </SidebarGroup>
 

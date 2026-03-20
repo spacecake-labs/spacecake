@@ -31,7 +31,7 @@ async function dragTreeItem(page: Page, sourcePath: string, targetPath: string) 
         new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer }),
       )
 
-      // fire dragover on the target center to trigger "make-child" instruction
+      // fire dragover on the target center to trigger the drop target
       const targetRect = target.getBoundingClientRect()
       target.dispatchEvent(
         new DragEvent("dragover", {
