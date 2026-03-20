@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.63
+
+### Patch Changes
+
+- e382fea: Feat: File tree drag and drop.
+
 ## 0.1.0-alpha.62
 
 ### Patch Changes
