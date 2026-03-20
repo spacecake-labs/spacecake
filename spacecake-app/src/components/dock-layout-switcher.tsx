@@ -159,6 +159,10 @@ export const DockLayoutSwitcher = memo(function DockLayoutSwitcher(props: DockLa
             e.preventDefault()
           }
         }}
+        onFocusOutside={(e) => {
+          // prevent layout reflows from stealing focus and closing the popover
+          e.preventDefault()
+        }}
       >
         <DockLayoutEditorContent
           selectedPanel={layout.selectedPanel}
