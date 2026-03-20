@@ -1,0 +1,14 @@
+name: Redeploy Website
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  redeploy:
+    if: github.repository == 'spacecake-labs/spacecake'
+    name: Redeploy Website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel deploy
+        run: curl -s -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
