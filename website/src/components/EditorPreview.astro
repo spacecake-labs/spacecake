@@ -380,138 +380,126 @@ import TaskTablePreview from "./TaskTablePreview.astro"
 
         <div class="dock-content" data-dock-content="git">
           <div class="git-panel-mockup font-jetbrains">
-            <!-- left: commits pane -->
-            <div class="git-commits-pane">
-              <div class="git-pane-header">commits</div>
-              <div class="git-pane-body">
-                <div class="git-commit-item selected">
-                  <div class="git-commit-row">
-                    <span class="git-dot git-dot-yellow"></span>
-                    <span class="git-commit-label">working tree</span>
-                  </div>
+            <!-- git toolbar -->
+            <div class="git-panel-toolbar">
+              <div class="git-panel-toolbar-left">
+                <div class="git-panel-tab-group">
+                  <button class="git-panel-tab active">changes <span class="git-panel-tab-count">4</span></button>
+                  <button class="git-panel-tab">history</button>
                 </div>
-                <div class="git-commit-item">
-                  <div class="git-commit-row">
-                    <span class="git-commit-hash">a1b2c3f</span>
-                    <span class="git-commit-date">Feb 14</span>
-                  </div>
-                  <div class="git-commit-msg">add task checklist</div>
-                </div>
-                <div class="git-commit-item">
-                  <div class="git-commit-row">
-                    <span class="git-commit-hash">8f2e1d4</span>
-                    <span class="git-commit-date">Feb 13</span>
-                  </div>
-                  <div class="git-commit-msg">add mermaid flowchart</div>
-                </div>
-                <div class="git-commit-item">
-                  <div class="git-commit-row">
-                    <span class="git-commit-hash">c7d9e2a</span>
-                    <span class="git-commit-date">Feb 12</span>
-                  </div>
-                  <div class="git-commit-msg">create project plan</div>
+              </div>
+              <div class="git-panel-toolbar-right">
+                <button class="git-panel-remote-btn" title="fetch">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
+                </button>
+                <button class="git-panel-remote-btn" title="pull">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                  <span class="git-panel-remote-count git-panel-remote-behind">2</span>
+                </button>
+                <button class="git-panel-remote-btn" title="push">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+                  <span class="git-panel-remote-count git-panel-remote-ahead">1</span>
+                </button>
+                <div class="git-panel-branch-badge">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="git-panel-branch-icon"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>
+                  <span>main</span>
                 </div>
               </div>
             </div>
-
-            <!-- right: changed files pane -->
-            <div class="git-files-pane">
-              <div class="git-pane-header">changed files</div>
+            <!-- changes view -->
+            <div class="git-panel-tab-view active" data-git-panel-view="changes">
+              <div class="git-panel-commit-form">
+                <input
+                  type="text"
+                  class="git-panel-commit-input"
+                  placeholder="commit message..."
+                  value="add project docs and config"
+                  readonly
+                />
+                <div class="git-panel-commit-actions">
+                  <button class="git-panel-commit-btn">commit</button>
+                  <label class="git-panel-amend-label">
+                    <span class="git-panel-checkbox git-panel-checkbox-small"></span>
+                    <span>amend</span>
+                  </label>
+                </div>
+              </div>
               <div class="git-pane-body">
                 <div class="git-section">
                   <div class="git-section-header">
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      ><polyline points="6 9 12 15 18 9"></polyline></svg
-                    >
-                    <span>staged changes</span>
-                    <span class="git-count-badge git-count-green">1</span>
+                    <span class="git-panel-checkbox git-panel-checkbox-checked"></span>
+                    <span>changes</span>
+                    <span class="git-count-badge">4</span>
+                    <span class="git-discard-all" title="discard all changes">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+                    </span>
                   </div>
                   <div class="git-section-files">
                     <div class="git-file-item">
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        class="git-file-icon"
-                        ><path
-                          d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
-                        ></path><polyline points="14 2 14 8 20 8"
-                        ></polyline></svg
-                      >
+                      <span class="git-panel-checkbox git-panel-checkbox-checked"></span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="git-file-icon"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                      <span class="git-file-path">CLAUDE.md</span>
+                      <span class="git-status-badge git-status-yellow">M</span>
+                    </div>
+                    <div class="git-file-item">
+                      <span class="git-panel-checkbox git-panel-checkbox-checked"></span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="git-file-icon"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                      <span class="git-file-path">notes.md</span>
+                      <span class="git-status-badge git-status-blue">U</span>
+                    </div>
+                    <div class="git-file-item">
+                      <span class="git-panel-checkbox"></span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="git-file-icon"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                      <span class="git-file-path git-file-path-deleted">old-config.json</span>
+                      <span class="git-status-badge git-status-red">D</span>
+                    </div>
+                    <div class="git-file-item">
+                      <span class="git-panel-checkbox git-panel-checkbox-checked"></span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="git-file-icon"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                       <span class="git-file-path">ship-faster.md</span>
                       <span class="git-status-badge git-status-green">A</span>
                     </div>
                   </div>
                 </div>
-                <div class="git-section">
-                  <div class="git-section-header">
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      ><polyline points="6 9 12 15 18 9"></polyline></svg
-                    >
-                    <span>changes</span>
-                    <span class="git-count-badge">2</span>
+              </div>
+            </div>
+            <!-- history view -->
+            <div class="git-panel-tab-view" data-git-panel-view="history">
+              <div class="git-panel-history-list">
+                <div class="git-panel-history-item git-panel-history-item-selected">
+                  <div class="git-panel-history-row">
+                    <span class="git-panel-history-hash">eebd902</span>
+                    <span class="git-panel-history-date">Mar 22</span>
                   </div>
-                  <div class="git-section-files">
-                    <div class="git-file-item">
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        class="git-file-icon"
-                        ><path
-                          d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
-                        ></path><polyline points="14 2 14 8 20 8"
-                        ></polyline></svg
-                      >
-                      <span class="git-file-path">CLAUDE.md</span>
-                      <span class="git-status-badge git-status-yellow">M</span>
-                    </div>
-                    <div class="git-file-item">
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        class="git-file-icon"
-                        ><path
-                          d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
-                        ></path><polyline points="14 2 14 8 20 8"
-                        ></polyline></svg
-                      >
-                      <span class="git-file-path">notes.md</span>
-                      <span class="git-status-badge git-status-blue">U</span>
-                    </div>
+                  <div class="git-panel-history-msg">fix: prevent data loss in updater</div>
+                </div>
+                <div class="git-panel-history-item">
+                  <div class="git-panel-history-row">
+                    <span class="git-panel-history-hash">b38ead6</span>
+                    <span class="git-panel-history-date">Mar 21</span>
                   </div>
+                  <div class="git-panel-history-msg">fix: prevent popover from closing</div>
+                </div>
+                <div class="git-panel-history-item">
+                  <div class="git-panel-history-row">
+                    <span class="git-panel-history-hash">baf3b82</span>
+                    <span class="git-panel-history-date">Mar 20</span>
+                  </div>
+                  <div class="git-panel-history-msg">ci: redeploy website on release</div>
+                </div>
+                <div class="git-panel-history-item">
+                  <div class="git-panel-history-row">
+                    <span class="git-panel-history-hash">b9ada07</span>
+                    <span class="git-panel-history-date">Mar 19</span>
+                  </div>
+                  <div class="git-panel-history-msg">perf: optimise drag and drop</div>
+                </div>
+                <div class="git-panel-history-item">
+                  <div class="git-panel-history-row">
+                    <span class="git-panel-history-hash">c858b13</span>
+                    <span class="git-panel-history-date">Mar 18</span>
+                  </div>
+                  <div class="git-panel-history-msg">improvement: drag and drop UI</div>
                 </div>
               </div>
             </div>
@@ -1046,35 +1034,127 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   /* Git panel mockup */
   .git-panel-mockup {
     display: flex;
+    flex-direction: column;
     flex: 1;
     background: #0a0a0a;
     font-size: 0.75rem;
     min-height: 0;
   }
 
-  .git-commits-pane {
+  .git-panel-toolbar {
     display: flex;
-    flex-direction: column;
-    width: 40%;
-    border-right: 1px solid #27272a;
-    min-width: 0;
-  }
-
-  .git-files-pane {
-    display: flex;
-    flex-direction: column;
-    width: 60%;
-    min-width: 0;
-  }
-
-  .git-pane-header {
-    padding: 6px 12px;
-    color: #71717a;
-    font-size: 0.65rem;
-    text-transform: lowercase;
-    letter-spacing: 0.03em;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
     border-bottom: 1px solid #27272a;
     flex-shrink: 0;
+  }
+
+  .git-panel-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+  }
+
+  .git-panel-branch-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 0 0 4px;
+    padding: 1px 6px;
+    border: 1px solid rgba(63, 63, 70, 0.5);
+    border-radius: 4px;
+    color: #a1a1aa;
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.65rem;
+    flex-shrink: 0;
+  }
+
+  .git-panel-branch-icon {
+    color: #34d399;
+  }
+
+  .git-panel-tab-group {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+
+  .git-panel-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    padding: 0 10px;
+    border: none;
+    background: transparent;
+    color: #71717a;
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.7rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+
+  .git-panel-tab.active {
+    color: #e4e4e7;
+    border-bottom-color: transparent;
+  }
+
+  .git-panel-tab-count {
+    font-size: 0.6rem;
+    color: #71717a;
+    background: rgba(63, 63, 70, 0.4);
+    border-radius: 4px;
+    min-width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
+  }
+
+  .git-panel-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding-right: 8px;
+    height: 100%;
+  }
+
+  .git-panel-remote-btn {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 5px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #71717a;
+    cursor: pointer;
+  }
+
+  .git-panel-remote-btn:hover {
+    color: #a1a1aa;
+    background: rgba(63, 63, 70, 0.3);
+  }
+
+  .git-panel-remote-count {
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.6rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .git-panel-remote-behind {
+    color: #71717a;
+  }
+
+  .git-panel-remote-ahead {
+    color: #71717a;
   }
 
   .git-pane-body {
@@ -1083,63 +1163,170 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     min-height: 0;
   }
 
-  /* Commit items */
-  .git-commit-item {
-    padding: 6px 12px;
-    border-bottom: 1px solid #1a1a1e;
-    cursor: default;
+  /* checkboxes */
+  .git-panel-checkbox {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid #52525b;
+    background: transparent;
+    flex-shrink: 0;
+    position: relative;
+    display: inline-block;
   }
 
-  .git-commit-item:hover {
-    background: rgba(63, 63, 70, 0.15);
+  .git-panel-checkbox-checked {
+    border-color: #34d399;
+    background: rgba(16, 185, 129, 0.3);
   }
 
-  .git-commit-item.selected {
-    background: rgba(16, 185, 129, 0.08);
+  .git-panel-checkbox-checked::after {
+    content: "\2713";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #34d399;
+    font-size: 0.5rem;
+    font-weight: bold;
+    line-height: 1;
   }
 
-  .git-commit-row {
+  .git-panel-checkbox-small {
+    width: 10px;
+    height: 10px;
+  }
+
+  /* deleted file */
+  .git-file-path-deleted {
+    text-decoration: line-through;
+    color: #71717a !important;
+  }
+
+  /* commit form */
+  .git-panel-commit-form {
+    border-bottom: 1px solid #27272a;
+    padding: 8px;
+    flex-shrink: 0;
+  }
+
+  .git-panel-commit-input {
+    width: 100%;
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid #3f3f46;
+    border-radius: 4px;
+    background: #0a0a0a;
+    color: #e4e4e7;
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.7rem;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  .git-panel-commit-actions {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    margin-top: 8px;
   }
 
-  .git-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .git-dot-yellow {
-    background: #eab308; /* yellow-500 */
-  }
-
-  .git-commit-label {
-    color: #e4e4e7;
-    font-weight: 500;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .git-commit-hash {
-    color: #52525b; /* zinc-600 */
+  .git-panel-amend-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #71717a;
     font-family: var(--sl-font-mono) !important;
-  }
-
-  .git-commit-date {
-    color: #52525b;
     font-size: 0.65rem;
-    flex-shrink: 0;
+    cursor: pointer;
   }
 
-  .git-commit-msg {
-    color: #a1a1aa;
+  .git-panel-commit-btn {
+    padding: 3px 14px;
+    border: 1px solid #3f3f46;
+    border-radius: 4px;
+    background: transparent;
+    color: #e4e4e7;
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .git-panel-commit-btn:hover {
+    background: rgba(63, 63, 70, 0.3);
+    border-color: #52525b;
+  }
+
+  /* git tab view switching */
+  .git-panel-tab-view {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .git-panel-tab-view.active {
+    display: flex;
+  }
+
+  /* git history */
+  .git-panel-history-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .git-panel-history-item {
+    padding: 8px 10px;
+    border-bottom: 1px solid #1a1a1e;
+    cursor: pointer;
+  }
+
+  .git-panel-history-item:hover {
+    background: rgba(63, 63, 70, 0.15);
+  }
+
+  .git-panel-history-item-selected {
+    background: rgba(52, 211, 153, 0.08);
+  }
+
+  .git-panel-history-item-selected:hover {
+    background: rgba(52, 211, 153, 0.12);
+  }
+
+  .git-panel-history-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .git-panel-history-hash {
+    color: #71717a;
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.65rem;
+  }
+
+  .git-panel-history-date {
+    color: #71717a;
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.65rem;
+  }
+
+  .git-panel-history-msg {
+    color: #d4d4d8;
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.7rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-top: 2px;
+  }
+
+  @media (max-width: 500px) {
+    .git-panel-toolbar-right {
+      display: none;
+    }
   }
 
   /* File sections */
@@ -1186,6 +1373,25 @@ import TaskTablePreview from "./TaskTablePreview.astro"
 
   .git-section-files {
     padding: 0 2px 4px 6px;
+    margin-left: 8px;
+    border-left: 1px solid #27272a;
+    padding-left: 8px;
+  }
+
+  .git-discard-all {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    color: #71717a;
+    cursor: pointer;
+  }
+
+  .git-discard-all:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
   }
 
   /* File items */
@@ -1223,35 +1429,27 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     font-weight: 600;
     font-family: var(--sl-font-mono) !important;
     min-width: 16px;
-    height: 16px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0 3px;
-    border-radius: 3px;
     flex-shrink: 0;
     line-height: 1;
-    box-sizing: border-box;
   }
 
   .git-status-green {
     color: #22c55e;
-    background: rgba(34, 197, 94, 0.15);
   }
 
   .git-status-yellow {
     color: #eab308;
-    background: rgba(234, 179, 8, 0.15);
   }
 
   .git-status-blue {
     color: #3b82f6;
-    background: rgba(59, 130, 246, 0.15);
   }
 
   .git-status-red {
     color: #ef4444;
-    background: rgba(239, 68, 68, 0.15);
   }
 
   /* Terminal tab bar */
@@ -1492,12 +1690,43 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     })
   }
 
+  function initGitCheckboxes() {
+    document.querySelectorAll(".git-panel-checkbox").forEach((cb) => {
+      ;(cb as HTMLElement).style.cursor = "pointer"
+      cb.addEventListener("click", (e) => {
+        e.stopPropagation()
+        cb.classList.toggle("git-panel-checkbox-checked")
+      })
+    })
+  }
+
+  function initGitPanelTabs() {
+    const tabs = document.querySelectorAll<HTMLButtonElement>(".git-panel-tab")
+    const views = document.querySelectorAll<HTMLElement>(".git-panel-tab-view")
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const isChanges = tab.textContent?.trim().startsWith("changes")
+        const viewName = isChanges ? "changes" : "history"
+
+        tabs.forEach((t) => t.classList.remove("active"))
+        tab.classList.add("active")
+
+        views.forEach((v) => {
+          v.classList.toggle("active", v.dataset.gitPanelView === viewName)
+        })
+      })
+    })
+  }
+
   // Initialize on load
   initTerminal()
   initTabs()
   initChecklist()
   initDockSwitcher()
   initTerminalTabs()
+  initGitCheckboxes()
+  initGitPanelTabs()
 
   // Re-initialize when navigating with View Transitions
   document.addEventListener("astro:page-load", () => {
@@ -1506,5 +1735,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     initChecklist()
     initDockSwitcher()
     initTerminalTabs()
+    initGitCheckboxes()
+    initGitPanelTabs()
   })
 </script>
