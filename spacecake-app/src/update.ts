@@ -71,9 +71,15 @@ async function setupAppImageUpdater() {
   setInterval(checkForUpdates, UPDATE_INTERVAL_MS)
 }
 
+export async function safeSwapFiles(currentPath: string, newPath: string) {
+  const backupPath = `${currentPath}.backup`
+  await rename(currentPath, backupPath)
+  await rename(newPath, currentPath)
+  await unlink(backupPath).catch(() => {})
+}
+
 async function installAndRestart(currentAppImage: string, newAppImage: string) {
-  await unlink(currentAppImage)
-  await rename(newAppImage, currentAppImage)
+  await safeSwapFiles(currentAppImage, newAppImage)
   app.relaunch()
   app.quit()
 }
