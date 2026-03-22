@@ -95,6 +95,7 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
     getRemoteStatus: async () => right({ ahead: 0, behind: 0, tracking: null, current: "main" }),
     discardFile: async () => right(undefined),
     discardAll: async () => right(undefined),
+    blame: async () => right([]),
     removeWorkspace: async () => {},
   },
   ...overrides,

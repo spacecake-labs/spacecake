@@ -506,6 +506,77 @@ describe("GitService", () => {
     )
   })
 
+  describe("getBlame", () => {
+    const porcelainBlame = [
+      "abcd1234abcd1234abcd1234abcd1234abcd1234 1 1 1",
+      "author user",
+      "author-mail <user@host>",
+      "author-time 1700000000",
+      "author-tz +0000",
+      "committer user",
+      "committer-mail <user@host>",
+      "committer-time 1700000000",
+      "committer-tz +0000",
+      "summary fix parser",
+      "filename src/index.ts",
+      "\tconst result = parse(input)",
+    ].join("\n")
+
+    it.effect("returns parsed blame data", () =>
+      Effect.gen(function* () {
+        mockRaw.mockResolvedValue(porcelainBlame)
+        const service = yield* GitService
+        const result = yield* service.getBlame("/my/workspace", "src/index.ts")
+        expect(result).toHaveLength(1)
+        expect(result[0].hash).toBe("abcd1234abcd1234abcd1234abcd1234abcd1234")
+        expect(result[0].author).toBe("user")
+        expect(result[0].summary).toBe("fix parser")
+        expect(result[0].line).toBe(1)
+        expect(mockRaw).toHaveBeenCalledWith(["blame", "--porcelain", "src/index.ts"])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("returns empty array for files with no commits", () =>
+      Effect.gen(function* () {
+        mockRaw.mockRejectedValue(new Error("no such path 'src/new.ts' in HEAD"))
+        const service = yield* GitService
+        const error = yield* service.getBlame("/my/workspace", "src/new.ts").pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("fails with GitError when raw rejects with unexpected error", () =>
+      Effect.gen(function* () {
+        mockRaw.mockRejectedValue(new Error("unexpected failure"))
+        const service = yield* GitService
+        const error = yield* service.getBlame("/my/workspace", "src/file.ts").pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+        expect(error.description).toBe("failed to get blame")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("deduplicates concurrent blame calls for the same file", () =>
+      Effect.gen(function* () {
+        let callCount = 0
+        mockRaw.mockImplementation(async () => {
+          callCount++
+          await new Promise((r) => setTimeout(r, 50))
+          return porcelainBlame
+        })
+        const service = yield* GitService
+        const [r1, r2] = yield* Effect.all(
+          [
+            service.getBlame("/my/workspace", "src/index.ts"),
+            service.getBlame("/my/workspace", "src/index.ts"),
+          ],
+          { concurrency: "unbounded" },
+        )
+        expect(r1).toEqual(r2)
+        expect(callCount).toBe(1)
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
   describe("listBranches", () => {
     it.effect("returns branch list from branchLocal", () =>
       Effect.gen(function* () {

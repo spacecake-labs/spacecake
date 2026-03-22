@@ -394,6 +394,7 @@ const CodeBlockEditorContainer: React.FC<
           block={props.block}
           nodeKey={props.nodeKey}
           codeBlockNode={props.codeBlockNode}
+          meta={props.meta}
         />
       </React.Suspense>
     </CodeBlockEditorContextProvider>

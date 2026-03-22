@@ -5,14 +5,14 @@ import TaskTablePreview from "./TaskTablePreview.astro"
 <div class="relative w-full mx-auto">
   <!-- Single container with outer border -->
   <div
-    class="rounded-lg overflow-hidden border border-zinc-700 bg-[#0a0a0a] shadow-2xl mockup-container antialiased"
+    class="rounded-lg overflow-hidden border border-[var(--preview-border)] bg-[var(--preview-bg)] shadow-2xl mockup-container antialiased"
   >
     <div class="editor-layout">
       <!-- Markdown Editor Panel -->
       <div class="markdown-panel">
         <!-- Tab Bar -->
         <div
-          class="tab-bar flex items-center bg-[#0a0a0a]/50 border-b border-zinc-800"
+          class="tab-bar flex items-center bg-[var(--preview-bg)] border-b border-[var(--preview-border-subtle)]"
         >
           <div class="flex items-center h-full min-w-0 flex-1">
             <button class="editor-tab active" data-tab="skills">
@@ -88,8 +88,8 @@ import TaskTablePreview from "./TaskTablePreview.astro"
 
         <!-- Tab Content: Ship Faster -->
         <div class="tab-content active" data-content="skills">
-          <div class="markdown-content p-5 flex-1 text-zinc-200">
-            <h1 class="text-white font-semibold text-3xl mb-2">ship faster</h1>
+          <div class="markdown-content p-5 flex-1 text-[var(--preview-text)]">
+            <h1 class="text-[var(--preview-text-bright)] font-semibold text-3xl mb-2">ship faster</h1>
 
             <p class="leading-7 mt-2 text-sm">
               write markdown plans.<br />explain code with diagrams.
@@ -98,31 +98,31 @@ import TaskTablePreview from "./TaskTablePreview.astro"
             <!-- Flowchart -->
             <div class="mt-6">
               <div
-                class="flex items-center justify-end px-3 py-1 bg-[#121212] border border-zinc-700 rounded-t"
+                class="flex items-center justify-end px-3 py-1 bg-[var(--preview-bg-elevated)] border border-[var(--preview-border)] rounded-t"
               >
-                <span class="text-zinc-400 text-xs font-mono">mermaid</span>
+                <span class="text-[var(--preview-text-muted)] text-xs font-mono">mermaid</span>
               </div>
 
               <div
-                class="mermaid-preview p-3 bg-[#0a0a0a] rounded-b border border-t-0 border-zinc-700"
+                class="mermaid-preview p-3 bg-[var(--preview-bg)] rounded-b border border-t-0 border-[var(--preview-border)]"
               >
                 <div
                   class="mermaid-diagram flex flex-col items-center gap-1 text-xs font-mono"
                 >
                   <div
-                    class="px-3 py-1 bg-[#0a0a0a] border border-zinc-600 rounded text-white"
+                    class="px-3 py-1 bg-[var(--preview-bg)] border border-[var(--preview-icon)] rounded text-[var(--preview-text-bright)]"
                   >
                     research
                   </div>
-                  <div class="w-px h-2 bg-zinc-600"></div>
+                  <div class="w-px h-2 bg-[var(--preview-icon)]"></div>
                   <div
-                    class="px-3 py-1 bg-[#0a0a0a] border border-zinc-600 rounded text-white"
+                    class="px-3 py-1 bg-[var(--preview-bg)] border border-[var(--preview-icon)] rounded text-[var(--preview-text-bright)]"
                   >
                     plan
                   </div>
-                  <div class="w-px h-2 bg-zinc-600"></div>
+                  <div class="w-px h-2 bg-[var(--preview-icon)]"></div>
                   <div
-                    class="px-3 py-1 bg-emerald-500/20 border border-emerald-500/40 rounded text-emerald-400"
+                    class="px-3 py-1 bg-[rgba(16,185,129,0.06)] border border-[rgba(16,185,129,0.3)] rounded text-emerald-400"
                   >
                     implement
                   </div>
@@ -150,8 +150,8 @@ import TaskTablePreview from "./TaskTablePreview.astro"
 
         <!-- Tab Content: CLAUDE.md -->
         <div class="tab-content" data-content="claude">
-          <div class="markdown-content p-5 flex-1 text-zinc-200">
-            <h1 class="text-white font-semibold text-3xl mb-2">your rules</h1>
+          <div class="markdown-content p-5 flex-1 text-[var(--preview-text)]">
+            <h1 class="text-[var(--preview-text-bright)] font-semibold text-3xl mb-2">your rules</h1>
 
             <p class="leading-7 mt-2 text-sm">
               define your stack.<br />own your conventions.
@@ -160,31 +160,31 @@ import TaskTablePreview from "./TaskTablePreview.astro"
             <!-- JSON Code Block (using mermaid-preview for consistent height) -->
             <div class="mt-6">
               <div
-                class="flex items-center justify-end px-3 py-1 bg-[#121212] border border-zinc-700 rounded-t"
+                class="flex items-center justify-end px-3 py-1 bg-[var(--preview-bg-elevated)] border border-[var(--preview-border)] rounded-t"
               >
-                <span class="text-zinc-400 text-xs font-mono">json</span>
+                <span class="text-[var(--preview-text-muted)] text-xs font-mono">json</span>
               </div>
 
               <div
-                class="mermaid-preview p-3 bg-[#0a0a0a] rounded-b border border-t-0 border-zinc-700"
+                class="mermaid-preview p-3 bg-[var(--preview-bg)] rounded-b border border-t-0 border-[var(--preview-border)]"
               >
                 <div
                   class="mermaid-diagram flex flex-col items-center gap-1 text-xs font-mono"
                 >
                   <div
-                    class="px-3 py-1 bg-[#0a0a0a] border border-zinc-600 rounded text-emerald-400"
+                    class="px-3 py-1 bg-[var(--preview-bg)] border border-[var(--preview-icon)] rounded text-emerald-400"
                   >
                     "stack": "next.js"
                   </div>
-                  <div class="w-px h-2 bg-zinc-600"></div>
+                  <div class="w-px h-2 bg-[var(--preview-icon)]"></div>
                   <div
-                    class="px-3 py-1 bg-[#0a0a0a] border border-zinc-600 rounded text-emerald-400"
+                    class="px-3 py-1 bg-[var(--preview-bg)] border border-[var(--preview-icon)] rounded text-emerald-400"
                   >
                     "style": "functional"
                   </div>
-                  <div class="w-px h-2 bg-zinc-600"></div>
+                  <div class="w-px h-2 bg-[var(--preview-icon)]"></div>
                   <div
-                    class="px-3 py-1 bg-[#0a0a0a] border border-zinc-600 rounded text-emerald-400"
+                    class="px-3 py-1 bg-[var(--preview-bg)] border border-[var(--preview-icon)] rounded text-emerald-400"
                   >
                     "tests": "vitest"
                   </div>
@@ -195,16 +195,16 @@ import TaskTablePreview from "./TaskTablePreview.astro"
             <!-- Inline code rules -->
             <div class="mt-6 space-y-2 text-sm">
               <div class="flex items-center gap-2">
-                <span class="text-zinc-500">•</span>
-                <span class="text-zinc-300">write pure functions</span>
+                <span class="text-[var(--preview-text-faint)]">•</span>
+                <span class="text-[var(--preview-text-secondary)]">write pure functions</span>
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-zinc-500">•</span>
-                <span class="text-zinc-300">test everything</span>
+                <span class="text-[var(--preview-text-faint)]">•</span>
+                <span class="text-[var(--preview-text-secondary)]">test everything</span>
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-zinc-500">•</span>
-                <span class="text-zinc-300">make no mistakes</span>
+                <span class="text-[var(--preview-text-faint)]">•</span>
+                <span class="text-[var(--preview-text-secondary)]">make no mistakes</span>
               </div>
             </div>
           </div>
@@ -216,7 +216,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
         <div class="dock-content active" data-dock-content="terminal">
           <!-- Terminal Tab Bar -->
           <div
-            class="terminal-tab-bar flex items-center bg-[#0a0a0a]/50 border-b border-zinc-800"
+            class="terminal-tab-bar flex items-center bg-[var(--preview-bg)] border-b border-[var(--preview-border-subtle)]"
           >
             <div class="flex items-center h-full min-w-0 flex-1">
               <button class="terminal-tab active" data-terminal-tab="tab1">
@@ -276,18 +276,18 @@ import TaskTablePreview from "./TaskTablePreview.astro"
           </div>
           <!-- Claude Code tab content -->
           <div
-            class="terminal-tab-content active p-4 text-xs space-y-3 font-jetbrains flex-1 bg-[#0a0a0a]"
+            class="terminal-tab-content active p-4 text-xs space-y-3 font-jetbrains flex-1 bg-[var(--preview-bg)]"
             data-terminal-content="tab1"
           >
-            <div class="border border-orange-500 rounded p-3 space-y-2">
-              <div class="text-orange-400 border-b border-orange-900 pb-2">
+            <div class="border border-orange-500/60 rounded p-3 space-y-2">
+              <div class="text-orange-400 border-b border-orange-500/20 pb-2">
                 ━━━━━ Claude Code ━━━━━━━━━━━━━━━━━━
               </div>
-              <div class="space-y-1 text-zinc-300">
-                <div class="text-white font-medium">Welcome back Taylor!</div>
+              <div class="space-y-1 text-[var(--preview-text-secondary)]">
+                <div class="text-[var(--preview-text-bright)] font-medium">Welcome back Taylor!</div>
                 <div class="flex items-center gap-2">
                   <div class="text-orange-400 text-base">🦀</div>
-                  <div class="text-xs text-zinc-500">Opus 4.5 · Claude Pro</div>
+                  <div class="text-xs text-[var(--preview-text-faint)]">Opus 4.5 · Claude Pro</div>
                 </div>
                 <div class="text-xs text-zinc-500 terminal-path-text">
                   <span class="block truncate"
@@ -298,75 +298,75 @@ import TaskTablePreview from "./TaskTablePreview.astro"
                   >
                 </div>
               </div>
-              <div class="border-t border-orange-900 pt-2 space-y-1">
+              <div class="border-t border-orange-500/20 pt-2 space-y-1">
                 <div class="text-emerald-400 text-xs font-medium">
                   Tips for getting started
                 </div>
-                <div class="text-zinc-500 text-xs">
+                <div class="text-[var(--preview-text-faint)] text-xs">
                   Run ./init to create a CLAUDE.md file with instructions for
                   Claude
                 </div>
                 <div class="text-xs mt-2">
                   <span class="text-orange-400">Recent activity</span>
-                  <div class="text-zinc-600">No recent activity</div>
+                  <div class="text-[var(--preview-text-faint)]">No recent activity</div>
                 </div>
               </div>
             </div>
 
             <!-- Terminal Prompt with Typing Animation -->
-            <div class="flex items-center gap-2 text-zinc-400">
+            <div class="flex items-center gap-2 text-[var(--preview-text-muted)]">
               <span class="text-purple-400 font-bold">❯</span>
               <span class="text-orange-400">■</span>
-              <span class="text-zinc-400" id="terminal-text"></span>
+              <span class="text-[var(--preview-text-muted)]" id="terminal-text"></span>
               <span
-                class="inline-block w-2 h-4 bg-white opacity-100"
+                class="inline-block w-2 h-4 bg-[var(--preview-text-bright)] opacity-100"
                 id="terminal-cursor"></span>
             </div>
 
-            <div class="text-zinc-600 text-xs pt-2">? for shortcuts</div>
+            <div class="text-[var(--preview-text-faint)] text-xs pt-2">? for shortcuts</div>
           </div>
 
           <!-- pnpm dev tab content -->
           <div
-            class="terminal-tab-content p-4 text-xs space-y-2 font-jetbrains flex-1 bg-[#0a0a0a]"
+            class="terminal-tab-content p-4 text-xs space-y-2 font-jetbrains flex-1 bg-[var(--preview-bg)]"
             data-terminal-content="tab2"
           >
-            <div class="text-zinc-500">$ pnpm dev</div>
+            <div class="text-[var(--preview-text-faint)]">$ pnpm dev</div>
             <div class="space-y-0.5 pt-1">
               <div>
                 <span class="text-cyan-400 font-bold">VITE</span>
-                <span class="text-zinc-500"> v6.2.0</span>
+                <span class="text-[var(--preview-text-faint)]"> v6.2.0</span>
                 <span class="text-emerald-400"> ready in</span>
-                <span class="text-white"> 284</span>
-                <span class="text-zinc-500">ms</span>
+                <span class="text-[var(--preview-text-bright)]"> 284</span>
+                <span class="text-[var(--preview-text-faint)]">ms</span>
               </div>
               <div class="pt-2 space-y-0.5">
                 <div>
                   <span class="text-emerald-400">➜</span>
-                  <span class="text-white font-bold">&nbsp; Local: &nbsp;</span>
+                  <span class="text-[var(--preview-text-bright)] font-bold">&nbsp; Local: &nbsp;</span>
                   <span class="text-cyan-400">http://localhost:5173/</span>
                 </div>
                 <div>
                   <span class="text-emerald-400">➜</span>
-                  <span class="text-zinc-500"
+                  <span class="text-[var(--preview-text-faint)]"
                     >&nbsp; Network: http://192.168.1.42:5173/</span
                   >
                 </div>
                 <div>
                   <span class="text-emerald-400">➜</span>
-                  <span class="text-zinc-500"
+                  <span class="text-[var(--preview-text-faint)]"
                     >&nbsp; press
-                    <span class="text-white font-bold">h + enter</span> to show help</span
+                    <span class="text-[var(--preview-text-bright)] font-bold">h + enter</span> to show help</span
                   >
                 </div>
               </div>
               <div class="pt-3 space-y-1">
-                <div class="text-zinc-600">
+                <div class="text-[var(--preview-text-faint)]">
                   10:31:42
                   <span class="text-cyan-400">[vite]</span>
                   <span class="text-emerald-400"> hmr update /src/app.tsx</span>
                 </div>
-                <div class="text-zinc-600">
+                <div class="text-[var(--preview-text-faint)]">
                   10:31:44
                   <span class="text-cyan-400">[vite]</span>
                   <span class="text-emerald-400">
@@ -380,138 +380,126 @@ import TaskTablePreview from "./TaskTablePreview.astro"
 
         <div class="dock-content" data-dock-content="git">
           <div class="git-panel-mockup font-jetbrains">
-            <!-- left: commits pane -->
-            <div class="git-commits-pane">
-              <div class="git-pane-header">commits</div>
-              <div class="git-pane-body">
-                <div class="git-commit-item selected">
-                  <div class="git-commit-row">
-                    <span class="git-dot git-dot-yellow"></span>
-                    <span class="git-commit-label">working tree</span>
-                  </div>
+            <!-- git toolbar -->
+            <div class="git-panel-toolbar">
+              <div class="git-panel-toolbar-left">
+                <div class="git-panel-tab-group">
+                  <button class="git-panel-tab active">changes <span class="git-panel-tab-count">4</span></button>
+                  <button class="git-panel-tab">history</button>
                 </div>
-                <div class="git-commit-item">
-                  <div class="git-commit-row">
-                    <span class="git-commit-hash">a1b2c3f</span>
-                    <span class="git-commit-date">Feb 14</span>
-                  </div>
-                  <div class="git-commit-msg">add task checklist</div>
-                </div>
-                <div class="git-commit-item">
-                  <div class="git-commit-row">
-                    <span class="git-commit-hash">8f2e1d4</span>
-                    <span class="git-commit-date">Feb 13</span>
-                  </div>
-                  <div class="git-commit-msg">add mermaid flowchart</div>
-                </div>
-                <div class="git-commit-item">
-                  <div class="git-commit-row">
-                    <span class="git-commit-hash">c7d9e2a</span>
-                    <span class="git-commit-date">Feb 12</span>
-                  </div>
-                  <div class="git-commit-msg">create project plan</div>
+              </div>
+              <div class="git-panel-toolbar-right">
+                <button class="git-panel-remote-btn" title="fetch">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
+                </button>
+                <button class="git-panel-remote-btn" title="pull">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                  <span class="git-panel-remote-count git-panel-remote-behind">2</span>
+                </button>
+                <button class="git-panel-remote-btn" title="push">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+                  <span class="git-panel-remote-count git-panel-remote-ahead">1</span>
+                </button>
+                <div class="git-panel-branch-badge">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="git-panel-branch-icon"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>
+                  <span>main</span>
                 </div>
               </div>
             </div>
-
-            <!-- right: changed files pane -->
-            <div class="git-files-pane">
-              <div class="git-pane-header">changed files</div>
+            <!-- changes view -->
+            <div class="git-panel-tab-view active" data-git-panel-view="changes">
+              <div class="git-panel-commit-form">
+                <input
+                  type="text"
+                  class="git-panel-commit-input"
+                  placeholder="commit message..."
+                  value="add project docs and config"
+                  readonly
+                />
+                <div class="git-panel-commit-actions">
+                  <button class="git-panel-commit-btn">commit</button>
+                  <label class="git-panel-amend-label">
+                    <span class="git-panel-checkbox git-panel-checkbox-small"></span>
+                    <span>amend</span>
+                  </label>
+                </div>
+              </div>
               <div class="git-pane-body">
                 <div class="git-section">
                   <div class="git-section-header">
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      ><polyline points="6 9 12 15 18 9"></polyline></svg
-                    >
-                    <span>staged changes</span>
-                    <span class="git-count-badge git-count-green">1</span>
+                    <span class="git-panel-checkbox git-panel-checkbox-checked"></span>
+                    <span>changes</span>
+                    <span class="git-count-badge">4</span>
+                    <span class="git-discard-all" title="discard all changes">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+                    </span>
                   </div>
                   <div class="git-section-files">
                     <div class="git-file-item">
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        class="git-file-icon"
-                        ><path
-                          d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
-                        ></path><polyline points="14 2 14 8 20 8"
-                        ></polyline></svg
-                      >
+                      <span class="git-panel-checkbox git-panel-checkbox-checked"></span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="git-file-icon"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                      <span class="git-file-path">CLAUDE.md</span>
+                      <span class="git-status-badge git-status-yellow">M</span>
+                    </div>
+                    <div class="git-file-item">
+                      <span class="git-panel-checkbox git-panel-checkbox-checked"></span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="git-file-icon"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                      <span class="git-file-path">notes.md</span>
+                      <span class="git-status-badge git-status-blue">U</span>
+                    </div>
+                    <div class="git-file-item">
+                      <span class="git-panel-checkbox"></span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="git-file-icon"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                      <span class="git-file-path git-file-path-deleted">old-config.json</span>
+                      <span class="git-status-badge git-status-red">D</span>
+                    </div>
+                    <div class="git-file-item">
+                      <span class="git-panel-checkbox git-panel-checkbox-checked"></span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="git-file-icon"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                       <span class="git-file-path">ship-faster.md</span>
                       <span class="git-status-badge git-status-green">A</span>
                     </div>
                   </div>
                 </div>
-                <div class="git-section">
-                  <div class="git-section-header">
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      ><polyline points="6 9 12 15 18 9"></polyline></svg
-                    >
-                    <span>changes</span>
-                    <span class="git-count-badge">2</span>
+              </div>
+            </div>
+            <!-- history view -->
+            <div class="git-panel-tab-view" data-git-panel-view="history">
+              <div class="git-panel-history-list">
+                <div class="git-panel-history-item git-panel-history-item-selected">
+                  <div class="git-panel-history-row">
+                    <span class="git-panel-history-hash">eebd902</span>
+                    <span class="git-panel-history-date">Mar 22</span>
                   </div>
-                  <div class="git-section-files">
-                    <div class="git-file-item">
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        class="git-file-icon"
-                        ><path
-                          d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
-                        ></path><polyline points="14 2 14 8 20 8"
-                        ></polyline></svg
-                      >
-                      <span class="git-file-path">CLAUDE.md</span>
-                      <span class="git-status-badge git-status-yellow">M</span>
-                    </div>
-                    <div class="git-file-item">
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        class="git-file-icon"
-                        ><path
-                          d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
-                        ></path><polyline points="14 2 14 8 20 8"
-                        ></polyline></svg
-                      >
-                      <span class="git-file-path">notes.md</span>
-                      <span class="git-status-badge git-status-blue">U</span>
-                    </div>
+                  <div class="git-panel-history-msg">fix: prevent data loss in updater</div>
+                </div>
+                <div class="git-panel-history-item">
+                  <div class="git-panel-history-row">
+                    <span class="git-panel-history-hash">b38ead6</span>
+                    <span class="git-panel-history-date">Mar 21</span>
                   </div>
+                  <div class="git-panel-history-msg">fix: prevent popover from closing</div>
+                </div>
+                <div class="git-panel-history-item">
+                  <div class="git-panel-history-row">
+                    <span class="git-panel-history-hash">baf3b82</span>
+                    <span class="git-panel-history-date">Mar 20</span>
+                  </div>
+                  <div class="git-panel-history-msg">ci: redeploy website on release</div>
+                </div>
+                <div class="git-panel-history-item">
+                  <div class="git-panel-history-row">
+                    <span class="git-panel-history-hash">b9ada07</span>
+                    <span class="git-panel-history-date">Mar 19</span>
+                  </div>
+                  <div class="git-panel-history-msg">perf: optimise drag and drop</div>
+                </div>
+                <div class="git-panel-history-item">
+                  <div class="git-panel-history-row">
+                    <span class="git-panel-history-hash">c858b13</span>
+                    <span class="git-panel-history-date">Mar 18</span>
+                  </div>
+                  <div class="git-panel-history-msg">improvement: drag and drop UI</div>
                 </div>
               </div>
             </div>
@@ -570,7 +558,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            class="text-zinc-500"
+            class="text-[var(--preview-text-faint)]"
             ><line x1="6" y1="3" x2="6" y2="15"></line><circle
               cx="18"
               cy="6"
@@ -602,7 +590,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   /* Task panel - hidden on mobile, shown on desktop */
   .task-panel-desktop {
     display: none;
-    border-top: 1px solid #3f3f46; /* zinc-700 */
+    border-top: 1px solid var(--preview-border);
   }
 
   @media (min-width: 550px) {
@@ -625,12 +613,12 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   }
 
   .markdown-panel {
-    border-bottom: 1px solid #3f3f46; /* zinc-700 */
+    border-bottom: 1px solid var(--preview-border);
   }
 
   /* Content areas fill available space */
   .markdown-content {
-    background: #0a0a0a;
+    background: var(--preview-bg);
     flex: 1;
     min-height: 0;
   }
@@ -655,7 +643,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
 
     .markdown-panel {
       border-bottom: none;
-      border-right: 1px solid #3f3f46; /* zinc-700 */
+      border-right: 1px solid var(--preview-border);
     }
 
     /* Ensure both panels have equal height */
@@ -690,9 +678,8 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     line-height: 1.5 !important;
   }
 
-  /* Force code block text to stay light in both themes */
   .mockup-container .code-content {
-    color: #e4e4e7 !important; /* zinc-200 */
+    color: var(--preview-text) !important;
     white-space: nowrap;
     overflow-x: hidden;
   }
@@ -760,8 +747,8 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     justify-content: space-between;
     height: 28px;
     padding: 0 12px;
-    background: rgba(10, 10, 10, 0.5);
-    border-top: 1px solid #27272a;
+    background: var(--preview-bg);
+    border-top: 1px solid var(--preview-border-subtle);
     flex-shrink: 0;
   }
 
@@ -785,9 +772,9 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     gap: 4px;
     margin-left: 4px;
     padding: 1px 6px;
-    border: 1px solid rgba(63, 63, 70, 0.5);
+    border: 1px solid var(--preview-border);
     border-radius: 4px;
-    color: #71717a;
+    color: var(--preview-text-faint);
     font-family: var(--sl-font-mono) !important;
     font-size: 0.65rem;
   }
@@ -818,9 +805,9 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     display: flex;
     align-items: center;
     padding: 1px 7px;
-    border: 1px solid rgba(63, 63, 70, 0.5);
+    border: 1px solid var(--preview-border);
     border-radius: 4px;
-    color: #71717a;
+    color: var(--preview-text-faint);
     font-family: var(--sl-font-mono) !important;
     font-size: 0.65rem;
   }
@@ -864,7 +851,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     border-bottom: none;
     border-radius: 6px 6px 0 0;
     background: transparent;
-    color: #71717a; /* zinc-500 */
+    color: var(--preview-text-faint);
     font-family: var(--sl-font-mono) !important;
     font-size: 0.7rem;
     cursor: pointer;
@@ -882,15 +869,16 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   }
 
   .editor-tab:hover {
-    color: #a1a1aa; /* zinc-400 */
-    background: rgba(63, 63, 70, 0.3);
+    color: var(--preview-text-muted);
+    background: var(--preview-hover-bg);
   }
 
   .editor-tab.active {
-    color: #e4e4e7; /* zinc-200 */
-    background: #0a0a0a;
-    border-color: #27272a; /* zinc-800 */
-    border-bottom-color: #0a0a0a;
+    color: var(--preview-text);
+    background: var(--preview-bg);
+    border-color: var(--preview-border-subtle);
+    border-bottom-color: var(--preview-bg);
+    border-top-color: transparent;
   }
 
   .editor-tab:first-child.active {
@@ -920,7 +908,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     width: 14px;
     height: 14px;
     border-radius: 3px;
-    color: #52525b; /* zinc-600 */
+    color: var(--preview-icon);
     opacity: 0;
     transition: opacity 0.15s;
   }
@@ -977,14 +965,14 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     width: 1rem;
     height: 1rem;
     border-radius: 4px;
-    border: 1px solid #3f3f46;
-    background: rgba(63, 63, 70, 0.3);
+    border: 1px solid var(--preview-border);
+    background: var(--preview-hover-bg);
     flex-shrink: 0;
   }
 
   .checklist-item.checked .checkbox {
-    background: rgb(16 185 129 / 0.2); /* emerald-500/20 */
-    border-color: rgb(16 185 129 / 0.4); /* emerald-500/40 */
+    background: rgb(16 185 129 / 0.06);
+    border-color: rgb(16 185 129 / 0.3);
     position: relative;
   }
 
@@ -1000,7 +988,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   }
 
   .checklist-item.checked span:last-child {
-    color: #71717a;
+    color: var(--preview-text-faint);
   }
 
   /* Dock switcher tabs (now in status bar) */
@@ -1013,7 +1001,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     border: none;
     border-radius: 4px;
     background: transparent;
-    color: #71717a; /* zinc-500 */
+    color: var(--preview-text-faint);
     cursor: pointer;
     transition:
       color 0.15s,
@@ -1022,8 +1010,8 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   }
 
   .dock-tab:hover {
-    color: #a1a1aa; /* zinc-400 */
-    background: rgba(63, 63, 70, 0.3);
+    color: var(--preview-text-muted);
+    background: var(--preview-hover-bg);
   }
 
   .dock-tab.active {
@@ -1046,35 +1034,149 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   /* Git panel mockup */
   .git-panel-mockup {
     display: flex;
+    flex-direction: column;
     flex: 1;
-    background: #0a0a0a;
+    background: var(--preview-bg);
     font-size: 0.75rem;
     min-height: 0;
   }
 
-  .git-commits-pane {
+  .git-panel-toolbar {
     display: flex;
-    flex-direction: column;
-    width: 40%;
-    border-right: 1px solid #27272a;
-    min-width: 0;
-  }
-
-  .git-files-pane {
-    display: flex;
-    flex-direction: column;
-    width: 60%;
-    min-width: 0;
-  }
-
-  .git-pane-header {
-    padding: 6px 12px;
-    color: #71717a;
-    font-size: 0.65rem;
-    text-transform: lowercase;
-    letter-spacing: 0.03em;
-    border-bottom: 1px solid #27272a;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    border-bottom: 1px solid var(--preview-border-subtle);
     flex-shrink: 0;
+  }
+
+  .git-panel-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+  }
+
+  .git-panel-branch-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 0 0 4px;
+    padding: 1px 6px;
+    border: 1px solid var(--preview-border);
+    border-radius: 4px;
+    color: var(--preview-text-muted);
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.65rem;
+    flex-shrink: 0;
+  }
+
+  .git-panel-branch-icon {
+    color: #34d399;
+  }
+
+  .git-panel-tab-group {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+
+  .git-panel-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    padding: 0 6px 0 10px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    background: transparent;
+    color: var(--preview-text-faint);
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+    margin-bottom: -1px;
+    white-space: nowrap;
+  }
+
+  .git-panel-tab:first-child {
+    padding-left: 14px;
+    border-top-left-radius: 0;
+    border-left-color: transparent;
+  }
+
+  .git-panel-tab:hover {
+    color: var(--preview-text-muted);
+    background: var(--preview-hover-bg);
+  }
+
+  .git-panel-tab.active {
+    color: var(--preview-text);
+    background: var(--preview-bg);
+    border-color: var(--preview-border-subtle);
+    border-bottom-color: var(--preview-bg);
+    border-top-color: transparent;
+  }
+
+  .git-panel-tab:first-child.active {
+    border-left-color: transparent;
+  }
+
+  .git-panel-tab-count {
+    font-size: 0.6rem;
+    color: var(--preview-text-faint);
+    background: var(--preview-hover-bg);
+    border-radius: 4px;
+    min-width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
+  }
+
+  .git-panel-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding-right: 8px;
+    height: 100%;
+  }
+
+  .git-panel-remote-btn {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 5px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--preview-text-faint);
+    cursor: pointer;
+  }
+
+  .git-panel-remote-btn:hover {
+    color: var(--preview-text-muted);
+    background: var(--preview-hover-bg);
+  }
+
+  .git-panel-remote-count {
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.6rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .git-panel-remote-behind {
+    color: var(--preview-text-faint);
+  }
+
+  .git-panel-remote-ahead {
+    color: var(--preview-text-faint);
   }
 
   .git-pane-body {
@@ -1083,68 +1185,175 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     min-height: 0;
   }
 
-  /* Commit items */
-  .git-commit-item {
-    padding: 6px 12px;
-    border-bottom: 1px solid #1a1a1e;
-    cursor: default;
+  /* checkboxes */
+  .git-panel-checkbox {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid var(--preview-icon);
+    background: transparent;
+    flex-shrink: 0;
+    position: relative;
+    display: inline-block;
   }
 
-  .git-commit-item:hover {
-    background: rgba(63, 63, 70, 0.15);
+  .git-panel-checkbox-checked {
+    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.06);
   }
 
-  .git-commit-item.selected {
-    background: rgba(16, 185, 129, 0.08);
+  .git-panel-checkbox-checked::after {
+    content: "\2713";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #34d399;
+    font-size: 0.5rem;
+    font-weight: bold;
+    line-height: 1;
   }
 
-  .git-commit-row {
+  .git-panel-checkbox-small {
+    width: 10px;
+    height: 10px;
+  }
+
+  /* deleted file */
+  .git-file-path-deleted {
+    text-decoration: line-through;
+    color: var(--preview-text-faint) !important;
+  }
+
+  /* commit form */
+  .git-panel-commit-form {
+    border-bottom: 1px solid var(--preview-border-subtle);
+    padding: 8px;
+    flex-shrink: 0;
+  }
+
+  .git-panel-commit-input {
+    width: 100%;
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid var(--preview-border);
+    border-radius: 4px;
+    background: var(--preview-bg);
+    color: var(--preview-text);
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.7rem;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  .git-panel-commit-actions {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    margin-top: 8px;
   }
 
-  .git-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .git-dot-yellow {
-    background: #eab308; /* yellow-500 */
-  }
-
-  .git-commit-label {
-    color: #e4e4e7;
-    font-weight: 500;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .git-commit-hash {
-    color: #52525b; /* zinc-600 */
+  .git-panel-amend-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--preview-text-faint);
     font-family: var(--sl-font-mono) !important;
-  }
-
-  .git-commit-date {
-    color: #52525b;
     font-size: 0.65rem;
-    flex-shrink: 0;
+    cursor: pointer;
   }
 
-  .git-commit-msg {
-    color: #a1a1aa;
+  .git-panel-commit-btn {
+    padding: 3px 14px;
+    border: 1px solid var(--preview-border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--preview-text);
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .git-panel-commit-btn:hover {
+    background: var(--preview-hover-bg);
+    border-color: var(--preview-icon);
+  }
+
+  /* git tab view switching */
+  .git-panel-tab-view {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .git-panel-tab-view.active {
+    display: flex;
+  }
+
+  /* git history */
+  .git-panel-history-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .git-panel-history-item {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--preview-border-faint);
+    cursor: pointer;
+  }
+
+  .git-panel-history-item:hover {
+    background: var(--preview-hover-bg-subtle);
+  }
+
+  .git-panel-history-item-selected {
+    background: rgba(52, 211, 153, 0.08);
+  }
+
+  .git-panel-history-item-selected:hover {
+    background: rgba(52, 211, 153, 0.12);
+  }
+
+  .git-panel-history-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .git-panel-history-hash {
+    color: var(--preview-text-faint);
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.65rem;
+  }
+
+  .git-panel-history-date {
+    color: var(--preview-text-faint);
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.65rem;
+  }
+
+  .git-panel-history-msg {
+    color: var(--preview-text-secondary);
+    font-family: var(--sl-font-mono) !important;
+    font-size: 0.7rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-top: 2px;
+  }
+
+  @media (max-width: 500px) {
+    .git-panel-toolbar-right {
+      display: none;
+    }
   }
 
   /* File sections */
   .git-section {
-    border-bottom: 1px solid #1a1a1e;
+    border-bottom: 1px solid var(--preview-border-faint);
   }
 
   .git-section-header {
@@ -1152,22 +1361,22 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     align-items: center;
     gap: 6px;
     padding: 6px 10px;
-    color: #a1a1aa;
+    color: var(--preview-text-muted);
     font-size: 0.7rem;
     font-weight: 500;
     cursor: default;
   }
 
   .git-section-header svg {
-    color: #52525b;
+    color: var(--preview-icon);
     flex-shrink: 0;
   }
 
   .git-count-badge {
     margin-left: auto;
     font-size: 0.6rem;
-    color: #71717a;
-    background: rgba(63, 63, 70, 0.3);
+    color: var(--preview-text-faint);
+    background: var(--preview-hover-bg);
     border-radius: 4px;
     min-width: 16px;
     height: 16px;
@@ -1186,6 +1395,25 @@ import TaskTablePreview from "./TaskTablePreview.astro"
 
   .git-section-files {
     padding: 0 2px 4px 6px;
+    margin-left: 8px;
+    border-left: 1px solid var(--preview-border-subtle);
+    padding-left: 8px;
+  }
+
+  .git-discard-all {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    color: var(--preview-text-faint);
+    cursor: pointer;
+  }
+
+  .git-discard-all:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
   }
 
   /* File items */
@@ -1199,16 +1427,16 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   }
 
   .git-file-item:hover {
-    background: rgba(63, 63, 70, 0.15);
+    background: var(--preview-hover-bg-subtle);
   }
 
   .git-file-icon {
-    color: #52525b;
+    color: var(--preview-icon);
     flex-shrink: 0;
   }
 
   .git-file-path {
-    color: #d4d4d8;
+    color: var(--preview-text-secondary);
     flex: 1;
     min-width: 0;
     white-space: nowrap;
@@ -1223,35 +1451,27 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     font-weight: 600;
     font-family: var(--sl-font-mono) !important;
     min-width: 16px;
-    height: 16px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0 3px;
-    border-radius: 3px;
     flex-shrink: 0;
     line-height: 1;
-    box-sizing: border-box;
   }
 
   .git-status-green {
     color: #22c55e;
-    background: rgba(34, 197, 94, 0.15);
   }
 
   .git-status-yellow {
     color: #eab308;
-    background: rgba(234, 179, 8, 0.15);
   }
 
   .git-status-blue {
     color: #3b82f6;
-    background: rgba(59, 130, 246, 0.15);
   }
 
   .git-status-red {
     color: #ef4444;
-    background: rgba(239, 68, 68, 0.15);
   }
 
   /* Terminal tab bar */
@@ -1270,7 +1490,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     border-bottom: none;
     border-radius: 6px 6px 0 0;
     background: transparent;
-    color: #71717a; /* zinc-500 */
+    color: var(--preview-text-faint);
     font-family: var(--sl-font-mono) !important;
     font-size: 0.7rem;
     cursor: pointer;
@@ -1288,15 +1508,16 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   }
 
   .terminal-tab:hover {
-    color: #a1a1aa; /* zinc-400 */
-    background: rgba(63, 63, 70, 0.3);
+    color: var(--preview-text-muted);
+    background: var(--preview-hover-bg);
   }
 
   .terminal-tab.active {
-    color: #e4e4e7; /* zinc-200 */
-    background: #0a0a0a;
-    border-color: #27272a; /* zinc-800 */
-    border-bottom-color: #0a0a0a;
+    color: var(--preview-text);
+    background: var(--preview-bg);
+    border-color: var(--preview-border-subtle);
+    border-bottom-color: var(--preview-bg);
+    border-top-color: transparent;
   }
 
   .terminal-tab:first-child.active {
@@ -1316,7 +1537,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     width: 14px;
     height: 14px;
     border-radius: 3px;
-    color: #52525b; /* zinc-600 */
+    color: var(--preview-icon);
     opacity: 0;
     transition: opacity 0.15s;
   }
@@ -1337,7 +1558,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     width: 22px;
     height: 22px;
     border-radius: 4px;
-    color: #71717a; /* zinc-500 */
+    color: var(--preview-text-faint);
     cursor: pointer;
     transition:
       color 0.15s,
@@ -1345,8 +1566,8 @@ import TaskTablePreview from "./TaskTablePreview.astro"
   }
 
   .terminal-tab-add:hover {
-    color: #e4e4e7; /* zinc-200 */
-    background: rgba(63, 63, 70, 0.3);
+    color: var(--preview-text);
+    background: var(--preview-hover-bg);
   }
 
   /* Hide commit messages on very narrow widths */
@@ -1492,12 +1713,43 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     })
   }
 
+  function initGitCheckboxes() {
+    document.querySelectorAll(".git-panel-checkbox").forEach((cb) => {
+      ;(cb as HTMLElement).style.cursor = "pointer"
+      cb.addEventListener("click", (e) => {
+        e.stopPropagation()
+        cb.classList.toggle("git-panel-checkbox-checked")
+      })
+    })
+  }
+
+  function initGitPanelTabs() {
+    const tabs = document.querySelectorAll<HTMLButtonElement>(".git-panel-tab")
+    const views = document.querySelectorAll<HTMLElement>(".git-panel-tab-view")
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const isChanges = tab.textContent?.trim().startsWith("changes")
+        const viewName = isChanges ? "changes" : "history"
+
+        tabs.forEach((t) => t.classList.remove("active"))
+        tab.classList.add("active")
+
+        views.forEach((v) => {
+          v.classList.toggle("active", v.dataset.gitPanelView === viewName)
+        })
+      })
+    })
+  }
+
   // Initialize on load
   initTerminal()
   initTabs()
   initChecklist()
   initDockSwitcher()
   initTerminalTabs()
+  initGitCheckboxes()
+  initGitPanelTabs()
 
   // Re-initialize when navigating with View Transitions
   document.addEventListener("astro:page-load", () => {
@@ -1506,5 +1758,7 @@ import TaskTablePreview from "./TaskTablePreview.astro"
     initChecklist()
     initDockSwitcher()
     initTerminalTabs()
+    initGitCheckboxes()
+    initGitPanelTabs()
   })
 </script>

@@ -1,6 +1,11 @@
 import { atom } from "jotai"
 
+import type { BlameLine } from "@/services/git-blame-parser"
+
 export const gitBranchAtom = atom<string | null>(null)
+
+// blame data for the currently active file (set by the file route)
+export const activeBlameAtom = atom<BlameLine[]>([])
 
 export type GitStatus = {
   modified: string[]

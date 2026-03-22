@@ -2,9 +2,10 @@ import { createFileRoute, ErrorComponent, redirect } from "@tanstack/react-route
 import { useActorRef } from "@xstate/react"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
-import { useSetAtom } from "jotai"
+import { atom } from "jotai"
+import { useSetAtom, useAtomValue } from "jotai"
 import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
-import { useEffect } from "react"
+import React, { useEffect } from "react"
 
 import { Editor } from "@/components/editor/editor"
 import { LoadingAnimation } from "@/components/loading-animation"
@@ -16,6 +17,7 @@ import {
   sortTree,
   updateFolderInTree,
 } from "@/lib/atoms/file-tree"
+import { activeBlameAtom, isGitRepoAtom } from "@/lib/atoms/git"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
 import {
   createEditorConfigFromContent,
@@ -260,6 +262,50 @@ function FileLayout() {
 
     window.electronAPI.claude.notifySelectionChanged(payload)
   }
+
+  // fetch blame data for the active file
+  const setActiveBlame = useSetAtom(activeBlameAtom)
+  const isGitRepo = useAtomValue(isGitRepoAtom)
+  const isFileDirty = useAtomValue(
+    React.useMemo(
+      () => atom((get) => get(getOrCreateFileStateAtom(filePath)).value === "Dirty"),
+      [filePath],
+    ),
+  )
+
+  useEffect(() => {
+    if (!isGitRepo || isFileDirty) {
+      setActiveBlame([])
+      return
+    }
+
+    const relativePath = filePath.startsWith(workspace.path + "/")
+      ? filePath.slice(workspace.path.length + 1)
+      : filePath
+
+    let cancelled = false
+    window.electronAPI.git
+      .blame(workspace.path, relativePath)
+      .then((result) => {
+        if (cancelled) return
+        match(result, {
+          onLeft: () => setActiveBlame([]),
+          onRight: (data) => setActiveBlame(data),
+        })
+      })
+      .catch(() => {
+        if (!cancelled) setActiveBlame([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [filePath, workspace.path, isGitRepo, isFileDirty, setActiveBlame])
+
+  // clear active blame on unmount
+  useEffect(() => {
+    return () => setActiveBlame([])
+  }, [setActiveBlame])
 
   useEffect(() => {
     RuntimeClient.runPromise(

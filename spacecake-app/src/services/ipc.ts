@@ -462,6 +462,10 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       gitHandler(git.getCommitFiles(workspacePath, commitHash)),
     )
 
+    ipcMain.handle("git:blame", (_, workspacePath: string, filePath: string) =>
+      gitHandler(git.getBlame(workspacePath, filePath)),
+    )
+
     ipcMain.handle("git:stage", (_, workspacePath: string, files: string[]) =>
       gitHandler(git.stageFiles(workspacePath, files)),
     )

@@ -64,6 +64,24 @@
 
   /* Wider content for homepage */
   --sl-nav-pad-x: 2.5rem;
+
+  /* Preview mockup component colors */
+  --preview-bg: #0a0a0a;
+  --preview-bg-elevated: #121212;
+  --preview-bg-subtle: #0c0c0c;
+  --preview-border: #3f3f46;
+  --preview-border-subtle: #27272a;
+  --preview-border-faint: #1a1a1e;
+  --preview-text: #e4e4e7;
+  --preview-text-secondary: #d4d4d8;
+  --preview-text-muted: #a1a1aa;
+  --preview-text-faint: #71717a;
+  --preview-text-bright: #ffffff;
+  --preview-icon: #52525b;
+  --preview-hover-bg: rgba(63, 63, 70, 0.3);
+  --preview-hover-bg-subtle: rgba(63, 63, 70, 0.15);
+  --preview-hover-text: rgba(255, 255, 255, 0.05);
+  --preview-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 
 /* Light mode colors. */
@@ -89,6 +107,24 @@
   --sl-color-bg-code: #f1f5f9;
   /* Navigation/header background */
   --sl-color-bg-nav: oklch(1 0 0);
+
+  /* Preview mockup component colors */
+  --preview-bg: #ffffff;
+  --preview-bg-elevated: #f4f4f5;
+  --preview-bg-subtle: #fafafa;
+  --preview-border: #d4d4d8;
+  --preview-border-subtle: #e4e4e7;
+  --preview-border-faint: #f4f4f5;
+  --preview-text: #27272a;
+  --preview-text-secondary: #3f3f46;
+  --preview-text-muted: #52525b;
+  --preview-text-faint: #71717a;
+  --preview-text-bright: #18181b;
+  --preview-icon: #a1a1aa;
+  --preview-hover-bg: rgba(0, 0, 0, 0.06);
+  --preview-hover-bg-subtle: rgba(0, 0, 0, 0.04);
+  --preview-hover-text: rgba(0, 0, 0, 0.04);
+  --preview-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
 /* Sidebar link highlight styling */
