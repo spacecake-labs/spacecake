@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.65
+
+### Patch Changes
+
+- dbc0e27: Feat: Git clone, diff gutter, stash, conflict resolution, and github integration.
+
 ## 0.1.0-alpha.64
 
 ### Patch Changes
