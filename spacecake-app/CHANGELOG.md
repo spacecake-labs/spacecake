@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.64
+
+### Patch Changes
+
+- 0e70abf: Feat: Inline git blame.
+
 ## 0.1.0-alpha.63
 
 ### Patch Changes
