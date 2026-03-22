@@ -173,16 +173,26 @@ describe("GitService", () => {
   describe("getCurrentBranch", () => {
     it.effect("returns the current branch name", () =>
       Effect.gen(function* () {
-        mockBranchLocal.mockResolvedValue({ current: "feature-branch" })
+        mockRaw.mockResolvedValue("feature-branch\n")
         const service = yield* GitService
         const result = yield* service.getCurrentBranch("/my/workspace")
         expect(result).toBe("feature-branch")
+        expect(mockRaw).toHaveBeenCalledWith(["symbolic-ref", "--short", "HEAD"])
       }).pipe(Effect.provide(createTestLayer())),
     )
 
-    it.effect("fails with GitError when branchLocal rejects", () =>
+    it.effect("returns branch name in a repo with no commits", () =>
       Effect.gen(function* () {
-        mockBranchLocal.mockRejectedValue(new Error("boom"))
+        mockRaw.mockResolvedValue("main\n")
+        const service = yield* GitService
+        const result = yield* service.getCurrentBranch("/my/workspace")
+        expect(result).toBe("main")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("fails with GitError when symbolic-ref rejects", () =>
+      Effect.gen(function* () {
+        mockRaw.mockRejectedValue(new Error("boom"))
         const service = yield* GitService
         const error = yield* service.getCurrentBranch("/my/workspace").pipe(Effect.flip)
         expect(error._tag).toBe("GitError")

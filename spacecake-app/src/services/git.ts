@@ -381,11 +381,13 @@ const makeGitService = Effect.gen(function* () {
     workspacePath: string,
   ) {
     const git = getGit(workspacePath)
-    const result = yield* Effect.tryPromise({
-      try: () => git.branchLocal(),
+    // use symbolic-ref instead of branchLocal() so we can detect the
+    // branch name even in repos with no commits yet
+    const ref = yield* Effect.tryPromise({
+      try: () => git.raw(["symbolic-ref", "--short", "HEAD"]),
       catch: (e) => gitError("failed to get branch", e),
     })
-    return result.current
+    return ref.trim()
   })
 
   const isGitRepo = (workspacePath: string) =>
