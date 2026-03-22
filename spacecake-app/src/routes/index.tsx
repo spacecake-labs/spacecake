@@ -6,8 +6,11 @@
 import { createFileRoute, ErrorComponent, redirect } from "@tanstack/react-router"
 import * as Match from "effect/Match"
 import * as Schema from "effect/Schema"
-import { AlertCircleIcon, FolderOpen, Loader2Icon } from "lucide-react"
+import { AlertCircleIcon, FolderOpen, GitBranch, Loader2Icon, Plus } from "lucide-react"
+import { useState } from "react"
 
+import { CloneDialog } from "@/components/clone-dialog"
+import { InitDialog } from "@/components/init-dialog"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -106,6 +109,8 @@ function Index() {
     null
 
   const { handleOpenWorkspace, isOpen: fileExplorerIsOpen } = useOpenWorkspace()
+  const [cloneOpen, setCloneOpen] = useState(false)
+  const [initOpen, setInitOpen] = useState(false)
 
   return (
     <div className="flex flex-col h-screen">
@@ -142,8 +147,28 @@ function Index() {
             {fileExplorerIsOpen ? <Loader2Icon className="animate-spin" /> : <FolderOpen />}
             open folder
           </Button>
+          <Button
+            size="lg"
+            className="text-base cursor-pointer"
+            variant="outline"
+            onClick={() => setCloneOpen(true)}
+          >
+            <GitBranch />
+            clone repository
+          </Button>
+          <Button
+            size="lg"
+            className="text-base cursor-pointer"
+            variant="outline"
+            onClick={() => setInitOpen(true)}
+          >
+            <Plus />
+            new repository
+          </Button>
         </div>
       </main>
+      <CloneDialog open={cloneOpen} onOpenChange={setCloneOpen} />
+      <InitDialog open={initOpen} onOpenChange={setInitOpen} />
     </div>
   )
 }

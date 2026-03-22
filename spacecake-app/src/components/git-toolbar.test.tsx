@@ -14,6 +14,7 @@ import { left, right, type Either } from "@/types/adt"
 import type { ElectronAPI } from "@/types/electron"
 
 vi.mock("@/components/branch-popover", () => ({ BranchPopover: () => null }))
+vi.mock("@/components/stash-popover", () => ({ StashPopover: () => null }))
 
 const mockToast = vi.hoisted(() => ({
   success: vi.fn(),
@@ -47,6 +48,7 @@ function createMockGitAPI(
     fetch: overrides.fetch ? vi.fn(overrides.fetch) : noop,
     pull: overrides.pull ? vi.fn(overrides.pull) : noop,
     push: overrides.push ? vi.fn(overrides.push) : noop,
+    getRemoteUrl: vi.fn(async () => right<GitError, string | null>(null)),
     getRemoteStatus: overrides.getRemoteStatus
       ? vi.fn(overrides.getRemoteStatus)
       : vi.fn(async () =>

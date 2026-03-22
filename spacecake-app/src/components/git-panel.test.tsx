@@ -109,6 +109,16 @@ function createMockGitAPI(
       discardAll: noop,
       blame: vi.fn(),
       removeWorkspace: vi.fn().mockResolvedValue(undefined),
+      getLineDiff: vi.fn(async () => gitRight([])),
+      clone: vi.fn(async () => gitRight("")),
+      init: vi.fn(async () => gitRight("")),
+      stashPush: noop,
+      stashPop: noop,
+      stashList: vi.fn(async () => gitRight([])),
+      stashDrop: noop,
+      getConflictContent: vi.fn(async () => gitRight({ ours: "", theirs: "", base: "" })),
+      resolveConflict: noop,
+      getRemoteUrl: vi.fn(async () => gitRight(null)),
     } satisfies ElectronAPI["git"],
   }
 }
@@ -1037,8 +1047,7 @@ describe("conflicted files", () => {
     expect(container.textContent).toContain("src/modified.ts")
   })
 
-  it("clicking a conflicted file calls onFileClick", async () => {
-    const onFileClick = vi.fn()
+  it("clicking a conflicted file navigates to conflict view", async () => {
     const { api } = createMockGitAPI({
       status: {
         modified: [],
@@ -1048,7 +1057,7 @@ describe("conflicted files", () => {
         conflicted: ["src/conflict.ts"],
       },
     })
-    renderPanel(api, { onFileClick })
+    renderPanel(api)
     await waitForEffects()
 
     const fileBtn = Array.from(container.querySelectorAll('[role="button"]')).find((b) =>
@@ -1057,7 +1066,11 @@ describe("conflicted files", () => {
     expect(fileBtn).toBeDefined()
     ;(fileBtn as HTMLElement).click()
 
-    expect(onFileClick).toHaveBeenCalledWith(AbsolutePath("/test/workspace/src/conflict.ts"))
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        search: { view: "conflict" },
+      }),
+    )
   })
 
   it("does not show merge conflicts section when no conflicted files", async () => {

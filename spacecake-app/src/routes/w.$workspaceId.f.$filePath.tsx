@@ -8,6 +8,7 @@ import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
 import React, { useEffect } from "react"
 
 import { Editor } from "@/components/editor/editor"
+import { ConflictEditor } from "@/components/editor/plugins/conflict-editor"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { useWorkspaceSettings } from "@/hooks/use-workspace-settings"
 import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms"
@@ -17,7 +18,7 @@ import {
   sortTree,
   updateFolderInTree,
 } from "@/lib/atoms/file-tree"
-import { activeBlameAtom, isGitRepoAtom } from "@/lib/atoms/git"
+import { activeBlameAtom, activeLineDiffAtom, isGitRepoAtom } from "@/lib/atoms/git"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
 import {
   createEditorConfigFromContent,
@@ -27,8 +28,9 @@ import {
 import { readDirectory } from "@/lib/fs"
 import { createRichViewClaudeSelection } from "@/lib/selection-utils"
 import { store } from "@/lib/store"
-import { decodeBase64Url } from "@/lib/utils"
+import { decodeBase64Url, encodeBase64Url } from "@/lib/utils"
 import { fileMachine } from "@/machines/manage-file"
+import { router } from "@/router"
 import { JsonValue } from "@/schema/drizzle-effect"
 import { EditorPrimaryKeySchema } from "@/schema/editor"
 import { Database } from "@/services/database"
@@ -179,6 +181,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
               editorId: result.content.data.editorId,
               fileId: result.content.data.fileId,
               diffError: error.description,
+              conflictContent: null,
             }),
             onRight: (diff) => {
               const extension = filePath.split(".").pop() || ""
@@ -196,21 +199,56 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
                 editorId: result.content.data.editorId,
                 fileId: result.content.data.fileId,
                 diffError: null,
+                conflictContent: null,
               }
             },
+          })
+        }
+
+        // handle conflict view - fetch merge stage content
+        if (result.viewKind === "conflict") {
+          const relativePath = filePath.startsWith(workspace.path + "/")
+            ? filePath.slice(workspace.path.length + 1)
+            : filePath
+
+          const [, conflictResult] = await Promise.all([
+            activationPromise,
+            window.electronAPI.git.getConflictContent(workspace.path, relativePath),
+          ])
+
+          return match(conflictResult, {
+            onLeft: (error) => ({
+              filePath,
+              editorConfig: null,
+              key,
+              editorId: result.content.data.editorId,
+              fileId: result.content.data.fileId,
+              diffError: error.description,
+              conflictContent: null,
+            }),
+            onRight: (conflict) => ({
+              filePath,
+              editorConfig: null,
+              key,
+              editorId: result.content.data.editorId,
+              fileId: result.content.data.fileId,
+              diffError: null,
+              conflictContent: conflict,
+            }),
           })
         }
 
         // ensure activation completes before returning for non-diff views
         await activationPromise
 
-        // Handle source/rich view
+        // handle source/rich view (diff and conflict are already handled above)
+        const persistableViewKind = result.viewKind as "rich" | "source"
         const editorConfig =
           result.content.kind === "state"
             ? createEditorConfigFromState(result.content.data.state, result.content.data.selection)
             : createEditorConfigFromContent(
                 result.content.data,
-                result.viewKind,
+                persistableViewKind,
                 result.content.data.selection,
               )
 
@@ -221,6 +259,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           editorId: result.content.data.editorId,
           fileId: result.content.data.fileId,
           diffError: null,
+          conflictContent: null,
         }
       },
     })
@@ -235,7 +274,8 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 })
 
 function FileLayout() {
-  const { filePath, editorConfig, key, editorId, fileId, diffError } = Route.useLoaderData()
+  const { filePath, editorConfig, key, editorId, fileId, diffError, conflictContent } =
+    Route.useLoaderData()
   const { db, workspace } = Route.useRouteContext()
   const { view: viewKind } = Route.useSearch()
 
@@ -245,7 +285,8 @@ function FileLayout() {
 
   // Get workspace settings for autosave (not used for diff view since it's read-only)
   const { settings } = useWorkspaceSettings(workspace.id)
-  const autosaveEnabled = viewKind !== "diff" && settings.autosave === "on"
+  const autosaveEnabled =
+    viewKind !== "diff" && viewKind !== "conflict" && settings.autosave === "on"
 
   // Helper to notify Claude Code of selection changes
   const notifyClaudeCodeSelection = (selectedText: string, selection: ClaudeSelection) => {
@@ -307,6 +348,43 @@ function FileLayout() {
     return () => setActiveBlame([])
   }, [setActiveBlame])
 
+  // fetch line diff data for the active file
+  const setActiveLineDiff = useSetAtom(activeLineDiffAtom)
+
+  useEffect(() => {
+    if (!isGitRepo || isFileDirty) {
+      setActiveLineDiff([])
+      return
+    }
+
+    const relativePath = filePath.startsWith(workspace.path + "/")
+      ? filePath.slice(workspace.path.length + 1)
+      : filePath
+
+    let cancelled = false
+    window.electronAPI.git
+      .getLineDiff(workspace.path, relativePath)
+      .then((result) => {
+        if (cancelled) return
+        match(result, {
+          onLeft: () => setActiveLineDiff([]),
+          onRight: (data) => setActiveLineDiff(data),
+        })
+      })
+      .catch(() => {
+        if (!cancelled) setActiveLineDiff([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [filePath, workspace.path, isGitRepo, isFileDirty, setActiveLineDiff])
+
+  // clear line diff on unmount
+  useEffect(() => {
+    return () => setActiveLineDiff([])
+  }, [setActiveLineDiff])
+
   useEffect(() => {
     RuntimeClient.runPromise(
       db.updateFileAccessedAt({
@@ -321,6 +399,30 @@ function FileLayout() {
       <div className="flex h-full items-center justify-center text-muted-foreground">
         <p>failed to load diff: {diffError}</p>
       </div>
+    )
+  }
+
+  // handle conflict view
+  if (conflictContent) {
+    const extension = filePath.split(".").pop() || ""
+    return (
+      <ConflictEditor
+        ours={conflictContent.ours}
+        theirs={conflictContent.theirs}
+        filePath={filePath}
+        workspacePath={workspace.path}
+        language={extension}
+        onResolved={() => {
+          router.navigate({
+            to: "/w/$workspaceId/f/$filePath",
+            params: {
+              workspaceId: encodeBase64Url(workspace.path),
+              filePath: encodeBase64Url(filePath),
+            },
+            search: { view: "source" },
+          })
+        }}
+      />
     )
   }
 
@@ -371,8 +473,8 @@ function FileLayout() {
               notifyClaudeCodeSelection(selectedText, claudeSelection)
             } else {
               sendFileState({ type: "file.edit" })
-              // don't persist state for diff views (read-only overlay)
-              if (viewKind && viewKind !== "diff") {
+              // don't persist state for ephemeral views (diff/conflict overlays)
+              if (viewKind && viewKind !== "diff" && viewKind !== "conflict") {
                 send({
                   type: "editor.state.update",
                   editorState: {

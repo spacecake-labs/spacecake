@@ -7,6 +7,15 @@ export const gitBranchAtom = atom<string | null>(null)
 // blame data for the currently active file (set by the file route)
 export const activeBlameAtom = atom<BlameLine[]>([])
 
+export type LineDiff = {
+  type: "added" | "modified" | "deleted"
+  startLine: number
+  endLine: number
+}
+
+// line diff data for the currently active file (set by the file route)
+export const activeLineDiffAtom = atom<LineDiff[]>([])
+
 export type GitStatus = {
   modified: string[]
   staged: string[]
@@ -85,3 +94,33 @@ export const gitExcludedPathsAtom = atom<Set<string>>(new Set<string>())
 // branch delete confirmation
 export type BranchDeleteState = { isOpen: false } | { isOpen: true; branchName: string }
 export const branchDeleteStateAtom = atom<BranchDeleteState>({ isOpen: false })
+
+// stash list
+export type StashEntry = {
+  index: number
+  message: string
+  date: string
+}
+
+export const gitStashListAtom = atom<StashEntry[]>([])
+
+// github integration
+export type GitHubRepoInfo = {
+  owner: string
+  repo: string
+}
+
+// remote url for origin
+export const gitRemoteUrlAtom = atom<string | null>(null)
+
+// derived github repo info (null if not a github remote)
+export const gitHubRepoInfoAtom = atom<GitHubRepoInfo | null>((get) => {
+  const url = get(gitRemoteUrlAtom)
+  if (!url) return null
+  // inline parse to avoid importing service-layer code in renderer
+  const sshMatch = url.match(/git@github\.com:([^/]+)\/(.+?)(?:\.git)?$/)
+  if (sshMatch) return { owner: sshMatch[1], repo: sshMatch[2] }
+  const httpsMatch = url.match(/https?:\/\/github\.com\/([^/]+)\/(.+?)(?:\.git)?$/)
+  if (httpsMatch) return { owner: httpsMatch[1], repo: httpsMatch[2] }
+  return null
+})

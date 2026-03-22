@@ -7,7 +7,13 @@ import type { ClaudeTask, ClaudeTaskError } from "@/types/claude-task"
 import type { PyBlock } from "@/types/parser"
 import type { AbsolutePath, FileContent, FileTree, FileTreeEvent } from "@/types/workspace"
 
-export type MenuAction = "new-file" | "open-folder" | "save" | "save-all"
+export type MenuAction =
+  | "new-file"
+  | "open-folder"
+  | "save"
+  | "save-all"
+  | "clone-repo"
+  | "init-repo"
 
 export type SerializedGitError = {
   _tag: "GitError"
@@ -163,6 +169,15 @@ export interface ElectronAPI {
       workspacePath: string,
       filePath: string,
     ) => Promise<Either<SerializedGitError, BlameResult>>
+    getLineDiff: (
+      workspacePath: string,
+      filePath: string,
+    ) => Promise<
+      Either<
+        SerializedGitError,
+        Array<{ type: "added" | "modified" | "deleted"; startLine: number; endLine: number }>
+      >
+    >
     stage: (workspacePath: string, files: string[]) => Promise<Either<SerializedGitError, void>>
     unstage: (workspacePath: string, files: string[]) => Promise<Either<SerializedGitError, void>>
     commit: (
@@ -213,6 +228,28 @@ export interface ElectronAPI {
     discardFile: (workspacePath: string, file: string) => Promise<Either<SerializedGitError, void>>
     discardAll: (workspacePath: string) => Promise<Either<SerializedGitError, void>>
     removeWorkspace: (workspacePath: string) => Promise<void>
+    clone: (url: string, targetPath: string) => Promise<Either<SerializedGitError, string>>
+    init: (targetPath: string) => Promise<Either<SerializedGitError, string>>
+    stashPush: (
+      workspacePath: string,
+      message?: string,
+    ) => Promise<Either<SerializedGitError, void>>
+    stashPop: (workspacePath: string, index?: number) => Promise<Either<SerializedGitError, void>>
+    stashList: (
+      workspacePath: string,
+    ) => Promise<
+      Either<SerializedGitError, Array<{ index: number; message: string; date: string }>>
+    >
+    stashDrop: (workspacePath: string, index: number) => Promise<Either<SerializedGitError, void>>
+    getConflictContent: (
+      workspacePath: string,
+      filePath: string,
+    ) => Promise<Either<SerializedGitError, { ours: string; theirs: string; base: string }>>
+    resolveConflict: (
+      workspacePath: string,
+      filePath: string,
+    ) => Promise<Either<SerializedGitError, void>>
+    getRemoteUrl: (workspacePath: string) => Promise<Either<SerializedGitError, string | null>>
   }
 }
 

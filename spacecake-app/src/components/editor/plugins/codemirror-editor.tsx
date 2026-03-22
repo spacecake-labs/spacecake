@@ -14,11 +14,16 @@ import { CodeBlock } from "@/components/code-block"
 import { CodeBlockNode, useCodeBlockEditorContext } from "@/components/editor/nodes/code-node"
 import { blameAnnotation, emptyBlameAnnotation } from "@/components/editor/plugins/blame-annotation"
 import { CODEMIRROR_SELECTION_COMMAND } from "@/components/editor/plugins/codemirror-commands"
+import {
+  diffGutterData,
+  diffGutterStaticExtensions,
+  emptyDiffGutterData,
+} from "@/components/editor/plugins/diff-gutter"
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { useNavigation } from "@/components/editor/plugins/use-navigation"
 import { githubDark, githubLight } from "@/components/editor/themes"
 import { useTheme } from "@/components/theme-provider"
-import { activeBlameAtom } from "@/lib/atoms/git"
+import { activeBlameAtom, activeLineDiffAtom } from "@/lib/atoms/git"
 import { extractCodeMirrorSelectionInfo } from "@/lib/selection-utils"
 import { debounce } from "@/lib/utils"
 import type { LanguageSpec } from "@/types/language"
@@ -75,6 +80,28 @@ const BlameSync: React.FC<{
       ),
     })
   }, [blameData, viewRef, compartment])
+
+  return null
+}
+
+// subscribes to line diff data and pushes into a codemirror compartment.
+// only mounted for source view (single code block) to avoid N subscriptions.
+const DiffGutterSync: React.FC<{
+  viewRef: React.RefObject<EditorView | null>
+  compartment: React.RefObject<Compartment>
+}> = ({ viewRef, compartment }) => {
+  const lineDiffData = useAtomValue(activeLineDiffAtom)
+
+  React.useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+
+    view.dispatch({
+      effects: compartment.current.reconfigure(
+        lineDiffData.length > 0 ? diffGutterData(lineDiffData) : emptyDiffGutterData(),
+      ),
+    })
+  }, [lineDiffData, viewRef, compartment])
 
   return null
 }
@@ -431,6 +458,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   const themeCompartment = React.useRef(new Compartment())
   // compartment for blame annotations (reconfigured by BlameSync when in source view)
   const blameCompartment = React.useRef(new Compartment())
+  // compartment for diff gutter (reconfigured by DiffGutterSync when in source view)
+  const diffGutterCompartment = React.useRef(new Compartment())
 
   // debounce settings and helpers
   const debounceMs = 250
@@ -510,6 +539,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         focusedActiveLineTheme,
         foldPlaceholderTheme,
         blameCompartment.current.of(emptyBlameAnnotation()),
+        diffGutterStaticExtensions,
+        diffGutterCompartment.current.of(emptyDiffGutterData()),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             debouncedCommitRef.current.schedule()
@@ -679,6 +710,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       onDelete={handleDelete}
     >
       {isSourceView && <BlameSync viewRef={editorViewRef} compartment={blameCompartment} />}
+      {isSourceView && (
+        <DiffGutterSync viewRef={editorViewRef} compartment={diffGutterCompartment} />
+      )}
       <div ref={elRef} />
     </CodeBlock>
   )

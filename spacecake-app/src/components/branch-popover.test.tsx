@@ -105,6 +105,22 @@ function createMockGitAPI(
     discardAll: noop,
     blame: vi.fn(),
     removeWorkspace: vi.fn().mockResolvedValue(undefined),
+    getLineDiff: vi.fn(async () => right<GitError, never[]>([])),
+    clone: vi.fn(async () => right<GitError, string>("")),
+    init: vi.fn(async () => right<GitError, string>("")),
+    stashPush: noop,
+    stashPop: noop,
+    stashList: vi.fn(async () => right<GitError, never[]>([])),
+    stashDrop: noop,
+    getConflictContent: vi.fn(async () =>
+      right<GitError, { ours: string; theirs: string; base: string }>({
+        ours: "",
+        theirs: "",
+        base: "",
+      }),
+    ),
+    resolveConflict: noop,
+    getRemoteUrl: vi.fn(async () => right<GitError, string | null>(null)),
   } satisfies ElectronAPI["git"]
 }
 

@@ -1,26 +1,36 @@
-import { useAtom, useAtomValue } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
   ArrowDown,
   ArrowUp,
   ChevronDown,
   ChevronUp,
   EllipsisVertical,
+  Github,
   RefreshCw,
 } from "lucide-react"
 import { memo, useCallback, useEffect } from "react"
 import { toast } from "sonner"
 
 import { BranchPopover } from "@/components/branch-popover"
+import { StashPopover } from "@/components/stash-popover"
 import { tabTriggerClasses } from "@/components/tab-bar/tab-close-button"
 import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { gitOperationAtom, gitRemoteStatusAtom, isBusyAtom } from "@/lib/atoms/git"
+import {
+  gitBranchAtom,
+  gitHubRepoInfoAtom,
+  gitOperationAtom,
+  gitRemoteStatusAtom,
+  gitRemoteUrlAtom,
+  isBusyAtom,
+} from "@/lib/atoms/git"
 import { cn } from "@/lib/utils"
 import { isRight } from "@/types/adt"
 
@@ -40,6 +50,9 @@ export const GitToolbar = memo(function GitToolbar({
   const isCollapsed = !isExpanded
   const [remoteStatus, setRemoteStatus] = useAtom(gitRemoteStatusAtom)
   const [operation, setOperation] = useAtom(gitOperationAtom)
+  const setRemoteUrl = useSetAtom(gitRemoteUrlAtom)
+  const gitHubInfo = useAtomValue(gitHubRepoInfoAtom)
+  const gitBranch = useAtomValue(gitBranchAtom)
 
   const refreshRemoteStatus = useCallback(async () => {
     const result = await window.electronAPI.git.getRemoteStatus(workspacePath)
@@ -52,9 +65,50 @@ export const GitToolbar = memo(function GitToolbar({
     }
   }, [workspacePath, setRemoteStatus])
 
+  // fetch remote status on mount / workspace change
   useEffect(() => {
-    refreshRemoteStatus()
-  }, [refreshRemoteStatus])
+    let stale = false
+    window.electronAPI.git.getRemoteStatus(workspacePath).then((result) => {
+      if (stale) return
+      if (isRight(result)) {
+        setRemoteStatus({
+          ahead: result.value.ahead,
+          behind: result.value.behind,
+          tracking: result.value.tracking,
+        })
+      }
+    })
+    return () => {
+      stale = true
+    }
+  }, [workspacePath, setRemoteStatus])
+
+  // fetch remote url on mount / workspace change
+  useEffect(() => {
+    let stale = false
+    window.electronAPI.git.getRemoteUrl(workspacePath).then((result) => {
+      if (stale) return
+      if (isRight(result)) {
+        setRemoteUrl(result.value)
+      }
+    })
+    return () => {
+      stale = true
+    }
+  }, [workspacePath, setRemoteUrl])
+
+  const handleOpenOnGitHub = useCallback(() => {
+    if (!gitHubInfo) return
+    window.electronAPI.openExternal(`https://github.com/${gitHubInfo.owner}/${gitHubInfo.repo}`)
+  }, [gitHubInfo])
+
+  const handleCreatePR = useCallback(() => {
+    if (!gitHubInfo || !gitBranch) return
+    const encodedBranch = encodeURIComponent(gitBranch)
+    window.electronAPI.openExternal(
+      `https://github.com/${gitHubInfo.owner}/${gitHubInfo.repo}/compare/${encodedBranch}?expand=1`,
+    )
+  }, [gitHubInfo, gitBranch])
 
   const handleFetch = useCallback(async () => {
     setOperation("fetching")
@@ -107,6 +161,10 @@ export const GitToolbar = memo(function GitToolbar({
   }, [workspacePath, setOperation, refreshRemoteStatus])
 
   const isBusy = useAtomValue(isBusyAtom)
+
+  const handleToggleExpanded = useCallback(() => {
+    onExpandedChange(!isExpanded)
+  }, [onExpandedChange, isExpanded])
 
   return (
     <div className="@container h-10 shrink-0 w-full bg-background/50 flex items-center overflow-hidden border-b">
@@ -180,6 +238,23 @@ export const GitToolbar = memo(function GitToolbar({
               </span>
             )}
           </button>
+          {gitHubInfo && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  title="github"
+                  aria-label="github actions"
+                >
+                  <Github className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleOpenOnGitHub}>open on github</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCreatePR}>create pull request</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
         {/* collapsed: dropdown menu (narrow) */}
         <div className="flex @[420px]:hidden">
@@ -217,12 +292,26 @@ export const GitToolbar = memo(function GitToolbar({
                   <span className="ml-auto text-[10px] font-mono">{remoteStatus.ahead}</span>
                 )}
               </DropdownMenuItem>
+              {gitHubInfo && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleOpenOnGitHub}>
+                    <Github className="h-3.5 w-3.5" />
+                    open on github
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleCreatePR}>
+                    <Github className="h-3.5 w-3.5" />
+                    create pull request
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        <StashPopover workspacePath={workspacePath} />
         <BranchPopover workspacePath={workspacePath} isExpanded={isExpanded} />
         <button
-          onClick={() => onExpandedChange(!isExpanded)}
+          onClick={handleToggleExpanded}
           className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           aria-label={isCollapsed ? "show git panel" : "hide git panel"}
         >

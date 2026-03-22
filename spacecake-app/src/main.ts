@@ -181,6 +181,16 @@ function buildAppMenu(win: BrowserWindow): Menu {
       },
       { type: "separator" },
       {
+        label: "Clone Repository",
+        accelerator: "CmdOrCtrl+Shift+C",
+        click: () => win.webContents.send("menu:action", "clone-repo"),
+      },
+      {
+        label: "New Repository",
+        click: () => win.webContents.send("menu:action", "init-repo"),
+      },
+      { type: "separator" },
+      {
         label: "Save",
         accelerator: "CmdOrCtrl+S",
         registerAccelerator: false,

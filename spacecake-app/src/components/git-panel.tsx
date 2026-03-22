@@ -233,14 +233,36 @@ const FileItem = memo(function FileItem({
   )
 })
 
+const ConflictFileRow = memo(function ConflictFileRow({
+  file,
+  workspacePath,
+}: {
+  file: { path: string; status: FileStatus }
+  workspacePath: AbsolutePath
+}) {
+  const fullPath = `${workspacePath}/${file.path}`
+
+  const handleClick = useCallback(() => {
+    const workspaceId = encodeBase64Url(workspacePath)
+    const encodedPath = encodeBase64Url(AbsolutePath(fullPath))
+    router.navigate({
+      to: "/w/$workspaceId/f/$filePath",
+      params: { workspaceId, filePath: encodedPath },
+      search: { view: "conflict" },
+    })
+  }, [workspacePath, fullPath])
+
+  return (
+    <FileItem file={file.path} fullPath={fullPath} status={file.status} onClick={handleClick} />
+  )
+})
+
 const ConflictSection = memo(function ConflictSection({
   files,
   workspacePath,
-  onFileClick,
 }: {
   files: Array<{ path: string; status: FileStatus }>
   workspacePath: AbsolutePath
-  onFileClick?: (filePath: AbsolutePath) => void
 }) {
   const [isOpen, setIsOpen] = useState(true)
 
@@ -263,18 +285,9 @@ const ConflictSection = memo(function ConflictSection({
       </div>
       <CollapsibleContent>
         <div className="ml-2 border-l pl-2">
-          {files.map((file) => {
-            const fullPath = `${workspacePath}/${file.path}`
-            return (
-              <FileItem
-                key={file.path}
-                file={file.path}
-                fullPath={fullPath}
-                status={file.status}
-                onClick={() => onFileClick?.(AbsolutePath(fullPath))}
-              />
-            )
-          })}
+          {files.map((file) => (
+            <ConflictFileRow key={file.path} file={file} workspacePath={workspacePath} />
+          ))}
         </div>
       </CollapsibleContent>
     </Collapsible>
@@ -609,11 +622,7 @@ function WorkingTreeFilesPane({
       ) : (
         <div className="flex-1 flex flex-col overflow-hidden px-1">
           <div className="space-y-1 flex-shrink-0">
-            <ConflictSection
-              files={conflictedFiles}
-              workspacePath={workspacePath}
-              onFileClick={onFileClick}
-            />
+            <ConflictSection files={conflictedFiles} workspacePath={workspacePath} />
             {allFiles.length > 0 && (
               <div className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-medium">
                 <GitCheckbox
@@ -942,9 +951,10 @@ export function GitPanel({ workspacePath, onFileClick, onCommitFileClick }: GitP
     return new Set(paths.map((f) => `${workspacePath}/${f}`))
   }, [status, workspacePath])
 
-  // navigate away from stale diff views when file is no longer in changes list
+  // navigate away from stale diff/conflict views when file is no longer in changes list
   useEffect(() => {
-    if (!status || !routeFilePath || routeViewKind !== "diff") return
+    if (!status || !routeFilePath || (routeViewKind !== "diff" && routeViewKind !== "conflict"))
+      return
     if (routeBaseRef || routeTargetRef) return
 
     if (!allChangedPaths.has(routeFilePath) && routeWorkspaceId) {
