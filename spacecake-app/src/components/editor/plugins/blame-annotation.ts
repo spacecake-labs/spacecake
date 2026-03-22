@@ -305,6 +305,9 @@ class BlameAnnotationPlugin implements PluginValue {
     const text = formatBlameText(blameLine)
     const line = view.state.doc.line(cursorLine)
 
+    // skip empty lines — the widget would overlap the cursor position
+    if (line.from === line.to) return Decoration.none
+
     const widget = Decoration.widget({
       widget: new BlameWidget(blameLine, text),
       side: 1,
