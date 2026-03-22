@@ -365,7 +365,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
             aria-label="new terminal tab"
             title="new terminal (⌘T)"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-4 w-4" />
           </button>
           {toolbarRight && (
             <>

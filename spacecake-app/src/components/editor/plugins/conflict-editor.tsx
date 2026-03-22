@@ -166,7 +166,7 @@ export const ConflictEditor: React.FC<ConflictEditorProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 text-xs cursor-pointer"
+          className="h-6 text-xs px-2 cursor-pointer"
           onClick={handleAcceptAllCurrent}
         >
           accept all current
@@ -174,14 +174,14 @@ export const ConflictEditor: React.FC<ConflictEditorProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 text-xs cursor-pointer"
+          className="h-6 text-xs px-2 cursor-pointer"
           onClick={handleAcceptAllIncoming}
         >
           accept all incoming
         </Button>
         <Button
           size="sm"
-          className="h-6 text-xs cursor-pointer"
+          className="h-6 text-xs px-2 cursor-pointer"
           onClick={handleResolve}
           disabled={isResolving}
         >

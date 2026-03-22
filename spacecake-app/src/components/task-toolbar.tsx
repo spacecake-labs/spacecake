@@ -37,7 +37,7 @@ export const TaskToolbar = memo(function TaskToolbar({
       <div className="flex items-center gap-2 min-w-0 overflow-hidden">
         <ListTodo
           className={cn(
-            "h-3.5 w-3.5 shrink-0",
+            "h-4 w-4 shrink-0",
             isExpanded ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
           )}
         />
@@ -74,11 +74,7 @@ export const TaskToolbar = memo(function TaskToolbar({
           className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           aria-label={isCollapsed ? "show tasks" : "hide tasks"}
         >
-          {isCollapsed ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
+          {isCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </button>
       </div>
     </div>

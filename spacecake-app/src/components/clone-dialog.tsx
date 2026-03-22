@@ -96,7 +96,6 @@ export function CloneDialog({ open, onOpenChange }: CloneDialogProps) {
             />
             <Button
               variant="outline"
-              size="sm"
               onClick={handlePickDirectory}
               disabled={isCloning}
               className="shrink-0 cursor-pointer"

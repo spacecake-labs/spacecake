@@ -48,7 +48,7 @@ export function InitDialog({ open, onOpenChange }: InitDialogProps) {
     try {
       const result = await window.electronAPI.git.init(targetPath.trim())
       if (isRight(result)) {
-        toast.success("repository initialized")
+        toast.success("repository initialised")
         handleOpenChange(false)
         navigate({
           to: "/w/$workspaceId",
@@ -72,7 +72,7 @@ export function InitDialog({ open, onOpenChange }: InitDialogProps) {
         <DialogHeader>
           <DialogTitle>new repository</DialogTitle>
           <DialogDescription>
-            choose a directory to initialize as a git repository.
+            choose a directory to initialise as a git repository.
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center gap-2">
@@ -86,7 +86,6 @@ export function InitDialog({ open, onOpenChange }: InitDialogProps) {
           />
           <Button
             variant="outline"
-            size="sm"
             onClick={handlePickDirectory}
             disabled={isInitializing}
             className="shrink-0 cursor-pointer"
@@ -110,7 +109,7 @@ export function InitDialog({ open, onOpenChange }: InitDialogProps) {
             data-testid="init-submit-button"
           >
             {isInitializing && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-            initialize
+            initialise
           </Button>
         </DialogFooter>
       </DialogContent>

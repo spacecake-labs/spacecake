@@ -105,7 +105,7 @@ const diffGutterTheme = EditorView.baseTheme({
   ".cm-diff-gutter-added": {
     width: "3px",
     height: "100%",
-    backgroundColor: "#2ea04370",
+    backgroundColor: "#2ea043",
   },
   ".cm-diff-gutter-modified": {
     width: "3px",
