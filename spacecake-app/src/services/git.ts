@@ -4,6 +4,7 @@ import * as Effect from "effect/Effect"
 import simpleGit, { type SimpleGit } from "simple-git"
 
 import { FileSystem } from "@/services/file-system"
+import { type BlameResult, parseBlameOutput } from "@/services/git-blame-parser"
 import { AbsolutePath } from "@/types/workspace"
 
 // -- simpleGit factory with github desktop-aligned defaults --
@@ -424,6 +425,24 @@ const makeGitService = Effect.gen(function* () {
       .filter(Boolean)
   })
 
+  const _getBlame = Effect.fn("GitService.getBlame")(function* (
+    workspacePath: string,
+    filePath: string,
+  ) {
+    const git = getGit(workspacePath)
+    const raw = yield* Effect.tryPromise({
+      try: () => git.raw(["blame", "--porcelain", filePath]),
+      catch: (e) => gitError("failed to get blame", e),
+    })
+    return parseBlameOutput(raw)
+  })
+
+  const getBlame = (
+    workspacePath: string,
+    filePath: string,
+  ): Effect.Effect<BlameResult, GitError> =>
+    deduplicated(`blame:${workspacePath}:${filePath}`, _getBlame(workspacePath, filePath))
+
   const listBranches = Effect.fn("GitService.listBranches")(function* (workspacePath: string) {
     const git = getGit(workspacePath)
     const result = yield* Effect.tryPromise({
@@ -678,6 +697,7 @@ const makeGitService = Effect.gen(function* () {
     getFileDiff,
     getCommitLog,
     getCommitFiles,
+    getBlame,
     stageFiles,
     unstageFiles,
     commit,

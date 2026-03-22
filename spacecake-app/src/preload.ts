@@ -147,6 +147,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("git:commit-log", workspacePath, limit),
     getCommitFiles: (workspacePath: string, commitHash: string) =>
       ipcRenderer.invoke("git:commit-files", workspacePath, commitHash),
+    blame: (workspacePath: string, filePath: string) =>
+      ipcRenderer.invoke("git:blame", workspacePath, filePath),
     stage: (workspacePath: string, files: string[]) =>
       ipcRenderer.invoke("git:stage", workspacePath, files),
     unstage: (workspacePath: string, files: string[]) =>

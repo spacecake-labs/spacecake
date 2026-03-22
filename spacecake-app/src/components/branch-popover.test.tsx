@@ -103,6 +103,7 @@ function createMockGitAPI(
     ),
     discardFile: noop,
     discardAll: noop,
+    blame: vi.fn(),
     removeWorkspace: vi.fn().mockResolvedValue(undefined),
   } satisfies ElectronAPI["git"]
 }

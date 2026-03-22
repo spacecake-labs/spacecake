@@ -1,6 +1,7 @@
 import type { DisplayStatusline } from "@/lib/statusline-parser"
 import { FileSystemError, type IndexedFile } from "@/services/file-system"
 import type { GitErrorCode } from "@/services/git"
+import type { BlameResult } from "@/services/git-blame-parser"
 import { type Either } from "@/types/adt"
 import type { ClaudeTask, ClaudeTaskError } from "@/types/claude-task"
 import type { PyBlock } from "@/types/parser"
@@ -158,6 +159,10 @@ export interface ElectronAPI {
       workspacePath: string,
       commitHash: string,
     ) => Promise<Either<SerializedGitError, string[]>>
+    blame: (
+      workspacePath: string,
+      filePath: string,
+    ) => Promise<Either<SerializedGitError, BlameResult>>
     stage: (workspacePath: string, files: string[]) => Promise<Either<SerializedGitError, void>>
     unstage: (workspacePath: string, files: string[]) => Promise<Either<SerializedGitError, void>>
     commit: (
