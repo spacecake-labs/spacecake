@@ -6,8 +6,10 @@ import {
 } from "@tanstack/react-router"
 // import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import { usePostHog } from "posthog-js/react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
+import { CloneDialog } from "@/components/clone-dialog"
+import { InitDialog } from "@/components/init-dialog"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { useMenuAction } from "@/hooks/use-menu-action"
 import { useOpenWorkspace } from "@/lib/open-workspace"
@@ -22,10 +24,14 @@ function RootComponent() {
   const { handleOpenWorkspace } = useOpenWorkspace()
   const posthog = usePostHog()
   const location = useLocation()
+  const [cloneOpen, setCloneOpen] = useState(false)
+  const [initOpen, setInitOpen] = useState(false)
 
   // global keyboard shortcut for opening workspace
   useHotkey("mod+o", () => handleOpenWorkspace())
   useMenuAction("open-folder", () => handleOpenWorkspace())
+  useMenuAction("clone-repo", () => setCloneOpen(true))
+  useMenuAction("init-repo", () => setInitOpen(true))
 
   useEffect(() => {
     if (posthog) {
@@ -38,6 +44,8 @@ function RootComponent() {
   return (
     <>
       <Outlet />
+      <CloneDialog open={cloneOpen} onOpenChange={setCloneOpen} />
+      <InitDialog open={initOpen} onOpenChange={setInitOpen} />
       {/* <TanStackRouterDevtools /> */}
     </>
   )

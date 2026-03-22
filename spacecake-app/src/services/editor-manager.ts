@@ -41,7 +41,7 @@ export const getPersistableViewKind = (
   viewKind: ViewKind,
   fileType: FileType,
 ): PersistableViewKind => {
-  if (viewKind === "diff") {
+  if (viewKind === "diff" || viewKind === "conflict") {
     return supportsRichView(fileType) ? "rich" : "source"
   }
   return viewKind

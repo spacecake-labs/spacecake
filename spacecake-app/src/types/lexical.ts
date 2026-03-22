@@ -14,7 +14,7 @@ export const PersistableViewKindSchema = Schema.Literal("rich", "source")
 export type PersistableViewKind = typeof PersistableViewKindSchema.Type
 
 // ephemeral view kinds are transient overlays (not persisted)
-export const EphemeralViewKindSchema = Schema.Literal("diff")
+export const EphemeralViewKindSchema = Schema.Literal("diff", "conflict")
 export type EphemeralViewKind = typeof EphemeralViewKindSchema.Type
 
 // full view kind union for UI/routes

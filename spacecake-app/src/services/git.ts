@@ -71,6 +71,12 @@ export type GitFileDiff = {
   newContent: string
 }
 
+export type ConflictContent = {
+  ours: string
+  theirs: string
+  base: string
+}
+
 export type GitCommit = {
   hash: string
   message: string
@@ -100,6 +106,78 @@ export type GitRemoteStatus = {
 export type GitRemoteInfo = {
   name: string
   refs: { fetch: string; push: string }
+}
+
+export type GitHubRepoInfo = {
+  owner: string
+  repo: string
+}
+
+export type StashEntry = {
+  index: number
+  message: string
+  date: string
+}
+
+export type LineDiff = {
+  type: "added" | "modified" | "deleted"
+  startLine: number
+  endLine: number
+}
+
+export const parseStashList = (raw: string): StashEntry[] => {
+  if (!raw.trim()) return []
+  return raw
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      const match = line.match(/^stash@\{(\d+)\}:\s*(?:(?:WIP )?[Oo]n\s+\S+:\s*)?(.*)$/)
+      if (!match) return null
+      return {
+        index: Number(match[1]),
+        message: match[2] || "(no message)",
+        date: "",
+      }
+    })
+    .filter((entry): entry is StashEntry => entry !== null)
+}
+
+export const parseUnifiedDiff = (raw: string): LineDiff[] => {
+  const diffs: LineDiff[] = []
+  const hunkPattern = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/gm
+  let match: RegExpExecArray | null
+  while ((match = hunkPattern.exec(raw)) !== null) {
+    const _oldStart = Number(match[1])
+    const oldCount = match[2] !== undefined ? Number(match[2]) : 1
+    const newStart = Number(match[3])
+    const newCount = match[4] !== undefined ? Number(match[4]) : 1
+
+    if (oldCount === 0 && newCount > 0) {
+      // pure addition
+      diffs.push({ type: "added", startLine: newStart, endLine: newStart + newCount - 1 })
+    } else if (newCount === 0 && oldCount > 0) {
+      // pure deletion - mark at the line where content was removed
+      diffs.push({ type: "deleted", startLine: newStart, endLine: newStart })
+    } else {
+      // modification
+      diffs.push({ type: "modified", startLine: newStart, endLine: newStart + newCount - 1 })
+    }
+  }
+  return diffs
+}
+
+// -- github url parser --
+
+export const parseGitHubUrl = (url: string): GitHubRepoInfo | null => {
+  // ssh format: git@github.com:owner/repo.git
+  const sshMatch = url.match(/git@github\.com:([^/]+)\/(.+?)(?:\.git)?$/)
+  if (sshMatch) return { owner: sshMatch[1], repo: sshMatch[2] }
+
+  // https format: https://github.com/owner/repo.git
+  const httpsMatch = url.match(/https?:\/\/github\.com\/([^/]+)\/(.+?)(?:\.git)?$/)
+  if (httpsMatch) return { owner: httpsMatch[1], repo: httpsMatch[2] }
+
+  return null
 }
 
 // -- porcelain v2 status parser --
@@ -303,11 +381,13 @@ const makeGitService = Effect.gen(function* () {
     workspacePath: string,
   ) {
     const git = getGit(workspacePath)
-    const result = yield* Effect.tryPromise({
-      try: () => git.branchLocal(),
+    // use symbolic-ref instead of branchLocal() so we can detect the
+    // branch name even in repos with no commits yet
+    const ref = yield* Effect.tryPromise({
+      try: () => git.raw(["symbolic-ref", "--short", "HEAD"]),
       catch: (e) => gitError("failed to get branch", e),
     })
-    return result.current
+    return ref.trim()
   })
 
   const isGitRepo = (workspacePath: string) =>
@@ -443,6 +523,24 @@ const makeGitService = Effect.gen(function* () {
   ): Effect.Effect<BlameResult, GitError> =>
     deduplicated(`blame:${workspacePath}:${filePath}`, _getBlame(workspacePath, filePath))
 
+  const _getLineDiff = Effect.fn("GitService.getLineDiff")(function* (
+    workspacePath: string,
+    filePath: string,
+  ) {
+    const git = getGit(workspacePath)
+    const raw = yield* Effect.tryPromise({
+      try: () => git.raw(["diff", "--unified=0", "HEAD", "--", filePath]),
+      catch: (e) => gitError("failed to get line diff", e),
+    })
+    return parseUnifiedDiff(raw)
+  })
+
+  const getLineDiff = (
+    workspacePath: string,
+    filePath: string,
+  ): Effect.Effect<LineDiff[], GitError> =>
+    deduplicated(`linediff:${workspacePath}:${filePath}`, _getLineDiff(workspacePath, filePath))
+
   const listBranches = Effect.fn("GitService.listBranches")(function* (workspacePath: string) {
     const git = getGit(workspacePath)
     const result = yield* Effect.tryPromise({
@@ -483,6 +581,18 @@ const makeGitService = Effect.gen(function* () {
 
   const fetchAll = (workspacePath: string) =>
     deduplicated(`fetch:${workspacePath}`, _fetchAll(workspacePath))
+
+  const _getRemoteUrl = Effect.fn("GitService.getRemoteUrl")(function* (workspacePath: string) {
+    const git = getGit(workspacePath)
+    const url = yield* Effect.tryPromise({
+      try: () => git.remote(["get-url", "origin"]),
+      catch: (e) => gitError("failed to get remote url", e),
+    })
+    return url ? url.trim() : null
+  })
+
+  const getRemoteUrl = (workspacePath: string): Effect.Effect<string | null, GitError> =>
+    deduplicated(`remoteurl:${workspacePath}`, _getRemoteUrl(workspacePath))
 
   // -- mutating operations (serialized + lock-retried) --
 
@@ -690,6 +800,129 @@ const makeGitService = Effect.gen(function* () {
     )
   })
 
+  const cloneRepo = Effect.fn("GitService.cloneRepo")(function* (url: string, targetPath: string) {
+    yield* Effect.tryPromise({
+      try: () => simpleGit().clone(url, targetPath),
+      catch: (e) => gitError("failed to clone repository", e),
+    })
+    return targetPath
+  })
+
+  const initRepo = Effect.fn("GitService.initRepo")(function* (targetPath: string) {
+    yield* Effect.tryPromise({
+      try: () => simpleGit(targetPath).init(),
+      catch: (e) => gitError("failed to initialize repository", e),
+    })
+    return targetPath
+  })
+
+  const stashPush = Effect.fn("GitService.stashPush")(function* (
+    workspacePath: string,
+    message?: string,
+  ) {
+    yield* withMutex(
+      workspacePath,
+      withLockRetry(
+        Effect.tryPromise({
+          try: async () => {
+            const git = getGit(workspacePath)
+            const args = ["push"]
+            if (message) args.push("-m", message)
+            try {
+              await git.stash(args)
+            } catch (e) {
+              // "no local changes to save" is not an error
+              const msg = e instanceof Error ? e.message : String(e)
+              if (/no local changes to save/i.test(msg)) return
+              throw e
+            }
+          },
+          catch: (e) => gitError("failed to stash changes", e),
+        }),
+      ),
+    )
+  })
+
+  const stashPop = Effect.fn("GitService.stashPop")(function* (
+    workspacePath: string,
+    index?: number,
+  ) {
+    yield* withMutex(
+      workspacePath,
+      withLockRetry(
+        Effect.tryPromise({
+          try: () => {
+            const git = getGit(workspacePath)
+            const args = ["pop"]
+            if (index !== undefined) args.push(`stash@{${index}}`)
+            return git.stash(args)
+          },
+          catch: (e) => gitError("failed to pop stash", e),
+        }),
+      ),
+    )
+  })
+
+  const _stashList = Effect.fn("GitService.stashList")(function* (workspacePath: string) {
+    const git = getGit(workspacePath)
+    const raw = yield* Effect.tryPromise({
+      try: () => git.stash(["list"]),
+      catch: (e) => gitError("failed to list stashes", e),
+    })
+    return parseStashList(raw)
+  })
+
+  const stashList = (workspacePath: string): Effect.Effect<StashEntry[], GitError> =>
+    deduplicated(`stashlist:${workspacePath}`, _stashList(workspacePath))
+
+  const stashDrop = Effect.fn("GitService.stashDrop")(function* (
+    workspacePath: string,
+    index: number,
+  ) {
+    yield* withMutex(
+      workspacePath,
+      withLockRetry(
+        Effect.tryPromise({
+          try: () => getGit(workspacePath).stash(["drop", `stash@{${index}}`]),
+          catch: (e) => gitError("failed to drop stash", e),
+        }),
+      ),
+    )
+  })
+
+  const getConflictContent = Effect.fn("GitService.getConflictContent")(function* (
+    workspacePath: string,
+    filePath: string,
+  ) {
+    const git = getGit(workspacePath)
+    // git merge stages: 1=base, 2=ours, 3=theirs
+    const [ours, theirs, base] = yield* Effect.tryPromise({
+      try: () =>
+        Promise.all([
+          git.show([`:2:${filePath}`]).catch(() => ""),
+          git.show([`:3:${filePath}`]).catch(() => ""),
+          git.show([`:1:${filePath}`]).catch(() => ""),
+        ]),
+      catch: (e) => gitError("failed to get conflict content", e),
+    })
+    return { ours, theirs, base } as ConflictContent
+  })
+
+  const resolveConflict = Effect.fn("GitService.resolveConflict")(function* (
+    workspacePath: string,
+    filePath: string,
+  ) {
+    yield* withMutex(
+      workspacePath,
+      withLockRetry(
+        Effect.tryPromise({
+          try: () => getGit(workspacePath).add([filePath]),
+          catch: (e) => gitError("failed to resolve conflict", e),
+        }),
+      ),
+    )
+  })
+
   return {
     getCurrentBranch,
     isGitRepo,
@@ -698,6 +931,7 @@ const makeGitService = Effect.gen(function* () {
     getCommitLog,
     getCommitFiles,
     getBlame,
+    getLineDiff,
     stageFiles,
     unstageFiles,
     commit,
@@ -708,9 +942,18 @@ const makeGitService = Effect.gen(function* () {
     push,
     pull,
     fetchAll,
+    getRemoteUrl,
     getRemoteStatus,
     discardFileChanges,
     discardAllChanges,
+    cloneRepo,
+    initRepo,
+    stashPush,
+    stashPop,
+    stashList,
+    stashDrop,
+    getConflictContent,
+    resolveConflict,
     removeWorkspace,
   } as const
 })

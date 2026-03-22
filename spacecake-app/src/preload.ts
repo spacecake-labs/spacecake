@@ -149,6 +149,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("git:commit-files", workspacePath, commitHash),
     blame: (workspacePath: string, filePath: string) =>
       ipcRenderer.invoke("git:blame", workspacePath, filePath),
+    getLineDiff: (workspacePath: string, filePath: string) =>
+      ipcRenderer.invoke("git:line-diff", workspacePath, filePath),
     stage: (workspacePath: string, files: string[]) =>
       ipcRenderer.invoke("git:stage", workspacePath, files),
     unstage: (workspacePath: string, files: string[]) =>
@@ -176,6 +178,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
     discardAll: (workspacePath: string) => ipcRenderer.invoke("git:discard-all", workspacePath),
     removeWorkspace: (workspacePath: string) =>
       ipcRenderer.invoke("git:remove-workspace", workspacePath),
+    clone: (url: string, targetPath: string) => ipcRenderer.invoke("git:clone", url, targetPath),
+    init: (targetPath: string) => ipcRenderer.invoke("git:init", targetPath),
+    stashPush: (workspacePath: string, message?: string) =>
+      ipcRenderer.invoke("git:stash:push", workspacePath, message),
+    stashPop: (workspacePath: string, index?: number) =>
+      ipcRenderer.invoke("git:stash:pop", workspacePath, index),
+    stashList: (workspacePath: string) => ipcRenderer.invoke("git:stash:list", workspacePath),
+    stashDrop: (workspacePath: string, index: number) =>
+      ipcRenderer.invoke("git:stash:drop", workspacePath, index),
+    getConflictContent: (workspacePath: string, filePath: string) =>
+      ipcRenderer.invoke("git:conflict-content", workspacePath, filePath),
+    resolveConflict: (workspacePath: string, filePath: string) =>
+      ipcRenderer.invoke("git:resolve-conflict", workspacePath, filePath),
+    getRemoteUrl: (workspacePath: string) => ipcRenderer.invoke("git:remote-url", workspacePath),
   },
   exists: (path: string) => ipcRenderer.invoke("path-exists", path),
   createTerminal: (id: string, cols: number, rows: number, cwd?: string, surfaceId?: string) =>

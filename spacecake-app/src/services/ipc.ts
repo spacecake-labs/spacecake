@@ -466,6 +466,10 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       gitHandler(git.getBlame(workspacePath, filePath)),
     )
 
+    ipcMain.handle("git:line-diff", (_, workspacePath: string, filePath: string) =>
+      gitHandler(git.getLineDiff(workspacePath, filePath)),
+    )
+
     ipcMain.handle("git:stage", (_, workspacePath: string, files: string[]) =>
       gitHandler(git.stageFiles(workspacePath, files)),
     )
@@ -520,6 +524,40 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
 
     ipcMain.handle("git:remove-workspace", (_, workspacePath: string) =>
       Effect.runPromise(git.removeWorkspace(workspacePath)),
+    )
+
+    ipcMain.handle("git:clone", (_, url: string, targetPath: string) =>
+      gitHandler(git.cloneRepo(url, targetPath)),
+    )
+
+    ipcMain.handle("git:init", (_, targetPath: string) => gitHandler(git.initRepo(targetPath)))
+
+    ipcMain.handle("git:stash:push", (_, workspacePath: string, message?: string) =>
+      gitHandler(git.stashPush(workspacePath, message)),
+    )
+
+    ipcMain.handle("git:stash:pop", (_, workspacePath: string, index?: number) =>
+      gitHandler(git.stashPop(workspacePath, index)),
+    )
+
+    ipcMain.handle("git:stash:list", (_, workspacePath: string) =>
+      gitHandler(git.stashList(workspacePath)),
+    )
+
+    ipcMain.handle("git:stash:drop", (_, workspacePath: string, index: number) =>
+      gitHandler(git.stashDrop(workspacePath, index)),
+    )
+
+    ipcMain.handle("git:conflict-content", (_, workspacePath: string, filePath: string) =>
+      gitHandler(git.getConflictContent(workspacePath, filePath)),
+    )
+
+    ipcMain.handle("git:resolve-conflict", (_, workspacePath: string, filePath: string) =>
+      gitHandler(git.resolveConflict(workspacePath, filePath)),
+    )
+
+    ipcMain.handle("git:remote-url", (_, workspacePath: string) =>
+      gitHandler(git.getRemoteUrl(workspacePath)),
     )
 
     return {}

@@ -4,7 +4,14 @@ import * as Layer from "effect/Layer"
 import { describe, expect, vi, beforeEach } from "vitest"
 
 import { FileSystem } from "@/services/file-system"
-import { classifyGitError, GitError, GitService } from "@/services/git"
+import {
+  classifyGitError,
+  GitError,
+  GitService,
+  parseGitHubUrl,
+  parseStashList,
+  parseUnifiedDiff,
+} from "@/services/git"
 
 // Mock simple-git
 const mockCheckIsRepo = vi.fn()
@@ -25,6 +32,10 @@ const mockFetch = vi.fn()
 const mockClean = vi.fn()
 const mockRaw = vi.fn()
 const mockEnv = vi.fn()
+const mockClone = vi.fn()
+const mockInit = vi.fn()
+const mockStash = vi.fn()
+const mockRemote = vi.fn()
 vi.mock("simple-git", () => ({
   default: (_path: string, _opts?: unknown) => {
     const instance = {
@@ -45,6 +56,10 @@ vi.mock("simple-git", () => ({
       fetch: mockFetch,
       clean: mockClean,
       raw: mockRaw,
+      clone: mockClone,
+      init: mockInit,
+      stash: mockStash,
+      remote: mockRemote,
       env: (...args: unknown[]) => {
         mockEnv(...args)
         return instance
@@ -158,16 +173,26 @@ describe("GitService", () => {
   describe("getCurrentBranch", () => {
     it.effect("returns the current branch name", () =>
       Effect.gen(function* () {
-        mockBranchLocal.mockResolvedValue({ current: "feature-branch" })
+        mockRaw.mockResolvedValue("feature-branch\n")
         const service = yield* GitService
         const result = yield* service.getCurrentBranch("/my/workspace")
         expect(result).toBe("feature-branch")
+        expect(mockRaw).toHaveBeenCalledWith(["symbolic-ref", "--short", "HEAD"])
       }).pipe(Effect.provide(createTestLayer())),
     )
 
-    it.effect("fails with GitError when branchLocal rejects", () =>
+    it.effect("returns branch name in a repo with no commits", () =>
       Effect.gen(function* () {
-        mockBranchLocal.mockRejectedValue(new Error("boom"))
+        mockRaw.mockResolvedValue("main\n")
+        const service = yield* GitService
+        const result = yield* service.getCurrentBranch("/my/workspace")
+        expect(result).toBe("main")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("fails with GitError when symbolic-ref rejects", () =>
+      Effect.gen(function* () {
+        mockRaw.mockRejectedValue(new Error("boom"))
         const service = yield* GitService
         const error = yield* service.getCurrentBranch("/my/workspace").pipe(Effect.flip)
         expect(error._tag).toBe("GitError")
@@ -904,6 +929,344 @@ describe("GitService", () => {
     )
   })
 
+  describe("cloneRepo", () => {
+    it.effect("clones repo to target directory", () =>
+      Effect.gen(function* () {
+        mockClone.mockResolvedValue(undefined)
+        const service = yield* GitService
+        const result = yield* service.cloneRepo("https://github.com/user/repo.git", "/tmp/target")
+        expect(result).toBe("/tmp/target")
+        expect(mockClone).toHaveBeenCalledWith("https://github.com/user/repo.git", "/tmp/target")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("classifies auth errors", () =>
+      Effect.gen(function* () {
+        mockClone.mockRejectedValue(
+          new Error("Authentication failed for 'https://github.com/user/repo.git'"),
+        )
+        const service = yield* GitService
+        const error = yield* service
+          .cloneRepo("https://github.com/user/repo.git", "/tmp/target")
+          .pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+        expect(error.code).toBe("auth")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("classifies network errors", () =>
+      Effect.gen(function* () {
+        mockClone.mockRejectedValue(new Error("Could not resolve host: github.com"))
+        const service = yield* GitService
+        const error = yield* service
+          .cloneRepo("https://github.com/user/repo.git", "/tmp/target")
+          .pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+        expect(error.code).toBe("network")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("handles invalid url errors", () =>
+      Effect.gen(function* () {
+        mockClone.mockRejectedValue(new Error("repository not found"))
+        const service = yield* GitService
+        const error = yield* service.cloneRepo("not-a-url", "/tmp/target").pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
+  describe("initRepo", () => {
+    it.effect("initializes git repo in target directory", () =>
+      Effect.gen(function* () {
+        mockInit.mockResolvedValue(undefined)
+        const service = yield* GitService
+        const result = yield* service.initRepo("/tmp/new-repo")
+        expect(result).toBe("/tmp/new-repo")
+        expect(mockInit).toHaveBeenCalled()
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("fails with GitError when init rejects", () =>
+      Effect.gen(function* () {
+        mockInit.mockRejectedValue(new Error("permission denied"))
+        const service = yield* GitService
+        const error = yield* service.initRepo("/tmp/new-repo").pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
+  describe("stashPush", () => {
+    it.effect("calls git stash push with optional message", () =>
+      Effect.gen(function* () {
+        mockStash.mockResolvedValue("")
+        const service = yield* GitService
+        yield* service.stashPush("/my/workspace", "my stash")
+        expect(mockStash).toHaveBeenCalledWith(["push", "-m", "my stash"])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("calls git stash push without message", () =>
+      Effect.gen(function* () {
+        mockStash.mockResolvedValue("")
+        const service = yield* GitService
+        yield* service.stashPush("/my/workspace")
+        expect(mockStash).toHaveBeenCalledWith(["push"])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("handles 'no local changes to save' as success", () =>
+      Effect.gen(function* () {
+        mockStash.mockRejectedValue(new Error("No local changes to save"))
+        const service = yield* GitService
+        yield* service.stashPush("/my/workspace")
+        // should not throw
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("fails with GitError on other errors", () =>
+      Effect.gen(function* () {
+        mockStash.mockRejectedValue(new Error("fatal: something went wrong"))
+        const service = yield* GitService
+        const error = yield* service.stashPush("/my/workspace").pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
+  describe("stashPop", () => {
+    it.effect("calls git stash pop", () =>
+      Effect.gen(function* () {
+        mockStash.mockResolvedValue("")
+        const service = yield* GitService
+        yield* service.stashPop("/my/workspace")
+        expect(mockStash).toHaveBeenCalledWith(["pop"])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("calls git stash pop with index", () =>
+      Effect.gen(function* () {
+        mockStash.mockResolvedValue("")
+        const service = yield* GitService
+        yield* service.stashPop("/my/workspace", 2)
+        expect(mockStash).toHaveBeenCalledWith(["pop", "stash@{2}"])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("fails with GitError on conflict", () =>
+      Effect.gen(function* () {
+        mockStash.mockRejectedValue(new Error("CONFLICT (content): merge conflict in file.ts"))
+        const service = yield* GitService
+        const error = yield* service.stashPop("/my/workspace").pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+        expect(error.code).toBe("conflict")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("handles 'no stash entries' error", () =>
+      Effect.gen(function* () {
+        mockStash.mockRejectedValue(new Error("No stash entries found"))
+        const service = yield* GitService
+        const error = yield* service.stashPop("/my/workspace").pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
+  describe("stashList", () => {
+    it.effect("returns array of stash entries", () =>
+      Effect.gen(function* () {
+        mockStash.mockResolvedValue(
+          "stash@{0}: WIP on main: abc1234 message\nstash@{1}: On feature: other",
+        )
+        const service = yield* GitService
+        const result = yield* service.stashList("/my/workspace")
+        expect(result).toHaveLength(2)
+        expect(result[0].index).toBe(0)
+        expect(result[1].index).toBe(1)
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("returns empty array when no stashes", () =>
+      Effect.gen(function* () {
+        mockStash.mockResolvedValue("")
+        const service = yield* GitService
+        const result = yield* service.stashList("/my/workspace")
+        expect(result).toEqual([])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
+  describe("stashDrop", () => {
+    it.effect("drops stash at given index", () =>
+      Effect.gen(function* () {
+        mockStash.mockResolvedValue("")
+        const service = yield* GitService
+        yield* service.stashDrop("/my/workspace", 0)
+        expect(mockStash).toHaveBeenCalledWith(["drop", "stash@{0}"])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("fails with GitError on invalid index", () =>
+      Effect.gen(function* () {
+        mockStash.mockRejectedValue(new Error("fatal: log for 'refs/stash' only has 1 entries"))
+        const service = yield* GitService
+        const error = yield* service.stashDrop("/my/workspace", 5).pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
+  describe("getLineDiff", () => {
+    it.effect("returns per-line diff info", () =>
+      Effect.gen(function* () {
+        mockRaw.mockResolvedValue("@@ -1,1 +1,2 @@\n-old\n+new1\n+new2")
+        const service = yield* GitService
+        const result = yield* service.getLineDiff("/my/workspace", "file.ts")
+        expect(result).toEqual([{ type: "modified", startLine: 1, endLine: 2 }])
+        expect(mockRaw).toHaveBeenCalledWith(["diff", "--unified=0", "HEAD", "--", "file.ts"])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("returns empty array on error (untracked files)", () =>
+      Effect.gen(function* () {
+        mockRaw.mockRejectedValue(new Error("fatal: bad revision 'HEAD'"))
+        const service = yield* GitService
+        const error = yield* service.getLineDiff("/my/workspace", "new-file.ts").pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
+  describe("getConflictContent", () => {
+    it.effect("returns base/ours/theirs content for a conflicted file", () =>
+      Effect.gen(function* () {
+        mockShow
+          .mockResolvedValueOnce("ours content")
+          .mockResolvedValueOnce("theirs content")
+          .mockResolvedValueOnce("base content")
+        const service = yield* GitService
+        const result = yield* service.getConflictContent("/my/workspace", "conflicted.ts")
+        expect(result.ours).toBe("ours content")
+        expect(result.theirs).toBe("theirs content")
+        expect(result.base).toBe("base content")
+        expect(mockShow).toHaveBeenCalledWith([":2:conflicted.ts"])
+        expect(mockShow).toHaveBeenCalledWith([":3:conflicted.ts"])
+        expect(mockShow).toHaveBeenCalledWith([":1:conflicted.ts"])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("returns empty strings when stages are missing", () =>
+      Effect.gen(function* () {
+        mockShow.mockRejectedValue(new Error("path not found"))
+        const service = yield* GitService
+        const result = yield* service.getConflictContent("/my/workspace", "binary.bin")
+        expect(result.ours).toBe("")
+        expect(result.theirs).toBe("")
+        expect(result.base).toBe("")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
+  describe("resolveConflict", () => {
+    it.effect("stages the resolved file", () =>
+      Effect.gen(function* () {
+        mockAdd.mockResolvedValue(undefined)
+        const service = yield* GitService
+        yield* service.resolveConflict("/my/workspace", "resolved.ts")
+        expect(mockAdd).toHaveBeenCalledWith(["resolved.ts"])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("fails with GitError when add rejects", () =>
+      Effect.gen(function* () {
+        mockAdd.mockRejectedValue(new Error("boom"))
+        const service = yield* GitService
+        const error = yield* service.resolveConflict("/my/workspace", "file.ts").pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
+  describe("getRemoteUrl", () => {
+    it.effect("returns the remote url for origin", () =>
+      Effect.gen(function* () {
+        mockRemote.mockResolvedValue("https://github.com/user/repo.git\n")
+        const service = yield* GitService
+        const result = yield* service.getRemoteUrl("/my/workspace")
+        expect(result).toBe("https://github.com/user/repo.git")
+        expect(mockRemote).toHaveBeenCalledWith(["get-url", "origin"])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("handles ssh urls", () =>
+      Effect.gen(function* () {
+        mockRemote.mockResolvedValue("git@github.com:user/repo.git\n")
+        const service = yield* GitService
+        const result = yield* service.getRemoteUrl("/my/workspace")
+        expect(result).toBe("git@github.com:user/repo.git")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("returns null when remote returns empty", () =>
+      Effect.gen(function* () {
+        mockRemote.mockResolvedValue("")
+        const service = yield* GitService
+        const result = yield* service.getRemoteUrl("/my/workspace")
+        expect(result).toBeNull()
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("fails with GitError when no remote", () =>
+      Effect.gen(function* () {
+        mockRemote.mockRejectedValue(new Error("fatal: No such remote 'origin'"))
+        const service = yield* GitService
+        const error = yield* service.getRemoteUrl("/my/workspace").pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
+  describe("getRemoteUrl", () => {
+    it.effect("returns the remote url for origin", () =>
+      Effect.gen(function* () {
+        mockRemote.mockResolvedValue("https://github.com/user/repo.git\n")
+        const service = yield* GitService
+        const result = yield* service.getRemoteUrl("/my/workspace")
+        expect(result).toBe("https://github.com/user/repo.git")
+        expect(mockRemote).toHaveBeenCalledWith(["get-url", "origin"])
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("handles ssh urls", () =>
+      Effect.gen(function* () {
+        mockRemote.mockResolvedValue("git@github.com:user/repo.git\n")
+        const service = yield* GitService
+        const result = yield* service.getRemoteUrl("/my/workspace")
+        expect(result).toBe("git@github.com:user/repo.git")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("returns null when remote returns empty", () =>
+      Effect.gen(function* () {
+        mockRemote.mockResolvedValue("")
+        const service = yield* GitService
+        const result = yield* service.getRemoteUrl("/my/workspace")
+        expect(result).toBeNull()
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+
+    it.effect("fails with GitError when no remote", () =>
+      Effect.gen(function* () {
+        mockRemote.mockRejectedValue(new Error("fatal: No such remote 'origin'"))
+        const service = yield* GitService
+        const error = yield* service.getRemoteUrl("/my/workspace").pipe(Effect.flip)
+        expect(error._tag).toBe("GitError")
+      }).pipe(Effect.provide(createTestLayer())),
+    )
+  })
+
   describe("semaphore serialization", () => {
     it.effect("serializes concurrent mutations on the same workspace", () =>
       Effect.gen(function* () {
@@ -936,5 +1299,99 @@ describe("GitService", () => {
         }
       }).pipe(Effect.provide(createTestLayer())),
     )
+  })
+})
+
+describe("parseGitHubUrl", () => {
+  it("parses https github url", () => {
+    const result = parseGitHubUrl("https://github.com/user/repo.git")
+    expect(result).toEqual({ owner: "user", repo: "repo" })
+  })
+
+  it("parses https github url without .git", () => {
+    const result = parseGitHubUrl("https://github.com/user/repo")
+    expect(result).toEqual({ owner: "user", repo: "repo" })
+  })
+
+  it("parses ssh github url", () => {
+    const result = parseGitHubUrl("git@github.com:user/repo.git")
+    expect(result).toEqual({ owner: "user", repo: "repo" })
+  })
+
+  it("parses ssh github url without .git", () => {
+    const result = parseGitHubUrl("git@github.com:user/repo")
+    expect(result).toEqual({ owner: "user", repo: "repo" })
+  })
+
+  it("returns null for non-github urls", () => {
+    expect(parseGitHubUrl("https://gitlab.com/user/repo.git")).toBeNull()
+    expect(parseGitHubUrl("git@gitlab.com:user/repo.git")).toBeNull()
+  })
+
+  it("returns null for invalid urls", () => {
+    expect(parseGitHubUrl("not-a-url")).toBeNull()
+    expect(parseGitHubUrl("")).toBeNull()
+  })
+})
+
+describe("parseStashList", () => {
+  it("parses stash list entries", () => {
+    const raw =
+      "stash@{0}: WIP on main: abc1234 some message\nstash@{1}: On feature: custom message"
+    const result = parseStashList(raw)
+    expect(result).toEqual([
+      { index: 0, message: "abc1234 some message", date: "" },
+      { index: 1, message: "custom message", date: "" },
+    ])
+  })
+
+  it("returns empty array for empty input", () => {
+    expect(parseStashList("")).toEqual([])
+    expect(parseStashList("  ")).toEqual([])
+  })
+
+  it("handles stash with explicit message", () => {
+    const raw = "stash@{0}: On main: my stash message"
+    const result = parseStashList(raw)
+    expect(result).toEqual([{ index: 0, message: "my stash message", date: "" }])
+  })
+})
+
+describe("parseUnifiedDiff", () => {
+  it("parses added lines", () => {
+    const raw = "@@ -0,0 +1,3 @@\n+line1\n+line2\n+line3"
+    const result = parseUnifiedDiff(raw)
+    expect(result).toEqual([{ type: "added", startLine: 1, endLine: 3 }])
+  })
+
+  it("parses deleted lines", () => {
+    const raw = "@@ -5,2 +4,0 @@\n-old1\n-old2"
+    const result = parseUnifiedDiff(raw)
+    expect(result).toEqual([{ type: "deleted", startLine: 4, endLine: 4 }])
+  })
+
+  it("parses modified lines", () => {
+    const raw = "@@ -10,2 +10,3 @@\n-old1\n-old2\n+new1\n+new2\n+new3"
+    const result = parseUnifiedDiff(raw)
+    expect(result).toEqual([{ type: "modified", startLine: 10, endLine: 12 }])
+  })
+
+  it("parses multiple hunks", () => {
+    const raw = "@@ -1,1 +1,1 @@\n-a\n+b\n@@ -5,0 +5,2 @@\n+c\n+d"
+    const result = parseUnifiedDiff(raw)
+    expect(result).toEqual([
+      { type: "modified", startLine: 1, endLine: 1 },
+      { type: "added", startLine: 5, endLine: 6 },
+    ])
+  })
+
+  it("returns empty array for empty diff", () => {
+    expect(parseUnifiedDiff("")).toEqual([])
+  })
+
+  it("handles single-line implicit count", () => {
+    const raw = "@@ -5 +5 @@\n-old\n+new"
+    const result = parseUnifiedDiff(raw)
+    expect(result).toEqual([{ type: "modified", startLine: 5, endLine: 5 }])
   })
 })

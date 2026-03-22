@@ -1,26 +1,37 @@
-import { useAtom, useAtomValue } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
+  Archive,
   ArrowDown,
   ArrowUp,
   ChevronDown,
   ChevronUp,
   EllipsisVertical,
+  Github,
   RefreshCw,
 } from "lucide-react"
-import { memo, useCallback, useEffect } from "react"
+import { memo, useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { BranchPopover } from "@/components/branch-popover"
+import { StashPopover } from "@/components/stash-popover"
 import { tabTriggerClasses } from "@/components/tab-bar/tab-close-button"
 import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { gitOperationAtom, gitRemoteStatusAtom, isBusyAtom } from "@/lib/atoms/git"
+import {
+  gitBranchAtom,
+  gitHubRepoInfoAtom,
+  gitOperationAtom,
+  gitRemoteStatusAtom,
+  gitRemoteUrlAtom,
+  isBusyAtom,
+} from "@/lib/atoms/git"
 import { cn } from "@/lib/utils"
 import { isRight } from "@/types/adt"
 
@@ -40,6 +51,9 @@ export const GitToolbar = memo(function GitToolbar({
   const isCollapsed = !isExpanded
   const [remoteStatus, setRemoteStatus] = useAtom(gitRemoteStatusAtom)
   const [operation, setOperation] = useAtom(gitOperationAtom)
+  const setRemoteUrl = useSetAtom(gitRemoteUrlAtom)
+  const gitHubInfo = useAtomValue(gitHubRepoInfoAtom)
+  const gitBranch = useAtomValue(gitBranchAtom)
 
   const refreshRemoteStatus = useCallback(async () => {
     const result = await window.electronAPI.git.getRemoteStatus(workspacePath)
@@ -52,9 +66,50 @@ export const GitToolbar = memo(function GitToolbar({
     }
   }, [workspacePath, setRemoteStatus])
 
+  // fetch remote status on mount / workspace change
   useEffect(() => {
-    refreshRemoteStatus()
-  }, [refreshRemoteStatus])
+    let stale = false
+    window.electronAPI.git.getRemoteStatus(workspacePath).then((result) => {
+      if (stale) return
+      if (isRight(result)) {
+        setRemoteStatus({
+          ahead: result.value.ahead,
+          behind: result.value.behind,
+          tracking: result.value.tracking,
+        })
+      }
+    })
+    return () => {
+      stale = true
+    }
+  }, [workspacePath, setRemoteStatus])
+
+  // fetch remote url on mount / workspace change
+  useEffect(() => {
+    let stale = false
+    window.electronAPI.git.getRemoteUrl(workspacePath).then((result) => {
+      if (stale) return
+      if (isRight(result)) {
+        setRemoteUrl(result.value)
+      }
+    })
+    return () => {
+      stale = true
+    }
+  }, [workspacePath, setRemoteUrl])
+
+  const handleOpenOnGitHub = useCallback(() => {
+    if (!gitHubInfo) return
+    window.electronAPI.openExternal(`https://github.com/${gitHubInfo.owner}/${gitHubInfo.repo}`)
+  }, [gitHubInfo])
+
+  const handleCreatePR = useCallback(() => {
+    if (!gitHubInfo || !gitBranch) return
+    const encodedBranch = encodeURIComponent(gitBranch)
+    window.electronAPI.openExternal(
+      `https://github.com/${gitHubInfo.owner}/${gitHubInfo.repo}/compare/${encodedBranch}?expand=1`,
+    )
+  }, [gitHubInfo, gitBranch])
 
   const handleFetch = useCallback(async () => {
     setOperation("fetching")
@@ -107,6 +162,20 @@ export const GitToolbar = memo(function GitToolbar({
   }, [workspacePath, setOperation, refreshRemoteStatus])
 
   const isBusy = useAtomValue(isBusyAtom)
+  const [stashOpen, setStashOpen] = useState(false)
+
+  const handleStashAll = useCallback(async () => {
+    const result = await window.electronAPI.git.stashPush(workspacePath)
+    if (isRight(result)) {
+      toast.success("changes stashed")
+    } else {
+      toast.error(result.value.description, { description: result.value.detail })
+    }
+  }, [workspacePath])
+
+  const handleToggleExpanded = useCallback(() => {
+    onExpandedChange(!isExpanded)
+  }, [onExpandedChange, isExpanded])
 
   return (
     <div className="@container h-10 shrink-0 w-full bg-background/50 flex items-center overflow-hidden border-b">
@@ -129,7 +198,7 @@ export const GitToolbar = memo(function GitToolbar({
 
       {/* right controls */}
       <div className="flex items-center gap-2 flex-shrink-0 px-2">
-        {/* expanded: individual buttons (wide) */}
+        {/* sync buttons (wide only) */}
         <div className="hidden @[420px]:flex items-center gap-2">
           <button
             onClick={handleFetch}
@@ -138,7 +207,7 @@ export const GitToolbar = memo(function GitToolbar({
             title="fetch"
             aria-label="fetch"
           >
-            <RefreshCw className={cn("h-3.5 w-3.5", operation === "fetching" && "animate-spin")} />
+            <RefreshCw className={cn("h-4 w-4", operation === "fetching" && "animate-spin")} />
           </button>
           <button
             onClick={handlePull}
@@ -153,9 +222,9 @@ export const GitToolbar = memo(function GitToolbar({
             }
             aria-label="pull"
           >
-            <ArrowDown className={cn("h-3.5 w-3.5", operation === "pulling" && "animate-bounce")} />
+            <ArrowDown className={cn("h-4 w-4", operation === "pulling" && "animate-bounce")} />
             {remoteStatus && remoteStatus.behind > 0 && (
-              <span className="text-[10px] font-mono font-medium" data-testid="behind-count">
+              <span className="text-xs font-mono font-medium" data-testid="behind-count">
                 {remoteStatus.behind}
               </span>
             )}
@@ -173,64 +242,76 @@ export const GitToolbar = memo(function GitToolbar({
             }
             aria-label="push"
           >
-            <ArrowUp className={cn("h-3.5 w-3.5", operation === "pushing" && "animate-bounce")} />
+            <ArrowUp className={cn("h-4 w-4", operation === "pushing" && "animate-bounce")} />
             {remoteStatus && remoteStatus.ahead > 0 && (
-              <span className="text-[10px] font-mono font-medium" data-testid="ahead-count">
+              <span className="text-xs font-mono font-medium" data-testid="ahead-count">
                 {remoteStatus.ahead}
               </span>
             )}
           </button>
         </div>
-        {/* collapsed: dropdown menu (narrow) */}
-        <div className="flex @[420px]:hidden">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                aria-label="git actions"
-              >
-                <EllipsisVertical className="h-3.5 w-3.5" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleFetch} disabled={isBusy}>
-                <RefreshCw
-                  className={cn("h-3.5 w-3.5", operation === "fetching" && "animate-spin")}
-                />
-                fetch
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handlePull} disabled={isBusy}>
-                <ArrowDown
-                  className={cn("h-3.5 w-3.5", operation === "pulling" && "animate-bounce")}
-                />
-                pull
-                {remoteStatus && remoteStatus.behind > 0 && (
-                  <span className="ml-auto text-[10px] font-mono">{remoteStatus.behind}</span>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handlePush} disabled={isBusy}>
-                <ArrowUp
-                  className={cn("h-3.5 w-3.5", operation === "pushing" && "animate-bounce")}
-                />
-                push
-                {remoteStatus && remoteStatus.ahead > 0 && (
-                  <span className="ml-auto text-[10px] font-mono">{remoteStatus.ahead}</span>
-                )}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        {/* more menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="more actions"
+              aria-label="more actions"
+            >
+              <EllipsisVertical className="h-4 w-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleFetch} disabled={isBusy}>
+              <RefreshCw className={cn("h-4 w-4", operation === "fetching" && "animate-spin")} />
+              fetch
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handlePull} disabled={isBusy}>
+              <ArrowDown className={cn("h-4 w-4", operation === "pulling" && "animate-bounce")} />
+              pull
+              {remoteStatus && remoteStatus.behind > 0 && (
+                <span className="ml-auto text-xs font-mono font-medium">{remoteStatus.behind}</span>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handlePush} disabled={isBusy}>
+              <ArrowUp className={cn("h-4 w-4", operation === "pushing" && "animate-bounce")} />
+              push
+              {remoteStatus && remoteStatus.ahead > 0 && (
+                <span className="ml-auto text-xs font-mono font-medium">{remoteStatus.ahead}</span>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleStashAll} disabled={isBusy}>
+              <Archive className="h-4 w-4" />
+              stash all
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStashOpen(true)}>
+              <Archive className="h-4 w-4" />
+              view stash
+            </DropdownMenuItem>
+            {gitHubInfo && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleOpenOnGitHub}>
+                  <Github className="h-4 w-4" />
+                  view on GitHub
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCreatePR}>
+                  <Github className="h-4 w-4" />
+                  create pull request
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <StashPopover workspacePath={workspacePath} open={stashOpen} onOpenChange={setStashOpen} />
         <BranchPopover workspacePath={workspacePath} isExpanded={isExpanded} />
         <button
-          onClick={() => onExpandedChange(!isExpanded)}
+          onClick={handleToggleExpanded}
           className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           aria-label={isCollapsed ? "show git panel" : "hide git panel"}
         >
-          {isCollapsed ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
+          {isCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </button>
       </div>
     </div>
