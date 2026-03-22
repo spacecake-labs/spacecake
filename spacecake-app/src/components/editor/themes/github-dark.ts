@@ -120,7 +120,7 @@ const editorTheme = EditorView.theme(
       fontSize: "0.85em",
       marginLeft: "3em",
       whiteSpace: "nowrap",
-      cursor: "pointer",
+      cursor: "text",
       display: "inline-flex",
       alignItems: "center",
       verticalAlign: "middle",
