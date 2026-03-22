@@ -52,8 +52,31 @@ interface CodeMirrorEditorProps {
   code: string
   block: BlockMeta
   codeBlockNode: CodeBlockNode
+  meta: string
   enableLanguageSwitching?: boolean
   showLineNumbers?: boolean
+}
+
+// subscribes to blame data and pushes into a codemirror compartment.
+// only mounted for source view (single code block) to avoid N subscriptions.
+const BlameSync: React.FC<{
+  viewRef: React.RefObject<EditorView | null>
+  compartment: React.RefObject<Compartment>
+}> = ({ viewRef, compartment }) => {
+  const blameData = useAtomValue(activeBlameAtom)
+
+  React.useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+
+    view.dispatch({
+      effects: compartment.current.reconfigure(
+        blameData.length > 0 ? blameAnnotation(blameData) : emptyBlameAnnotation(),
+      ),
+    })
+  }, [blameData, viewRef, compartment])
+
+  return null
 }
 
 const EMPTY_VALUE = "__EMPTY_VALUE__"
@@ -339,6 +362,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   code,
   block,
   codeBlockNode,
+  meta,
   enableLanguageSwitching = true,
   showLineNumbers = true,
 }) => {
@@ -403,12 +427,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   const { theme } = useTheme()
 
-  // blame data for the active file
-  const blameData = useAtomValue(activeBlameAtom)
-
   // Create a compartment for the theme extension
   const themeCompartment = React.useRef(new Compartment())
-  // compartment for blame annotations
+  // compartment for blame annotations (reconfigured by BlameSync when in source view)
   const blameCompartment = React.useRef(new Compartment())
 
   // debounce settings and helpers
@@ -488,9 +509,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         themeCompartment.current.of(theme === "dark" ? githubDark : githubLight),
         focusedActiveLineTheme,
         foldPlaceholderTheme,
-        blameCompartment.current.of(
-          blameData.length > 0 ? blameAnnotation(blameData) : emptyBlameAnnotation(),
-        ),
+        blameCompartment.current.of(emptyBlameAnnotation()),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             debouncedCommitRef.current.schedule()
@@ -615,18 +634,6 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     })
   }, [theme])
 
-  // handle blame data changes dynamically using compartment
-  React.useEffect(() => {
-    const view = editorViewRef.current
-    if (!view) return
-
-    view.dispatch({
-      effects: blameCompartment.current.reconfigure(
-        blameData.length > 0 ? blameAnnotation(blameData) : emptyBlameAnnotation(),
-      ),
-    })
-  }, [blameData])
-
   // // keep codemirror doc in sync if external updates change the node code
   // React.useEffect(() => {
   //   const view = editorViewRef.current;
@@ -656,6 +663,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     })
   }, [editor, codeBlockNode])
 
+  const isSourceView = meta === "source"
+
   return (
     <CodeBlock
       block={block}
@@ -669,6 +678,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       codeBlockContext={enableLanguageSwitching ? codeBlockContext : undefined}
       onDelete={handleDelete}
     >
+      {isSourceView && <BlameSync viewRef={editorViewRef} compartment={blameCompartment} />}
       <div ref={elRef} />
     </CodeBlock>
   )

@@ -88,9 +88,19 @@ const getAvatarUrl = (blame: BlameLine): string | null => {
   return null
 }
 
-// -- branch icon svg --
+// -- branch icon svg (template for cloneNode to avoid repeated innerHTML parsing) --
 
 const BRANCH_ICON_SVG = `<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25-.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z"/></svg>`
+
+let blameIconTemplate: HTMLSpanElement | null = null
+const getBlameIconTemplate = (): HTMLSpanElement => {
+  if (!blameIconTemplate) {
+    blameIconTemplate = document.createElement("span")
+    blameIconTemplate.className = "cm-blame-icon"
+    blameIconTemplate.innerHTML = BRANCH_ICON_SVG
+  }
+  return blameIconTemplate
+}
 
 // -- copy icon svg --
 
@@ -173,11 +183,13 @@ const createTooltipDom = (blame: BlameLine): HTMLElement => {
   copyBtn.className = "cm-blame-tooltip-copy"
   copyBtn.innerHTML = COPY_ICON_SVG
   copyBtn.title = "copy full commit hash"
+  let feedbackTimer: ReturnType<typeof setTimeout> | undefined
   copyBtn.addEventListener("click", (e) => {
     e.stopPropagation()
-    navigator.clipboard.writeText(blame.hash)
+    navigator.clipboard.writeText(blame.hash).catch(() => {})
     copyBtn.innerHTML = CHECK_ICON_SVG
-    setTimeout(() => {
+    clearTimeout(feedbackTimer)
+    feedbackTimer = setTimeout(() => {
       copyBtn.innerHTML = COPY_ICON_SVG
     }, COPIED_FEEDBACK_MS)
   })
@@ -234,10 +246,7 @@ class BlameWidget extends WidgetType {
     const span = document.createElement("span")
     span.className = "cm-blame-annotation"
 
-    const icon = document.createElement("span")
-    icon.className = "cm-blame-icon"
-    icon.innerHTML = BRANCH_ICON_SVG
-    span.appendChild(icon)
+    span.appendChild(getBlameIconTemplate().cloneNode(true))
 
     const textNode = document.createElement("span")
     textNode.textContent = this.text

@@ -2,9 +2,10 @@ import { createFileRoute, ErrorComponent, redirect } from "@tanstack/react-route
 import { useActorRef } from "@xstate/react"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
+import { atom } from "jotai"
 import { useSetAtom, useAtomValue } from "jotai"
 import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
-import { useEffect } from "react"
+import React, { useEffect } from "react"
 
 import { Editor } from "@/components/editor/editor"
 import { LoadingAnimation } from "@/components/loading-animation"
@@ -265,10 +266,15 @@ function FileLayout() {
   // fetch blame data for the active file
   const setActiveBlame = useSetAtom(activeBlameAtom)
   const isGitRepo = useAtomValue(isGitRepoAtom)
-  const fileState = useAtomValue(getOrCreateFileStateAtom(filePath)).value
+  const isFileDirty = useAtomValue(
+    React.useMemo(
+      () => atom((get) => get(getOrCreateFileStateAtom(filePath)).value === "Dirty"),
+      [filePath],
+    ),
+  )
 
   useEffect(() => {
-    if (!isGitRepo || fileState === "Dirty") {
+    if (!isGitRepo || isFileDirty) {
       setActiveBlame([])
       return
     }
@@ -294,7 +300,7 @@ function FileLayout() {
     return () => {
       cancelled = true
     }
-  }, [filePath, workspace.path, isGitRepo, fileState, setActiveBlame])
+  }, [filePath, workspace.path, isGitRepo, isFileDirty, setActiveBlame])
 
   // clear active blame on unmount
   useEffect(() => {
