@@ -19,6 +19,7 @@ interface Props {
   faq?: Array<{ question: string; answer: string }>
   canonical?: string
   noindex?: boolean
+  keywords?: string[]
 }
 
 const {
@@ -33,6 +34,7 @@ const {
   faq,
   canonical,
   noindex = false,
+  keywords,
 } = Astro.props
 
 const currentUrl = Astro.url.href
@@ -64,7 +66,7 @@ const articleSchema = {
   dateModified: (updatedAt || publishedAt).toISOString(),
   mainEntityOfPage: canonicalUrl,
   ...(coverImage && { image: coverImage.src }),
-  keywords: tags.join(", "),
+  keywords: (keywords?.length ? keywords : tags).join(", "),
 }
 
 // BreadcrumbList schema

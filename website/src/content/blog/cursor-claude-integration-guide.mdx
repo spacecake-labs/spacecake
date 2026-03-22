@@ -1,0 +1,141 @@
+---
+title: "How to Use Claude in Cursor: Complete Setup Guide"
+description: "Set up Claude in Cursor in under 2 minutes. Model selection, API key configuration, credit optimization, and when to use alternatives."
+tags: ["cursor", "claude", "ai coding", "developer tools"]
+publishedAt: 2026-03-22
+author: "spacecake team"
+keywords:
+  - "cursor ai claude integration"
+  - "cursor anthropic claude model"
+  - "how to use claude in cursor"
+  - "cursor claude setup"
+  - "cursor ai code editor claude"
+  - "cursor bring your own api key"
+  - "best ai model for cursor"
+faq:
+  - question: "How do I add Claude to Cursor AI?"
+    answer: "Open Cursor Settings, go to the Models tab, and enable the Claude model you want (such as Claude Sonnet 4.6 or Opus 4.6). If you want to use your own Anthropic API key instead of Cursor's built-in access, scroll to the API Keys section and paste your key under 'Anthropic API key'."
+  - question: "Which Claude model should I use in Cursor?"
+    answer: "Claude Sonnet 4.6 is the best default for most coding tasks — fast, cheap, and good output. Save Opus 4.6 for complex architectural work or when Sonnet gets stuck, since Opus burns through credits about 5x faster."
+  - question: "Does Cursor Pro include Claude access?"
+    answer: "Yes. Cursor Pro ($20/month) includes access to Claude models through Cursor's built-in credits. You don't need your own Anthropic API key unless you want direct Anthropic billing or need to bypass Cursor's credit system."
+  - question: "Why is my Claude context window smaller in Cursor than advertised?"
+    answer: "Cursor's internal processing cuts the usable window down to roughly 70K-120K tokens, even though Claude supports 200K natively. For most tasks that's enough, but large refactors can hit limits. Claude Code and Spacecake use the full context window."
+  - question: "Can I use Claude and other AI models together in Cursor?"
+    answer: "Yes. Cursor lets you switch between Claude, GPT, Gemini, and others mid-session. You can also turn on Auto-select, which picks a model for you based on the task."
+---
+
+If you want to use Claude in Cursor, the default Pro plan setup isn't great out of the box. Which Claude model you pick, whether you bring your own API key, and how Cursor's credit system works with Claude's pricing all affect how much usage you get.
+
+Here's how to set it up and what to watch out for.
+
+## Setting Up Claude in Cursor
+
+There are two ways to use Claude in Cursor: through Cursor's built-in credits (included with Pro and above), or by bringing your own Anthropic API key.
+
+### Option 1: Use Cursor's Built-in Claude Access
+
+If you're on [Cursor Pro](https://cursor.com/pricing) ($20/month) or higher, Claude models are already available. To enable them:
+
+1. Open **Cursor Settings** (gear icon or `Cmd+,` on macOS)
+2. Go to the **Models** tab
+3. Find Claude models in the list (Claude Sonnet 4.6, Claude Opus 4.6, etc.)
+4. Toggle on the models you want available in the model selector
+
+Once enabled, you can pick Claude from the model dropdown in Chat (`Cmd+L`) or inline edit (`Cmd+K`).
+
+### Option 2: Bring Your Own API Key
+
+If you want direct Anthropic billing, or you've exhausted your Cursor credits and want to keep using Claude, you can [add your own API key](https://cursor.com/help/models-and-usage/api-keys):
+
+1. Go to [console.anthropic.com](https://console.anthropic.com) and generate an API key
+2. In Cursor, open **Settings > Models**
+3. Scroll to the **Anthropic** section and click **Add API Key**
+4. Paste your key and save
+
+Two things to know about BYOK (bring your own key):
+
+- **No credit limits.** Your usage is billed directly through Anthropic at their standard API rates, bypassing Cursor's credit pool entirely.
+- **Different privacy terms.** Cursor's [zero data retention policy](https://cursor.com/help/models-and-usage/api-keys) doesn't apply when you use your own key. Your data follows Anthropic's privacy standards instead.
+
+### Setting Claude as Your Default Model
+
+After enabling Claude, set it as your default so Cursor doesn't fall back to another model:
+
+1. In **Settings > Models**, find the **Default Model** dropdown
+2. Select your preferred Claude model (Claude Sonnet 4.6 is a good default)
+
+You can also enable **Auto-select**, which lets Cursor pick the best model for each task. Auto-select tends to pick Claude for code generation tasks.
+
+## Choosing the Right Claude Model
+
+Cursor supports several Claude models. They differ in cost and what they're good at within Cursor's [credit system](https://cursor.com/pricing).
+
+### Claude Sonnet 4.6
+
+The workhorse. Sonnet handles most coding tasks well — writing functions, debugging, explaining code, refactoring. It's fast, cheap on credits, and the code it writes is good. Start here and only switch when Sonnet can't get it done.
+
+### Claude Opus 4.6
+
+The expensive one. Opus reasons better and has a larger context window (1M tokens in beta, vs Sonnet's 200K). It also costs roughly 5x more credits per request. Use Opus for:
+
+- Complex architectural decisions across large codebases
+- Multi-file refactors where understanding the full picture matters
+- Debugging issues where Sonnet keeps going in circles
+
+### Claude Haiku 4.5
+
+The fast one. Haiku is the cheapest Claude model, good for simple completions and quick questions. For real coding work, Sonnet is worth the extra credits.
+
+## Getting More Out of Claude in Cursor
+
+### Write Better Prompts with Cursor Rules
+
+Cursor lets you add project-specific instructions that get included with every prompt. Create a `.cursor/rules` directory in your project root and add markdown files with conventions you want Claude to follow:
+
+```markdown
+# coding-standards.md
+
+- use typescript strict mode
+- prefer named exports over default exports
+- write tests using vitest, not jest
+- use lowercase text in UI components
+```
+
+This goes a long way toward fixing the "Claude doesn't know my project's conventions" problem.
+
+### Use Chat for Complex Tasks, Cmd+K for Quick Edits
+
+The chat panel (`Cmd+L`) sends more context to Claude and lets you have a back-and-forth. Use it for designing APIs, debugging tricky issues, or planning refactors.
+
+Inline edit (`Cmd+K`) is better for targeted changes: "rename this variable", "add error handling to this function", "convert this to async/await". It's faster because it operates on the selected code without loading full conversation context.
+
+### Watch Your Credit Burn Rate
+
+Model choice hits your wallet. Here's a rough comparison from the same $20 credit pool:
+
+| Model             | Approximate requests per $20 |
+| ----------------- | ---------------------------- |
+| Gemini 3 Pro      | ~550                         |
+| Claude Sonnet 4.6 | ~225                         |
+| Claude Opus 4.6   | ~45                          |
+
+_Estimates based on average request sizes. Actual usage varies. See [Cursor pricing](https://cursor.com/pricing) for current rates._
+
+If you're burning through credits mid-month, use Auto-select for routine tasks and save Opus for when you actually need it.
+
+### Understand the Context Window Gap
+
+Cursor advertises 200K token context windows, but people on the [Cursor forums](https://forum.cursor.com) report getting 70K-120K usable tokens after internal truncation. For most daily work, that's enough. But if you're working across many files or have a large codebase, you'll notice Claude missing context you expected it to have.
+
+This is a Cursor limitation, not a Claude one. Sonnet 4.6 supports 200K tokens natively, and Opus 4.6 goes up to 1M in beta. Tools that talk to Claude directly (like Claude Code or [Spacecake](https://www.spacecake.ai)) get the full window without IDE-level truncation.
+
+## When Cursor + Claude Isn't Enough
+
+Cursor is great for real-time code completion and in-editor AI help. But sometimes a different tool is the better fit.
+
+**Terminal-heavy workflows.** If you live in the terminal, [Claude Code](https://code.claude.com) gives you Claude right from the command line. It's built for autonomous multi-file operations and big refactors without switching to an IDE. See our [Claude Code vs Cursor comparison](/compare/claude-code-vs-cursor) for more.
+
+**Full-context codebase work.** [spacecake](https://www.spacecake.ai) is a desktop code editor designed specifically for Claude. You can use your Claude Pro subscription to power it — no extra credits or API keys needed.
+
+**Mix and match.** Plenty of developers use Cursor for day-to-day editing and a second tool for bigger tasks. You don't have to pick one. Use the combination that suits you best.
