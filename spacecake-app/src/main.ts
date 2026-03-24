@@ -76,8 +76,6 @@ let AppRuntime: ManagedRuntime.ManagedRuntime<
   Layer.Layer.Error<AppLive>
 > | null = null
 
-const SHUTDOWN_TIMEOUT_MS = 3000
-
 /** Idempotent - returns the same promise if shutdown is already running */
 function fireOnWillShutdown(): Promise<void> {
   if (pendingWillShutdownPromise) {
@@ -88,19 +86,9 @@ function fireOnWillShutdown(): Promise<void> {
     return Promise.resolve()
   }
 
-  const timeout = setTimeout(() => {
-    console.error("Lifecycle: Shutdown timed out, force exiting")
-    app.exit(0)
-  }, SHUTDOWN_TIMEOUT_MS)
-  timeout.unref()
-
-  pendingWillShutdownPromise = AppRuntime.dispose()
-    .catch((err) => {
-      console.error("Lifecycle: Error during shutdown", err)
-    })
-    .finally(() => {
-      clearTimeout(timeout)
-    })
+  pendingWillShutdownPromise = AppRuntime.dispose().catch((err) => {
+    console.error("Lifecycle: Error during shutdown", err)
+  })
 
   return pendingWillShutdownPromise
 }
