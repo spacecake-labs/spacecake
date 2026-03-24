@@ -2,6 +2,7 @@ import { indentWithTab } from "@codemirror/commands"
 import { markdown } from "@codemirror/lang-markdown"
 import { yamlFrontmatter } from "@codemirror/lang-yaml"
 import { foldEffect, LanguageSupport, StreamLanguage } from "@codemirror/language"
+import { search } from "@codemirror/search"
 import { Compartment, EditorSelection, EditorState, Extension } from "@codemirror/state"
 import { EditorView, keymap, lineNumbers } from "@codemirror/view"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
@@ -314,6 +315,7 @@ export const BaseCodeMirrorEditor = React.forwardRef<HTMLDivElement, BaseCodeMir
         if (isCancelled) return
 
         const extensions: Extension[] = [
+          search({ top: true }),
           basicSetup,
           ...(showLineNumbers
             ? [
@@ -523,6 +525,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       const startLine = Math.max(1, Number(block.startLine) || 1)
 
       const extensions = [
+        search({ top: true }),
         ...codeMirrorExtensions,
         navigationKeymap,
         basicSetup,

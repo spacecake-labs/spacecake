@@ -113,8 +113,8 @@ export function CodeBlock({
         </div>
       )}
 
-      {/* code section */}
-      <div className="overflow-hidden rounded-b-lg" data-section="code">
+      {/* code section — overflow-clip preserves border-radius clipping */}
+      <div className="overflow-clip rounded-b-lg" data-section="code">
         {children || (
           <div className="min-h-[60px] p-4 bg-muted/10 rounded-b-lg">
             <pre className="text-sm font-mono text-muted-foreground">
