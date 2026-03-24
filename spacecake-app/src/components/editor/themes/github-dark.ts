@@ -89,7 +89,8 @@ const editorTheme = EditorView.theme(
       maxWidth: "calc(100% - 24px)",
       borderRadius: "8px",
       border: `1px solid ${colors.gutterBorder}`,
-      padding: "8px 12px",
+      padding: "6px 8px",
+      paddingRight: "28px",
       gap: "6px",
       display: "flex",
       flexWrap: "wrap",
@@ -156,6 +157,10 @@ const editorTheme = EditorView.theme(
     ".cm-panel.cm-search .cm-textfield::placeholder": {
       textTransform: "lowercase",
     },
+    // find input stretches to fill row; replace input stays natural width
+    ".cm-panel.cm-search input[name=search].cm-textfield": {
+      flex: "1 1 120px",
+    },
     ".cm-panel.cm-search .cm-textfield": {
       backgroundColor: "#0d1117",
       border: "1px solid #30363d",
@@ -165,7 +170,9 @@ const editorTheme = EditorView.theme(
       fontSize: "12px",
       fontFamily: "'JetBrains Mono', monospace",
       outline: "none",
-      minWidth: "200px",
+      minWidth: "120px",
+      height: "26px",
+      boxSizing: "border-box" as const,
       "&:focus": {
         borderColor: "#2f81f7",
         boxShadow: "0 0 0 1px #2f81f7",
@@ -176,17 +183,45 @@ const editorTheme = EditorView.theme(
       border: "1px solid #30363d",
       borderRadius: "6px",
       color: "#e6edf3",
-      padding: "4px 10px",
+      padding: "4px 8px",
       fontSize: "11px",
       fontFamily: "'JetBrains Mono', monospace",
       cursor: "pointer",
       whiteSpace: "nowrap" as const,
+      height: "26px",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      boxSizing: "border-box" as const,
       "&:hover": {
         backgroundColor: "#30363d",
         borderColor: "#8b949e",
       },
       "&:active": {
         backgroundColor: "#282e33",
+      },
+    },
+    // icon-only nav buttons
+    ".cm-panel.cm-search button[name=next]": {
+      fontSize: 0,
+      lineHeight: 0,
+      width: "26px",
+      padding: 0,
+      "&::after": {
+        content: "'↓'",
+        fontSize: "12px",
+        lineHeight: "1",
+      },
+    },
+    ".cm-panel.cm-search button[name=prev]": {
+      fontSize: 0,
+      lineHeight: 0,
+      width: "26px",
+      padding: 0,
+      "&::after": {
+        content: "'↑'",
+        fontSize: "12px",
+        lineHeight: "1",
       },
     },
     ".cm-activeLine": {
