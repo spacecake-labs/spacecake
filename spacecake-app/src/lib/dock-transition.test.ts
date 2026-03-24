@@ -35,6 +35,7 @@ function makeLayout(
       git: { isExpanded: false, size: 25 },
       ...panels,
     },
+    terminalTabs: { tabs: [], activeId: null },
   }
 }
 

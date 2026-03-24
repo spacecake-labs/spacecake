@@ -8,8 +8,10 @@ import { handleImagePaste, TerminalClipboardLive } from "@/lib/clipboard"
 import { suppressDuplicateWarnings } from "@/lib/suppress-duplicate-warnings"
 import {
   createTerminal,
+  hasTerminal,
   killTerminal,
   onTerminalOutput,
+  replayTerminal,
   resizeTerminal,
   writeTerminal,
 } from "@/lib/terminal"
@@ -99,6 +101,13 @@ export function useGhosttyEngine({
     const restoreWarnings = suppressDuplicateWarnings(/\[ghostty-vt\]/)
     let isMounted = true
 
+    // detect reload/HMR: if beforeunload fires, we're reloading — skip pty kill
+    let isReloading = false
+    const onBeforeUnload = () => {
+      isReloading = true
+    }
+    window.addEventListener("beforeunload", onBeforeUnload)
+
     const initialize = async () => {
       try {
         const ghostty = await Ghostty.load("ghostty-vt.wasm")
@@ -144,16 +153,28 @@ export function useGhosttyEngine({
         const cols = term.cols || 80
         const rows = term.rows || 24
 
-        // Create terminal on backend
-        const result = await createTerminal(id, cols, rows, cwd, surfaceId)
-        if (isLeft(result)) {
-          console.error("failed to create terminal:", result.value)
-          setError("failed to create terminal session")
-          return
+        // check if pty already exists in main process (survives reload)
+        const alreadyExists = await hasTerminal(id)
+
+        if (alreadyExists) {
+          // reconnect: replay buffered output
+          const buffer = await replayTerminal(id)
+          if (buffer) term.write(buffer)
+          // re-sync pty dimensions to match the new terminal instance
+          resizeTerminal(id, cols, rows)
+        } else {
+          // create new terminal on backend
+          const result = await createTerminal(id, cols, rows, cwd, surfaceId)
+          if (isLeft(result)) {
+            console.error("failed to create terminal:", result.value)
+            setError("failed to create terminal session")
+            return
+          }
         }
 
         if (!isMounted) {
-          killTerminal(id)
+          // only kill if we just created it
+          if (!alreadyExists) killTerminal(id)
           return
         }
 
@@ -341,6 +362,7 @@ export function useGhosttyEngine({
     return () => {
       isMounted = false
       restoreWarnings()
+      window.removeEventListener("beforeunload", onBeforeUnload)
       if (resizeTimeoutRef.current !== null) {
         clearTimeout(resizeTimeoutRef.current)
       }
@@ -360,7 +382,11 @@ export function useGhosttyEngine({
         linkTooltipRef.current.remove()
         linkTooltipRef.current = null
       }
-      killTerminal(id)
+
+      // only kill the pty on explicit tab close, not on reload/HMR
+      if (!isReloading) {
+        killTerminal(id)
+      }
 
       // capture and null refs synchronously so nothing else can use them
       const engine = engineRef.current
