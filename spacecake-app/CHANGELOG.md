@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.66
+
+### Patch Changes
+
+- 85837f4: Feat: Code search in source mode.
+
 ## 0.1.0-alpha.65
 
 ### Patch Changes
