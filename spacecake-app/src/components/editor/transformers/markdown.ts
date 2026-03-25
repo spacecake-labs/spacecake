@@ -495,6 +495,16 @@ const DOUBLE_BACKTICK_INLINE_CODE: TextMatchTransformer = {
 const HTML_BLOCK_TAGS =
   "address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h1|h2|h3|h4|h5|h6|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|picture|search|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul"
 
+// GFM type 7 HTML block: a complete open/closing tag (any tag name) alone on a line,
+// ending at a blank line. covers non-block-level tags like <a>, <span>, etc.
+// source: https://spec.commonmark.org/0.31.2/#html-blocks (type 7)
+const ATTR_NAME = "[a-zA-Z_:][a-zA-Z0-9:._-]*"
+const ATTR_VALUE = "(?:[^\"'=<>`\\x00-\\x20]+|'[^']*'|\"[^\"]*\")"
+const ATTRIBUTE = "(?:\\s+" + ATTR_NAME + "(?:\\s*=\\s*" + ATTR_VALUE + ")?)"
+const OPEN_TAG = "<[A-Za-z][A-Za-z0-9\\-]*" + ATTRIBUTE + "*\\s*\\/?>"
+const CLOSE_TAG = "<\\/[A-Za-z][A-Za-z0-9\\-]*\\s*>"
+const HTML_OPEN_CLOSE_TAG_RE = new RegExp("^(?:" + OPEN_TAG + "|" + CLOSE_TAG + ")\\s*$")
+
 export function createHtmlBlockTransformer(): MultilineElementTransformer {
   return {
     dependencies: [HTMLBlockNode],
@@ -526,6 +536,37 @@ export function createHtmlBlockTransformer(): MultilineElementTransformer {
   }
 }
 
+export function createHtmlBlockType7Transformer(): MultilineElementTransformer {
+  const blockTagsRe = new RegExp(`^\\s*</?(?:${HTML_BLOCK_TAGS})(?:\\s|/?>|$)`, "i")
+
+  return {
+    dependencies: [HTMLBlockNode],
+    export: () => null, // type 6 export handler on HTMLBlockNode already covers it
+    regExpStart: HTML_OPEN_CLOSE_TAG_RE,
+    regExpEnd: /^$/,
+    replace: (rootNode, _children, startMatch, _endMatch, linesInBetween) => {
+      // skip tags already handled by type 6
+      if (blockTagsRe.test(startMatch[0])) {
+        return false
+      }
+
+      const between = linesInBetween ?? []
+      const start = between[0] === "" ? 1 : 0
+      const lines = [startMatch[0], ...between.slice(start)]
+      const html = lines.join("\n")
+
+      const htmlBlockNode = $createHTMLBlockNode({ html, viewMode: "preview" })
+
+      if (!rootNode.getParent()) {
+        rootNode.append(htmlBlockNode)
+      } else {
+        rootNode.replace(htmlBlockNode)
+      }
+    },
+    type: "multiline-element",
+  }
+}
+
 // Filter out conflicting code transformers
 const MULTILINE_ELEMENT_TRANSFORMERS_FILTERED = MULTILINE_ELEMENT_TRANSFORMERS.filter(
   (transformer) => {
@@ -540,6 +581,7 @@ const MULTILINE_ELEMENT_TRANSFORMERS_FILTERED = MULTILINE_ELEMENT_TRANSFORMERS.f
 export const MARKDOWN_TRANSFORMERS = [
   createFrontmatterTransformer(), // Must be first to check position before other transformers
   createHtmlBlockTransformer(),
+  createHtmlBlockType7Transformer(),
   TABLE,
   CHECK_LIST,
   ...ELEMENT_TRANSFORMERS,

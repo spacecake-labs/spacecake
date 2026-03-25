@@ -218,6 +218,29 @@ visible content.`
         expect(result).toBe(text)
       })
 
+      it("type 7 html block (non-block-level tag) should have isomorphic parsing & serialization", async () => {
+        const text = `## star history
+
+<a href="https://example.com/star-history">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://example.com/dark.svg" />
+   <source media="(prefers-color-scheme: light)" srcset="https://example.com/light.svg" />
+   <img alt="star history chart" src="https://example.com/chart.svg" />
+ </picture>
+</a>
+
+some text after.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
       it("markdown file with images and links should have isomorphic parsing & serialization", async () => {
         const text = `# Project README
 

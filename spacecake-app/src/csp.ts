@@ -4,7 +4,7 @@ export const CSP_CONFIG = {
     "default-src": ["'self'"],
     "script-src": ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", "https://*.posthog.com"],
     "style-src": ["'self'", "'unsafe-inline'", "https://*.posthog.com"],
-    "img-src": ["'self'", "data:", "https:", "blob:", "https://*.posthog.com"],
+    "img-src": ["'self'", "data:", "https:", "blob:", "spacecake-img:", "https://*.posthog.com"],
     "connect-src": [
       "'self'",
       "https:",
@@ -27,7 +27,7 @@ export const CSP_CONFIG = {
     "default-src": ["'self'"],
     "script-src": ["'self'", "'wasm-unsafe-eval'", "https://*.posthog.com"],
     "style-src": ["'self'", "'unsafe-inline'", "https://*.posthog.com"],
-    "img-src": ["'self'", "data:", "https:", "https://*.posthog.com"],
+    "img-src": ["'self'", "data:", "https:", "spacecake-img:", "https://*.posthog.com"],
     "connect-src": ["'self'", "https:", "wss:", "wasm:", "data:", "https://*.posthog.com"],
     "font-src": ["'self'", "data:", "https:", "https://*.posthog.com"],
     "object-src": ["'none'"],
