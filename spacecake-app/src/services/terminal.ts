@@ -52,7 +52,7 @@ interface TerminalEntry {
 }
 
 export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
-  effect: Effect.gen(function* () {
+  scoped: Effect.gen(function* () {
     const home = yield* SpacecakeHome
     const terminals = new Map<string, TerminalEntry>()
     const tabStates = new Map<string, TabState>()
@@ -233,7 +233,10 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           }),
         )
       }).pipe(
-        Effect.catchAllDefect(() => Effect.void),
+        Effect.catchAllDefect((defect) => {
+          console.error(`Terminal ${id}: unexpected defect during kill`, defect)
+          return Effect.void
+        }),
         Effect.mapError(
           (error) => new TerminalError({ message: `failed to kill terminal: ${error}` }),
         ),
@@ -263,6 +266,6 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
 
     const has = (id: string) => Effect.sync(() => terminals.has(id))
 
-    return { create, resize, write, kill, list, getBuffer, setTabState, getTabState, has }
+    return { create, resize, write, kill, list, getBuffer, setTabState, getTabState, has } as const
   }),
 }) {}

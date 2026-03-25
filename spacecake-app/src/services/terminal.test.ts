@@ -1,282 +1,356 @@
-import { describe, expect, it, beforeEach, afterEach, vi } from "vitest"
+import { it } from "@effect/vitest"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import { describe, expect, vi, beforeEach } from "vitest"
 
+import { SpacecakeHome } from "@/services/spacecake-home"
+import { Terminal } from "@/services/terminal"
 import { TerminalError } from "@/types/terminal"
 
 /**
  * Terminal Service Unit Tests
  *
- * Tests core terminal functionality: PTY lifecycle, output buffering, and tab state.
- * The Terminal service uses node-pty which is mocked for testing.
+ * Tests the actual Terminal service through Effect layers: PTY lifecycle,
+ * output buffering, buffer compaction, tab state, and duplicate ID handling.
  */
 
-// Mock electron for BrowserWindow communication
+// ---------------------------------------------------------------------------
+// mocks
+// ---------------------------------------------------------------------------
+
+// track data callbacks so tests can simulate PTY output
+const dataCallbacks = new Map<string, (data: string) => void>()
+
+const createMockPty = (id: string) => {
+  let killed = false
+  let exitCb: (() => void) | null = null
+
+  const pty = {
+    onData: vi.fn((cb: (data: string) => void) => {
+      dataCallbacks.set(id, cb)
+    }),
+    onExit: vi.fn((cb: () => void) => {
+      if (killed) {
+        // already killed — fire immediately so waitForExit resolves
+        queueMicrotask(cb)
+      } else {
+        exitCb = cb
+      }
+      return { dispose: vi.fn() }
+    }),
+    write: vi.fn(),
+    resize: vi.fn(),
+    kill: vi.fn(() => {
+      killed = true
+      if (exitCb) queueMicrotask(exitCb)
+    }),
+    pid: 12345,
+  }
+  return pty
+}
+
+// track which pty was created for each spawn call
+let lastSpawnedPtyId = 0
+const spawnedPtys = new Map<number, ReturnType<typeof createMockPty>>()
+
 vi.mock("electron", () => ({
   BrowserWindow: {
     getAllWindows: vi.fn(() => []),
   },
+  webContents: {
+    fromId: vi.fn(() => null),
+  },
 }))
 
-// Mock node-pty with a simple PTY implementation
-interface MockPty {
-  onData: (callback: (data: string) => void) => void
-  onExit: (callback: () => void) => { dispose: () => void }
-  write: (data: string) => void
-  resize: (cols: number, rows: number) => void
-  kill: () => void
-  pid: number
-}
-
-let mockPtyInstances = new Map<string, MockPty>()
-let ptySpawnCalls: Array<{
-  shell: string
-  args: string[]
-  options: Record<string, unknown>
-}> = []
-
-const createMockPty = (): MockPty => {
-  let dataCallback: ((data: string) => void) | null = null
-  let exitCallback: (() => void) | null = null
-
-  return {
-    onData: (callback) => {
-      dataCallback = callback
-    },
-    onExit: (callback) => {
-      exitCallback = callback
-      return { dispose: () => {} }
-    },
-    write: vi.fn(),
-    resize: vi.fn(),
-    kill: vi.fn(() => {
-      if (exitCallback) {
-        setTimeout(exitCallback, 10)
-      }
-    }),
-    pid: 12345,
-  }
-}
-
 vi.mock("@lydell/node-pty", () => ({
-  spawn: vi.fn((shell: string, args: string[], options: Record<string, unknown>) => {
-    ptySpawnCalls.push({ shell, args, options })
-    const pty = createMockPty()
-    const id = `pty-${Math.random()}`
-    mockPtyInstances.set(id, pty)
-    return Promise.resolve(pty)
+  spawn: vi.fn((_shell: string, _args: string[], _opts: Record<string, unknown>) => {
+    const id = `mock-pty-${++lastSpawnedPtyId}`
+    const pty = createMockPty(id)
+    spawnedPtys.set(lastSpawnedPtyId, pty)
+    return pty
   }),
 }))
 
-describe("Terminal Service", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    ptySpawnCalls = []
-    mockPtyInstances.clear()
+vi.mock("@/main-process/default-shell", () => ({
+  default: "/bin/bash",
+}))
+
+// ---------------------------------------------------------------------------
+// test layer
+// ---------------------------------------------------------------------------
+
+const TestSpacecakeHome = Layer.succeed(SpacecakeHome, {
+  homeDir: "/tmp/test-spacecake",
+  appDir: "/tmp/test-spacecake/.app",
+  hooksDir: "/tmp/test-spacecake/.app/hooks",
+  statuslineScriptPath: "/tmp/test-spacecake/.app/hooks/statusline.sh",
+  cliBinDir: "/tmp/test-spacecake/.app/bin",
+  bundledCliBinaryPath: null,
+  globalBinTarget: "/usr/local/bin/spacecake",
+  systemInstalledPath: "",
+  cliSourceEntryPath: "",
+  isPackaged: false,
+} as SpacecakeHome)
+
+const TerminalTestLayer = Terminal.Default.pipe(Layer.provide(TestSpacecakeHome))
+
+// ---------------------------------------------------------------------------
+// helpers
+// ---------------------------------------------------------------------------
+
+/** simulate PTY emitting data for the most recently spawned pty */
+const emitData = (data: string) => {
+  const id = `mock-pty-${lastSpawnedPtyId}`
+  const cb = dataCallbacks.get(id)
+  if (cb) cb(data)
+}
+
+/** simulate PTY emitting data for a specific spawn index */
+const emitDataForPty = (spawnIndex: number, data: string) => {
+  const id = `mock-pty-${spawnIndex}`
+  const cb = dataCallbacks.get(id)
+  if (cb) cb(data)
+}
+
+// ---------------------------------------------------------------------------
+// tests
+// ---------------------------------------------------------------------------
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  lastSpawnedPtyId = 0
+  spawnedPtys.clear()
+  dataCallbacks.clear()
+})
+
+describe("Terminal service", () => {
+  describe("create and list", () => {
+    it.scoped("should create a terminal and list it", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
+
+        yield* terminal.create("term-1", 80, 24, "/tmp")
+        const list = yield* terminal.list()
+
+        expect(list).toHaveLength(1)
+        expect(list[0].id).toBe("term-1")
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
+
+    it.scoped("should create multiple terminals", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
+
+        yield* terminal.create("term-1", 80, 24, "/tmp")
+        yield* terminal.create("term-2", 120, 40, "/tmp")
+        const list = yield* terminal.list()
+
+        expect(list).toHaveLength(2)
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
+
+    it.scoped("should track surfaceId", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
+
+        yield* terminal.create("term-1", 80, 24, "/tmp", "surface-abc")
+        const list = yield* terminal.list()
+
+        expect(list[0].surfaceId).toBe("surface-abc")
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
+
+    it.scoped("should report has() correctly", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
+
+        expect(yield* terminal.has("term-1")).toBe(false)
+        yield* terminal.create("term-1", 80, 24, "/tmp")
+        expect(yield* terminal.has("term-1")).toBe(true)
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
   })
 
-  afterEach(() => {
-    vi.clearAllMocks()
-    mockPtyInstances.clear()
+  describe("duplicate ID handling", () => {
+    it.scoped("should kill existing terminal when creating with same id", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
+
+        yield* terminal.create("term-1", 80, 24, "/tmp")
+        const firstPty = spawnedPtys.get(1)!
+
+        yield* terminal.create("term-1", 100, 30, "/tmp")
+
+        expect(firstPty.kill).toHaveBeenCalled()
+        const list = yield* terminal.list()
+        expect(list).toHaveLength(1)
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
   })
 
-  describe("PTY creation and configuration", () => {
-    it("should spawn PTY with correct dimensions", async () => {
-      const { spawn } = await import("@lydell/node-pty")
-      await spawn("bash", [], { cols: 80, rows: 24 })
+  describe("write and resize", () => {
+    it.scoped("should write data to pty", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
 
-      expect(ptySpawnCalls).toHaveLength(1)
-      expect(ptySpawnCalls[0].options.cols).toBe(80)
-      expect(ptySpawnCalls[0].options.rows).toBe(24)
-    })
+        yield* terminal.create("term-1", 80, 24, "/tmp")
+        yield* terminal.write("term-1", "ls\n")
 
-    it("should spawn PTY with custom working directory", async () => {
-      const { spawn } = await import("@lydell/node-pty")
-      await spawn("bash", [], { cols: 80, rows: 24, cwd: "/home/user/projects" })
+        const pty = spawnedPtys.get(1)!
+        expect(pty.write).toHaveBeenCalledWith("ls\n")
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
 
-      expect(ptySpawnCalls[0].options.cwd).toBe("/home/user/projects")
-    })
+    it.scoped("should resize pty", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
 
-    it("should set environment variables on PTY", async () => {
-      const { spawn } = await import("@lydell/node-pty")
-      const env = {
-        TERM: "xterm-256color",
-        COLORTERM: "truecolor",
-        SPACECAKE_TERMINAL: "1",
-      }
-      await spawn("bash", [], { cols: 80, rows: 24, env })
+        yield* terminal.create("term-1", 80, 24, "/tmp")
+        yield* terminal.resize("term-1", 120, 40)
 
-      const actualEnv = ptySpawnCalls[0].options.env as Record<string, string>
-      expect(actualEnv.TERM).toBe("xterm-256color")
-      expect(actualEnv.SPACECAKE_TERMINAL).toBe("1")
-    })
+        const pty = spawnedPtys.get(1)!
+        expect(pty.resize).toHaveBeenCalledWith(120, 40)
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
+
+    it.scoped("should not throw when writing to nonexistent terminal", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
+        yield* terminal.write("nonexistent", "data")
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
+
+    it.scoped("should not throw when resizing nonexistent terminal", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
+        yield* terminal.resize("nonexistent", 80, 24)
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
   })
 
-  describe("PTY lifecycle", () => {
-    it("should allow writing to PTY", async () => {
-      const { spawn } = await import("@lydell/node-pty")
-      const pty = await spawn("bash", [], { cols: 80, rows: 24 })
+  describe("output buffering", () => {
+    it.scoped("should buffer pty output", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
 
-      pty.write("ls\n")
+        yield* terminal.create("term-1", 80, 24, "/tmp")
 
-      expect(pty.write).toHaveBeenCalledWith("ls\n")
-    })
+        emitData("hello ")
+        emitData("world")
 
-    it("should allow resizing PTY", async () => {
-      const { spawn } = await import("@lydell/node-pty")
-      const pty = await spawn("bash", [], { cols: 80, rows: 24 })
+        const buffer = yield* terminal.getBuffer("term-1")
+        expect(buffer).toBe("hello world")
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
 
-      pty.resize(100, 30)
+    it.scoped("should return empty string for nonexistent terminal buffer", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
+        const buffer = yield* terminal.getBuffer("nonexistent")
+        expect(buffer).toBe("")
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
 
-      expect(pty.resize).toHaveBeenCalledWith(100, 30)
-    })
+    it.scoped("should compact buffer when exceeding max size", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
 
-    it("should allow killing PTY", async () => {
-      const { spawn } = await import("@lydell/node-pty")
-      const pty = await spawn("bash", [], { cols: 80, rows: 24 })
+        yield* terminal.create("term-1", 80, 24, "/tmp")
 
-      pty.kill()
+        // emit enough data to exceed the 100KB buffer cap
+        const chunk = "x".repeat(60_000)
+        emitData(chunk)
+        emitData(chunk) // total = 120KB, triggers compaction
 
-      expect(pty.kill).toHaveBeenCalled()
-    })
-
-    it("should register exit handler", async () => {
-      const { spawn } = await import("@lydell/node-pty")
-      const pty = await spawn("bash", [], { cols: 80, rows: 24 })
-
-      const exitHandler = vi.fn()
-      const disposable = pty.onExit(exitHandler)
-
-      expect(disposable).toHaveProperty("dispose")
-    })
-
-    it("should register data handler", async () => {
-      const { spawn } = await import("@lydell/node-pty")
-      const pty = await spawn("bash", [], { cols: 80, rows: 24 })
-
-      const dataHandler = vi.fn()
-      pty.onData(dataHandler)
-
-      expect(dataHandler).toBeDefined()
-    })
+        const buffer = yield* terminal.getBuffer("term-1")
+        // buffer should be compacted to MAX_BUFFER_SIZE (100KB)
+        expect(buffer.length).toBe(100_000)
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
   })
 
-  describe("TerminalError", () => {
-    it("should create TerminalError with message", () => {
-      const error = new TerminalError({ message: "PTY creation failed" })
+  describe("kill", () => {
+    it.scoped("should kill terminal and remove from list", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
 
-      expect(error.message).toBe("PTY creation failed")
-      expect(error._tag).toBe("TerminalError")
-    })
+        yield* terminal.create("term-1", 80, 24, "/tmp")
+        yield* terminal.kill("term-1")
 
-    it("should be instanceof TerminalError", () => {
-      const error = new TerminalError({ message: "test error" })
+        const list = yield* terminal.list()
+        expect(list).toHaveLength(0)
+        expect(yield* terminal.has("term-1")).toBe(false)
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
 
-      expect(error).toBeInstanceOf(TerminalError)
-    })
+    it.scoped("should not throw when killing nonexistent terminal", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
+        yield* terminal.kill("nonexistent")
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
   })
 
-  describe("PTY output handling", () => {
-    it("should buffer multiple data chunks", async () => {
-      const { spawn } = await import("@lydell/node-pty")
-      const pty = await spawn("bash", [], { cols: 80, rows: 24 })
+  describe("tab state management", () => {
+    it.scoped("should set and get tab state", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
 
-      const chunks: string[] = []
-      pty.onData((data) => {
-        chunks.push(data)
-      })
+        const state = {
+          tabs: [{ id: "tab-1", surfaceId: "surface-1", label: "bash", cwdPath: "/home/user" }],
+          activeId: "tab-1",
+        }
 
-      // In a real scenario, the PTY would emit data events
-      // For now we're just verifying the handler is registered
-      expect(chunks).toEqual([])
-    })
+        yield* terminal.setTabState("workspace-1", state)
+        const result = yield* terminal.getTabState("workspace-1")
 
-    it("should handle CRLF line endings", async () => {
-      const { spawn } = await import("@lydell/node-pty")
-      const pty = await spawn("bash", [], { cols: 80, rows: 24 })
+        expect(result).toEqual(state)
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
 
-      const lineEndings: string[] = []
-      pty.onData((data) => {
-        lineEndings.push(data)
-      })
+    it.scoped("should return null for unknown workspace", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
+        const result = yield* terminal.getTabState("unknown")
+        expect(result).toBeNull()
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
 
-      // Just verify the handler can be registered
-      expect(lineEndings).toEqual([])
-    })
-  })
+    it.scoped("should overwrite tab state on subsequent set", () =>
+      Effect.gen(function* () {
+        const terminal = yield* Terminal
 
-  describe("Tab state management", () => {
-    it("should demonstrate tab state structure", () => {
-      const tabState = {
-        tabs: [
-          {
-            id: "tab-1",
-            surfaceId: "surface-1",
-            label: "bash",
-            cwdPath: "/home/user",
-          },
-        ],
-        activeId: "tab-1",
-      }
+        yield* terminal.setTabState("workspace-1", {
+          tabs: [{ id: "tab-1", surfaceId: "s-1", label: "bash", cwdPath: "/home/user" }],
+          activeId: "tab-1",
+        })
 
-      expect(tabState.tabs).toHaveLength(1)
-      expect(tabState.tabs[0].id).toBe("tab-1")
-      expect(tabState.activeId).toBe("tab-1")
-    })
+        yield* terminal.setTabState("workspace-1", {
+          tabs: [
+            { id: "tab-1", surfaceId: "s-1", label: "bash", cwdPath: "/home/user" },
+            { id: "tab-2", surfaceId: "s-2", label: "zsh", cwdPath: "/home/user/projects" },
+          ],
+          activeId: "tab-2",
+        })
 
-    it("should support multiple tabs", () => {
-      const tabState = {
-        tabs: [
-          {
-            id: "tab-1",
-            surfaceId: "surface-1",
-            label: "bash",
-            cwdPath: "/home/user",
-          },
-          {
-            id: "tab-2",
-            surfaceId: "surface-2",
-            label: "zsh",
-            cwdPath: "/home/user/projects",
-          },
-        ],
-        activeId: "tab-2",
-      }
-
-      expect(tabState.tabs).toHaveLength(2)
-      expect(tabState.activeId).toBe("tab-2")
-    })
+        const result = yield* terminal.getTabState("workspace-1")
+        expect(result!.tabs).toHaveLength(2)
+        expect(result!.activeId).toBe("tab-2")
+      }).pipe(Effect.provide(TerminalTestLayer)),
+    )
   })
 })
 
-/**
- * COVERAGE GAPS - To be addressed in Phase 2:
- *
- * 1. Terminal service persistence layer integration tests:
- *    - Save terminals to database on creation
- *    - Load terminals from database on startup
- *    - Update terminal state (cwd, title) in database
- *    - Delete terminals from database on kill
- *
- * 2. Renderer reload persistence:
- *    - Restore all active terminals after renderer reload ✅ (phase 1)
- *    - Restore tab state from main process memory ✅ (phase 1)
- *    - Re-attach to existing PTY processes ✅ (phase 1)
- *    - Restore tab state from database (phase 2 — full app restart)
- *
- * 3. PTY lifecycle error handling:
- *    - Handle PTY creation failures with database rollback
- *    - Handle write/resize errors gracefully
- *    - Handle kill timeout (>2 seconds) without hanging
- *    - Clean up resources on defect
- *
- * 4. Platform-specific tests:
- *    - Windows: CMD shell vs Unix bash/zsh
- *    - Environment variable PATH handling
- *    - CRLF vs LF line ending handling
- *    - Process termination signals (SIGTERM vs SIGKILL)
- *
- * 5. Database schema validation:
- *    - Drizzle migration 0004_add_terminal_table validates
- *    - Terminal records include workspace_id, surface_id, cwd_path
- *    - Foreign key cascade delete works correctly
- *    - Timestamps are set automatically
- */
+describe("TerminalError", () => {
+  it("should create TerminalError with message", () => {
+    const error = new TerminalError({ message: "PTY creation failed" })
+
+    expect(error.message).toBe("PTY creation failed")
+    expect(error._tag).toBe("TerminalError")
+  })
+
+  it("should be instanceof TerminalError", () => {
+    const error = new TerminalError({ message: "test error" })
+    expect(error).toBeInstanceOf(TerminalError)
+  })
+})
