@@ -367,12 +367,15 @@ test.describe("ghostty terminal", () => {
     })
     await window.keyboard.press("Enter")
 
-    let terminalContent = await window.evaluate(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const api = (globalThis as any).__terminalAPI
-      return api?.getAllLines().join("") as string | undefined
-    })
-    expect(terminalContent).toContain("success123")
+    let terminalContent: string | undefined
+    await expect(async () => {
+      terminalContent = await window.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (globalThis as any).__terminalAPI
+        return api?.getAllLines().join("") as string | undefined
+      })
+      expect(terminalContent).toContain("success123")
+    }).toPass({ timeout: 5000 })
 
     // give terminal state time to be saved before reload
     await window.waitForTimeout(2000)
