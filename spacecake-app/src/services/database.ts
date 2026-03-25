@@ -38,6 +38,9 @@ import {
   PanePrimaryKey,
   PaneSelectSchema,
   paneTable,
+  TerminalInsertSchema,
+  TerminalSelectSchema,
+  terminalTable,
   WorkspaceInsertSchema,
   WorkspaceSelectSchema,
   workspaceTable,
@@ -46,10 +49,12 @@ import {
   type FileUpdate,
   type PaneInsert,
   type PaneItemInsert,
+  type TerminalInsert,
   type WorkspaceInsert,
   type WorkspaceLayout,
 } from "@/schema"
 import { EditorPrimaryKey } from "@/schema/editor"
+import { TerminalPrimaryKey } from "@/schema/terminal"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
 import {
   defaultWorkspaceSettings,
@@ -716,6 +721,30 @@ export const makeDatabaseService = (client: PGliteInterface, orm: Orm) => {
           .innerJoin(fileTable, eq(editorTable.file_id, fileTable.id))
           .where(and(like(fileTable.path, `${workspacePath}%`), isNotNull(editorTable.state))),
       ),
+
+    // --- terminal persistence ---
+
+    insertTerminal: flow(
+      execute(TerminalInsertSchema, (values: TerminalInsert) =>
+        query((_) => _.insert(terminalTable).values(values).returning()),
+      ),
+      singleResult(() => new PgliteError({ cause: "terminal not inserted" })),
+      Effect.flatMap(Schema.decode(TerminalSelectSchema)),
+    ),
+
+    deleteTerminal: (terminalId: TerminalPrimaryKey) =>
+      query((_) => _.delete(terminalTable).where(eq(terminalTable.id, terminalId))),
+
+    selectTerminalsForWorkspace: (workspaceId: WorkspacePrimaryKey) =>
+      query((_) =>
+        _.select()
+          .from(terminalTable)
+          .where(eq(terminalTable.workspace_id, workspaceId))
+          .orderBy(terminalTable.created_at),
+      ),
+
+    deleteAllTerminalsForWorkspace: (workspaceId: WorkspacePrimaryKey) =>
+      query((_) => _.delete(terminalTable).where(eq(terminalTable.workspace_id, workspaceId))),
   }
 }
 

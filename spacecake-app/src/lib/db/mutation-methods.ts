@@ -31,6 +31,9 @@ export const MUTATION_INVALIDATION_MAP: Partial<Record<DatabaseMethodName, reado
   clearEditorStatesForFile: ["editors"],
   updateWorkspaceLayout: ["workspace"],
   updateWorkspaceSettings: ["workspace"],
+  insertTerminal: ["terminals"],
+  deleteTerminal: ["terminals"],
+  deleteAllTerminalsForWorkspace: ["terminals"],
 }
 
 /** set of mutation method names - derived from MUTATION_INVALIDATION_MAP */

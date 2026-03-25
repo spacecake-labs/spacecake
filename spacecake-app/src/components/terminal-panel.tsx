@@ -4,7 +4,7 @@ import type { PanelImperativeHandle } from "react-resizable-panels"
 import { ResizablePanel } from "@/components/ui/resizable"
 import { DOCK_SIZE_CONSTRAINTS } from "@/lib/dock-transition"
 import { cn } from "@/lib/utils"
-import type { DockPosition } from "@/schema/workspace-layout"
+import type { DockPosition, WorkspaceLayout } from "@/schema/workspace-layout"
 
 const Terminal = lazy(() => import("@/components/terminal").then((m) => ({ default: m.Terminal })))
 
@@ -16,7 +16,8 @@ interface TerminalPanelProps {
   terminalSize: number
   terminalDock: DockPosition
   isTerminalSessionActive: boolean
-  workspace: { path: string }
+  workspace: { path: string; id: string }
+  layout: WorkspaceLayout
   terminalToolbarRight: React.ReactNode
   onTerminalSessionEnd: () => void
 }
@@ -28,6 +29,7 @@ export const TerminalPanel = memo(function TerminalPanel({
   terminalDock,
   isTerminalSessionActive,
   workspace,
+  layout,
   terminalToolbarRight,
   onTerminalSessionEnd,
 }: TerminalPanelProps) {
@@ -49,6 +51,8 @@ export const TerminalPanel = memo(function TerminalPanel({
           <Suspense fallback={panelFallback}>
             <Terminal
               cwd={workspace.path}
+              workspaceId={workspace.id}
+              layout={layout}
               toolbarRight={terminalToolbarRight}
               onLastTabClosed={onTerminalSessionEnd}
             />

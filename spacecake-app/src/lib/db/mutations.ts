@@ -7,6 +7,7 @@ import type {
 } from "@/schema/editor"
 import type { FileSelect } from "@/schema/file"
 import type { PaneItemPrimaryKey, PanePrimaryKey } from "@/schema/pane"
+import type { TerminalInsert, TerminalPrimaryKey, TerminalSelect } from "@/schema/terminal"
 import type { WorkspacePrimaryKey } from "@/schema/workspace"
 import type { WorkspaceLayout } from "@/schema/workspace-layout"
 import type { WorkspaceSettings } from "@/schema/workspace-settings"
@@ -74,3 +75,17 @@ export const selectLatestEditorStateForFile = (filePath: AbsolutePath) =>
   fetchDb<Maybe<EditorStateWithFileIdFlat>>("selectLatestEditorStateForFile", filePath)
 
 export const selectFile = (filePath: AbsolutePath) => fetchDb("selectFile", filePath)
+
+// --- terminal persistence ---
+
+export const insertTerminal = (input: TerminalInsert) =>
+  fetchDb<TerminalSelect>("insertTerminal", input)
+
+export const deleteTerminal = (terminalId: TerminalPrimaryKey) =>
+  fetchDb("deleteTerminal", terminalId)
+
+export const selectTerminalsForWorkspace = (workspaceId: WorkspacePrimaryKey) =>
+  fetchDb<TerminalSelect[]>("selectTerminalsForWorkspace", workspaceId)
+
+export const deleteAllTerminalsForWorkspace = (workspaceId: WorkspacePrimaryKey) =>
+  fetchDb("deleteAllTerminalsForWorkspace", workspaceId)

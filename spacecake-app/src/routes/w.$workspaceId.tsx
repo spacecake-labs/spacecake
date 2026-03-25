@@ -649,7 +649,11 @@ function LayoutContent() {
     setIsTerminalSessionActive(false)
     setTerminalExpanded(false)
     focus("editor")
-  }, [setTerminalExpanded, focus])
+    // clean up terminal rows from database
+    mutations
+      .deleteAllTerminalsForWorkspace(workspace.id as WorkspacePrimaryKey)
+      .catch((err) => console.error("failed to clean terminal db rows:", err))
+  }, [setTerminalExpanded, focus, workspace.id])
 
   const editorPanel = (
     <EditorPanel
@@ -685,6 +689,7 @@ function LayoutContent() {
       terminalDock={terminalDock}
       isTerminalSessionActive={isTerminalSessionActive}
       workspace={workspace}
+      layout={layout}
       terminalToolbarRight={terminalToolbarRight}
       onTerminalSessionEnd={handleTerminalSessionEnd}
     />

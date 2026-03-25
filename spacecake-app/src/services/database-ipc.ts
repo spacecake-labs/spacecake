@@ -9,11 +9,13 @@ import type {
   FileUpdate,
   PaneInsert,
   PaneItemInsert,
+  TerminalInsert,
   WorkspaceInsert,
   WorkspaceLayout,
 } from "@/schema"
 import { EditorPrimaryKey } from "@/schema/editor"
 import { PaneItemPrimaryKey, PanePrimaryKey } from "@/schema/pane"
+import { TerminalPrimaryKey } from "@/schema/terminal"
 import { WorkspacePrimaryKey } from "@/schema/workspace"
 import type { WorkspaceSettings } from "@/schema/workspace-settings"
 import {
@@ -117,6 +119,12 @@ const methods = {
     invokeDb("selectWorkspaceById", workspaceId),
   selectEditorsWithCachedState: (workspacePath: AbsolutePath) =>
     invokeDb("selectEditorsWithCachedState", workspacePath),
+  insertTerminal: (input: TerminalInsert) => invokeDb("insertTerminal", input),
+  deleteTerminal: (terminalId: TerminalPrimaryKey) => invokeDb("deleteTerminal", terminalId),
+  selectTerminalsForWorkspace: (workspaceId: WorkspacePrimaryKey) =>
+    invokeDb("selectTerminalsForWorkspace", workspaceId),
+  deleteAllTerminalsForWorkspace: (workspaceId: WorkspacePrimaryKey) =>
+    invokeDb("deleteAllTerminalsForWorkspace", workspaceId),
 } satisfies DatabaseMethods
 
 const ipcUnavailable = (name: string): never => {
