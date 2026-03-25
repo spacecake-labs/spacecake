@@ -107,6 +107,7 @@ function ItemContextMenu({
   onStartDelete,
   onStartRevert,
   onExpandFolder,
+  workspace,
   children,
 }: {
   item: File | Folder
@@ -114,6 +115,7 @@ function ItemContextMenu({
   onStartDelete: (item: File | Folder) => void
   onStartRevert?: (item: File) => void
   onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
+  workspace: WorkspaceInfo
   children: React.ReactNode
 }) {
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
@@ -142,6 +144,20 @@ function ItemContextMenu({
     }
   }
 
+  const copyPath = async () => {
+    await navigator.clipboard.writeText(itemPath)
+  }
+
+  const copyRelativePath = async () => {
+    const workspacePath = workspace.path
+    const relativePath = itemPath.startsWith(workspacePath + "/")
+      ? itemPath.slice(workspacePath.length + 1)
+      : itemPath.startsWith(workspacePath)
+        ? itemPath.slice(workspacePath.length)
+        : itemPath
+    await navigator.clipboard.writeText(relativePath)
+  }
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
@@ -163,6 +179,12 @@ function ItemContextMenu({
           <span>delete</span>
         </ContextMenuItem>
         {showRevert && <RevertMenuItem item={item as File} onStartRevert={onStartRevert} />}
+        <ContextMenuItem onClick={copyPath}>
+          <span>copy path</span>
+        </ContextMenuItem>
+        <ContextMenuItem onClick={copyRelativePath}>
+          <span>copy relative path</span>
+        </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   )
@@ -500,6 +522,7 @@ export const TreeRow = React.memo(function TreeRow({
         onStartDelete={onStartDelete}
         onStartRevert={onStartRevert}
         onExpandFolder={onExpandFolder}
+        workspace={workspace}
       >
         <SidebarMenuItem
           onClick={() =>
@@ -554,6 +577,7 @@ export const TreeRow = React.memo(function TreeRow({
       onStartDelete={onStartDelete}
       onStartRevert={onStartRevert}
       onExpandFolder={onExpandFolder}
+      workspace={workspace}
     >
       <SidebarMenuItem
         onClick={() =>
