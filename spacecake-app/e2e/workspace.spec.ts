@@ -200,7 +200,7 @@ test.describe("spacecake app", () => {
     await expect(locateSidebarItem(window, "test-folder")).toBeVisible()
 
     // Test 1: Create a file inside the folder (should auto-expand)
-    await window.getByTestId("more-options-test-folder").click()
+    await locateSidebarItem(window, "test-folder").click({ button: "right" })
     await window.getByRole("menuitem", { name: "new file" }).click()
 
     // Verify the folder auto-expanded and input field is visible
@@ -218,7 +218,7 @@ test.describe("spacecake app", () => {
     // Ensure the test-folder is expanded before trying to create a folder inside it
     await locateSidebarItem(window, "test-folder").click()
 
-    await window.getByTestId("more-options-test-folder").click()
+    await locateSidebarItem(window, "test-folder").click({ button: "right" })
     await window.getByRole("menuitem", { name: "new folder" }).click()
 
     // Verify the folder auto-expanded and input field is visible
@@ -264,7 +264,7 @@ test.describe("spacecake app", () => {
     await expect(locateSidebarItem(window, "parent-folder")).toBeVisible()
 
     // Test 1: Create a file in the parent folder
-    await window.getByTestId("more-options-parent-folder").click()
+    await locateSidebarItem(window, "parent-folder").click({ button: "right" })
     await window.getByRole("menuitem", { name: "new file" }).click()
 
     const fileInput1 = window.getByRole("textbox", { name: "filename.txt" })
@@ -275,7 +275,7 @@ test.describe("spacecake app", () => {
     await expect(locateSidebarItem(window, "parent-file.txt")).toBeVisible()
 
     // Test 2: Create a folder in the parent folder
-    await window.getByTestId("more-options-parent-folder").click()
+    await locateSidebarItem(window, "parent-folder").click({ button: "right" })
     await window.getByRole("menuitem", { name: "new folder" }).click()
 
     const folderInput1 = window.getByRole("textbox", {
@@ -288,7 +288,7 @@ test.describe("spacecake app", () => {
     await expect(locateSidebarItem(window, "new-child-folder")).toBeVisible()
 
     // Test 3: Create a file in the existing child folder
-    await window.getByTestId("more-options-child-folder").click()
+    await locateSidebarItem(window, "child-folder").first().click({ button: "right" })
     await window.getByRole("menuitem", { name: "new file" }).click()
 
     const fileInput2 = window.getByRole("textbox", { name: "filename.txt" })
@@ -299,7 +299,7 @@ test.describe("spacecake app", () => {
     await expect(locateSidebarItem(window, "child-file.txt")).toBeVisible()
 
     // Test 4: Create another folder in the child folder
-    await window.getByTestId("more-options-child-folder").click()
+    await locateSidebarItem(window, "child-folder").first().click({ button: "right" })
     await window.getByRole("menuitem", { name: "new folder" }).click()
 
     const folderInput2 = window.getByRole("textbox", {
@@ -367,8 +367,7 @@ test.describe("spacecake app", () => {
     await expect(locateSidebarItem(window, "folder-with-files")).toBeVisible()
 
     // Test delete functionality
-    await locateSidebarItem(window, "file-to-delete.txt").hover()
-    await window.getByTestId("more-options-file-to-delete.txt").click()
+    await locateSidebarItem(window, "file-to-delete.txt").click({ button: "right" })
 
     await window.getByRole("menuitem", { name: "delete" }).click({ force: true })
 
@@ -387,8 +386,7 @@ test.describe("spacecake app", () => {
     await expect(locateSidebarItem(window, "file-to-delete.txt")).toBeVisible()
 
     // Now actually delete the file
-    await locateSidebarItem(window, "file-to-delete.txt").hover()
-    await window.getByTestId("more-options-file-to-delete.txt").click()
+    await locateSidebarItem(window, "file-to-delete.txt").click({ button: "right" })
     await window.getByRole("menuitem", { name: "delete" }).click({ force: true })
     await expect(
       window.getByText("are you sure you want to delete 'file-to-delete.txt'?"),
@@ -406,8 +404,7 @@ test.describe("spacecake app", () => {
     expect(fs.existsSync(testFilePath)).toBe(false)
 
     // Test deleting an empty folder
-    await locateSidebarItem(window, "empty-folder").hover()
-    await window.getByTestId("more-options-empty-folder").click()
+    await locateSidebarItem(window, "empty-folder").click({ button: "right" })
     await window.getByRole("menuitem", { name: "delete" }).click({ force: true })
 
     // Verify delete confirmation dialog appears with folder message
@@ -428,7 +425,7 @@ test.describe("spacecake app", () => {
     expect(fs.existsSync(emptyFolderPath)).toBe(false)
 
     // Test deleting a folder with files (recursive delete)
-    await window.getByTestId("more-options-folder-with-files").click()
+    await locateSidebarItem(window, "folder-with-files").click({ button: "right" })
     await window.getByRole("menuitem", { name: "delete" }).click({ force: true })
 
     // Verify delete confirmation dialog appears with folder message
@@ -768,7 +765,7 @@ test.describe("spacecake app", () => {
     await expect(editor.getByText("Original content EDITED")).toBeVisible()
 
     // 7. Open dropdown and click revert
-    await window.getByTestId("more-options-test-revert.md").click()
+    await locateSidebarItem(window, "test-revert.md").click({ button: "right" })
     await window.getByRole("menuitem", { name: "revert" }).click()
 
     // 8. Verify revert confirmation dialog appears
@@ -784,7 +781,7 @@ test.describe("spacecake app", () => {
     await expect(editor.getByText("Original content EDITED")).toBeVisible()
 
     // 10. Open dropdown and click revert again
-    await window.getByTestId("more-options-test-revert.md").click()
+    await locateSidebarItem(window, "test-revert.md").click({ button: "right" })
     await window.getByRole("menuitem", { name: "revert" }).click()
 
     // 11. Confirm the revert

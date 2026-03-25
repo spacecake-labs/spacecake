@@ -31,7 +31,7 @@ import {
 import type { FlatFileTreeItem } from "@/lib/atoms/file-tree"
 import { getFileStateAtom, hasFileStateAtom } from "@/lib/atoms/file-tree"
 import { supportedViews } from "@/lib/language-support"
-import { cn, encodeBase64Url } from "@/lib/utils"
+import { cn, encodeBase64Url, toRelativePath } from "@/lib/utils"
 import { getNavItemIcon } from "@/lib/workspace"
 import { AbsolutePath, File, Folder, WorkspaceInfo } from "@/types/workspace"
 
@@ -54,10 +54,12 @@ function RenameInput({
   useEffect(() => {
     if (autoFocus && inputRef.current) {
       // Select filename without extension (like VSCode) - only on initial focus
+      // Intentionally omit 'value' from deps to avoid re-selecting text on every keystroke
       const lastDotIndex = value.lastIndexOf(".")
       const selectEnd = lastDotIndex > 0 ? lastDotIndex : value.length
       inputRef.current.setSelectionRange(0, selectEnd)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoFocus])
 
   return (
@@ -150,12 +152,7 @@ function ItemContextMenu({
   }
 
   const copyRelativePath = async () => {
-    const workspacePath = workspace.path
-    const relativePath = itemPath.startsWith(workspacePath + "/")
-      ? itemPath.slice(workspacePath.length + 1)
-      : itemPath.startsWith(workspacePath)
-        ? itemPath.slice(workspacePath.length)
-        : itemPath
+    const relativePath = toRelativePath(AbsolutePath(workspace.path), AbsolutePath(itemPath))
     await navigator.clipboard.writeText(relativePath)
   }
 
