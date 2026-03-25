@@ -288,20 +288,41 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
     return () => container.removeEventListener("wheel", handleWheel)
   }, [])
 
-  // keep active tab visible on container resize
+  // keep active tab visible on container resize (debounced to avoid animation stacking during drag)
   useEffect(() => {
     const container = scrollContainerRef.current
     if (!container) return
 
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null
     const resizeObserver = new ResizeObserver(() => {
-      const activeTab = container.querySelector(`[data-state="active"]`)
-      activeTab?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
+      if (debounceTimer !== null) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null
+        const activeTab = container.querySelector(`[data-state="active"]`)
+        activeTab?.scrollIntoView({ behavior: "instant", block: "nearest", inline: "nearest" })
+      }, 100)
     })
     resizeObserver.observe(container)
-    return () => resizeObserver.disconnect()
+    return () => {
+      resizeObserver.disconnect()
+      if (debounceTimer !== null) clearTimeout(debounceTimer)
+    }
   }, [])
 
   // keyboard shortcuts (only when terminal panel is focused)
+  // delegated middle-click handler for tab close (avoids per-tab closures)
+  const handleTabListMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.button !== 1) return
+      const tabEl = (e.target as HTMLElement).closest<HTMLElement>("[data-tab-id]")
+      if (tabEl?.dataset.tabId) {
+        e.preventDefault()
+        closeTab(tabEl.dataset.tabId)
+      }
+    },
+    [closeTab],
+  )
+
   const terminalFocusGuard = useCallback(() => {
     const panel = document.querySelector('[data-testid="terminal-panel"]')
     return panel?.contains(document.activeElement) ?? false
@@ -366,19 +387,18 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
             ref={scrollContainerRef}
             className="h-full w-full min-w-0 overflow-x-auto overflow-y-hidden scrollbar-none"
           >
-            <TabsList className="!h-full gap-0 bg-transparent justify-start rounded-none p-0 shrink-0">
+            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+            <TabsList
+              className="!h-full gap-0 bg-transparent justify-start rounded-none p-0 shrink-0"
+              onMouseDown={handleTabListMouseDown}
+            >
               {tabs.map((tab, index) => (
                 <HoverCard key={tab.id} openDelay={300} closeDelay={100}>
                   <HoverCardTrigger asChild>
                     <span
                       data-testid="terminal-tab"
+                      data-tab-id={tab.id}
                       className="h-full flex shrink-0"
-                      onMouseDown={(e) => {
-                        if (e.button === 1) {
-                          e.preventDefault()
-                          closeTab(tab.id)
-                        }
-                      }}
                     >
                       <TabsTrigger value={tab.id} className={tabTriggerClasses(index === 0)}>
                         <span className="truncate max-w-[120px]">

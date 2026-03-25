@@ -58,6 +58,46 @@ const terminalTheme: Record<"light" | "dark", ITheme> = {
   },
 }
 
+const PROMPT_PATTERN = /[$%>#]*$/
+
+// shared link-hover tooltip — one DOM node reused by all terminal tabs
+let sharedTooltip: HTMLDivElement | null = null
+let tooltipRefCount = 0
+
+function acquireTooltip(): HTMLDivElement {
+  if (!sharedTooltip) {
+    const el = document.createElement("div")
+    el.className =
+      "fixed pointer-events-none px-2 py-1 text-xs rounded bg-popover text-popover-foreground border shadow-md opacity-0 transition-opacity duration-150 z-50"
+    el.textContent = "follow link (\u2318 + click)"
+    document.body.appendChild(el)
+    sharedTooltip = el
+  }
+  tooltipRefCount++
+  return sharedTooltip
+}
+
+function releaseTooltip(): void {
+  tooltipRefCount--
+  if (tooltipRefCount <= 0) {
+    sharedTooltip?.remove()
+    sharedTooltip = null
+    tooltipRefCount = 0
+  }
+}
+
+function showTooltip(x: number, y: number): void {
+  if (!sharedTooltip) return
+  sharedTooltip.style.left = `${x + 12}px`
+  sharedTooltip.style.top = `${y + 12}px`
+  sharedTooltip.style.opacity = "1"
+}
+
+function hideTooltip(): void {
+  if (!sharedTooltip) return
+  sharedTooltip.style.opacity = "0"
+}
+
 export function useGhosttyEngine({
   id,
   surfaceId,
@@ -194,12 +234,10 @@ export function useGhosttyEngine({
           resizeTimeoutRef.current = setTimeout(() => {
             if (pendingResizeRef.current) {
               requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                  if (pendingResizeRef.current) {
-                    resizeTerminal(id, pendingResizeRef.current.cols, pendingResizeRef.current.rows)
-                    pendingResizeRef.current = null
-                  }
-                })
+                if (pendingResizeRef.current) {
+                  resizeTerminal(id, pendingResizeRef.current.cols, pendingResizeRef.current.rows)
+                  pendingResizeRef.current = null
+                }
               })
             }
             resizeTimeoutRef.current = null
@@ -302,33 +340,25 @@ export function useGhosttyEngine({
         }
         containerEl.addEventListener("keydown", appShortcutHandlerRef.current, true)
 
-        // Create link hover tooltip
-        const tooltip = document.createElement("div")
-        tooltip.className =
-          "fixed pointer-events-none px-2 py-1 text-xs rounded bg-popover text-popover-foreground border shadow-md opacity-0 transition-opacity duration-150 z-50"
-        tooltip.textContent = "follow link (⌘ + click)"
-        document.body.appendChild(tooltip)
+        // shared link hover tooltip (one DOM node for all tabs)
+        const tooltip = acquireTooltip()
         linkTooltipRef.current = tooltip
 
-        // Show tooltip when hovering over links
         linkHoverHandlerRef.current = (e: MouseEvent) => {
           const target = e.target as HTMLElement
-          // Check if cursor is pointer (ghostty-web sets this when over a link)
           const isOverLink =
             target.style.cursor === "pointer" ||
             window.getComputedStyle(target).cursor === "pointer"
 
           if (isOverLink) {
-            tooltip.style.left = `${e.clientX + 12}px`
-            tooltip.style.top = `${e.clientY + 12}px`
-            tooltip.style.opacity = "1"
+            showTooltip(e.clientX, e.clientY)
           } else {
-            tooltip.style.opacity = "0"
+            hideTooltip()
           }
         }
         containerEl.addEventListener("mousemove", linkHoverHandlerRef.current)
         linkLeaveHandlerRef.current = () => {
-          tooltip.style.opacity = "0"
+          hideTooltip()
         }
         containerEl.addEventListener("mouseleave", linkLeaveHandlerRef.current)
 
@@ -384,7 +414,7 @@ export function useGhosttyEngine({
         linkLeaveHandlerRef.current = null
       }
       if (linkTooltipRef.current) {
-        linkTooltipRef.current.remove()
+        releaseTooltip()
         linkTooltipRef.current = null
       }
 
@@ -421,7 +451,7 @@ export function useGhosttyEngine({
         try {
           engineRef.current.write(data)
 
-          if (!profileLoadedRef.current && /[$%>#]*$/.test(data)) {
+          if (!profileLoadedRef.current && PROMPT_PATTERN.test(data)) {
             profileLoadedRef.current = true
             onProfileLoadedRef.current?.()
           }
