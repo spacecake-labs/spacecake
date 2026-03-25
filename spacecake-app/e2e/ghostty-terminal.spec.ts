@@ -357,10 +357,9 @@ test.describe("ghostty terminal", () => {
     // set a test variable in the terminal
     await terminalElement.locator("textarea").focus()
     await window.waitForTimeout(100)
-    await window.keyboard.type(
-      isWindows ? "set PERSIST_VAR=success123" : "export PERSIST_VAR=success123",
-      { delay: typeDelay },
-    )
+    await window.keyboard.type(isWindows ? "set PERSIST_VAR=p42" : "export PERSIST_VAR=p42", {
+      delay: typeDelay,
+    })
     await window.keyboard.press("Enter")
     await window.waitForTimeout(200)
 
@@ -377,7 +376,7 @@ test.describe("ghostty terminal", () => {
         const api = (globalThis as any).__terminalAPI
         return api?.getAllLines().join("") as string | undefined
       })
-      expect(terminalContent).toContain("success123")
+      expect(terminalContent).toContain("p42")
     }).toPass({ timeout: 5000 })
 
     // give terminal state time to be saved before reload
@@ -400,7 +399,7 @@ test.describe("ghostty terminal", () => {
     await freshTerminalElement.locator("textarea").focus()
     await window.waitForTimeout(100)
     await window.keyboard.type(
-      isWindows ? "echo AFTER_RELOAD:%PERSIST_VAR%:END" : "echo AFTER_RELOAD:$PERSIST_VAR:END",
+      isWindows ? "echo PR:%PERSIST_VAR%:END" : "echo PR:$PERSIST_VAR:END",
       { delay: typeDelay },
     )
     await window.keyboard.press("Enter")
@@ -413,7 +412,7 @@ test.describe("ghostty terminal", () => {
         return api?.getAllLines().join("") as string | undefined
       })
       // if session persisted, variable is still set; if new session, it's unset
-      expect(terminalContent).toContain("AFTER_RELOAD:success123:END")
+      expect(terminalContent).toContain("PR:p42:END")
     }).toPass({ timeout: 5000 })
   })
 })

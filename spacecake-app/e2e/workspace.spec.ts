@@ -404,7 +404,7 @@ test.describe("spacecake app", () => {
     expect(fs.existsSync(testFilePath)).toBe(false)
 
     // Test deleting an empty folder
-    await locateSidebarItem(window, "empty-folder").click({ button: "right" })
+    await locateSidebarItem(window, "empty-folder").click({ button: "right", force: true })
     await window.getByRole("menuitem", { name: "delete" }).click({ force: true })
 
     // Verify delete confirmation dialog appears with folder message
