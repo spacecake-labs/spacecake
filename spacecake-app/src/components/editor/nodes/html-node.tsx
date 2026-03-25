@@ -115,6 +115,9 @@ const SANITIZE_CONFIG = {
   ALLOW_DATA_ATTR: false,
 }
 
+// regex to rewrite external image URLs for proxy protocol
+const IMG_URL_REWRITE_RE = /(src="|srcset=")(https?):\/\//g
+
 // WeakMap to store focus managers for html block nodes
 const focusManagerMap = new WeakMap<HTMLBlockNode, CodeMirrorFocusManager>()
 
@@ -392,7 +395,7 @@ const HTMLBlockNodeEditorContainer: React.FC<HTMLBlockNodeEditorContainerProps> 
     // proxy external image URLs through spacecake-img:// to avoid CORB.
     // spacecake-img://https/host/path → main process strips scheme prefix and fetches https://host/path
     return content.replace(
-      /(src="|srcset=")(https?):\/\//g,
+      IMG_URL_REWRITE_RE,
       (_match, attr, scheme) => `${attr}spacecake-img://${scheme}/`,
     )
   }, [htmlContent, theme])
