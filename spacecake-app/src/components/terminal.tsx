@@ -57,10 +57,10 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
   const lockedThemeRef = useRef(theme)
   const lockedTheme = lockedThemeRef.current
 
-  const [initialTab] = useState(() => makeTab())
-  const [tabs, setTabs] = useState<TabState[]>(() => [initialTab])
-  const [activeTabId, setActiveTabId] = useState<string | null>(initialTab.id)
-  const restoredRef = useRef(false)
+  // tabs start empty — populated by the init effect (restore or fresh)
+  const [tabs, setTabs] = useState<TabState[]>([])
+  const [activeTabId, setActiveTabId] = useState<string | null>(null)
+  const readyRef = useRef(false)
 
   // track APIs per tab so we can expose the active one
   const tabApisRef = useRef<Map<string, TerminalAPI>>(new Map())
@@ -230,32 +230,39 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
     return () => setProfileLoaded(false)
   }, [setProfileLoaded])
 
-  // restore tab state from main process on mount (survives reload)
+  // initialize tabs: restore from main process (survives reload) or create fresh
   useEffect(() => {
-    if (restoredRef.current) return
-    restoredRef.current = true
+    if (readyRef.current) return
 
     getTerminalTabState(cwd).then((state) => {
-      if (!state || state.tabs.length === 0) return
+      if (readyRef.current) return
+      readyRef.current = true
 
-      const restoredTabs: TabState[] = state.tabs.map((t) => ({
-        id: t.id,
-        surfaceId: t.surfaceId,
-        label: t.label,
-      }))
-
-      setTabs(restoredTabs)
-      const activeId = state.activeId ?? restoredTabs[0].id
-      setActiveTabId(activeId)
-
-      // set active surface for statusline
-      const activeTab = restoredTabs.find((t) => t.id === activeId)
-      if (activeTab) setActiveSurfaceId(activeTab.surfaceId)
+      if (state && state.tabs.length > 0) {
+        // restore saved tabs (pty processes survived in main process)
+        const restoredTabs: TabState[] = state.tabs.map((t) => ({
+          id: t.id,
+          surfaceId: t.surfaceId,
+          label: t.label,
+        }))
+        setTabs(restoredTabs)
+        const activeId = state.activeId ?? restoredTabs[0].id
+        setActiveTabId(activeId)
+        const activeTab = restoredTabs.find((t) => t.id === activeId)
+        if (activeTab) setActiveSurfaceId(activeTab.surfaceId)
+      } else {
+        // no saved state — create a fresh tab
+        const tab = makeTab()
+        setTabs([tab])
+        setActiveTabId(tab.id)
+        setActiveSurfaceId(tab.surfaceId)
+      }
     })
   }, [cwd, setActiveSurfaceId])
 
-  // sync tab state to main process on changes
+  // sync tab state to main process on changes (skip until init is done)
   useEffect(() => {
+    if (!readyRef.current) return
     setTerminalTabState(cwd, {
       tabs: tabs.map((t) => ({
         id: t.id,

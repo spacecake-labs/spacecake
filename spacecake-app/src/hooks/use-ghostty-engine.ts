@@ -162,6 +162,11 @@ export function useGhosttyEngine({
           if (buffer) term.write(buffer)
           // re-sync pty dimensions to match the new terminal instance
           resizeTerminal(id, cols, rows)
+          // shell was already initialized before reload — mark profile loaded
+          // (replay goes through term.write, not onTerminalOutput, so the
+          // listener-based detection would never fire)
+          profileLoadedRef.current = true
+          onProfileLoadedRef.current?.()
         } else {
           // create new terminal on backend
           const result = await createTerminal(id, cols, rows, cwd, surfaceId)

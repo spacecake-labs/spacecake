@@ -337,4 +337,77 @@ test.describe("ghostty terminal", () => {
     await expect(freshTabButtons.first()).not.toBeEmpty()
     await expect(terminalPanel.getByTestId("ghostty-terminal").first()).toBeVisible()
   })
+
+  test("terminal session persists across renderer reload", async ({ electronApp, tempTestDir }) => {
+    // setup: create test file and open workspace
+    const testFilePath = path.join(tempTestDir, "test.md")
+    fs.writeFileSync(testFilePath, "# test file")
+
+    const window = await electronApp.firstWindow()
+    await waitForWorkspace(window)
+    await locateSidebarItem(window, "test.md").click()
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    const terminalPanel = window.getByTestId("terminal-panel")
+    const terminalElement = terminalPanel.getByTestId("ghostty-terminal").first()
+
+    // wait for shell to be ready
+    await expect(window.getByRole("status", { name: "shell profile loaded" })).toBeVisible()
+
+    // set a test variable in the terminal
+    await terminalElement.locator("textarea").focus()
+    await window.waitForTimeout(100)
+    await window.keyboard.type("export PERSIST_VAR=success123", { delay: typeDelay })
+    await window.keyboard.press("Enter")
+    await window.waitForTimeout(200)
+
+    // verify variable was set
+    await window.keyboard.type(isWindows ? "echo %PERSIST_VAR%" : "echo $PERSIST_VAR", {
+      delay: typeDelay,
+    })
+    await window.keyboard.press("Enter")
+
+    let terminalContent = await window.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const api = (globalThis as any).__terminalAPI
+      return api?.getAllLines().join("") as string | undefined
+    })
+    expect(terminalContent).toContain("success123")
+
+    // give terminal state time to be saved before reload
+    await window.waitForTimeout(2000)
+
+    // reload the renderer
+    await window.reload()
+
+    // wait for workspace to restore after reload
+    await waitForWorkspace(window)
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    // terminal should still be visible and have shell ready
+    await expect(terminalPanel).toBeVisible()
+    await expect(window.getByRole("status", { name: "shell profile loaded" })).toBeVisible()
+
+    const freshTerminalElement = terminalPanel.getByTestId("ghostty-terminal").first()
+
+    // verify the terminal session was restored: variable should still be set
+    await freshTerminalElement.locator("textarea").focus()
+    await window.waitForTimeout(100)
+    await window.keyboard.type(
+      isWindows ? "echo AFTER_RELOAD:%PERSIST_VAR%:END" : "echo AFTER_RELOAD:$PERSIST_VAR:END",
+      { delay: typeDelay },
+    )
+    await window.keyboard.press("Enter")
+
+    // poll until we see the variable value in the terminal output
+    await expect(async () => {
+      terminalContent = await window.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (globalThis as any).__terminalAPI
+        return api?.getAllLines().join("") as string | undefined
+      })
+      // if session persisted, variable is still set; if new session, it's unset
+      expect(terminalContent).toContain("AFTER_RELOAD:success123:END")
+    }).toPass({ timeout: 5000 })
+  })
 })
