@@ -105,13 +105,6 @@ const emitData = (data: string) => {
   if (cb) cb(data)
 }
 
-/** simulate PTY emitting data for a specific spawn index */
-const emitDataForPty = (spawnIndex: number, data: string) => {
-  const id = `mock-pty-${spawnIndex}`
-  const cb = dataCallbacks.get(id)
-  if (cb) cb(data)
-}
-
 // ---------------------------------------------------------------------------
 // tests
 // ---------------------------------------------------------------------------
