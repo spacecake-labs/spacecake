@@ -17,7 +17,7 @@ interface TerminalPanelProps {
   terminalDock: DockPosition
   isTerminalSessionActive: boolean
   workspace: { path: string; id: string }
-  layout: WorkspaceLayout
+  layoutRef: RefObject<WorkspaceLayout>
   terminalToolbarRight: React.ReactNode
   onTerminalSessionEnd: () => void
 }
@@ -29,7 +29,7 @@ export const TerminalPanel = memo(function TerminalPanel({
   terminalDock,
   isTerminalSessionActive,
   workspace,
-  layout,
+  layoutRef,
   terminalToolbarRight,
   onTerminalSessionEnd,
 }: TerminalPanelProps) {
@@ -52,7 +52,7 @@ export const TerminalPanel = memo(function TerminalPanel({
             <Terminal
               cwd={workspace.path}
               workspaceId={workspace.id}
-              layout={layout}
+              layoutRef={layoutRef}
               toolbarRight={terminalToolbarRight}
               onLastTabClosed={onTerminalSessionEnd}
             />

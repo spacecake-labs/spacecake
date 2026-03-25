@@ -689,7 +689,7 @@ function LayoutContent() {
       terminalDock={terminalDock}
       isTerminalSessionActive={isTerminalSessionActive}
       workspace={workspace}
-      layout={layout}
+      layoutRef={layoutRef}
       terminalToolbarRight={terminalToolbarRight}
       onTerminalSessionEnd={handleTerminalSessionEnd}
     />

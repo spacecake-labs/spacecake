@@ -1,6 +1,6 @@
 import { useSetAtom } from "jotai"
 import { Plus } from "lucide-react"
-import type { ReactNode } from "react"
+import type { ReactNode, RefObject } from "react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 
@@ -18,6 +18,7 @@ import {
   terminalProfileLoadedAtom,
 } from "@/lib/atoms/atoms"
 import {
+  deleteAllTerminalsForWorkspace,
   deleteTerminal,
   insertTerminal,
   selectTerminalsForWorkspace,
@@ -41,8 +42,8 @@ interface TerminalProps {
   toolbarRight?: ReactNode
   onActiveApiChange?: (api: TerminalAPI | null) => void
   onLastTabClosed?: () => void
-  /** current workspace layout — used to persist terminal tab order */
-  layout?: WorkspaceLayout
+  /** ref to workspace layout — stable reference avoids effect re-triggers and memo breaks */
+  layoutRef?: RefObject<WorkspaceLayout>
 }
 
 /** extract a short display name from a terminal title (path → basename, command → as-is) */
@@ -60,7 +61,7 @@ export function Terminal({
   toolbarRight,
   onActiveApiChange,
   onLastTabClosed,
-  layout,
+  layoutRef,
 }: TerminalProps) {
   const { theme } = useTheme()
   // ghostty cannot switch theme after initialization, so lock the terminal
@@ -72,6 +73,9 @@ export function Terminal({
   const [tabs, setTabs] = useState<TabState[]>([])
   const [activeTabId, setActiveTabId] = useState<TerminalPrimaryKey | null>(null)
   const readyRef = useRef(false)
+
+  // debounce timer for layout persistence
+  const layoutWriteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // track APIs per tab so we can expose the active one
   const tabApisRef = useRef<Map<string, TerminalAPI>>(new Map())
@@ -289,14 +293,15 @@ export function Terminal({
 
           // use workspace layout terminalTabs for ordering if available
           // layout stores plain strings — cast at the boundary
-          const layoutTabs = layout?.terminalTabs
+          const layoutTabs = layoutRef?.current?.terminalTabs
           const orderedIds = (layoutTabs?.tabs ?? []) as TerminalPrimaryKey[]
+          const orderedIdSet = new Set(orderedIds)
           const dbMap = new Map(dbTerminals.map((t) => [t.id, t]))
 
           // build tabs in layout order, appending any not in the layout
           const orderedTerminals = [
             ...orderedIds.filter((id) => dbMap.has(id)).map((id) => dbMap.get(id)!),
-            ...dbTerminals.filter((t) => !orderedIds.includes(t.id)),
+            ...dbTerminals.filter((t) => !orderedIdSet.has(t.id)),
           ]
 
           const restoredTabs: TabState[] = orderedTerminals.map((t) => ({
@@ -319,9 +324,10 @@ export function Terminal({
         console.error("failed to restore terminals from db:", err)
       }
 
-      // 3. no saved state anywhere — create a fresh tab via DB
+      // 3. no saved state anywhere — clean up orphaned rows and create a fresh tab
       readyRef.current = true
       try {
+        await deleteAllTerminalsForWorkspace(workspaceId as WorkspacePrimaryKey)
         const row = await insertTerminal({
           workspace_id: workspaceId,
           cwd_path: cwd,
@@ -336,7 +342,7 @@ export function Terminal({
     }
 
     init()
-  }, [cwd, workspaceId, layout, setActiveSurfaceId])
+  }, [cwd, workspaceId, setActiveSurfaceId])
 
   // sync tab state to main process + workspace layout on changes (skip until init is done)
   useEffect(() => {
@@ -353,10 +359,14 @@ export function Terminal({
       activeId: activeTabId,
     })
 
-    // sync tab ordering to workspace layout (persistent for app restart)
-    if (layout) {
+    // debounced sync to workspace layout (persistent for app restart)
+    if (layoutWriteTimerRef.current) clearTimeout(layoutWriteTimerRef.current)
+    layoutWriteTimerRef.current = setTimeout(() => {
+      layoutWriteTimerRef.current = null
+      const currentLayout = layoutRef?.current
+      if (!currentLayout) return
       const terminalTabs = { tabs: tabs.map((t) => t.id), activeId: activeTabId }
-      const currentTabs = layout.terminalTabs
+      const currentTabs = currentLayout.terminalTabs
       // only write if changed
       if (
         currentTabs.activeId !== terminalTabs.activeId ||
@@ -364,12 +374,19 @@ export function Terminal({
         currentTabs.tabs.some((id, i) => id !== terminalTabs.tabs[i])
       ) {
         updateWorkspaceLayout(workspaceId as WorkspacePrimaryKey, {
-          ...layout,
+          ...currentLayout,
           terminalTabs,
         }).catch((err) => console.error("failed to persist terminal tab order:", err))
       }
+    }, 300)
+
+    return () => {
+      if (layoutWriteTimerRef.current) {
+        clearTimeout(layoutWriteTimerRef.current)
+        layoutWriteTimerRef.current = null
+      }
     }
-  }, [tabs, activeTabId, cwd, workspaceId, layout])
+  }, [tabs, activeTabId, cwd, workspaceId])
 
   // handle horizontal scroll on wheel - must use native event for non-passive option
   useEffect(() => {
