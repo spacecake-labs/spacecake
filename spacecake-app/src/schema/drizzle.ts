@@ -107,6 +107,21 @@ export const paneItemTable = pgTable(
 // only persistable view kinds are stored in the database
 export const ViewKindEnum = pgEnum("view_kind", PersistableViewKindSchema.literals)
 
+export const terminalTable = pgTable("terminal", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  workspace_id: uuid("workspace_id")
+    .references(() => workspaceTable.id, { onDelete: "cascade" })
+    .notNull(),
+  surface_id: uuid("surface_id")
+    .default(sql`gen_random_uuid()`)
+    .notNull(),
+  cwd_path: text("cwd_path").notNull(),
+  custom_title: text("custom_title"),
+  created_at: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
+})
+
 export const editorTable = pgTable(
   "editor",
   {

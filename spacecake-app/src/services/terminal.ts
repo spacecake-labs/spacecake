@@ -27,11 +27,30 @@ const loadPtyModule = async (): Promise<PtyModule> => {
   }
 }
 
+// ~100KB max per terminal output buffer
+const MAX_BUFFER_SIZE = 100_000
+
+export interface TabInfo {
+  id: string
+  surfaceId: string
+  label: string
+  cwdPath: string
+}
+
+export interface TabState {
+  tabs: TabInfo[]
+  activeId: string | null
+}
+
 export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
   effect: Effect.gen(function* () {
     const home = yield* SpacecakeHome
     const terminals = new Map<string, IPty>()
     const ideDisconnectedSent = new Set<string>()
+    const outputBuffers = new Map<string, string[]>()
+    const outputBufferSizes = new Map<string, number>()
+    const surfaceIds = new Map<string, string>()
+    const tabStates = new Map<string, TabState>()
 
     // Finalizer to kill all pty processes on shutdown
     yield* Effect.addFinalizer(() =>
@@ -46,6 +65,10 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           }
         }
         terminals.clear()
+        outputBuffers.clear()
+        outputBufferSizes.clear()
+        surfaceIds.clear()
+        tabStates.clear()
       }),
     )
 
@@ -103,6 +126,19 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             env,
           })
           ptyProcess.onData((data) => {
+            // buffer output for replay on reconnect
+            const buf = outputBuffers.get(id)
+            if (buf) {
+              buf.push(data)
+              const currentSize = (outputBufferSizes.get(id) ?? 0) + data.length
+              outputBufferSizes.set(id, currentSize)
+              // trim oldest entries when over cap
+              while ((outputBufferSizes.get(id) ?? 0) > MAX_BUFFER_SIZE && buf.length > 1) {
+                const removed = buf.shift()!
+                outputBufferSizes.set(id, (outputBufferSizes.get(id) ?? 0) - removed.length)
+              }
+            }
+
             if (data.includes("IDE disconnected") && !ideDisconnectedSent.has(id)) {
               ideDisconnectedSent.add(id)
               BrowserWindow.getAllWindows().forEach((win) => {
@@ -116,6 +152,9 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           })
 
           terminals.set(id, ptyProcess)
+          outputBuffers.set(id, [])
+          outputBufferSizes.set(id, 0)
+          if (surfaceId) surfaceIds.set(id, surfaceId)
         },
         catch: (error) =>
           new TerminalError({
@@ -168,6 +207,9 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
         // Remove from map immediately to prevent double-kill attempts
         terminals.delete(id)
         ideDisconnectedSent.delete(id)
+        outputBuffers.delete(id)
+        outputBufferSizes.delete(id)
+        surfaceIds.delete(id)
 
         // Trigger the kill
         yield* Effect.sync(() => term.kill())
@@ -188,6 +230,30 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
         ),
       )
 
-    return { create, resize, write, kill }
+    const list = () =>
+      Effect.sync(() =>
+        Array.from(terminals.keys()).map((id) => ({
+          id,
+          surfaceId: surfaceIds.get(id) ?? "",
+        })),
+      )
+
+    const getBuffer = (id: string) =>
+      Effect.sync(() => {
+        const buf = outputBuffers.get(id)
+        return buf ? buf.join("") : ""
+      })
+
+    const setTabState = (workspaceId: string, state: TabState) =>
+      Effect.sync(() => {
+        tabStates.set(workspaceId, state)
+      })
+
+    const getTabState = (workspaceId: string) =>
+      Effect.sync(() => tabStates.get(workspaceId) ?? null)
+
+    const has = (id: string) => Effect.sync(() => terminals.has(id))
+
+    return { create, resize, write, kill, list, getBuffer, setTabState, getTabState, has }
   }),
 }) {}

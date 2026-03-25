@@ -257,6 +257,28 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
       ),
     )
 
+    ipcMain.handle("terminal:list", () => Effect.runPromise(terminal.list()))
+
+    ipcMain.handle("terminal:replay", (_, id: string) => Effect.runPromise(terminal.getBuffer(id)))
+
+    ipcMain.handle("terminal:has", (_, id: string) => Effect.runPromise(terminal.has(id)))
+
+    ipcMain.handle(
+      "terminal:set-tab-state",
+      (
+        _,
+        workspaceId: string,
+        state: {
+          tabs: Array<{ id: string; surfaceId: string; label: string; cwdPath: string }>
+          activeId: string | null
+        },
+      ) => Effect.runPromise(terminal.setTabState(workspaceId, state)),
+    )
+
+    ipcMain.handle("terminal:get-tab-state", (_, workspaceId: string) =>
+      Effect.runPromise(terminal.getTabState(workspaceId)),
+    )
+
     // Claude Tasks IPC handlers
     ipcMain.handle("claude:tasks:start-watching", (_, sessionId?: string) =>
       Effect.runPromise(

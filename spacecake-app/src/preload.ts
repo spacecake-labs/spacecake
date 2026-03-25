@@ -200,6 +200,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("terminal:resize", id, cols, rows),
   writeTerminal: (id: string, data: string) => ipcRenderer.invoke("terminal:write", id, data),
   killTerminal: (id: string) => ipcRenderer.invoke("terminal:kill", id),
+  listTerminals: () =>
+    ipcRenderer.invoke("terminal:list") as Promise<Array<{ id: string; surfaceId: string }>>,
+  replayTerminal: (id: string) => ipcRenderer.invoke("terminal:replay", id) as Promise<string>,
+  hasTerminal: (id: string) => ipcRenderer.invoke("terminal:has", id) as Promise<boolean>,
+  setTerminalTabState: (
+    workspaceId: string,
+    state: {
+      tabs: Array<{ id: string; surfaceId: string; label: string; cwdPath: string }>
+      activeId: string | null
+    },
+  ) => ipcRenderer.invoke("terminal:set-tab-state", workspaceId, state),
+  getTerminalTabState: (workspaceId: string) =>
+    ipcRenderer.invoke("terminal:get-tab-state", workspaceId) as Promise<{
+      tabs: Array<{ id: string; surfaceId: string; label: string; cwdPath: string }>
+      activeId: string | null
+    } | null>,
   onTerminalOutput: (handler: (id: string, data: string) => void) => {
     const listener = (_e: Electron.IpcRendererEvent, payload: { id: string; data: string }) => {
       handler(payload.id, payload.data)

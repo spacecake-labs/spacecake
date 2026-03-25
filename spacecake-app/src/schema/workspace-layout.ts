@@ -55,6 +55,12 @@ export type PanelMap = typeof PanelMapSchema.Type
 // Workspace Layout
 // ============================================
 
+export const TerminalTabsSchema = Schema.Struct({
+  tabs: Schema.Array(Schema.String),
+  activeId: Schema.NullOr(Schema.String),
+})
+export type TerminalTabs = typeof TerminalTabsSchema.Type
+
 export const WorkspaceLayoutSchema = Schema.Struct({
   dock: Schema.optionalWith(DockSchema, {
     default: () => ({
@@ -69,6 +75,9 @@ export const WorkspaceLayoutSchema = Schema.Struct({
       task: { isExpanded: false, size: 20 },
       git: { isExpanded: false, size: 25 },
     }),
+  }),
+  terminalTabs: Schema.optionalWith(TerminalTabsSchema, {
+    default: () => ({ tabs: [] as string[], activeId: null }),
   }),
 })
 export type WorkspaceLayout = typeof WorkspaceLayoutSchema.Type
@@ -87,6 +96,7 @@ export const defaultWorkspaceLayout: WorkspaceLayout = {
     task: { isExpanded: false, size: 20 },
     git: { isExpanded: false, size: 25 },
   },
+  terminalTabs: { tabs: [], activeId: null },
 }
 
 /**
@@ -120,5 +130,9 @@ export const WorkspaceLayoutStrictSchema = Schema.Struct({
       isExpanded: Schema.Boolean,
       size: Schema.Number,
     }),
+  }),
+  terminalTabs: Schema.Struct({
+    tabs: Schema.Array(Schema.String),
+    activeId: Schema.NullOr(Schema.String),
   }),
 })

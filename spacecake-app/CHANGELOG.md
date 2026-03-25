@@ -1,5 +1,132 @@
 # spacecake-app
 
+## 0.1.0-alpha.66
+
+### Patch Changes
+
+- 85837f4: Feat: Code search in source mode.
+
+## 0.1.0-alpha.65
+
+### Patch Changes
+
+- dbc0e27: Feat: Git clone, diff gutter, stash, conflict resolution, and github integration.
+
+## 0.1.0-alpha.64
+
+### Patch Changes
+
+- 0e70abf: Feat: Inline git blame.
+
+## 0.1.0-alpha.63
+
+### Patch Changes
+
+- e382fea: Feat: File tree drag and drop.
+
+## 0.1.0-alpha.62
+
+### Patch Changes
+
+- 74af734: Feat: Dock layout switcher.
+
+## 0.1.0-alpha.61
+
+### Patch Changes
+
+- 21d9c02: Move dock position controls from panel toolbars to status bar right-click menu.
+- b52c5bd: Git panel UI and performance improvements.
+
+## 0.1.0-alpha.60
+
+### Patch Changes
+
+- 8305383: Feat: git panel — staging, error handling, and performance
+  - github desktop staging model — ui-only checkboxes, staging happens at commit time
+  - github desktop-aligned git commands — default flags match github desktop behavior
+  - unified changes section — single list instead of staged/unstaged split
+  - git error classification, lock retry, serialization, and conflict tracking
+  - git panel performance optimizations — reduced re-renders and faster lookups
+  - git service refactored to effect best practices
+  - git ui/accessibility improvements — better labels and polish
+  - expanded test coverage — conflicts, discard, amend, branches, diffs, service, toolbar, branch popover
+
+## 0.1.0-alpha.59
+
+### Patch Changes
+
+- bfaaddb: Fix: track concurrent Claude Code terminal sessions separately.
+- 67cfd69: Feat: HTML rendering in markdown files.
+
+## 0.1.0-alpha.58
+
+### Patch Changes
+
+- d44c507: Feat: single instance lock.
+
+## 0.1.0-alpha.57
+
+### Patch Changes
+
+- d33f160: Disable GPU rasterisation.
+- d33f160: Feat: save-all command.
+- d33f160: Feat: native app menu.
+- d33f160: Fix pane machine cleanup (issue #182).
+
+## 0.1.0-alpha.56
+
+### Patch Changes
+
+- 502674f: Migrate tree-sitter WASM to Node.
+
+## 0.1.0-alpha.55
+
+### Patch Changes
+
+- 1136c3e: Fix CLI symlink on Linux.
+- 5e830d6: Fix git polling for non-repos.
+
+## 0.1.0-alpha.54
+
+### Patch Changes
+
+- 718f492: Migrate PGlite from renderer to Node.
+- bfc79e7: Fix atom family memory leaks.
+
+## 0.1.0-alpha.53
+
+### Patch Changes
+
+- f7ba041: Feat multi-tab terminal.
+
+## 0.1.0-alpha.52
+
+### Patch Changes
+
+- a1b8752: Fix markdown backtick escaping.
+- a1b8752: Title bar for Windows & Linux.
+- a1b8752: Show app version number.
+
+## 0.1.0-alpha.51
+
+### Patch Changes
+
+- fa86a46: Lazy reading for workspace tree.
+
+## 0.1.0-alpha.50
+
+### Patch Changes
+
+- 1b0f265: Collapse unchanged sections in git diffs.
+- 1b0f265: Fix git panel docking.
+- 242279c: Ability to close tab by clicking middle button.
+
+## 0.1.0-alpha.49
+
+### Patch Changes
+
+- b57eaac: Adding git panel with commit history, changes, and diff viewer.
+
 ## 0.1.0-alpha.48
 
 ### Patch Changes

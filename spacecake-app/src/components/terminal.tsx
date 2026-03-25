@@ -17,6 +17,7 @@ import {
   statuslineMapAtom,
   terminalProfileLoadedAtom,
 } from "@/lib/atoms/atoms"
+import { getTerminalTabState, setTerminalTabState } from "@/lib/terminal"
 import { condensePath } from "@/lib/utils"
 
 interface TabState {
@@ -59,6 +60,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
   const [initialTab] = useState(() => makeTab())
   const [tabs, setTabs] = useState<TabState[]>(() => [initialTab])
   const [activeTabId, setActiveTabId] = useState<string | null>(initialTab.id)
+  const restoredRef = useRef(false)
 
   // track APIs per tab so we can expose the active one
   const tabApisRef = useRef<Map<string, TerminalAPI>>(new Map())
@@ -227,6 +229,43 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
   useEffect(() => {
     return () => setProfileLoaded(false)
   }, [setProfileLoaded])
+
+  // restore tab state from main process on mount (survives reload)
+  useEffect(() => {
+    if (restoredRef.current) return
+    restoredRef.current = true
+
+    getTerminalTabState(cwd).then((state) => {
+      if (!state || state.tabs.length === 0) return
+
+      const restoredTabs: TabState[] = state.tabs.map((t) => ({
+        id: t.id,
+        surfaceId: t.surfaceId,
+        label: t.label,
+      }))
+
+      setTabs(restoredTabs)
+      const activeId = state.activeId ?? restoredTabs[0].id
+      setActiveTabId(activeId)
+
+      // set active surface for statusline
+      const activeTab = restoredTabs.find((t) => t.id === activeId)
+      if (activeTab) setActiveSurfaceId(activeTab.surfaceId)
+    })
+  }, [cwd, setActiveSurfaceId])
+
+  // sync tab state to main process on changes
+  useEffect(() => {
+    setTerminalTabState(cwd, {
+      tabs: tabs.map((t) => ({
+        id: t.id,
+        surfaceId: t.surfaceId,
+        label: t.label,
+        cwdPath: cwd,
+      })),
+      activeId: activeTabId,
+    })
+  }, [tabs, activeTabId, cwd])
 
   // handle horizontal scroll on wheel - must use native event for non-passive option
   useEffect(() => {
