@@ -1,10 +1,16 @@
 import { Link } from "@tanstack/react-router"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { ChevronRight, Loader2, MoreHorizontal, Plus, X } from "lucide-react"
+import { ChevronRight, Loader2, Plus, X } from "lucide-react"
 import { useEffect, useRef } from "react"
 import * as React from "react"
 
 import { Button } from "@/components/ui/button"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,7 +82,7 @@ function RenameInput({
 }
 
 /** renders the revert menu item only when the file has state and is dirty.
- *  only mounted when hasFileStateAtom is true (guarded in ItemDropdownMenu). */
+ *  only mounted when hasFileStateAtom is true (guarded in ItemContextMenu). */
 function RevertMenuItem({
   item,
   onStartRevert,
@@ -88,36 +94,31 @@ function RevertMenuItem({
   const fileState = useAtomValue(atom!)
   if (fileState.value !== "Dirty") return null
   return (
-    <DropdownMenuItem onClick={() => onStartRevert(item)}>
+    <ContextMenuItem onClick={() => onStartRevert(item)}>
       <span>revert</span>
-    </DropdownMenuItem>
+    </ContextMenuItem>
   )
 }
 
-// Component for the dropdown menu (for files and folders)
-function ItemDropdownMenu({
+// Component for the context menu (for files and folders)
+function ItemContextMenu({
   item,
   onStartRename,
   onStartDelete,
   onStartRevert,
-  isRenaming,
   onExpandFolder,
-  isCreatingInThisContext,
+  children,
 }: {
   item: File | Folder
   onStartRename: (item: File | Folder) => void
   onStartDelete: (item: File | Folder) => void
   onStartRevert?: (item: File) => void
-  isRenaming: boolean
   onExpandFolder?: (folderPath: Folder["path"], forceExpand?: boolean) => void
-  isCreatingInThisContext: boolean
+  children: React.ReactNode
 }) {
   const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
   const setContextItemName = useSetAtom(contextItemNameAtom)
 
-  if (isRenaming) return null
-
-  const itemTitle = item.name
   const itemPath = item.path
   const isItemFolder = item.kind === "folder"
   const isFile = item.kind === "file"
@@ -127,7 +128,6 @@ function ItemDropdownMenu({
     setIsCreatingInContext({ kind: "file", parentPath: itemPath })
     setContextItemName("")
 
-    // Auto-expand the parent folder so the input field is visible
     if (isItemFolder && onExpandFolder) {
       onExpandFolder(itemPath, true)
     }
@@ -137,59 +137,34 @@ function ItemDropdownMenu({
     setIsCreatingInContext({ kind: "folder", parentPath: itemPath })
     setContextItemName("")
 
-    // Auto-expand the parent folder so the input field is visible
     if (isItemFolder && onExpandFolder) {
       onExpandFolder(itemPath, true)
     }
   }
 
-  const cancelCreating = () => {
-    setIsCreatingInContext(null)
-    setContextItemName("")
-  }
-
   return (
-    <>
-      {isCreatingInThisContext ? (
-        <SidebarMenuAction className="cursor-pointer" onClick={cancelCreating}>
-          <X className="h-3 w-3" />
-          <span className="sr-only">cancel</span>
-        </SidebarMenuAction>
-      ) : (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuAction
-              showOnHover
-              className="cursor-pointer"
-              aria-label="more options"
-              data-testid={`more-options-${itemTitle}`}
-            >
-              <MoreHorizontal />
-              <span className="sr-only">more options</span>
-            </SidebarMenuAction>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-48">
-            {isItemFolder && (
-              <>
-                <DropdownMenuItem onClick={startCreatingFile}>
-                  <span>new file</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={startCreatingFolder}>
-                  <span>new folder</span>
-                </DropdownMenuItem>
-              </>
-            )}
-            <DropdownMenuItem onClick={() => onStartRename(item)}>
-              <span>rename</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onStartDelete(item)}>
-              <span>delete</span>
-            </DropdownMenuItem>
-            {showRevert && <RevertMenuItem item={item as File} onStartRevert={onStartRevert} />}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-    </>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+      <ContextMenuContent className="w-48">
+        {isItemFolder && (
+          <>
+            <ContextMenuItem onClick={startCreatingFile}>
+              <span>new file</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={startCreatingFolder}>
+              <span>new folder</span>
+            </ContextMenuItem>
+          </>
+        )}
+        <ContextMenuItem onClick={() => onStartRename(item)}>
+          <span>rename</span>
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => onStartDelete(item)}>
+          <span>delete</span>
+        </ContextMenuItem>
+        {showRevert && <RevertMenuItem item={item as File} onStartRevert={onStartRevert} />}
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
 
@@ -376,6 +351,16 @@ function FileRowLink({
   )
 }
 
+// Component for the cancel creating button
+function CreateCancelButton({ onCancel }: { onCancel: () => void }) {
+  return (
+    <SidebarMenuAction className="cursor-pointer" onClick={onCancel}>
+      <X className="h-3 w-3" />
+      <span className="sr-only">cancel</span>
+    </SidebarMenuAction>
+  )
+}
+
 export interface TreeRowProps {
   flatItem: FlatFileTreeItem
   onFileClick: (filePath: AbsolutePath) => void
@@ -500,55 +485,76 @@ export const TreeRow = React.memo(function TreeRow({
   const indentPx = depth * 12
 
   if (item.kind === "file") {
+    const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
+    const setContextItemName = useSetAtom(contextItemNameAtom)
+
+    const handleCancelCreating = () => {
+      setIsCreatingInContext(null)
+      setContextItemName("")
+    }
+
     return (
-      <SidebarMenuItem
-        onClick={() =>
-          setLastClicked((prev) =>
-            prev?.path === filePath && prev.kind === "file"
-              ? prev
-              : { path: filePath, kind: "file" },
-          )
-        }
-        style={{
-          ...style,
-          paddingLeft: `${indentPx}px`,
-        }}
-        className={isGitIgnored ? "opacity-50" : undefined}
+      <ItemContextMenu
+        item={item}
+        onStartRename={onStartRename}
+        onStartDelete={onStartDelete}
+        onStartRevert={onStartRevert}
+        onExpandFolder={onExpandFolder}
       >
-        {isRenaming ? (
-          <RenameInput
-            value={editingItem.value}
-            onChange={onRenameInputChange}
-            onKeyDown={onRenameKeyDown}
-            validationError={validationError}
-          />
-        ) : (
-          <FileRowLink
-            item={item}
-            workspace={workspace}
-            isSelected={isSelected}
-            cacheMap={cacheMap}
-          />
-        )}
-        <ItemDropdownMenu
-          item={item}
-          onStartRename={onStartRename}
-          onStartDelete={onStartDelete}
-          onStartRevert={onStartRevert}
-          isRenaming={isRenaming}
-          onExpandFolder={onExpandFolder}
-          isCreatingInThisContext={isCreatingInThisContext}
-        />
-        {isRenaming && <CancelRenameButton onCancel={onCancelRename} />}
-      </SidebarMenuItem>
+        <SidebarMenuItem
+          onClick={() =>
+            setLastClicked((prev) =>
+              prev?.path === filePath && prev.kind === "file"
+                ? prev
+                : { path: filePath, kind: "file" },
+            )
+          }
+          style={{
+            ...style,
+            paddingLeft: `${indentPx}px`,
+          }}
+          className={isGitIgnored ? "opacity-50" : undefined}
+        >
+          {isRenaming ? (
+            <RenameInput
+              value={editingItem.value}
+              onChange={onRenameInputChange}
+              onKeyDown={onRenameKeyDown}
+              validationError={validationError}
+            />
+          ) : (
+            <FileRowLink
+              item={item}
+              workspace={workspace}
+              isSelected={isSelected}
+              cacheMap={cacheMap}
+            />
+          )}
+          {isCreatingInThisContext && <CreateCancelButton onCancel={handleCancelCreating} />}
+          {isRenaming && <CancelRenameButton onCancel={onCancelRename} />}
+        </SidebarMenuItem>
+      </ItemContextMenu>
     )
   }
 
   // Folder
   const isSystemFolder = item.kind === "folder" && item.isSystemFolder
+  const setIsCreatingInContext = useSetAtom(isCreatingInContextAtom)
+  const setContextItemName = useSetAtom(contextItemNameAtom)
+
+  const handleCancelCreating = () => {
+    setIsCreatingInContext(null)
+    setContextItemName("")
+  }
 
   return (
-    <>
+    <ItemContextMenu
+      item={item}
+      onStartRename={onStartRename}
+      onStartDelete={onStartDelete}
+      onStartRevert={onStartRevert}
+      onExpandFolder={onExpandFolder}
+    >
       <SidebarMenuItem
         onClick={() =>
           setLastClicked((prev) =>
@@ -581,17 +587,9 @@ export const TreeRow = React.memo(function TreeRow({
             <span className="truncate">{item.name}</span>
           </SidebarMenuButton>
         )}
-        <ItemDropdownMenu
-          item={item}
-          onStartRename={onStartRename}
-          onStartDelete={onStartDelete}
-          onStartRevert={onStartRevert}
-          isRenaming={isRenaming}
-          onExpandFolder={onExpandFolder}
-          isCreatingInThisContext={isCreatingInThisContext}
-        />
+        {isCreatingInThisContext && <CreateCancelButton onCancel={handleCancelCreating} />}
         {isRenaming && <CancelRenameButton onCancel={onCancelRename} />}
       </SidebarMenuItem>
-    </>
+    </ItemContextMenu>
   )
 }, areTreeRowPropsEqual)
