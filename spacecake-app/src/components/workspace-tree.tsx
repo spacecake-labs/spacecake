@@ -9,6 +9,7 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import {
@@ -170,8 +171,16 @@ function ItemContextMenu({
             <ContextMenuItem onClick={startCreatingFolder}>
               <span>new folder</span>
             </ContextMenuItem>
+            <ContextMenuSeparator />
           </>
         )}
+        <ContextMenuItem onClick={copyPath}>
+          <span>copy path</span>
+        </ContextMenuItem>
+        <ContextMenuItem onClick={copyRelativePath}>
+          <span>copy relative path</span>
+        </ContextMenuItem>
+        <ContextMenuSeparator />
         <ContextMenuItem onClick={() => onStartRename(item)}>
           <span>rename</span>
         </ContextMenuItem>
@@ -179,12 +188,6 @@ function ItemContextMenu({
           <span>delete</span>
         </ContextMenuItem>
         {showRevert && <RevertMenuItem item={item as File} onStartRevert={onStartRevert} />}
-        <ContextMenuItem onClick={copyPath}>
-          <span>copy path</span>
-        </ContextMenuItem>
-        <ContextMenuItem onClick={copyRelativePath}>
-          <span>copy relative path</span>
-        </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   )
