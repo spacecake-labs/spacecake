@@ -357,7 +357,10 @@ test.describe("ghostty terminal", () => {
     // set a test variable in the terminal
     await terminalElement.locator("textarea").focus()
     await window.waitForTimeout(100)
-    await window.keyboard.type("export PERSIST_VAR=success123", { delay: typeDelay })
+    await window.keyboard.type(
+      isWindows ? "set PERSIST_VAR=success123" : "export PERSIST_VAR=success123",
+      { delay: typeDelay },
+    )
     await window.keyboard.press("Enter")
     await window.waitForTimeout(200)
 

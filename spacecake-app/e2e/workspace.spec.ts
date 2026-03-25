@@ -425,7 +425,7 @@ test.describe("spacecake app", () => {
     expect(fs.existsSync(emptyFolderPath)).toBe(false)
 
     // Test deleting a folder with files (recursive delete)
-    await locateSidebarItem(window, "folder-with-files").click({ button: "right" })
+    await locateSidebarItem(window, "folder-with-files").click({ button: "right", force: true })
     await window.getByRole("menuitem", { name: "delete" }).click({ force: true })
 
     // Verify delete confirmation dialog appears with folder message
