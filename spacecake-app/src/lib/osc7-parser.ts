@@ -18,7 +18,6 @@
 
 export interface Osc7Data {
   path: string
-  timestamp: number
 }
 
 /**
@@ -32,7 +31,7 @@ export const OSC7_RE = /\u001b\]7;file:\/\/(?:[^/]*)?(.+?)(?:\u0007|\u001b\\)/
 /**
  * Parse OSC 7 sequence from terminal output
  * @param data - Raw terminal output that may contain OSC 7 sequences
- * @returns Osc7Data with path and timestamp, or null if no valid sequence found
+ * @returns Osc7Data with path, or null if no valid sequence found
  */
 export function parseOsc7(data: string): Osc7Data | null {
   const match = data.match(OSC7_RE)
@@ -52,10 +51,7 @@ export function parseOsc7(data: string): Osc7Data | null {
       return null
     }
 
-    return {
-      path,
-      timestamp: Date.now(),
-    }
+    return { path }
   } catch {
     // decodeURIComponent can throw on invalid sequences
     return null
@@ -63,10 +59,7 @@ export function parseOsc7(data: string): Osc7Data | null {
 }
 
 /**
- * Check if data contains an OSC 7 sequence without parsing
- * @param data - Raw terminal output
- * @returns true if OSC 7 sequence is present
+ * Fast check for the OSC 7 escape prefix — avoids running the full regex
+ * on every PTY data chunk (which is the hottest path in the terminal).
  */
-export function hasOsc7Data(data: string): boolean {
-  return OSC7_RE.test(data)
-}
+export const OSC7_PREFIX = "\x1b]7;"

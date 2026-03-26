@@ -79,6 +79,9 @@ export function Terminal({
   // debounce timer for layout persistence
   const layoutWriteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // debounce timers for per-tab cwd database writes
+  const cwdWriteTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+
   // track APIs per tab so we can expose the active one
   const tabApisRef = useRef<Map<string, TerminalAPI>>(new Map())
 
@@ -197,10 +200,23 @@ export function Terminal({
   }, [])
 
   const handleWorkingDirectoryChange = useCallback((tabId: string, cwdPath: string) => {
+    // skip if the cwd hasn't actually changed
+    const current = tabsRef.current.find((t) => t.id === tabId)
+    if (current?.cwdPath === cwdPath) return
+
     setTabs((prev) => prev.map((t) => (t.id === tabId ? { ...t, cwdPath } : t)))
-    // update database (fire-and-forget)
-    updateTerminal(tabId as TerminalPrimaryKey, cwdPath).catch((err) =>
-      console.error("failed to update terminal cwd:", err),
+
+    // debounced database write — coalesces rapid cd commands into a single write
+    const existing = cwdWriteTimersRef.current.get(tabId)
+    if (existing) clearTimeout(existing)
+    cwdWriteTimersRef.current.set(
+      tabId,
+      setTimeout(() => {
+        cwdWriteTimersRef.current.delete(tabId)
+        updateTerminal(tabId as TerminalPrimaryKey, cwdPath).catch((err) =>
+          console.error("failed to update terminal cwd:", err),
+        )
+      }, 500),
     )
   }, [])
 
@@ -239,6 +255,13 @@ export function Terminal({
           next.delete(closedTab.surfaceId)
           return next
         })
+      }
+
+      // cancel any pending cwd debounce for this tab
+      const cwdTimer = cwdWriteTimersRef.current.get(tabId)
+      if (cwdTimer) {
+        clearTimeout(cwdTimer)
+        cwdWriteTimersRef.current.delete(tabId)
       }
 
       // remove from database (fire-and-forget)

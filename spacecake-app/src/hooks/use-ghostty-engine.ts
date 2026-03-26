@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useTheme } from "@/components/theme-provider"
 import { useLatest } from "@/hooks/use-latest"
 import { handleImagePaste, TerminalClipboardLive } from "@/lib/clipboard"
-import { parseOsc7, hasOsc7Data } from "@/lib/osc7-parser"
+import { parseOsc7, OSC7_PREFIX } from "@/lib/osc7-parser"
 import { suppressDuplicateWarnings } from "@/lib/suppress-duplicate-warnings"
 import {
   createTerminal,
@@ -461,7 +461,8 @@ export function useGhosttyEngine({
           }
 
           // Parse OSC 7 sequences to track working directory changes
-          if (onWorkingDirectoryChangeRef.current && hasOsc7Data(data)) {
+          // fast prefix check avoids running the full regex on every PTY chunk
+          if (onWorkingDirectoryChangeRef.current && data.includes(OSC7_PREFIX)) {
             const osc7Data = parseOsc7(data)
             if (osc7Data) {
               onWorkingDirectoryChangeRef.current(osc7Data.path)

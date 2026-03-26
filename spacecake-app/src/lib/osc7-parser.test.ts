@@ -1,27 +1,17 @@
 import { describe, it, expect } from "vitest"
 
-import { parseOsc7, hasOsc7Data, OSC7_RE } from "@/lib/osc7-parser"
+import { parseOsc7, OSC7_PREFIX, OSC7_RE } from "@/lib/osc7-parser"
 
 describe("OSC 7 Parser", () => {
-  describe("hasOsc7Data", () => {
-    it("should detect valid OSC 7 sequences with bell terminator", () => {
+  describe("OSC7_PREFIX fast check", () => {
+    it("should detect valid OSC 7 sequences", () => {
       const data = "\x1b]7;file:///home/user/projects\x07"
-      expect(hasOsc7Data(data)).toBe(true)
-    })
-
-    it("should detect valid OSC 7 sequences with string terminator", () => {
-      const data = "\x1b]7;file:///home/user/projects\x1b\\"
-      expect(hasOsc7Data(data)).toBe(true)
+      expect(data.includes(OSC7_PREFIX)).toBe(true)
     })
 
     it("should return false for non-OSC 7 data", () => {
       const data = "some regular terminal output"
-      expect(hasOsc7Data(data)).toBe(false)
-    })
-
-    it("should return false for incomplete OSC 7", () => {
-      const data = "\x1b]7;file:///home/user"
-      expect(hasOsc7Data(data)).toBe(false)
+      expect(data.includes(OSC7_PREFIX)).toBe(false)
     })
   })
 
@@ -32,7 +22,6 @@ describe("OSC 7 Parser", () => {
 
       expect(result).not.toBeNull()
       expect(result?.path).toBe("/home/user/projects")
-      expect(result?.timestamp).toBeLessThanOrEqual(Date.now())
     })
 
     it("should parse paths with hostname", () => {
@@ -113,21 +102,11 @@ describe("OSC 7 Parser", () => {
     })
 
     it("should handle macOS-style paths", () => {
-      const data = "\x1b]7;file:///Users/alexandermoores/Documents/GitHub\x07"
+      const data = "\x1b]7;file:///Users/user/Documents/GitHub\x07"
       const result = parseOsc7(data)
 
       expect(result).not.toBeNull()
-      expect(result?.path).toBe("/Users/alexandermoores/Documents/GitHub")
-    })
-
-    it("should timestamp results", () => {
-      const before = Date.now()
-      const data = "\x1b]7;file:///home/user\x07"
-      const result = parseOsc7(data)
-      const after = Date.now()
-
-      expect(result?.timestamp).toBeGreaterThanOrEqual(before)
-      expect(result?.timestamp).toBeLessThanOrEqual(after)
+      expect(result?.path).toBe("/Users/user/Documents/GitHub")
     })
 
     it("should handle invalid URL encoding gracefully", () => {
