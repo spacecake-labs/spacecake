@@ -31,7 +31,7 @@ export function locateTab(page: Page, fileName: string): Locator {
  * Locates the close button for a tab.
  */
 export function locateTabCloseButton(page: Page, fileName: string): Locator {
-  return page.getByRole("button", { name: `Close ${fileName}` })
+  return page.getByRole("button", { name: `close ${fileName}` })
 }
 
 /**

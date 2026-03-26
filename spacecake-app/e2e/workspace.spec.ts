@@ -826,8 +826,7 @@ test.describe("spacecake app", () => {
     await expect(window.getByText("Content File 1")).toBeVisible()
 
     // 4. Close non-active tab (file2) - active tab stays active
-    await locateTab(window, "file2.md").hover()
-    await locateTabCloseButton(window, "file2.md").click()
+    await locateTab(window, "file2.md").click({ button: "middle" })
     await expect(locateTab(window, "file2.md")).not.toBeVisible()
     await expect(locateTab(window, "file1.md")).toBeVisible()
     await expect(window.getByText("Content File 1")).toBeVisible()
@@ -835,8 +834,7 @@ test.describe("spacecake app", () => {
     // 5. Open file3, then close active tab (file1) - should switch to file3
     await locateSidebarItem(window, "file3.md").click()
     await locateTab(window, "file1.md").click() // make file1 active again
-    await expect(locateTabCloseButton(window, "file1.md")).toBeVisible()
-    await locateTabCloseButton(window, "file1.md").click()
+    await locateTab(window, "file1.md").click({ button: "middle" })
     await expect(locateTab(window, "file1.md")).not.toBeVisible()
     await expect(locateTab(window, "file3.md")).toBeVisible()
     await expect(window.getByText("Content File 3")).toBeVisible()
