@@ -363,11 +363,13 @@ test.describe("ghostty terminal", () => {
     await window.keyboard.press("Enter")
     await window.waitForTimeout(200)
 
-    // verify variable was set
-    await window.keyboard.type(isWindows ? "echo %PERSIST_VAR%" : "echo $PERSIST_VAR", {
-      delay: typeDelay,
-    })
+    // verify variable was set with marker
+    await window.keyboard.type(
+      isWindows ? "echo VERIFY:%PERSIST_VAR%:END" : "echo VERIFY:$PERSIST_VAR:END",
+      { delay: typeDelay },
+    )
     await window.keyboard.press("Enter")
+    await window.waitForTimeout(200)
 
     let terminalContent: string | undefined
     await expect(async () => {
@@ -376,7 +378,7 @@ test.describe("ghostty terminal", () => {
         const api = (globalThis as any).__terminalAPI
         return api?.getAllLines().join("") as string | undefined
       })
-      expect(terminalContent).toContain("p42")
+      expect(terminalContent).toContain("VERIFY:p42:END")
     }).toPass({ timeout: 5000 })
 
     // change directory in the terminal (cwd should be persisted)
@@ -416,16 +418,20 @@ test.describe("ghostty terminal", () => {
     await expect(terminalPanel).toBeVisible()
     await expect(window.getByRole("status", { name: "shell profile loaded" })).toBeVisible()
 
+    // wait for terminal to fully settle after reload
+    await window.waitForTimeout(500)
+
     const freshTerminalElement = terminalPanel.getByTestId("ghostty-terminal").first()
 
     // verify the terminal session was restored: variable should still be set
     await freshTerminalElement.locator("textarea").focus()
     await window.waitForTimeout(100)
     await window.keyboard.type(
-      isWindows ? "echo PR:%PERSIST_VAR%:END" : "echo PR:$PERSIST_VAR:END",
+      isWindows ? "echo PERSIST:%PERSIST_VAR%:END" : "echo PERSIST:$PERSIST_VAR:END",
       { delay: typeDelay },
     )
     await window.keyboard.press("Enter")
+    await window.waitForTimeout(200)
 
     // poll until we see the variable value in the terminal output
     await expect(async () => {
@@ -435,13 +441,16 @@ test.describe("ghostty terminal", () => {
         return api?.getAllLines().join("") as string | undefined
       })
       // if session persisted, variable is still set; if new session, it's unset
-      expect(terminalContent).toContain("PR:p42:END")
+      expect(terminalContent).toContain("PERSIST:p42:END")
     }).toPass({ timeout: 5000 })
 
     // verify cwd was restored (not just the session, but also the working directory)
     // this is the key fix for this change
-    await window.keyboard.type(isWindows ? "cd" : "pwd", { delay: typeDelay })
+    await window.keyboard.type(isWindows ? `cd & echo CWD:%CD%:END` : `pwd && echo CWD_END`, {
+      delay: typeDelay,
+    })
     await window.keyboard.press("Enter")
+    await window.waitForTimeout(200)
 
     await expect(async () => {
       terminalContent = await window.evaluate(() => {
