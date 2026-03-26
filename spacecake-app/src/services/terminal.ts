@@ -1,7 +1,7 @@
 import path from "node:path"
 
 import * as Effect from "effect/Effect"
-import { BrowserWindow } from "electron"
+import { BrowserWindow, webContents } from "electron"
 
 import { buildPathWithCli } from "@/lib/utils"
 import defaultShell from "@/main-process/default-shell"
@@ -27,25 +27,50 @@ const loadPtyModule = async (): Promise<PtyModule> => {
   }
 }
 
+// ~100KB max per terminal output buffer
+const MAX_BUFFER_SIZE = 100_000
+
+export interface TabInfo {
+  id: string
+  surfaceId: string
+  label: string
+  cwdPath: string
+}
+
+export interface TabState {
+  tabs: TabInfo[]
+  activeId: string | null
+}
+
+interface TerminalEntry {
+  pty: IPty
+  surfaceId?: string
+  webContentsId?: number
+  outputBuffer: string[]
+  outputBufferSize: number
+  ideDisconnectedSent: boolean
+}
+
 export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
-  effect: Effect.gen(function* () {
+  scoped: Effect.gen(function* () {
     const home = yield* SpacecakeHome
-    const terminals = new Map<string, IPty>()
-    const ideDisconnectedSent = new Set<string>()
+    const terminals = new Map<string, TerminalEntry>()
+    const tabStates = new Map<string, TabState>()
 
     // Finalizer to kill all pty processes on shutdown
     yield* Effect.addFinalizer(() =>
       Effect.sync(() => {
         console.log(`Terminal service: cleaning up ${terminals.size} terminals...`)
-        for (const [id, term] of terminals) {
+        for (const [id, entry] of terminals) {
           try {
-            term.kill()
+            entry.pty.kill()
             console.log(`Terminal service: killed terminal ${id}`)
           } catch (e) {
             console.error(`Terminal service: failed to kill terminal ${id}`, e)
           }
         }
         terminals.clear()
+        tabStates.clear()
       }),
     )
 
@@ -55,15 +80,16 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
       rows: number,
       cwd: string = process.env.HOME || process.env.USERPROFILE || "",
       surfaceId?: string,
+      webContentsId?: number,
     ) =>
       Effect.tryPromise({
         try: async () => {
           const pty = await loadPtyModule()
 
-          // If terminal already exists, kill it first (or just return?)
-          // For now, let's kill existing if any to avoid leaks on reload
-          if (terminals.has(id)) {
-            terminals.get(id)?.kill()
+          // if terminal already exists, kill it first to avoid leaks on reload
+          const existing = terminals.get(id)
+          if (existing) {
+            existing.pty.kill()
             terminals.delete(id)
           }
 
@@ -95,6 +121,15 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             env.SPACECAKE_SURFACE_ID = surfaceId
           }
 
+          const entry: TerminalEntry = {
+            pty: null!,
+            surfaceId,
+            webContentsId,
+            outputBuffer: [],
+            outputBufferSize: 0,
+            ideDisconnectedSent: false,
+          }
+
           const ptyProcess = pty.spawn(defaultShell, [], {
             name: "xterm-256color",
             cols,
@@ -102,20 +137,41 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
             cwd,
             env,
           })
+          entry.pty = ptyProcess
+
           ptyProcess.onData((data) => {
-            if (data.includes("IDE disconnected") && !ideDisconnectedSent.has(id)) {
-              ideDisconnectedSent.add(id)
+            // buffer output for replay on reconnect
+            entry.outputBuffer.push(data)
+            entry.outputBufferSize += data.length
+
+            // compact when over cap: join + slice instead of O(n) shifts
+            if (entry.outputBufferSize > MAX_BUFFER_SIZE && entry.outputBuffer.length > 1) {
+              const trimmed = entry.outputBuffer.join("").slice(-MAX_BUFFER_SIZE)
+              entry.outputBuffer.length = 0
+              entry.outputBuffer.push(trimmed)
+              entry.outputBufferSize = trimmed.length
+            }
+
+            if (data.includes("IDE disconnected") && !entry.ideDisconnectedSent) {
+              entry.ideDisconnectedSent = true
               BrowserWindow.getAllWindows().forEach((win) => {
                 win.webContents.send("terminal:ide-disconnected")
               })
             }
 
-            BrowserWindow.getAllWindows().forEach((win) => {
-              win.webContents.send("terminal:output", { id, data })
-            })
+            // send output to the owning window only; fallback to broadcast if gone
+            const owner =
+              entry.webContentsId != null ? webContents.fromId(entry.webContentsId) : null
+            if (owner && !owner.isDestroyed()) {
+              owner.send("terminal:output", { id, data })
+            } else {
+              BrowserWindow.getAllWindows().forEach((win) => {
+                win.webContents.send("terminal:output", { id, data })
+              })
+            }
           })
 
-          terminals.set(id, ptyProcess)
+          terminals.set(id, entry)
         },
         catch: (error) =>
           new TerminalError({
@@ -126,8 +182,8 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
     const resize = (id: string, cols: number, rows: number) =>
       Effect.try({
         try: () => {
-          const term = terminals.get(id)
-          if (term) term.resize(cols, rows)
+          const entry = terminals.get(id)
+          if (entry) entry.pty.resize(cols, rows)
         },
         catch: (error) => new TerminalError({ message: `failed to resize terminal: ${error}` }),
       })
@@ -135,8 +191,8 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
     const write = (id: string, data: string) =>
       Effect.try({
         try: () => {
-          const term = terminals.get(id)
-          if (term) term.write(data)
+          const entry = terminals.get(id)
+          if (entry) entry.pty.write(data)
         },
         catch: (error) =>
           new TerminalError({
@@ -147,14 +203,12 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
     // Wait for terminal process to exit using Effect.async for proper callback handling.
     // On Windows, directory handles aren't released until the process fully terminates.
     // See: https://github.com/microsoft/node-pty/issues/647
-    const waitForExit = (term: IPty) =>
+    const waitForExit = (pty: IPty) =>
       Effect.async<void>((resume) => {
-        // Register exit handler - returns a disposable for cleanup
-        const disposable = term.onExit(() => {
+        const disposable = pty.onExit(() => {
           resume(Effect.void)
         })
 
-        // Return cleanup effect for interruption/timeout
         return Effect.sync(() => {
           disposable.dispose()
         })
@@ -162,18 +216,16 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
 
     const kill = (id: string) =>
       Effect.gen(function* () {
-        const term = terminals.get(id)
-        if (!term) return
+        const entry = terminals.get(id)
+        if (!entry) return
 
-        // Remove from map immediately to prevent double-kill attempts
+        // remove from map immediately to prevent double-kill attempts
         terminals.delete(id)
-        ideDisconnectedSent.delete(id)
 
-        // Trigger the kill
-        yield* Effect.sync(() => term.kill())
+        yield* Effect.sync(() => entry.pty.kill())
 
-        // Wait for exit with timeout - if timeout occurs, proceed anyway
-        yield* waitForExit(term).pipe(
+        // wait for exit with timeout — if timeout occurs, proceed anyway
+        yield* waitForExit(entry.pty).pipe(
           Effect.timeout("2 seconds"),
           Effect.catchAll(() => {
             console.warn(`Terminal ${id}: kill timeout reached, proceeding anyway`)
@@ -181,13 +233,39 @@ export class Terminal extends Effect.Service<Terminal>()("app/Terminal", {
           }),
         )
       }).pipe(
-        // Handle any defects (e.g., terminal already dead) gracefully
-        Effect.catchAllDefect(() => Effect.void),
+        Effect.catchAllDefect((defect) => {
+          console.error(`Terminal ${id}: unexpected defect during kill`, defect)
+          return Effect.void
+        }),
         Effect.mapError(
           (error) => new TerminalError({ message: `failed to kill terminal: ${error}` }),
         ),
       )
 
-    return { create, resize, write, kill }
+    const list = () =>
+      Effect.sync(() =>
+        Array.from(terminals.entries()).map(([id, entry]) => ({
+          id,
+          surfaceId: entry.surfaceId ?? "",
+        })),
+      )
+
+    const getBuffer = (id: string) =>
+      Effect.sync(() => {
+        const entry = terminals.get(id)
+        return entry ? entry.outputBuffer.join("") : ""
+      })
+
+    const setTabState = (workspaceId: string, state: TabState) =>
+      Effect.sync(() => {
+        tabStates.set(workspaceId, state)
+      })
+
+    const getTabState = (workspaceId: string) =>
+      Effect.sync(() => tabStates.get(workspaceId) ?? null)
+
+    const has = (id: string) => Effect.sync(() => terminals.has(id))
+
+    return { create, resize, write, kill, list, getBuffer, setTabState, getTabState, has } as const
   }),
 }) {}

@@ -31,7 +31,7 @@ export function locateTab(page: Page, fileName: string): Locator {
  * Locates the close button for a tab.
  */
 export function locateTabCloseButton(page: Page, fileName: string): Locator {
-  return page.getByRole("button", { name: `Close ${fileName}` })
+  return page.getByRole("button", { name: `close ${fileName}` })
 }
 
 /**
@@ -73,4 +73,20 @@ export async function clickMenuItem(
       await new Promise((r) => setTimeout(r, 500))
     }
   }
+}
+
+/**
+ * Gets all terminal content including scrollback history.
+ * Captures visible rows + full scrollback buffer using ghostty-web API.
+ *
+ * @param page - The Playwright page
+ * @returns All terminal lines joined as a single string, or undefined if API unavailable
+ */
+export async function getTerminalContent(page: Page): Promise<string | undefined> {
+  return page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const api = (globalThis as any).__terminalAPI
+    if (!api) return undefined
+    return api.getAllLines().join("") as string | undefined
+  })
 }

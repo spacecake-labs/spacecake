@@ -82,18 +82,20 @@ test.describe("drag and drop in file tree", () => {
   })
 
   test("drag a folder into another folder", async ({ electronApp, tempTestDir }) => {
-    // setup: create two folders, one with a child file
+    // setup: create two folders, one with a child file, plus a root file for copy path testing
     const folderA = path.join(tempTestDir, "folder-a")
     const folderB = path.join(tempTestDir, "folder-b")
     fs.mkdirSync(folderA, { recursive: true })
     fs.mkdirSync(folderB, { recursive: true })
     fs.writeFileSync(path.join(folderA, "child.txt"), "child content")
+    fs.writeFileSync(path.join(tempTestDir, "root-file.txt"), "root content")
 
     const window = await electronApp.firstWindow()
     await waitForWorkspace(window)
 
     await expect(locateSidebarItem(window, "folder-a")).toBeVisible()
     await expect(locateSidebarItem(window, "folder-b")).toBeVisible()
+    await expect(locateSidebarItem(window, "root-file.txt")).toBeVisible()
 
     // drag folder-a onto folder-b
     await dragTreeItem(
@@ -107,5 +109,25 @@ test.describe("drag and drop in file tree", () => {
       expect(fs.existsSync(path.join(folderB, "folder-a", "child.txt"))).toBe(true)
       expect(fs.existsSync(folderA)).toBe(false)
     }).toPass({ timeout: 5000 })
+
+    // extra assertion: verify right-click context menu has copy path options
+    const fileItem = locateSidebarItem(window, "root-file.txt")
+    await fileItem.click({ button: "right" })
+
+    // verify copy path menu items appear
+    await expect(window.getByRole("menuitem", { name: "copy path" })).toBeVisible()
+    await expect(window.getByRole("menuitem", { name: "copy relative path" })).toBeVisible()
+
+    // verify absolute path copy works
+    const absolutePath = path.join(tempTestDir, "root-file.txt")
+    await window.getByRole("menuitem", { name: "copy path" }).click()
+    const clipboardAbsolute = await window.evaluate(() => navigator.clipboard.readText())
+    expect(clipboardAbsolute).toBe(normalizePath(absolutePath))
+
+    // verify relative path copy works
+    await fileItem.click({ button: "right" })
+    await window.getByRole("menuitem", { name: "copy relative path" }).click()
+    const clipboardRelative = await window.evaluate(() => navigator.clipboard.readText())
+    expect(clipboardRelative).toBe("root-file.txt")
   })
 })

@@ -2,7 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
-import { locateSidebarItem } from "@/../e2e/utils"
+import { locateSidebarItem, getTerminalContent } from "@/../e2e/utils"
 
 const isWindows = process.platform === "win32"
 
@@ -103,11 +103,7 @@ test.describe("ghostty terminal", () => {
     await window.keyboard.type(shell.setVarAndPwd, { delay: typeDelay })
     await window.keyboard.press("Enter")
 
-    let terminalContent = await window.evaluate(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const api = (globalThis as any).__terminalAPI
-      return api?.getAllLines().join("") as string | undefined
-    })
+    let terminalContent = await getTerminalContent(window)
     // Verify both CWD and command executed (join without newlines to handle line-wrapping)
     expect(terminalContent).toContain(path.basename(tempTestDir))
 
@@ -233,11 +229,7 @@ test.describe("ghostty terminal", () => {
     // __terminalAPI points to the active tab (tab 1), which should NOT have TAB2_VAR
     // poll until the shell has echoed the result back to the PTY
     await expect(async () => {
-      const content = await window.evaluate(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const api = (globalThis as any).__terminalAPI
-        return api?.getAllLines().join("") as string | undefined
-      })
+      const content = await getTerminalContent(window)
       expect(content).toContain(isWindows ? "MARKER:%TAB2_VAR%:END" : "MARKER::END")
     }).toPass({ timeout: 5000 })
 
@@ -255,11 +247,7 @@ test.describe("ghostty terminal", () => {
 
     // poll until the shell has echoed the result back to the PTY
     await expect(async () => {
-      const content = await window.evaluate(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const api = (globalThis as any).__terminalAPI
-        return api?.getAllLines().join("") as string | undefined
-      })
+      const content = await getTerminalContent(window)
       expect(content).toContain("hello")
     }).toPass({ timeout: 5000 })
 
@@ -336,5 +324,141 @@ test.describe("ghostty terminal", () => {
     await expect(freshTabButtons).toHaveCount(1)
     await expect(freshTabButtons.first()).not.toBeEmpty()
     await expect(terminalPanel.getByTestId("ghostty-terminal").first()).toBeVisible()
+  })
+
+  test("terminal session persists across renderer reload", async ({ electronApp, tempTestDir }) => {
+    test.setTimeout(60_000)
+    // setup: create test file and open workspace
+    const testFilePath = path.join(tempTestDir, "test.md")
+    fs.writeFileSync(testFilePath, "# test file")
+
+    const window = await electronApp.firstWindow()
+    await waitForWorkspace(window)
+    await locateSidebarItem(window, "test.md").click()
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    const terminalPanel = window.getByTestId("terminal-panel")
+    const terminalElement = terminalPanel.getByTestId("ghostty-terminal").first()
+
+    // wait for shell to be ready
+    await expect(window.getByRole("status", { name: "shell profile loaded" })).toBeVisible()
+    // give shell extra time to fully initialize after profile loads
+    await window.waitForTimeout(500)
+
+    // set a test variable in the terminal
+    await terminalElement.locator("textarea").focus()
+    await window.waitForTimeout(100)
+    await window.keyboard.type(isWindows ? "set PERSIST_VAR=p42" : "export PERSIST_VAR=p42", {
+      delay: typeDelay,
+    })
+    await window.keyboard.press("Enter")
+    await window.waitForTimeout(500)
+
+    // verify variable was set with marker
+    await terminalElement.locator("textarea").focus()
+    await window.waitForTimeout(100)
+    await window.keyboard.type(
+      isWindows ? "echo VERIFY:%PERSIST_VAR%:END" : "echo VERIFY:$PERSIST_VAR:END",
+      { delay: typeDelay },
+    )
+    await window.keyboard.press("Enter")
+    await window.waitForTimeout(500)
+
+    let terminalContent: string | undefined
+    await expect(async () => {
+      terminalContent = await window.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (globalThis as any).__terminalAPI
+        return api?.getAllLines().join("") as string | undefined
+      })
+      expect(terminalContent).toContain("VERIFY:p42:END")
+    }).toPass({ timeout: 5000 })
+
+    // change directory in the terminal (cwd should be persisted)
+    const testSubDir = path.join(tempTestDir, "subdir")
+    fs.mkdirSync(testSubDir, { recursive: true })
+    await terminalElement.locator("textarea").focus()
+    await window.waitForTimeout(100)
+    await window.keyboard.type(isWindows ? `cd "${testSubDir}"` : `cd "${testSubDir}"`, {
+      delay: typeDelay,
+    })
+    await window.keyboard.press("Enter")
+    await window.waitForTimeout(500)
+
+    // verify we're in the new directory
+    await terminalElement.locator("textarea").focus()
+    await window.waitForTimeout(100)
+    await window.keyboard.type(isWindows ? "cd" : "pwd", { delay: typeDelay })
+    await window.keyboard.press("Enter")
+    await window.waitForTimeout(200)
+
+    await expect(async () => {
+      terminalContent = await window.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (globalThis as any).__terminalAPI
+        return api?.getAllLines().join("") as string | undefined
+      })
+      expect(terminalContent).toContain(path.basename(testSubDir))
+    }).toPass({ timeout: 5000 })
+
+    // give terminal state time to be saved before reload
+    await window.waitForTimeout(2000)
+
+    // reload the renderer
+    await window.reload()
+
+    // wait for workspace to restore after reload
+    await waitForWorkspace(window)
+    await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    // terminal should still be visible and have shell ready
+    await expect(terminalPanel).toBeVisible()
+    await expect(window.getByRole("status", { name: "shell profile loaded" })).toBeVisible()
+
+    // wait for terminal to fully settle after reload
+    await window.waitForTimeout(500)
+
+    const freshTerminalElement = terminalPanel.getByTestId("ghostty-terminal").first()
+
+    // verify the terminal session was restored: variable should still be set
+    await freshTerminalElement.locator("textarea").focus()
+    await window.waitForTimeout(100)
+    await window.keyboard.type(
+      isWindows ? "echo PERSIST:%PERSIST_VAR%:END" : "echo PERSIST:$PERSIST_VAR:END",
+      { delay: typeDelay },
+    )
+    await window.keyboard.press("Enter")
+    await window.waitForTimeout(500)
+
+    // poll until we see the variable value in the terminal output
+    await expect(async () => {
+      terminalContent = await window.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (globalThis as any).__terminalAPI
+        return api?.getAllLines().join("") as string | undefined
+      })
+      // if session persisted, variable is still set; if new session, it's unset
+      expect(terminalContent).toContain("PERSIST:p42:END")
+    }).toPass({ timeout: 5000 })
+
+    // verify cwd was restored (not just the session, but also the working directory)
+    // this is the key fix for this change
+    await freshTerminalElement.locator("textarea").focus()
+    await window.waitForTimeout(100)
+    await window.keyboard.type(isWindows ? `cd & echo CWD:%CD%:END` : `pwd && echo CWD_END`, {
+      delay: typeDelay,
+    })
+    await window.keyboard.press("Enter")
+    await window.waitForTimeout(500)
+
+    await expect(async () => {
+      terminalContent = await window.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (globalThis as any).__terminalAPI
+        return api?.getAllLines().join("") as string | undefined
+      })
+      // should be in the subdir we changed to before reload
+      expect(terminalContent).toContain(path.basename(testSubDir))
+    }).toPass({ timeout: 5000 })
   })
 })

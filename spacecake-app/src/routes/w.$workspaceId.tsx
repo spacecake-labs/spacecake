@@ -125,7 +125,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
 
     return {
       workspace: {
-        id: workspace.id as WorkspacePrimaryKey,
+        id: WorkspacePrimaryKey(workspace.id),
         path: workspacePath,
         name: workspacePath.split("/").pop() || "spacecake",
       },
@@ -649,7 +649,11 @@ function LayoutContent() {
     setIsTerminalSessionActive(false)
     setTerminalExpanded(false)
     focus("editor")
-  }, [setTerminalExpanded, focus])
+    // clean up terminal rows from database
+    mutations
+      .deleteAllTerminalsForWorkspace(workspace.id)
+      .catch((err) => console.error("failed to clean terminal db rows:", err))
+  }, [setTerminalExpanded, focus, workspace.id])
 
   const editorPanel = (
     <EditorPanel
@@ -685,6 +689,7 @@ function LayoutContent() {
       terminalDock={terminalDock}
       isTerminalSessionActive={isTerminalSessionActive}
       workspace={workspace}
+      layoutRef={layoutRef}
       terminalToolbarRight={terminalToolbarRight}
       onTerminalSessionEnd={handleTerminalSessionEnd}
     />

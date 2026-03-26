@@ -28,6 +28,7 @@ import {
   type CodeMirrorFocusManager,
 } from "@/components/editor/nodes/code-node"
 import type { BaseCodeMirrorEditorProps } from "@/components/editor/plugins/codemirror-editor"
+import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -113,6 +114,9 @@ const SANITIZE_CONFIG = {
   ],
   ALLOW_DATA_ATTR: false,
 }
+
+// regex to rewrite external image URLs for proxy protocol
+const IMG_URL_REWRITE_RE = /(src="|srcset=")(https?):\/\//g
 
 // WeakMap to store focus managers for html block nodes
 const focusManagerMap = new WeakMap<HTMLBlockNode, CodeMirrorFocusManager>()
@@ -297,6 +301,7 @@ const HTMLBlockNodeEditorContainer: React.FC<HTMLBlockNodeEditorContainerProps> 
   nodeKey,
 }) => {
   const [isNodeSelected, setNodeSelected, clearNodeSelection] = useLexicalNodeSelection(nodeKey)
+  const { theme } = useTheme()
 
   const viewMode = htmlBlockNode.__viewMode
   const htmlContent = htmlBlockNode.__html
@@ -358,10 +363,42 @@ const HTMLBlockNodeEditorContainer: React.FC<HTMLBlockNodeEditorContainerProps> 
     })
   }, [parentEditor, nodeKey])
 
-  const sanitizedHtml = React.useMemo(
-    () => DOMPurify.sanitize(htmlContent, SANITIZE_CONFIG).replace(/>\s+</g, "><").trim(),
-    [htmlContent],
-  )
+  const sanitizedHtml = React.useMemo(() => {
+    const clean = DOMPurify.sanitize(htmlContent, SANITIZE_CONFIG).replace(/>\s+</g, "><").trim()
+
+    // Process picture elements to apply theme by toggling source media attributes
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(clean, "text/html")
+    const sources = doc.querySelectorAll("picture source")
+
+    sources.forEach((source) => {
+      const media = source.getAttribute("media") || ""
+
+      // Check if source is meant for dark or light mode
+      const isDarkVariant = media.includes("dark")
+      const isLightVariant = media.includes("light")
+
+      if (isDarkVariant || isLightVariant) {
+        // Enable if matches current theme, disable otherwise
+        const shouldEnable =
+          (theme === "dark" && isDarkVariant) || (theme === "light" && isLightVariant)
+
+        // Use media="all" to force selection, or media="none" to hide
+        // Browser's picture element will then pick the enabled source
+        source.setAttribute("media", shouldEnable ? "all" : "none")
+      }
+    })
+
+    // Extract updated HTML from body
+    const content = doc.body.innerHTML
+
+    // proxy external image URLs through spacecake-img:// to avoid CORB.
+    // spacecake-img://https/host/path → main process strips scheme prefix and fetches https://host/path
+    return content.replace(
+      IMG_URL_REWRITE_RE,
+      (_match, attr, scheme) => `${attr}spacecake-img://${scheme}/`,
+    )
+  }, [htmlContent, theme])
 
   const toggleButton = (
     <TooltipProvider>

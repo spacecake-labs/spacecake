@@ -1,6 +1,6 @@
 import { useSetAtom } from "jotai"
 import { Plus } from "lucide-react"
-import type { ReactNode } from "react"
+import type { ReactNode, RefObject } from "react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 
@@ -17,27 +17,35 @@ import {
   statuslineMapAtom,
   terminalProfileLoadedAtom,
 } from "@/lib/atoms/atoms"
+import {
+  deleteAllTerminalsForWorkspace,
+  deleteTerminal,
+  insertTerminal,
+  selectTerminalsForWorkspace,
+  updateTerminal,
+  updateWorkspaceLayout,
+} from "@/lib/db/mutations"
+import { getTerminalTabState, setTerminalTabState } from "@/lib/terminal"
 import { condensePath } from "@/lib/utils"
+import type { TerminalPrimaryKey } from "@/schema/terminal"
+import type { WorkspacePrimaryKey } from "@/schema/workspace"
+import type { WorkspaceLayout } from "@/schema/workspace-layout"
 
 interface TabState {
-  id: string
+  id: TerminalPrimaryKey
   label: string
   surfaceId: string
+  cwdPath: string
 }
 
 interface TerminalProps {
   cwd: string
+  workspaceId: WorkspacePrimaryKey
   toolbarRight?: ReactNode
   onActiveApiChange?: (api: TerminalAPI | null) => void
   onLastTabClosed?: () => void
-}
-
-function makeTab(label?: string): TabState {
-  const id = `terminal-tab-${crypto.randomUUID()}`
-  const surfaceId = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) =>
-    b.toString(16).padStart(2, "0"),
-  ).join("")
-  return { id, label: label ?? "\u{1F370}", surfaceId }
+  /** ref to workspace layout — stable reference avoids effect re-triggers and memo breaks */
+  layoutRef?: RefObject<WorkspaceLayout>
 }
 
 /** extract a short display name from a terminal title (path → basename, command → as-is) */
@@ -49,16 +57,30 @@ function terminalDisplayName(title: string): string {
   return title
 }
 
-export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed }: TerminalProps) {
+export function Terminal({
+  cwd,
+  workspaceId,
+  toolbarRight,
+  onActiveApiChange,
+  onLastTabClosed,
+  layoutRef,
+}: TerminalProps) {
   const { theme } = useTheme()
   // ghostty cannot switch theme after initialization, so lock the terminal
   // panel to the theme at first render - updates on app reload
   const lockedThemeRef = useRef(theme)
   const lockedTheme = lockedThemeRef.current
 
-  const [initialTab] = useState(() => makeTab())
-  const [tabs, setTabs] = useState<TabState[]>(() => [initialTab])
-  const [activeTabId, setActiveTabId] = useState<string | null>(initialTab.id)
+  // tabs start empty — populated by the init effect (restore or fresh)
+  const [tabs, setTabs] = useState<TabState[]>([])
+  const [activeTabId, setActiveTabId] = useState<TerminalPrimaryKey | null>(null)
+  const readyRef = useRef(false)
+
+  // debounce timer for layout persistence
+  const layoutWriteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // debounce timers for per-tab cwd database writes
+  const cwdWriteTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   // track APIs per tab so we can expose the active one
   const tabApisRef = useRef<Map<string, TerminalAPI>>(new Map())
@@ -104,7 +126,7 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
 
   // central handler for all tab activations - replaces 4 separate effects
   const activateTab = useCallback(
-    (tabId: string) => {
+    (tabId: TerminalPrimaryKey) => {
       // flush synchronously so the target tab's display:block is committed
       // before we attempt to focus its textarea
       flushSync(() => {
@@ -177,15 +199,49 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
     setTabs((prev) => prev.map((t) => (t.id === tabId ? { ...t, label: title } : t)))
   }, [])
 
-  const addTab = useCallback(() => {
-    const tab = makeTab()
-    pendingNewTabRef.current = tab.id
-    setTabs((prev) => [...prev, tab])
-    activateTab(tab.id)
-  }, [activateTab])
+  const handleWorkingDirectoryChange = useCallback((tabId: string, cwdPath: string) => {
+    // skip if the cwd hasn't actually changed
+    const current = tabsRef.current.find((t) => t.id === tabId)
+    if (current?.cwdPath === cwdPath) return
+
+    setTabs((prev) => prev.map((t) => (t.id === tabId ? { ...t, cwdPath } : t)))
+
+    // debounced database write — coalesces rapid cd commands into a single write
+    const existing = cwdWriteTimersRef.current.get(tabId)
+    if (existing) clearTimeout(existing)
+    cwdWriteTimersRef.current.set(
+      tabId,
+      setTimeout(() => {
+        cwdWriteTimersRef.current.delete(tabId)
+        updateTerminal(tabId as TerminalPrimaryKey, cwdPath).catch((err) =>
+          console.error("failed to update terminal cwd:", err),
+        )
+      }, 500),
+    )
+  }, [])
+
+  const addTab = useCallback(async () => {
+    try {
+      const row = await insertTerminal({
+        workspace_id: workspaceId,
+        cwd_path: cwd,
+      })
+      const tab: TabState = {
+        id: row.id,
+        label: "\u{1F370}",
+        surfaceId: row.surface_id,
+        cwdPath: row.cwd_path,
+      }
+      pendingNewTabRef.current = tab.id
+      setTabs((prev) => [...prev, tab])
+      activateTab(tab.id)
+    } catch (err) {
+      console.error("failed to create terminal tab:", err)
+    }
+  }, [activateTab, workspaceId, cwd])
 
   const closeTab = useCallback(
-    (tabId: string) => {
+    (tabId: TerminalPrimaryKey) => {
       const prev = tabsRef.current
       const closedTab = prev.find((t) => t.id === tabId)
       const idx = prev.findIndex((t) => t.id === tabId)
@@ -200,6 +256,16 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
           return next
         })
       }
+
+      // cancel any pending cwd debounce for this tab
+      const cwdTimer = cwdWriteTimersRef.current.get(tabId)
+      if (cwdTimer) {
+        clearTimeout(cwdTimer)
+        cwdWriteTimersRef.current.delete(tabId)
+      }
+
+      // remove from database (fire-and-forget)
+      deleteTerminal(tabId).catch((err) => console.error("failed to delete terminal from db:", err))
 
       setTabs(next)
 
@@ -216,9 +282,10 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
     [activateTab, setStatuslineMap, setActiveSurfaceId],
   )
 
+  // radix onValueChange passes string — cast at the boundary
   const switchTab = useCallback(
     (tabId: string) => {
-      activateTab(tabId)
+      activateTab(tabId as TerminalPrimaryKey)
     },
     [activateTab],
   )
@@ -227,6 +294,145 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
   useEffect(() => {
     return () => setProfileLoaded(false)
   }, [setProfileLoaded])
+
+  // initialize tabs: restore from main process (survives reload), then DB (survives restart), or create fresh
+  useEffect(() => {
+    if (readyRef.current) return
+
+    const init = async () => {
+      if (readyRef.current) return
+
+      // 1. try in-memory state (renderer reload — ptys are still alive)
+      const memState = await getTerminalTabState(workspaceId)
+      if (readyRef.current) return
+
+      if (memState && memState.tabs.length > 0) {
+        readyRef.current = true
+        // in-memory store uses plain strings — cast at the boundary
+        const restoredTabs: TabState[] = memState.tabs.map((t) => ({
+          id: t.id as TerminalPrimaryKey,
+          surfaceId: t.surfaceId,
+          label: t.label,
+          cwdPath: t.cwdPath,
+        }))
+        setTabs(restoredTabs)
+        const activeId = (memState.activeId as TerminalPrimaryKey | null) ?? restoredTabs[0].id
+        setActiveTabId(activeId)
+        const activeTab = restoredTabs.find((t) => t.id === activeId)
+        if (activeTab) setActiveSurfaceId(activeTab.surfaceId)
+        return
+      }
+
+      // 2. fall back to database (app restart — ptys are gone, need fresh ones)
+      try {
+        const dbTerminals = await selectTerminalsForWorkspace(workspaceId)
+
+        if (dbTerminals.length > 0) {
+          readyRef.current = true
+
+          // use workspace layout terminalTabs for ordering if available
+          // layout stores plain strings — cast at the boundary
+          const layoutTabs = layoutRef?.current?.terminalTabs
+          const orderedIds = (layoutTabs?.tabs ?? []) as TerminalPrimaryKey[]
+          const orderedIdSet = new Set(orderedIds)
+          const dbMap = new Map(dbTerminals.map((t) => [t.id, t]))
+
+          // build tabs in layout order, appending any not in the layout
+          const orderedTerminals = [
+            ...orderedIds.filter((id) => dbMap.has(id)).map((id) => dbMap.get(id)!),
+            ...dbTerminals.filter((t) => !orderedIdSet.has(t.id)),
+          ]
+
+          const restoredTabs: TabState[] = orderedTerminals.map((t) => ({
+            id: t.id,
+            surfaceId: t.surface_id,
+            label: "\u{1F370}",
+            cwdPath: t.cwd_path,
+          }))
+
+          setTabs(restoredTabs)
+          const layoutActiveId = layoutTabs?.activeId as TerminalPrimaryKey | null | undefined
+          const activeId =
+            (layoutActiveId && dbMap.has(layoutActiveId) ? layoutActiveId : null) ??
+            restoredTabs[0].id
+          setActiveTabId(activeId)
+          const activeTab = restoredTabs.find((t) => t.id === activeId)
+          if (activeTab) setActiveSurfaceId(activeTab.surfaceId)
+          return
+        }
+      } catch (err) {
+        console.error("failed to restore terminals from db:", err)
+      }
+
+      // 3. no saved state anywhere — clean up orphaned rows and create a fresh tab
+      readyRef.current = true
+      try {
+        await deleteAllTerminalsForWorkspace(workspaceId)
+        const row = await insertTerminal({
+          workspace_id: workspaceId,
+          cwd_path: cwd,
+        })
+        const tab: TabState = {
+          id: row.id,
+          label: "\u{1F370}",
+          surfaceId: row.surface_id,
+          cwdPath: row.cwd_path,
+        }
+        setTabs([tab])
+        setActiveTabId(tab.id)
+        setActiveSurfaceId(tab.surfaceId)
+      } catch (err) {
+        console.error("failed to create initial terminal tab:", err)
+      }
+    }
+
+    init()
+  }, [cwd, workspaceId, setActiveSurfaceId])
+
+  // sync tab state to main process + workspace layout on changes (skip until init is done)
+  useEffect(() => {
+    if (!readyRef.current) return
+
+    // sync to main process in-memory map (fast path for renderer reload)
+    const stateToSync = {
+      tabs: tabs.map((t) => ({
+        id: t.id,
+        surfaceId: t.surfaceId,
+        label: t.label,
+        cwdPath: t.cwdPath,
+      })),
+      activeId: activeTabId,
+    }
+    setTerminalTabState(workspaceId, stateToSync)
+
+    // debounced sync to workspace layout (persistent for app restart)
+    if (layoutWriteTimerRef.current) clearTimeout(layoutWriteTimerRef.current)
+    layoutWriteTimerRef.current = setTimeout(() => {
+      layoutWriteTimerRef.current = null
+      const currentLayout = layoutRef?.current
+      if (!currentLayout) return
+      const terminalTabs = { tabs: tabs.map((t) => t.id), activeId: activeTabId }
+      const currentTabs = currentLayout.terminalTabs
+      // only write if changed
+      if (
+        currentTabs.activeId !== terminalTabs.activeId ||
+        currentTabs.tabs.length !== terminalTabs.tabs.length ||
+        currentTabs.tabs.some((id, i) => id !== terminalTabs.tabs[i])
+      ) {
+        updateWorkspaceLayout(workspaceId, {
+          ...currentLayout,
+          terminalTabs,
+        }).catch((err) => console.error("failed to persist terminal tab order:", err))
+      }
+    }, 300)
+
+    return () => {
+      if (layoutWriteTimerRef.current) {
+        clearTimeout(layoutWriteTimerRef.current)
+        layoutWriteTimerRef.current = null
+      }
+    }
+  }, [tabs, activeTabId, cwd, workspaceId])
 
   // handle horizontal scroll on wheel - must use native event for non-passive option
   useEffect(() => {
@@ -242,20 +448,41 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
     return () => container.removeEventListener("wheel", handleWheel)
   }, [])
 
-  // keep active tab visible on container resize
+  // keep active tab visible on container resize (debounced to avoid animation stacking during drag)
   useEffect(() => {
     const container = scrollContainerRef.current
     if (!container) return
 
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null
     const resizeObserver = new ResizeObserver(() => {
-      const activeTab = container.querySelector(`[data-state="active"]`)
-      activeTab?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
+      if (debounceTimer !== null) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null
+        const activeTab = container.querySelector(`[data-state="active"]`)
+        activeTab?.scrollIntoView({ behavior: "instant", block: "nearest", inline: "nearest" })
+      }, 100)
     })
     resizeObserver.observe(container)
-    return () => resizeObserver.disconnect()
+    return () => {
+      resizeObserver.disconnect()
+      if (debounceTimer !== null) clearTimeout(debounceTimer)
+    }
   }, [])
 
   // keyboard shortcuts (only when terminal panel is focused)
+  // delegated middle-click handler for tab close (avoids per-tab closures)
+  const handleTabListMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.button !== 1) return
+      const tabEl = (e.target as HTMLElement).closest<HTMLElement>("[data-tab-id]")
+      if (tabEl?.dataset.tabId) {
+        e.preventDefault()
+        closeTab(tabEl.dataset.tabId as TerminalPrimaryKey)
+      }
+    },
+    [closeTab],
+  )
+
   const terminalFocusGuard = useCallback(() => {
     const panel = document.querySelector('[data-testid="terminal-panel"]')
     return panel?.contains(document.activeElement) ?? false
@@ -320,19 +547,18 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
             ref={scrollContainerRef}
             className="h-full w-full min-w-0 overflow-x-auto overflow-y-hidden scrollbar-none"
           >
-            <TabsList className="!h-full gap-0 bg-transparent justify-start rounded-none p-0 shrink-0">
+            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+            <TabsList
+              className="!h-full gap-0 bg-transparent justify-start rounded-none p-0 shrink-0"
+              onMouseDown={handleTabListMouseDown}
+            >
               {tabs.map((tab, index) => (
                 <HoverCard key={tab.id} openDelay={300} closeDelay={100}>
                   <HoverCardTrigger asChild>
                     <span
                       data-testid="terminal-tab"
+                      data-tab-id={tab.id}
                       className="h-full flex shrink-0"
-                      onMouseDown={(e) => {
-                        if (e.button === 1) {
-                          e.preventDefault()
-                          closeTab(tab.id)
-                        }
-                      }}
                     >
                       <TabsTrigger value={tab.id} className={tabTriggerClasses(index === 0)}>
                         <span className="truncate max-w-[120px]">
@@ -383,12 +609,13 @@ export function Terminal({ cwd, toolbarRight, onActiveApiChange, onLastTabClosed
             key={tab.id}
             id={tab.id}
             surfaceId={tab.surfaceId}
-            cwd={cwd}
+            cwd={tab.cwdPath}
             isActive={tab.id === activeTabId}
             lockedTheme={lockedTheme}
             onReady={handleTabReady}
             onDispose={handleTabDispose}
             onTitleChange={handleTitleChange}
+            onWorkingDirectoryChange={handleWorkingDirectoryChange}
             onProfileLoaded={handleProfileLoaded}
           />
         ))}

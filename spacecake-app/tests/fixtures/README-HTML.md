@@ -99,7 +99,7 @@ See our [getting started documentation](https://docs.github.com/en/desktop/overv
 
 ## License
 
-**[MIT](LICENSE)**
+[**MIT**](LICENSE)
 
 The MIT license grant is not for GitHub's trademarks, which include the logo
 designs. GitHub reserves all trademark and copyright rights in and to all
@@ -110,3 +110,13 @@ folder: [logos](app/static/logos).
 GitHub® and its stylized versions and the Invertocat mark are GitHub's
 Trademarks or registered Trademarks. When using GitHub's logos, be sure to
 follow the GitHub [logo guidelines](https://github.com/logos).
+
+## Star History
+
+<a href="https://www.star-history.com/#spacecake-labs/spacecake&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=spacecake-labs/spacecake&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=spacecake-labs/spacecake&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=spacecake-labs/spacecake&type=date&legend=top-left" />
+ </picture>
+</a>

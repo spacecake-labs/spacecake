@@ -29,6 +29,7 @@ test.describe("smart file/folder creation", () => {
     await textbox.press("Enter", { delay: 100 })
 
     await expect(locateSidebarItem(window, "sibling.txt")).toBeVisible()
+    await expect(textbox).not.toBeVisible()
     expect(fs.existsSync(path.join(subDir, "sibling.txt"))).toBe(true)
     expect(fs.existsSync(path.join(tempTestDir, "sibling.txt"))).toBe(false)
 
@@ -43,10 +44,14 @@ test.describe("smart file/folder creation", () => {
     await textbox2.press("Enter", { delay: 100 })
 
     await expect(locateSidebarItem(window, "inside.txt")).toBeVisible()
+    await expect(textbox2).not.toBeVisible()
     expect(fs.existsSync(path.join(emptyFolder, "inside.txt"))).toBe(true)
     expect(fs.existsSync(path.join(tempTestDir, "inside.txt"))).toBe(false)
 
     // --- ⌘N also respects last-clicked (still empty-folder) ---
+    // ensure keyboard focus is in the renderer after dropdown menu interactions
+    // (dropdown teardown can leave focus in native layer on macOS CI)
+    await window.getByRole("button", { name: "create file or folder" }).focus()
     await window.keyboard.press("ControlOrMeta+n")
 
     const textbox3 = window.getByRole("textbox", { name: "filename.txt" })

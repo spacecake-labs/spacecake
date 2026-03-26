@@ -9,31 +9,31 @@ interface TerminalStatusBadgeProps {
   className?: string
 }
 
+const darkConfig = {
+  ready: {
+    iconColor: "text-emerald-400",
+    ariaLabel: "shell profile loaded",
+  },
+  loading: {
+    iconColor: "text-muted-foreground",
+    ariaLabel: "terminal loading",
+  },
+} as const
+
+const lightConfig = {
+  ready: {
+    iconColor: "text-emerald-700",
+    ariaLabel: "shell profile loaded",
+  },
+  loading: {
+    iconColor: "text-muted-foreground",
+    ariaLabel: "terminal loading",
+  },
+} as const
+
 export function TerminalStatusBadge({ className }: TerminalStatusBadgeProps) {
   const profileLoaded = useAtomValue(terminalProfileLoadedAtom)
   const { theme } = useTheme()
-
-  const darkConfig = {
-    ready: {
-      iconColor: "text-emerald-400",
-      ariaLabel: "shell profile loaded",
-    },
-    loading: {
-      iconColor: "text-muted-foreground",
-      ariaLabel: "terminal loading",
-    },
-  }
-
-  const lightConfig = {
-    ready: {
-      iconColor: "text-emerald-700",
-      ariaLabel: "shell profile loaded",
-    },
-    loading: {
-      iconColor: "text-muted-foreground",
-      ariaLabel: "terminal loading",
-    },
-  }
 
   const config =
     theme === "light"

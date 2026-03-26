@@ -221,9 +221,9 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
     // Terminal IPC handlers
     ipcMain.handle(
       "terminal:create",
-      (_, id: string, cols: number, rows: number, cwd?: string, surfaceId?: string) =>
+      (event, id: string, cols: number, rows: number, cwd?: string, surfaceId?: string) =>
         Effect.runPromise(
-          Effect.match(terminal.create(id, cols, rows, cwd, surfaceId), {
+          Effect.match(terminal.create(id, cols, rows, cwd, surfaceId, event.sender.id), {
             onFailure: (error) => left(error),
             onSuccess: () => right(undefined),
           }),
@@ -255,6 +255,28 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
           onSuccess: () => right(undefined),
         }),
       ),
+    )
+
+    ipcMain.handle("terminal:list", () => Effect.runPromise(terminal.list()))
+
+    ipcMain.handle("terminal:replay", (_, id: string) => Effect.runPromise(terminal.getBuffer(id)))
+
+    ipcMain.handle("terminal:has", (_, id: string) => Effect.runPromise(terminal.has(id)))
+
+    ipcMain.handle(
+      "terminal:set-tab-state",
+      (
+        _,
+        workspaceId: string,
+        state: {
+          tabs: Array<{ id: string; surfaceId: string; label: string; cwdPath: string }>
+          activeId: string | null
+        },
+      ) => Effect.runPromise(terminal.setTabState(workspaceId, state)),
+    )
+
+    ipcMain.handle("terminal:get-tab-state", (_, workspaceId: string) =>
+      Effect.runPromise(terminal.getTabState(workspaceId)),
     )
 
     // Claude Tasks IPC handlers

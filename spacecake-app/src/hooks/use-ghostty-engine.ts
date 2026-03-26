@@ -5,11 +5,14 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useTheme } from "@/components/theme-provider"
 import { useLatest } from "@/hooks/use-latest"
 import { handleImagePaste, TerminalClipboardLive } from "@/lib/clipboard"
+import { parseOsc7, OSC7_PREFIX } from "@/lib/osc7-parser"
 import { suppressDuplicateWarnings } from "@/lib/suppress-duplicate-warnings"
 import {
   createTerminal,
+  hasTerminal,
   killTerminal,
   onTerminalOutput,
+  replayTerminal,
   resizeTerminal,
   writeTerminal,
 } from "@/lib/terminal"
@@ -31,6 +34,7 @@ interface UseGhosttyEngineOptions {
   autoFocus?: boolean
   cwd?: string
   onTitleChange?: (title: string) => void
+  onWorkingDirectoryChange?: (cwd: string) => void
   onProfileLoaded?: () => void
 }
 
@@ -56,6 +60,46 @@ const terminalTheme: Record<"light" | "dark", ITheme> = {
   },
 }
 
+const PROMPT_PATTERN = /[$%>#]*$/
+
+// shared link-hover tooltip — one DOM node reused by all terminal tabs
+let sharedTooltip: HTMLDivElement | null = null
+let tooltipRefCount = 0
+
+function acquireTooltip(): HTMLDivElement {
+  if (!sharedTooltip) {
+    const el = document.createElement("div")
+    el.className =
+      "fixed pointer-events-none px-2 py-1 text-xs rounded bg-popover text-popover-foreground border shadow-md opacity-0 transition-opacity duration-150 z-50"
+    el.textContent = "follow link (\u2318 + click)"
+    document.body.appendChild(el)
+    sharedTooltip = el
+  }
+  tooltipRefCount++
+  return sharedTooltip
+}
+
+function releaseTooltip(): void {
+  tooltipRefCount--
+  if (tooltipRefCount <= 0) {
+    sharedTooltip?.remove()
+    sharedTooltip = null
+    tooltipRefCount = 0
+  }
+}
+
+function showTooltip(x: number, y: number): void {
+  if (!sharedTooltip) return
+  sharedTooltip.style.left = `${x + 12}px`
+  sharedTooltip.style.top = `${y + 12}px`
+  sharedTooltip.style.opacity = "1"
+}
+
+function hideTooltip(): void {
+  if (!sharedTooltip) return
+  sharedTooltip.style.opacity = "0"
+}
+
 export function useGhosttyEngine({
   id,
   surfaceId,
@@ -63,6 +107,7 @@ export function useGhosttyEngine({
   autoFocus = false,
   cwd,
   onTitleChange,
+  onWorkingDirectoryChange,
   onProfileLoaded,
 }: UseGhosttyEngineOptions): UseGhosttyEngineResult {
   // Persistent container div - survives across mount/unmount of the mount point
@@ -83,6 +128,7 @@ export function useGhosttyEngine({
   const linkHoverHandlerRef = useRef<((e: MouseEvent) => void) | null>(null)
   const linkLeaveHandlerRef = useRef<(() => void) | null>(null)
   const onTitleChangeRef = useLatest(onTitleChange)
+  const onWorkingDirectoryChangeRef = useLatest(onWorkingDirectoryChange)
   const onProfileLoadedRef = useLatest(onProfileLoaded)
   const profileLoadedRef = useRef(false)
 
@@ -98,6 +144,13 @@ export function useGhosttyEngine({
 
     const restoreWarnings = suppressDuplicateWarnings(/\[ghostty-vt\]/)
     let isMounted = true
+
+    // detect reload/HMR: if beforeunload fires, we're reloading — skip pty kill
+    let isReloading = false
+    const onBeforeUnload = () => {
+      isReloading = true
+    }
+    window.addEventListener("beforeunload", onBeforeUnload)
 
     const initialize = async () => {
       try {
@@ -144,16 +197,33 @@ export function useGhosttyEngine({
         const cols = term.cols || 80
         const rows = term.rows || 24
 
-        // Create terminal on backend
-        const result = await createTerminal(id, cols, rows, cwd, surfaceId)
-        if (isLeft(result)) {
-          console.error("failed to create terminal:", result.value)
-          setError("failed to create terminal session")
-          return
+        // check if pty already exists in main process (survives reload)
+        const alreadyExists = await hasTerminal(id)
+
+        if (alreadyExists) {
+          // reconnect: replay buffered output
+          const buffer = await replayTerminal(id)
+          if (buffer) term.write(buffer)
+          // re-sync pty dimensions to match the new terminal instance
+          resizeTerminal(id, cols, rows)
+          // shell was already initialized before reload — mark profile loaded
+          // (replay goes through term.write, not onTerminalOutput, so the
+          // listener-based detection would never fire)
+          profileLoadedRef.current = true
+          onProfileLoadedRef.current?.()
+        } else {
+          // create new terminal on backend
+          const result = await createTerminal(id, cols, rows, cwd, surfaceId)
+          if (isLeft(result)) {
+            console.error("failed to create terminal:", result.value)
+            setError("failed to create terminal session")
+            return
+          }
         }
 
         if (!isMounted) {
-          killTerminal(id)
+          // only kill if we just created it
+          if (!alreadyExists) killTerminal(id)
           return
         }
 
@@ -168,12 +238,10 @@ export function useGhosttyEngine({
           resizeTimeoutRef.current = setTimeout(() => {
             if (pendingResizeRef.current) {
               requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                  if (pendingResizeRef.current) {
-                    resizeTerminal(id, pendingResizeRef.current.cols, pendingResizeRef.current.rows)
-                    pendingResizeRef.current = null
-                  }
-                })
+                if (pendingResizeRef.current) {
+                  resizeTerminal(id, pendingResizeRef.current.cols, pendingResizeRef.current.rows)
+                  pendingResizeRef.current = null
+                }
               })
             }
             resizeTimeoutRef.current = null
@@ -276,33 +344,25 @@ export function useGhosttyEngine({
         }
         containerEl.addEventListener("keydown", appShortcutHandlerRef.current, true)
 
-        // Create link hover tooltip
-        const tooltip = document.createElement("div")
-        tooltip.className =
-          "fixed pointer-events-none px-2 py-1 text-xs rounded bg-popover text-popover-foreground border shadow-md opacity-0 transition-opacity duration-150 z-50"
-        tooltip.textContent = "follow link (⌘ + click)"
-        document.body.appendChild(tooltip)
+        // shared link hover tooltip (one DOM node for all tabs)
+        const tooltip = acquireTooltip()
         linkTooltipRef.current = tooltip
 
-        // Show tooltip when hovering over links
         linkHoverHandlerRef.current = (e: MouseEvent) => {
           const target = e.target as HTMLElement
-          // Check if cursor is pointer (ghostty-web sets this when over a link)
           const isOverLink =
             target.style.cursor === "pointer" ||
             window.getComputedStyle(target).cursor === "pointer"
 
           if (isOverLink) {
-            tooltip.style.left = `${e.clientX + 12}px`
-            tooltip.style.top = `${e.clientY + 12}px`
-            tooltip.style.opacity = "1"
+            showTooltip(e.clientX, e.clientY)
           } else {
-            tooltip.style.opacity = "0"
+            hideTooltip()
           }
         }
         containerEl.addEventListener("mousemove", linkHoverHandlerRef.current)
         linkLeaveHandlerRef.current = () => {
-          tooltip.style.opacity = "0"
+          hideTooltip()
         }
         containerEl.addEventListener("mouseleave", linkLeaveHandlerRef.current)
 
@@ -312,8 +372,14 @@ export function useGhosttyEngine({
           getLine: (y: number) => term.buffer.active.getLine(y)?.translateToString(true) ?? null,
           getAllLines: () => {
             const lines: string[] = []
-            for (let y = 0; y < term.rows; y++) {
-              lines.push(term.buffer.active.getLine(y)?.translateToString(true) ?? "")
+            const buffer = term.buffer.active
+            // Safe iteration through buffer including scrollback
+            // Stop when getLine returns undefined (following VSCode xterm.js pattern)
+            // Capped at 10000 (ghostty's scrollback limit)
+            for (let y = 0; y < 10000; y++) {
+              const line = buffer.getLine(y)
+              if (!line) break
+              lines.push(line.translateToString(true))
             }
             return lines
           },
@@ -341,6 +407,7 @@ export function useGhosttyEngine({
     return () => {
       isMounted = false
       restoreWarnings()
+      window.removeEventListener("beforeunload", onBeforeUnload)
       if (resizeTimeoutRef.current !== null) {
         clearTimeout(resizeTimeoutRef.current)
       }
@@ -357,10 +424,14 @@ export function useGhosttyEngine({
         linkLeaveHandlerRef.current = null
       }
       if (linkTooltipRef.current) {
-        linkTooltipRef.current.remove()
+        releaseTooltip()
         linkTooltipRef.current = null
       }
-      killTerminal(id)
+
+      // only kill the pty on explicit tab close, not on reload/HMR
+      if (!isReloading) {
+        killTerminal(id)
+      }
 
       // capture and null refs synchronously so nothing else can use them
       const engine = engineRef.current
@@ -390,9 +461,18 @@ export function useGhosttyEngine({
         try {
           engineRef.current.write(data)
 
-          if (!profileLoadedRef.current && /[$%>#]*$/.test(data)) {
+          if (!profileLoadedRef.current && PROMPT_PATTERN.test(data)) {
             profileLoadedRef.current = true
             onProfileLoadedRef.current?.()
+          }
+
+          // Parse OSC 7 sequences to track working directory changes
+          // fast prefix check avoids running the full regex on every PTY chunk
+          if (onWorkingDirectoryChangeRef.current && data.includes(OSC7_PREFIX)) {
+            const osc7Data = parseOsc7(data)
+            if (osc7Data) {
+              onWorkingDirectoryChangeRef.current(osc7Data.path)
+            }
           }
         } catch (err) {
           console.error("error writing to terminal:", err)

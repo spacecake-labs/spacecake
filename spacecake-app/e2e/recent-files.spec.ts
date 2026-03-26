@@ -144,8 +144,7 @@ test.describe("recent files", () => {
     await quickOpenInput.press("Escape")
 
     // 14. Delete the file
-    await locateSidebarItem(window, "test-recent-file.txt").hover()
-    await window.getByTestId("more-options-test-recent-file.txt").click()
+    await locateSidebarItem(window, "test-recent-file.txt").click({ button: "right" })
     await window.getByRole("menuitem", { name: "delete" }).click()
 
     // 15. Confirm the delete

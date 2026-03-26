@@ -116,6 +116,20 @@ export interface ElectronAPI {
   resizeTerminal: (id: string, cols: number, rows: number) => Promise<Either<TerminalError, void>>
   writeTerminal: (id: string, data: string) => Promise<Either<TerminalError, void>>
   killTerminal: (id: string) => Promise<Either<TerminalError, void>>
+  listTerminals: () => Promise<Array<{ id: string; surfaceId: string }>>
+  replayTerminal: (id: string) => Promise<string>
+  hasTerminal: (id: string) => Promise<boolean>
+  setTerminalTabState: (
+    workspaceId: string,
+    state: {
+      tabs: Array<{ id: string; surfaceId: string; label: string; cwdPath: string }>
+      activeId: string | null
+    },
+  ) => Promise<void>
+  getTerminalTabState: (workspaceId: string) => Promise<{
+    tabs: Array<{ id: string; surfaceId: string; label: string; cwdPath: string }>
+    activeId: string | null
+  } | null>
   onTerminalOutput: (handler: (id: string, data: string) => void) => () => void
   onIdeDisconnected: (handler: () => void) => () => void
 

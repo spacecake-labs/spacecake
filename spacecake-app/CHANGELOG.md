@@ -42,7 +42,6 @@
 ### Patch Changes
 
 - 8305383: Feat: git panel — staging, error handling, and performance
-
   - github desktop staging model — ui-only checkboxes, staging happens at commit time
   - github desktop-aligned git commands — default flags match github desktop behavior
   - unified changes section — single list instead of staged/unstaged split

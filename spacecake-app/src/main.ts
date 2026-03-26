@@ -13,6 +13,8 @@ import {
   ipcMain,
   Menu,
   nativeTheme,
+  net,
+  protocol,
   session,
   shell,
 } from "electron"
@@ -63,6 +65,11 @@ if (!app.requestSingleInstanceLock()) {
 const isTest = process.env.IS_PLAYWRIGHT === "true"
 const showWindow = process.env.SHOW_WINDOW === "true"
 
+// register custom protocol scheme for proxying external resources (avoids CORB)
+protocol.registerSchemesAsPrivileged([
+  { scheme: "spacecake-img", privileges: { supportFetchAPI: true, corsEnabled: true } },
+])
+
 if (isTest) {
   crashReporter.start({ ignoreSystemCrashHandler: true, uploadToServer: false })
 }
@@ -76,8 +83,6 @@ let AppRuntime: ManagedRuntime.ManagedRuntime<
   Layer.Layer.Error<AppLive>
 > | null = null
 
-const SHUTDOWN_TIMEOUT_MS = 3000
-
 /** Idempotent - returns the same promise if shutdown is already running */
 function fireOnWillShutdown(): Promise<void> {
   if (pendingWillShutdownPromise) {
@@ -88,19 +93,9 @@ function fireOnWillShutdown(): Promise<void> {
     return Promise.resolve()
   }
 
-  const timeout = setTimeout(() => {
-    console.error("Lifecycle: Shutdown timed out, force exiting")
-    app.exit(0)
-  }, SHUTDOWN_TIMEOUT_MS)
-  timeout.unref()
-
-  pendingWillShutdownPromise = AppRuntime.dispose()
-    .catch((err) => {
-      console.error("Lifecycle: Error during shutdown", err)
-    })
-    .finally(() => {
-      clearTimeout(timeout)
-    })
+  pendingWillShutdownPromise = AppRuntime.dispose().catch((err) => {
+    console.error("Lifecycle: Error during shutdown", err)
+  })
 
   return pendingWillShutdownPromise
 }
@@ -468,6 +463,16 @@ async function main() {
   })
 
   await app.whenReady()
+
+  // proxy external resources through the main process to avoid CORB.
+  // renderer rewrites https://host/path to spacecake-img://https/host/path
+  protocol.handle("spacecake-img", async (request) => {
+    const raw = request.url.replace("spacecake-img://", "")
+    // raw is "https/host/path?query" — restore the :// after the scheme
+    const url = raw.replace(/^(https?)\//, "$1://")
+    return net.fetch(url, { bypassCustomProtocolHandlers: true })
+  })
+
   await fixPath()
 
   // resolve the database layer (may run IndexedDB migration via hidden window)

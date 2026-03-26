@@ -9,16 +9,6 @@ For full documentation, visit [spacecake.ai](https://www.spacecake.ai/getting-st
 > ℹ️ `spacecake` is in public alpha.
 > If you find any bugs, please open an issue in this repo or join us on [Discord](https://discord.com/invite/CwFnxfkGHB).
 
-### 📦 project structure
-
-This is a monorepo:
-
-| folder | description |
-| --- | --- |
-| `spacecake-app/` | desktop app |
-| `website/` | landing page & docs ([spacecake.ai](https://www.spacecake.ai/)) |
-| `cli/` | command-line tool |
-
 ### 🚀 getting started
 
 Download an installer for your platform from the [latest release](https://github.com/spacecake-labs/spacecake/releases):
@@ -30,28 +20,17 @@ Download an installer for your platform from the [latest release](https://github
 
 > **linux & windows users**: for best file watching performance, install [watchman](https://facebook.github.io/watchman/docs/install). spacecake will show a tip in the status bar recommending this.
 
-On first launch, spacecake opens the home folder (`~/.spacecake`) for general notes.
+On first launch, spacecake opens the home folder (`~/.spacecake`) for general notes.  
 Press `⌘O` (macOS) or `ctrl+O` (Windows/Linux) to open your project as a workspace.
-
-#### keyboard shortcuts
-
-| shortcut | action |
-| --- | --- |
-| `⌘O` | open workspace |
-| `⌘P` | quick open file |
-| `⌘N` | new file |
-| `` ctrl+` `` | toggle terminal |
-| `ctrl+G` | open plans |
-
-See the [full keyboard shortcuts list](https://www.spacecake.ai/getting-started#keyboard-shortcuts) for more.
 
 ### 📖 markdown features
 
 - *proper* code blocks with syntax highlighting and your favourite keyboard shortcuts (`ctrl+D`, anyone?)
+- slash command menu (`/`) for inserting code blocks, headings, frontmatter, and more
+- frontmatter support with table and code view modes
 - checklists and badges for agent execution plans
 - diagrams with [mermaid](https://mermaid.js.org/)
 - WYSIWYG and 'live preview' modes
-- autosave (enable in workspace settings)
 - URL links for external resources
 
 ### 🖥️ integrated terminal
@@ -60,6 +39,8 @@ See the [full keyboard shortcuts list](https://www.spacecake.ai/getting-started#
 
 - run your favourite CLI agents ([Claude Code](https://github.com/anthropics/claude-code), [Codex](https://github.com/openai/codex), [Gemini](https://github.com/google-gemini/gemini-cli))
 - go beyond vibe-coding with [Spec Kit](https://github.com/github/spec-kit)
+- multi-tab support (`⌘T` / `ctrl+T` to open, `ctrl+Tab` to cycle)
+- dockable left, right, or bottom
 
 #### Claude Code integration
 
@@ -67,10 +48,30 @@ See the [full keyboard shortcuts list](https://www.spacecake.ai/getting-started#
 
 - **context awareness**: tells Claude which file and line you're editing
 - **plan mode**: enabled by default when running in the spacecake terminal
-- **status line**: shows live metrics (model, context %, cost)
+- **status line**: auto-configured on first launch, shows live metrics (model, context %, cost)
 - **plans panel**: press `ctrl+G` to view and manage plans
+- **open files**: Claude can open files directly in the editor and wait for you to save and close before continuing
 
 See the [Claude Code integration docs](https://www.spacecake.ai/getting-started#claude-code) for more details.
+
+### 🔀 git
+
+built-in git integration with a dockable panel:
+
+- **changes**: view modified, staged, and untracked files with inline diffs
+- **commit**: select files, write a message, and commit (with amend support)
+- **branches**: create, switch, and delete branches from a popover
+- **sync**: fetch, pull, and push with ahead/behind indicators
+- **stash**: quick stash, pop, and drop
+- **history**: browse recent commits and view per-commit diffs
+- **merge conflicts**: dedicated conflict editor for resolving conflicts
+- **clone / init**: clone a repo (`⌘⇧C`) or initialise a new one from the menu bar
+- **GitHub**: links to view on GitHub and create pull requests
+
+### 📋 tasks
+
+the tasks panel shows live Claude Code tasks from the active session, with status filters and sortable columns.  
+dock it left, right, or bottom alongside the terminal and git panels.
 
 ### 🧑‍💻 code-editing features
 
@@ -81,7 +82,44 @@ See the [Claude Code integration docs](https://www.spacecake.ai/getting-started#
 - bracket closing
 - code folding
 - linting
-- the usual keyboard shortcuts\
+- the usual keyboard shortcuts
+
+### ⚙️ other features
+
+- **autosave**: auto-save files on edit (enable in workspace settings)
+- **light / dark mode**: toggle from the status bar
+
+#### keyboard shortcuts
+
+| shortcut | action |
+| --- | --- |
+| `⌘O` | open workspace |
+| `⌘P` | quick open file |
+| `⌘N` | new file |
+| `⌘1` | focus editor |
+| `⌘B` | toggle sidebar |
+| `⌘W` | close tab |
+| `⌘S` | save file |
+| `⌘⇧S` | save all files |
+| `` ctrl+` `` | toggle terminal |
+| `⌘T` | new terminal tab |
+| `ctrl+G` | open plans |
+
+See the [full keyboard shortcuts list](https://www.spacecake.ai/getting-started#keyboard-shortcuts) for more.
+
+### 📦 project structure
+
+This is a monorepo:
+
+| folder | description |
+| --- | --- |
+| `spacecake-app/` | desktop app |
+| `website/` | landing page & docs ([spacecake.ai](https://www.spacecake.ai/)) |
+| `cli/` | command-line tool |
+
+### 📋 changelog
+
+See the [desktop app changelog](spacecake-app/CHANGELOG.md) for a list of releases and changes.
 
 ## Star History
 
