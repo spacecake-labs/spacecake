@@ -39,7 +39,15 @@ these labels come from your shell's terminal title sequence (OSC 0/2), so they w
 
 - each tab runs its own independent shell process (PTY)
 - switching tabs does **not** kill background processes — inactive tabs keep running
-- tabs are not saved between sessions — they are created fresh each time you open spacecake
+
+## session persistence
+
+when you quit and reopen spacecake, your terminal tabs are restored:
+
+- **tabs** — all tabs are restored in the same order, with the same tab active
+- **working directory** — each tab reopens in the directory you last `cd`'d into, not the workspace root
+
+shell history, environment variables, and running processes are _not_ restored — each tab starts a fresh shell process.
 
 ## shell integration
 
@@ -55,7 +63,7 @@ a common workflow is to keep Claude Code running in one tab while using a separa
 
 ## theme
 
-the terminal theme (light or dark) is locked when a tab is created. if you toggle the app theme after opening a terminal, existing tabs won't update — press `⌘R` / `ctrl+R` to reload the app, which restarts all terminal sessions with the new theme.
+the terminal theme (light or dark) is locked when a tab is created. if you toggle the app theme after opening a terminal, existing tabs won't update — press `⌘R` / `ctrl+R` to reload the app so all tabs pick up the new theme.
 
 ## keyboard shortcuts
 
