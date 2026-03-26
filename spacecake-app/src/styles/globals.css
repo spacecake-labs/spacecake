@@ -165,6 +165,7 @@
     @apply rounded-full bg-border border-[1px] border-transparent border-solid bg-clip-padding;
     visibility: hidden;
     transition: visibility 0.2s ease;
+    cursor: default;
   }
 
   *:hover::-webkit-scrollbar-thumb {
