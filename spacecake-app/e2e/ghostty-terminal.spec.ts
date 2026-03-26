@@ -379,6 +379,29 @@ test.describe("ghostty terminal", () => {
       expect(terminalContent).toContain("p42")
     }).toPass({ timeout: 5000 })
 
+    // change directory in the terminal (cwd should be persisted)
+    const testSubDir = path.join(tempTestDir, "subdir")
+    fs.mkdirSync(testSubDir, { recursive: true })
+    await window.keyboard.type(isWindows ? `cd "${testSubDir}"` : `cd "${testSubDir}"`, {
+      delay: typeDelay,
+    })
+    await window.keyboard.press("Enter")
+    await window.waitForTimeout(200)
+
+    // verify we're in the new directory
+    await window.keyboard.type(isWindows ? "cd" : "pwd", { delay: typeDelay })
+    await window.keyboard.press("Enter")
+    await window.waitForTimeout(200)
+
+    await expect(async () => {
+      terminalContent = await window.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (globalThis as any).__terminalAPI
+        return api?.getAllLines().join("") as string | undefined
+      })
+      expect(terminalContent).toContain(path.basename(testSubDir))
+    }).toPass({ timeout: 5000 })
+
     // give terminal state time to be saved before reload
     await window.waitForTimeout(2000)
 
@@ -413,6 +436,21 @@ test.describe("ghostty terminal", () => {
       })
       // if session persisted, variable is still set; if new session, it's unset
       expect(terminalContent).toContain("PR:p42:END")
+    }).toPass({ timeout: 5000 })
+
+    // verify cwd was restored (not just the session, but also the working directory)
+    // this is the key fix for this change
+    await window.keyboard.type(isWindows ? "cd" : "pwd", { delay: typeDelay })
+    await window.keyboard.press("Enter")
+
+    await expect(async () => {
+      terminalContent = await window.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (globalThis as any).__terminalAPI
+        return api?.getAllLines().join("") as string | undefined
+      })
+      // should be in the subdir we changed to before reload
+      expect(terminalContent).toContain(path.basename(testSubDir))
     }).toPass({ timeout: 5000 })
   })
 })

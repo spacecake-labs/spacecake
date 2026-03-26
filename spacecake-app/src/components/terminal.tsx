@@ -22,6 +22,7 @@ import {
   deleteTerminal,
   insertTerminal,
   selectTerminalsForWorkspace,
+  updateTerminal,
   updateWorkspaceLayout,
 } from "@/lib/db/mutations"
 import { getTerminalTabState, setTerminalTabState } from "@/lib/terminal"
@@ -34,11 +35,12 @@ interface TabState {
   id: TerminalPrimaryKey
   label: string
   surfaceId: string
+  cwdPath: string
 }
 
 interface TerminalProps {
   cwd: string
-  workspaceId: string
+  workspaceId: WorkspacePrimaryKey
   toolbarRight?: ReactNode
   onActiveApiChange?: (api: TerminalAPI | null) => void
   onLastTabClosed?: () => void
@@ -194,13 +196,26 @@ export function Terminal({
     setTabs((prev) => prev.map((t) => (t.id === tabId ? { ...t, label: title } : t)))
   }, [])
 
+  const handleWorkingDirectoryChange = useCallback((tabId: string, cwdPath: string) => {
+    setTabs((prev) => prev.map((t) => (t.id === tabId ? { ...t, cwdPath } : t)))
+    // update database (fire-and-forget)
+    updateTerminal(tabId as TerminalPrimaryKey, cwdPath).catch((err) =>
+      console.error("failed to update terminal cwd:", err),
+    )
+  }, [])
+
   const addTab = useCallback(async () => {
     try {
       const row = await insertTerminal({
         workspace_id: workspaceId,
         cwd_path: cwd,
       })
-      const tab: TabState = { id: row.id, label: "\u{1F370}", surfaceId: row.surface_id }
+      const tab: TabState = {
+        id: row.id,
+        label: "\u{1F370}",
+        surfaceId: row.surface_id,
+        cwdPath: row.cwd_path,
+      }
       pendingNewTabRef.current = tab.id
       setTabs((prev) => [...prev, tab])
       activateTab(tab.id)
@@ -265,7 +280,7 @@ export function Terminal({
       if (readyRef.current) return
 
       // 1. try in-memory state (renderer reload — ptys are still alive)
-      const memState = await getTerminalTabState(cwd)
+      const memState = await getTerminalTabState(workspaceId)
       if (readyRef.current) return
 
       if (memState && memState.tabs.length > 0) {
@@ -275,6 +290,7 @@ export function Terminal({
           id: t.id as TerminalPrimaryKey,
           surfaceId: t.surfaceId,
           label: t.label,
+          cwdPath: t.cwdPath,
         }))
         setTabs(restoredTabs)
         const activeId = (memState.activeId as TerminalPrimaryKey | null) ?? restoredTabs[0].id
@@ -286,7 +302,7 @@ export function Terminal({
 
       // 2. fall back to database (app restart — ptys are gone, need fresh ones)
       try {
-        const dbTerminals = await selectTerminalsForWorkspace(workspaceId as WorkspacePrimaryKey)
+        const dbTerminals = await selectTerminalsForWorkspace(workspaceId)
 
         if (dbTerminals.length > 0) {
           readyRef.current = true
@@ -308,6 +324,7 @@ export function Terminal({
             id: t.id,
             surfaceId: t.surface_id,
             label: "\u{1F370}",
+            cwdPath: t.cwd_path,
           }))
 
           setTabs(restoredTabs)
@@ -327,12 +344,17 @@ export function Terminal({
       // 3. no saved state anywhere — clean up orphaned rows and create a fresh tab
       readyRef.current = true
       try {
-        await deleteAllTerminalsForWorkspace(workspaceId as WorkspacePrimaryKey)
+        await deleteAllTerminalsForWorkspace(workspaceId)
         const row = await insertTerminal({
           workspace_id: workspaceId,
           cwd_path: cwd,
         })
-        const tab: TabState = { id: row.id, label: "\u{1F370}", surfaceId: row.surface_id }
+        const tab: TabState = {
+          id: row.id,
+          label: "\u{1F370}",
+          surfaceId: row.surface_id,
+          cwdPath: row.cwd_path,
+        }
         setTabs([tab])
         setActiveTabId(tab.id)
         setActiveSurfaceId(tab.surfaceId)
@@ -349,15 +371,16 @@ export function Terminal({
     if (!readyRef.current) return
 
     // sync to main process in-memory map (fast path for renderer reload)
-    setTerminalTabState(cwd, {
+    const stateToSync = {
       tabs: tabs.map((t) => ({
         id: t.id,
         surfaceId: t.surfaceId,
         label: t.label,
-        cwdPath: cwd,
+        cwdPath: t.cwdPath,
       })),
       activeId: activeTabId,
-    })
+    }
+    setTerminalTabState(workspaceId, stateToSync)
 
     // debounced sync to workspace layout (persistent for app restart)
     if (layoutWriteTimerRef.current) clearTimeout(layoutWriteTimerRef.current)
@@ -373,7 +396,7 @@ export function Terminal({
         currentTabs.tabs.length !== terminalTabs.tabs.length ||
         currentTabs.tabs.some((id, i) => id !== terminalTabs.tabs[i])
       ) {
-        updateWorkspaceLayout(workspaceId as WorkspacePrimaryKey, {
+        updateWorkspaceLayout(workspaceId, {
           ...currentLayout,
           terminalTabs,
         }).catch((err) => console.error("failed to persist terminal tab order:", err))
@@ -563,12 +586,13 @@ export function Terminal({
             key={tab.id}
             id={tab.id}
             surfaceId={tab.surfaceId}
-            cwd={cwd}
+            cwd={tab.cwdPath}
             isActive={tab.id === activeTabId}
             lockedTheme={lockedTheme}
             onReady={handleTabReady}
             onDispose={handleTabDispose}
             onTitleChange={handleTitleChange}
+            onWorkingDirectoryChange={handleWorkingDirectoryChange}
             onProfileLoaded={handleProfileLoaded}
           />
         ))}

@@ -120,6 +120,8 @@ const methods = {
   selectEditorsWithCachedState: (workspacePath: AbsolutePath) =>
     invokeDb("selectEditorsWithCachedState", workspacePath),
   insertTerminal: (input: TerminalInsert) => invokeDb("insertTerminal", input),
+  updateTerminal: (terminalId: TerminalPrimaryKey, cwdPath: string) =>
+    invokeDb("updateTerminal", terminalId, cwdPath),
   deleteTerminal: (terminalId: TerminalPrimaryKey) => invokeDb("deleteTerminal", terminalId),
   selectTerminalsForWorkspace: (workspaceId: WorkspacePrimaryKey) =>
     invokeDb("selectTerminalsForWorkspace", workspaceId),

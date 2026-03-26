@@ -81,6 +81,9 @@ export const selectFile = (filePath: AbsolutePath) => fetchDb("selectFile", file
 export const insertTerminal = (input: TerminalInsert) =>
   fetchDb<TerminalSelect>("insertTerminal", input)
 
+export const updateTerminal = (terminalId: TerminalPrimaryKey, cwdPath: string) =>
+  fetchDb<void>("updateTerminal", terminalId, cwdPath)
+
 export const deleteTerminal = (terminalId: TerminalPrimaryKey) =>
   fetchDb("deleteTerminal", terminalId)
 

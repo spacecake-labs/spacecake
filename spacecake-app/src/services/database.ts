@@ -735,6 +735,11 @@ export const makeDatabaseService = (client: PGliteInterface, orm: Orm) => {
     deleteTerminal: (terminalId: TerminalPrimaryKey) =>
       query((_) => _.delete(terminalTable).where(eq(terminalTable.id, terminalId))),
 
+    updateTerminal: (terminalId: TerminalPrimaryKey, cwd_path: string) =>
+      query((_) =>
+        _.update(terminalTable).set({ cwd_path }).where(eq(terminalTable.id, terminalId)),
+      ),
+
     selectTerminalsForWorkspace: (workspaceId: WorkspacePrimaryKey) =>
       query((_) =>
         _.select()

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useTheme } from "@/components/theme-provider"
 import { useLatest } from "@/hooks/use-latest"
 import { handleImagePaste, TerminalClipboardLive } from "@/lib/clipboard"
+import { parseOsc7, hasOsc7Data } from "@/lib/osc7-parser"
 import { suppressDuplicateWarnings } from "@/lib/suppress-duplicate-warnings"
 import {
   createTerminal,
@@ -33,6 +34,7 @@ interface UseGhosttyEngineOptions {
   autoFocus?: boolean
   cwd?: string
   onTitleChange?: (title: string) => void
+  onWorkingDirectoryChange?: (cwd: string) => void
   onProfileLoaded?: () => void
 }
 
@@ -105,6 +107,7 @@ export function useGhosttyEngine({
   autoFocus = false,
   cwd,
   onTitleChange,
+  onWorkingDirectoryChange,
   onProfileLoaded,
 }: UseGhosttyEngineOptions): UseGhosttyEngineResult {
   // Persistent container div - survives across mount/unmount of the mount point
@@ -125,6 +128,7 @@ export function useGhosttyEngine({
   const linkHoverHandlerRef = useRef<((e: MouseEvent) => void) | null>(null)
   const linkLeaveHandlerRef = useRef<(() => void) | null>(null)
   const onTitleChangeRef = useLatest(onTitleChange)
+  const onWorkingDirectoryChangeRef = useLatest(onWorkingDirectoryChange)
   const onProfileLoadedRef = useLatest(onProfileLoaded)
   const profileLoadedRef = useRef(false)
 
@@ -454,6 +458,14 @@ export function useGhosttyEngine({
           if (!profileLoadedRef.current && PROMPT_PATTERN.test(data)) {
             profileLoadedRef.current = true
             onProfileLoadedRef.current?.()
+          }
+
+          // Parse OSC 7 sequences to track working directory changes
+          if (onWorkingDirectoryChangeRef.current && hasOsc7Data(data)) {
+            const osc7Data = parseOsc7(data)
+            if (osc7Data) {
+              onWorkingDirectoryChangeRef.current(osc7Data.path)
+            }
           }
         } catch (err) {
           console.error("error writing to terminal:", err)

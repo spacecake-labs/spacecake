@@ -14,6 +14,7 @@ interface TerminalTabProps {
   onReady: (id: string, api: TerminalAPI) => void
   onDispose: (id: string) => void
   onTitleChange: (id: string, title: string) => void
+  onWorkingDirectoryChange: (id: string, cwd: string) => void
   onProfileLoaded: (id: string) => void
 }
 
@@ -26,15 +27,22 @@ export const TerminalTab = memo(function TerminalTab({
   onReady,
   onDispose,
   onTitleChange,
+  onWorkingDirectoryChange,
   onProfileLoaded,
 }: TerminalTabProps) {
   const onReadyRef = useLatest(onReady)
   const onDisposeRef = useLatest(onDispose)
   const onTitleChangeRef = useLatest(onTitleChange)
+  const onWorkingDirectoryChangeRef = useLatest(onWorkingDirectoryChange)
   const onProfileLoadedRef = useLatest(onProfileLoaded)
 
   const handleTitleChange = useCallback(
     (title: string) => onTitleChangeRef.current(id, title),
+    [id],
+  )
+
+  const handleWorkingDirectoryChange = useCallback(
+    (cwd: string) => onWorkingDirectoryChangeRef.current(id, cwd),
     [id],
   )
 
@@ -46,6 +54,7 @@ export const TerminalTab = memo(function TerminalTab({
     enabled: true,
     cwd,
     onTitleChange: handleTitleChange,
+    onWorkingDirectoryChange: handleWorkingDirectoryChange,
     onProfileLoaded: handleProfileLoaded,
   })
 
