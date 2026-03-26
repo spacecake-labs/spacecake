@@ -49,6 +49,9 @@ test.describe("smart file/folder creation", () => {
     expect(fs.existsSync(path.join(tempTestDir, "inside.txt"))).toBe(false)
 
     // --- ⌘N also respects last-clicked (still empty-folder) ---
+    // ensure keyboard focus is in the renderer after dropdown menu interactions
+    // (dropdown teardown can leave focus in native layer on macOS CI)
+    await window.getByRole("button", { name: "create file or folder" }).focus()
     await window.keyboard.press("ControlOrMeta+n")
 
     const textbox3 = window.getByRole("textbox", { name: "filename.txt" })
