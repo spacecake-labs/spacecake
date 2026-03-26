@@ -2,7 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForWorkspace } from "@/../e2e/fixtures"
-import { locateSidebarItem } from "@/../e2e/utils"
+import { locateSidebarItem, getTerminalContent } from "@/../e2e/utils"
 
 const isWindows = process.platform === "win32"
 
@@ -103,11 +103,7 @@ test.describe("ghostty terminal", () => {
     await window.keyboard.type(shell.setVarAndPwd, { delay: typeDelay })
     await window.keyboard.press("Enter")
 
-    let terminalContent = await window.evaluate(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const api = (globalThis as any).__terminalAPI
-      return api?.getAllLines().join("") as string | undefined
-    })
+    let terminalContent = await getTerminalContent(window)
     // Verify both CWD and command executed (join without newlines to handle line-wrapping)
     expect(terminalContent).toContain(path.basename(tempTestDir))
 
@@ -233,11 +229,7 @@ test.describe("ghostty terminal", () => {
     // __terminalAPI points to the active tab (tab 1), which should NOT have TAB2_VAR
     // poll until the shell has echoed the result back to the PTY
     await expect(async () => {
-      const content = await window.evaluate(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const api = (globalThis as any).__terminalAPI
-        return api?.getAllLines().join("") as string | undefined
-      })
+      const content = await getTerminalContent(window)
       expect(content).toContain(isWindows ? "MARKER:%TAB2_VAR%:END" : "MARKER::END")
     }).toPass({ timeout: 5000 })
 
@@ -255,11 +247,7 @@ test.describe("ghostty terminal", () => {
 
     // poll until the shell has echoed the result back to the PTY
     await expect(async () => {
-      const content = await window.evaluate(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const api = (globalThis as any).__terminalAPI
-        return api?.getAllLines().join("") as string | undefined
-      })
+      const content = await getTerminalContent(window)
       expect(content).toContain("hello")
     }).toPass({ timeout: 5000 })
 
