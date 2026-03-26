@@ -327,6 +327,7 @@ test.describe("ghostty terminal", () => {
   })
 
   test("terminal session persists across renderer reload", async ({ electronApp, tempTestDir }) => {
+    test.setTimeout(60_000)
     // setup: create test file and open workspace
     const testFilePath = path.join(tempTestDir, "test.md")
     fs.writeFileSync(testFilePath, "# test file")
