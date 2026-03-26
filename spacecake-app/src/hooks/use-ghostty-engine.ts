@@ -372,8 +372,11 @@ export function useGhosttyEngine({
           getLine: (y: number) => term.buffer.active.getLine(y)?.translateToString(true) ?? null,
           getAllLines: () => {
             const lines: string[] = []
-            for (let y = 0; y < term.rows; y++) {
-              lines.push(term.buffer.active.getLine(y)?.translateToString(true) ?? "")
+            const buffer = term.buffer.active
+            // Include scrollback buffer + visible area
+            const totalLines = buffer.length
+            for (let y = 0; y < totalLines; y++) {
+              lines.push(buffer.getLine(y)?.translateToString(true) ?? "")
             }
             return lines
           },
