@@ -373,14 +373,13 @@ export function useGhosttyEngine({
           getAllLines: () => {
             const lines: string[] = []
             const buffer = term.buffer.active
-            // Use buffer.length which includes scrollback history + visible rows
-            // Falls back to term.rows if buffer.length is unavailable
-            const totalLines = (buffer as any).length ?? term.rows
-            for (let y = 0; y < totalLines; y++) {
+            // Safe iteration through buffer including scrollback
+            // Stop when getLine returns undefined (following VSCode xterm.js pattern)
+            // Capped at 10000 (ghostty's scrollback limit)
+            for (let y = 0; y < 10000; y++) {
               const line = buffer.getLine(y)
-              if (line) {
-                lines.push(line.translateToString(true))
-              }
+              if (!line) break
+              lines.push(line.translateToString(true))
             }
             return lines
           },

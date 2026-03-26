@@ -24,12 +24,12 @@ describe("Terminal persistence", () => {
       const workspaceId = workspace.id as WorkspacePrimaryKey
 
       // Insert terminals with different cwds
-      const terminal1 = yield* db.insertTerminal({
+      yield* db.insertTerminal({
         workspace_id: workspaceId,
         cwd_path: "/home/user/projects/app",
       })
 
-      const terminal2 = yield* db.insertTerminal({
+      yield* db.insertTerminal({
         workspace_id: workspaceId,
         cwd_path: "/var/log",
       })
@@ -60,12 +60,12 @@ describe("Terminal persistence", () => {
       })
 
       // Add terminals to each workspace with different cwds
-      const term1WS1 = yield* db.insertTerminal({
+      yield* db.insertTerminal({
         workspace_id: workspace1.id as WorkspacePrimaryKey,
         cwd_path: "/home/user/ws1-dir",
       })
 
-      const term1WS2 = yield* db.insertTerminal({
+      yield* db.insertTerminal({
         workspace_id: workspace2.id as WorkspacePrimaryKey,
         cwd_path: "/home/user/ws2-dir",
       })
