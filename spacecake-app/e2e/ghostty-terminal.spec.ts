@@ -353,6 +353,8 @@ test.describe("ghostty terminal", () => {
 
     // wait for shell to be ready
     await expect(window.getByRole("status", { name: "shell profile loaded" })).toBeVisible()
+    // give shell extra time to fully initialize after profile loads
+    await window.waitForTimeout(500)
 
     // set a test variable in the terminal
     await terminalElement.locator("textarea").focus()
@@ -361,7 +363,7 @@ test.describe("ghostty terminal", () => {
       delay: typeDelay,
     })
     await window.keyboard.press("Enter")
-    await window.waitForTimeout(200)
+    await window.waitForTimeout(500)
 
     // verify variable was set with marker
     await window.keyboard.type(
@@ -369,7 +371,7 @@ test.describe("ghostty terminal", () => {
       { delay: typeDelay },
     )
     await window.keyboard.press("Enter")
-    await window.waitForTimeout(200)
+    await window.waitForTimeout(500)
 
     let terminalContent: string | undefined
     await expect(async () => {
