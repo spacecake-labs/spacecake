@@ -366,6 +366,8 @@ test.describe("ghostty terminal", () => {
     await window.waitForTimeout(500)
 
     // verify variable was set with marker
+    await terminalElement.locator("textarea").focus()
+    await window.waitForTimeout(100)
     await window.keyboard.type(
       isWindows ? "echo VERIFY:%PERSIST_VAR%:END" : "echo VERIFY:$PERSIST_VAR:END",
       { delay: typeDelay },
@@ -386,13 +388,17 @@ test.describe("ghostty terminal", () => {
     // change directory in the terminal (cwd should be persisted)
     const testSubDir = path.join(tempTestDir, "subdir")
     fs.mkdirSync(testSubDir, { recursive: true })
+    await terminalElement.locator("textarea").focus()
+    await window.waitForTimeout(100)
     await window.keyboard.type(isWindows ? `cd "${testSubDir}"` : `cd "${testSubDir}"`, {
       delay: typeDelay,
     })
     await window.keyboard.press("Enter")
-    await window.waitForTimeout(200)
+    await window.waitForTimeout(500)
 
     // verify we're in the new directory
+    await terminalElement.locator("textarea").focus()
+    await window.waitForTimeout(100)
     await window.keyboard.type(isWindows ? "cd" : "pwd", { delay: typeDelay })
     await window.keyboard.press("Enter")
     await window.waitForTimeout(200)
@@ -433,7 +439,7 @@ test.describe("ghostty terminal", () => {
       { delay: typeDelay },
     )
     await window.keyboard.press("Enter")
-    await window.waitForTimeout(200)
+    await window.waitForTimeout(500)
 
     // poll until we see the variable value in the terminal output
     await expect(async () => {
@@ -448,11 +454,13 @@ test.describe("ghostty terminal", () => {
 
     // verify cwd was restored (not just the session, but also the working directory)
     // this is the key fix for this change
+    await freshTerminalElement.locator("textarea").focus()
+    await window.waitForTimeout(100)
     await window.keyboard.type(isWindows ? `cd & echo CWD:%CD%:END` : `pwd && echo CWD_END`, {
       delay: typeDelay,
     })
     await window.keyboard.press("Enter")
-    await window.waitForTimeout(200)
+    await window.waitForTimeout(500)
 
     await expect(async () => {
       terminalContent = await window.evaluate(() => {
