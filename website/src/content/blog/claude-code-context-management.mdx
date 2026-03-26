@@ -1,0 +1,199 @@
+---
+title: "Master Claude Code's Context Window: Avoid the Performance Cliff"
+description: "Context degrades at 60% capacity. Learn to manage your 1M token window and keep Claude sharp—token budgeting, CLAUDE.md patterns, and compact vs. clear strategies."
+tags: ["claude code", "ai coding", "workflow optimization"]
+publishedAt: 2026-03-26
+author: "spacecake team"
+keywords:
+  [
+    "claude code context window",
+    "token management",
+    "context degradation",
+    "claude code optimization",
+  ]
+faq:
+  - question: "At what point does Claude Code performance start degrading?"
+    answer: "Output quality degrades noticeably around 60% context capacity. At 40% fill, attention to earlier instructions weakens. Proactively compact or clear context at 60% to maintain peak performance."
+  - question: "How do I check how many tokens I'm using?"
+    answer: "Type /context in Claude Code to see a detailed breakdown of token usage across all components—system overhead, MCP tools, memory files, conversation history, and free space."
+  - question: "What's the fastest way to reduce token usage?"
+    answer: "Configure a .claudeignore file. A well-configured ignore file can reduce per-request context by 40-70% without changing your workflow—it's the single highest-impact optimization."
+  - question: "Should I keep my CLAUDE.md short or comprehensive?"
+    answer: "Keep CLAUDE.md under 300-500 lines with only essential instructions. Move specialized or task-specific rules into skills—skills load on-demand only when invoked, preserving baseline context."
+  - question: "When should I use /clear vs. /compact?"
+    answer: "/compact summarizes earlier conversation to free space while keeping context. /clear starts completely fresh. Use /compact for ongoing work; use /clear when switching to unrelated tasks."
+---
+
+A 1M-token context window sounds enormous, but the quality of the model's output degrades long before you reach the limit.
+
+At 60% capacity, the model is repeating itself and forgetting earlier constraints. Instructions are skipped. You find yourself re-explaining decisions you thought were settled.
+
+Managing context keeps your reasoning sharp and your sessions productive. Here's how to approach it.
+
+## Where Tokens Go
+
+Some of your 1M window is used up before you type your first message:
+
+- **System overhead**: ~33K tokens (Claude Code internals)
+- **MCP tool definitions**: Each connected server (Playwright, database client) loads its tool definitions on every request
+- **CLAUDE.md**: Project instructions are included on every message
+- **Memory files**: Your persistent notes and summaries
+- **Conversation history**: Each message, including code blocks and outputs, adds up
+- **Code context**: Reading the codebase consumes tokens based on file size
+
+In a 4-hour session, it's easy to use 40-50% of your window without consciously spending tokens on anything expensive. The overhead is real but hard to track.
+
+## Monitor Context With /context
+
+Before you can optimize, you need to see what's happening.
+
+Type `/context` in Claude Code to get a breakdown (see the [/context command docs](/docs/claude-code#context-command)):
+
+```
+system overhead:        33K
+MCP servers:           12K (Playwright, postgres-client)
+CLAUDE.md:             18K
+memory files:           8K
+conversation history:  142K
+free space:            787K
+total usage:           213K (21% of 1M window)
+```
+
+Run this every 30 minutes during a long session. When you hit 600K tokens used (60% capacity), that's your signal to intervene.
+
+The `/context` command also shows actionable optimizations:
+
+- **Disconnect idle MCP servers**: If you're not using Playwright in this session, run `/mcp` and disconnect it. Each idle server wastes tokens on tool definitions you're not calling
+- **Trim CLAUDE.md**: If your project instructions are eating 20K+ tokens, move task-specific rules into skills. Skills load on-demand only when invoked
+- **Clear stale conversation**: If you switched from refactoring `auth.ts` to building a new API endpoint, the old context is noise. Run `/clear` to start fresh
+
+## Three Checkpoints
+
+### Under 40%
+
+Plenty of room. Read freely, ask for multiple approaches, explore directions. Early system prompts and CLAUDE.md still carry full weight.
+
+### 40-60%
+
+You're in range, but degradation is starting. Use `/context` every 30 minutes. When you hit 50%, run `/compact` to compress conversation history. This keeps context continuity while freeing up 30-50K tokens.
+
+### 60%+
+
+Output quality noticeably drops. Repeated instructions get skipped. At this point, commit your work, document what you've learned in CLAUDE.md or git, then run `/clear` to start fresh. You lose conversation history but regain a clean, fast window.
+
+## Reduce Baseline Context With .claudeignore
+
+Before you optimize token spending, reduce the baseline burn.
+
+Create a `.claudeignore` file in your project root and list directories you don't want Claude reading:
+
+```
+node_modules/
+dist/
+build/
+.git/
+.next/
+venv/
+__pycache__/
+*.log
+*.tmp
+coverage/
+.env
+.env.local
+```
+
+The `.claudeignore` file works like `.gitignore`—it tells Claude Code to exclude matching files from search results and deny read operations. A well-configured ignore file can cut per-request context by 40-70% depending on what you exclude.
+
+Most codebases have a lot of files that Claude shouldn't touch: test fixtures, compiled output, vendored dependencies, generated code, caches. Excluding them saves tokens on every message.
+
+Start with common excludes and add exceptions only if you hit cases where Claude legitimately needs something.
+
+## Keep CLAUDE.md Focused
+
+Your project instructions are loaded on every message. Keep them essential.
+
+Target: 300-500 lines. Include only:
+
+- **Conventions**: Language, framework, naming, structure
+- **Constraints**: What breaks the system, permission boundaries
+- **Links**: Where to find key docs (not the docs themselves)
+
+Move specialized knowledge into [skills](/docs/skills). Skills load on-demand when invoked, then unload—this keeps your baseline context small while keeping expert knowledge available when needed.
+
+## /compact vs /clear
+
+**`/compact`** summarizes conversation history to free space while maintaining context continuity. Use it when you're working on the same task for hours and approaching 50% capacity.
+
+**`/clear`** wipes everything and starts fresh. Use it when switching to unrelated work. You lose context from the previous task, so document it first (git commit, update [CLAUDE.md](/docs/claude-md), etc.).
+
+## Quick Wins
+
+Start with these three—they're high-impact and low-friction:
+
+1. **Configure `.claudeignore`** — Exclude build artifacts, node_modules, .git, test fixtures. See [.claudeignore patterns](/docs/claudeignore) for examples. Saves a significant amount per message.
+2. **Trim CLAUDE.md** — Keep it to 300-500 lines of essentials only. Move specialized knowledge to [skills](/docs/skills).
+3. **Disconnect idle MCP servers** — If you're not using Playwright in a session, run `/mcp` to disconnect. Each idle server wastes tokens on tool definitions you're not calling.
+
+## Example: A Refactoring Session
+
+You're refactoring an authentication module. Your context fills like this:
+
+- **Early phase** (20-30% capacity): Load the module, understand the architecture, plan the refactoring. Plenty of room.
+- **Mid-phase** (40-50% capacity): Running `/context` shows idle MCP servers. Disconnect them. Conversation history is growing.
+- **Late phase** (50-60% capacity): Refactoring is mostly done. Run `/compact` to free space. Then you need to start a different feature.
+- **Exit strategy**: Commit your work, document decisions in git or CLAUDE.md, run `/clear`, start fresh on the new feature.
+
+Without this pattern, you'd be at 70%+ capacity by hour 3, with Claude forgetting earlier architectural decisions and getting confused on why tests are failing.
+
+---
+
+A 1M token window feels infinite until it isn't. By monitoring usage, cutting baseline waste, and knowing when to compact or clear, you keep your sessions sharp. The threshold is real: at 60% capacity, output quality noticeably drops. Stay below that, and you can work productively for hours without Claude forgetting your earlier constraints.
+
+---
+
+export const schemaMarkup = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "At what point does Claude Code performance start degrading?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Output quality degrades noticeably around 60% context capacity. At 40% fill, attention to earlier instructions weakens. Proactively compact or clear context at 60% to maintain peak performance.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How do I check how many tokens I'm using?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Type /context in Claude Code to see a detailed breakdown of token usage across all components—system overhead, MCP tools, memory files, conversation history, and free space.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What's the fastest way to reduce token usage?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Configure a .claudeignore file. A well-configured ignore file can reduce per-request context by 40-70% without changing your workflow—it's the single highest-impact optimization.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Should I keep my CLAUDE.md short or comprehensive?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Keep CLAUDE.md under 300-500 lines with only essential instructions. Move specialized or task-specific rules into skills—skills load on-demand only when invoked, preserving baseline context.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "When should I use /clear vs. /compact?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "/compact summarizes earlier conversation to free space while keeping context. /clear starts completely fresh. Use /compact for ongoing work; use /clear when switching to unrelated tasks.",
+      },
+    },
+  ],
+}
