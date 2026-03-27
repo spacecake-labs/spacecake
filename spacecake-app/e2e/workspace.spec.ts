@@ -331,13 +331,8 @@ test.describe("spacecake app", () => {
   })
 
   test("delete file", async ({ electronApp, tempTestDir }, testInfo) => {
-    // wait for the first window to be ready
-    const window = await electronApp.firstWindow()
-
-    // verify the window is visible by checking if it has content
-    await expect(window.locator("body")).toBeVisible()
-
-    // Create test files and folders to delete
+    // create test files and folders before getting the window, so the initial
+    // directory scan picks them up (avoids relying on file watcher timing)
     const testFilePath = path.join(tempTestDir, "file-to-delete.txt")
     fs.writeFileSync(testFilePath, "test content")
 
@@ -347,7 +342,6 @@ test.describe("spacecake app", () => {
     const folderWithFilesPath = path.join(tempTestDir, "folder-with-files")
     fs.mkdirSync(folderWithFilesPath)
 
-    // Create some files inside the folder
     const file1Path = path.join(folderWithFilesPath, "file1.txt")
     const file2Path = path.join(folderWithFilesPath, "file2.txt")
     const subfolderPath = path.join(folderWithFilesPath, "subfolder")
@@ -358,7 +352,7 @@ test.describe("spacecake app", () => {
     fs.mkdirSync(subfolderPath)
     fs.writeFileSync(subfilePath, "sub content")
 
-    // open the temp test directory as workspace
+    const window = await electronApp.firstWindow()
     await waitForWorkspace(window)
 
     // Wait for all items to appear
