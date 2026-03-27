@@ -404,8 +404,10 @@ test.describe("spacecake app", () => {
     expect(fs.existsSync(testFilePath)).toBe(false)
 
     // Test deleting an empty folder
-    await locateSidebarItem(window, "empty-folder").click({ button: "right", force: true })
-    await window.getByRole("menuitem", { name: "delete" }).click({ force: true })
+    await expect(locateSidebarItem(window, "empty-folder")).toBeVisible()
+    await locateSidebarItem(window, "empty-folder").click({ button: "right" })
+    await expect(window.getByRole("menuitem", { name: "delete" })).toBeVisible()
+    await window.getByRole("menuitem", { name: "delete" }).click()
 
     // Verify delete confirmation dialog appears with folder message
     await expect(window.getByRole("dialog", { name: "delete folder" })).toBeVisible()
@@ -425,8 +427,10 @@ test.describe("spacecake app", () => {
     expect(fs.existsSync(emptyFolderPath)).toBe(false)
 
     // Test deleting a folder with files (recursive delete)
-    await locateSidebarItem(window, "folder-with-files").click({ button: "right", force: true })
-    await window.getByRole("menuitem", { name: "delete" }).click({ force: true })
+    await expect(locateSidebarItem(window, "folder-with-files")).toBeVisible()
+    await locateSidebarItem(window, "folder-with-files").click({ button: "right" })
+    await expect(window.getByRole("menuitem", { name: "delete" })).toBeVisible()
+    await window.getByRole("menuitem", { name: "delete" }).click()
 
     // Verify delete confirmation dialog appears with folder message
     await expect(window.getByRole("dialog", { name: "delete folder" })).toBeVisible()
