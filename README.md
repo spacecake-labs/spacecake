@@ -107,6 +107,10 @@ dock it left, right, or bottom alongside the terminal and git panels.
 
 See the [full keyboard shortcuts list](https://www.spacecake.ai/getting-started#keyboard-shortcuts) for more.
 
+### 🛠️ building from source
+
+want to contribute or build spacecake yourself? see [CONTRIBUTING.md](./CONTRIBUTING.md) for prerequisites and setup instructions.
+
 ### 📦 project structure
 
 This is a monorepo:
