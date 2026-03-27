@@ -1,6 +1,9 @@
 format:
     bun run format
 
+format-check:
+    bun run format-check
+
 lint:
     bun run lint
 
@@ -8,7 +11,7 @@ tc:
     bun run typecheck
 
 check:
-    just format && just lint && just tc
+    just format-check && just lint && just tc
 
 unit filter="":
     bun run unit-test {{filter}}

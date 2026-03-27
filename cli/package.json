@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint --fix --ext .ts .",
     "format": "prettier --log-level warn --write .",
+    "format-check": "prettier --log-level warn --check .",
     "unit-test": "vitest run"
   },
   "dependencies": {

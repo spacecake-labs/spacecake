@@ -10,7 +10,8 @@
     "astro": "astro",
     "lint": "oxlint --fix",
     "typecheck": "astro sync && tsc --noEmit",
-    "format": "oxfmt --write ."
+    "format": "oxfmt --write .",
+    "format-check": "oxfmt --check ."
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.0",
