@@ -261,7 +261,7 @@ export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
   return (
     <div className="h-8 w-full bg-background/50 border-t flex items-center justify-between px-4 text-xs shrink-0">
       {/* Left side: theme toggle + sidebar toggle + terminal/task badges */}
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
         <ModeToggle variant="icon" />
         {onToggleSidebar && (
           <button
