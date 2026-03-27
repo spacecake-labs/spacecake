@@ -1,6 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { useAtom, useSetAtom } from "jotai"
-import { X } from "lucide-react"
+import { Ellipsis, X } from "lucide-react"
 import * as React from "react"
 
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,8 @@ import { match } from "@/types/adt"
 type FileHeaderRow = {
   kind: "file-header"
   filePath: string
-  relativePath: string
+  fileName: string
+  dirPath: string
   matchCount: number
   firstMatchLine: number
 }
@@ -51,7 +52,9 @@ function renderHighlightedLine(row: MatchRow) {
   return (
     <span className="truncate">
       {before}
-      <span className="bg-yellow-300/40 text-yellow-200 rounded-sm">{matched}</span>
+      <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 rounded-sm">
+        {matched}
+      </span>
       {after}
     </span>
   )
@@ -67,10 +70,15 @@ function flattenResults(results: SearchResult[], workspacePath: string): FlatRow
       ? result.file.slice(prefix.length)
       : result.file
 
+    const lastSlash = relativePath.lastIndexOf("/")
+    const fileName = lastSlash >= 0 ? relativePath.slice(lastSlash + 1) : relativePath
+    const dirPath = lastSlash >= 0 ? relativePath.slice(0, lastSlash) : ""
+
     rows.push({
       kind: "file-header",
       filePath: result.file,
-      relativePath,
+      fileName,
+      dirPath,
       matchCount: result.matches.length,
       firstMatchLine: result.matches[0]?.lineNumber ?? 1,
     })
@@ -100,6 +108,8 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
   const [results, setResults] = useAtom(workspaceSearchResultsAtom)
   const [loading, setLoading] = useAtom(workspaceSearchLoadingAtom)
   const [limitHit, setLimitHit] = useAtom(workspaceSearchLimitHitAtom)
+
+  const [filtersOpen, setFiltersOpen] = React.useState(() => Boolean(include || exclude))
 
   const scrollParentRef = React.useRef<HTMLDivElement>(null)
   const requestCounterRef = React.useRef(0)
@@ -174,6 +184,13 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
             },
           })
         })
+        .catch((err) => {
+          if (currentRequest !== requestCounterRef.current) return
+          console.error("workspace search ipc error:", err)
+          setResults([])
+          setLoading(false)
+          setLimitHit(false)
+        })
     }, 300)
 
     return () => {
@@ -239,6 +256,7 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
               !caseSensitive && "opacity-60",
             )}
             onClick={() => setCaseSensitive((prev) => !prev)}
+            title="match case"
             aria-label="toggle case sensitive"
             aria-pressed={caseSensitive}
             data-testid="workspace-search-case-toggle"
@@ -253,31 +271,54 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
               !regex && "opacity-60",
             )}
             onClick={() => setRegex((prev) => !prev)}
+            title="use regular expression"
             aria-label="toggle regex"
             aria-pressed={regex}
             data-testid="workspace-search-regex-toggle"
           >
             .*
           </Button>
+          <Button
+            variant={filtersOpen ? "default" : "ghost"}
+            size="icon"
+            className={cn("h-6 w-6 cursor-pointer shrink-0", !filtersOpen && "opacity-60")}
+            onClick={() => setFiltersOpen((prev) => !prev)}
+            title="toggle search filters"
+            aria-label="toggle search filters"
+            aria-pressed={filtersOpen}
+            data-testid="workspace-search-filters-toggle"
+          >
+            <Ellipsis className="h-3.5 w-3.5" />
+          </Button>
         </div>
 
         {/* include/exclude filters */}
-        <input
-          data-testid="workspace-search-include"
-          type="text"
-          value={include}
-          onChange={(e) => setInclude(e.target.value)}
-          placeholder="files to include"
-          className="h-6 w-full rounded-sm border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
-        />
-        <input
-          data-testid="workspace-search-exclude"
-          type="text"
-          value={exclude}
-          onChange={(e) => setExclude(e.target.value)}
-          placeholder="files to exclude"
-          className="h-6 w-full rounded-sm border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
-        />
+        {filtersOpen && (
+          <>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-muted-foreground">files to include</span>
+              <input
+                data-testid="workspace-search-include"
+                type="text"
+                value={include}
+                onChange={(e) => setInclude(e.target.value)}
+                placeholder="e.g. *.ts, src/**/include"
+                className="h-6 w-full rounded-sm border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
+              />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-muted-foreground">files to exclude</span>
+              <input
+                data-testid="workspace-search-exclude"
+                type="text"
+                value={exclude}
+                onChange={(e) => setExclude(e.target.value)}
+                placeholder="e.g. *.ts, src/**/exclude"
+                className="h-6 w-full rounded-sm border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* results area */}
@@ -286,15 +327,6 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
         className="flex-1 overflow-y-auto min-h-0"
         data-testid="workspace-search-results"
       >
-        {loading && (
-          <div
-            className="px-3 py-4 text-xs text-muted-foreground"
-            data-testid="workspace-search-loading"
-          >
-            searching...
-          </div>
-        )}
-
         {!loading && query.trim() && flatRows.length === 0 && (
           <div
             className="px-3 py-4 text-xs text-muted-foreground"
@@ -332,8 +364,13 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
                     }}
                     onClick={() => onResultClick(row.filePath, row.firstMatchLine)}
                   >
-                    <span className="truncate">{row.relativePath}</span>
-                    <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                    <span className="truncate font-medium">{row.fileName}</span>
+                    {row.dirPath && (
+                      <span className="truncate text-muted-foreground font-normal">
+                        {row.dirPath}
+                      </span>
+                    )}
+                    <span className="shrink-0 ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                       {row.matchCount}
                     </span>
                   </div>
@@ -373,7 +410,8 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
         className="flex items-center gap-2 px-3 py-1.5 border-t border-border text-xs text-muted-foreground shrink-0"
         data-testid="workspace-search-status"
       >
-        {totalMatchCount > 0 && (
+        {loading && <span data-testid="workspace-search-loading">searching...</span>}
+        {!loading && totalMatchCount > 0 && (
           <span data-testid="workspace-search-result-count">
             {totalMatchCount} {totalMatchCount === 1 ? "result" : "results"} in {results.length}{" "}
             {results.length === 1 ? "file" : "files"}
