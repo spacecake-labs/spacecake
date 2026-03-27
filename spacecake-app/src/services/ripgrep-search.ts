@@ -210,33 +210,35 @@ export const search = (
 
   const args = buildRgArgs(options)
 
-  return Effect.tryPromise({
-    try: () =>
-      new Promise<{ results: SearchResult[]; limitHit: boolean }>((resolve, reject) => {
-        execFile(
-          rgPath,
-          args,
-          { cwd: options.workspacePath, maxBuffer: 50 * 1024 * 1024 },
-          (error, stdout) => {
-            // exit code 1 means no matches found — not an error
-            if (error && "code" in error && error.code === 1) {
-              resolve({ results: [], limitHit: false })
-              return
-            }
+  return Effect.async<{ results: SearchResult[]; limitHit: boolean }, SearchError>((resume) => {
+    const child = execFile(
+      rgPath,
+      args,
+      { cwd: options.workspacePath, maxBuffer: 50 * 1024 * 1024 },
+      (error, stdout) => {
+        // exit code 1 means no matches found — not an error
+        if (error && "code" in error && error.code === 1) {
+          resume(Effect.succeed({ results: [], limitHit: false }))
+          return
+        }
 
-            // exit code 2+ is a real error
-            if (error) {
-              reject(error)
-              return
-            }
+        // exit code 2+ is a real error
+        if (error) {
+          resume(
+            Effect.fail(
+              new SearchError({
+                description: `ripgrep search failed: ${String(error)}`,
+              }),
+            ),
+          )
+          return
+        }
 
-            resolve(parseRgJson(stdout, options))
-          },
-        )
-      }),
-    catch: (error) =>
-      new SearchError({
-        description: `ripgrep search failed: ${String(error)}`,
-      }),
+        resume(Effect.succeed(parseRgJson(stdout, options)))
+      },
+    )
+
+    // kill the ripgrep process on fiber interruption
+    return Effect.sync(() => child.kill())
   })
 }
