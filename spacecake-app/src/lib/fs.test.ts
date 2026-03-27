@@ -44,6 +44,9 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
   remove: async () => right(undefined),
   readDirectory: async () => right([]),
   listFiles: async () => right([]),
+  search: {
+    workspace: async () => right({ results: [], limitHit: false }),
+  },
   startWatcher: async () => right(undefined),
   stopWatcher: async () => right(undefined),
   onFileEvent: () => () => {},

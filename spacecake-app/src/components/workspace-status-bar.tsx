@@ -6,6 +6,7 @@ import {
   PanelBottom,
   PanelLeft,
   PanelRight,
+  Search,
   Terminal,
   TriangleAlert,
 } from "lucide-react"
@@ -29,6 +30,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { WatchmanBadge } from "@/components/watchman-badge"
 import { gitBranchAtom, gitRemoteStatusAtom } from "@/lib/atoms/git"
+import { workspaceSearchOpenAtom } from "@/lib/atoms/workspace-search"
 import { cn } from "@/lib/utils"
 import type { DockablePanelKind, DockPosition } from "@/schema/workspace-layout"
 import { match } from "@/types/adt"
@@ -206,6 +208,7 @@ export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
   onGitDockChange,
 }: WorkspaceStatusBarProps) {
   useStatuslineAutoSetup()
+  const [workspaceSearchOpen, setWorkspaceSearchOpen] = useAtom(workspaceSearchOpenAtom)
   const gitBranch = useAtomValue(gitBranchAtom)
   const remoteStatus = useAtomValue(gitRemoteStatusAtom)
 
@@ -256,6 +259,10 @@ export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
     [onToggleTerminal, onToggleTask, onToggleGit],
   )
 
+  const handleToggleSearch = useCallback(() => {
+    setWorkspaceSearchOpen((prev) => !prev)
+  }, [setWorkspaceSearchOpen])
+
   const hasDockControls = onToggleTerminal && onToggleTask && onToggleGit
 
   return (
@@ -273,6 +280,13 @@ export const WorkspaceStatusBar = memo(function WorkspaceStatusBar({
             <PanelLeft className="h-3.5 w-3.5" />
           </button>
         )}
+        <StatusToggleButton
+          icon={Search}
+          label="search"
+          isExpanded={workspaceSearchOpen}
+          onClick={handleToggleSearch}
+          testId="statusbar-search-toggle"
+        />
         {hasDockControls && terminalDock && taskDock && gitDock && (
           <DockLayoutSwitcher
             terminalDock={terminalDock}

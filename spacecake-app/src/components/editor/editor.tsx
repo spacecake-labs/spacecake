@@ -20,10 +20,12 @@ import {
 import { OnChangePlugin } from "@/components/editor/plugins/on-change"
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { editorTheme } from "@/components/editor/theme"
+import { SearchBar } from "@/components/search-bar"
 import { RouteContext, useEditor, type CancelDebounceRef } from "@/contexts/editor-context"
 import { useFocusablePanel } from "@/contexts/focus-manager"
 import { useLatest } from "@/hooks/use-latest"
 import { getOrCreateFileStateAtom } from "@/lib/atoms/file-tree"
+import { searchOpenAtom } from "@/lib/atoms/search"
 import { debounce } from "@/lib/utils"
 import { type EditorExtendedSelection } from "@/types/claude-code"
 import { type ChangeType, type SerializedSelection } from "@/types/lexical"
@@ -34,6 +36,7 @@ interface EditorProps {
   editorState?: EditorState
   editorSerializedState?: SerializedEditorState
   filePath: AbsolutePath
+  viewKind?: "rich" | "source" | "diff" | "conflict"
   autosaveEnabled?: boolean
 
   onChange: (editorState: EditorState, changeType: ChangeType) => void
@@ -87,6 +90,7 @@ export function Editor({
   editorState,
   editorSerializedState,
   filePath,
+  viewKind,
   autosaveEnabled,
   onChange,
   onCodeMirrorSelection,
@@ -95,6 +99,7 @@ export function Editor({
   const { editorRef } = useEditor()
   const fileState = useAtomValue(getOrCreateFileStateAtom(filePath)).value
   const isDirty = fileState === "Dirty"
+  const searchOpen = useAtomValue(searchOpenAtom)
 
   // Keep refs for unmount cleanup (can't use hooks in cleanup)
   const autosaveEnabledRef = React.useRef(autosaveEnabled)
@@ -189,6 +194,7 @@ export function Editor({
 
   return (
     <div data-testid="lexical-editor" className="relative h-full">
+      {searchOpen && viewKind === "rich" && <SearchBar />}
       <LexicalComposer
         initialConfig={{
           ...editorConfig,

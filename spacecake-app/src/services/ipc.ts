@@ -15,6 +15,7 @@ import { ClaudeTaskListService } from "@/services/claude-task-list"
 import { Database, type DatabaseMethodName } from "@/services/database"
 import { FileSystem, type FileSystemError, type IndexedFile } from "@/services/file-system"
 import { GitCommit, GitError, GitFileDiff, GitService, GitStatus } from "@/services/git"
+import { search, type SearchOptions, type SearchResult } from "@/services/ripgrep-search"
 import { SpacecakeHome } from "@/services/spacecake-home"
 import { Terminal } from "@/services/terminal"
 import { left, right, type Either } from "@/types/adt"
@@ -35,6 +36,12 @@ const serializeError = (error: FileSystemError): SerializedFileSystemError => ({
   path: error.path,
   description: error.description,
 })
+
+// plain object representation of SearchError for IPC serialization
+type SerializedSearchError = {
+  _tag: "SearchError"
+  description: string
+}
 
 // Plain object representation of ClaudeTaskError for IPC serialization
 type SerializedClaudeTaskError = {
@@ -176,6 +183,21 @@ export class Ipc extends Effect.Service<Ipc>()("Ipc", {
           }),
         ),
     )
+    ipcMain.handle(
+      "search:workspace",
+      (
+        _,
+        options: SearchOptions,
+      ): Promise<Either<SerializedSearchError, { results: SearchResult[]; limitHit: boolean }>> =>
+        Effect.runPromise(
+          Effect.match(search(options), {
+            onFailure: (error) =>
+              left({ _tag: "SearchError" as const, description: error.description }),
+            onSuccess: (data) => right(data),
+          }),
+        ),
+    )
+
     ipcMain.handle("start-watcher", (_, watchPath: AbsolutePath) =>
       Effect.runPromise(
         Effect.match(fs.startWatcher(AbsolutePath(normalizePath(watchPath))), {

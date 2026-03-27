@@ -22,6 +22,7 @@ import { MermaidDiagramPlugin } from "@/components/editor/plugins/mermaid-diagra
 import { NodeNavigationPlugin } from "@/components/editor/plugins/node-navigation"
 import { ReparsePlugin } from "@/components/editor/plugins/reparse"
 import { SaveCommandPlugin } from "@/components/editor/plugins/save-command"
+import { SearchPlugin } from "@/components/editor/plugins/search-plugin"
 import { SlashCommandPlugin } from "@/components/editor/plugins/slash-command"
 import TableCellResizer from "@/components/editor/plugins/table-cell-resizer"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
@@ -109,6 +110,7 @@ export const Plugins = React.memo(function Plugins() {
         {/* <FreezePlugin /> */}
         <ReparsePlugin />
         <SaveCommandPlugin />
+        <SearchPlugin />
         <SlashCommandPlugin />
       </div>
 

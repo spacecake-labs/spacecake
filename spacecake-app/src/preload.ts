@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron"
 
 import type { DisplayStatusline } from "@/lib/statusline-parser"
+import type { SearchOptions } from "@/services/ripgrep-search"
 import {
   AtMentionedPayload,
   ClaudeCodeStatus,
@@ -80,6 +81,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return ipcRenderer.invoke("read-directory", workspacePath, dirPath, options)
   },
   listFiles: (workspacePath: string) => ipcRenderer.invoke("list-files", workspacePath),
+  search: {
+    workspace: (options: SearchOptions) => ipcRenderer.invoke("search:workspace", options),
+  },
   readFile: (filePath: AbsolutePath): Promise<FileContent> =>
     ipcRenderer.invoke("read-file", filePath),
 

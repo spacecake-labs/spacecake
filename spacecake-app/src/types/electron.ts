@@ -2,6 +2,7 @@ import type { DisplayStatusline } from "@/lib/statusline-parser"
 import { FileSystemError, type IndexedFile } from "@/services/file-system"
 import type { GitErrorCode } from "@/services/git"
 import type { BlameResult } from "@/services/git-blame-parser"
+import type { SearchOptions, SearchResult } from "@/services/ripgrep-search"
 import { type Either } from "@/types/adt"
 import type { ClaudeTask, ClaudeTaskError } from "@/types/claude-task"
 import type { PyBlock } from "@/types/parser"
@@ -89,6 +90,16 @@ export interface ElectronAPI {
     options?: { recursive?: boolean },
   ) => Promise<Either<FileSystemError, FileTree>>
   listFiles: (workspacePath: string) => Promise<Either<FileSystemError, IndexedFile[]>>
+  search: {
+    workspace: (
+      options: SearchOptions,
+    ) => Promise<
+      Either<
+        { _tag: "SearchError"; description: string },
+        { results: SearchResult[]; limitHit: boolean }
+      >
+    >
+  }
   startWatcher: (path: AbsolutePath) => Promise<Either<FileSystemError, undefined>>
   stopWatcher: (workspacePath: AbsolutePath) => Promise<Either<FileSystemError, undefined>>
   onFileEvent: (handler: (event: FileTreeEvent) => void) => () => void

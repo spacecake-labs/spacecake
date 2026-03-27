@@ -2,7 +2,7 @@ import fs from "fs"
 import path from "path"
 
 import { expect, test, waitForEditorFocus, waitForWorkspace } from "@/../e2e/fixtures"
-import { clickMenuItem, locateSidebarItem, locateTab, locateTabCloseButton } from "@/../e2e/utils"
+import { clickMenuItem, locateSidebarItem, locateTab } from "@/../e2e/utils"
 
 test.describe("spacecake app", () => {
   test("open electron app", async ({ electronApp }, testInfo) => {

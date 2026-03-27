@@ -20,6 +20,7 @@ import { MenuButton } from "@/components/menu-button"
 import { QuickOpen } from "@/components/quick-open"
 import { TaskToolbar } from "@/components/task-toolbar"
 import { TerminalPanel } from "@/components/terminal-panel"
+import { WorkspaceSearchPanel } from "@/components/workspace-search-panel"
 import type { DockAction } from "@/lib/dock-transition"
 import type { DockPosition } from "@/schema/workspace-layout"
 
@@ -58,6 +59,8 @@ import {
 } from "@/lib/atoms/git"
 import { cleanupPaneMachine } from "@/lib/atoms/pane"
 import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
+import { searchOpenAtom, searchTargetLineAtom } from "@/lib/atoms/search"
+import { workspaceSearchOpenAtom } from "@/lib/atoms/workspace-search"
 import { createWorkspaceCollections } from "@/lib/db/collections"
 import * as mutations from "@/lib/db/mutations"
 import { queryClient } from "@/lib/db/query-client"
@@ -256,12 +259,29 @@ function LayoutContent() {
   const verticalPanelGroupRef = useRef<GroupImperativeHandle>(null)
   const { focus } = useFocusManager()
 
+  // workspace search panel state
+  const workspaceSearchOpen = useAtomValue(workspaceSearchOpenAtom)
+
   // Pane machine for serializing tab operations
   const workspaceIdEncoded = encodeBase64Url(workspace.path)
   const machine = usePaneMachine(paneId, workspace.path, workspaceIdEncoded)
 
   // Cmd+1 / Ctrl+1 to focus editor
   useHotkey("mod+1", () => focus("editor"), { capture: true })
+
+  // Cmd+Shift+F to toggle workspace search panel
+  useHotkey(
+    "mod+shift+f",
+    () => {
+      const willOpen = !store.get(workspaceSearchOpenAtom)
+      store.set(workspaceSearchOpenAtom, willOpen)
+      // expand sidebar if it's collapsed when opening search
+      if (willOpen && sidebarPanelRef.current?.isCollapsed()) {
+        setSidebarOpen(true)
+      }
+    },
+    { capture: true },
+  )
 
   // Register terminal focus callback - find the active tab's terminal textarea
   const focusTerminal = useCallback(() => {
@@ -715,7 +735,23 @@ function LayoutContent() {
           onResize={handleSidebarResize}
           className="flex flex-col h-full *:flex-1 *:min-h-0"
         >
-          <AppSidebar onFileClick={handleFileClick} workspace={workspace} />
+          {workspaceSearchOpen ? (
+            <WorkspaceSearchPanel
+              workspacePath={workspace.path}
+              onResultClick={(filePath, lineNumber) => {
+                // open the file
+                machine.send({
+                  type: "pane.file.open",
+                  filePath: AbsolutePath(filePath),
+                })
+                // set search state so the in-file search opens with the same query and jumps to the match
+                store.set(searchOpenAtom, true)
+                store.set(searchTargetLineAtom, lineNumber)
+              }}
+            />
+          ) : (
+            <AppSidebar onFileClick={handleFileClick} workspace={workspace} />
+          )}
         </ResizablePanel>
         <ResizableHandle withHandle className={cn("w-0", !sidebarOpen && "hidden")} />
         <ResizablePanel id="main-content-panel" defaultSize="85%" className="p-2 overflow-hidden">
