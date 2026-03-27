@@ -27,8 +27,12 @@ const UNIX_SOCKET_PATH_MAX = process.platform === "darwin" ? 104 : 108
 export function toIpcPath(inputPath: string): string {
   if (process.platform === "win32") {
     // windows — normalize backslashes to forward slashes and strip drive letter colon
-    const normalized = inputPath.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "$1")
-    const cleaned = normalized.startsWith("/") ? normalized.substring(1) : normalized
+    const normalized = inputPath
+      .replace(/\\/g, "/")
+      .replace(/^([A-Za-z]):/, "$1")
+    const cleaned = normalized.startsWith("/")
+      ? normalized.substring(1)
+      : normalized
     return "//./pipe/" + cleaned
   }
 

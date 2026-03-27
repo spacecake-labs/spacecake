@@ -10,6 +10,9 @@ preview:
 format:
     pnpm run format
 
+format-check:
+    pnpm run format-check
+
 lint:
     pnpm run lint
 
@@ -17,5 +20,5 @@ tc:
     pnpm run typecheck
 
 check:
-    just format && just lint && just tc
+    just format-check && just lint && just tc
 

@@ -39,10 +39,12 @@ export function BlockHeader({
         className,
       )}
     >
-      <div className="flex items-center gap-2 flex-wrap">
-        {emoji && <span className="text-sm">{emoji}</span>}
-        <h3 className="font-semibold text-foreground text-sm leading-tight">{titleElement}</h3>
-        {badgeElement}
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+        {emoji && <span className="text-sm shrink-0">{emoji}</span>}
+        <h3 className="font-semibold text-foreground text-sm leading-tight truncate">
+          {titleElement}
+        </h3>
+        <span className="shrink-0">{badgeElement}</span>
       </div>
       <div className="flex items-center gap-2">
         {rightActions}

@@ -97,6 +97,9 @@ export const test = base.extend<TestFixtures>({
             animation-duration: 0s !important;
             transition-duration: 0s !important;
           }
+          body {
+            pointer-events: auto !important;
+          }
           [data-slot="dialog-content"][data-state="closed"],
           [data-slot="dialog-overlay"][data-state="closed"],
           [data-slot="dropdown-menu-content"][data-state="closed"],

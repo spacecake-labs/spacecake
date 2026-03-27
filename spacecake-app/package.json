@@ -21,6 +21,7 @@
     "lint": "oxlint --fix",
     "typecheck": "tsgo --noEmit",
     "format": "oxfmt --write .",
+    "format-check": "oxfmt --check .",
     "unit-test": "vitest run",
     "coverage": "vitest run --coverage",
     "e2e-test": "cross-env IS_PLAYWRIGHT=true playwright test",
