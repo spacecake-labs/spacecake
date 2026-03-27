@@ -121,6 +121,12 @@ export function SearchPlugin(): null {
     scrollToCurrentMatch(matches, currentMatchIndex, scrollContainer)
   }, [currentMatchIndex, editor])
 
+  // clear stale DOM references when the editor root element changes (file navigation)
+  useEffect(() => {
+    matchesRef.current = []
+    clearSearchHighlights()
+  }, [editor])
+
   // cleanup when search closes
   useEffect(() => {
     if (!searchOpen) {

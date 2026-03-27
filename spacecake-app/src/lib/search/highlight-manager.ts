@@ -138,17 +138,9 @@ export function scrollToCurrentMatch(
     return
   }
 
-  // fallback: create a temporary span at the range position and scroll to it
-  const startNode = firstRange.node
-  const parent = startNode.parentElement
+  // fallback: scroll using the text node's parent element (avoids mutating the DOM)
+  const parent = firstRange.node.parentElement
   if (!parent) return
 
-  const tempSpan = document.createElement("span")
-  range.insertNode(tempSpan)
-
-  tempSpan.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" })
-
-  // clean up: remove the temp span and normalise the text nodes back together
-  parent.removeChild(tempSpan)
-  parent.normalize()
+  parent.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" })
 }

@@ -283,6 +283,19 @@ function LayoutContent() {
     { capture: true },
   )
 
+  // open file from workspace search result and activate in-file search
+  const handleSearchResultClick = useCallback(
+    (filePath: string, lineNumber: number) => {
+      machine.send({
+        type: "pane.file.open",
+        filePath: AbsolutePath(filePath),
+      })
+      store.set(searchOpenAtom, true)
+      store.set(searchTargetLineAtom, lineNumber)
+    },
+    [machine],
+  )
+
   // Register terminal focus callback - find the active tab's terminal textarea
   const focusTerminal = useCallback(() => {
     // find the visible (active) ghostty terminal mount point
@@ -738,16 +751,7 @@ function LayoutContent() {
           {workspaceSearchOpen ? (
             <WorkspaceSearchPanel
               workspacePath={workspace.path}
-              onResultClick={(filePath, lineNumber) => {
-                // open the file
-                machine.send({
-                  type: "pane.file.open",
-                  filePath: AbsolutePath(filePath),
-                })
-                // set search state so the in-file search opens with the same query and jumps to the match
-                store.set(searchOpenAtom, true)
-                store.set(searchTargetLineAtom, lineNumber)
-              }}
+              onResultClick={handleSearchResultClick}
             />
           ) : (
             <AppSidebar onFileClick={handleFileClick} workspace={workspace} />

@@ -27,43 +27,40 @@ export interface FindMatchesOptions {
   regex?: boolean
 }
 
-// returns true if any ancestor of the given node has data-lexical-decorator="true"
-function isInsideDecorator(node: Node): boolean {
-  let current = node.parentElement
-  while (current) {
-    if (current.getAttribute("data-lexical-decorator") === "true") {
-      return true
-    }
-    current = current.parentElement
-  }
-  return false
-}
-
 // builds a text index from a root element by walking all text nodes,
-// skipping any that live inside decorator subtrees.
+// skipping entire decorator subtrees via FILTER_REJECT.
 export function buildTextIndex(rootElement: HTMLElement): TextIndex {
   const segments: TextSegment[] = []
-  let fullText = ""
+  const parts: string[] = []
+  let offset = 0
 
-  const walker = document.createTreeWalker(rootElement, NodeFilter.SHOW_TEXT)
+  const walker = document.createTreeWalker(rootElement, NodeFilter.SHOW_ALL, {
+    acceptNode(node) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        return (node as Element).getAttribute("data-lexical-decorator") === "true"
+          ? NodeFilter.FILTER_REJECT
+          : NodeFilter.FILTER_SKIP
+      }
+      return node.nodeType === Node.TEXT_NODE ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
+    },
+  })
 
   let textNode = walker.nextNode() as Text | null
   while (textNode) {
-    if (!isInsideDecorator(textNode)) {
-      const text = textNode.textContent ?? ""
-      if (text.length > 0) {
-        segments.push({
-          node: textNode,
-          start: fullText.length,
-          length: text.length,
-        })
-        fullText += text
-      }
+    const text = textNode.textContent ?? ""
+    if (text.length > 0) {
+      segments.push({
+        node: textNode,
+        start: offset,
+        length: text.length,
+      })
+      parts.push(text)
+      offset += text.length
     }
     textNode = walker.nextNode() as Text | null
   }
 
-  return { fullText, segments }
+  return { fullText: parts.join(""), segments }
 }
 
 // escapes a string for use in a regular expression

@@ -14,7 +14,7 @@ import {
 import { clearSearchHighlights } from "@/lib/search/highlight-manager"
 import { cn } from "@/lib/utils"
 
-export function SearchBar() {
+export const SearchBar = React.memo(function SearchBar() {
   const [query, setQuery] = useAtom(searchQueryAtom)
   const setOpen = useSetAtom(searchOpenAtom)
   const [matchIndex, setMatchIndex] = useAtom(searchMatchIndexAtom)
@@ -181,4 +181,4 @@ export function SearchBar() {
       </Button>
     </div>
   )
-}
+})

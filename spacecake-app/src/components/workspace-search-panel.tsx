@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { useAtom, useSetAtom } from "jotai"
 import { X } from "lucide-react"
 import * as React from "react"
 
@@ -42,6 +42,21 @@ interface WorkspaceSearchPanelProps {
   onResultClick: (filePath: string, lineNumber: number) => void
 }
 
+function renderHighlightedLine(row: MatchRow) {
+  const { lineContent, matchStart, matchEnd } = row
+  const before = lineContent.slice(0, matchStart)
+  const matched = lineContent.slice(matchStart, matchEnd)
+  const after = lineContent.slice(matchEnd)
+
+  return (
+    <span className="truncate">
+      {before}
+      <span className="bg-yellow-300/40 text-yellow-200 rounded-sm">{matched}</span>
+      {after}
+    </span>
+  )
+}
+
 // flatten grouped search results into a single list of file-header and match rows
 function flattenResults(results: SearchResult[], workspacePath: string): FlatRow[] {
   const rows: FlatRow[] = []
@@ -82,12 +97,9 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
   const [include, setInclude] = useAtom(workspaceSearchIncludeAtom)
   const [exclude, setExclude] = useAtom(workspaceSearchExcludeAtom)
   const setOpen = useSetAtom(workspaceSearchOpenAtom)
-  const results = useAtomValue(workspaceSearchResultsAtom)
-  const setResults = useSetAtom(workspaceSearchResultsAtom)
-  const loading = useAtomValue(workspaceSearchLoadingAtom)
-  const setLoading = useSetAtom(workspaceSearchLoadingAtom)
-  const limitHit = useAtomValue(workspaceSearchLimitHitAtom)
-  const setLimitHit = useSetAtom(workspaceSearchLimitHitAtom)
+  const [results, setResults] = useAtom(workspaceSearchResultsAtom)
+  const [loading, setLoading] = useAtom(workspaceSearchLoadingAtom)
+  const [limitHit, setLimitHit] = useAtom(workspaceSearchLimitHitAtom)
 
   const scrollParentRef = React.useRef<HTMLDivElement>(null)
   const requestCounterRef = React.useRef(0)
@@ -183,22 +195,9 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
 
   const handleClose = React.useCallback(() => {
     setOpen(false)
-  }, [setOpen])
-
-  const renderHighlightedLine = (row: MatchRow) => {
-    const { lineContent, matchStart, matchEnd } = row
-    const before = lineContent.slice(0, matchStart)
-    const matched = lineContent.slice(matchStart, matchEnd)
-    const after = lineContent.slice(matchEnd)
-
-    return (
-      <span className="truncate">
-        {before}
-        <span className="bg-yellow-300/40 text-yellow-200 rounded-sm">{matched}</span>
-        {after}
-      </span>
-    )
-  }
+    setResults([])
+    setLimitHit(false)
+  }, [setOpen, setResults, setLimitHit])
 
   return (
     <div className="flex flex-col h-full" data-testid="workspace-search-panel">
