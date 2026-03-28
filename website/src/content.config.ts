@@ -18,6 +18,9 @@ export const collections = {
       verdict: z.string(), // Quick 1-line verdict shown at top
       winner: z.string().optional(), // Optional: which product wins overall
 
+      // Hero image
+      coverImage: z.object({ src: z.string(), alt: z.string() }).optional(),
+
       // SEO enhancements
       keywords: z.array(z.string()).optional(),
       canonical: z.string().url().optional(),

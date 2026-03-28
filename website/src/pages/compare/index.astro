@@ -91,6 +91,18 @@ const formatDate = (date: Date) =>
           {
             sortedEntries.map((entry) => (
               <a href={`/compare/${entry.id}`} class="article-card">
+                {entry.data.coverImage && (
+                  <div class="card-image">
+                    <img
+                      src={entry.data.coverImage.src}
+                      alt={entry.data.coverImage.alt}
+                      width="1600"
+                      height="873"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                )}
                 <div class="article-meta">
                   <span class="products">
                     {entry.data.products.join(" vs ")}
@@ -205,6 +217,18 @@ const formatDate = (date: Date) =>
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 1.5rem;
+  }
+
+  .card-image {
+    margin: -1.5rem -1.5rem 1rem;
+    border-radius: 0.75rem 0.75rem 0 0;
+    overflow: hidden;
+  }
+
+  .card-image img {
+    width: 100%;
+    height: auto;
+    display: block;
   }
 
   .article-card {
