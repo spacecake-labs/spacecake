@@ -87,7 +87,7 @@ function flattenResults(results: SearchResult[], workspacePath: string): FlatRow
     for (const m of result.matches) {
       rows.push({
         kind: "match",
-        filePath: m.path,
+        filePath: result.file,
         lineNumber: m.lineNumber,
         lineContent: m.lineContent,
         matchStart: m.matchStart,
@@ -99,7 +99,10 @@ function flattenResults(results: SearchResult[], workspacePath: string): FlatRow
   return rows
 }
 
-export function WorkspaceSearchPanel({ workspacePath, onResultClick }: WorkspaceSearchPanelProps) {
+export const WorkspaceSearchPanel = React.memo(function WorkspaceSearchPanel({
+  workspacePath,
+  onResultClick,
+}: WorkspaceSearchPanelProps) {
   const [query, setQuery] = useAtom(searchQueryAtom)
   const [caseSensitive, setCaseSensitive] = useAtom(searchCaseSensitiveAtom)
   const [regex, setRegex] = useAtom(searchRegexAtom)
@@ -217,6 +220,14 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
     setResults([])
     setLimitHit(false)
   }, [setOpen, setResults, setLimitHit])
+
+  // clear retained results when component unmounts without explicit close
+  React.useEffect(() => {
+    return () => {
+      setResults([])
+      setLimitHit(false)
+    }
+  }, [setResults, setLimitHit])
 
   return (
     <>
@@ -432,4 +443,4 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
       </SidebarContent>
     </>
   )
-}
+})

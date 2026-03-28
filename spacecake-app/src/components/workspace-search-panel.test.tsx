@@ -46,7 +46,6 @@ const sampleResults: SearchResult[] = [
     file: "/home/user/projects/src/app.ts",
     matches: [
       {
-        path: "/home/user/projects/src/app.ts",
         lineNumber: 10,
         column: 5,
         lineContent: "const hello = 'world'",
@@ -54,7 +53,6 @@ const sampleResults: SearchResult[] = [
         matchEnd: 11,
       },
       {
-        path: "/home/user/projects/src/app.ts",
         lineNumber: 20,
         column: 0,
         lineContent: "export function hello() {}",
@@ -67,7 +65,6 @@ const sampleResults: SearchResult[] = [
     file: "/home/user/projects/src/utils.ts",
     matches: [
       {
-        path: "/home/user/projects/src/utils.ts",
         lineNumber: 5,
         column: 0,
         lineContent: "function hello() { return true }",

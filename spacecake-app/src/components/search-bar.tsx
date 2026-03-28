@@ -14,6 +14,38 @@ import {
 import { clearSearchHighlights } from "@/lib/search/highlight-manager"
 import { cn } from "@/lib/utils"
 
+const MatchCounter = React.memo(function MatchCounter({
+  query,
+  matchIndex,
+  matchCount,
+}: {
+  query: string
+  matchIndex: number
+  matchCount: number
+}) {
+  if (query.length === 0) return null
+
+  if (matchCount === 0) {
+    return (
+      <span
+        data-testid="search-match-counter"
+        className="text-xs text-muted-foreground whitespace-nowrap px-1.5"
+      >
+        no results
+      </span>
+    )
+  }
+
+  return (
+    <span
+      data-testid="search-match-counter"
+      className="text-xs text-muted-foreground whitespace-nowrap px-1.5"
+    >
+      {matchIndex + 1} of {matchCount}
+    </span>
+  )
+})
+
 export const SearchBar = React.memo(function SearchBar() {
   const [query, setQuery] = useAtom(searchQueryAtom)
   const setOpen = useSetAtom(searchOpenAtom)
@@ -76,30 +108,6 @@ export const SearchBar = React.memo(function SearchBar() {
     [goToNext, goToPrev, close],
   )
 
-  const renderMatchCounter = () => {
-    if (query.length === 0) return null
-
-    if (matchCount === 0) {
-      return (
-        <span
-          data-testid="search-match-counter"
-          className="text-xs text-muted-foreground whitespace-nowrap px-1.5"
-        >
-          no results
-        </span>
-      )
-    }
-
-    return (
-      <span
-        data-testid="search-match-counter"
-        className="text-xs text-muted-foreground whitespace-nowrap px-1.5"
-      >
-        {matchIndex + 1} of {matchCount}
-      </span>
-    )
-  }
-
   return (
     <div
       data-testid="search-bar"
@@ -116,7 +124,7 @@ export const SearchBar = React.memo(function SearchBar() {
         className="h-6 w-48 rounded-sm border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
       />
 
-      {renderMatchCounter()}
+      <MatchCounter query={query} matchIndex={matchIndex} matchCount={matchCount} />
 
       <Button
         variant="ghost"

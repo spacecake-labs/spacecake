@@ -16,7 +16,6 @@ const MAX_LINE_CONTENT_LENGTH = 500
 // -- types --
 
 export interface SearchMatch {
-  path: string // absolute file path
   lineNumber: number // 1-based
   column: number // 0-based byte offset within the line
   lineContent: string // the full line text
@@ -137,6 +136,7 @@ export interface ParseState {
   fileOrder: string[]
   totalMatches: number
   limitHit: boolean
+  currentFilePath: string // cached resolved path from most recent begin message
 }
 
 export const createParseState = (rootPath: string): ParseState => ({
@@ -145,6 +145,7 @@ export const createParseState = (rootPath: string): ParseState => ({
   fileOrder: [],
   totalMatches: 0,
   limitHit: false,
+  currentFilePath: "",
 })
 
 /**
@@ -171,6 +172,7 @@ export const parseLine = (
 
   if (message.type === "begin") {
     const filePath = join(state.rootPath, message.data.path.text)
+    state.currentFilePath = filePath
 
     if (!state.resultsByFile.has(filePath)) {
       if (state.fileOrder.length >= maxFiles) {
@@ -189,7 +191,8 @@ export const parseLine = (
       return false
     }
 
-    const filePath = join(state.rootPath, message.data.path.text)
+    // use cached path from begin message; fall back to join if no begin was seen
+    const filePath = state.currentFilePath || join(state.rootPath, message.data.path.text)
     const rawLine = message.data.lines.text.replace(/\n$/, "")
 
     if (!state.resultsByFile.has(filePath)) {
@@ -227,7 +230,6 @@ export const parseLine = (
       }
 
       result.matches.push({
-        path: filePath,
         lineNumber: message.data.line_number,
         column: submatch.start,
         lineContent,

@@ -344,7 +344,6 @@ describe("parseLine", () => {
 
     const finalized = finalizeParseState(state)
     expect(finalized.results[0].matches[0].lineContent).toBe("hello world")
-    expect(finalized.results[0].matches[0].path).toBe("/home/user/projects/a.ts")
   })
 
   it("returns false when maxResults is reached", () => {
@@ -551,12 +550,6 @@ describe.skipIf(!isRgAvailable())("search (integration)", () => {
       expect(result.file).toMatch(/^\//)
       expect(result.file).not.toContain("./")
       expect(result.file.startsWith(workspacePath)).toBe(true)
-
-      for (const match of result.matches) {
-        expect(match.path).toMatch(/^\//)
-        expect(match.path).not.toContain("./")
-        expect(match.path.startsWith(workspacePath)).toBe(true)
-      }
     }
   })
 
@@ -642,15 +635,5 @@ describe.skipIf(!isRgAvailable())("search (integration)", () => {
     const match = greetingResult!.matches[0]
     const highlighted = match.lineContent.slice(match.matchStart, match.matchEnd)
     expect(highlighted).toBe("hello")
-  })
-
-  it("match.path equals result.file for every match", () => {
-    const { results } = runRgSync({ query: "hello", workspacePath })
-
-    for (const result of results) {
-      for (const match of result.matches) {
-        expect(match.path).toBe(result.file)
-      }
-    }
   })
 })
