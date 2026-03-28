@@ -1,0 +1,59 @@
+---
+title: search
+description: Find text in the current file or across your entire workspace.
+---
+
+## find in file
+
+press `⌘F` / `ctrl+F` to open the search bar in the editor. type your query and matching text is highlighted in the document.
+
+- **next / previous match** — press `Enter` / `Shift+Enter`, or click the arrow buttons
+- **close** — press `Escape`
+
+the match counter shows your position (e.g. "3 of 12 results").
+
+### search options
+
+toggle these from the search bar. your choices are saved across sessions.
+
+| toggle | description             |
+| ------ | ----------------------- |
+| `Aa`   | case-sensitive matching |
+| `ab`   | match whole word only   |
+| `.*`   | use regular expressions |
+
+:::note
+in source mode, `⌘F` / `ctrl+F` opens CodeMirror's built-in search instead.
+:::
+
+## find in workspace
+
+press `⌘⇧F` / `ctrl+shift+F` to open the workspace search panel. you can also click the **search** button in the status bar.
+
+workspace search uses [ripgrep](https://github.com/BurntSushi/ripgrep) under the hood, so results appear fast even in large codebases.
+
+### search options
+
+the same three toggles are available — case sensitivity, whole word, and regex. these are shared with the in-file search bar.
+
+### file filters
+
+click the `...` button to reveal include and exclude fields:
+
+- **files to include** — glob pattern to limit the search (e.g. `*.ts`, `src/**/*.tsx`)
+- **files to exclude** — glob pattern to skip files (e.g. `*.log`, `dist/**`)
+
+leave a field empty to apply no filter.
+
+### results
+
+results are grouped by file. each result shows the filename, directory, and a badge with the match count. click any match to open the file and jump to that line.
+
+if your query returns a very large number of matches, a **results limited** banner appears. try narrowing your search with a more specific query or file filters.
+
+## keyboard shortcuts
+
+| action            | macos | windows / linux |
+| ----------------- | ----- | --------------- |
+| find in file      | `⌘F`  | `ctrl+F`        |
+| find in workspace | `⌘⇧F` | `ctrl+shift+F`  |
