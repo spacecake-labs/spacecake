@@ -23,15 +23,15 @@ jobs:
       - name: Detect new articles
         id: detect
         run: |
-          paths=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- src/content/compare/ src/content/blog/ \
+          paths=$(git diff --name-only --diff-filter=AM HEAD~1 HEAD -- src/content/compare/ src/content/blog/ \
             | sed 's|src/content/||' \
             | sed 's|\.mdx$||' \
             | tr '\n' ' ')
           echo "paths=$paths" >> "$GITHUB_OUTPUT"
           if [ -z "$paths" ]; then
-            echo "no new articles found"
+            echo "no new or modified articles found"
           else
-            echo "new articles: $paths"
+            echo "articles to index: $paths"
           fi
 
       - name: Set up Node.js
