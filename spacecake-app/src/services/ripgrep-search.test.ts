@@ -94,6 +94,22 @@ describe("buildRgArgs", () => {
     expect(args).toContain("--no-config")
   })
 
+  it("includes --word-regexp when wholeWord is true", () => {
+    const args = buildRgArgs({ ...baseOptions, wholeWord: true })
+    expect(args).toContain("--word-regexp")
+  })
+
+  it("does not include --word-regexp by default", () => {
+    const args = buildRgArgs(baseOptions)
+    expect(args).not.toContain("--word-regexp")
+  })
+
+  it("includes both --word-regexp and --fixed-strings for literal whole word search", () => {
+    const args = buildRgArgs({ ...baseOptions, wholeWord: true, regex: false })
+    expect(args).toContain("--word-regexp")
+    expect(args).toContain("--fixed-strings")
+  })
+
   it("ends with -- separator and . search path", () => {
     const args = buildRgArgs(baseOptions)
     const len = args.length
@@ -572,6 +588,10 @@ describe.skipIf(!isRgAvailable())("search (integration)", () => {
         path.join(workspacePath, "node_modules", "dep", "index.js"),
         'module.exports = "hello from dep"\n',
       ),
+      writeFile(
+        path.join(workspacePath, "compound.ts"),
+        'const greeting = "helloworld"\nconst msg = "sayhello"\n',
+      ),
     ])
   })
 
@@ -677,6 +697,23 @@ describe.skipIf(!isRgAvailable())("search (integration)", () => {
 
   // -- search() effect tests --
   // these exercise the streaming Effect.async code path (spawn → stdout chunks → parse → kill)
+
+  it("respects wholeWord flag", () => {
+    const withWholeWord = runRgSync({ query: "hello", workspacePath, wholeWord: true })
+    const withoutWholeWord = runRgSync({ query: "hello", workspacePath, wholeWord: false })
+
+    // whole word should not match compound.ts (contains "helloworld" and "sayhello")
+    const wholeWordFiles = withWholeWord.results.map((r) => path.basename(r.file))
+    expect(wholeWordFiles).not.toContain("compound.ts")
+
+    // without whole word should match compound.ts
+    const allFiles = withoutWholeWord.results.map((r) => path.basename(r.file))
+    expect(allFiles).toContain("compound.ts")
+
+    // whole word should still match files with standalone "hello"
+    expect(wholeWordFiles).toContain("greeting.ts")
+    expect(wholeWordFiles).toContain("farewell.ts")
+  })
 
   it("search() returns results matching the sync helper output", async () => {
     const options: SearchOptions = { query: "hello", workspacePath }

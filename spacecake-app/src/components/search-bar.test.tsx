@@ -15,6 +15,7 @@ import {
   searchOpenAtom,
   searchQueryAtom,
   searchRegexAtom,
+  searchWholeWordAtom,
 } from "@/lib/atoms/search"
 
 // mock the highlight manager so we don't need the CSS highlights API
@@ -208,6 +209,30 @@ describe("SearchBar", () => {
     })
 
     expect(store.get(searchRegexAtom)).toBe(true)
+  })
+
+  it("renders whole word toggle button", () => {
+    renderSearchBar()
+
+    const toggle = container.querySelector('[data-testid="search-whole-word-toggle"]')
+    expect(toggle).not.toBeNull()
+  })
+
+  it("whole word toggle button works", () => {
+    store.set(searchWholeWordAtom, false)
+    renderSearchBar()
+
+    const toggle = container.querySelector(
+      '[data-testid="search-whole-word-toggle"]',
+    ) as HTMLButtonElement
+    expect(toggle).not.toBeNull()
+    expect(toggle.getAttribute("aria-pressed")).toBe("false")
+
+    act(() => {
+      toggle.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    })
+
+    expect(store.get(searchWholeWordAtom)).toBe(true)
   })
 
   it("prev/next buttons are disabled when matchCount is 0", () => {

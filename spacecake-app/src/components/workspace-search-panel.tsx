@@ -5,7 +5,12 @@ import * as React from "react"
 
 import { Button } from "@/components/ui/button"
 import { SidebarContent, SidebarHeader } from "@/components/ui/sidebar"
-import { searchCaseSensitiveAtom, searchQueryAtom, searchRegexAtom } from "@/lib/atoms/search"
+import {
+  searchCaseSensitiveAtom,
+  searchQueryAtom,
+  searchRegexAtom,
+  searchWholeWordAtom,
+} from "@/lib/atoms/search"
 import {
   workspaceSearchExcludeAtom,
   workspaceSearchIncludeAtom,
@@ -105,6 +110,7 @@ export const WorkspaceSearchPanel = React.memo(function WorkspaceSearchPanel({
 }: WorkspaceSearchPanelProps) {
   const [query, setQuery] = useAtom(searchQueryAtom)
   const [caseSensitive, setCaseSensitive] = useAtom(searchCaseSensitiveAtom)
+  const [wholeWord, setWholeWord] = useAtom(searchWholeWordAtom)
   const [regex, setRegex] = useAtom(searchRegexAtom)
   const [include, setInclude] = useAtom(workspaceSearchIncludeAtom)
   const [exclude, setExclude] = useAtom(workspaceSearchExcludeAtom)
@@ -167,6 +173,7 @@ export const WorkspaceSearchPanel = React.memo(function WorkspaceSearchPanel({
           query,
           workspacePath,
           caseSensitive,
+          wholeWord,
           regex,
           includeGlob: include || undefined,
           excludeGlob: exclude || undefined,
@@ -206,6 +213,7 @@ export const WorkspaceSearchPanel = React.memo(function WorkspaceSearchPanel({
   }, [
     query,
     caseSensitive,
+    wholeWord,
     regex,
     include,
     exclude,
@@ -284,6 +292,21 @@ export const WorkspaceSearchPanel = React.memo(function WorkspaceSearchPanel({
               data-testid="workspace-search-case-toggle"
             >
               Aa
+            </Button>
+            <Button
+              variant={wholeWord ? "default" : "ghost"}
+              size="icon"
+              className={cn(
+                "h-6 w-6 cursor-pointer text-xs font-semibold shrink-0 underline underline-offset-[3px]",
+                !wholeWord && "opacity-60",
+              )}
+              onClick={() => setWholeWord((prev) => !prev)}
+              title="match whole word"
+              aria-label="toggle whole word"
+              aria-pressed={wholeWord}
+              data-testid="workspace-search-whole-word-toggle"
+            >
+              ab
             </Button>
             <Button
               variant={regex ? "default" : "ghost"}

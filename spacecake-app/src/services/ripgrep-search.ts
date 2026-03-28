@@ -32,6 +32,7 @@ export interface SearchOptions {
   query: string
   workspacePath: string
   caseSensitive?: boolean
+  wholeWord?: boolean
   regex?: boolean
   includeGlob?: string
   excludeGlob?: string
@@ -67,6 +68,10 @@ export const buildRgArgs = (options: SearchOptions): string[] => {
 
   if (!options.regex) {
     args.push("--fixed-strings")
+  }
+
+  if (options.wholeWord) {
+    args.push("--word-regexp")
   }
 
   // exclude entries from the shared ignore list

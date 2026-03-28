@@ -24,6 +24,7 @@ export interface Match {
 
 export interface FindMatchesOptions {
   caseSensitive?: boolean
+  wholeWord?: boolean
   regex?: boolean
 }
 
@@ -110,12 +111,16 @@ export function findMatches(
     return []
   }
 
-  const { caseSensitive = false, regex: useRegex = false } = options
+  const { caseSensitive = false, wholeWord = false, regex: useRegex = false } = options
 
   let pattern: RegExp
   try {
     const flags = caseSensitive ? "g" : "gi"
-    const source = useRegex ? query : escapeRegex(query)
+    let source = useRegex ? query : escapeRegex(query)
+    if (wholeWord) {
+      if (!/\B/.test(source.charAt(0))) source = "\\b" + source
+      if (!/\B/.test(source.charAt(source.length - 1))) source = source + "\\b"
+    }
     pattern = new RegExp(source, flags)
   } catch {
     // invalid regex pattern

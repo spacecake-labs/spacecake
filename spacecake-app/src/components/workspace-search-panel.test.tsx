@@ -12,7 +12,7 @@ import {
   type FlatRow,
   WorkspaceSearchPanel,
 } from "@/components/workspace-search-panel"
-import { searchQueryAtom } from "@/lib/atoms/search"
+import { searchQueryAtom, searchWholeWordAtom } from "@/lib/atoms/search"
 import { workspaceSearchOpenAtom } from "@/lib/atoms/workspace-search"
 import type { SearchResult } from "@/services/ripgrep-search"
 import { right } from "@/types/adt"
@@ -544,6 +544,23 @@ describe("WorkspaceSearchPanel", () => {
     expect(headersAfterStale[0].textContent).toContain("fresh.ts")
     // stale results must not appear
     expect(headersAfterStale[0].textContent).not.toContain("stale.ts")
+  })
+
+  it("whole word toggle button works", () => {
+    store.set(searchWholeWordAtom, false)
+    renderPanel()
+
+    const toggle = container.querySelector(
+      '[data-testid="workspace-search-whole-word-toggle"]',
+    ) as HTMLButtonElement
+    expect(toggle).not.toBeNull()
+    expect(toggle.getAttribute("aria-pressed")).toBe("false")
+
+    act(() => {
+      toggle.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    })
+
+    expect(store.get(searchWholeWordAtom)).toBe(true)
   })
 
   it("close button sets workspaceSearchOpenAtom to false", () => {

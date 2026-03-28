@@ -293,6 +293,81 @@ describe("text-walker", () => {
       expect(matches).toHaveLength(3)
     })
 
+    it("should match whole word only", () => {
+      const root = document.createElement("div")
+      root.textContent = "hello world"
+
+      const index = buildTextIndex(root)
+
+      const matches = findMatches(index, "hello", { wholeWord: true })
+      expect(matches).toHaveLength(1)
+
+      const noMatch = findMatches(index, "hell", { wholeWord: true })
+      expect(noMatch).toHaveLength(0)
+    })
+
+    it("should not match partial words with whole word enabled", () => {
+      const root = document.createElement("div")
+      root.textContent = "helloworld"
+
+      const index = buildTextIndex(root)
+      const matches = findMatches(index, "hello", { wholeWord: true })
+
+      expect(matches).toHaveLength(0)
+    })
+
+    it("should match word at start and end of text", () => {
+      const root = document.createElement("div")
+      root.textContent = "hello world hello"
+
+      const index = buildTextIndex(root)
+      const matches = findMatches(index, "hello", { wholeWord: true })
+
+      expect(matches).toHaveLength(2)
+    })
+
+    it("should handle whole word with case insensitive", () => {
+      const root = document.createElement("div")
+      root.textContent = "Hello hello"
+
+      const index = buildTextIndex(root)
+      const matches = findMatches(index, "hello", { wholeWord: true, caseSensitive: false })
+
+      expect(matches).toHaveLength(2)
+    })
+
+    it("should handle whole word with regex", () => {
+      const root = document.createElement("div")
+      root.textContent = "cat catalog scatter"
+
+      const index = buildTextIndex(root)
+      const matches = findMatches(index, "cat", { regex: true, wholeWord: true })
+
+      expect(matches).toHaveLength(1)
+      expect(matches[0].ranges[0].startOffset).toBe(0)
+      expect(matches[0].ranges[0].endOffset).toBe(3)
+    })
+
+    it("should match when query starts with non-word character", () => {
+      const root = document.createElement("div")
+      root.textContent = "foo (bar) baz"
+
+      const index = buildTextIndex(root)
+      const matches = findMatches(index, "(bar)", { wholeWord: true })
+
+      expect(matches).toHaveLength(1)
+    })
+
+    it("should match word next to punctuation", () => {
+      const root = document.createElement("div")
+      root.textContent = "hello, world"
+
+      const index = buildTextIndex(root)
+      const matches = findMatches(index, "hello", { wholeWord: true })
+
+      expect(matches).toHaveLength(1)
+    })
+
     it("should handle regex with case-sensitive flag", () => {
       const root = document.createElement("div")
       root.textContent = "Foo foo FOO"

@@ -14,6 +14,7 @@ import {
   searchQueryAtom,
   searchRegexAtom,
   searchTargetLineAtom,
+  searchWholeWordAtom,
 } from "@/lib/atoms/search"
 import {
   clearSearchHighlights,
@@ -32,6 +33,7 @@ export function SearchPlugin(): null {
   const searchOpen = useAtomValue(searchOpenAtom)
   const query = useAtomValue(searchQueryAtom)
   const caseSensitive = useAtomValue(searchCaseSensitiveAtom)
+  const wholeWord = useAtomValue(searchWholeWordAtom)
   const regex = useAtomValue(searchRegexAtom)
 
   // read+write atoms
@@ -60,7 +62,7 @@ export function SearchPlugin(): null {
     if (!rootElement) return
 
     const index = buildTextIndex(rootElement)
-    const matches = findMatches(index, query, { caseSensitive, regex })
+    const matches = findMatches(index, query, { caseSensitive, wholeWord, regex })
 
     matchesRef.current = matches
     setMatchCount(matches.length)
@@ -82,7 +84,7 @@ export function SearchPlugin(): null {
   // main search effect: re-run when query, options, or search-open state change
   useEffect(() => {
     runSearchRef.current()
-  }, [searchOpen, query, caseSensitive, regex])
+  }, [searchOpen, query, caseSensitive, wholeWord, regex])
 
   // re-run search when editor content changes (debounced)
   useEffect(() => {

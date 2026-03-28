@@ -10,6 +10,7 @@ import {
   searchOpenAtom,
   searchQueryAtom,
   searchRegexAtom,
+  searchWholeWordAtom,
 } from "@/lib/atoms/search"
 import { clearSearchHighlights } from "@/lib/search/highlight-manager"
 import { cn } from "@/lib/utils"
@@ -52,6 +53,7 @@ export const SearchBar = React.memo(function SearchBar() {
   const [matchIndex, setMatchIndex] = useAtom(searchMatchIndexAtom)
   const matchCount = useAtomValue(searchMatchCountAtom)
   const [caseSensitive, setCaseSensitive] = useAtom(searchCaseSensitiveAtom)
+  const [wholeWord, setWholeWord] = useAtom(searchWholeWordAtom)
   const [regex, setRegex] = useAtom(searchRegexAtom)
 
   const inputRef = React.useRef<HTMLInputElement>(null)
@@ -163,6 +165,21 @@ export const SearchBar = React.memo(function SearchBar() {
         data-testid="search-case-toggle"
       >
         Aa
+      </Button>
+
+      <Button
+        variant={wholeWord ? "default" : "ghost"}
+        size="icon"
+        className={cn(
+          "h-6 w-6 cursor-pointer text-xs font-semibold underline underline-offset-[3px]",
+          !wholeWord && "opacity-60",
+        )}
+        onClick={() => setWholeWord((prev) => !prev)}
+        aria-label="toggle whole word"
+        aria-pressed={wholeWord}
+        data-testid="search-whole-word-toggle"
+      >
+        ab
       </Button>
 
       <Button
