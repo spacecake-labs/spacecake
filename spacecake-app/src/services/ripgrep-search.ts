@@ -7,6 +7,7 @@ import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 
 import { EXCLUDED_ENTRIES } from "@/lib/ignore-patterns"
+import { normalizePath } from "@/lib/utils"
 
 // max characters to keep per line in search results.
 // prevents v8 structured clone crashes when ripgrep matches minified files
@@ -176,7 +177,7 @@ export const parseLine = (
   if (message.type === "summary") return true
 
   if (message.type === "begin") {
-    const filePath = join(state.rootPath, message.data.path.text)
+    const filePath = normalizePath(join(state.rootPath, message.data.path.text))
     state.currentFilePath = filePath
 
     if (!state.resultsByFile.has(filePath)) {
@@ -197,7 +198,8 @@ export const parseLine = (
     }
 
     // use cached path from begin message; fall back to join if no begin was seen
-    const filePath = state.currentFilePath || join(state.rootPath, message.data.path.text)
+    const filePath =
+      state.currentFilePath || normalizePath(join(state.rootPath, message.data.path.text))
     const rawLine = message.data.lines.text.replace(/\n$/, "")
 
     if (!state.resultsByFile.has(filePath)) {

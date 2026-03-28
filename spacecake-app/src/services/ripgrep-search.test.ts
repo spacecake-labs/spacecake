@@ -8,6 +8,7 @@ import * as Fiber from "effect/Fiber"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 import { EXCLUDED_ENTRIES } from "@/lib/ignore-patterns"
+import { normalizePath } from "@/lib/utils"
 import {
   buildRgArgs,
   createParseState,
@@ -604,10 +605,11 @@ describe.skipIf(!isRgAvailable())("search (integration)", () => {
 
     expect(results.length).toBeGreaterThanOrEqual(2)
 
+    const normalizedWorkspace = normalizePath(workspacePath)
     for (const result of results) {
-      expect(result.file).toMatch(/^\//)
+      expect(path.isAbsolute(result.file)).toBe(true)
       expect(result.file).not.toContain("./")
-      expect(result.file.startsWith(workspacePath)).toBe(true)
+      expect(result.file.startsWith(normalizedWorkspace)).toBe(true)
     }
   })
 
