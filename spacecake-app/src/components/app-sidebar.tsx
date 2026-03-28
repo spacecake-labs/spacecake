@@ -4,7 +4,6 @@ import { ChevronsUpDown, Settings } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import {
-  Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
@@ -81,7 +80,7 @@ export function AppSidebar({ onFileClick, workspace }: AppSidebarProps) {
   }
 
   return (
-    <Sidebar variant="inset" data-testid="sidebar">
+    <>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -164,6 +163,6 @@ export function AppSidebar({ onFileClick, workspace }: AppSidebarProps) {
           v{__APP_VERSION__}
         </a>
       </SidebarFooter>
-    </Sidebar>
+    </>
   )
 }

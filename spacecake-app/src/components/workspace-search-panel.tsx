@@ -4,6 +4,7 @@ import { Ellipsis, X } from "lucide-react"
 import * as React from "react"
 
 import { Button } from "@/components/ui/button"
+import { SidebarContent, SidebarHeader } from "@/components/ui/sidebar"
 import { searchCaseSensitiveAtom, searchQueryAtom, searchRegexAtom } from "@/lib/atoms/search"
 import {
   workspaceSearchExcludeAtom,
@@ -153,6 +154,7 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
     }
 
     setLoading(true)
+    setLimitHit(false)
 
     debounceTimerRef.current = setTimeout(() => {
       const currentRequest = ++requestCounterRef.current
@@ -217,143 +219,194 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
   }, [setOpen, setResults, setLimitHit])
 
   return (
-    <div className="flex flex-col h-full" data-testid="workspace-search-panel">
+    <>
       {/* header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
-        <span className="text-sm font-medium" data-testid="workspace-search-header">
-          search
-        </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 cursor-pointer"
-          onClick={handleClose}
-          aria-label="close search panel"
-          data-testid="workspace-search-close"
-        >
-          <X className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-
-      {/* search inputs */}
-      <div className="flex flex-col gap-1.5 px-3 py-2 border-b border-border shrink-0">
-        {/* query row with toggle buttons */}
-        <div className="flex items-center gap-1">
-          <input
-            ref={inputRef}
-            data-testid="workspace-search-input"
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="search..."
-            className="h-7 flex-1 min-w-0 rounded-sm border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
-          />
+      <SidebarHeader>
+        <div className="flex items-center justify-between px-1.5">
+          <span className="text-sm font-medium" data-testid="workspace-search-header">
+            search
+          </span>
           <Button
-            variant={caseSensitive ? "default" : "ghost"}
+            variant="ghost"
             size="icon"
-            className={cn(
-              "h-6 w-6 cursor-pointer text-xs font-semibold shrink-0",
-              !caseSensitive && "opacity-60",
-            )}
-            onClick={() => setCaseSensitive((prev) => !prev)}
-            title="match case"
-            aria-label="toggle case sensitive"
-            aria-pressed={caseSensitive}
-            data-testid="workspace-search-case-toggle"
+            className="h-6 w-6 cursor-pointer"
+            onClick={handleClose}
+            aria-label="close search panel"
+            data-testid="workspace-search-close"
           >
-            Aa
-          </Button>
-          <Button
-            variant={regex ? "default" : "ghost"}
-            size="icon"
-            className={cn(
-              "h-6 w-6 cursor-pointer text-xs font-semibold shrink-0",
-              !regex && "opacity-60",
-            )}
-            onClick={() => setRegex((prev) => !prev)}
-            title="use regular expression"
-            aria-label="toggle regex"
-            aria-pressed={regex}
-            data-testid="workspace-search-regex-toggle"
-          >
-            .*
-          </Button>
-          <Button
-            variant={filtersOpen ? "default" : "ghost"}
-            size="icon"
-            className={cn("h-6 w-6 cursor-pointer shrink-0", !filtersOpen && "opacity-60")}
-            onClick={() => setFiltersOpen((prev) => !prev)}
-            title="toggle search filters"
-            aria-label="toggle search filters"
-            aria-pressed={filtersOpen}
-            data-testid="workspace-search-filters-toggle"
-          >
-            <Ellipsis className="h-3.5 w-3.5" />
+            <X className="h-3.5 w-3.5" />
           </Button>
         </div>
+      </SidebarHeader>
 
-        {/* include/exclude filters */}
-        {filtersOpen && (
-          <>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] text-muted-foreground">files to include</span>
-              <input
-                data-testid="workspace-search-include"
-                type="text"
-                value={include}
-                onChange={(e) => setInclude(e.target.value)}
-                placeholder="e.g. *.ts, src/**/include"
-                className="h-6 w-full rounded-sm border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
-              />
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] text-muted-foreground">files to exclude</span>
-              <input
-                data-testid="workspace-search-exclude"
-                type="text"
-                value={exclude}
-                onChange={(e) => setExclude(e.target.value)}
-                placeholder="e.g. *.ts, src/**/exclude"
-                className="h-6 w-full rounded-sm border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
-              />
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* results area */}
-      <div
-        ref={scrollParentRef}
-        className="flex-1 overflow-y-auto min-h-0"
-        data-testid="workspace-search-results"
+      <SidebarContent
+        className="overflow-hidden flex flex-col gap-0"
+        data-testid="workspace-search-panel"
       >
-        {!loading && query.trim() && flatRows.length === 0 && (
-          <div
-            className="px-3 py-4 text-xs text-muted-foreground"
-            data-testid="workspace-search-no-results"
-          >
-            no results
+        {/* search inputs */}
+        <div className="flex flex-col gap-1.5 px-1.5 py-2 border-b border-border shrink-0">
+          {/* query row with toggle buttons */}
+          <div className="flex items-center gap-1">
+            <input
+              ref={inputRef}
+              data-testid="workspace-search-input"
+              type="text"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                if (e.target.value.trim()) setLoading(true)
+              }}
+              placeholder="search..."
+              className="h-7 flex-1 min-w-0 rounded-sm border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
+            />
+            <Button
+              variant={caseSensitive ? "default" : "ghost"}
+              size="icon"
+              className={cn(
+                "h-6 w-6 cursor-pointer text-xs font-semibold shrink-0",
+                !caseSensitive && "opacity-60",
+              )}
+              onClick={() => setCaseSensitive((prev) => !prev)}
+              title="match case"
+              aria-label="toggle case sensitive"
+              aria-pressed={caseSensitive}
+              data-testid="workspace-search-case-toggle"
+            >
+              Aa
+            </Button>
+            <Button
+              variant={regex ? "default" : "ghost"}
+              size="icon"
+              className={cn(
+                "h-6 w-6 cursor-pointer text-xs font-semibold shrink-0",
+                !regex && "opacity-60",
+              )}
+              onClick={() => setRegex((prev) => !prev)}
+              title="use regular expression"
+              aria-label="toggle regex"
+              aria-pressed={regex}
+              data-testid="workspace-search-regex-toggle"
+            >
+              .*
+            </Button>
+            <Button
+              variant={filtersOpen ? "default" : "ghost"}
+              size="icon"
+              className={cn("h-6 w-6 cursor-pointer shrink-0", !filtersOpen && "opacity-60")}
+              onClick={() => setFiltersOpen((prev) => !prev)}
+              title="toggle search filters"
+              aria-label="toggle search filters"
+              aria-pressed={filtersOpen}
+              data-testid="workspace-search-filters-toggle"
+            >
+              <Ellipsis className="h-3.5 w-3.5" />
+            </Button>
           </div>
-        )}
 
-        {flatRows.length > 0 && (
-          <div
-            style={{
-              height: `${rowVirtualizer.getTotalSize()}px`,
-              width: "100%",
-              position: "relative",
-            }}
-          >
-            {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-              const row = flatRows[virtualItem.index]
-              if (!row) return null
+          {/* include/exclude filters */}
+          {filtersOpen && (
+            <>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] text-muted-foreground">files to include</span>
+                <input
+                  data-testid="workspace-search-include"
+                  type="text"
+                  value={include}
+                  onChange={(e) => setInclude(e.target.value)}
+                  placeholder="e.g. *.ts, src/**/include"
+                  className="h-6 w-full rounded-sm border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
+                />
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] text-muted-foreground">files to exclude</span>
+                <input
+                  data-testid="workspace-search-exclude"
+                  type="text"
+                  value={exclude}
+                  onChange={(e) => setExclude(e.target.value)}
+                  placeholder="e.g. *.ts, src/**/exclude"
+                  className="h-6 w-full rounded-sm border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
+                />
+              </div>
+            </>
+          )}
+        </div>
 
-              if (row.kind === "file-header") {
+        {/* status */}
+        <div
+          className="flex items-center gap-2 px-1.5 py-1 text-xs text-muted-foreground shrink-0"
+          data-testid="workspace-search-status"
+        >
+          {!loading && query.trim() ? (
+            <span data-testid="workspace-search-result-count">
+              {totalMatchCount} {totalMatchCount === 1 ? "result" : "results"} in {results.length}{" "}
+              {results.length === 1 ? "file" : "files"}
+            </span>
+          ) : (
+            "\u00A0"
+          )}
+          {limitHit && (
+            <span
+              className="ml-auto text-yellow-600 dark:text-yellow-500"
+              data-testid="workspace-search-limit-hit"
+            >
+              results limited
+            </span>
+          )}
+        </div>
+
+        {/* results area */}
+        <div
+          ref={scrollParentRef}
+          className="flex-1 overflow-y-auto min-h-0"
+          data-testid="workspace-search-results"
+        >
+          {flatRows.length > 0 && (
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                width: "100%",
+                position: "relative",
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                const row = flatRows[virtualItem.index]
+                if (!row) return null
+
+                if (row.kind === "file-header") {
+                  return (
+                    <div
+                      key={virtualItem.key}
+                      data-testid="workspace-search-file-header"
+                      className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium cursor-pointer hover:bg-accent/50 truncate"
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: `${virtualItem.size}px`,
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                      onClick={() => onResultClick(row.filePath, row.firstMatchLine)}
+                    >
+                      <span className="truncate font-medium">{row.fileName}</span>
+                      {row.dirPath && (
+                        <span className="truncate text-muted-foreground font-normal">
+                          {row.dirPath}
+                        </span>
+                      )}
+                      <span className="shrink-0 ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                        {row.matchCount}
+                      </span>
+                    </div>
+                  )
+                }
+
                 return (
                   <div
                     key={virtualItem.key}
-                    data-testid="workspace-search-file-header"
-                    className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium cursor-pointer hover:bg-accent/50 truncate"
+                    data-testid="workspace-search-match-row"
+                    className="flex items-center gap-2 pl-5 pr-3 text-xs cursor-pointer hover:bg-accent/50 truncate"
                     style={{
                       position: "absolute",
                       top: 0,
@@ -362,67 +415,21 @@ export function WorkspaceSearchPanel({ workspacePath, onResultClick }: Workspace
                       height: `${virtualItem.size}px`,
                       transform: `translateY(${virtualItem.start}px)`,
                     }}
-                    onClick={() => onResultClick(row.filePath, row.firstMatchLine)}
+                    onClick={() => onResultClick(row.filePath, row.lineNumber)}
                   >
-                    <span className="truncate font-medium">{row.fileName}</span>
-                    {row.dirPath && (
-                      <span className="truncate text-muted-foreground font-normal">
-                        {row.dirPath}
-                      </span>
-                    )}
-                    <span className="shrink-0 ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                      {row.matchCount}
+                    <span className="shrink-0 w-8 text-right text-muted-foreground tabular-nums">
+                      {row.lineNumber}
+                    </span>
+                    <span className="truncate font-mono text-[11px]">
+                      {renderHighlightedLine(row)}
                     </span>
                   </div>
                 )
-              }
-
-              return (
-                <div
-                  key={virtualItem.key}
-                  data-testid="workspace-search-match-row"
-                  className="flex items-center gap-2 pl-5 pr-3 text-xs cursor-pointer hover:bg-accent/50 truncate"
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: `${virtualItem.size}px`,
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
-                  onClick={() => onResultClick(row.filePath, row.lineNumber)}
-                >
-                  <span className="shrink-0 w-8 text-right text-muted-foreground tabular-nums">
-                    {row.lineNumber}
-                  </span>
-                  <span className="truncate font-mono text-[11px]">
-                    {renderHighlightedLine(row)}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* status bar */}
-      <div
-        className="flex items-center gap-2 px-3 py-1.5 border-t border-border text-xs text-muted-foreground shrink-0"
-        data-testid="workspace-search-status"
-      >
-        {loading && <span data-testid="workspace-search-loading">searching...</span>}
-        {!loading && totalMatchCount > 0 && (
-          <span data-testid="workspace-search-result-count">
-            {totalMatchCount} {totalMatchCount === 1 ? "result" : "results"} in {results.length}{" "}
-            {results.length === 1 ? "file" : "files"}
-          </span>
-        )}
-        {limitHit && (
-          <span className="text-yellow-500" data-testid="workspace-search-limit-hit">
-            results limited
-          </span>
-        )}
-      </div>
-    </div>
+              })}
+            </div>
+          )}
+        </div>
+      </SidebarContent>
+    </>
   )
 }

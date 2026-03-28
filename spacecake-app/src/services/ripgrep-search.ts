@@ -8,6 +8,11 @@ import * as Effect from "effect/Effect"
 
 import { EXCLUDED_ENTRIES } from "@/lib/ignore-patterns"
 
+// max characters to keep per line in search results.
+// prevents v8 structured clone crashes when ripgrep matches minified files
+// (a single minified line can be megabytes long).
+const MAX_LINE_CONTENT_LENGTH = 500
+
 // -- types --
 
 export interface SearchMatch {
@@ -45,7 +50,15 @@ export class SearchError extends Data.TaggedError("SearchError")<{
 
 /** constructs the ripgrep argument array from search options */
 export const buildRgArgs = (options: SearchOptions): string[] => {
-  const args: string[] = ["--json", "--max-filesize", "1M", "--hidden"]
+  const args: string[] = [
+    "--json",
+    "--max-filesize",
+    "1M",
+    "--max-columns",
+    String(MAX_LINE_CONTENT_LENGTH * 4),
+    "--max-columns-preview",
+    "--hidden",
+  ]
 
   if (options.caseSensitive) {
     args.push("--case-sensitive")
@@ -177,7 +190,7 @@ export const parseLine = (
     }
 
     const filePath = join(state.rootPath, message.data.path.text)
-    const lineContent = message.data.lines.text.replace(/\n$/, "")
+    const rawLine = message.data.lines.text.replace(/\n$/, "")
 
     if (!state.resultsByFile.has(filePath)) {
       if (state.fileOrder.length >= maxFiles) {
@@ -196,13 +209,30 @@ export const parseLine = (
         return false
       }
 
+      // truncate long lines (e.g. minified files) to prevent v8 serialization crashes.
+      // keep a window around the match so the highlight stays visible.
+      let lineContent = rawLine
+      let matchStart = submatch.start
+      let matchEnd = submatch.end
+
+      if (rawLine.length > MAX_LINE_CONTENT_LENGTH) {
+        const matchMid = Math.floor((submatch.start + submatch.end) / 2)
+        const halfWindow = Math.floor(MAX_LINE_CONTENT_LENGTH / 2)
+        const windowStart = Math.max(0, matchMid - halfWindow)
+        const windowEnd = Math.min(rawLine.length, windowStart + MAX_LINE_CONTENT_LENGTH)
+
+        lineContent = rawLine.slice(windowStart, windowEnd)
+        matchStart = submatch.start - windowStart
+        matchEnd = submatch.end - windowStart
+      }
+
       result.matches.push({
         path: filePath,
         lineNumber: message.data.line_number,
         column: submatch.start,
         lineContent,
-        matchStart: submatch.start,
-        matchEnd: submatch.end,
+        matchStart,
+        matchEnd,
       })
       state.totalMatches++
     }

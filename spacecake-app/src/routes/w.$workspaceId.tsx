@@ -33,7 +33,7 @@ import { Suspense } from "react"
 
 import { TerminalStatusBadge } from "@/components/terminal-status-badge"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
-import { SidebarProvider, useSidebar } from "@/components/ui/sidebar"
+import { Sidebar, SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { Tabs } from "@/components/ui/tabs"
 import { WorkspaceStatusBar } from "@/components/workspace-status-bar"
 import { CollectionsProvider } from "@/contexts/collections-context"
@@ -748,14 +748,16 @@ function LayoutContent() {
           onResize={handleSidebarResize}
           className="flex flex-col h-full *:flex-1 *:min-h-0"
         >
-          {workspaceSearchOpen ? (
-            <WorkspaceSearchPanel
-              workspacePath={workspace.path}
-              onResultClick={handleSearchResultClick}
-            />
-          ) : (
-            <AppSidebar onFileClick={handleFileClick} workspace={workspace} />
-          )}
+          <Sidebar variant="inset" data-testid="sidebar">
+            {workspaceSearchOpen ? (
+              <WorkspaceSearchPanel
+                workspacePath={workspace.path}
+                onResultClick={handleSearchResultClick}
+              />
+            ) : (
+              <AppSidebar onFileClick={handleFileClick} workspace={workspace} />
+            )}
+          </Sidebar>
         </ResizablePanel>
         <ResizableHandle withHandle className={cn("w-0", !sidebarOpen && "hidden")} />
         <ResizablePanel id="main-content-panel" defaultSize="85%" className="p-2 overflow-hidden">

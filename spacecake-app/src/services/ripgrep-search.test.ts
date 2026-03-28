@@ -403,6 +403,45 @@ describe("parseLine", () => {
     expect(parseLine("  ", state, 100, 100)).toBe(true)
     expect(state.fileOrder).toHaveLength(0)
   })
+
+  it("truncates very long lines and keeps a window around the match", () => {
+    const state = createParseState(rootPath)
+    // build a line >500 chars with a match near the middle
+    const prefix = "a".repeat(1000)
+    const suffix = "b".repeat(1000)
+    const longLine = `${prefix}hello${suffix}\n`
+    const matchStart = 1000
+    const matchEnd = 1005
+
+    parseLine(
+      JSON.stringify({ type: "begin", data: { path: { text: "./a.ts" } } }),
+      state,
+      100,
+      100,
+    )
+    parseLine(
+      JSON.stringify({
+        type: "match",
+        data: {
+          path: { text: "./a.ts" },
+          lines: { text: longLine },
+          line_number: 1,
+          submatches: [{ match: { text: "hello" }, start: matchStart, end: matchEnd }],
+        },
+      }),
+      state,
+      100,
+      100,
+    )
+
+    const finalized = finalizeParseState(state)
+    const match = finalized.results[0].matches[0]
+
+    // lineContent should be truncated to 500 chars
+    expect(match.lineContent.length).toBeLessThanOrEqual(500)
+    // the matched text should still be extractable from the truncated content
+    expect(match.lineContent.slice(match.matchStart, match.matchEnd)).toBe("hello")
+  })
 })
 
 // -- integration tests --
