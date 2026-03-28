@@ -15,6 +15,7 @@ export type MenuAction =
   | "save-all"
   | "clone-repo"
   | "init-repo"
+  | "find-in-files"
 
 export type SerializedGitError = {
   _tag: "GitError"

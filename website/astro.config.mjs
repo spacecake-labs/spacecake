@@ -99,6 +99,7 @@ export default defineConfig({
           label: "features",
           items: [
             { label: "writing markdown", slug: "writing-markdown" },
+            { label: "search", slug: "search" },
             { label: "terminal", slug: "terminal" },
             { label: "git", slug: "git" },
             { label: "tasks", slug: "tasks" },
