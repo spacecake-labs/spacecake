@@ -283,6 +283,15 @@ function LayoutContent() {
     { capture: true },
   )
 
+  // native menu bar: Edit → Find in Files
+  useMenuAction("find-in-files", () => {
+    const willOpen = !store.get(workspaceSearchOpenAtom)
+    store.set(workspaceSearchOpenAtom, willOpen)
+    if (willOpen && sidebarPanelRef.current?.isCollapsed()) {
+      setSidebarOpen(true)
+    }
+  })
+
   // open file from workspace search result and activate in-file search
   const handleSearchResultClick = useCallback(
     (filePath: string, lineNumber: number) => {
