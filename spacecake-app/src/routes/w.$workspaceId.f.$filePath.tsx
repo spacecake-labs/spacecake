@@ -10,6 +10,7 @@ import React, { useEffect } from "react"
 import { Editor } from "@/components/editor/editor"
 import { ConflictEditor } from "@/components/editor/plugins/conflict-editor"
 import { LoadingAnimation } from "@/components/loading-animation"
+import { useHotkey } from "@/hooks/use-hotkey"
 import { useWorkspaceSettings } from "@/hooks/use-workspace-settings"
 import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms"
 import {
@@ -19,6 +20,7 @@ import {
   updateFolderInTree,
 } from "@/lib/atoms/file-tree"
 import { activeBlameAtom, activeLineDiffAtom, isGitRepoAtom } from "@/lib/atoms/git"
+import { searchOpenAtom } from "@/lib/atoms/search"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
 import {
   createEditorConfigFromContent,
@@ -288,6 +290,15 @@ function FileLayout() {
   const autosaveEnabled =
     viewKind !== "diff" && viewKind !== "conflict" && settings.autosave === "on"
 
+  // open in-file search (only in rich mode — source mode uses CodeMirror's built-in search)
+  useHotkey("mod+f", () => store.set(searchOpenAtom, true), {
+    capture: true,
+    guard: (e) => {
+      const isInCodeMirror = (e.target as HTMLElement)?.closest?.(".cm-editor") !== null
+      return !isInCodeMirror && viewKind === "rich"
+    },
+  })
+
   // Helper to notify Claude Code of selection changes
   const notifyClaudeCodeSelection = (selectedText: string, selection: ClaudeSelection) => {
     if (!window.electronAPI?.claude?.notifySelectionChanged) {
@@ -436,6 +447,7 @@ function FileLayout() {
       <Editor
         key={key}
         filePath={filePath}
+        viewKind={viewKind}
         editorConfig={editorConfig}
         autosaveEnabled={autosaveEnabled}
         onChange={(editorState: EditorState, changeType: ChangeType) => {

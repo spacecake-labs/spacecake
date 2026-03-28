@@ -12,6 +12,7 @@ interface Props {
   products: string[]
   verdict: string
   winner?: string
+  coverImage?: { src: string; alt: string }
   publishedAt: Date
   updatedAt?: Date
   author?: string
@@ -27,6 +28,7 @@ const {
   products,
   verdict,
   winner,
+  coverImage,
   publishedAt,
   updatedAt,
   author = "spacecake team",
@@ -68,6 +70,15 @@ const articleSchema = {
   datePublished: publishedAt.toISOString(),
   dateModified: (updatedAt || publishedAt).toISOString(),
   mainEntityOfPage: canonicalUrl,
+  ...(coverImage && {
+    image: {
+      "@type": "ImageObject",
+      url: new URL(coverImage.src, Astro.site).href,
+      width: 1600,
+      height: 873,
+    },
+  }),
+  ...(keywords && { keywords: keywords.join(", ") }),
 }
 
 // BreadcrumbList schema
@@ -137,6 +148,17 @@ const faqSchema = faq?.length
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:site_name" content="spacecake" />
+    {
+      coverImage && (
+        <meta
+          property="og:image"
+          content={new URL(coverImage.src, Astro.site).href}
+        />
+      )
+    }
+    {coverImage && <meta property="og:image:alt" content={coverImage.alt} />}
+    {coverImage && <meta property="og:image:width" content="1600" />}
+    {coverImage && <meta property="og:image:height" content="873" />}
     <meta
       property="article:published_time"
       content={publishedAt.toISOString()}
@@ -154,6 +176,14 @@ const faqSchema = faq?.length
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+    {
+      coverImage && (
+        <meta
+          name="twitter:image"
+          content={new URL(coverImage.src, Astro.site).href}
+        />
+      )
+    }
 
     <!-- Structured Data -->
     <script
@@ -201,6 +231,22 @@ const faqSchema = faq?.length
           <span class="separator">/</span>
           <span class="current">{products.join(" vs ")}</span>
         </nav>
+
+        <!-- Cover Image -->
+        {
+          coverImage && (
+            <div class="cover-image">
+              <img
+                src={coverImage.src}
+                alt={coverImage.alt}
+                width="1600"
+                height="873"
+                fetchpriority="high"
+                decoding="async"
+              />
+            </div>
+          )
+        }
 
         <!-- Header -->
         <header class="header">
@@ -357,6 +403,20 @@ const faqSchema = faq?.length
 
   .breadcrumbs .current {
     color: var(--color-text);
+  }
+
+  /* Cover Image */
+  .cover-image {
+    margin-bottom: 2rem;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+  }
+
+  .cover-image img {
+    width: 100%;
+    height: auto;
+    display: block;
   }
 
   /* Header */
