@@ -37,7 +37,7 @@ type MatchRow = {
   matchEnd: number
 }
 
-type FlatRow = FileHeaderRow | MatchRow
+export type FlatRow = FileHeaderRow | MatchRow
 
 interface WorkspaceSearchPanelProps {
   workspacePath: string
@@ -62,7 +62,7 @@ function renderHighlightedLine(row: MatchRow) {
 }
 
 // flatten grouped search results into a single list of file-header and match rows
-function flattenResults(results: SearchResult[], workspacePath: string): FlatRow[] {
+export function flattenResults(results: SearchResult[], workspacePath: string): FlatRow[] {
   const rows: FlatRow[] = []
   const prefix = workspacePath.endsWith("/") ? workspacePath : `${workspacePath}/`
 

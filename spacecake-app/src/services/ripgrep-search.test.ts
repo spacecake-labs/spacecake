@@ -3,6 +3,8 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
 
+import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 import { EXCLUDED_ENTRIES } from "@/lib/ignore-patterns"
@@ -12,6 +14,7 @@ import {
   finalizeParseState,
   parseLine,
   parseRgJson,
+  search,
   type SearchOptions,
 } from "@/services/ripgrep-search"
 
@@ -403,6 +406,41 @@ describe("parseLine", () => {
     expect(state.fileOrder).toHaveLength(0)
   })
 
+  it("handles multiple submatches on a single line", () => {
+    const state = createParseState(rootPath)
+    parseLine(
+      JSON.stringify({ type: "begin", data: { path: { text: "./a.ts" } } }),
+      state,
+      100,
+      100,
+    )
+    parseLine(
+      JSON.stringify({
+        type: "match",
+        data: {
+          path: { text: "./a.ts" },
+          lines: { text: "hello hello hello\n" },
+          line_number: 1,
+          submatches: [
+            { match: { text: "hello" }, start: 0, end: 5 },
+            { match: { text: "hello" }, start: 6, end: 11 },
+            { match: { text: "hello" }, start: 12, end: 17 },
+          ],
+        },
+      }),
+      state,
+      100,
+      100,
+    )
+
+    const finalized = finalizeParseState(state)
+    expect(finalized.results[0].matches).toHaveLength(3)
+    expect(state.totalMatches).toBe(3)
+    expect(finalized.results[0].matches[0].matchStart).toBe(0)
+    expect(finalized.results[0].matches[1].matchStart).toBe(6)
+    expect(finalized.results[0].matches[2].matchStart).toBe(12)
+  })
+
   it("truncates very long lines and keeps a window around the match", () => {
     const state = createParseState(rootPath)
     // build a line >500 chars with a match near the middle
@@ -635,5 +673,73 @@ describe.skipIf(!isRgAvailable())("search (integration)", () => {
     const match = greetingResult!.matches[0]
     const highlighted = match.lineContent.slice(match.matchStart, match.matchEnd)
     expect(highlighted).toBe("hello")
+  })
+
+  // -- search() effect tests --
+  // these exercise the streaming Effect.async code path (spawn → stdout chunks → parse → kill)
+
+  it("search() returns results matching the sync helper output", async () => {
+    const options: SearchOptions = { query: "hello", workspacePath }
+
+    const syncResult = runRgSync(options)
+    const effectResult = await Effect.runPromise(search(options))
+
+    expect(effectResult.results.length).toBe(syncResult.results.length)
+    expect(effectResult.limitHit).toBe(syncResult.limitHit)
+
+    const syncFiles = syncResult.results.map((r) => r.file).sort()
+    const effectFiles = effectResult.results.map((r) => r.file).sort()
+    expect(effectFiles).toEqual(syncFiles)
+
+    const syncMatchCount = syncResult.results.reduce((sum, r) => sum + r.matches.length, 0)
+    const effectMatchCount = effectResult.results.reduce((sum, r) => sum + r.matches.length, 0)
+    expect(effectMatchCount).toBe(syncMatchCount)
+  })
+
+  it("search() returns empty results for empty query without spawning", async () => {
+    const result = await Effect.runPromise(search({ query: "", workspacePath }))
+    expect(result.results).toHaveLength(0)
+    expect(result.limitHit).toBe(false)
+  })
+
+  it("search() enforces maxResults via streaming and sets limitHit", async () => {
+    const result = await Effect.runPromise(search({ query: "hello", workspacePath, maxResults: 1 }))
+
+    const totalMatches = result.results.reduce((sum, r) => sum + r.matches.length, 0)
+    expect(totalMatches).toBe(1)
+    expect(result.limitHit).toBe(true)
+  })
+
+  it("search() enforces maxFiles via streaming and sets limitHit", async () => {
+    const result = await Effect.runPromise(search({ query: "hello", workspacePath, maxFiles: 1 }))
+
+    expect(result.results).toHaveLength(1)
+    expect(result.limitHit).toBe(true)
+  })
+
+  it("search() handles fiber interruption without hanging or leaking", async () => {
+    const fiber = Effect.runFork(search({ query: "hello", workspacePath }))
+
+    // interrupt immediately — the fiber may have already completed (small temp dir)
+    // or may still be running; either way this must not hang or throw
+    const exit = await Effect.runPromise(Fiber.interrupt(fiber))
+
+    expect(exit).toBeDefined()
+  })
+
+  it("search() returns empty success when ripgrep finds no matches (exit code 1)", async () => {
+    const result = await Effect.runPromise(
+      search({ query: "zzz_absolutely_no_match_zzz", workspacePath }),
+    )
+    expect(result.results).toHaveLength(0)
+    expect(result.limitHit).toBe(false)
+  })
+
+  it("search() fails with SearchError for invalid regex", async () => {
+    const error = await Effect.runPromise(
+      search({ query: "[", workspacePath, regex: true }).pipe(Effect.flip),
+    )
+    expect(error._tag).toBe("SearchError")
+    expect(error.description).toContain("ripgrep exited with code 2")
   })
 })
