@@ -616,7 +616,9 @@ describe.skipIf(!isRgAvailable())("search (integration)", () => {
   it("finds matches in root files", () => {
     const { results } = runRgSync({ query: "hello", workspacePath })
 
-    const greetingResult = results.find((r) => r.file === path.join(workspacePath, "greeting.ts"))
+    const greetingResult = results.find(
+      (r) => r.file === normalizePath(path.join(workspacePath, "greeting.ts")),
+    )
     expect(greetingResult).toBeDefined()
     expect(greetingResult!.matches).toHaveLength(1)
     expect(greetingResult!.matches[0].lineNumber).toBe(1)
@@ -627,7 +629,7 @@ describe.skipIf(!isRgAvailable())("search (integration)", () => {
     const { results } = runRgSync({ query: "hello", workspacePath })
 
     const buttonResult = results.find(
-      (r) => r.file === path.join(workspacePath, "src", "components", "button.tsx"),
+      (r) => r.file === normalizePath(path.join(workspacePath, "src", "components", "button.tsx")),
     )
     expect(buttonResult).toBeDefined()
     expect(buttonResult!.matches).toHaveLength(1)
@@ -689,7 +691,9 @@ describe.skipIf(!isRgAvailable())("search (integration)", () => {
   it("populates match offsets correctly", () => {
     const { results } = runRgSync({ query: "hello", workspacePath })
 
-    const greetingResult = results.find((r) => r.file === path.join(workspacePath, "greeting.ts"))
+    const greetingResult = results.find(
+      (r) => r.file === normalizePath(path.join(workspacePath, "greeting.ts")),
+    )
     expect(greetingResult).toBeDefined()
 
     const match = greetingResult!.matches[0]
