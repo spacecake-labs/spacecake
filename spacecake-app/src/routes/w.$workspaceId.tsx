@@ -59,8 +59,8 @@ import {
 } from "@/lib/atoms/git"
 import { cleanupPaneMachine } from "@/lib/atoms/pane"
 import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
-import { searchOpenAtom, searchTargetLineAtom } from "@/lib/atoms/search"
-import { workspaceSearchOpenAtom } from "@/lib/atoms/workspace-search"
+import { searchOpenAtom, searchQueryAtom, searchTargetLineAtom } from "@/lib/atoms/search"
+import { workspaceSearchOpenAtom, workspaceSearchQueryAtom } from "@/lib/atoms/workspace-search"
 import { createWorkspaceCollections } from "@/lib/db/collections"
 import * as mutations from "@/lib/db/mutations"
 import { queryClient } from "@/lib/db/query-client"
@@ -299,6 +299,7 @@ function LayoutContent() {
         type: "pane.file.open",
         filePath: AbsolutePath(filePath),
       })
+      store.set(searchQueryAtom, store.get(workspaceSearchQueryAtom))
       store.set(searchOpenAtom, true)
       store.set(searchTargetLineAtom, lineNumber)
     },
