@@ -1,6 +1,19 @@
 import { atom } from "jotai"
+import { atomWithStorage } from "jotai/utils"
 
 import type { SearchResult } from "@/services/ripgrep-search"
+
+// workspace search query + options (independent from in-file search)
+export const workspaceSearchQueryAtom = atom<string>("")
+export const workspaceSearchCaseSensitiveAtom = atomWithStorage<boolean>(
+  "workspace-search-case-sensitive",
+  false,
+)
+export const workspaceSearchWholeWordAtom = atomWithStorage<boolean>(
+  "workspace-search-whole-word",
+  false,
+)
+export const workspaceSearchRegexAtom = atomWithStorage<boolean>("workspace-search-regex", false)
 
 // workspace search panel state
 export const workspaceSearchOpenAtom = atom<boolean>(false)

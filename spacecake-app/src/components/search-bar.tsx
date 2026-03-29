@@ -24,25 +24,19 @@ const MatchCounter = React.memo(function MatchCounter({
   matchIndex: number
   matchCount: number
 }) {
-  if (query.length === 0) return null
+  const text =
+    query.length === 0 ? "" : matchCount === 0 ? "no results" : `${matchIndex + 1} of ${matchCount}`
 
-  if (matchCount === 0) {
-    return (
-      <span
-        data-testid="search-match-counter"
-        className="text-xs text-muted-foreground whitespace-nowrap px-1.5"
-      >
-        no results
-      </span>
-    )
-  }
-
+  // invisible "no results" sets the minimum width so the bar never resizes
   return (
     <span
       data-testid="search-match-counter"
-      className="text-xs text-muted-foreground whitespace-nowrap px-1.5"
+      className="relative text-xs text-muted-foreground whitespace-nowrap px-1.5 text-center"
     >
-      {matchIndex + 1} of {matchCount}
+      <span className="invisible" aria-hidden="true">
+        no results
+      </span>
+      <span className="absolute inset-0 flex items-center justify-center px-1.5">{text}</span>
     </span>
   )
 })
@@ -156,10 +150,11 @@ export const SearchBar = React.memo(function SearchBar() {
         variant={caseSensitive ? "default" : "ghost"}
         size="icon"
         className={cn(
-          "h-6 w-6 cursor-pointer text-xs font-semibold",
+          "h-6 w-6 cursor-pointer text-xs font-semibold shrink-0",
           !caseSensitive && "opacity-60",
         )}
         onClick={() => setCaseSensitive((prev) => !prev)}
+        title="match case"
         aria-label="toggle case sensitive"
         aria-pressed={caseSensitive}
         data-testid="search-case-toggle"
@@ -171,10 +166,11 @@ export const SearchBar = React.memo(function SearchBar() {
         variant={wholeWord ? "default" : "ghost"}
         size="icon"
         className={cn(
-          "h-6 w-6 cursor-pointer text-xs font-semibold underline underline-offset-[3px]",
+          "h-6 w-6 cursor-pointer text-xs font-semibold underline underline-offset-[3px] shrink-0",
           !wholeWord && "opacity-60",
         )}
         onClick={() => setWholeWord((prev) => !prev)}
+        title="match whole word"
         aria-label="toggle whole word"
         aria-pressed={wholeWord}
         data-testid="search-whole-word-toggle"
@@ -185,8 +181,12 @@ export const SearchBar = React.memo(function SearchBar() {
       <Button
         variant={regex ? "default" : "ghost"}
         size="icon"
-        className={cn("h-6 w-6 cursor-pointer text-xs font-semibold", !regex && "opacity-60")}
+        className={cn(
+          "h-6 w-6 cursor-pointer text-xs font-semibold shrink-0",
+          !regex && "opacity-60",
+        )}
         onClick={() => setRegex((prev) => !prev)}
+        title="use regular expression"
         aria-label="toggle regex"
         aria-pressed={regex}
         data-testid="search-regex-toggle"

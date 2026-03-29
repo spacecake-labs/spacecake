@@ -198,21 +198,24 @@
   }
 
   /* search match highlighting (CSS Custom Highlight API) */
+  /* colors match the workspace search panel: emerald-100/800 (light), emerald-500·20%/300 (dark) */
   ::highlight(search-match) {
-    background-color: oklch(0.85 0.15 85);
+    background-color: oklch(95% 0.052 163.051);
+    color: oklch(43.2% 0.095 166.913);
   }
 
   .dark ::highlight(search-match) {
-    background-color: oklch(0.45 0.12 85);
-    color: oklch(0.95 0 0);
+    background-color: oklch(69.6% 0.17 162.48 / 20%);
+    color: oklch(84.5% 0.143 164.978);
   }
 
   ::highlight(search-match-current) {
-    background-color: oklch(0.75 0.18 50);
+    background-color: oklch(90.5% 0.093 164.15);
+    color: oklch(43.2% 0.095 166.913);
   }
 
   .dark ::highlight(search-match-current) {
-    background-color: oklch(0.55 0.18 50);
-    color: oklch(0.95 0 0);
+    background-color: oklch(69.6% 0.17 162.48 / 40%);
+    color: oklch(84.5% 0.143 164.978);
   }
 }

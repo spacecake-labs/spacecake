@@ -6,18 +6,16 @@ import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { SidebarContent, SidebarHeader } from "@/components/ui/sidebar"
 import {
-  searchCaseSensitiveAtom,
-  searchQueryAtom,
-  searchRegexAtom,
-  searchWholeWordAtom,
-} from "@/lib/atoms/search"
-import {
+  workspaceSearchCaseSensitiveAtom,
   workspaceSearchExcludeAtom,
   workspaceSearchIncludeAtom,
   workspaceSearchLimitHitAtom,
   workspaceSearchLoadingAtom,
   workspaceSearchOpenAtom,
+  workspaceSearchQueryAtom,
+  workspaceSearchRegexAtom,
   workspaceSearchResultsAtom,
+  workspaceSearchWholeWordAtom,
 } from "@/lib/atoms/workspace-search"
 import { cn } from "@/lib/utils"
 import type { SearchResult } from "@/services/ripgrep-search"
@@ -108,10 +106,10 @@ export const WorkspaceSearchPanel = React.memo(function WorkspaceSearchPanel({
   workspacePath,
   onResultClick,
 }: WorkspaceSearchPanelProps) {
-  const [query, setQuery] = useAtom(searchQueryAtom)
-  const [caseSensitive, setCaseSensitive] = useAtom(searchCaseSensitiveAtom)
-  const [wholeWord, setWholeWord] = useAtom(searchWholeWordAtom)
-  const [regex, setRegex] = useAtom(searchRegexAtom)
+  const [query, setQuery] = useAtom(workspaceSearchQueryAtom)
+  const [caseSensitive, setCaseSensitive] = useAtom(workspaceSearchCaseSensitiveAtom)
+  const [wholeWord, setWholeWord] = useAtom(workspaceSearchWholeWordAtom)
+  const [regex, setRegex] = useAtom(workspaceSearchRegexAtom)
   const [include, setInclude] = useAtom(workspaceSearchIncludeAtom)
   const [exclude, setExclude] = useAtom(workspaceSearchExcludeAtom)
   const setOpen = useSetAtom(workspaceSearchOpenAtom)

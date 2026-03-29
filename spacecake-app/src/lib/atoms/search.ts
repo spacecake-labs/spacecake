@@ -1,7 +1,7 @@
 import { atom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 
-// shared between in-file search and workspace search
+// in-file search state
 export const searchQueryAtom = atom<string>("")
 
 // in-file search state

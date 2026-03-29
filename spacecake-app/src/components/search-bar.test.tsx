@@ -155,7 +155,7 @@ describe("SearchBar", () => {
 
     const counter = container.querySelector('[data-testid="search-match-counter"]')
     expect(counter).not.toBeNull()
-    expect(counter?.textContent).toBe("1 of 5")
+    expect(counter?.querySelector(".absolute")?.textContent).toBe("1 of 5")
   })
 
   it("shows 'no results' when matchCount is 0 and query is non-empty", () => {
@@ -165,16 +165,16 @@ describe("SearchBar", () => {
 
     const counter = container.querySelector('[data-testid="search-match-counter"]')
     expect(counter).not.toBeNull()
-    expect(counter?.textContent).toBe("no results")
+    expect(counter?.querySelector(".absolute")?.textContent).toBe("no results")
   })
 
-  it("hides match counter when query is empty", () => {
+  it("renders stable-width match counter when query is empty", () => {
     store.set(searchQueryAtom, "")
     store.set(searchMatchCountAtom, 0)
     renderSearchBar()
 
     const counter = container.querySelector('[data-testid="search-match-counter"]')
-    expect(counter).toBeNull()
+    expect(counter).not.toBeNull()
   })
 
   it("case sensitive toggle button works", () => {
