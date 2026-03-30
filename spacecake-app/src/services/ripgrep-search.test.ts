@@ -785,4 +785,30 @@ describe.skipIf(!isRgAvailable())("search (integration)", () => {
     expect(error._tag).toBe("SearchError")
     expect(error.description).toContain("ripgrep exited with code 2")
   })
+
+  it("search() fails with SearchError when workspace path does not exist", async () => {
+    // spawn() will fail with ENOENT when trying to set cwd to non-existent path
+    const error = await Effect.runPromise(
+      search({ query: "hello", workspacePath: "/nonexistent/path/12345" }).pipe(Effect.flip),
+    )
+    expect(error._tag).toBe("SearchError")
+    expect(error.description).toContain("not found")
+  })
+
+  it("search() fails with SearchError when workspace path is a file, not a directory", async () => {
+    // spawn() will fail with ENOTDIR when trying to set cwd to a file path
+    const tempFile = await mkdtemp(path.join(os.tmpdir(), "rg-file-"))
+    const filePath = path.join(tempFile, "test.txt")
+    await writeFile(filePath, "test content")
+
+    try {
+      const error = await Effect.runPromise(
+        search({ query: "hello", workspacePath: filePath }).pipe(Effect.flip),
+      )
+      expect(error._tag).toBe("SearchError")
+      expect(error.description).toContain("not a directory")
+    } finally {
+      await rm(tempFile, { recursive: true })
+    }
+  })
 })
