@@ -796,7 +796,7 @@ describe.skipIf(!isRgAvailable())("search (integration)", () => {
   })
 
   it("search() fails with SearchError when workspace path is a file, not a directory", async () => {
-    // spawn() will fail with ENOTDIR when trying to set cwd to a file path
+    // spawn() will fail with ENOTDIR (unix) or ENOENT (windows) when cwd is a file path
     const tempFile = await mkdtemp(path.join(os.tmpdir(), "rg-file-"))
     const filePath = path.join(tempFile, "test.txt")
     await writeFile(filePath, "test content")
@@ -806,7 +806,8 @@ describe.skipIf(!isRgAvailable())("search (integration)", () => {
         search({ query: "hello", workspacePath: filePath }).pipe(Effect.flip),
       )
       expect(error._tag).toBe("SearchError")
-      expect(error.description).toContain("not a directory")
+      // Windows returns ENOENT, unix returns ENOTDIR — accept both
+      expect(error.description).toMatch(/not a directory|not found/)
     } finally {
       await rm(tempFile, { recursive: true })
     }
