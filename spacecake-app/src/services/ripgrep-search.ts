@@ -2,12 +2,17 @@ import { spawn } from "node:child_process"
 import { join } from "node:path"
 import { StringDecoder } from "node:string_decoder"
 
-import { rgPath } from "@vscode/ripgrep"
+import { rgPath as _rgPath } from "@vscode/ripgrep"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 
 import { EXCLUDED_ENTRIES } from "@/lib/ignore-patterns"
 import { normalizePath } from "@/lib/utils"
+
+// in a packaged electron app, rgPath points inside app.asar (a virtual archive)
+// which the OS cannot execute. forge unpacks @vscode/ripgrep to app.asar.unpacked,
+// so we redirect there at runtime.
+const rgPath = _rgPath.replace(/\bapp\.asar\b/, "app.asar.unpacked")
 
 // max characters to keep per line in search results.
 // prevents v8 structured clone crashes when ripgrep matches minified files
@@ -284,7 +289,9 @@ const formatSpawnError = (err: Error, workspacePath: string): string => {
   const code = (err as { code?: string }).code
 
   if (code === "ENOTDIR" || message.includes("ENOTDIR")) {
-    return `workspace path is not a directory or does not exist: ${workspacePath}`
+    // ENOTDIR can come from the workspace path or the ripgrep binary path (e.g. inside .asar).
+    // include the raw message so the actual offending path is visible.
+    return `ripgrep failed to start (ENOTDIR): ${message} — workspace: ${workspacePath}`
   }
   if (code === "ENOENT" || message.includes("ENOENT")) {
     return `workspace path not found: ${workspacePath}`
