@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.68
+
+### Patch Changes
+
+- 0aef2d4: Feat: 'Find in files' search.
+
 ## 0.1.0-alpha.67
 
 ### Patch Changes
