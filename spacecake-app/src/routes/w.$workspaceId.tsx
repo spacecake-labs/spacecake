@@ -59,7 +59,12 @@ import {
 } from "@/lib/atoms/git"
 import { cleanupPaneMachine } from "@/lib/atoms/pane"
 import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
-import { searchOpenAtom, searchQueryAtom, searchTargetLineAtom } from "@/lib/atoms/search"
+import {
+  searchActorAtom,
+  searchOpenAtom,
+  searchQueryAtom,
+  searchTargetLineAtom,
+} from "@/lib/atoms/search"
 import { workspaceSearchOpenAtom, workspaceSearchQueryAtom } from "@/lib/atoms/workspace-search"
 import { createWorkspaceCollections } from "@/lib/db/collections"
 import * as mutations from "@/lib/db/mutations"
@@ -299,9 +304,23 @@ function LayoutContent() {
         type: "pane.file.open",
         filePath: AbsolutePath(filePath),
       })
-      store.set(searchQueryAtom, store.get(workspaceSearchQueryAtom))
+
+      const query = store.get(workspaceSearchQueryAtom)
+      store.set(searchQueryAtom, query)
       store.set(searchOpenAtom, true)
-      store.set(searchTargetLineAtom, lineNumber)
+
+      // if the search machine already exists (file was open), send events
+      // directly — this handles the case where searchOpenAtom is already
+      // true and the subscription wouldn't fire.
+      const searchActor = store.get(searchActorAtom)
+      if (searchActor) {
+        searchActor.send({ type: "search.input.change", query })
+        searchActor.send({ type: "search.target.line", line: lineNumber })
+      } else {
+        // machine not yet mounted (file is loading); store target line
+        // so readAtoms picks it up when the machine enters Open.
+        store.set(searchTargetLineAtom, lineNumber)
+      }
     },
     [machine],
   )

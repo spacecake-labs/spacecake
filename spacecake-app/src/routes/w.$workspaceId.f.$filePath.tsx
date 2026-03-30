@@ -290,13 +290,9 @@ function FileLayout() {
   const autosaveEnabled =
     viewKind !== "diff" && viewKind !== "conflict" && settings.autosave === "on"
 
-  // open in-file search (only in rich mode — source mode uses CodeMirror's built-in search)
+  // open unified in-file search (works in both rich and source mode)
   useHotkey("mod+f", () => store.set(searchOpenAtom, true), {
     capture: true,
-    guard: (e) => {
-      const isInCodeMirror = (e.target as HTMLElement)?.closest?.(".cm-editor") !== null
-      return !isInCodeMirror && viewKind === "rich"
-    },
   })
 
   // Helper to notify Claude Code of selection changes
@@ -447,7 +443,6 @@ function FileLayout() {
       <Editor
         key={key}
         filePath={filePath}
-        viewKind={viewKind}
         editorConfig={editorConfig}
         autosaveEnabled={autosaveEnabled}
         onChange={(editorState: EditorState, changeType: ChangeType) => {

@@ -9,9 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { SearchBar } from "@/components/search-bar"
 import {
+  searchActorAtom,
   searchCaseSensitiveAtom,
-  searchMatchCountAtom,
-  searchMatchIndexAtom,
   searchOpenAtom,
   searchQueryAtom,
   searchRegexAtom,
@@ -23,16 +22,51 @@ vi.mock("@/lib/search/highlight-manager", () => ({
   clearSearchHighlights: vi.fn(),
 }))
 
+// ---------------------------------------------------------------------------
+// mock actor
+// ---------------------------------------------------------------------------
+
+function createMockActor(initial: { matchCount?: number; matchIndex?: number } = {}) {
+  const context = {
+    matchCount: initial.matchCount ?? 0,
+    matchIndex: initial.matchIndex ?? 0,
+  }
+  const listeners = new Set<() => void>()
+
+  return {
+    getSnapshot: () => ({ context }),
+    subscribe: (cb: () => void) => {
+      listeners.add(cb)
+      return { unsubscribe: () => listeners.delete(cb) }
+    },
+    send: vi.fn(),
+    // test helper: update context and notify subscribers
+    _update: (patch: Partial<typeof context>) => {
+      Object.assign(context, patch)
+      listeners.forEach((cb) => cb())
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// tests
+// ---------------------------------------------------------------------------
+
 describe("SearchBar", () => {
   let container: HTMLDivElement
   let root: Root
-  let store: ReturnType<typeof createStore>
+  let testStore: ReturnType<typeof createStore>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let mockActor: ReturnType<typeof createMockActor>
 
   beforeEach(() => {
     container = document.createElement("div")
     document.body.appendChild(container)
     root = createRoot(container)
-    store = createStore()
+    testStore = createStore()
+    mockActor = createMockActor()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    testStore.set(searchActorAtom, mockActor as any)
   })
 
   afterEach(() => {
@@ -44,7 +78,7 @@ describe("SearchBar", () => {
   function renderSearchBar() {
     act(() => {
       root.render(
-        <Provider store={store}>
+        <Provider store={testStore}>
           <SearchBar />
         </Provider>,
       )
@@ -52,8 +86,8 @@ describe("SearchBar", () => {
   }
 
   it("renders input, buttons, and match counter", () => {
-    store.set(searchQueryAtom, "hello")
-    store.set(searchMatchCountAtom, 3)
+    testStore.set(searchQueryAtom, "hello")
+    mockActor._update({ matchCount: 3 })
     renderSearchBar()
 
     expect(container.querySelector('[data-testid="search-input"]')).not.toBeNull()
@@ -65,7 +99,7 @@ describe("SearchBar", () => {
     expect(container.querySelector('[data-testid="search-match-counter"]')).not.toBeNull()
   })
 
-  it("typing in input updates the search query", () => {
+  it("typing in input updates the search query and sends event to machine", () => {
     renderSearchBar()
 
     const input = container.querySelector('[data-testid="search-input"]') as HTMLInputElement
@@ -81,39 +115,32 @@ describe("SearchBar", () => {
       input.dispatchEvent(new Event("input", { bubbles: true }))
     })
 
-    expect(store.get(searchQueryAtom)).toBe("test query")
+    expect(testStore.get(searchQueryAtom)).toBe("test query")
+    expect(mockActor.send).toHaveBeenCalledWith({
+      type: "search.input.change",
+      query: "test query",
+    })
   })
 
-  it("pressing Enter increments match index with wrapping", () => {
-    store.set(searchQueryAtom, "hello")
-    store.set(searchMatchCountAtom, 3)
-    store.set(searchMatchIndexAtom, 0)
+  it("pressing Enter sends navigate.to with next index", () => {
+    testStore.set(searchQueryAtom, "hello")
+    mockActor._update({ matchCount: 3, matchIndex: 0 })
     renderSearchBar()
 
     const input = container.querySelector('[data-testid="search-input"]') as HTMLInputElement
 
-    // press Enter to go to next match
     act(() => {
       input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))
     })
-    expect(store.get(searchMatchIndexAtom)).toBe(1)
-
-    act(() => {
-      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))
+    expect(mockActor.send).toHaveBeenCalledWith({
+      type: "search.navigate.to",
+      matchIndex: 1,
     })
-    expect(store.get(searchMatchIndexAtom)).toBe(2)
-
-    // should wrap around
-    act(() => {
-      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))
-    })
-    expect(store.get(searchMatchIndexAtom)).toBe(0)
   })
 
-  it("pressing Shift+Enter decrements match index with wrapping", () => {
-    store.set(searchQueryAtom, "hello")
-    store.set(searchMatchCountAtom, 3)
-    store.set(searchMatchIndexAtom, 0)
+  it("pressing Shift+Enter sends navigate.to with previous index", () => {
+    testStore.set(searchQueryAtom, "hello")
+    mockActor._update({ matchCount: 3, matchIndex: 0 })
     renderSearchBar()
 
     const input = container.querySelector('[data-testid="search-input"]') as HTMLInputElement
@@ -124,18 +151,14 @@ describe("SearchBar", () => {
         new KeyboardEvent("keydown", { key: "Enter", shiftKey: true, bubbles: true }),
       )
     })
-    expect(store.get(searchMatchIndexAtom)).toBe(2)
-
-    act(() => {
-      input.dispatchEvent(
-        new KeyboardEvent("keydown", { key: "Enter", shiftKey: true, bubbles: true }),
-      )
+    expect(mockActor.send).toHaveBeenCalledWith({
+      type: "search.navigate.to",
+      matchIndex: 2,
     })
-    expect(store.get(searchMatchIndexAtom)).toBe(1)
   })
 
   it("pressing Escape closes search", () => {
-    store.set(searchOpenAtom, true)
+    testStore.set(searchOpenAtom, true)
     renderSearchBar()
 
     const input = container.querySelector('[data-testid="search-input"]') as HTMLInputElement
@@ -144,13 +167,12 @@ describe("SearchBar", () => {
       input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
     })
 
-    expect(store.get(searchOpenAtom)).toBe(false)
+    expect(testStore.get(searchOpenAtom)).toBe(false)
   })
 
   it("match counter shows '1 of 5' format", () => {
-    store.set(searchQueryAtom, "hello")
-    store.set(searchMatchCountAtom, 5)
-    store.set(searchMatchIndexAtom, 0)
+    testStore.set(searchQueryAtom, "hello")
+    mockActor._update({ matchCount: 5, matchIndex: 0 })
     renderSearchBar()
 
     const counter = container.querySelector('[data-testid="search-match-counter"]')
@@ -159,8 +181,8 @@ describe("SearchBar", () => {
   })
 
   it("shows 'no results' when matchCount is 0 and query is non-empty", () => {
-    store.set(searchQueryAtom, "nonexistent")
-    store.set(searchMatchCountAtom, 0)
+    testStore.set(searchQueryAtom, "nonexistent")
+    mockActor._update({ matchCount: 0 })
     renderSearchBar()
 
     const counter = container.querySelector('[data-testid="search-match-counter"]')
@@ -169,16 +191,16 @@ describe("SearchBar", () => {
   })
 
   it("renders stable-width match counter when query is empty", () => {
-    store.set(searchQueryAtom, "")
-    store.set(searchMatchCountAtom, 0)
+    testStore.set(searchQueryAtom, "")
+    mockActor._update({ matchCount: 0 })
     renderSearchBar()
 
     const counter = container.querySelector('[data-testid="search-match-counter"]')
     expect(counter).not.toBeNull()
   })
 
-  it("case sensitive toggle button works", () => {
-    store.set(searchCaseSensitiveAtom, false)
+  it("case sensitive toggle sends options.change event and updates atom", () => {
+    testStore.set(searchCaseSensitiveAtom, false)
     renderSearchBar()
 
     const toggle = container.querySelector(
@@ -191,11 +213,17 @@ describe("SearchBar", () => {
       toggle.dispatchEvent(new MouseEvent("click", { bubbles: true }))
     })
 
-    expect(store.get(searchCaseSensitiveAtom)).toBe(true)
+    expect(testStore.get(searchCaseSensitiveAtom)).toBe(true)
+    expect(mockActor.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "search.options.change",
+        caseSensitive: true,
+      }),
+    )
   })
 
-  it("regex toggle button works", () => {
-    store.set(searchRegexAtom, false)
+  it("regex toggle sends options.change event and updates atom", () => {
+    testStore.set(searchRegexAtom, false)
     renderSearchBar()
 
     const toggle = container.querySelector(
@@ -208,7 +236,13 @@ describe("SearchBar", () => {
       toggle.dispatchEvent(new MouseEvent("click", { bubbles: true }))
     })
 
-    expect(store.get(searchRegexAtom)).toBe(true)
+    expect(testStore.get(searchRegexAtom)).toBe(true)
+    expect(mockActor.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "search.options.change",
+        regex: true,
+      }),
+    )
   })
 
   it("renders whole word toggle button", () => {
@@ -218,8 +252,8 @@ describe("SearchBar", () => {
     expect(toggle).not.toBeNull()
   })
 
-  it("whole word toggle button works", () => {
-    store.set(searchWholeWordAtom, false)
+  it("whole word toggle sends options.change event and updates atom", () => {
+    testStore.set(searchWholeWordAtom, false)
     renderSearchBar()
 
     const toggle = container.querySelector(
@@ -232,12 +266,18 @@ describe("SearchBar", () => {
       toggle.dispatchEvent(new MouseEvent("click", { bubbles: true }))
     })
 
-    expect(store.get(searchWholeWordAtom)).toBe(true)
+    expect(testStore.get(searchWholeWordAtom)).toBe(true)
+    expect(mockActor.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "search.options.change",
+        wholeWord: true,
+      }),
+    )
   })
 
   it("prev/next buttons are disabled when matchCount is 0", () => {
-    store.set(searchQueryAtom, "hello")
-    store.set(searchMatchCountAtom, 0)
+    testStore.set(searchQueryAtom, "hello")
+    mockActor._update({ matchCount: 0 })
     renderSearchBar()
 
     const prev = container.querySelector('[data-testid="search-prev"]') as HTMLButtonElement
@@ -248,8 +288,8 @@ describe("SearchBar", () => {
   })
 
   it("prev/next buttons are enabled when matchCount > 0", () => {
-    store.set(searchQueryAtom, "hello")
-    store.set(searchMatchCountAtom, 3)
+    testStore.set(searchQueryAtom, "hello")
+    mockActor._update({ matchCount: 3 })
     renderSearchBar()
 
     const prev = container.querySelector('[data-testid="search-prev"]') as HTMLButtonElement
@@ -260,7 +300,7 @@ describe("SearchBar", () => {
   })
 
   it("clicking close button sets searchOpenAtom to false", () => {
-    store.set(searchOpenAtom, true)
+    testStore.set(searchOpenAtom, true)
     renderSearchBar()
 
     const closeBtn = container.querySelector('[data-testid="search-close"]') as HTMLButtonElement
@@ -269,6 +309,6 @@ describe("SearchBar", () => {
       closeBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }))
     })
 
-    expect(store.get(searchOpenAtom)).toBe(false)
+    expect(testStore.get(searchOpenAtom)).toBe(false)
   })
 })

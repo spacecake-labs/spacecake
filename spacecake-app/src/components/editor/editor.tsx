@@ -36,7 +36,6 @@ interface EditorProps {
   editorState?: EditorState
   editorSerializedState?: SerializedEditorState
   filePath: AbsolutePath
-  viewKind?: "rich" | "source" | "diff" | "conflict"
   autosaveEnabled?: boolean
 
   onChange: (editorState: EditorState, changeType: ChangeType) => void
@@ -90,7 +89,6 @@ export function Editor({
   editorState,
   editorSerializedState,
   filePath,
-  viewKind,
   autosaveEnabled,
   onChange,
   onCodeMirrorSelection,
@@ -194,7 +192,7 @@ export function Editor({
 
   return (
     <div data-testid="lexical-editor" className="relative h-full">
-      {searchOpen && viewKind === "rich" && <SearchBar />}
+      {searchOpen && <SearchBar />}
       <LexicalComposer
         initialConfig={{
           ...editorConfig,

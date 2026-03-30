@@ -4,16 +4,51 @@ import * as React from "react"
 
 import { Button } from "@/components/ui/button"
 import {
+  searchActorAtom,
   searchCaseSensitiveAtom,
-  searchMatchCountAtom,
-  searchMatchIndexAtom,
   searchOpenAtom,
   searchQueryAtom,
   searchRegexAtom,
   searchWholeWordAtom,
 } from "@/lib/atoms/search"
-import { clearSearchHighlights } from "@/lib/search/highlight-manager"
+import { store } from "@/lib/store"
 import { cn } from "@/lib/utils"
+
+// ---------------------------------------------------------------------------
+// subscribe to search machine context for matchCount and matchIndex.
+// uses useSyncExternalStore to handle the case where the actor may not be
+// available on first render (SearchPlugin sets it in a useEffect).
+// ---------------------------------------------------------------------------
+
+function useSearchMachineValue<T>(
+  selector: (ctx: { matchCount: number; matchIndex: number }) => T,
+  fallback: T,
+): T {
+  const actor = useAtomValue(searchActorAtom)
+
+  const subscribe = React.useCallback(
+    (cb: () => void) => {
+      if (!actor) return () => {}
+      const sub = actor.subscribe(cb)
+      return () => sub.unsubscribe()
+    },
+    [actor],
+  )
+
+  return React.useSyncExternalStore(
+    subscribe,
+    () => {
+      if (!actor) return fallback
+      const ctx = actor.getSnapshot().context as { matchCount: number; matchIndex: number }
+      return selector(ctx)
+    },
+    () => fallback,
+  )
+}
+
+// ---------------------------------------------------------------------------
+// components
+// ---------------------------------------------------------------------------
 
 const MatchCounter = React.memo(function MatchCounter({
   query,
@@ -44,11 +79,13 @@ const MatchCounter = React.memo(function MatchCounter({
 export const SearchBar = React.memo(function SearchBar() {
   const [query, setQuery] = useAtom(searchQueryAtom)
   const setOpen = useSetAtom(searchOpenAtom)
-  const [matchIndex, setMatchIndex] = useAtom(searchMatchIndexAtom)
-  const matchCount = useAtomValue(searchMatchCountAtom)
   const [caseSensitive, setCaseSensitive] = useAtom(searchCaseSensitiveAtom)
   const [wholeWord, setWholeWord] = useAtom(searchWholeWordAtom)
   const [regex, setRegex] = useAtom(searchRegexAtom)
+
+  const actor = useAtomValue(searchActorAtom)
+  const matchCount = useSearchMachineValue((ctx) => ctx.matchCount, 0)
+  const matchIndex = useSearchMachineValue((ctx) => ctx.matchIndex, 0)
 
   const inputRef = React.useRef<HTMLInputElement>(null)
 
@@ -61,31 +98,32 @@ export const SearchBar = React.memo(function SearchBar() {
     }
   }, [])
 
-  // clear highlights on unmount (when search is closed)
-  React.useEffect(() => {
-    return () => {
-      clearSearchHighlights()
-    }
-  }, [])
-
-  // reset match index when query changes
-  React.useEffect(() => {
-    setMatchIndex(0)
-  }, [query, setMatchIndex])
-
   const close = React.useCallback(() => {
     setOpen(false)
   }, [setOpen])
 
   const goToNext = React.useCallback(() => {
-    if (matchCount === 0) return
-    setMatchIndex((prev) => (prev + 1) % matchCount)
-  }, [matchCount, setMatchIndex])
+    if (!actor) return
+    const { matchCount: mc, matchIndex: mi } = actor.getSnapshot().context
+    if (mc === 0) return
+    actor.send({ type: "search.navigate.to", matchIndex: (mi + 1) % mc })
+  }, [actor])
 
   const goToPrev = React.useCallback(() => {
-    if (matchCount === 0) return
-    setMatchIndex((prev) => (prev - 1 + matchCount) % matchCount)
-  }, [matchCount, setMatchIndex])
+    if (!actor) return
+    const { matchCount: mc, matchIndex: mi } = actor.getSnapshot().context
+    if (mc === 0) return
+    actor.send({ type: "search.navigate.to", matchIndex: (mi - 1 + mc) % mc })
+  }, [actor])
+
+  const handleQueryChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const q = e.target.value
+      setQuery(q) // persist for next open / workspace search handoff
+      actor?.send({ type: "search.input.change", query: q })
+    },
+    [setQuery, actor],
+  )
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -104,6 +142,45 @@ export const SearchBar = React.memo(function SearchBar() {
     [goToNext, goToPrev, close],
   )
 
+  const toggleCaseSensitive = React.useCallback(() => {
+    setCaseSensitive((prev) => {
+      const next = !prev
+      actor?.send({
+        type: "search.options.change",
+        caseSensitive: next,
+        wholeWord: store.get(searchWholeWordAtom),
+        regex: store.get(searchRegexAtom),
+      })
+      return next
+    })
+  }, [setCaseSensitive, actor])
+
+  const toggleWholeWord = React.useCallback(() => {
+    setWholeWord((prev) => {
+      const next = !prev
+      actor?.send({
+        type: "search.options.change",
+        caseSensitive: store.get(searchCaseSensitiveAtom),
+        wholeWord: next,
+        regex: store.get(searchRegexAtom),
+      })
+      return next
+    })
+  }, [setWholeWord, actor])
+
+  const toggleRegex = React.useCallback(() => {
+    setRegex((prev) => {
+      const next = !prev
+      actor?.send({
+        type: "search.options.change",
+        caseSensitive: store.get(searchCaseSensitiveAtom),
+        wholeWord: store.get(searchWholeWordAtom),
+        regex: next,
+      })
+      return next
+    })
+  }, [setRegex, actor])
+
   return (
     <div
       data-testid="search-bar"
@@ -114,7 +191,7 @@ export const SearchBar = React.memo(function SearchBar() {
         data-testid="search-input"
         type="text"
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={handleQueryChange}
         onKeyDown={handleKeyDown}
         placeholder="search..."
         className="h-6 w-48 rounded-sm border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
@@ -153,7 +230,7 @@ export const SearchBar = React.memo(function SearchBar() {
           "h-6 w-6 cursor-pointer text-xs font-semibold shrink-0",
           !caseSensitive && "opacity-60",
         )}
-        onClick={() => setCaseSensitive((prev) => !prev)}
+        onClick={toggleCaseSensitive}
         title="match case"
         aria-label="toggle case sensitive"
         aria-pressed={caseSensitive}
@@ -169,7 +246,7 @@ export const SearchBar = React.memo(function SearchBar() {
           "h-6 w-6 cursor-pointer text-xs font-semibold underline underline-offset-[3px] shrink-0",
           !wholeWord && "opacity-60",
         )}
-        onClick={() => setWholeWord((prev) => !prev)}
+        onClick={toggleWholeWord}
         title="match whole word"
         aria-label="toggle whole word"
         aria-pressed={wholeWord}
@@ -185,7 +262,7 @@ export const SearchBar = React.memo(function SearchBar() {
           "h-6 w-6 cursor-pointer text-xs font-semibold shrink-0",
           !regex && "opacity-60",
         )}
-        onClick={() => setRegex((prev) => !prev)}
+        onClick={toggleRegex}
         title="use regular expression"
         aria-label="toggle regex"
         aria-pressed={regex}

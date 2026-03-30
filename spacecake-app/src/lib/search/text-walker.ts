@@ -69,25 +69,44 @@ function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
+// binary search for the first segment that could overlap with matchStart.
+// returns the index of the segment whose range includes or follows matchStart.
+function findSegmentIndex(segments: TextSegment[], offset: number): number {
+  let lo = 0
+  let hi = segments.length - 1
+  while (lo <= hi) {
+    const mid = (lo + hi) >>> 1
+    const seg = segments[mid]
+    if (offset < seg.start) {
+      hi = mid - 1
+    } else if (offset >= seg.start + seg.length) {
+      lo = mid + 1
+    } else {
+      return mid
+    }
+  }
+  return lo
+}
+
 // maps a match's offset range in fullText back to one or more DOM text node ranges.
 // a single match may span multiple text nodes.
+// uses binary search to find the first overlapping segment: O(log n + k)
+// where k is the number of segments the match spans (usually 1).
 function mapMatchToRanges(
   segments: TextSegment[],
   matchStart: number,
   matchEnd: number,
 ): MatchRange[] {
   const ranges: MatchRange[] = []
+  let i = findSegmentIndex(segments, matchStart)
 
-  for (const segment of segments) {
+  while (i < segments.length) {
+    const segment = segments[i]
     const segStart = segment.start
     const segEnd = segment.start + segment.length
 
-    // skip segments entirely before or after the match
-    if (segEnd <= matchStart || segStart >= matchEnd) {
-      continue
-    }
+    if (segStart >= matchEnd) break
 
-    // calculate the overlap between this segment and the match
     const overlapStart = Math.max(matchStart, segStart)
     const overlapEnd = Math.min(matchEnd, segEnd)
 
@@ -96,12 +115,16 @@ function mapMatchToRanges(
       startOffset: overlapStart - segStart,
       endOffset: overlapEnd - segStart,
     })
+    i++
   }
 
   return ranges
 }
 
+const MAX_LEXICAL_MATCHES = 10_000
+
 // finds all matches of a query within a text index and returns their DOM ranges.
+// capped at 10,000 matches to bound downstream allocations (CSS Highlights, etc.).
 export function findMatches(
   index: TextIndex,
   query: string,
@@ -144,6 +167,8 @@ export function findMatches(
     if (ranges.length > 0) {
       matches.push({ ranges })
     }
+
+    if (matches.length >= MAX_LEXICAL_MATCHES) break
   }
 
   return matches

@@ -49,12 +49,25 @@ function toDomRange(mr: MatchRange): Range {
 }
 
 // ---------------------------------------------------------------------------
+// cache — avoid rebuilding all DOM Ranges on every next/prev navigation.
+// the "all matches" Highlight is only rebuilt when the matches array identity
+// changes (new search or content edit). the "current match" highlight is
+// always cheap (1-2 Range objects).
+// ---------------------------------------------------------------------------
+
+let cachedAllHighlight: Highlight | null = null
+let cachedMatchesIdentity: SearchMatch[] | null = null
+
+// ---------------------------------------------------------------------------
 // public API
 // ---------------------------------------------------------------------------
 
 /**
  * create (or replace) CSS custom highlights for all matches and the current
  * match. if matches is empty the highlights are cleared instead.
+ *
+ * caches the "all matches" Highlight object — only rebuilds when the matches
+ * array reference changes (not on every next/prev navigation).
  */
 export function updateSearchHighlights(matches: SearchMatch[], currentIndex: number): void {
   if (!hasHighlightApi()) return
@@ -65,23 +78,24 @@ export function updateSearchHighlights(matches: SearchMatch[], currentIndex: num
     return
   }
 
-  // build DOM ranges for every match range
-  const allRanges: Range[] = []
-  for (const match of matches) {
-    for (const mr of match.ranges) {
-      allRanges.push(toDomRange(mr))
+  // only rebuild the "all matches" highlight when matches change identity
+  if (matches !== cachedMatchesIdentity) {
+    const allRanges: Range[] = []
+    for (const match of matches) {
+      for (const mr of match.ranges) {
+        allRanges.push(toDomRange(mr))
+      }
     }
+    cachedAllHighlight = new Highlight(...allRanges)
+    cachedMatchesIdentity = matches
+    CSS.highlights.set(HIGHLIGHT_ALL, cachedAllHighlight)
   }
 
-  // set the "all matches" highlight
-  CSS.highlights.set(HIGHLIGHT_ALL, new Highlight(...allRanges))
-
-  // set the "current match" highlight when the index is valid
+  // always update the current-match highlight (cheap — 1-2 Range objects)
   if (currentIndex >= 0 && currentIndex < matches.length) {
     const currentRanges = matches[currentIndex].ranges.map(toDomRange)
     CSS.highlights.set(HIGHLIGHT_CURRENT, new Highlight(...currentRanges))
   } else {
-    // index out of bounds — remove the current-match highlight
     CSS.highlights.delete(HIGHLIGHT_CURRENT)
   }
 }
@@ -94,6 +108,8 @@ export function clearSearchHighlights(): void {
 
   CSS.highlights.delete(HIGHLIGHT_ALL)
   CSS.highlights.delete(HIGHLIGHT_CURRENT)
+  cachedAllHighlight = null
+  cachedMatchesIdentity = null
 }
 
 /**
