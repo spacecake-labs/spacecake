@@ -59,8 +59,17 @@ import {
 } from "@/lib/atoms/git"
 import { cleanupPaneMachine } from "@/lib/atoms/pane"
 import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
-import { searchOpenAtom, searchTargetLineAtom } from "@/lib/atoms/search"
-import { workspaceSearchOpenAtom } from "@/lib/atoms/workspace-search"
+import {
+  searchActorAtom,
+  searchOpenAtom,
+  searchQueryAtom,
+  searchTargetLineAtom,
+} from "@/lib/atoms/search"
+import {
+  workspaceSearchFocusTriggerAtom,
+  workspaceSearchOpenAtom,
+  workspaceSearchQueryAtom,
+} from "@/lib/atoms/workspace-search"
 import { createWorkspaceCollections } from "@/lib/db/collections"
 import * as mutations from "@/lib/db/mutations"
 import { queryClient } from "@/lib/db/query-client"
@@ -269,14 +278,13 @@ function LayoutContent() {
   // Cmd+1 / Ctrl+1 to focus editor
   useHotkey("mod+1", () => focus("editor"), { capture: true })
 
-  // Cmd+Shift+F to toggle workspace search panel
+  // Cmd+Shift+F to open/focus workspace search panel
   useHotkey(
     "mod+shift+f",
     () => {
-      const willOpen = !store.get(workspaceSearchOpenAtom)
-      store.set(workspaceSearchOpenAtom, willOpen)
-      // expand sidebar if it's collapsed when opening search
-      if (willOpen && sidebarPanelRef.current?.isCollapsed()) {
+      store.set(workspaceSearchOpenAtom, true)
+      store.set(workspaceSearchFocusTriggerAtom, (c) => c + 1)
+      if (sidebarPanelRef.current?.isCollapsed()) {
         setSidebarOpen(true)
       }
     },
@@ -285,9 +293,9 @@ function LayoutContent() {
 
   // native menu bar: Edit → Find in Files
   useMenuAction("find-in-files", () => {
-    const willOpen = !store.get(workspaceSearchOpenAtom)
-    store.set(workspaceSearchOpenAtom, willOpen)
-    if (willOpen && sidebarPanelRef.current?.isCollapsed()) {
+    store.set(workspaceSearchOpenAtom, true)
+    store.set(workspaceSearchFocusTriggerAtom, (c) => c + 1)
+    if (sidebarPanelRef.current?.isCollapsed()) {
       setSidebarOpen(true)
     }
   })
@@ -299,8 +307,23 @@ function LayoutContent() {
         type: "pane.file.open",
         filePath: AbsolutePath(filePath),
       })
+
+      const query = store.get(workspaceSearchQueryAtom)
+      store.set(searchQueryAtom, query)
       store.set(searchOpenAtom, true)
-      store.set(searchTargetLineAtom, lineNumber)
+
+      // if the search machine already exists (file was open), send events
+      // directly — this handles the case where searchOpenAtom is already
+      // true and the subscription wouldn't fire.
+      const searchActor = store.get(searchActorAtom)
+      if (searchActor) {
+        searchActor.send({ type: "search.input.change", query })
+        searchActor.send({ type: "search.target.line", line: lineNumber })
+      } else {
+        // machine not yet mounted (file is loading); store target line
+        // so readAtoms picks it up when the machine enters Open.
+        store.set(searchTargetLineAtom, lineNumber)
+      }
     },
     [machine],
   )

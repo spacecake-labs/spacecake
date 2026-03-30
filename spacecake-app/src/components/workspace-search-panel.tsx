@@ -1,23 +1,22 @@
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { useAtom, useSetAtom } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Ellipsis, X } from "lucide-react"
 import * as React from "react"
 
 import { Button } from "@/components/ui/button"
 import { SidebarContent, SidebarHeader } from "@/components/ui/sidebar"
 import {
-  searchCaseSensitiveAtom,
-  searchQueryAtom,
-  searchRegexAtom,
-  searchWholeWordAtom,
-} from "@/lib/atoms/search"
-import {
+  workspaceSearchCaseSensitiveAtom,
   workspaceSearchExcludeAtom,
   workspaceSearchIncludeAtom,
   workspaceSearchLimitHitAtom,
   workspaceSearchLoadingAtom,
   workspaceSearchOpenAtom,
+  workspaceSearchFocusTriggerAtom,
+  workspaceSearchQueryAtom,
+  workspaceSearchRegexAtom,
   workspaceSearchResultsAtom,
+  workspaceSearchWholeWordAtom,
 } from "@/lib/atoms/workspace-search"
 import { cn } from "@/lib/utils"
 import type { SearchResult } from "@/services/ripgrep-search"
@@ -108,10 +107,10 @@ export const WorkspaceSearchPanel = React.memo(function WorkspaceSearchPanel({
   workspacePath,
   onResultClick,
 }: WorkspaceSearchPanelProps) {
-  const [query, setQuery] = useAtom(searchQueryAtom)
-  const [caseSensitive, setCaseSensitive] = useAtom(searchCaseSensitiveAtom)
-  const [wholeWord, setWholeWord] = useAtom(searchWholeWordAtom)
-  const [regex, setRegex] = useAtom(searchRegexAtom)
+  const [query, setQuery] = useAtom(workspaceSearchQueryAtom)
+  const [caseSensitive, setCaseSensitive] = useAtom(workspaceSearchCaseSensitiveAtom)
+  const [wholeWord, setWholeWord] = useAtom(workspaceSearchWholeWordAtom)
+  const [regex, setRegex] = useAtom(workspaceSearchRegexAtom)
   const [include, setInclude] = useAtom(workspaceSearchIncludeAtom)
   const [exclude, setExclude] = useAtom(workspaceSearchExcludeAtom)
   const setOpen = useSetAtom(workspaceSearchOpenAtom)
@@ -125,11 +124,16 @@ export const WorkspaceSearchPanel = React.memo(function WorkspaceSearchPanel({
   const requestCounterRef = React.useRef(0)
   const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
+  const focusTrigger = useAtomValue(workspaceSearchFocusTriggerAtom)
 
-  // focus search input on mount
+  // focus and select all text when opened or refocused via cmd+shift+f
   React.useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
+    const input = inputRef.current
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  }, [focusTrigger])
 
   // total match count across all files
   const totalMatchCount = React.useMemo(

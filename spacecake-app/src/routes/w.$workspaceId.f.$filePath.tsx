@@ -20,7 +20,7 @@ import {
   updateFolderInTree,
 } from "@/lib/atoms/file-tree"
 import { activeBlameAtom, activeLineDiffAtom, isGitRepoAtom } from "@/lib/atoms/git"
-import { searchOpenAtom } from "@/lib/atoms/search"
+import { searchFocusTriggerAtom, searchOpenAtom } from "@/lib/atoms/search"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
 import {
   createEditorConfigFromContent,
@@ -290,14 +290,15 @@ function FileLayout() {
   const autosaveEnabled =
     viewKind !== "diff" && viewKind !== "conflict" && settings.autosave === "on"
 
-  // open in-file search (only in rich mode — source mode uses CodeMirror's built-in search)
-  useHotkey("mod+f", () => store.set(searchOpenAtom, true), {
-    capture: true,
-    guard: (e) => {
-      const isInCodeMirror = (e.target as HTMLElement)?.closest?.(".cm-editor") !== null
-      return !isInCodeMirror && viewKind === "rich"
+  // open unified in-file search (works in both rich and source mode)
+  useHotkey(
+    "mod+f",
+    () => {
+      store.set(searchOpenAtom, true)
+      store.set(searchFocusTriggerAtom, (c) => c + 1)
     },
-  })
+    { capture: true },
+  )
 
   // Helper to notify Claude Code of selection changes
   const notifyClaudeCodeSelection = (selectedText: string, selection: ClaudeSelection) => {
@@ -447,7 +448,6 @@ function FileLayout() {
       <Editor
         key={key}
         filePath={filePath}
-        viewKind={viewKind}
         editorConfig={editorConfig}
         autosaveEnabled={autosaveEnabled}
         onChange={(editorState: EditorState, changeType: ChangeType) => {

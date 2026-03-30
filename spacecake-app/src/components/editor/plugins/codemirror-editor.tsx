@@ -25,6 +25,8 @@ import { useNavigation } from "@/components/editor/plugins/use-navigation"
 import { githubDark, githubLight } from "@/components/editor/themes"
 import { useTheme } from "@/components/theme-provider"
 import { activeBlameAtom, activeLineDiffAtom } from "@/lib/atoms/git"
+import { externalSearchExtension } from "@/lib/search/cm-search-extension"
+import { registerCmView, unregisterCmView } from "@/lib/search/cm-view-registry"
 import { extractCodeMirrorSelectionInfo } from "@/lib/selection-utils"
 import { debounce } from "@/lib/utils"
 import type { LanguageSpec } from "@/types/language"
@@ -526,6 +528,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
       const extensions = [
         search({ top: true }),
+        externalSearchExtension(),
         ...codeMirrorExtensions,
         navigationKeymap,
         basicSetup,
@@ -574,6 +577,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         parent: el,
         state: EditorState.create({ doc: code, extensions }),
       })
+      if (isCancelled) return
+
+      // register with the CM view registry so the search coordinator can find us
+      registerCmView(nodeKey, editorViewRef.current)
 
       const view = editorViewRef.current
 
@@ -650,6 +657,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     return () => {
       isCancelled = true
       pendingFocusRef.current = false
+      unregisterCmView(nodeKey)
       flushPending()
       cleanupListeners?.()
       editorViewRef.current?.destroy()

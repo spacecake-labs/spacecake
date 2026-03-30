@@ -73,11 +73,12 @@ const editorTheme = EditorView.theme(
       borderTop: `1px solid ${colors.gutterBorder}`,
     },
     ".cm-searchMatch": {
-      backgroundColor: "#9e6a03",
-      outline: "1px solid #f2cc6080",
+      backgroundColor: "oklch(69.6% 0.17 162.48 / 20%)",
+      color: "oklch(84.5% 0.143 164.978)",
     },
     ".cm-searchMatch.cm-searchMatch-selected": {
-      backgroundColor: "#f2cc6080",
+      backgroundColor: "oklch(69.6% 0.17 162.48 / 40%)",
+      color: "oklch(84.5% 0.143 164.978)",
     },
     // search panel
     ".cm-panel.cm-search": {
