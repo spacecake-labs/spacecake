@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import {
   searchActorAtom,
   searchCaseSensitiveAtom,
+  searchFocusTriggerAtom,
   searchOpenAtom,
   searchQueryAtom,
   searchRegexAtom,
@@ -88,15 +89,16 @@ export const SearchBar = React.memo(function SearchBar() {
   const matchIndex = useSearchMachineValue((ctx) => ctx.matchIndex, 0)
 
   const inputRef = React.useRef<HTMLInputElement>(null)
+  const focusTrigger = useAtomValue(searchFocusTriggerAtom)
 
-  // focus and select all text on mount
+  // focus and select all text when opened or refocused via cmd+f
   React.useEffect(() => {
     const input = inputRef.current
     if (input) {
       input.focus()
       input.select()
     }
-  }, [])
+  }, [focusTrigger])
 
   const close = React.useCallback(() => {
     setOpen(false)

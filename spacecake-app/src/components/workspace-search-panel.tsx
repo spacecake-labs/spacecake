@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { useAtom, useSetAtom } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Ellipsis, X } from "lucide-react"
 import * as React from "react"
 
@@ -12,6 +12,7 @@ import {
   workspaceSearchLimitHitAtom,
   workspaceSearchLoadingAtom,
   workspaceSearchOpenAtom,
+  workspaceSearchFocusTriggerAtom,
   workspaceSearchQueryAtom,
   workspaceSearchRegexAtom,
   workspaceSearchResultsAtom,
@@ -123,11 +124,16 @@ export const WorkspaceSearchPanel = React.memo(function WorkspaceSearchPanel({
   const requestCounterRef = React.useRef(0)
   const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
+  const focusTrigger = useAtomValue(workspaceSearchFocusTriggerAtom)
 
-  // focus search input on mount
+  // focus and select all text when opened or refocused via cmd+shift+f
   React.useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
+    const input = inputRef.current
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  }, [focusTrigger])
 
   // total match count across all files
   const totalMatchCount = React.useMemo(

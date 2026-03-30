@@ -17,6 +17,8 @@ export const workspaceSearchRegexAtom = atomWithStorage<boolean>("workspace-sear
 
 // workspace search panel state
 export const workspaceSearchOpenAtom = atom<boolean>(false)
+// incremented each time cmd+shift+f is pressed to refocus the search input
+export const workspaceSearchFocusTriggerAtom = atom<number>(0)
 export const workspaceSearchResultsAtom = atom<SearchResult[]>([])
 export const workspaceSearchLoadingAtom = atom<boolean>(false)
 export const workspaceSearchIncludeAtom = atom<string>("")

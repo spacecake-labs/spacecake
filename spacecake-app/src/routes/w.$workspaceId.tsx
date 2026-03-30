@@ -65,7 +65,11 @@ import {
   searchQueryAtom,
   searchTargetLineAtom,
 } from "@/lib/atoms/search"
-import { workspaceSearchOpenAtom, workspaceSearchQueryAtom } from "@/lib/atoms/workspace-search"
+import {
+  workspaceSearchFocusTriggerAtom,
+  workspaceSearchOpenAtom,
+  workspaceSearchQueryAtom,
+} from "@/lib/atoms/workspace-search"
 import { createWorkspaceCollections } from "@/lib/db/collections"
 import * as mutations from "@/lib/db/mutations"
 import { queryClient } from "@/lib/db/query-client"
@@ -274,14 +278,13 @@ function LayoutContent() {
   // Cmd+1 / Ctrl+1 to focus editor
   useHotkey("mod+1", () => focus("editor"), { capture: true })
 
-  // Cmd+Shift+F to toggle workspace search panel
+  // Cmd+Shift+F to open/focus workspace search panel
   useHotkey(
     "mod+shift+f",
     () => {
-      const willOpen = !store.get(workspaceSearchOpenAtom)
-      store.set(workspaceSearchOpenAtom, willOpen)
-      // expand sidebar if it's collapsed when opening search
-      if (willOpen && sidebarPanelRef.current?.isCollapsed()) {
+      store.set(workspaceSearchOpenAtom, true)
+      store.set(workspaceSearchFocusTriggerAtom, (c) => c + 1)
+      if (sidebarPanelRef.current?.isCollapsed()) {
         setSidebarOpen(true)
       }
     },
@@ -290,9 +293,9 @@ function LayoutContent() {
 
   // native menu bar: Edit → Find in Files
   useMenuAction("find-in-files", () => {
-    const willOpen = !store.get(workspaceSearchOpenAtom)
-    store.set(workspaceSearchOpenAtom, willOpen)
-    if (willOpen && sidebarPanelRef.current?.isCollapsed()) {
+    store.set(workspaceSearchOpenAtom, true)
+    store.set(workspaceSearchFocusTriggerAtom, (c) => c + 1)
+    if (sidebarPanelRef.current?.isCollapsed()) {
       setSidebarOpen(true)
     }
   })

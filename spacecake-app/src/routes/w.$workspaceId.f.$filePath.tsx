@@ -20,7 +20,7 @@ import {
   updateFolderInTree,
 } from "@/lib/atoms/file-tree"
 import { activeBlameAtom, activeLineDiffAtom, isGitRepoAtom } from "@/lib/atoms/git"
-import { searchOpenAtom } from "@/lib/atoms/search"
+import { searchFocusTriggerAtom, searchOpenAtom } from "@/lib/atoms/search"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
 import {
   createEditorConfigFromContent,
@@ -291,9 +291,14 @@ function FileLayout() {
     viewKind !== "diff" && viewKind !== "conflict" && settings.autosave === "on"
 
   // open unified in-file search (works in both rich and source mode)
-  useHotkey("mod+f", () => store.set(searchOpenAtom, true), {
-    capture: true,
-  })
+  useHotkey(
+    "mod+f",
+    () => {
+      store.set(searchOpenAtom, true)
+      store.set(searchFocusTriggerAtom, (c) => c + 1)
+    },
+    { capture: true },
+  )
 
   // Helper to notify Claude Code of selection changes
   const notifyClaudeCodeSelection = (selectedText: string, selection: ClaudeSelection) => {
