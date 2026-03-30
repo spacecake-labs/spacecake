@@ -277,6 +277,25 @@ export const parseRgJson = (
   return finalizeParseState(state)
 }
 
+/** converts spawn errors into user-friendly SearchError messages */
+const formatSpawnError = (err: Error, workspacePath: string): string => {
+  const message = err.message
+  // Node.js spawn errors include the error code in the message or as a property
+  const code = (err as { code?: string }).code
+
+  if (code === "ENOTDIR" || message.includes("ENOTDIR")) {
+    return `workspace path is not a directory or does not exist: ${workspacePath}`
+  }
+  if (code === "ENOENT" || message.includes("ENOENT")) {
+    return `workspace path not found: ${workspacePath}`
+  }
+  if (code === "EACCES" || message.includes("EACCES")) {
+    return `permission denied accessing workspace path: ${workspacePath}`
+  }
+
+  return `ripgrep failed to start: ${message}`
+}
+
 /** runs a workspace-wide ripgrep search */
 export const search = (
   options: SearchOptions,
@@ -296,12 +315,27 @@ export const search = (
     const stderrChunks: string[] = []
     let killed = false
 
-    const rgProc = spawn(rgPath, args, {
-      cwd: options.workspacePath,
-      stdio: ["ignore", "pipe", "pipe"],
-    })
+    let rgProc: ReturnType<typeof spawn>
 
-    rgProc.stdout.on("data", (chunk: Buffer) => {
+    try {
+      rgProc = spawn(rgPath, args, {
+        cwd: options.workspacePath,
+        stdio: ["ignore", "pipe", "pipe"],
+      })
+    } catch (err) {
+      // spawn() can throw synchronously for certain errors (e.g., invalid cwd)
+      resume(
+        Effect.fail(
+          new SearchError({
+            description: formatSpawnError(err as Error, options.workspacePath),
+          }),
+        ),
+      )
+      return Effect.void
+    }
+
+    // stdout/stderr are guaranteed by stdio config, but TypeScript needs the assertion
+    rgProc.stdout!.on("data", (chunk: Buffer) => {
       const text = remainder + decoder.write(chunk)
       const lines = text.split("\n")
       // last element is either empty (if chunk ended with \n) or an incomplete line
@@ -316,7 +350,7 @@ export const search = (
       }
     })
 
-    rgProc.stderr.on("data", (chunk: Buffer) => {
+    rgProc.stderr!.on("data", (chunk: Buffer) => {
       stderrChunks.push(chunk.toString())
     })
 
@@ -360,7 +394,7 @@ export const search = (
       resume(
         Effect.fail(
           new SearchError({
-            description: `ripgrep failed to start: ${err.message}`,
+            description: formatSpawnError(err, options.workspacePath),
           }),
         ),
       )
