@@ -1,28 +1,19 @@
 // xstate machine for coordinating in-file search across lexical prose and
 // codemirror code blocks.
 //
-// the machine subscribes to searchOpenAtom (via an "atomBridge" actor) and the
-// lexical update listener. all other inputs (query, options, navigation) arrive
-// as direct events from the SearchBar component or workspace search.
+// the machine is the single source of truth for all search state.
+// components read state via useSelector and write via actor.send().
+// no jotai atoms are read or written — the only bridge is a fromCallback
+// actor that listens for lexical editor content changes.
 //
 // search results are dispatched as side effects to the CSS Custom Highlight API
 // (lexical) and CM StateEffects (codemirror).
 
 import { closeSearchPanel } from "@codemirror/search"
 import type { LexicalEditor } from "lexical"
-import { $getNodeByKey, $getRoot, $isDecoratorNode } from "lexical"
+import { $getRoot, $isDecoratorNode } from "lexical"
 import { assign, fromCallback, setup } from "xstate"
 
-import {
-  cmViewsChangedAtom,
-  searchCaseSensitiveAtom,
-  searchOpenAtom,
-  searchQueryAtom,
-  searchRegexAtom,
-  searchTargetFileAtom,
-  searchTargetLineAtom,
-  searchWholeWordAtom,
-} from "@/lib/atoms/search"
 import {
   clearSearchMatchesEffect,
   scrollCmToMatch,
@@ -43,13 +34,29 @@ import {
 } from "@/lib/search/highlight-manager"
 import { mergeMatches, type CmMatchGroup, type UnifiedMatch } from "@/lib/search/merge-matches"
 import { buildTextIndex, findMatches } from "@/lib/search/text-walker"
-import { store } from "@/lib/store"
 
 // ---------------------------------------------------------------------------
 // constants
 // ---------------------------------------------------------------------------
 
 const DEBOUNCE_MS = 150
+
+// localStorage keys for persisted options (matches old atomWithStorage keys)
+const LS_CASE_SENSITIVE = "search-case-sensitive"
+const LS_WHOLE_WORD = "search-whole-word"
+const LS_REGEX = "search-regex"
+
+function readBool(key: string): boolean {
+  try {
+    return JSON.parse(localStorage.getItem(key) ?? "false") === true
+  } catch {
+    return false
+  }
+}
+
+function writeBool(key: string, value: boolean): void {
+  localStorage.setItem(key, JSON.stringify(value))
+}
 
 // ---------------------------------------------------------------------------
 // context
@@ -68,6 +75,7 @@ export interface SearchMachineContext {
   matchIndex: number
   matchCount: number
   targetLine: number | null
+  focusTrigger: number
   editor: LexicalEditor
   filePath: string
 }
@@ -77,7 +85,12 @@ export interface SearchMachineContext {
 // ---------------------------------------------------------------------------
 
 export type SearchMachineEvent =
-  | { type: "search.open" }
+  | {
+      type: "search.open"
+      query?: string
+      targetLine?: number | null
+      targetFile?: string | null
+    }
   | { type: "search.close" }
   | { type: "search.input.change"; query: string }
   | {
@@ -100,41 +113,13 @@ export interface SearchMachineInput {
 }
 
 // ---------------------------------------------------------------------------
-// atom bridge — subscribes to searchOpenAtom and the lexical update listener,
-// translating changes into machine events.
+// content change listener — watches for lexical editor updates and forwards
+// them as search.content.change events. this is the only external listener
+// the machine uses (no jotai subscriptions).
 // ---------------------------------------------------------------------------
 
-const atomBridge = fromCallback<SearchMachineEvent, { editor: LexicalEditor }>(
+const contentChangeListener = fromCallback<SearchMachineEvent, { editor: LexicalEditor }>(
   ({ sendBack, input }) => {
-    // if search is already open when the machine starts (e.g. workspace search
-    // opened search before the editor mounted), fire the initial event.
-    if (store.get(searchOpenAtom)) {
-      sendBack({ type: "search.open" })
-    }
-
-    const unsubOpen = store.sub(searchOpenAtom, () => {
-      const open = store.get(searchOpenAtom)
-      sendBack(open ? { type: "search.open" } : { type: "search.close" })
-    })
-
-    // re-run the search when a CM view registers — this handles source-mode
-    // files where the CM view is created asynchronously (after language support
-    // loads) and isn't available during the first executeSearch call.
-    // only react when the nodeKey belongs to our editor to avoid spurious
-    // re-searches when views register in other open files.
-    const unsubCmViews = store.sub(cmViewsChangedAtom, () => {
-      const nodeKey = store.get(cmViewsChangedAtom)
-      if (nodeKey === null) return
-      const belongsToUs = input.editor.getEditorState().read(() => {
-        try {
-          return $getNodeByKey(nodeKey) !== null
-        } catch {
-          return false
-        }
-      })
-      if (belongsToUs) sendBack({ type: "search.content.change" })
-    })
-
     const unregisterUpdate = input.editor.registerUpdateListener(
       ({ dirtyElements, dirtyLeaves }) => {
         if (dirtyElements.size > 0 || dirtyLeaves.size > 0) {
@@ -144,8 +129,6 @@ const atomBridge = fromCallback<SearchMachineEvent, { editor: LexicalEditor }>(
     )
 
     return () => {
-      unsubOpen()
-      unsubCmViews()
       unregisterUpdate()
     }
   },
@@ -155,10 +138,23 @@ const atomBridge = fromCallback<SearchMachineEvent, { editor: LexicalEditor }>(
 // helpers — search execution and highlight dispatch
 // ---------------------------------------------------------------------------
 
+/** get CM views that belong to the given editor (filters global registry). */
+function getEditorCmViews(editor: LexicalEditor): CmViewEntry[] {
+  const ownedKeys = new Set<string>()
+  editor.read(() => {
+    for (const child of $getRoot().getChildren()) {
+      if ($isDecoratorNode(child)) {
+        ownedKeys.add(child.getKey())
+      }
+    }
+  })
+  return getAllCmViews().filter(([key]) => ownedKeys.has(key))
+}
+
 function executeSearch(ctx: SearchMachineContext): Partial<SearchMachineContext> {
   const { query, caseSensitive, wholeWord, regex, editor, targetLine } = ctx
   const options: CmSearchOptions = { caseSensitive, wholeWord, regex }
-  const cmViews = getAllCmViews()
+  const cmViews = getEditorCmViews(editor)
 
   // close any open CM built-in search panels to avoid duplicate highlights
   for (const [, cmView] of cmViews) {
@@ -381,36 +377,33 @@ export const searchMachine = setup({
 
     clearHighlights: ({ context }) => clearAllHighlights(context),
 
-    consumeTargetLine: ({ context }) => {
-      // only clear the atom if it was scoped to our file (or has no scope).
-      // this prevents the old file's machine from clearing a target line
-      // that was intended for a newly-opened file.
-      const targetFile = store.get(searchTargetFileAtom)
-      if (targetFile === null || targetFile === context.filePath) {
-        store.set(searchTargetLineAtom, null)
-        store.set(searchTargetFileAtom, null)
-      }
+    clearResults: assign(() => emptyResults),
+
+    persistOptions: ({ context }) => {
+      writeBool(LS_CASE_SENSITIVE, context.caseSensitive)
+      writeBool(LS_WHOLE_WORD, context.wholeWord)
+      writeBool(LS_REGEX, context.regex)
     },
 
-    // read current values from jotai atoms on open.
-    // this picks up the query/options/targetLine set by workspace search
-    // or persisted from a previous session.
-    readAtoms: assign(({ context }) => {
-      const targetLine = store.get(searchTargetLineAtom)
-      const targetFile = store.get(searchTargetFileAtom)
-      // only use the target line if it was scoped to our file (or has no scope)
-      const validTargetLine =
-        targetFile === null || targetFile === context.filePath ? targetLine : null
-      return {
-        query: store.get(searchQueryAtom),
-        caseSensitive: store.get(searchCaseSensitiveAtom),
-        wholeWord: store.get(searchWholeWordAtom),
-        regex: store.get(searchRegexAtom),
-        targetLine: validTargetLine,
+    // apply fields from the search.open event (workspace search handoff).
+    // only applies non-null values — a plain Cmd+F open sends no fields
+    // and the context retains the previous query/options.
+    applyOpenEvent: assign(({ context, event }) => {
+      if (event.type !== "search.open") return {}
+      const updates: Partial<SearchMachineContext> = {}
+      if (event.query !== undefined) updates.query = event.query
+      if (event.targetLine !== undefined && event.targetLine !== null) {
+        const targetFile = event.targetFile ?? null
+        if (targetFile === null || targetFile === context.filePath) {
+          updates.targetLine = event.targetLine
+        }
       }
+      return updates
     }),
 
-    clearResults: assign(() => emptyResults),
+    incrementFocusTrigger: assign({
+      focusTrigger: ({ context }) => context.focusTrigger + 1,
+    }),
   },
   guards: {
     hasQuery: ({ context }) => context.query.length > 0,
@@ -426,7 +419,7 @@ export const searchMachine = setup({
     },
   },
   actors: {
-    atomBridge,
+    contentChangeListener,
   },
   delays: {
     DEBOUNCE_MS,
@@ -436,9 +429,9 @@ export const searchMachine = setup({
   initial: "Closed",
   context: ({ input }) => ({
     query: "",
-    caseSensitive: false,
-    wholeWord: false,
-    regex: false,
+    caseSensitive: readBool(LS_CASE_SENSITIVE),
+    wholeWord: readBool(LS_WHOLE_WORD),
+    regex: readBool(LS_REGEX),
     lexicalMatches: [],
     cmMatchGroups: [],
     unifiedMatches: [],
@@ -447,27 +440,35 @@ export const searchMachine = setup({
     matchIndex: 0,
     matchCount: 0,
     targetLine: null,
+    focusTrigger: 0,
     editor: input.editor,
     filePath: input.filePath ?? "",
   }),
-  // the atom bridge runs for the entire lifetime of the machine,
-  // translating searchOpenAtom changes and lexical updates into events.
+  // the content change listener runs for the entire lifetime of the machine,
+  // forwarding lexical editor updates as search.content.change events.
   invoke: {
-    src: "atomBridge",
+    src: "contentChangeListener",
     input: ({ context }) => ({ editor: context.editor }),
   },
   states: {
     Closed: {
       entry: ["clearHighlights", "clearResults"],
       on: {
-        "search.open": "Open",
+        "search.open": {
+          target: "Open",
+          actions: ["applyOpenEvent"],
+        },
       },
     },
     Open: {
-      entry: ["readAtoms"],
       initial: "Evaluating",
       on: {
         "search.close": "Closed",
+        // re-opening while already open: apply new params and refocus
+        "search.open": {
+          actions: ["applyOpenEvent", "incrementFocusTrigger"],
+          target: ".Evaluating",
+        },
       },
       states: {
         Evaluating: {
@@ -486,11 +487,14 @@ export const searchMachine = setup({
             },
             "search.options.change": {
               target: "Evaluating",
-              actions: assign({
-                caseSensitive: ({ event }) => event.caseSensitive,
-                wholeWord: ({ event }) => event.wholeWord,
-                regex: ({ event }) => event.regex,
-              }),
+              actions: [
+                assign({
+                  caseSensitive: ({ event }) => event.caseSensitive,
+                  wholeWord: ({ event }) => event.wholeWord,
+                  regex: ({ event }) => event.regex,
+                }),
+                "persistOptions",
+              ],
             },
             "search.content.change": {
               target: "Evaluating",
@@ -507,11 +511,14 @@ export const searchMachine = setup({
             "search.options.change": {
               target: "Debouncing",
               reenter: true,
-              actions: assign({
-                caseSensitive: ({ event }) => event.caseSensitive,
-                wholeWord: ({ event }) => event.wholeWord,
-                regex: ({ event }) => event.regex,
-              }),
+              actions: [
+                assign({
+                  caseSensitive: ({ event }) => event.caseSensitive,
+                  wholeWord: ({ event }) => event.wholeWord,
+                  regex: ({ event }) => event.regex,
+                }),
+                "persistOptions",
+              ],
             },
             "search.content.change": {
               target: "Debouncing",
@@ -544,7 +551,7 @@ export const searchMachine = setup({
           ],
         },
         HasResults: {
-          entry: ["dispatchHighlights", "navigate", "consumeTargetLine"],
+          entry: ["dispatchHighlights", "navigate"],
           on: {
             "search.input.change": [
               {
@@ -559,11 +566,14 @@ export const searchMachine = setup({
             ],
             "search.options.change": {
               target: "Debouncing",
-              actions: assign({
-                caseSensitive: ({ event }) => event.caseSensitive,
-                wholeWord: ({ event }) => event.wholeWord,
-                regex: ({ event }) => event.regex,
-              }),
+              actions: [
+                assign({
+                  caseSensitive: ({ event }) => event.caseSensitive,
+                  wholeWord: ({ event }) => event.wholeWord,
+                  regex: ({ event }) => event.regex,
+                }),
+                "persistOptions",
+              ],
             },
             "search.content.change": {
               target: "Debouncing",
@@ -591,7 +601,6 @@ export const searchMachine = setup({
                 })),
                 "dispatchHighlights",
                 "navigate",
-                "consumeTargetLine",
               ],
             },
           },

@@ -1,51 +1,28 @@
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { useSelector } from "@xstate/react"
+import { useAtomValue } from "jotai"
 import { ChevronDown, ChevronUp, X } from "lucide-react"
 import * as React from "react"
 
 import { Button } from "@/components/ui/button"
-import {
-  searchActorAtom,
-  searchCaseSensitiveAtom,
-  searchFocusTriggerAtom,
-  searchOpenAtom,
-  searchQueryAtom,
-  searchRegexAtom,
-  searchWholeWordAtom,
-} from "@/lib/atoms/search"
-import { store } from "@/lib/store"
+import { searchActorAtom } from "@/lib/atoms/search"
 import { cn } from "@/lib/utils"
 
 // ---------------------------------------------------------------------------
-// subscribe to search machine context for matchCount and matchIndex.
-// uses useSyncExternalStore to handle the case where the actor may not be
-// available on first render (SearchPlugin sets it in a useEffect).
+// selectors — extract values from the machine snapshot
 // ---------------------------------------------------------------------------
 
-function useSearchMachineValue<T>(
-  selector: (ctx: { matchCount: number; matchIndex: number }) => T,
-  fallback: T,
-): T {
-  const actor = useAtomValue(searchActorAtom)
-
-  const subscribe = React.useCallback(
-    (cb: () => void) => {
-      if (!actor) return () => {}
-      const sub = actor.subscribe(cb)
-      return () => sub.unsubscribe()
-    },
-    [actor],
-  )
-
-  return React.useSyncExternalStore(
-    subscribe,
-    () => {
-      if (!actor) return fallback
-      const ctx = actor.getSnapshot().context as { matchCount: number; matchIndex: number }
-      return selector(ctx)
-    },
-    () => fallback,
-  )
-}
+const selectMatchCount = (snapshot: { context: { matchCount: number } }) =>
+  snapshot.context.matchCount
+const selectMatchIndex = (snapshot: { context: { matchIndex: number } }) =>
+  snapshot.context.matchIndex
+const selectQuery = (snapshot: { context: { query: string } }) => snapshot.context.query
+const selectCaseSensitive = (snapshot: { context: { caseSensitive: boolean } }) =>
+  snapshot.context.caseSensitive
+const selectWholeWord = (snapshot: { context: { wholeWord: boolean } }) =>
+  snapshot.context.wholeWord
+const selectRegex = (snapshot: { context: { regex: boolean } }) => snapshot.context.regex
+const selectFocusTrigger = (snapshot: { context: { focusTrigger: number } }) =>
+  snapshot.context.focusTrigger
 
 // ---------------------------------------------------------------------------
 // components
@@ -78,18 +55,20 @@ const MatchCounter = React.memo(function MatchCounter({
 })
 
 export const SearchBar = React.memo(function SearchBar() {
-  const [query, setQuery] = useAtom(searchQueryAtom)
-  const setOpen = useSetAtom(searchOpenAtom)
-  const [caseSensitive, setCaseSensitive] = useAtom(searchCaseSensitiveAtom)
-  const [wholeWord, setWholeWord] = useAtom(searchWholeWordAtom)
-  const [regex, setRegex] = useAtom(searchRegexAtom)
-
   const actor = useAtomValue(searchActorAtom)
-  const matchCount = useSearchMachineValue((ctx) => ctx.matchCount, 0)
-  const matchIndex = useSearchMachineValue((ctx) => ctx.matchIndex, 0)
+  // useSelector expects undefined (not null) for "no actor"
+  const actorOrUndefined = actor ?? undefined
+
+  // read all state from the machine via selectors
+  const query = useSelector(actorOrUndefined, selectQuery) ?? ""
+  const caseSensitive = useSelector(actorOrUndefined, selectCaseSensitive) ?? false
+  const wholeWord = useSelector(actorOrUndefined, selectWholeWord) ?? false
+  const regex = useSelector(actorOrUndefined, selectRegex) ?? false
+  const matchCount = useSelector(actorOrUndefined, selectMatchCount) ?? 0
+  const matchIndex = useSelector(actorOrUndefined, selectMatchIndex) ?? 0
+  const focusTrigger = useSelector(actorOrUndefined, selectFocusTrigger) ?? 0
 
   const inputRef = React.useRef<HTMLInputElement>(null)
-  const focusTrigger = useAtomValue(searchFocusTriggerAtom)
 
   // focus and select all text when opened or refocused via cmd+f
   React.useEffect(() => {
@@ -101,8 +80,8 @@ export const SearchBar = React.memo(function SearchBar() {
   }, [focusTrigger])
 
   const close = React.useCallback(() => {
-    setOpen(false)
-  }, [setOpen])
+    actor?.send({ type: "search.close" })
+  }, [actor])
 
   const goToNext = React.useCallback(() => {
     if (!actor) return
@@ -120,11 +99,9 @@ export const SearchBar = React.memo(function SearchBar() {
 
   const handleQueryChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const q = e.target.value
-      setQuery(q) // persist for next open / workspace search handoff
-      actor?.send({ type: "search.input.change", query: q })
+      actor?.send({ type: "search.input.change", query: e.target.value })
     },
-    [setQuery, actor],
+    [actor],
   )
 
   const handleKeyDown = React.useCallback(
@@ -145,43 +122,37 @@ export const SearchBar = React.memo(function SearchBar() {
   )
 
   const toggleCaseSensitive = React.useCallback(() => {
-    setCaseSensitive((prev) => {
-      const next = !prev
-      actor?.send({
-        type: "search.options.change",
-        caseSensitive: next,
-        wholeWord: store.get(searchWholeWordAtom),
-        regex: store.get(searchRegexAtom),
-      })
-      return next
+    if (!actor) return
+    const ctx = actor.getSnapshot().context
+    actor.send({
+      type: "search.options.change",
+      caseSensitive: !ctx.caseSensitive,
+      wholeWord: ctx.wholeWord,
+      regex: ctx.regex,
     })
-  }, [setCaseSensitive, actor])
+  }, [actor])
 
   const toggleWholeWord = React.useCallback(() => {
-    setWholeWord((prev) => {
-      const next = !prev
-      actor?.send({
-        type: "search.options.change",
-        caseSensitive: store.get(searchCaseSensitiveAtom),
-        wholeWord: next,
-        regex: store.get(searchRegexAtom),
-      })
-      return next
+    if (!actor) return
+    const ctx = actor.getSnapshot().context
+    actor.send({
+      type: "search.options.change",
+      caseSensitive: ctx.caseSensitive,
+      wholeWord: !ctx.wholeWord,
+      regex: ctx.regex,
     })
-  }, [setWholeWord, actor])
+  }, [actor])
 
   const toggleRegex = React.useCallback(() => {
-    setRegex((prev) => {
-      const next = !prev
-      actor?.send({
-        type: "search.options.change",
-        caseSensitive: store.get(searchCaseSensitiveAtom),
-        wholeWord: store.get(searchWholeWordAtom),
-        regex: next,
-      })
-      return next
+    if (!actor) return
+    const ctx = actor.getSnapshot().context
+    actor.send({
+      type: "search.options.change",
+      caseSensitive: ctx.caseSensitive,
+      wholeWord: ctx.wholeWord,
+      regex: !ctx.regex,
     })
-  }, [setRegex, actor])
+  }, [actor])
 
   return (
     <div

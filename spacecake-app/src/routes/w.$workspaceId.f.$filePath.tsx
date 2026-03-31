@@ -20,7 +20,7 @@ import {
   updateFolderInTree,
 } from "@/lib/atoms/file-tree"
 import { activeBlameAtom, activeLineDiffAtom, isGitRepoAtom } from "@/lib/atoms/git"
-import { searchFocusTriggerAtom, searchOpenAtom } from "@/lib/atoms/search"
+import { searchActorAtom } from "@/lib/atoms/search"
 import { getFoldersToExpand } from "@/lib/auto-reveal"
 import {
   createEditorConfigFromContent,
@@ -290,12 +290,14 @@ function FileLayout() {
   const autosaveEnabled =
     viewKind !== "diff" && viewKind !== "conflict" && settings.autosave === "on"
 
-  // open unified in-file search (works in both rich and source mode)
+  // open unified in-file search (works in both rich and source mode).
+  // sends search.open directly to the machine — the machine is the single
+  // source of truth. re-opening while already open increments focusTrigger.
   useHotkey(
     "mod+f",
     () => {
-      store.set(searchOpenAtom, true)
-      store.set(searchFocusTriggerAtom, (c) => c + 1)
+      const actor = store.get(searchActorAtom)
+      if (actor) actor.send({ type: "search.open" })
     },
     { capture: true },
   )

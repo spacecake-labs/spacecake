@@ -1,61 +1,41 @@
-import { createStore } from "jotai"
 import { describe, expect, it } from "vitest"
 
-import { searchOpenAtom, searchQueryAtom, searchTargetLineAtom } from "@/lib/atoms/search"
-import { workspaceSearchQueryAtom } from "@/lib/atoms/workspace-search"
+import { consumePendingSearch, setPendingSearch } from "@/lib/atoms/search"
 
-// simulates what handleSearchResultClick does in w.$workspaceId.tsx:
-// forwards the workspace query to the in-file search atoms so clicking a
-// workspace search result opens the in-file search bar pre-filled.
-function simulateSearchResultClick(store: ReturnType<typeof createStore>, lineNumber: number) {
-  store.set(searchQueryAtom, store.get(workspaceSearchQueryAtom))
-  store.set(searchOpenAtom, true)
-  store.set(searchTargetLineAtom, lineNumber)
-}
+describe("workspace → in-file search handoff (pending search)", () => {
+  it("stores and consumes a pending search", () => {
+    setPendingSearch({ query: "hello", targetLine: 10, targetFile: "/home/user/projects/file.ts" })
 
-describe("workspace → in-file search handoff", () => {
-  it("forwards workspace query to in-file search", () => {
-    const store = createStore()
-    store.set(workspaceSearchQueryAtom, "hello")
+    const pending = consumePendingSearch()
+    expect(pending).toEqual({
+      query: "hello",
+      targetLine: 10,
+      targetFile: "/home/user/projects/file.ts",
+    })
 
-    simulateSearchResultClick(store, 10)
-
-    expect(store.get(searchQueryAtom)).toBe("hello")
-    expect(store.get(searchOpenAtom)).toBe(true)
-    expect(store.get(searchTargetLineAtom)).toBe(10)
+    // consuming a second time returns null
+    expect(consumePendingSearch()).toBeNull()
   })
 
-  it("forwards empty query without error", () => {
-    const store = createStore()
-    store.set(workspaceSearchQueryAtom, "")
+  it("handles empty query without error", () => {
+    setPendingSearch({ query: "", targetLine: 1, targetFile: null })
 
-    simulateSearchResultClick(store, 1)
-
-    expect(store.get(searchQueryAtom)).toBe("")
-    expect(store.get(searchOpenAtom)).toBe(true)
-    expect(store.get(searchTargetLineAtom)).toBe(1)
+    const pending = consumePendingSearch()
+    expect(pending).toEqual({ query: "", targetLine: 1, targetFile: null })
   })
 
-  it("overwrites a previous in-file search query", () => {
-    const store = createStore()
-    store.set(searchQueryAtom, "old query")
-    store.set(workspaceSearchQueryAtom, "new query")
+  it("overwrites a previous pending search", () => {
+    setPendingSearch({ query: "old", targetLine: 1, targetFile: null })
+    setPendingSearch({ query: "new", targetLine: 5, targetFile: null })
 
-    simulateSearchResultClick(store, 5)
-
-    expect(store.get(searchQueryAtom)).toBe("new query")
+    const pending = consumePendingSearch()
+    expect(pending?.query).toBe("new")
+    expect(pending?.targetLine).toBe(5)
   })
 
-  it("opens in-file search even if it was already open", () => {
-    const store = createStore()
-    store.set(searchOpenAtom, true)
-    store.set(searchQueryAtom, "stale")
-    store.set(workspaceSearchQueryAtom, "fresh")
-
-    simulateSearchResultClick(store, 42)
-
-    expect(store.get(searchOpenAtom)).toBe(true)
-    expect(store.get(searchQueryAtom)).toBe("fresh")
-    expect(store.get(searchTargetLineAtom)).toBe(42)
+  it("returns null when no pending search has been set", () => {
+    // ensure clean state
+    consumePendingSearch()
+    expect(consumePendingSearch()).toBeNull()
   })
 })

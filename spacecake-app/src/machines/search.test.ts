@@ -5,15 +5,6 @@ import { createEditor, $getRoot, $createParagraphNode, $createTextNode } from "l
 import { afterEach, describe, expect, it } from "vitest"
 import { createActor, type Actor, type SnapshotFrom } from "xstate"
 
-import {
-  searchOpenAtom,
-  searchQueryAtom,
-  searchCaseSensitiveAtom,
-  searchWholeWordAtom,
-  searchRegexAtom,
-  searchTargetLineAtom,
-} from "@/lib/atoms/search"
-import { store } from "@/lib/store"
 import { searchMachine, type SearchMachine } from "@/machines/search"
 
 // ---------------------------------------------------------------------------
@@ -84,15 +75,13 @@ afterEach(() => {
   for (const a of activeActors) a.stop()
   activeActors.length = 0
 
-  store.set(searchOpenAtom, false)
-  store.set(searchQueryAtom, "")
-  store.set(searchCaseSensitiveAtom, false)
-  store.set(searchWholeWordAtom, false)
-  store.set(searchRegexAtom, false)
-  store.set(searchTargetLineAtom, null)
-
   for (const c of containers) c.remove()
   containers.length = 0
+
+  // clean up persisted options so tests don't leak state
+  localStorage.removeItem("search-case-sensitive")
+  localStorage.removeItem("search-whole-word")
+  localStorage.removeItem("search-regex")
 })
 
 // ---------------------------------------------------------------------------
@@ -139,27 +128,21 @@ describe("search machine", () => {
       expect(getState(actor)).toBe("Open.Empty")
     })
 
-    it("reads query from atom on open (workspace search handoff)", () => {
+    it("applies query from search.open event (workspace search handoff)", () => {
       const editor = createLexicalEditor("hello world")
       const actor = startActor(editor)
 
-      // simulate workspace search setting the query atom before opening
-      store.set(searchQueryAtom, "hello")
-      actor.send({ type: "search.open" })
+      actor.send({ type: "search.open", query: "hello" })
 
-      // readAtoms should have picked up the query
       expect(getContext(actor).query).toBe("hello")
       expect(getState(actor)).toBe("Open.Debouncing")
     })
 
-    it("reads targetLine from atom on open (workspace search handoff)", () => {
+    it("applies targetLine from search.open event and skips debounce", () => {
       const editor = createLexicalEditor("hello world")
       const actor = startActor(editor)
 
-      // simulate workspace search setting atoms before open
-      store.set(searchQueryAtom, "hello")
-      store.set(searchTargetLineAtom, 5)
-      actor.send({ type: "search.open" })
+      actor.send({ type: "search.open", query: "hello", targetLine: 5 })
 
       // should have skipped debounce and searched
       expect(getState(actor)).toBe("Open.HasResults")
@@ -175,6 +158,17 @@ describe("search machine", () => {
       expect(getState(actor)).toBe("Open.Debouncing")
       actor.send({ type: "search.close" })
       expect(getState(actor)).toBe("Closed")
+    })
+
+    it("re-opening while open re-evaluates and increments focusTrigger", () => {
+      const editor = createLexicalEditor("hello world")
+      const actor = startActor(editor)
+      actor.send({ type: "search.open" })
+      const ft1 = getContext(actor).focusTrigger
+      actor.send({ type: "search.open", query: "hello" })
+      expect(getContext(actor).focusTrigger).toBe(ft1 + 1)
+      expect(getContext(actor).query).toBe("hello")
+      expect(getState(actor)).toBe("Open.Debouncing")
     })
   })
 
@@ -308,39 +302,6 @@ describe("search machine", () => {
       expect(getContext(actor).matchCount).toBe(1)
     })
 
-    it("re-searches when options change in Empty (0 matches)", () => {
-      const editor = createLexicalEditor("HELLO hello")
-      const actor = startActor(editor)
-      actor.send({ type: "search.open" })
-      triggerSearch(actor, "hello")
-
-      expect(getContext(actor).matchCount).toBe(2) // case-insensitive
-
-      // case-sensitive → only 1 match
-      actor.send({
-        type: "search.options.change",
-        caseSensitive: true,
-        wholeWord: false,
-        regex: false,
-      })
-      actor.send({ type: "search.target.line", line: 1 })
-      expect(getContext(actor).matchCount).toBe(1)
-
-      // now search for something with 0 results to get into Empty
-      triggerSearch(actor, "zzz")
-      expect(getState(actor)).toBe("Open.Empty")
-
-      // toggle case-sensitive OFF while in Empty — should re-evaluate
-      actor.send({
-        type: "search.options.change",
-        caseSensitive: false,
-        wholeWord: false,
-        regex: false,
-      })
-      // query "zzz" still has no matches, but options were updated in context
-      expect(getContext(actor).caseSensitive).toBe(false)
-    })
-
     it("re-searches on content change via target line", () => {
       const editor = createLexicalEditor("hello world")
       const actor = startActor(editor)
@@ -363,11 +324,6 @@ describe("search machine", () => {
       expect(getContext(actor).matchCount).toBe(2)
     })
   })
-
-  // note: CM search execution is tested in unified-search-integration.test.ts.
-  // the machine tests focus on state transitions and coordination.
-  // in production, CM views always have corresponding Lexical decorator nodes,
-  // which can't easily be set up in a unit test without the full editor stack.
 
   describe("navigation", () => {
     it("updates matchIndex on navigate.to", () => {
@@ -439,10 +395,6 @@ describe("search machine", () => {
       expect(getState(actor)).toBe("Open.HasResults")
       expect(getContext(actor).targetLine).toBeNull()
     })
-
-    // note: source mode target line navigation is tested end-to-end.
-    // in unit tests, creating a lexical decorator node backed by a CM view
-    // requires the full editor stack (CodeBlockNode + codemirror-editor).
   })
 
   describe("close cleanup", () => {
@@ -472,17 +424,6 @@ describe("search machine", () => {
       actor.send({ type: "search.input.change", query: "" })
       expect(getState(actor)).toBe("Open.Empty")
       expect(getContext(actor).matchCount).toBe(0)
-    })
-  })
-
-  describe("atom consumption", () => {
-    it("consumes targetLine atom after search", () => {
-      const editor = createLexicalEditor("hello world")
-      const actor = startActor(editor)
-      actor.send({ type: "search.open" })
-      triggerSearch(actor, "hello")
-
-      expect(store.get(searchTargetLineAtom)).toBeNull()
     })
   })
 })
