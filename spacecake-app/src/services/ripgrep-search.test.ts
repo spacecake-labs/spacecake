@@ -807,7 +807,7 @@ describe.skipIf(!isRgAvailable())("search (integration)", () => {
       )
       expect(error._tag).toBe("SearchError")
       // Windows returns ENOENT, unix returns ENOTDIR — accept both
-      expect(error.description).toMatch(/not a directory|not found/)
+      expect(error.description).toMatch(/ENOTDIR|not found/)
     } finally {
       await rm(tempFile, { recursive: true })
     }
