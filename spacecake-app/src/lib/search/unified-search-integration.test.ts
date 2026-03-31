@@ -3,11 +3,9 @@
  */
 import { EditorState } from "@codemirror/state"
 import { EditorView } from "@codemirror/view"
-import { createStore } from "jotai"
 import { afterEach, describe, expect, it } from "vitest"
 
-import { searchOpenAtom, searchQueryAtom, searchTargetLineAtom } from "@/lib/atoms/search"
-import { workspaceSearchQueryAtom } from "@/lib/atoms/workspace-search"
+import { setPendingSearch, consumePendingSearch } from "@/lib/atoms/search"
 import { externalSearchExtension } from "@/lib/search/cm-search-extension"
 import { findCmMatchesSmall, findCmMatchesStreaming } from "@/lib/search/cm-text-search"
 import {
@@ -45,18 +43,12 @@ afterEach(() => {
 
 describe("unified search integration", () => {
   describe("workspace → source mode handoff", () => {
-    it("sets search atoms for source mode files", () => {
-      const store = createStore()
-      store.set(workspaceSearchQueryAtom, "function")
+    it("stores pending search for source mode files", () => {
+      setPendingSearch({ query: "function", targetLine: 42, targetFile: null })
 
-      // simulate handleSearchResultClick
-      store.set(searchQueryAtom, store.get(workspaceSearchQueryAtom))
-      store.set(searchOpenAtom, true)
-      store.set(searchTargetLineAtom, 42)
-
-      expect(store.get(searchQueryAtom)).toBe("function")
-      expect(store.get(searchOpenAtom)).toBe(true)
-      expect(store.get(searchTargetLineAtom)).toBe(42)
+      const pending = consumePendingSearch()
+      expect(pending?.query).toBe("function")
+      expect(pending?.targetLine).toBe(42)
     })
 
     it("finds matches in a registered CM view (source mode)", () => {

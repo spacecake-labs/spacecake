@@ -59,13 +59,7 @@ import {
 } from "@/lib/atoms/git"
 import { cleanupPaneMachine } from "@/lib/atoms/pane"
 import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
-import {
-  searchActorAtom,
-  searchOpenAtom,
-  searchQueryAtom,
-  searchTargetFileAtom,
-  searchTargetLineAtom,
-} from "@/lib/atoms/search"
+import { searchActorAtom, setPendingSearch } from "@/lib/atoms/search"
 import {
   workspaceSearchFocusTriggerAtom,
   workspaceSearchOpenAtom,
@@ -301,7 +295,9 @@ function LayoutContent() {
     }
   })
 
-  // open file from workspace search result and activate in-file search
+  // open file from workspace search result and activate in-file search.
+  // sends search.open with query/targetLine directly to the machine if it
+  // exists, otherwise stores a pending search for the new SearchPlugin to pick up.
   const handleSearchResultClick = useCallback(
     (filePath: string, lineNumber: number) => {
       machine.send({
@@ -310,20 +306,19 @@ function LayoutContent() {
       })
 
       const query = store.get(workspaceSearchQueryAtom)
-      store.set(searchQueryAtom, query)
-      store.set(searchOpenAtom, true)
-      // scope the target line to this specific file so the old file's machine
-      // doesn't consume it before the new file's machine starts.
-      store.set(searchTargetFileAtom, filePath)
-      store.set(searchTargetLineAtom, lineNumber)
-
-      // if the search machine already exists (file was open), also send events
-      // directly — this handles the case where searchOpenAtom is already
-      // true and the subscription wouldn't fire.
       const searchActor = store.get(searchActorAtom)
+
       if (searchActor) {
-        searchActor.send({ type: "search.input.change", query })
-        searchActor.send({ type: "search.target.line", line: lineNumber })
+        // actor exists — send directly
+        searchActor.send({
+          type: "search.open",
+          query,
+          targetLine: lineNumber,
+          targetFile: filePath,
+        })
+      } else {
+        // file not open yet — store for the new SearchPlugin to consume on mount
+        setPendingSearch({ query, targetLine: lineNumber, targetFile: filePath })
       }
     },
     [machine],

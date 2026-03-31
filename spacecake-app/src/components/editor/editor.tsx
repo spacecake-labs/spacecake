@@ -1,6 +1,7 @@
 import { InitialConfigType, LexicalComposer } from "@lexical/react/LexicalComposer"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { EditorRefPlugin } from "@lexical/react/LexicalEditorRefPlugin"
+import { useSelector } from "@xstate/react"
 import { useAtomValue } from "jotai"
 import {
   COMMAND_PRIORITY_NORMAL,
@@ -25,11 +26,17 @@ import { RouteContext, useEditor, type CancelDebounceRef } from "@/contexts/edit
 import { useFocusablePanel } from "@/contexts/focus-manager"
 import { useLatest } from "@/hooks/use-latest"
 import { getOrCreateFileStateAtom } from "@/lib/atoms/file-tree"
-import { searchOpenAtom } from "@/lib/atoms/search"
+import { searchActorAtom } from "@/lib/atoms/search"
 import { debounce } from "@/lib/utils"
 import { type EditorExtendedSelection } from "@/types/claude-code"
 import { type ChangeType, type SerializedSelection } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
+
+const selectSearchOpen = (snapshot: { value: unknown } | undefined) =>
+  snapshot !== undefined &&
+  typeof snapshot.value === "object" &&
+  snapshot.value !== null &&
+  "Open" in (snapshot.value as object)
 
 interface EditorProps {
   editorConfig: InitialConfigType
@@ -97,7 +104,10 @@ export function Editor({
   const { editorRef } = useEditor()
   const fileState = useAtomValue(getOrCreateFileStateAtom(filePath)).value
   const isDirty = fileState === "Dirty"
-  const searchOpen = useAtomValue(searchOpenAtom)
+
+  // derive search open/closed from the machine state (single source of truth)
+  const searchActor = useAtomValue(searchActorAtom)
+  const searchOpen = useSelector(searchActor ?? undefined, selectSearchOpen) ?? false
 
   // Keep refs for unmount cleanup (can't use hooks in cleanup)
   const autosaveEnabledRef = React.useRef(autosaveEnabled)
