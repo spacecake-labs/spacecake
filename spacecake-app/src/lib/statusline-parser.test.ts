@@ -366,6 +366,69 @@ describe("statusline-parser", () => {
     })
   })
 
+  describe("rate limits", () => {
+    it("extracts both windows when rate_limits is fully present", () => {
+      const input = createStatuslineInput({
+        rate_limits: {
+          five_hour: { used_percentage: 23.5, resets_at: 1738425600 },
+          seven_day: { used_percentage: 41.2, resets_at: 1738857600 },
+        },
+      })
+
+      const result = parseStatuslineInput(input)
+
+      expect(result.rateLimits).not.toBeNull()
+      expect(result.rateLimits?.fiveHour).toEqual({ used_percentage: 23.5, resets_at: 1738425600 })
+      expect(result.rateLimits?.sevenDay).toEqual({ used_percentage: 41.2, resets_at: 1738857600 })
+    })
+
+    it("returns rateLimits: null when rate_limits is absent (api-key user)", () => {
+      const input = createStatuslineInput()
+
+      const result = parseStatuslineInput(input)
+
+      expect(result.rateLimits).toBeNull()
+    })
+
+    it("handles partial rate limits with only five_hour present", () => {
+      const input = createStatuslineInput({
+        rate_limits: {
+          five_hour: { used_percentage: 72.0, resets_at: 1738425600 },
+        },
+      })
+
+      const result = parseStatuslineInput(input)
+
+      expect(result.rateLimits?.fiveHour).toEqual({ used_percentage: 72.0, resets_at: 1738425600 })
+      expect(result.rateLimits?.sevenDay).toBeUndefined()
+    })
+
+    it("handles partial rate limits with only seven_day present", () => {
+      const input = createStatuslineInput({
+        rate_limits: {
+          seven_day: { used_percentage: 55.0, resets_at: 1738857600 },
+        },
+      })
+
+      const result = parseStatuslineInput(input)
+
+      expect(result.rateLimits?.fiveHour).toBeUndefined()
+      expect(result.rateLimits?.sevenDay).toEqual({ used_percentage: 55.0, resets_at: 1738857600 })
+    })
+
+    it("handles empty rate_limits object (both windows absent)", () => {
+      const input = createStatuslineInput({
+        rate_limits: {},
+      })
+
+      const result = parseStatuslineInput(input)
+
+      expect(result.rateLimits).not.toBeNull()
+      expect(result.rateLimits?.fiveHour).toBeUndefined()
+      expect(result.rateLimits?.sevenDay).toBeUndefined()
+    })
+  })
+
   describe("edge cases", () => {
     it("should handle very small cost values", () => {
       const input = createStatuslineInput({

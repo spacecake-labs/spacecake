@@ -311,18 +311,17 @@ function LayoutContent() {
       const query = store.get(workspaceSearchQueryAtom)
       store.set(searchQueryAtom, query)
       store.set(searchOpenAtom, true)
+      // always set the atom so a newly-mounted machine picks it up via readAtoms
+      // even if searchActorAtom currently holds a stale ref from a different file.
+      store.set(searchTargetLineAtom, lineNumber)
 
-      // if the search machine already exists (file was open), send events
+      // if the search machine already exists (file was open), also send events
       // directly — this handles the case where searchOpenAtom is already
       // true and the subscription wouldn't fire.
       const searchActor = store.get(searchActorAtom)
       if (searchActor) {
         searchActor.send({ type: "search.input.change", query })
         searchActor.send({ type: "search.target.line", line: lineNumber })
-      } else {
-        // machine not yet mounted (file is loading); store target line
-        // so readAtoms picks it up when the machine enters Open.
-        store.set(searchTargetLineAtom, lineNumber)
       }
     },
     [machine],

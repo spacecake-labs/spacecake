@@ -1,4 +1,9 @@
-import { StatuslineInput } from "@/types/statusline"
+import { RateLimitWindow, StatuslineInput } from "@/types/statusline"
+
+export interface RateLimits {
+  fiveHour?: RateLimitWindow
+  sevenDay?: RateLimitWindow
+}
 
 export interface DisplayStatusline {
   model: string
@@ -9,6 +14,7 @@ export interface DisplayStatusline {
   sessionId: string
   timestamp: number
   surfaceId?: string
+  rateLimits: RateLimits | null
 }
 
 export interface StatuslineData {
@@ -74,5 +80,8 @@ export function parseStatuslineInput(
     sessionId: input.session_id,
     timestamp: Date.now(),
     surfaceId,
+    rateLimits: input.rate_limits
+      ? { fiveHour: input.rate_limits.five_hour, sevenDay: input.rate_limits.seven_day }
+      : null,
   }
 }

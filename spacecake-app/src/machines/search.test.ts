@@ -233,15 +233,17 @@ describe("search machine", () => {
       expect(getState(actor)).toBe("Open.HasResults")
     })
 
-    it("stores target line during debounce", () => {
+    it("preserves target line when search finds no results", () => {
       const editor = createLexicalEditor()
       const actor = startActor(editor)
       actor.send({ type: "search.open" })
       actor.send({ type: "search.input.change", query: "test" })
       actor.send({ type: "search.target.line", line: 42 })
 
-      // target line triggers immediate search
-      expect(getContext(actor).targetLine).toBeNull() // consumed
+      // no content → 0 results → targetLine kept so a subsequent
+      // search (after content loads) can still navigate to the right line
+      expect(getContext(actor).targetLine).toBe(42)
+      expect(getState(actor)).toBe("Open.Empty")
     })
   })
 
