@@ -3,6 +3,11 @@ export class StatuslineError extends Data.TaggedError("StatuslineError")<{
   readonly message: string
 }> {}
 
+export interface RateLimitWindow {
+  readonly used_percentage: number
+  readonly resets_at: number
+}
+
 export interface StatuslineInput {
   readonly hook_event_name: string
   readonly session_id: string
@@ -39,6 +44,10 @@ export interface StatuslineInput {
       readonly cache_creation_input_tokens: number
       readonly cache_read_input_tokens: number
     } | null
+  }
+  readonly rate_limits?: {
+    readonly five_hour?: RateLimitWindow
+    readonly seven_day?: RateLimitWindow
   }
 }
 

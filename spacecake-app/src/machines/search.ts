@@ -188,7 +188,10 @@ function executeSearch(ctx: SearchMachineContext): Partial<SearchMachineContext>
     isSourceMode,
     matchIndex,
     matchCount: unified.length,
-    targetLine: null, // consumed
+    // preserve targetLine if no results — the editor may still be loading,
+    // and the next search (triggered by search.content.change) needs it.
+    // it gets cleared in HasResults.entry once we successfully navigate.
+    targetLine: unified.length > 0 ? null : targetLine,
   }
 }
 

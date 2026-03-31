@@ -2,7 +2,7 @@ import { atom, WritableAtom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 import { SerializedEditorState } from "lexical"
 
-import type { DisplayStatusline } from "@/lib/statusline-parser"
+import type { DisplayStatusline, RateLimits } from "@/lib/statusline-parser"
 import type { ExpandedFolders, File, FileTree, Folder } from "@/types/workspace"
 import { AbsolutePath } from "@/types/workspace"
 
@@ -97,6 +97,9 @@ export const claudeStatuslineAtom = atom<DisplayStatusline | null>((get) => {
 
 // derived: only the session id (avoids re-renders when other statusline fields change)
 export const claudeSessionIdAtom = atom((get) => get(claudeStatuslineAtom)?.sessionId ?? null)
+
+// account-level rate limits — not per-surface, persists across terminal tab switches
+export const claudeRateLimitsAtom = atom<RateLimits | null>(null)
 
 // Persisted flag so the "IDE disconnected" toast is only shown once
 export const ideDisconnectedToastShownAtom = atomWithStorage<boolean>(

@@ -2,7 +2,11 @@ import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { ReactNode, useEffect, useRef } from "react"
 import { toast } from "sonner"
 
-import { ideDisconnectedToastShownAtom, statuslineMapAtom } from "@/lib/atoms/atoms"
+import {
+  claudeRateLimitsAtom,
+  ideDisconnectedToastShownAtom,
+  statuslineMapAtom,
+} from "@/lib/atoms/atoms"
 import type { PaneMachineRef } from "@/machines/pane"
 import type { ClaudeCodeStatus } from "@/types/claude-code"
 import { AbsolutePath } from "@/types/workspace"
@@ -26,6 +30,7 @@ export function ClaudeIntegrationProvider({
 }: ClaudeIntegrationProviderProps) {
   const setStatus = useSetAtom(claudeStatusAtom)
   const setStatuslineMap = useSetAtom(statuslineMapAtom)
+  const setRateLimits = useSetAtom(claudeRateLimitsAtom)
   const serverReady = useAtomValue(claudeServerReadyAtom)
   const setServerReady = useSetAtom(claudeServerReadyAtom)
   const serverStarted = useRef(false)
@@ -64,6 +69,9 @@ export function ClaudeIntegrationProvider({
           next.set(key, statusline)
           return next
         })
+        if (statusline.rateLimits) {
+          setRateLimits(statusline.rateLimits)
+        }
       }),
     )
 
@@ -94,7 +102,7 @@ export function ClaudeIntegrationProvider({
     )
 
     return () => cleanups.forEach((c) => c())
-  }, [serverReady, setStatus, setStatuslineMap, machine])
+  }, [serverReady, setStatus, setStatuslineMap, setRateLimits, machine])
 
   // Show a one-time toast when Claude Code prints "IDE disconnected" in the terminal
   useEffect(() => {

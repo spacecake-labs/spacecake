@@ -646,6 +646,7 @@ describe("ClaudeCodeServer", () => {
             sessionId: "session-1",
             timestamp: Date.now(),
             surfaceId: "abc123",
+            rateLimits: null,
           }
 
           statuslineUpdateCallback?.(statusline)

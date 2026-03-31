@@ -1,10 +1,10 @@
 {
   "hook_event_name": "Status",
   "session_id": "abc123...",
-  "transcript_path": "/path/to/transcript.json",
+  "transcript_path": "/path/to/transcript.jsonl",
   "cwd": "/current/working/directory",
   "model": {
-    "id": "claude-opus-4-1",
+    "id": "claude-opus-4-6",
     "display_name": "Opus"
   },
   "workspace": {
@@ -34,5 +34,29 @@
       "cache_creation_input_tokens": 5000,
       "cache_read_input_tokens": 2000
     }
+  },
+  "exceeds_200k_tokens": false,
+  "rate_limits": {
+    "five_hour": {
+      "used_percentage": 23.5,
+      "resets_at": 1738425600
+    },
+    "seven_day": {
+      "used_percentage": 41.2,
+      "resets_at": 1738857600
+    }
+  },
+  "vim": {
+    "mode": "NORMAL"
+  },
+  "agent": {
+    "name": "security-reviewer"
+  },
+  "worktree": {
+    "name": "my-feature",
+    "path": "/path/to/.claude/worktrees/my-feature",
+    "branch": "worktree-my-feature",
+    "original_cwd": "/path/to/project",
+    "original_branch": "main"
   }
 }
