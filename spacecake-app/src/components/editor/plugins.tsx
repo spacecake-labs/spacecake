@@ -75,7 +75,7 @@ function AutoFocusPlugin(): null {
   return null
 }
 
-export const Plugins = React.memo(function Plugins() {
+export const Plugins = React.memo(function Plugins({ filePath = "" }: { filePath?: string }) {
   return (
     <div className="absolute inset-0 flex flex-col">
       <div className="relative flex-1 min-h-0">
@@ -110,7 +110,7 @@ export const Plugins = React.memo(function Plugins() {
         {/* <FreezePlugin /> */}
         <ReparsePlugin />
         <SaveCommandPlugin />
-        <SearchPlugin />
+        <SearchPlugin filePath={filePath} />
         <SlashCommandPlugin />
       </div>
 

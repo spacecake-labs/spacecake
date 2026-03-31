@@ -63,6 +63,7 @@ import {
   searchActorAtom,
   searchOpenAtom,
   searchQueryAtom,
+  searchTargetFileAtom,
   searchTargetLineAtom,
 } from "@/lib/atoms/search"
 import {
@@ -311,8 +312,9 @@ function LayoutContent() {
       const query = store.get(workspaceSearchQueryAtom)
       store.set(searchQueryAtom, query)
       store.set(searchOpenAtom, true)
-      // always set the atom so a newly-mounted machine picks it up via readAtoms
-      // even if searchActorAtom currently holds a stale ref from a different file.
+      // scope the target line to this specific file so the old file's machine
+      // doesn't consume it before the new file's machine starts.
+      store.set(searchTargetFileAtom, filePath)
       store.set(searchTargetLineAtom, lineNumber)
 
       // if the search machine already exists (file was open), also send events

@@ -25,9 +25,11 @@ import { useNavigation } from "@/components/editor/plugins/use-navigation"
 import { githubDark, githubLight } from "@/components/editor/themes"
 import { useTheme } from "@/components/theme-provider"
 import { activeBlameAtom, activeLineDiffAtom } from "@/lib/atoms/git"
+import { cmViewsChangedAtom } from "@/lib/atoms/search"
 import { externalSearchExtension } from "@/lib/search/cm-search-extension"
 import { registerCmView, unregisterCmView } from "@/lib/search/cm-view-registry"
 import { extractCodeMirrorSelectionInfo } from "@/lib/selection-utils"
+import { store } from "@/lib/store"
 import { debounce } from "@/lib/utils"
 import type { LanguageSpec } from "@/types/language"
 import type { BlockMeta } from "@/types/parser"
@@ -581,6 +583,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
       // register with the CM view registry so the search coordinator can find us
       registerCmView(nodeKey, editorViewRef.current)
+      // notify any active search machine so it can retry a search that ran
+      // before this view was ready (source-mode files load language support
+      // asynchronously, so the first executeSearch may find no CM views).
+      store.set(cmViewsChangedAtom, nodeKey)
 
       const view = editorViewRef.current
 

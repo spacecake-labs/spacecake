@@ -13,11 +13,11 @@ import { searchActorAtom } from "@/lib/atoms/search"
 import { store } from "@/lib/store"
 import { searchMachine } from "@/machines/search"
 
-export function SearchPlugin(): null {
+export function SearchPlugin({ filePath }: { filePath: string }): null {
   const [editor] = useLexicalComposerContext()
 
   const actorRef = useActorRef(searchMachine, {
-    input: { editor },
+    input: { editor, filePath },
   })
 
   // expose actor ref so SearchBar and workspace search can send events directly

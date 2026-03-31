@@ -10,14 +10,16 @@
 
 import { closeSearchPanel } from "@codemirror/search"
 import type { LexicalEditor } from "lexical"
-import { $getRoot, $isDecoratorNode } from "lexical"
+import { $getNodeByKey, $getRoot, $isDecoratorNode } from "lexical"
 import { assign, fromCallback, setup } from "xstate"
 
 import {
+  cmViewsChangedAtom,
   searchCaseSensitiveAtom,
   searchOpenAtom,
   searchQueryAtom,
   searchRegexAtom,
+  searchTargetFileAtom,
   searchTargetLineAtom,
   searchWholeWordAtom,
 } from "@/lib/atoms/search"
@@ -67,6 +69,7 @@ export interface SearchMachineContext {
   matchCount: number
   targetLine: number | null
   editor: LexicalEditor
+  filePath: string
 }
 
 // ---------------------------------------------------------------------------
@@ -93,6 +96,7 @@ export type SearchMachineEvent =
 
 export interface SearchMachineInput {
   editor: LexicalEditor
+  filePath?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -113,6 +117,24 @@ const atomBridge = fromCallback<SearchMachineEvent, { editor: LexicalEditor }>(
       sendBack(open ? { type: "search.open" } : { type: "search.close" })
     })
 
+    // re-run the search when a CM view registers — this handles source-mode
+    // files where the CM view is created asynchronously (after language support
+    // loads) and isn't available during the first executeSearch call.
+    // only react when the nodeKey belongs to our editor to avoid spurious
+    // re-searches when views register in other open files.
+    const unsubCmViews = store.sub(cmViewsChangedAtom, () => {
+      const nodeKey = store.get(cmViewsChangedAtom)
+      if (nodeKey === null) return
+      const belongsToUs = input.editor.getEditorState().read(() => {
+        try {
+          return $getNodeByKey(nodeKey) !== null
+        } catch {
+          return false
+        }
+      })
+      if (belongsToUs) sendBack({ type: "search.content.change" })
+    })
+
     const unregisterUpdate = input.editor.registerUpdateListener(
       ({ dirtyElements, dirtyLeaves }) => {
         if (dirtyElements.size > 0 || dirtyLeaves.size > 0) {
@@ -123,6 +145,7 @@ const atomBridge = fromCallback<SearchMachineEvent, { editor: LexicalEditor }>(
 
     return () => {
       unsubOpen()
+      unsubCmViews()
       unregisterUpdate()
     }
   },
@@ -358,20 +381,34 @@ export const searchMachine = setup({
 
     clearHighlights: ({ context }) => clearAllHighlights(context),
 
-    consumeTargetLine: () => {
-      store.set(searchTargetLineAtom, null)
+    consumeTargetLine: ({ context }) => {
+      // only clear the atom if it was scoped to our file (or has no scope).
+      // this prevents the old file's machine from clearing a target line
+      // that was intended for a newly-opened file.
+      const targetFile = store.get(searchTargetFileAtom)
+      if (targetFile === null || targetFile === context.filePath) {
+        store.set(searchTargetLineAtom, null)
+        store.set(searchTargetFileAtom, null)
+      }
     },
 
     // read current values from jotai atoms on open.
     // this picks up the query/options/targetLine set by workspace search
     // or persisted from a previous session.
-    readAtoms: assign(() => ({
-      query: store.get(searchQueryAtom),
-      caseSensitive: store.get(searchCaseSensitiveAtom),
-      wholeWord: store.get(searchWholeWordAtom),
-      regex: store.get(searchRegexAtom),
-      targetLine: store.get(searchTargetLineAtom),
-    })),
+    readAtoms: assign(({ context }) => {
+      const targetLine = store.get(searchTargetLineAtom)
+      const targetFile = store.get(searchTargetFileAtom)
+      // only use the target line if it was scoped to our file (or has no scope)
+      const validTargetLine =
+        targetFile === null || targetFile === context.filePath ? targetLine : null
+      return {
+        query: store.get(searchQueryAtom),
+        caseSensitive: store.get(searchCaseSensitiveAtom),
+        wholeWord: store.get(searchWholeWordAtom),
+        regex: store.get(searchRegexAtom),
+        targetLine: validTargetLine,
+      }
+    }),
 
     clearResults: assign(() => emptyResults),
   },
@@ -411,6 +448,7 @@ export const searchMachine = setup({
     matchCount: 0,
     targetLine: null,
     editor: input.editor,
+    filePath: input.filePath ?? "",
   }),
   // the atom bridge runs for the entire lifetime of the machine,
   // translating searchOpenAtom changes and lexical updates into events.
