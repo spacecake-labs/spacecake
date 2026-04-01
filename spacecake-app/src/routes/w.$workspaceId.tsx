@@ -300,16 +300,17 @@ function LayoutContent() {
   // exists, otherwise stores a pending search for the new SearchPlugin to pick up.
   const handleSearchResultClick = useCallback(
     (filePath: string, lineNumber: number) => {
+      const query = store.get(workspaceSearchQueryAtom)
+      const searchActor = store.get(searchActorAtom)
+      const actorState = searchActor?.getSnapshot()
+
       machine.send({
         type: "pane.file.open",
         filePath: AbsolutePath(filePath),
       })
 
-      const query = store.get(workspaceSearchQueryAtom)
-      const searchActor = store.get(searchActorAtom)
-
-      if (searchActor) {
-        // actor exists — send directly
+      if (searchActor && actorState?.context?.filePath === filePath) {
+        // actor is for the same file — send directly
         searchActor.send({
           type: "search.open",
           query,
@@ -317,7 +318,8 @@ function LayoutContent() {
           targetFile: filePath,
         })
       } else {
-        // file not open yet — store for the new SearchPlugin to consume on mount
+        // file not open yet or actor belongs to a different file —
+        // store for the new SearchPlugin to consume on mount
         setPendingSearch({ query, targetLine: lineNumber, targetFile: filePath })
       }
     },
