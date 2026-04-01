@@ -43,7 +43,7 @@ function AutoFocusPlugin(): null {
       editor.update(() => {
         $setSelection(null)
       })
-      setTimeout(() => {
+      const id = setTimeout(() => {
         editor.read(() => {
           const root = $getRoot()
           const firstChild = root.getFirstChild()
@@ -55,6 +55,7 @@ function AutoFocusPlugin(): null {
           }
         })
       })
+      return () => clearTimeout(id)
     } else {
       editor.focus(
         () => {
@@ -75,7 +76,7 @@ function AutoFocusPlugin(): null {
   return null
 }
 
-export const Plugins = React.memo(function Plugins({ filePath = "" }: { filePath?: string }) {
+export const Plugins = React.memo(function Plugins() {
   return (
     <div className="absolute inset-0 flex flex-col">
       <div className="relative flex-1 min-h-0">
@@ -110,7 +111,7 @@ export const Plugins = React.memo(function Plugins({ filePath = "" }: { filePath
         {/* <FreezePlugin /> */}
         <ReparsePlugin />
         <SaveCommandPlugin />
-        <SearchPlugin filePath={filePath} />
+        <SearchPlugin />
         <SlashCommandPlugin />
       </div>
 

@@ -41,6 +41,11 @@ export type PaneMachineEvent =
       source?: OpenFileSource
       baseRef?: string
       targetRef?: string
+      // lsp-style navigation target (0-based line/character). passed through
+      // to router search params so FileLayout can trigger the find widget.
+      navigationLine?: number
+      navigationCharacter?: number
+      navigationQuery?: string
     }
 
 // Input to create the machine
@@ -148,6 +153,9 @@ export const paneMachine = setup({
           source?: OpenFileSource
           baseRef?: string
           targetRef?: string
+          navigationLine?: number
+          navigationCharacter?: number
+          navigationQuery?: string
         }
       }): Promise<void> => {
         // Create editor and pane item, then navigate
@@ -210,6 +218,9 @@ export const paneMachine = setup({
             source: input.source,
             baseRef: input.baseRef,
             targetRef: input.targetRef,
+            navigationLine: input.navigationLine,
+            navigationCharacter: input.navigationCharacter,
+            navigationQuery: input.navigationQuery,
           },
         })
       },
@@ -285,6 +296,9 @@ export const paneMachine = setup({
             source: event.source,
             baseRef: event.baseRef,
             targetRef: event.targetRef,
+            navigationLine: event.navigationLine,
+            navigationCharacter: event.navigationCharacter,
+            navigationQuery: event.navigationQuery,
           }
         },
         onDone: "Idle",

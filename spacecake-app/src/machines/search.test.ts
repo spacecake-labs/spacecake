@@ -59,12 +59,12 @@ function getContext(actor: SearchActor): SnapshotFrom<SearchMachine>["context"] 
 }
 
 /**
- * trigger an immediate search by setting a target line.
+ * trigger an immediate search by opening with a target line.
  * this skips the debounce timer (always guard: hasTargetLine -> Searching).
+ * targetLine is 0-based (LSP convention).
  */
-function triggerSearch(actor: SearchActor, query: string, targetLine = 1) {
-  actor.send({ type: "search.input.change", query })
-  actor.send({ type: "search.target.line", line: targetLine })
+function triggerSearch(actor: SearchActor, query: string, targetLine = 0) {
+  actor.send({ type: "search.open", query, targetLine })
 }
 
 // ---------------------------------------------------------------------------
@@ -219,9 +219,7 @@ describe("search machine", () => {
     it("skips debounce when target line is set", () => {
       const editor = createLexicalEditor("hello world hello")
       const actor = startActor(editor)
-      actor.send({ type: "search.open" })
-      actor.send({ type: "search.input.change", query: "hello" })
-      actor.send({ type: "search.target.line", line: 1 })
+      actor.send({ type: "search.open", query: "hello", targetLine: 0 })
 
       // always guard fires: hasTargetLine -> Searching -> HasResults
       expect(getState(actor)).toBe("Open.HasResults")
@@ -230,9 +228,7 @@ describe("search machine", () => {
     it("preserves target line when search finds no results", () => {
       const editor = createLexicalEditor()
       const actor = startActor(editor)
-      actor.send({ type: "search.open" })
-      actor.send({ type: "search.input.change", query: "test" })
-      actor.send({ type: "search.target.line", line: 42 })
+      actor.send({ type: "search.open", query: "test", targetLine: 42 })
 
       // no content → 0 results → targetLine kept so a subsequent
       // search (after content loads) can still navigate to the right line
@@ -289,15 +285,14 @@ describe("search machine", () => {
 
       expect(getContext(actor).matchCount).toBe(3) // case-insensitive default
 
-      // switch to case-sensitive
+      // switch to case-sensitive and trigger immediate re-search
       actor.send({
         type: "search.options.change",
         caseSensitive: true,
         wholeWord: false,
         regex: false,
       })
-      // trigger immediate re-search
-      actor.send({ type: "search.target.line", line: 1 })
+      actor.send({ type: "search.open", query: "Hello", targetLine: 0 })
 
       expect(getContext(actor).matchCount).toBe(1)
     })
@@ -317,9 +312,9 @@ describe("search machine", () => {
         textNode.textContent = "hello world hello again"
       }
 
-      // content change goes to Debouncing, target line skips to Searching
+      // content change goes to Debouncing; re-open with targetLine skips to Searching
       actor.send({ type: "search.content.change" })
-      actor.send({ type: "search.target.line", line: 1 })
+      actor.send({ type: "search.open", query: "hello", targetLine: 0 })
 
       expect(getContext(actor).matchCount).toBe(2)
     })
@@ -369,29 +364,26 @@ describe("search machine", () => {
     })
   })
 
-  describe("workspace search handoff", () => {
+  describe("navigation target line", () => {
     it("skips debounce and navigates to target line match", () => {
       const editor = createLexicalEditor("hello world hello")
       const actor = startActor(editor)
-      actor.send({ type: "search.open" })
-      actor.send({ type: "search.input.change", query: "hello" })
-      actor.send({ type: "search.target.line", line: 1 })
+      actor.send({ type: "search.open", query: "hello", targetLine: 0 })
 
       expect(getState(actor)).toBe("Open.HasResults")
       expect(getContext(actor).matchCount).toBe(2)
       expect(getContext(actor).targetLine).toBeNull()
     })
 
-    it("handles target.line in HasResults (same file, same query)", () => {
+    it("re-opening with targetLine while in HasResults navigates to line", () => {
       const editor = createLexicalEditor("hello world hello")
       const actor = startActor(editor)
-      actor.send({ type: "search.open" })
       triggerSearch(actor, "hello")
 
       expect(getState(actor)).toBe("Open.HasResults")
 
-      // second click in same file — target.line in HasResults
-      actor.send({ type: "search.target.line", line: 1 })
+      // second result click — re-open with targetLine while already in HasResults
+      actor.send({ type: "search.open", query: "hello", targetLine: 0 })
       expect(getState(actor)).toBe("Open.HasResults")
       expect(getContext(actor).targetLine).toBeNull()
     })

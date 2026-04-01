@@ -210,7 +210,7 @@ export function Editor({
           ...(editorSerializedState ? { editorState: JSON.stringify(editorSerializedState) } : {}),
         }}
       >
-        <Plugins filePath={filePath} />
+        <Plugins />
 
         <EditorRefPlugin editorRef={editorRef} />
 

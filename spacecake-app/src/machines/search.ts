@@ -10,6 +10,7 @@
 // (lexical) and CM StateEffects (codemirror).
 
 import { closeSearchPanel } from "@codemirror/search"
+import type { EditorView } from "@codemirror/view"
 import type { LexicalEditor } from "lexical"
 import { $getRoot, $isDecoratorNode } from "lexical"
 import { assign, fromCallback, setup } from "xstate"
@@ -77,7 +78,6 @@ export interface SearchMachineContext {
   targetLine: number | null
   focusTrigger: number
   editor: LexicalEditor
-  filePath: string
 }
 
 // ---------------------------------------------------------------------------
@@ -89,7 +89,6 @@ export type SearchMachineEvent =
       type: "search.open"
       query?: string
       targetLine?: number | null
-      targetFile?: string | null
     }
   | { type: "search.close" }
   | { type: "search.input.change"; query: string }
@@ -101,7 +100,6 @@ export type SearchMachineEvent =
     }
   | { type: "search.content.change" }
   | { type: "search.navigate.to"; matchIndex: number }
-  | { type: "search.target.line"; line: number }
 
 // ---------------------------------------------------------------------------
 // input
@@ -109,7 +107,6 @@ export type SearchMachineEvent =
 
 export interface SearchMachineInput {
   editor: LexicalEditor
-  filePath?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -148,7 +145,9 @@ function getEditorCmViews(editor: LexicalEditor): CmViewEntry[] {
       }
     }
   })
-  return getAllCmViews().filter(([key]) => ownedKeys.has(key))
+  const allViews = getAllCmViews()
+  const filtered = allViews.filter(([key]) => ownedKeys.has(key))
+  return filtered
 }
 
 function executeSearch(ctx: SearchMachineContext): Partial<SearchMachineContext> {
@@ -237,7 +236,7 @@ function findMatchNearLine(
   if (isSourceMode && cmViews.length > 0) {
     const [, cmView] = cmViews[0]
     const doc = cmView.state.doc
-    const line = Math.min(targetLine, doc.lines)
+    const line = Math.min(targetLine + 1, doc.lines) // targetLine is 0-based (LSP), doc.line() is 1-based
     const targetOffset = doc.line(line).from
 
     let bestIndex = 0
@@ -340,11 +339,16 @@ function navigateToMatch(ctx: SearchMachineContext): void {
 
 function clearAllHighlights(ctx: SearchMachineContext): void {
   clearSearchHighlights()
-  // use cached views if available, fall back to registry
-  const views = ctx.cmViews.length > 0 ? ctx.cmViews : getAllCmViews()
-  for (const [, cmView] of views) {
-    cmView.dispatch({ effects: clearSearchMatchesEffect.of(undefined) })
-    closeSearchPanel(cmView)
+  // always dispatch to both cached views (may be unregistered but still alive)
+  // and all currently registered views (handles views added since the last search).
+  // using a Set avoids double-dispatching when cached and registry overlap.
+  const seen = new Set<EditorView>()
+  for (const [, cmView] of [...ctx.cmViews, ...getAllCmViews()]) {
+    if (!seen.has(cmView)) {
+      seen.add(cmView)
+      cmView.dispatch({ effects: clearSearchMatchesEffect.of(undefined) })
+      closeSearchPanel(cmView)
+    }
   }
 }
 
@@ -385,18 +389,15 @@ export const searchMachine = setup({
       writeBool(LS_REGEX, context.regex)
     },
 
-    // apply fields from the search.open event (workspace search handoff).
+    // apply fields from the search.open event.
     // only applies non-null values — a plain Cmd+F open sends no fields
     // and the context retains the previous query/options.
-    applyOpenEvent: assign(({ context, event }) => {
+    applyOpenEvent: assign(({ event }) => {
       if (event.type !== "search.open") return {}
       const updates: Partial<SearchMachineContext> = {}
       if (event.query !== undefined) updates.query = event.query
       if (event.targetLine !== undefined && event.targetLine !== null) {
-        const targetFile = event.targetFile ?? null
-        if (targetFile === null || targetFile === context.filePath) {
-          updates.targetLine = event.targetLine
-        }
+        updates.targetLine = event.targetLine
       }
       return updates
     }),
@@ -442,7 +443,6 @@ export const searchMachine = setup({
     targetLine: null,
     focusTrigger: 0,
     editor: input.editor,
-    filePath: input.filePath ?? "",
   }),
   // the content change listener runs for the entire lifetime of the machine,
   // forwarding lexical editor updates as search.content.change events.
@@ -476,14 +476,17 @@ export const searchMachine = setup({
         },
         Empty: {
           entry: ["clearHighlights", "clearResults"],
+          // defensive retry: if we have a non-empty query but no results, retry
+          // after a short delay. this handles the case where search.content.change
+          // is dropped (e.g. searchActorAtom null during effect re-runs) so the
+          // normal recovery path doesn't fire.
+          after: {
+            500: [{ guard: "hasQuery", target: "Debouncing" }],
+          },
           on: {
             "search.input.change": {
               target: "Evaluating",
               actions: assign({ query: ({ event }) => event.query }),
-            },
-            "search.target.line": {
-              target: "Evaluating",
-              actions: assign({ targetLine: ({ event }) => event.line }),
             },
             "search.options.change": {
               target: "Evaluating",
@@ -524,13 +527,8 @@ export const searchMachine = setup({
               target: "Debouncing",
               reenter: true,
             },
-            "search.target.line": {
-              target: "Debouncing",
-              reenter: true,
-              actions: assign({ targetLine: ({ event }) => event.line }),
-            },
           },
-          // skip debounce when workspace search hands off with a target line
+          // skip debounce when opening with a target line
           always: [{ guard: "hasTargetLine", target: "Searching" }],
           after: {
             DEBOUNCE_MS: [
@@ -583,21 +581,6 @@ export const searchMachine = setup({
               actions: [
                 assign(({ context, event }) => ({
                   matchIndex: Math.max(0, Math.min(event.matchIndex, context.matchCount - 1)),
-                })),
-                "dispatchHighlights",
-                "navigate",
-              ],
-            },
-            "search.target.line": {
-              actions: [
-                assign(({ context, event }) => ({
-                  matchIndex: findMatchNearLine(
-                    context.unifiedMatches,
-                    event.line,
-                    context.isSourceMode,
-                    context.cmViews,
-                  ),
-                  targetLine: null,
                 })),
                 "dispatchHighlights",
                 "navigate",
