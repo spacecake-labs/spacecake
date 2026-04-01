@@ -59,7 +59,6 @@ import {
 } from "@/lib/atoms/git"
 import { cleanupPaneMachine } from "@/lib/atoms/pane"
 import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
-import { searchActorAtom, setPendingSearch } from "@/lib/atoms/search"
 import {
   workspaceSearchFocusTriggerAtom,
   workspaceSearchOpenAtom,
@@ -295,33 +294,19 @@ function LayoutContent() {
     }
   })
 
-  // open file from workspace search result and activate in-file search.
-  // sends search.open with query/targetLine directly to the machine if it
-  // exists, otherwise stores a pending search for the new SearchPlugin to pick up.
+  // open file from workspace search result at the matched line.
+  // navigation params are passed through the router — FileLayout consumes
+  // them and opens the find widget independently of the navigation itself.
+  // lineNumber is 1-based (ripgrep); converted to 0-based (LSP) here.
   const handleSearchResultClick = useCallback(
     (filePath: string, lineNumber: number) => {
       const query = store.get(workspaceSearchQueryAtom)
-      const searchActor = store.get(searchActorAtom)
-      const actorState = searchActor?.getSnapshot()
-
       machine.send({
         type: "pane.file.open",
         filePath: AbsolutePath(filePath),
+        navigationLine: lineNumber - 1,
+        navigationQuery: query,
       })
-
-      if (searchActor && actorState?.context?.filePath === filePath) {
-        // actor is for the same file — send directly
-        searchActor.send({
-          type: "search.open",
-          query,
-          targetLine: lineNumber,
-          targetFile: filePath,
-        })
-      } else {
-        // file not open yet or actor belongs to a different file —
-        // store for the new SearchPlugin to consume on mount
-        setPendingSearch({ query, targetLine: lineNumber, targetFile: filePath })
-      }
     },
     [machine],
   )

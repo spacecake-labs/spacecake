@@ -5,7 +5,6 @@ import { EditorState } from "@codemirror/state"
 import { EditorView } from "@codemirror/view"
 import { afterEach, describe, expect, it } from "vitest"
 
-import { setPendingSearch, consumePendingSearch } from "@/lib/atoms/search"
 import { externalSearchExtension } from "@/lib/search/cm-search-extension"
 import { findCmMatchesSmall, findCmMatchesStreaming } from "@/lib/search/cm-text-search"
 import {
@@ -42,15 +41,7 @@ afterEach(() => {
 })
 
 describe("unified search integration", () => {
-  describe("workspace → source mode handoff", () => {
-    it("stores pending search for source mode files", () => {
-      setPendingSearch({ query: "function", targetLine: 42, targetFile: null })
-
-      const pending = consumePendingSearch()
-      expect(pending?.query).toBe("function")
-      expect(pending?.targetLine).toBe(42)
-    })
-
+  describe("source mode search", () => {
     it("finds matches in a registered CM view (source mode)", () => {
       const code = [
         "def hello():",

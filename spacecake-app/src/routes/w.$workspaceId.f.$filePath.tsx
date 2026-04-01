@@ -5,7 +5,7 @@ import * as Schema from "effect/Schema"
 import { atom } from "jotai"
 import { useSetAtom, useAtomValue } from "jotai"
 import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
-import React, { useEffect } from "react"
+import React, { useCallback, useEffect } from "react"
 
 import { Editor } from "@/components/editor/editor"
 import { ConflictEditor } from "@/components/editor/plugins/conflict-editor"
@@ -57,6 +57,11 @@ const fileSearchSchema = Schema.Struct({
   targetRef: Schema.optional(Schema.String),
   // set by pane machine to signal that pane item activation was already handled
   paneActivated: Schema.optional(Schema.Boolean),
+  // lsp-style navigation target (0-based). set by workspace search on result click.
+  // FileLayout consumes these to open the find widget at the right line, then clears them.
+  navigationLine: Schema.optional(Schema.Number),
+  navigationCharacter: Schema.optional(Schema.Number),
+  navigationQuery: Schema.optional(Schema.String),
 })
 
 export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
@@ -67,6 +72,8 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
     baseRef,
     targetRef,
     paneActivated,
+    // navigation params are intentionally excluded from loaderDeps — they should
+    // not trigger a loader re-run, only the FileLayout effect.
   }),
   loader: async ({
     params,
@@ -279,7 +286,7 @@ function FileLayout() {
   const { filePath, editorConfig, key, editorId, fileId, diffError, conflictContent } =
     Route.useLoaderData()
   const { db, workspace } = Route.useRouteContext()
-  const { view: viewKind } = Route.useSearch()
+  const { view: viewKind, navigationLine, navigationQuery } = Route.useSearch()
 
   const sendFileState = useSetAtom(getOrCreateFileStateAtom(filePath))
 
@@ -290,33 +297,66 @@ function FileLayout() {
   const autosaveEnabled =
     viewKind !== "diff" && viewKind !== "conflict" && settings.autosave === "on"
 
+  // consume navigation params from workspace search result clicks.
+  // when both the actor is ready and params are present, open the find widget
+  // at the target line, then clear the params so they don't re-trigger.
+  const searchActor = useAtomValue(searchActorAtom)
+  useEffect(() => {
+    if (navigationLine === undefined || !searchActor) return
+    searchActor.send({
+      type: "search.open",
+      query: navigationQuery ?? "",
+      targetLine: navigationLine,
+    })
+    // clear navigation params so back-navigation and re-renders don't re-trigger
+    router.navigate({
+      to: "/w/$workspaceId/f/$filePath",
+      params: {
+        workspaceId: encodeBase64Url(workspace.path),
+        filePath: encodeBase64Url(filePath),
+      },
+      search: (prev) => {
+        const {
+          navigationLine: _nl,
+          navigationCharacter: _nc,
+          navigationQuery: _nq,
+          ...rest
+        } = prev
+        return rest
+      },
+      replace: true,
+    })
+  }, [navigationLine, navigationQuery, searchActor, workspace.path, filePath])
+
   // open unified in-file search (works in both rich and source mode).
   // sends search.open directly to the machine — the machine is the single
   // source of truth. re-opening while already open increments focusTrigger.
   useHotkey(
     "mod+f",
     () => {
-      const actor = store.get(searchActorAtom)
-      if (actor) actor.send({ type: "search.open" })
+      if (searchActor) searchActor.send({ type: "search.open" })
     },
     { capture: true },
   )
 
   // Helper to notify Claude Code of selection changes
-  const notifyClaudeCodeSelection = (selectedText: string, selection: ClaudeSelection) => {
-    if (!window.electronAPI?.claude?.notifySelectionChanged) {
-      return
-    }
+  const notifyClaudeCodeSelection = useCallback(
+    (selectedText: string, selection: ClaudeSelection) => {
+      if (!window.electronAPI?.claude?.notifySelectionChanged) {
+        return
+      }
 
-    const payload: SelectionChangedPayload = {
-      text: selectedText,
-      filePath,
-      fileUrl: `file://${filePath}`,
-      selection,
-    }
+      const payload: SelectionChangedPayload = {
+        text: selectedText,
+        filePath,
+        fileUrl: `file://${filePath}`,
+        selection,
+      }
 
-    window.electronAPI.claude.notifySelectionChanged(payload)
-  }
+      window.electronAPI.claude.notifySelectionChanged(payload)
+    },
+    [filePath],
+  )
 
   // fetch blame data for the active file
   const setActiveBlame = useSetAtom(activeBlameAtom)
@@ -407,6 +447,80 @@ function FileLayout() {
     )
   }, [fileId, db])
 
+  const handleChange = useCallback(
+    (editorState: EditorState, changeType: ChangeType) => {
+      editorState.read(() => {
+        const selection = $getSelection()
+
+        const serializedSelection = $isRangeSelection(selection)
+          ? Schema.decodeUnknownSync(SerializedSelectionSchema)({
+              anchor: {
+                key: selection.anchor.key,
+                offset: selection.anchor.offset,
+              },
+              focus: {
+                key: selection.focus.key,
+                offset: selection.focus.offset,
+              },
+            })
+          : null
+
+        if (changeType === "selection") {
+          send({
+            type: "editor.selection.update",
+            editorSelection: {
+              id: editorId,
+              selection: serializedSelection,
+            },
+          })
+
+          // Notify Claude Code of selection change
+
+          const selectedText = $isRangeSelection(selection) ? selection.getTextContent() : ""
+
+          const claudeSelection = createRichViewClaudeSelection(selectedText)
+
+          notifyClaudeCodeSelection(selectedText, claudeSelection)
+        } else {
+          sendFileState({ type: "file.edit" })
+          // don't persist state for ephemeral views (diff/conflict overlays)
+          if (viewKind && viewKind !== "diff" && viewKind !== "conflict") {
+            send({
+              type: "editor.state.update",
+              editorState: {
+                id: editorId,
+                state: Schema.decodeUnknownSync(JsonValue)(editorState.toJSON()),
+                selection: serializedSelection,
+                view_kind: viewKind,
+              },
+            })
+          }
+        }
+      })
+    },
+    [editorId, viewKind, send, sendFileState, notifyClaudeCodeSelection],
+  )
+
+  const handleCodeMirrorSelection = useCallback(
+    (extendedSelection: EditorExtendedSelection) => {
+      send({
+        type: "editor.selection.update",
+        editorSelection: {
+          id: editorId,
+          selection: extendedSelection.selection,
+        },
+      })
+
+      const claudeSelection =
+        viewKind === "source"
+          ? extendedSelection.claudeSelection
+          : createRichViewClaudeSelection(extendedSelection.selectedText)
+
+      notifyClaudeCodeSelection(extendedSelection.selectedText, claudeSelection)
+    },
+    [editorId, viewKind, send, notifyClaudeCodeSelection],
+  )
+
   // Handle diff error
   if (diffError) {
     return (
@@ -452,72 +566,8 @@ function FileLayout() {
         filePath={filePath}
         editorConfig={editorConfig}
         autosaveEnabled={autosaveEnabled}
-        onChange={(editorState: EditorState, changeType: ChangeType) => {
-          editorState.read(() => {
-            const selection = $getSelection()
-
-            const serializedSelection = $isRangeSelection(selection)
-              ? Schema.decodeUnknownSync(SerializedSelectionSchema)({
-                  anchor: {
-                    key: selection.anchor.key,
-                    offset: selection.anchor.offset,
-                  },
-                  focus: {
-                    key: selection.focus.key,
-                    offset: selection.focus.offset,
-                  },
-                })
-              : null
-
-            if (changeType === "selection") {
-              send({
-                type: "editor.selection.update",
-                editorSelection: {
-                  id: editorId,
-                  selection: serializedSelection,
-                },
-              })
-
-              // Notify Claude Code of selection change
-
-              const selectedText = $isRangeSelection(selection) ? selection.getTextContent() : ""
-
-              const claudeSelection = createRichViewClaudeSelection(selectedText)
-
-              notifyClaudeCodeSelection(selectedText, claudeSelection)
-            } else {
-              sendFileState({ type: "file.edit" })
-              // don't persist state for ephemeral views (diff/conflict overlays)
-              if (viewKind && viewKind !== "diff" && viewKind !== "conflict") {
-                send({
-                  type: "editor.state.update",
-                  editorState: {
-                    id: editorId,
-                    state: Schema.decodeUnknownSync(JsonValue)(editorState.toJSON()),
-                    selection: serializedSelection,
-                    view_kind: viewKind,
-                  },
-                })
-              }
-            }
-          })
-        }}
-        onCodeMirrorSelection={(extendedSelection: EditorExtendedSelection) => {
-          send({
-            type: "editor.selection.update",
-            editorSelection: {
-              id: editorId,
-              selection: extendedSelection.selection,
-            },
-          })
-
-          const claudeSelection =
-            viewKind === "source"
-              ? extendedSelection.claudeSelection
-              : createRichViewClaudeSelection(extendedSelection.selectedText)
-
-          notifyClaudeCodeSelection(extendedSelection.selectedText, claudeSelection)
-        }}
+        onChange={handleChange}
+        onCodeMirrorSelection={handleCodeMirrorSelection}
       />
     </>
   )
