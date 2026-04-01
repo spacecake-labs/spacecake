@@ -10,6 +10,7 @@
 // (lexical) and CM StateEffects (codemirror).
 
 import { closeSearchPanel } from "@codemirror/search"
+import type { EditorView } from "@codemirror/view"
 import type { LexicalEditor } from "lexical"
 import { $getRoot, $isDecoratorNode } from "lexical"
 import { assign, fromCallback, setup } from "xstate"
@@ -148,7 +149,9 @@ function getEditorCmViews(editor: LexicalEditor): CmViewEntry[] {
       }
     }
   })
-  return getAllCmViews().filter(([key]) => ownedKeys.has(key))
+  const allViews = getAllCmViews()
+  const filtered = allViews.filter(([key]) => ownedKeys.has(key))
+  return filtered
 }
 
 function executeSearch(ctx: SearchMachineContext): Partial<SearchMachineContext> {
@@ -340,11 +343,16 @@ function navigateToMatch(ctx: SearchMachineContext): void {
 
 function clearAllHighlights(ctx: SearchMachineContext): void {
   clearSearchHighlights()
-  // use cached views if available, fall back to registry
-  const views = ctx.cmViews.length > 0 ? ctx.cmViews : getAllCmViews()
-  for (const [, cmView] of views) {
-    cmView.dispatch({ effects: clearSearchMatchesEffect.of(undefined) })
-    closeSearchPanel(cmView)
+  // always dispatch to both cached views (may be unregistered but still alive)
+  // and all currently registered views (handles views added since the last search).
+  // using a Set avoids double-dispatching when cached and registry overlap.
+  const seen = new Set<EditorView>()
+  for (const [, cmView] of [...ctx.cmViews, ...getAllCmViews()]) {
+    if (!seen.has(cmView)) {
+      seen.add(cmView)
+      cmView.dispatch({ effects: clearSearchMatchesEffect.of(undefined) })
+      closeSearchPanel(cmView)
+    }
   }
 }
 
@@ -476,6 +484,13 @@ export const searchMachine = setup({
         },
         Empty: {
           entry: ["clearHighlights", "clearResults"],
+          // defensive retry: if we have a non-empty query but no results, retry
+          // after a short delay. this handles the case where search.content.change
+          // is dropped (e.g. searchActorAtom null during effect re-runs) so the
+          // normal recovery path doesn't fire.
+          after: {
+            500: [{ guard: "hasQuery", target: "Debouncing" }],
+          },
           on: {
             "search.input.change": {
               target: "Evaluating",
