@@ -84,6 +84,11 @@ dock it left, right, or bottom alongside the terminal and git panels.
 - linting
 - the usual keyboard shortcuts
 
+### 🔍 search
+
+- **find in file** (`⌘F` / `ctrl+F`) — search within the current file with match highlighting, navigation, and case/word/regex toggles
+- **find in workspace** (`⌘⇧F` / `ctrl+shift+F`) — ripgrep-powered search across all files, with file include/exclude filters and results grouped by file
+
 ### ⚙️ other features
 
 - **autosave**: auto-save files on edit (enable in workspace settings)
@@ -95,6 +100,8 @@ dock it left, right, or bottom alongside the terminal and git panels.
 | --- | --- |
 | `⌘O` | open workspace |
 | `⌘P` | quick open file |
+| `⌘F` | find in file |
+| `⌘⇧F` | find in workspace |
 | `⌘N` | new file |
 | `⌘1` | focus editor |
 | `⌘B` | toggle sidebar |
