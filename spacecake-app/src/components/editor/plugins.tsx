@@ -26,6 +26,8 @@ import { SearchPlugin } from "@/components/editor/plugins/search-plugin"
 import { SlashCommandPlugin } from "@/components/editor/plugins/slash-command"
 import TableCellResizer from "@/components/editor/plugins/table-cell-resizer"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
+import { useRoute } from "@/hooks/use-route"
+import { cn } from "@/lib/utils"
 
 function AutoFocusPlugin(): null {
   const [editor] = useLexicalComposerContext()
@@ -77,6 +79,10 @@ function AutoFocusPlugin(): null {
 }
 
 export const Plugins = React.memo(function Plugins() {
+  const route = useRoute()
+  const fileName = route?.filePath?.split("/").pop() ?? ""
+  const isReadme = /^readme\.(md|markdown)$/i.test(fileName)
+
   return (
     <div className="absolute inset-0 flex flex-col">
       <div className="relative flex-1 min-h-0">
@@ -84,7 +90,10 @@ export const Plugins = React.memo(function Plugins() {
           contentEditable={
             <ContentEditable
               placeholder={""}
-              className="ContentEditable__root absolute inset-0 overflow-y-auto p-4 focus:outline-none [scrollbar-gutter:stable_both-edges]"
+              className={cn(
+                "ContentEditable__root absolute inset-0 overflow-y-auto p-4 focus:outline-none [scrollbar-gutter:stable_both-edges]",
+                isReadme && "gfm-softbreak",
+              )}
             />
           }
           ErrorBoundary={LexicalErrorBoundary}

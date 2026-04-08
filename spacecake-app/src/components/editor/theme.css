@@ -299,3 +299,61 @@ table.border-separate tr:last-child th {
     margin-bottom: 0;
   }
 }
+
+/* GFM SOFT LINEBREAK COLLAPSE
+ *
+ * in github-flavored markdown, single newlines within a paragraph collapse to
+ * spaces. lexical preserves newlines as separate <p> nodes for isomorphism.
+ * this CSS visually collapses consecutive non-empty paragraphs into inline flow
+ * while keeping empty paragraphs as block-level paragraph separators.
+ *
+ * DOM structure:
+ *   <p><br></p>                  ← empty paragraph = hard break (block separator)
+ *   <p><span>line one</span></p> ← non-empty = soft break (inline flow)
+ *   <p><span>line two</span></p> ← non-empty = soft break (inline flow)
+ *   <p><br></p>                  ← empty paragraph = hard break (block separator)
+ */
+
+/* non-empty paragraphs flow inline */
+.gfm-softbreak .empty-para-collapsible:has([data-lexical-text]) {
+  display: inline;
+  margin: 0;
+}
+
+/* space between consecutive inline paragraphs (lexical DOM has no whitespace between elements) */
+.gfm-softbreak
+  .empty-para-collapsible:has([data-lexical-text])
+  + .empty-para-collapsible:has([data-lexical-text])::before {
+  content: " ";
+  white-space: pre;
+}
+
+/* empty paragraphs serve as block-level paragraph separators.
+ * override the existing collapse rules (higher specificity via .gfm-softbreak ancestor).
+ */
+.gfm-softbreak
+  .text-block
+  + .empty-para-collapsible:not(.focused-node):not(.was-focused-node):has(> br:only-child) {
+  display: block;
+  height: 0;
+  overflow: hidden;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.gfm-softbreak
+  .text-block
+  + .empty-para-collapsible.was-focused-node:not(.focused-node):has(> br:only-child) {
+  display: block;
+  height: 0;
+  overflow: hidden;
+  padding: 0;
+  margin: 0.5rem 0;
+  animation: none;
+}
+
+/* hide fold/poof indicators in gfm mode */
+.gfm-softbreak .empty-para-collapsible:has(> br:only-child)::before,
+.gfm-softbreak .empty-para-collapsible:has(> br:only-child)::after {
+  display: none;
+}
