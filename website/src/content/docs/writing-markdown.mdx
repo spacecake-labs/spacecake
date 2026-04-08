@@ -73,3 +73,9 @@ toggle between rich mode (WYSIWYG) and source mode using the view toggle button 
 
 - **rich mode**: renders markdown visually as you type — headings, code blocks, diagrams, and checklists are all interactive
 - **source mode**: shows the raw markdown with a live preview, useful for precise editing or debugging formatting issues
+
+## README rendering
+
+README files (`README.md`) use GitHub-style line break handling. single newlines within a paragraph are visually collapsed — consecutive lines flow together as one paragraph, matching how GitHub renders them. double newlines still create paragraph breaks as usual.
+
+this means what you see in spacecake matches what collaborators see on GitHub, without altering the underlying file.
