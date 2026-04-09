@@ -13,12 +13,15 @@ import {
 import { useHotkey } from "@/hooks/use-hotkey"
 import { useRecentFiles } from "@/hooks/use-recent-files"
 import { quickOpenMenuOpenAtom } from "@/lib/atoms/atoms"
-import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
+import {
+  ensureFileIndex,
+  quickOpenIndexAtom,
+  quickOpenIndexReadyAtom,
+} from "@/lib/atoms/quick-open-index"
 import { createQuickOpenItems } from "@/lib/filter-files"
 import { parentFolderName } from "@/lib/utils"
 import { fileTypeFromFileName } from "@/lib/workspace"
 import type { PaneMachineRef } from "@/machines/pane"
-import { match } from "@/types/adt"
 import {
   AbsolutePath,
   type File,
@@ -28,7 +31,6 @@ import {
 } from "@/types/workspace"
 
 const quickOpenSearchAtom = atom("")
-const quickOpenParentAtom = atom<HTMLDivElement | null>(null)
 
 interface QuickOpenProps {
   workspacePath: WorkspaceInfo["path"]
@@ -48,24 +50,17 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
     console.error("error getting recent files", recentFiles.error)
   }
 
-  const [parent, setParent] = useAtom(quickOpenParentAtom)
+  const parentRef = React.useRef<HTMLDivElement | null>(null)
 
   const jotaiStore = useStore()
 
-  // lazy-load file index on first open
+  // lazy-load file index on first open.
+  // ensureFileIndex prevents duplicate IPC calls when wikilinks also trigger a build.
   React.useEffect(() => {
-    if (isOpen && !indexReady) {
-      window.electronAPI.listFiles(workspacePath).then((result) => {
-        match(result, {
-          onLeft: (error) => console.error("file index build failed:", error),
-          onRight: (files) => {
-            jotaiStore.set(quickOpenIndexAtom, files)
-            jotaiStore.set(quickOpenIndexReadyAtom, true)
-          },
-        })
-      })
+    if (isOpen) {
+      ensureFileIndex(jotaiStore, workspacePath)
     }
-  }, [isOpen, indexReady, workspacePath, jotaiStore])
+  }, [isOpen, workspacePath, jotaiStore])
 
   useHotkey("mod+p", () => setIsOpen())
 
@@ -108,7 +103,7 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
 
   const rowVirtualizer = useVirtualizer({
     count: filteredItems?.length ?? 0,
-    getScrollElement: () => parent,
+    getScrollElement: () => parentRef.current,
     estimateSize: () => 32,
     overscan: 5,
   })
@@ -138,7 +133,7 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
       className="top-4 translate-y-0"
     >
       <CommandInput placeholder="search files..." value={search} onValueChange={setSearch} />
-      <CommandList ref={setParent}>
+      <CommandList ref={parentRef}>
         {rowVirtualizer.getVirtualItems().length === 0 ? (
           search ? (
             <CommandEmpty>no results found</CommandEmpty>

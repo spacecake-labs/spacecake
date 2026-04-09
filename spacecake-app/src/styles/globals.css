@@ -219,3 +219,31 @@
     color: oklch(84.5% 0.143 164.978);
   }
 }
+
+/* heading anchor flash — brief highlight when navigating to [[file#heading]] */
+@keyframes anchor-flash {
+  0% {
+    background-color: oklch(90.5% 0.093 164.15);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes anchor-flash-dark {
+  0% {
+    background-color: oklch(69.6% 0.17 162.48 / 40%);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.anchor-flash {
+  animation: anchor-flash 1.5s ease-out forwards;
+  border-radius: 2px;
+}
+
+.dark .anchor-flash {
+  animation: anchor-flash-dark 1.5s ease-out forwards;
+}

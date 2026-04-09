@@ -273,6 +273,71 @@ Check out [the docs](https://example.com/docs) for more info.`
         const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
         expect(result).toBe(text)
       })
+      it("wikilink should have isomorphic parsing & serialization", async () => {
+        const text = `check out [[my-note]] for more details.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
+      it("wikilink with alias should have isomorphic parsing & serialization", async () => {
+        const text = `see [[my-note|click here]] for info.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
+      it("wikilink with heading anchor should have isomorphic parsing & serialization", async () => {
+        const text = `see [[my-note#introduction]] for the intro.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
+      it("wikilink with block reference should have isomorphic parsing & serialization", async () => {
+        const text = `see [[my-note#^abc123]] for the quote.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
+      it("embed syntax ![[...]] should not be matched as a wikilink", async () => {
+        const input = "here is an embed ![[my-note]] that should not match."
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(input, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        // the ![[...]] should round-trip as plain text, not be consumed as a wikilink
+        expect(result).toBe(input)
+      })
     },
     editorConfig,
     <Plugins />,

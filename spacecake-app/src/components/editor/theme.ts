@@ -67,6 +67,7 @@ export const editorTheme: EditorThemeClasses = {
   //   ],
   //   ul: "m-0 p-0 list-outside",
   // },
+  wikilink: "inline",
   hashtag: "text-blue-600 bg-blue-100 rounded-md px-1",
   text: {
     bold: "font-bold",

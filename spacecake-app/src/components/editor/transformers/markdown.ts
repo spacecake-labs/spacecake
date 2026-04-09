@@ -48,6 +48,11 @@ import {
 } from "@/components/editor/nodes/html-node"
 import { $createImageNode, $isImageNode, ImageNode } from "@/components/editor/nodes/image-node"
 import { $createMermaidNode, $isMermaidNode } from "@/components/editor/nodes/mermaid-node"
+import {
+  $createWikiLinkNode,
+  $isWikiLinkNode,
+  WikiLinkNode,
+} from "@/components/editor/nodes/wikilink-node"
 import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
 
 export function createCodeTransformer(): MultilineElementTransformer {
@@ -490,6 +495,29 @@ const DOUBLE_BACKTICK_INLINE_CODE: TextMatchTransformer = {
   type: "text-match",
 }
 
+// wikilink: [[target]] or [[target|alias]]
+// negative lookbehind (?<!!) skips embed syntax ![[...]] (phase 2)
+export const WIKILINK: TextMatchTransformer = {
+  dependencies: [WikiLinkNode],
+  export: (node) => {
+    if (!$isWikiLinkNode(node)) return null
+    const target = node.getTarget()
+    const alias = node.getAlias()
+    return alias ? `[[${target}|${alias}]]` : `[[${target}]]`
+  },
+  importRegExp: /(?<!!)\[\[([^[\]]+?)\]\]/,
+  regExp: /(?<!!)\[\[([^[\]]+?)\]\]$/,
+  replace: (textNode, match) => {
+    const content = match[1]
+    const pipeIdx = content.indexOf("|")
+    const target = pipeIdx === -1 ? content : content.substring(0, pipeIdx)
+    const alias = pipeIdx === -1 ? null : content.substring(pipeIdx + 1)
+    textNode.replace($createWikiLinkNode({ target, alias }))
+  },
+  trigger: "]",
+  type: "text-match",
+}
+
 // CommonMark HTML block type 6 - block-level tags
 // source: https://github.com/markdown-it/markdown-it/blob/master/lib/common/html_blocks.mjs
 const HTML_BLOCK_TAGS =
@@ -589,6 +617,7 @@ export const MARKDOWN_TRANSFORMERS = [
   ...MULTILINE_ELEMENT_TRANSFORMERS_FILTERED,
   ...TEXT_FORMAT_TRANSFORMERS,
   DOUBLE_BACKTICK_INLINE_CODE,
+  WIKILINK,
   LINKED_IMAGE,
   IMAGE,
   ...TEXT_MATCH_TRANSFORMERS,

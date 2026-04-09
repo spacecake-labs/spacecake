@@ -46,6 +46,9 @@ export type PaneMachineEvent =
       navigationLine?: number
       navigationCharacter?: number
       navigationQuery?: string
+      // wikilink heading anchor (e.g. "features" from [[file#features]]).
+      // FileLayout scrolls to the matching heading and flashes it.
+      navigationAnchor?: string
     }
 
 // Input to create the machine
@@ -156,6 +159,7 @@ export const paneMachine = setup({
           navigationLine?: number
           navigationCharacter?: number
           navigationQuery?: string
+          navigationAnchor?: string
         }
       }): Promise<void> => {
         // Create editor and pane item, then navigate
@@ -221,6 +225,7 @@ export const paneMachine = setup({
             navigationLine: input.navigationLine,
             navigationCharacter: input.navigationCharacter,
             navigationQuery: input.navigationQuery,
+            navigationAnchor: input.navigationAnchor,
           },
         })
       },
@@ -299,6 +304,7 @@ export const paneMachine = setup({
             navigationLine: event.navigationLine,
             navigationCharacter: event.navigationCharacter,
             navigationQuery: event.navigationQuery,
+            navigationAnchor: event.navigationAnchor,
           }
         },
         onDone: "Idle",
