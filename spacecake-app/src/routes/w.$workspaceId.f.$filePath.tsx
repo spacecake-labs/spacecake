@@ -4,12 +4,13 @@ import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
 import { atom } from "jotai"
 import { useSetAtom, useAtomValue } from "jotai"
-import { $getSelection, $isRangeSelection, type EditorState } from "lexical"
+import { $getSelection, $isRangeSelection, type EditorState, type LexicalEditor } from "lexical"
 import React, { useCallback, useEffect } from "react"
 
 import { Editor } from "@/components/editor/editor"
 import { ConflictEditor } from "@/components/editor/plugins/conflict-editor"
 import { LoadingAnimation } from "@/components/loading-animation"
+import { useEditor } from "@/contexts/editor-context"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { useWorkspaceSettings } from "@/hooks/use-workspace-settings"
 import { expandedFoldersAtom, fileTreeAtom } from "@/lib/atoms/atoms"
@@ -28,6 +29,12 @@ import {
   createEditorConfigFromState,
 } from "@/lib/editor"
 import { readDirectory } from "@/lib/fs"
+import {
+  findBlockElement,
+  findHeadingElement,
+  flashElement,
+  scrollToHeading,
+} from "@/lib/scroll-to-anchor"
 import { createRichViewClaudeSelection } from "@/lib/selection-utils"
 import { store } from "@/lib/store"
 import { decodeBase64Url, encodeBase64Url } from "@/lib/utils"
@@ -62,6 +69,8 @@ const fileSearchSchema = Schema.Struct({
   navigationLine: Schema.optional(Schema.Number),
   navigationCharacter: Schema.optional(Schema.Number),
   navigationQuery: Schema.optional(Schema.String),
+  // wikilink heading anchor. FileLayout scrolls to the matching heading and flashes it.
+  navigationAnchor: Schema.optional(Schema.String),
 })
 
 export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
@@ -286,7 +295,8 @@ function FileLayout() {
   const { filePath, editorConfig, key, editorId, fileId, diffError, conflictContent } =
     Route.useLoaderData()
   const { db, workspace } = Route.useRouteContext()
-  const { view: viewKind, navigationLine, navigationQuery } = Route.useSearch()
+  const { view: viewKind, navigationLine, navigationQuery, navigationAnchor } = Route.useSearch()
+  const { editorRef } = useEditor()
 
   const sendFileState = useSetAtom(getOrCreateFileStateAtom(filePath))
 
@@ -327,6 +337,69 @@ function FileLayout() {
       replace: true,
     })
   }, [navigationLine, navigationQuery, searchActor, workspace.path, filePath])
+
+  // consume wikilink heading anchor. the editor ref is populated by a child
+  // component, so we wait one frame then use registerRootListener for the
+  // root element instead of polling with setInterval.
+  useEffect(() => {
+    if (!navigationAnchor) return
+
+    const clearParam = () => {
+      router.navigate({
+        to: "/w/$workspaceId/f/$filePath",
+        params: {
+          workspaceId: encodeBase64Url(workspace.path),
+          filePath: encodeBase64Url(filePath),
+        },
+        search: (prev) => {
+          const { navigationAnchor: _na, ...rest } = prev
+          return rest
+        },
+        replace: true,
+      })
+    }
+
+    const scrollToAnchor = (editor: LexicalEditor) => {
+      const isBlock = navigationAnchor.startsWith("^")
+      const el = isBlock
+        ? findBlockElement(editor, navigationAnchor.slice(1))
+        : findHeadingElement(editor, navigationAnchor)
+      if (el) {
+        scrollToHeading(el)
+        flashElement(el)
+      }
+      clearParam()
+    }
+
+    let unregisterRoot: (() => void) | null = null
+
+    const rafId = requestAnimationFrame(() => {
+      const editor = editorRef.current
+      if (!editor) {
+        clearParam()
+        return
+      }
+
+      if (editor.getRootElement()) {
+        scrollToAnchor(editor)
+        return
+      }
+
+      // root element not mounted yet — wait for it reactively
+      unregisterRoot = editor.registerRootListener((rootElement) => {
+        if (rootElement) {
+          unregisterRoot?.()
+          unregisterRoot = null
+          scrollToAnchor(editor)
+        }
+      })
+    })
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      unregisterRoot?.()
+    }
+  }, [navigationAnchor, editorRef, workspace.path, filePath])
 
   // open unified in-file search (works in both rich and source mode).
   // sends search.open directly to the machine — the machine is the single

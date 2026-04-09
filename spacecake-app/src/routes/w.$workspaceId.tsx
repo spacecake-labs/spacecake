@@ -58,7 +58,11 @@ import {
   gitTotalChangesAtom,
 } from "@/lib/atoms/git"
 import { cleanupPaneMachine } from "@/lib/atoms/pane"
-import { quickOpenIndexAtom, quickOpenIndexReadyAtom } from "@/lib/atoms/quick-open-index"
+import {
+  quickOpenIndexAtom,
+  quickOpenIndexLoadingAtom,
+  quickOpenIndexReadyAtom,
+} from "@/lib/atoms/quick-open-index"
 import {
   workspaceSearchFocusTriggerAtom,
   workspaceSearchOpenAtom,
@@ -1043,6 +1047,7 @@ function WorkspaceLayout() {
       cleanupPaneMachine(currentPaneId)
       store.set(quickOpenIndexAtom, [])
       store.set(quickOpenIndexReadyAtom, false)
+      store.set(quickOpenIndexLoadingAtom, false)
       // evict cached git workspace state so it doesn't leak across sessions
       store.set(commitFilesAtom, new Map())
       window.electronAPI.git.removeWorkspace(currentPath).catch(() => {})

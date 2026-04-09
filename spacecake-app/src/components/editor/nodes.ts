@@ -15,6 +15,7 @@ import { HTMLBlockNode } from "@/components/editor/nodes/html-node"
 import { ImageNode } from "@/components/editor/nodes/image-node"
 import { InlineImageNode } from "@/components/editor/nodes/inline-image-node"
 import { MermaidNode } from "@/components/editor/nodes/mermaid-node"
+import { WikiLinkNode } from "@/components/editor/nodes/wikilink-node"
 
 export const nodes: ReadonlyArray<Klass<LexicalNode> | LexicalNodeReplacement> = [
   HeadingNode,
@@ -40,4 +41,5 @@ export const nodes: ReadonlyArray<Klass<LexicalNode> | LexicalNodeReplacement> =
   FrontmatterNode,
   HTMLBlockNode,
   MermaidNode,
+  WikiLinkNode,
 ]
