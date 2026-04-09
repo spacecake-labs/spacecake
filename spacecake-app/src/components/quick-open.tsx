@@ -50,7 +50,7 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
     console.error("error getting recent files", recentFiles.error)
   }
 
-  const parentRef = React.useRef<HTMLDivElement | null>(null)
+  const [parent, setParent] = React.useState<HTMLDivElement | null>(null)
 
   const jotaiStore = useStore()
 
@@ -103,7 +103,7 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
 
   const rowVirtualizer = useVirtualizer({
     count: filteredItems?.length ?? 0,
-    getScrollElement: () => parentRef.current,
+    getScrollElement: () => parent,
     estimateSize: () => 32,
     overscan: 5,
   })
@@ -133,7 +133,7 @@ export function QuickOpen({ workspacePath, machine }: QuickOpenProps) {
       className="top-4 translate-y-0"
     >
       <CommandInput placeholder="search files..." value={search} onValueChange={setSearch} />
-      <CommandList ref={parentRef}>
+      <CommandList ref={setParent}>
         {rowVirtualizer.getVirtualItems().length === 0 ? (
           search ? (
             <CommandEmpty>no results found</CommandEmpty>
