@@ -2,7 +2,7 @@ import { $isLinkNode } from "@lexical/link"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { $findMatchingParent, $getNearestNodeFromDOMNode, $isElementNode } from "lexical"
 import type { JSX } from "react"
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useRef } from "react"
 
 import { useEditor } from "@/contexts/editor-context"
 import { usePaneMachine } from "@/hooks/use-pane-machine"
@@ -48,7 +48,7 @@ function InternalLinkHandler({
 }): null {
   const { workspace, paneId } = Route.useRouteContext()
   const workspaceIdEncoded = encodeBase64Url(workspace.path)
-  const machine = usePaneMachine(paneId, workspace.path, workspaceIdEncoded)
+  const { send } = usePaneMachine(paneId, workspace.path, workspaceIdEncoded)
   const { editorRef } = useEditor()
   const route = useRoute()
 
@@ -104,34 +104,38 @@ function InternalLinkHandler({
       }
 
       // cross-file navigation
-      machine.send({
+      send({
         type: "pane.file.open",
         filePath: AbsolutePath(filePath),
         navigationAnchor: linkAnchor,
       })
     },
-    [editor, route?.filePath, workspace.path, machine, editorRef],
+    [editor, route?.filePath, workspace.path, send, editorRef],
   )
 
+  // store handler in a ref so the root listener subscription stays stable
+  const handleClickRef = useRef(handleClick)
   useEffect(() => {
-    return editor.registerRootListener((rootElement) => {
+    handleClickRef.current = handleClick
+  }, [handleClick])
+
+  useEffect(() => {
+    const onClick = (event: MouseEvent) => handleClickRef.current(event)
+    const onMouseUp = (event: MouseEvent) => {
+      if (event.button === 1) handleClickRef.current(event)
+    }
+
+    return editor.registerRootListener((rootElement, prevRootElement) => {
+      if (prevRootElement) {
+        prevRootElement.removeEventListener("click", onClick, { capture: true })
+        prevRootElement.removeEventListener("mouseup", onMouseUp, { capture: true })
+      }
       if (rootElement) {
-        const onMouseUp = (event: MouseEvent) => {
-          if (event.button === 1) {
-            handleClick(event)
-          }
-        }
-
-        rootElement.addEventListener("click", handleClick, { capture: true })
+        rootElement.addEventListener("click", onClick, { capture: true })
         rootElement.addEventListener("mouseup", onMouseUp, { capture: true })
-
-        return () => {
-          rootElement.removeEventListener("click", handleClick, { capture: true })
-          rootElement.removeEventListener("mouseup", onMouseUp, { capture: true })
-        }
       }
     })
-  }, [editor, handleClick])
+  }, [editor])
 
   return null
 }
