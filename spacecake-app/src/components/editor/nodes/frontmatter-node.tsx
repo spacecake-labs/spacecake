@@ -302,12 +302,6 @@ const FrontmatterTable: React.FC<FrontmatterTableProps> = ({ data, error }) => {
   return (
     <div className="overflow-x-auto" data-testid="frontmatter-table">
       <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b bg-muted/50">
-            <th className="px-4 py-2 text-left font-medium w-1/4">key</th>
-            <th className="px-4 py-2 text-left font-medium">value</th>
-          </tr>
-        </thead>
         <tbody>
           {Object.entries(data).map(([key, value]) => (
             <tr key={key} className="border-b last:border-0 hover:bg-muted/30">
