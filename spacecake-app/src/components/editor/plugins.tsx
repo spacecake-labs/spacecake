@@ -18,6 +18,7 @@ import { ContentEditable } from "@/components/editor/content-editable"
 import { DecoratorSpacerPlugin } from "@/components/editor/plugins/decorator-spacer"
 import { FocusedNodePlugin } from "@/components/editor/plugins/focused-node"
 import { FrontmatterPlugin } from "@/components/editor/plugins/frontmatter-plugin"
+import { InternalLinkPlugin } from "@/components/editor/plugins/internal-link"
 import { MermaidDiagramPlugin } from "@/components/editor/plugins/mermaid-diagram"
 import { NodeNavigationPlugin } from "@/components/editor/plugins/node-navigation"
 import { ReparsePlugin } from "@/components/editor/plugins/reparse"
@@ -100,6 +101,7 @@ export const Plugins = React.memo(function Plugins() {
         />
         <AutoFocusPlugin />
 
+        <InternalLinkPlugin />
         <ClickableLinkPlugin />
         <CheckListPlugin />
         <HorizontalRulePlugin />

@@ -88,6 +88,24 @@ wikilinks resolve using shortest-path matching: if multiple files share the same
 
 click a wikilink to navigate to the target file. use `⌘P` to search for files by name if you're not sure of the exact target.
 
+## markdown links
+
+you can also link between workspace files using standard markdown link syntax:
+
+```markdown
+[meeting notes](./meeting-notes.md)
+[architecture section](./design-doc.md#architecture)
+[see below](#next-steps)
+```
+
+- `[text](path/to/file.md)` — navigates to the file, resolved relative to the current file's directory.
+- `[text](file.md#heading)` — navigates to a specific heading within the target file.
+- `[text](#heading)` — scrolls to a heading in the current file.
+
+links with a protocol (`https://`, `mailto:`, etc.) open externally as usual. links without a protocol are treated as internal file paths.
+
+**wikilinks vs markdown links:** wikilinks (`[[file]]`) match by filename using shortest-path resolution. markdown links (`[text](path)`) resolve relative to the current file. use whichever style you prefer.
+
 ## rich mode vs source mode
 
 toggle between rich mode (WYSIWYG) and source mode using the view toggle button in the toolbar.
