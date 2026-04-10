@@ -325,6 +325,45 @@ Check out [the docs](https://example.com/docs) for more info.`
         expect(result).toBe(text)
       })
 
+      it("internal markdown link should have isomorphic parsing & serialization", async () => {
+        const text = `see [the design doc](./design-doc.md) for more context.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
+      it("internal markdown link with heading anchor should have isomorphic parsing & serialization", async () => {
+        const text = `see [architecture](./design-doc.md#architecture) for details.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
+      it("same-file heading link should have isomorphic parsing & serialization", async () => {
+        const text = `jump to [the next section](#next-steps) below.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
       it("embed syntax ![[...]] should not be matched as a wikilink", async () => {
         const input = "here is an embed ![[my-note]] that should not match."
 
