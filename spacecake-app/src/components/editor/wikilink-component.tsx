@@ -138,7 +138,7 @@ function WikiLinkInner({ target, alias }: { target: string; alias: string | null
       className={
         resolved
           ? "cursor-pointer underline decoration-dotted underline-offset-4 decoration-muted-foreground/50 hover:decoration-foreground hover:bg-accent/50 rounded-sm px-0.5 transition-colors"
-          : "cursor-pointer underline decoration-dotted underline-offset-4 decoration-destructive/50 text-muted-foreground opacity-70 rounded-sm px-0.5"
+          : "cursor-pointer underline decoration-wavy underline-offset-4 decoration-destructive/70 rounded-sm px-0.5 transition-colors hover:decoration-destructive"
       }
     >
       {displayText}
