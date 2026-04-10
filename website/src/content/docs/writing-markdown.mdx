@@ -1,6 +1,6 @@
 ---
 title: writing markdown
-description: Code blocks, checklists, mermaid diagrams, and rich vs source mode.
+description: Code blocks, checklists, mermaid diagrams, wikilinks, and rich vs source mode.
 ---
 
 `spacecake` supports GitHub-flavoured markdown with a visual editor that renders content as you type.
@@ -66,6 +66,27 @@ click the toggle button in the frontmatter header to switch between modes. if th
 markdown images render inline in rich mode. click an image to select it, then drag any of the resize handles to change its dimensions.
 
 images support alt text, captions, and custom width/height attributes.
+
+## wikilinks
+
+link between files in your workspace using `[[wikilinks]]`:
+
+```markdown
+[[meeting notes]]
+[[meeting notes|yesterday's meeting]]
+[[design doc#architecture]]
+[[spec#^block-id]]
+```
+
+- `[[file name]]` — links to a file by name. resolution is case-insensitive and you can omit the `.md` extension.
+- `[[file name|alias]]` — displays the alias text instead of the file name.
+- `[[file name#heading]]` — links to a specific heading within the target file.
+- `[[#heading]]` — links to a heading in the current file.
+- `[[file name#^block-id]]` — links to a specific block by its ID.
+
+wikilinks resolve using shortest-path matching: if multiple files share the same name, the one closest to the workspace root wins. broken links are shown with a wavy underline.
+
+click a wikilink to navigate to the target file. use `⌘P` to search for files by name if you're not sure of the exact target.
 
 ## rich mode vs source mode
 

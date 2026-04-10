@@ -31,6 +31,7 @@ Press `⌘O` (macOS) or `ctrl+O` (Windows/Linux) to open your project as a works
 - checklists and badges for agent execution plans
 - diagrams with [mermaid](https://mermaid.js.org/)
 - WYSIWYG and 'live preview' modes
+- wikilinks (`[[page name]]`) for linking between workspace files, with heading and block anchors
 - URL links for external resources
 
 ### 🖥️ integrated terminal
