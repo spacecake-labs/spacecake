@@ -1,5 +1,12 @@
 # spacecake-app
 
+## 0.1.0-alpha.69
+
+### Patch Changes
+
+- 5cce4f6: Feat: Markdown wikilinks.
+- 4d5ebf8: Fix: Align with GFM spec for README.md linebreaks.
+
 ## 0.1.0-alpha.68
 
 ### Patch Changes
