@@ -15,7 +15,7 @@ import { delimitPyBlock } from "@/components/editor/block-utils"
 import { emptyMdNode, mdBlockToNode } from "@/components/editor/markdown-utils"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 import { $restoreNodeSelection, $restoreSelection, convertToSourceView } from "@/lib/editor"
-import { INITIAL_LOAD_TAG, SerializedSelection } from "@/types/lexical"
+import { type EditorSelection, INITIAL_LOAD_TAG } from "@/types/lexical"
 import type { PyBlock } from "@/types/parser"
 import { EditorFile, FileType } from "@/types/workspace"
 
@@ -26,7 +26,7 @@ import { EditorFile, FileType } from "@/types/workspace"
 export async function convertPythonBlocksToLexical(
   file: EditorFile,
   editor: LexicalEditor,
-  selection: SerializedSelection | null = null,
+  selection: EditorSelection | null = null,
   nodeSelection: NodeSelection | null = null,
   blockOverride?: PyBlock[],
   onComplete?: () => void,
@@ -113,7 +113,7 @@ export async function convertPythonBlocksToLexical(
 export function getInitialEditorStateFromContent(
   file: EditorFile,
   viewKind: "rich" | "source",
-  selection: SerializedSelection | null = null,
+  selection: EditorSelection | null = null,
   onComplete?: () => void,
 ) {
   return (editor: LexicalEditor) => {

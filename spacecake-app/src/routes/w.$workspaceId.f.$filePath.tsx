@@ -27,8 +27,10 @@ import {
   createEditorConfigFromContent,
   createEditorConfigFromDiff,
   createEditorConfigFromState,
+  serializeFromCache,
 } from "@/lib/editor"
 import { readDirectory } from "@/lib/fs"
+import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
 import {
   findBlockElement,
   findHeadingElement,
@@ -38,6 +40,7 @@ import {
 import { createRichViewClaudeSelection } from "@/lib/selection-utils"
 import { store } from "@/lib/store"
 import { decodeBase64Url, encodeBase64Url } from "@/lib/utils"
+import { fileTypeFromFileName } from "@/lib/workspace"
 import { fileMachine } from "@/machines/manage-file"
 import { router } from "@/router"
 import { JsonValue } from "@/schema/drizzle-effect"
@@ -52,6 +55,7 @@ import {
   type SelectionChangedPayload,
 } from "@/types/claude-code"
 import { SerializedSelectionSchema, ViewKindSchema, type ChangeType } from "@/types/lexical"
+import { LspSelectionSchema } from "@/types/lsp"
 import { AbsolutePath, ZERO_HASH } from "@/types/workspace"
 
 const OpenFileSourceSchema = Schema.Union(Schema.Literal("claude"), Schema.Literal("cli"))
@@ -200,6 +204,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
               fileId: result.content.data.fileId,
               diffError: error.description,
               conflictContent: null,
+              sourceData: null,
             }),
             onRight: (diff) => {
               const extension = filePath.split(".").pop() || ""
@@ -218,6 +223,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
                 fileId: result.content.data.fileId,
                 diffError: null,
                 conflictContent: null,
+                sourceData: null,
               }
             },
           })
@@ -243,6 +249,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
               fileId: result.content.data.fileId,
               diffError: error.description,
               conflictContent: null,
+              sourceData: null,
             }),
             onRight: (conflict) => ({
               filePath,
@@ -252,6 +259,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
               fileId: result.content.data.fileId,
               diffError: null,
               conflictContent: conflict,
+              sourceData: null,
             }),
           })
         }
@@ -261,6 +269,38 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 
         // handle source/rich view (diff and conflict are already handled above)
         const persistableViewKind = result.viewKind as "rich" | "source"
+
+        // source mode: pass raw text directly to SourceEditor (no Lexical)
+        if (persistableViewKind === "source") {
+          const fileType = fileTypeFromFileName(filePath)
+          const sourceCode =
+            result.content.kind === "state"
+              ? serializeFromCache(result.content.data.state, fileType, "source")
+              : result.content.data.content
+          const cmLanguage = fileTypeToCodeMirrorLanguage(fileType) ?? ""
+          const sel = result.content.data.selection
+          const lspSelection =
+            sel && "_tag" in sel ? Schema.decodeUnknownSync(LspSelectionSchema)(sel) : null
+
+          return {
+            filePath,
+            editorConfig: null,
+            key,
+            editorId: result.content.data.editorId,
+            fileId: result.content.data.fileId,
+            diffError: null,
+            conflictContent: null,
+            sourceData: {
+              code: sourceCode,
+              language: cmLanguage,
+              filePath,
+              editorId: result.content.data.editorId,
+              initialSelection: lspSelection,
+            },
+          }
+        }
+
+        // rich mode: create Lexical editor config (unchanged)
         const editorConfig =
           result.content.kind === "state"
             ? createEditorConfigFromState(result.content.data.state, result.content.data.selection)
@@ -278,6 +318,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           fileId: result.content.data.fileId,
           diffError: null,
           conflictContent: null,
+          sourceData: null,
         }
       },
     })
@@ -292,7 +333,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 })
 
 function FileLayout() {
-  const { filePath, editorConfig, key, editorId, fileId, diffError, conflictContent } =
+  const { filePath, editorConfig, key, editorId, fileId, diffError, conflictContent, sourceData } =
     Route.useLoaderData()
   const { db, workspace } = Route.useRouteContext()
   const { view: viewKind, navigationLine, navigationQuery, navigationAnchor } = Route.useSearch()
@@ -627,6 +668,22 @@ function FileLayout() {
     )
   }
 
+  // source mode: SourceEditor handles everything internally
+  if (sourceData) {
+    return (
+      <Editor
+        key={key}
+        filePath={filePath}
+        editorConfig={editorConfig}
+        viewKind="source"
+        sourceData={sourceData}
+        autosaveEnabled={autosaveEnabled}
+        onChange={handleChange}
+        onCodeMirrorSelection={handleCodeMirrorSelection}
+      />
+    )
+  }
+
   // Handle missing editor config (shouldn't happen, but be safe)
   if (!editorConfig) {
     return <LoadingAnimation />
@@ -638,6 +695,7 @@ function FileLayout() {
         key={key}
         filePath={filePath}
         editorConfig={editorConfig}
+        viewKind={viewKind}
         autosaveEnabled={autosaveEnabled}
         onChange={handleChange}
         onCodeMirrorSelection={handleCodeMirrorSelection}

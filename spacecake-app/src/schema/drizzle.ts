@@ -15,7 +15,7 @@ import {
 import { type JsonValue } from "@/schema/drizzle-effect"
 import type { WorkspaceLayout } from "@/schema/workspace-layout"
 import type { WorkspaceSettings } from "@/schema/workspace-settings"
-import { PersistableViewKindSchema, SerializedSelection } from "@/types/lexical"
+import { type EditorSelection, PersistableViewKindSchema } from "@/types/lexical"
 
 export const systemTable = pgTable("system", {
   version: integer().notNull().default(0),
@@ -138,7 +138,7 @@ export const editorTable = pgTable(
     view_kind: ViewKindEnum("view_kind").notNull(),
     state: jsonb("state").$type<JsonValue>(),
     state_updated_at: timestamp("state_updated_at", { mode: "string" }),
-    selection: jsonb("selection").$type<SerializedSelection>(),
+    selection: jsonb("selection").$type<EditorSelection>(),
     created_at: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
   },
   (table) => [uniqueIndex("editor_pane_file_idx").on(table.pane_id, table.file_id)],

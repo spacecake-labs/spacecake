@@ -146,8 +146,9 @@ function getEditorCmViews(editor: LexicalEditor): CmViewEntry[] {
     }
   })
   const allViews = getAllCmViews()
-  const filtered = allViews.filter(([key]) => ownedKeys.has(key))
-  return filtered
+  // source mode with pure CM6: dummy editor has no children — return all registered views
+  if (ownedKeys.size === 0) return allViews
+  return allViews.filter(([key]) => ownedKeys.has(key))
 }
 
 function executeSearch(ctx: SearchMachineContext): Partial<SearchMachineContext> {
@@ -160,13 +161,19 @@ function executeSearch(ctx: SearchMachineContext): Partial<SearchMachineContext>
     closeSearchPanel(cmView)
   }
 
-  // determine if we're in source mode: single CM view backed by a single
-  // decorator node (no prose)
+  // determine if we're in source mode: either a pure CM6 editor (dummy editor
+  // with no children) or a single CM view backed by a single decorator node
   let isSourceMode = false
-  if (cmViews.length === 1) {
+  if (cmViews.length >= 1) {
     editor.read(() => {
       const children = $getRoot().getChildren()
-      isSourceMode = children.length === 1 && $isDecoratorNode(children[0])
+      // pure CM6 source mode: dummy editor has no children
+      if (children.length === 0) {
+        isSourceMode = true
+      } else if (cmViews.length === 1 && children.length === 1 && $isDecoratorNode(children[0])) {
+        // legacy source mode: single CodeBlockNode in Lexical
+        isSourceMode = true
+      }
     })
   }
 

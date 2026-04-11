@@ -12,6 +12,7 @@ import { $addUpdateTag, SKIP_DOM_SELECTION_TAG } from "lexical"
 import React from "react"
 
 import { CodeBlock } from "@/components/code-block"
+import { focusedActiveLineTheme, foldPlaceholderTheme } from "@/components/editor/codemirror-shared"
 import { CodeBlockNode, useCodeBlockEditorContext } from "@/components/editor/nodes/code-node"
 import { blameAnnotation, emptyBlameAnnotation } from "@/components/editor/plugins/blame-annotation"
 import { CODEMIRROR_SELECTION_COMMAND } from "@/components/editor/plugins/codemirror-commands"
@@ -166,28 +167,6 @@ export const getLanguageSupport = async (language: string): Promise<Extension | 
 
   return null
 }
-
-const focusedActiveLineTheme = EditorView.theme({
-  // make gutter transparent by when not focused
-  "&:not(.cm-focused) .cm-activeLineGutter": {
-    backgroundColor: "transparent",
-  },
-  // make active line transparent by when not focused
-  "&:not(.cm-focused) .cm-activeLine": {
-    backgroundColor: "transparent",
-  },
-})
-
-const foldPlaceholderTheme = EditorView.theme({
-  ".cm-foldPlaceholder": {
-    backgroundColor: "var(--primary)",
-    color: "var(--primary-foreground)",
-    border: "none",
-    padding: "0 1ch",
-    margin: "0 1px",
-    borderRadius: "4px",
-  },
-})
 
 // Function to automatically fold docstrings using parsed block data
 const foldDocstrings = (view: EditorView, block: BlockMeta) => {

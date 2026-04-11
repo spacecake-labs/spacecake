@@ -9,7 +9,7 @@ import { encodeBase64Url } from "@/lib/utils"
 import { fileTypeFromExtension } from "@/lib/workspace"
 import { EditorPrimaryKey, FilePrimaryKey } from "@/schema"
 import { JsonValue } from "@/schema/drizzle-effect"
-import { SerializedSelection, ViewKind, ViewKindSchema } from "@/types/lexical"
+import { type EditorSelection, ViewKind, ViewKindSchema } from "@/types/lexical"
 
 export type RelativePath = string & Brand.Brand<"RelativePath">
 export const RelativePath = Brand.nominal<RelativePath>()
@@ -103,7 +103,7 @@ export type EditorFile = {
   fileType: FileType
   content: string
   cid: string
-  selection: SerializedSelection | null
+  selection: EditorSelection | null
 }
 
 export type EditorCache = {
@@ -111,7 +111,7 @@ export type EditorCache = {
   state: JsonValue
   viewKind: ViewKind
   fileId: FilePrimaryKey
-  selection: SerializedSelection | null
+  selection: EditorSelection | null
 }
 
 export type Folder = FileTreeItem & {

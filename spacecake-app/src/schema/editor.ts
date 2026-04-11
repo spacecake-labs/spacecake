@@ -5,7 +5,7 @@ import { editorTable } from "@/schema/drizzle"
 import { createInsertSchema, createSelectSchema } from "@/schema/drizzle-effect"
 import { FileSelectSchema } from "@/schema/file"
 import { WorkspaceSelectSchema } from "@/schema/workspace"
-import { SerializedSelectionSchema } from "@/types/lexical"
+import { EditorSelectionSchema } from "@/types/lexical"
 
 export type EditorPrimaryKey = string & Brand.Brand<"EditorPrimaryKey">
 export const EditorPrimaryKey = Brand.nominal<EditorPrimaryKey>()
@@ -13,7 +13,7 @@ export const EditorPrimaryKeySchema = Schema.String.pipe(Schema.fromBrand(Editor
 
 export const EditorInsertSchema = createInsertSchema(editorTable, {
   id: EditorPrimaryKeySchema,
-  selection: Schema.OptionFromNullOr(SerializedSelectionSchema),
+  selection: Schema.OptionFromNullOr(EditorSelectionSchema),
 })
 export type EditorInsert = Schema.Schema.Encoded<typeof EditorInsertSchema>
 
@@ -26,7 +26,7 @@ export type EditorUpdate = Schema.Schema.Encoded<typeof EditorUpdateSchema>
 export const EditorSelectSchema = Schema.Struct({
   id: EditorPrimaryKeySchema,
   ...createSelectSchema(editorTable, {
-    selection: Schema.OptionFromNullOr(SerializedSelectionSchema),
+    selection: Schema.OptionFromNullOr(EditorSelectionSchema),
   }).omit("id").fields,
 })
 export type EditorSelect = Schema.Schema.Type<typeof EditorSelectSchema>
@@ -64,6 +64,6 @@ export const EditorStateWithFileIdSelectSchema = Schema.Struct({
 
 export const EditorUpdateSelectionSchema = Schema.Struct({
   id: EditorPrimaryKeySchema,
-  selection: Schema.OptionFromNullOr(SerializedSelectionSchema),
+  selection: Schema.OptionFromNullOr(EditorSelectionSchema),
 })
 export type EditorSelectionUpdate = Schema.Schema.Encoded<typeof EditorUpdateSelectionSchema>

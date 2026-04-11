@@ -20,6 +20,7 @@ import {
 } from "@/components/editor/plugins/codemirror-commands"
 import { OnChangePlugin } from "@/components/editor/plugins/on-change"
 import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
+import { SourceEditor, type SourceEditorProps } from "@/components/editor/source-editor"
 import { editorTheme } from "@/components/editor/theme"
 import { SearchBar } from "@/components/search-bar"
 import { RouteContext, useEditor, type CancelDebounceRef } from "@/contexts/editor-context"
@@ -29,7 +30,7 @@ import { getOrCreateFileStateAtom } from "@/lib/atoms/file-tree"
 import { searchActorAtom } from "@/lib/atoms/search"
 import { debounce } from "@/lib/utils"
 import { type EditorExtendedSelection } from "@/types/claude-code"
-import { type ChangeType, type SerializedSelection } from "@/types/lexical"
+import { type ChangeType, type SerializedSelection, type ViewKind } from "@/types/lexical"
 import { AbsolutePath } from "@/types/workspace"
 
 const selectSearchOpen = (snapshot: { value: unknown } | undefined) =>
@@ -39,11 +40,13 @@ const selectSearchOpen = (snapshot: { value: unknown } | undefined) =>
   "Open" in (snapshot.value as object)
 
 interface EditorProps {
-  editorConfig: InitialConfigType
+  editorConfig: InitialConfigType | null
   editorState?: EditorState
   editorSerializedState?: SerializedEditorState
   filePath: AbsolutePath
   autosaveEnabled?: boolean
+  viewKind?: ViewKind
+  sourceData?: Omit<SourceEditorProps, "autosaveEnabled">
 
   onChange: (editorState: EditorState, changeType: ChangeType) => void
   onCodeMirrorSelection?: (selection: EditorExtendedSelection) => void
@@ -97,6 +100,8 @@ export function Editor({
   editorSerializedState,
   filePath,
   autosaveEnabled,
+  viewKind,
+  sourceData,
   onChange,
   onCodeMirrorSelection,
 }: EditorProps) {
@@ -108,6 +113,16 @@ export function Editor({
   // derive search open/closed from the machine state (single source of truth)
   const searchActor = useAtomValue(searchActorAtom)
   const searchOpen = useSelector(searchActor ?? undefined, selectSearchOpen) ?? false
+
+  // source mode: render pure CM6 editor instead of Lexical
+  if (viewKind === "source" && sourceData) {
+    return (
+      <div data-testid="lexical-editor" className="relative h-full">
+        {searchOpen && <SearchBar />}
+        <SourceEditor {...sourceData} autosaveEnabled={autosaveEnabled} />
+      </div>
+    )
+  }
 
   // Keep refs for unmount cleanup (can't use hooks in cleanup)
   const autosaveEnabledRef = React.useRef(autosaveEnabled)
@@ -199,6 +214,8 @@ export function Editor({
       }
     }
   }, [])
+
+  if (!editorConfig) return null
 
   return (
     <div data-testid="lexical-editor" className="relative h-full">
