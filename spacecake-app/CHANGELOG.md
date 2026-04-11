@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.70
+
+### Patch Changes
+
+- 057dbe8: Refactor source mode to use CodeMirror without Lexical.
+
 ## 0.1.0-alpha.69
 
 ### Patch Changes
