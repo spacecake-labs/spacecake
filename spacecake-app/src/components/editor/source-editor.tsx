@@ -54,6 +54,7 @@ export interface SourceEditorProps {
   code: string
   language: string
   filePath: AbsolutePath
+  workspacePath: AbsolutePath
   editorId: EditorPrimaryKey
   autosaveEnabled?: boolean
   initialSelection?: LspSelection | null
@@ -129,6 +130,7 @@ export function SourceEditor({
   code,
   language,
   filePath,
+  workspacePath,
   editorId,
   autosaveEnabled,
   initialSelection,
@@ -246,7 +248,6 @@ export function SourceEditor({
     handleSave()
 
     // save other dirty files from DB
-    const workspacePath = filePath.slice(0, filePath.lastIndexOf("/")) as AbsolutePath
     const pendingSaves = await RuntimeClient.runPromise(
       Effect.gen(function* () {
         const em = yield* EditorManager
@@ -263,7 +264,7 @@ export function SourceEditor({
         viewKind: save.viewKind,
       })
     }
-  }, [handleSave, filePath])
+  }, [handleSave, filePath, workspacePath])
 
   // --- menu actions ---
 
@@ -332,7 +333,10 @@ export function SourceEditor({
           if (update.docChanged) {
             sendFileState({ type: "file.edit" })
 
-            if (fileState !== "Saving" && fileState !== "Reparsing") {
+            // read current file state from the store to avoid stale closures —
+            // this effect only re-runs when `language` changes.
+            const currentFileState = store.get(getOrCreateFileStateAtom(filePath)).value
+            if (currentFileState !== "Saving" && currentFileState !== "Reparsing") {
               debouncedOnChange.schedule()
               if (autosaveEnabledRef.current) {
                 debouncedAutosave.schedule()
@@ -378,7 +382,7 @@ export function SourceEditor({
       isCancelled = true
       unregisterCmView(SOURCE_VIEW_KEY)
       debouncedOnChange.flush()
-      debouncedSelection.flush()
+      debouncedSelection.cancel()
       debouncedAutosave.cancel()
 
       if (autosaveEnabledRef.current && isDirtyRef.current) {

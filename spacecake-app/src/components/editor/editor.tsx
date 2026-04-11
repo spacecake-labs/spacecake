@@ -114,16 +114,6 @@ export function Editor({
   const searchActor = useAtomValue(searchActorAtom)
   const searchOpen = useSelector(searchActor ?? undefined, selectSearchOpen) ?? false
 
-  // source mode: render pure CM6 editor instead of Lexical
-  if (viewKind === "source" && sourceData) {
-    return (
-      <div data-testid="lexical-editor" className="relative h-full">
-        {searchOpen && <SearchBar />}
-        <SourceEditor {...sourceData} autosaveEnabled={autosaveEnabled} />
-      </div>
-    )
-  }
-
   // Keep refs for unmount cleanup (can't use hooks in cleanup)
   const autosaveEnabledRef = React.useRef(autosaveEnabled)
   const isDirtyRef = React.useRef(isDirty)
@@ -214,6 +204,16 @@ export function Editor({
       }
     }
   }, [])
+
+  // source mode: render pure CM6 editor instead of Lexical
+  if (viewKind === "source" && sourceData) {
+    return (
+      <div data-testid="lexical-editor" className="relative h-full">
+        {searchOpen && <SearchBar />}
+        <SourceEditor {...sourceData} autosaveEnabled={autosaveEnabled} />
+      </div>
+    )
+  }
 
   if (!editorConfig) return null
 

@@ -294,6 +294,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
               code: sourceCode,
               language: cmLanguage,
               filePath,
+              workspacePath: workspace.path,
               editorId: result.content.data.editorId,
               initialSelection: lspSelection,
             },
