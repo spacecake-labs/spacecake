@@ -77,7 +77,7 @@ export interface SearchMachineContext {
   matchCount: number
   targetLine: number | null
   focusTrigger: number
-  editor: LexicalEditor
+  editor: LexicalEditor | null
 }
 
 // ---------------------------------------------------------------------------
@@ -106,7 +106,7 @@ export type SearchMachineEvent =
 // ---------------------------------------------------------------------------
 
 export interface SearchMachineInput {
-  editor: LexicalEditor
+  editor: LexicalEditor | null
 }
 
 // ---------------------------------------------------------------------------
@@ -115,8 +115,10 @@ export interface SearchMachineInput {
 // the machine uses (no jotai subscriptions).
 // ---------------------------------------------------------------------------
 
-const contentChangeListener = fromCallback<SearchMachineEvent, { editor: LexicalEditor }>(
+const contentChangeListener = fromCallback<SearchMachineEvent, { editor: LexicalEditor | null }>(
   ({ sendBack, input }) => {
+    if (!input.editor) return () => {}
+
     const unregisterUpdate = input.editor.registerUpdateListener(
       ({ dirtyElements, dirtyLeaves }) => {
         if (dirtyElements.size > 0 || dirtyLeaves.size > 0) {
@@ -136,7 +138,10 @@ const contentChangeListener = fromCallback<SearchMachineEvent, { editor: Lexical
 // ---------------------------------------------------------------------------
 
 /** get CM views that belong to the given editor (filters global registry). */
-function getEditorCmViews(editor: LexicalEditor): CmViewEntry[] {
+function getEditorCmViews(editor: LexicalEditor | null): CmViewEntry[] {
+  // source mode (no lexical editor) — return all registered views
+  if (!editor) return getAllCmViews()
+
   const ownedKeys = new Set<string>()
   editor.read(() => {
     for (const child of $getRoot().getChildren()) {
@@ -146,7 +151,6 @@ function getEditorCmViews(editor: LexicalEditor): CmViewEntry[] {
     }
   })
   const allViews = getAllCmViews()
-  // source mode with pure CM6: dummy editor has no children — return all registered views
   if (ownedKeys.size === 0) return allViews
   return allViews.filter(([key]) => ownedKeys.has(key))
 }
@@ -161,17 +165,15 @@ function executeSearch(ctx: SearchMachineContext): Partial<SearchMachineContext>
     closeSearchPanel(cmView)
   }
 
-  // determine if we're in source mode: either a pure CM6 editor (dummy editor
-  // with no children) or a single CM view backed by a single decorator node
+  // determine if we're in source mode: no lexical editor, or a single CM view
+  // backed by a single decorator node
   let isSourceMode = false
-  if (cmViews.length >= 1) {
+  if (!editor) {
+    isSourceMode = true
+  } else if (cmViews.length >= 1) {
     editor.read(() => {
       const children = $getRoot().getChildren()
-      // pure CM6 source mode: dummy editor has no children
-      if (children.length === 0) {
-        isSourceMode = true
-      } else if (cmViews.length === 1 && children.length === 1 && $isDecoratorNode(children[0])) {
-        // legacy source mode: single CodeBlockNode in Lexical
+      if (cmViews.length === 1 && children.length === 1 && $isDecoratorNode(children[0])) {
         isSourceMode = true
       }
     })
@@ -179,7 +181,7 @@ function executeSearch(ctx: SearchMachineContext): Partial<SearchMachineContext>
 
   // 1. lexical backend (prose text via DOM walker)
   let lexicalMatches: SearchMatch[] = []
-  const rootElement = editor.getRootElement()
+  const rootElement = editor?.getRootElement()
   if (rootElement && !isSourceMode) {
     const index = buildTextIndex(rootElement)
     lexicalMatches = findMatches(index, query, options)
@@ -220,7 +222,8 @@ function executeSearch(ctx: SearchMachineContext): Partial<SearchMachineContext>
   }
 }
 
-function getNodeOrder(editor: LexicalEditor): string[] {
+function getNodeOrder(editor: LexicalEditor | null): string[] {
+  if (!editor) return []
   const keys: string[] = []
   editor.read(() => {
     const root = $getRoot()
@@ -324,7 +327,7 @@ function navigateToMatch(ctx: SearchMachineContext): void {
 
   if (match.kind === "lexical") {
     try {
-      const scrollContainer = ctx.editor.getRootElement() ?? undefined
+      const scrollContainer = ctx.editor?.getRootElement() ?? undefined
       scrollToCurrentMatch(ctx.lexicalMatches, match.index, scrollContainer)
     } catch {
       // scrolling may fail in non-browser environments (jsdom)

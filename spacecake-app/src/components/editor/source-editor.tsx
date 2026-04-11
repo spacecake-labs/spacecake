@@ -7,11 +7,9 @@ import { basicSetup } from "codemirror"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
 import { useAtomValue, useSetAtom } from "jotai"
-import { createEditor } from "lexical"
 import React from "react"
 
 import { focusedActiveLineTheme, foldPlaceholderTheme } from "@/components/editor/codemirror-shared"
-import { editorConfig } from "@/components/editor/editor"
 import { blameAnnotation, emptyBlameAnnotation } from "@/components/editor/plugins/blame-annotation"
 import { getLanguageSupport } from "@/components/editor/plugins/codemirror-editor"
 import {
@@ -100,21 +98,10 @@ const DiffGutterSync: React.FC<{
   return null
 }
 
-// creates the search machine with a dummy lexical editor so the existing
-// xstate machine works. the dummy editor has no DOM — we send
-// search.content.change manually from the CM updateListener.
+// creates the search machine for source mode (no lexical editor).
+// content changes are sent manually from the CM updateListener.
 function SourceSearchBridge() {
-  const dummyEditor = React.useMemo(
-    () =>
-      createEditor({
-        namespace: editorConfig.namespace,
-        nodes: editorConfig.nodes,
-        theme: editorConfig.theme,
-      }),
-    [],
-  )
-
-  const actorRef = useActorRef(searchMachine, { input: { editor: dummyEditor } })
+  const actorRef = useActorRef(searchMachine, { input: { editor: null } })
 
   React.useEffect(() => {
     store.set(searchActorAtom, actorRef)
