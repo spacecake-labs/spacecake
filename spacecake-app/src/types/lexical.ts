@@ -3,6 +3,8 @@
 import * as Schema from "effect/Schema"
 import { SerializedEditorState } from "lexical"
 
+import { LspSelectionSchema } from "@/types/lsp"
+
 export const INITIAL_LOAD_TAG = "initial-load" as const
 export type InitialLoadTag = typeof INITIAL_LOAD_TAG
 
@@ -33,6 +35,11 @@ export const SerializedSelectionSchema = Schema.Struct({
 })
 
 export type SerializedSelection = typeof SerializedSelectionSchema.Type
+
+// the DB selection column can hold either format.
+// legacy rich selections have no _tag; LspSelection has _tag: "Lsp".
+export const EditorSelectionSchema = Schema.Union(LspSelectionSchema, SerializedSelectionSchema)
+export type EditorSelection = typeof EditorSelectionSchema.Type
 
 export type EditorStateAndSelection = {
   state: SerializedEditorState

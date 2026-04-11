@@ -118,7 +118,11 @@ export class EditorManager extends Effect.Service<EditorManager>()("EditorManage
 
           // else convert the content to the target view kind
           const fileType = fileTypeFromFileName(props.filePath)
-          const content = serializeFromCache(maybeState.value.state, fileType)
+          const content = serializeFromCache(
+            maybeState.value.state,
+            fileType,
+            getPersistableViewKind(maybeState.value.viewKind, fileType),
+          )
           const cid = fnv1a64Hex(content)
 
           return right<PgliteError | FileSystemError | EditorManagerError, InitialContent>({
@@ -182,7 +186,7 @@ export class EditorManager extends Effect.Service<EditorManager>()("EditorManage
         return editors.map((editor) => {
           const filePath = AbsolutePath(editor.filePath)
           const fileType = fileTypeFromFileName(filePath)
-          const content = serializeFromCache(editor.state, fileType)
+          const content = serializeFromCache(editor.state, fileType, editor.view_kind)
           const cid = fnv1a64Hex(content)
 
           return { filePath, content, cid, viewKind: editor.view_kind }

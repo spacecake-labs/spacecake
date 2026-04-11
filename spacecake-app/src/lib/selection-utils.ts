@@ -1,6 +1,7 @@
-import type { EditorState } from "@codemirror/state"
+import type { EditorState, Text } from "@codemirror/state"
 
 import { type ClaudeSelection } from "@/types/claude-code"
+import { type LspSelection } from "@/types/lsp"
 
 /**
  * Result of extracting selection info from CodeMirror state.
@@ -62,6 +63,40 @@ export const createRichViewClaudeSelection = (text: string): ClaudeSelection => 
  * Pure function to create a ClaudeSelection for Source View (CodeMirror).
  * Handles the conversion from CodeMirror's 1-based line numbers to 0-based.
  */
+/**
+ * convert CM6 anchor/head offsets to an LspSelection (0-based line/character).
+ */
+export const cmSelectionToLsp = (
+  state: EditorState,
+  anchor: number,
+  head: number,
+): LspSelection => {
+  const anchorLine = state.doc.lineAt(anchor)
+  const headLine = state.doc.lineAt(head)
+  return {
+    _tag: "Lsp",
+    anchor: { line: anchorLine.number - 1, character: anchor - anchorLine.from },
+    head: { line: headLine.number - 1, character: head - headLine.from },
+  }
+}
+
+/**
+ * convert an LspSelection back to CM6 anchor/head offsets.
+ * clamps to document bounds so stale selections don't crash.
+ */
+export const lspSelectionToCm = (
+  doc: Text,
+  sel: LspSelection,
+): { anchor: number; head: number } => {
+  const clampLine = (line: number) => Math.max(1, Math.min(line, doc.lines))
+  const anchorLine = doc.line(clampLine(sel.anchor.line + 1))
+  const headLine = doc.line(clampLine(sel.head.line + 1))
+  return {
+    anchor: Math.min(anchorLine.from + sel.anchor.character, anchorLine.to),
+    head: Math.min(headLine.from + sel.head.character, headLine.to),
+  }
+}
+
 export const createSourceViewClaudeSelection = (params: {
   startLineNumber: number // 1-based
   startLineStartOffset: number

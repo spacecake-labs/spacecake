@@ -27,14 +27,24 @@ import { getInitialEditorStateFromContent } from "@/components/editor/read-file"
 import { MARKDOWN_TRANSFORMERS } from "@/components/editor/transformers/markdown"
 import { fileTypeToCodeMirrorLanguage } from "@/lib/language-support"
 import { JsonValue } from "@/schema/drizzle-effect"
-import { type SerializedSelection } from "@/types/lexical"
+import {
+  type EditorSelection,
+  type PersistableViewKind,
+  type SerializedSelection,
+} from "@/types/lexical"
 import type { EditorFile, FileType } from "@/types/workspace"
+
+const toRichSelection = (sel: EditorSelection | null): SerializedSelection | null => {
+  if (!sel || "_tag" in sel) return null
+  return sel
+}
 
 export const createEditorConfigFromState = (
   serializedState: JsonValue,
-  initialSelection: SerializedSelection | null = null,
+  initialSelection: EditorSelection | null = null,
 ): InitialConfigType => {
-  if (initialSelection) {
+  const richSelection = toRichSelection(initialSelection)
+  if (richSelection) {
     return {
       ...editorConfig,
       editorState: (editor: LexicalEditor) => {
@@ -47,7 +57,7 @@ export const createEditorConfigFromState = (
           removeListener()
           editor.update(
             () => {
-              $restoreSelection(initialSelection)
+              $restoreSelection(richSelection)
             },
             { discrete: true },
           )
@@ -66,7 +76,7 @@ export const createEditorConfigFromState = (
 export const createEditorConfigFromContent = (
   file: EditorFile,
   viewKind: "rich" | "source",
-  selection: SerializedSelection | null = null,
+  selection: EditorSelection | null = null,
 ): InitialConfigType => {
   return {
     ...editorConfig,
@@ -258,7 +268,13 @@ export function convertToDiffView(
   })
 }
 
-export function serializeFromCache(data: JsonValue, fileType: FileType): string {
+export function serializeFromCache(
+  data: JsonValue,
+  fileType: FileType,
+  viewKind: PersistableViewKind = "rich",
+): string {
+  if (viewKind === "source") return data as string
+
   const editor = createEditor({
     namespace: editorConfig.namespace,
     nodes: editorConfig.nodes,
@@ -273,8 +289,8 @@ export function serializeFromCache(data: JsonValue, fileType: FileType): string 
  * this is useful when loading a file and wanting to restore the cursor position.
  * supports both lexical range selections (text/element nodes) and codemirror selections.
  */
-export function $restoreSelection(selection: SerializedSelection | null) {
-  if (!selection) {
+export function $restoreSelection(selection: EditorSelection | null) {
+  if (!selection || "_tag" in selection) {
     return
   }
 

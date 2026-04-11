@@ -5,7 +5,11 @@
 import { EditorState } from "@codemirror/state"
 import { describe, expect, it } from "vitest"
 
-import { extractCodeMirrorSelectionInfo } from "@/lib/selection-utils"
+import {
+  cmSelectionToLsp,
+  extractCodeMirrorSelectionInfo,
+  lspSelectionToCm,
+} from "@/lib/selection-utils"
 
 /**
  * These tests verify the exact selection info that gets sent to Claude Code.
@@ -373,6 +377,165 @@ Some paragraph text.
         end: { line: 1, character: 6 },
         isEmpty: false,
       })
+    })
+  })
+})
+
+describe("LspSelection conversion isomorphism", () => {
+  const makeState = (doc: string) => EditorState.create({ doc })
+
+  describe("CM → Lsp → CM roundtrip", () => {
+    const roundtrip = (doc: string, anchor: number, head: number) => {
+      const state = makeState(doc)
+      const lsp = cmSelectionToLsp(state, anchor, head)
+      const restored = lspSelectionToCm(state.doc, lsp)
+      return restored
+    }
+
+    it("preserves cursor position (empty selection)", () => {
+      expect(roundtrip("hello world", 5, 5)).toEqual({ anchor: 5, head: 5 })
+    })
+
+    it("preserves forward selection on single line", () => {
+      expect(roundtrip("hello world", 6, 11)).toEqual({ anchor: 6, head: 11 })
+    })
+
+    it("preserves backward selection on single line", () => {
+      expect(roundtrip("hello world", 11, 6)).toEqual({ anchor: 11, head: 6 })
+    })
+
+    it("preserves multi-line selection", () => {
+      const doc = "line 1\nline 2\nline 3"
+      expect(roundtrip(doc, 2, 11)).toEqual({ anchor: 2, head: 11 })
+    })
+
+    it("preserves backward multi-line selection", () => {
+      const doc = "line 1\nline 2\nline 3"
+      expect(roundtrip(doc, 11, 2)).toEqual({ anchor: 11, head: 2 })
+    })
+
+    it("preserves start of document", () => {
+      expect(roundtrip("hello", 0, 0)).toEqual({ anchor: 0, head: 0 })
+    })
+
+    it("preserves end of document", () => {
+      expect(roundtrip("hello", 5, 5)).toEqual({ anchor: 5, head: 5 })
+    })
+
+    it("preserves selection spanning entire document", () => {
+      const doc = "line 1\nline 2"
+      expect(roundtrip(doc, 0, 13)).toEqual({ anchor: 0, head: 13 })
+    })
+
+    it("preserves unicode content", () => {
+      const doc = "hello 世界 🌍"
+      expect(roundtrip(doc, 6, 8)).toEqual({ anchor: 6, head: 8 })
+    })
+
+    it("preserves tabs", () => {
+      expect(roundtrip("\t\tindented", 2, 10)).toEqual({ anchor: 2, head: 10 })
+    })
+
+    it("preserves selection at newline boundary", () => {
+      const doc = "line 1\nline 2"
+      // select just the newline
+      expect(roundtrip(doc, 6, 7)).toEqual({ anchor: 6, head: 7 })
+    })
+
+    it("preserves empty document", () => {
+      expect(roundtrip("", 0, 0)).toEqual({ anchor: 0, head: 0 })
+    })
+  })
+
+  describe("Lsp → CM → Lsp roundtrip", () => {
+    const roundtrip = (
+      doc: string,
+      anchorLine: number,
+      anchorChar: number,
+      headLine: number,
+      headChar: number,
+    ) => {
+      const state = makeState(doc)
+      const lsp = {
+        _tag: "Lsp" as const,
+        anchor: { line: anchorLine, character: anchorChar },
+        head: { line: headLine, character: headChar },
+      }
+      const cm = lspSelectionToCm(state.doc, lsp)
+      return cmSelectionToLsp(state, cm.anchor, cm.head)
+    }
+
+    it("preserves cursor at start of document", () => {
+      expect(roundtrip("hello", 0, 0, 0, 0)).toEqual({
+        _tag: "Lsp",
+        anchor: { line: 0, character: 0 },
+        head: { line: 0, character: 0 },
+      })
+    })
+
+    it("preserves forward selection on single line", () => {
+      expect(roundtrip("hello world", 0, 6, 0, 11)).toEqual({
+        _tag: "Lsp",
+        anchor: { line: 0, character: 6 },
+        head: { line: 0, character: 11 },
+      })
+    })
+
+    it("preserves backward selection on single line", () => {
+      expect(roundtrip("hello world", 0, 11, 0, 6)).toEqual({
+        _tag: "Lsp",
+        anchor: { line: 0, character: 11 },
+        head: { line: 0, character: 6 },
+      })
+    })
+
+    it("preserves multi-line selection", () => {
+      expect(roundtrip("line 1\nline 2\nline 3", 0, 2, 1, 4)).toEqual({
+        _tag: "Lsp",
+        anchor: { line: 0, character: 2 },
+        head: { line: 1, character: 4 },
+      })
+    })
+
+    it("preserves end of line position", () => {
+      expect(roundtrip("hello\nworld", 0, 5, 0, 5)).toEqual({
+        _tag: "Lsp",
+        anchor: { line: 0, character: 5 },
+        head: { line: 0, character: 5 },
+      })
+    })
+
+    it("preserves start of second line", () => {
+      expect(roundtrip("hello\nworld", 1, 0, 1, 0)).toEqual({
+        _tag: "Lsp",
+        anchor: { line: 1, character: 0 },
+        head: { line: 1, character: 0 },
+      })
+    })
+  })
+
+  describe("lspSelectionToCm clamping", () => {
+    it("clamps character past end of line", () => {
+      const state = makeState("hi")
+      const lsp = {
+        _tag: "Lsp" as const,
+        anchor: { line: 0, character: 100 },
+        head: { line: 0, character: 100 },
+      }
+      const cm = lspSelectionToCm(state.doc, lsp)
+      expect(cm).toEqual({ anchor: 2, head: 2 })
+    })
+
+    it("clamps line past end of document", () => {
+      const state = makeState("hi")
+      const lsp = {
+        _tag: "Lsp" as const,
+        anchor: { line: 99, character: 0 },
+        head: { line: 99, character: 0 },
+      }
+      const cm = lspSelectionToCm(state.doc, lsp)
+      // should clamp to last line
+      expect(cm.anchor).toBe(state.doc.line(state.doc.lines).from)
     })
   })
 })
