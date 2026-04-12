@@ -1,22 +1,14 @@
-import { indentWithTab } from "@codemirror/commands"
-import { search } from "@codemirror/search"
-import { Compartment, EditorSelection, EditorState, type Extension } from "@codemirror/state"
-import { EditorView, type KeyBinding, keymap, lineNumbers } from "@codemirror/view"
+import { Compartment, EditorSelection, type Extension } from "@codemirror/state"
+import { EditorView, type KeyBinding } from "@codemirror/view"
 import { useActorRef } from "@xstate/react"
-import { basicSetup } from "codemirror"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
 import { useAtomValue, useSetAtom } from "jotai"
 import React from "react"
 
-import { focusedActiveLineTheme, foldPlaceholderTheme } from "@/components/editor/codemirror-shared"
 import { blameAnnotation, emptyBlameAnnotation } from "@/components/editor/plugins/blame-annotation"
 import { getLanguageSupport } from "@/components/editor/plugins/codemirror-editor"
-import {
-  diffGutterData,
-  diffGutterStaticExtensions,
-  emptyDiffGutterData,
-} from "@/components/editor/plugins/diff-gutter"
+import { diffGutterData, emptyDiffGutterData } from "@/components/editor/plugins/diff-gutter"
 import { githubDark, githubLight } from "@/components/editor/themes"
 import { useTheme } from "@/components/theme-provider"
 import { useFocusablePanel } from "@/contexts/focus-manager"
@@ -26,13 +18,19 @@ import { activeBlameAtom, activeLineDiffAtom } from "@/lib/atoms/git"
 import { searchActorAtom } from "@/lib/atoms/search"
 import { addPendingSave } from "@/lib/file-event-handler"
 import { fnv1a64Hex } from "@/lib/hash"
-import { externalSearchExtension } from "@/lib/search/cm-search-extension"
 import { registerCmView, unregisterCmView } from "@/lib/search/cm-view-registry"
 import {
   cmSelectionToLsp,
   extractCodeMirrorSelectionInfo,
   lspSelectionToCm,
 } from "@/lib/selection-utils"
+import { buildSourceEditorState } from "@/lib/source-editor-state"
+import {
+  destroySourceView,
+  getSourceView,
+  initSourceView,
+  recycleSourceView,
+} from "@/lib/source-view-pool"
 import { store } from "@/lib/store"
 import { debounce } from "@/lib/utils"
 import { fileMachine } from "@/machines/manage-file"
@@ -51,6 +49,8 @@ const SOURCE_VIEW_KEY = "__source__"
 export interface SourceEditorProps {
   code: string
   language: string
+  /** pre-resolved language extension from cache, or null if not yet cached */
+  languageExtension?: Extension | null
   filePath: AbsolutePath
   workspacePath: AbsolutePath
   editorId: EditorPrimaryKey
@@ -116,6 +116,7 @@ function SourceSearchBridge() {
 export function SourceEditor({
   code,
   language,
+  languageExtension: languageExtensionProp,
   filePath,
   workspacePath,
   editorId,
@@ -125,9 +126,22 @@ export function SourceEditor({
   const viewRef = React.useRef<EditorView | null>(null)
   const elRef = React.useRef<HTMLDivElement | null>(null)
 
+  // refs for mutable per-file state — avoids stale closures in debounce callbacks
+  const filePathRef = React.useRef(filePath)
+  const editorIdRef = React.useRef(editorId)
+  const initialSelectionRef = React.useRef(initialSelection)
+  const languageExtensionRef = React.useRef(languageExtensionProp)
+  filePathRef.current = filePath
+  editorIdRef.current = editorId
+  initialSelectionRef.current = initialSelection
+  languageExtensionRef.current = languageExtensionProp
+
   const fileState = useAtomValue(getOrCreateFileStateAtom(filePath)).value
   const isDirty = fileState === "Dirty"
   const sendFileState = useSetAtom(getOrCreateFileStateAtom(filePath))
+
+  const sendFileStateRef = React.useRef(sendFileState)
+  sendFileStateRef.current = sendFileState
 
   const fileMachineSend = useActorRef(fileMachine).send
 
@@ -139,15 +153,18 @@ export function SourceEditor({
     isDirtyRef.current = isDirty
   }, [autosaveEnabled, isDirty])
 
-  // compartments for dynamic concerns
+  // compartment refs — updated each time we build a new EditorState.
+  // BlameSync / DiffGutterSync read .current, which always points to
+  // the compartment from the latest state.
   const themeCompartment = React.useRef(new Compartment())
-  const languageCompartment = React.useRef(new Compartment())
   const blameCompartment = React.useRef(new Compartment())
   const diffGutterCompartment = React.useRef(new Compartment())
 
   const { theme } = useTheme()
+  const themeRef = React.useRef(theme)
+  themeRef.current = theme
 
-  // --- debounced persistence ---
+  // --- debounced persistence (all closures read from refs) ---
 
   const debouncedOnChange = React.useRef(
     debounce(() => {
@@ -160,7 +177,7 @@ export function SourceEditor({
       fileMachineSend({
         type: "editor.state.update",
         editorState: {
-          id: editorId,
+          id: editorIdRef.current,
           state: Schema.decodeUnknownSync(JsonValue)(text),
           selection: lspSel,
           view_kind: "source",
@@ -179,7 +196,7 @@ export function SourceEditor({
       fileMachineSend({
         type: "editor.selection.update",
         editorSelection: {
-          id: editorId,
+          id: editorIdRef.current,
           selection: lspSel,
         },
       })
@@ -193,8 +210,8 @@ export function SourceEditor({
       if (window.electronAPI?.claude?.notifySelectionChanged) {
         const payload: SelectionChangedPayload = {
           text: selectedText,
-          filePath,
-          fileUrl: `file://${filePath}`,
+          filePath: filePathRef.current,
+          fileUrl: `file://${filePathRef.current}`,
           selection: claudeSelection,
         }
         window.electronAPI.claude.notifySelectionChanged(payload)
@@ -208,7 +225,7 @@ export function SourceEditor({
     }, 1000),
   ).current
 
-  // --- save ---
+  // --- save (all reads from refs) ---
 
   const handleSave = React.useCallback(() => {
     const view = viewRef.current
@@ -219,14 +236,14 @@ export function SourceEditor({
 
     const content = view.state.doc.toString()
     const cid = fnv1a64Hex(content)
-    addPendingSave(filePath, cid)
+    addPendingSave(filePathRef.current, cid)
 
-    sendFileState({
+    sendFileStateRef.current({
       type: "file.save",
       content,
       viewKind: "source",
     })
-  }, [filePath, sendFileState, debouncedOnChange, debouncedAutosave])
+  }, [debouncedOnChange, debouncedAutosave])
 
   const handleSaveRef = React.useRef(handleSave)
   handleSaveRef.current = handleSave
@@ -243,7 +260,7 @@ export function SourceEditor({
     )
 
     for (const save of pendingSaves) {
-      if (save.filePath === filePath) continue
+      if (save.filePath === filePathRef.current) continue
       addPendingSave(save.filePath, save.cid)
       store.set(getOrCreateFileStateAtom(save.filePath), {
         type: "file.save",
@@ -251,7 +268,10 @@ export function SourceEditor({
         viewKind: save.viewKind,
       })
     }
-  }, [handleSave, filePath, workspacePath])
+  }, [handleSave, workspacePath])
+
+  const handleSaveAllRef = React.useRef(handleSaveAll)
+  handleSaveAllRef.current = handleSaveAll
 
   // --- menu actions ---
 
@@ -268,6 +288,8 @@ export function SourceEditor({
   )
 
   // --- editor view lifecycle ---
+  // runs when file/code/language changes. on first call creates the view;
+  // on subsequent calls recycles it via view.setState().
 
   React.useEffect(() => {
     const el = elRef.current
@@ -275,9 +297,31 @@ export function SourceEditor({
 
     let isCancelled = false
 
-    void (async () => {
-      const languageExtension = await getLanguageSupport(language)
+    const setup = (langExt: Extension | null) => {
       if (isCancelled) return
+
+      // build the update listener with current refs
+      const updateListener = EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          sendFileStateRef.current({ type: "file.edit" })
+
+          // read current file state from the store to avoid stale closures
+          const currentFileState = store.get(getOrCreateFileStateAtom(filePathRef.current)).value
+          if (currentFileState !== "Saving" && currentFileState !== "Reparsing") {
+            debouncedOnChange.schedule()
+            if (autosaveEnabledRef.current) {
+              debouncedAutosave.schedule()
+            }
+          }
+
+          // notify search machine of content change
+          const searchActor = store.get(searchActorAtom)
+          if (searchActor) searchActor.send({ type: "search.content.change" })
+        }
+        if (update.selectionSet || update.docChanged) {
+          debouncedSelection.schedule()
+        }
+      })
 
       const saveKeymap: KeyBinding[] = [
         {
@@ -290,99 +334,95 @@ export function SourceEditor({
         {
           key: "Mod-Shift-s",
           run: () => {
-            handleSaveAll()
+            handleSaveAllRef.current()
             return true
           },
         },
       ]
 
-      const extensions: Extension[] = [
-        search({ top: true }),
-        externalSearchExtension(),
-        basicSetup,
-        lineNumbers(),
-        keymap.of([indentWithTab, ...saveKeymap]),
-        EditorView.lineWrapping,
-        // fill parent height, scroll internally, extend gutter for short files
-        EditorView.theme({
-          "&": { height: "100%" },
-          ".cm-scroller": { overflow: "auto" },
-          ".cm-content, .cm-gutter": { minHeight: "100%" },
-        }),
-        themeCompartment.current.of(theme === "dark" ? githubDark : githubLight),
-        languageCompartment.current.of(languageExtension ?? []),
-        focusedActiveLineTheme,
-        foldPlaceholderTheme,
-        blameCompartment.current.of(emptyBlameAnnotation()),
-        diffGutterStaticExtensions,
-        diffGutterCompartment.current.of(emptyDiffGutterData()),
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            sendFileState({ type: "file.edit" })
-
-            // read current file state from the store to avoid stale closures —
-            // this effect only re-runs when `language` changes.
-            const currentFileState = store.get(getOrCreateFileStateAtom(filePath)).value
-            if (currentFileState !== "Saving" && currentFileState !== "Reparsing") {
-              debouncedOnChange.schedule()
-              if (autosaveEnabledRef.current) {
-                debouncedAutosave.schedule()
-              }
-            }
-
-            // notify search machine of content change
-            const searchActor = store.get(searchActorAtom)
-            if (searchActor) searchActor.send({ type: "search.content.change" })
-          }
-          if (update.selectionSet || update.docChanged) {
-            debouncedSelection.schedule()
-          }
-        }),
-      ]
-
-      el.innerHTML = ""
-      const view = new EditorView({
-        parent: el,
-        state: EditorState.create({ doc: code, extensions }),
+      const result = buildSourceEditorState({
+        code,
+        languageExtension: langExt,
+        theme: themeRef.current,
+        updateListener,
+        saveKeymap,
       })
-      viewRef.current = view
 
-      // register with CM view registry for search
-      registerCmView(SOURCE_VIEW_KEY, view)
+      // update compartment refs so BlameSync/DiffGutterSync/theme dispatch to the right targets
+      themeCompartment.current = result.compartments.theme
+      blameCompartment.current = result.compartments.blame
+      diffGutterCompartment.current = result.compartments.diffGutter
 
-      // notify search machine so it can retry a pending search
-      const searchActor = store.get(searchActorAtom)
-      if (searchActor) searchActor.send({ type: "search.content.change" })
+      const existingView = getSourceView()
+      if (existingView) {
+        // recycle: swap document/state without destroying the root DOM or event handlers
+        recycleSourceView(result.state)
+        viewRef.current = existingView
+        registerCmView(SOURCE_VIEW_KEY, existingView)
+      } else {
+        // first open: create the view
+        const newView = initSourceView(el, result.state)
+        viewRef.current = newView
+        registerCmView(SOURCE_VIEW_KEY, newView)
+      }
 
       // restore selection
-      if (initialSelection) {
-        const { anchor, head } = lspSelectionToCm(view.state.doc, initialSelection)
-        view.dispatch({
+      const sel = initialSelectionRef.current
+      if (sel) {
+        const { anchor, head } = lspSelectionToCm(viewRef.current!.state.doc, sel)
+        viewRef.current!.dispatch({
           selection: EditorSelection.create([EditorSelection.range(anchor, head)]),
         })
       }
 
-      view.focus()
-    })()
+      viewRef.current!.focus()
 
+      // notify search machine so it can retry a pending search
+      const searchActor = store.get(searchActorAtom)
+      if (searchActor) searchActor.send({ type: "search.content.change" })
+    }
+
+    // sync path: language already in cache (common case after first open)
+    if (languageExtensionRef.current != null) {
+      setup(languageExtensionRef.current)
+    } else {
+      // async path: first open of this language — load then setup
+      void (async () => {
+        const langExt = await getLanguageSupport(language)
+        setup(langExt)
+      })()
+    }
+
+    // per-file cleanup: flush pending state before switching to the next file.
+    // does NOT destroy the view — that only happens on component unmount.
     return () => {
       isCancelled = true
-      unregisterCmView(SOURCE_VIEW_KEY)
       debouncedOnChange.flush()
       debouncedSelection.cancel()
       debouncedAutosave.cancel()
 
       if (autosaveEnabledRef.current && isDirtyRef.current) {
-        // autosave on unmount: save to disk
         handleSaveRef.current()
       }
+    }
+  }, [filePath, code, language]) // eslint-disable-line react-hooks/exhaustive-deps
 
-      viewRef.current?.destroy()
+  // component unmount: destroy the pooled view entirely
+  React.useEffect(() => {
+    return () => {
+      unregisterCmView(SOURCE_VIEW_KEY)
+      debouncedOnChange.flush()
+      debouncedSelection.cancel()
+      debouncedAutosave.cancel()
+      if (autosaveEnabledRef.current && isDirtyRef.current) {
+        handleSaveRef.current()
+      }
+      destroySourceView()
       viewRef.current = null
     }
-  }, [language])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // handle theme changes dynamically
+  // handle theme changes dynamically via compartment reconfigure
   React.useEffect(() => {
     const view = viewRef.current
     if (!view) return

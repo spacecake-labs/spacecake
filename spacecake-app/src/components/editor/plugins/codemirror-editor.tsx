@@ -146,19 +146,36 @@ const LANGUAGE_LOADERS: Record<string, () => Promise<Extension>> = {
   xml: () => import("@codemirror/lang-xml").then((m) => m.xml().extension),
 }
 
+// cache of already-resolved language extensions so subsequent opens are synchronous
+const languageCache = new Map<string, Extension>()
+
+/** synchronous cache-only lookup. returns null on cache miss. */
+export const getLanguageSupportSync = (language: string): Extension | null => {
+  if (!language || language === EMPTY_VALUE) return null
+  return languageCache.get(language) ?? null
+}
+
 // Function to get language support extension dynamically
 export const getLanguageSupport = async (language: string): Promise<Extension | null> => {
   if (!language || language === EMPTY_VALUE) return null
 
+  // return from cache if already loaded
+  const cached = languageCache.get(language)
+  if (cached) return cached
+
   // special case: markdown with YAML frontmatter support
   if (language === "markdown") {
-    return yamlFrontmatter({ content: markdown() }).extension
+    const ext = yamlFrontmatter({ content: markdown() }).extension
+    languageCache.set(language, ext)
+    return ext
   }
 
   const loader = LANGUAGE_LOADERS[language]
   if (loader) {
     try {
-      return await loader()
+      const ext = await loader()
+      languageCache.set(language, ext)
+      return ext
     } catch {
       console.warn("failed to load language support for", language)
       return null
