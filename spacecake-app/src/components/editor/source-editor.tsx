@@ -287,6 +287,16 @@ export function SourceEditor({
     }, []),
   )
 
+  // shared cleanup: flush pending state and autosave if needed
+  const flushPendingWork = React.useCallback(() => {
+    debouncedOnChange.flush()
+    debouncedSelection.cancel()
+    debouncedAutosave.cancel()
+    if (autosaveEnabledRef.current && isDirtyRef.current) {
+      handleSaveRef.current()
+    }
+  }, [debouncedOnChange, debouncedSelection, debouncedAutosave])
+
   // --- editor view lifecycle ---
   // runs when file/code/language changes. on first call creates the view;
   // on subsequent calls recycles it via view.setState().
@@ -354,28 +364,28 @@ export function SourceEditor({
       diffGutterCompartment.current = result.compartments.diffGutter
 
       const existingView = getSourceView()
+      let view: EditorView
       if (existingView) {
         // recycle: swap document/state without destroying the root DOM or event handlers
         recycleSourceView(result.state)
-        viewRef.current = existingView
-        registerCmView(SOURCE_VIEW_KEY, existingView)
+        view = existingView
       } else {
         // first open: create the view
-        const newView = initSourceView(el, result.state)
-        viewRef.current = newView
-        registerCmView(SOURCE_VIEW_KEY, newView)
+        view = initSourceView(el, result.state)
       }
+      viewRef.current = view
+      registerCmView(SOURCE_VIEW_KEY, view)
 
       // restore selection
       const sel = initialSelectionRef.current
       if (sel) {
-        const { anchor, head } = lspSelectionToCm(viewRef.current!.state.doc, sel)
-        viewRef.current!.dispatch({
+        const { anchor, head } = lspSelectionToCm(view.state.doc, sel)
+        view.dispatch({
           selection: EditorSelection.create([EditorSelection.range(anchor, head)]),
         })
       }
 
-      viewRef.current!.focus()
+      view.focus()
 
       // notify search machine so it can retry a pending search
       const searchActor = store.get(searchActorAtom)
@@ -397,13 +407,7 @@ export function SourceEditor({
     // does NOT destroy the view — that only happens on component unmount.
     return () => {
       isCancelled = true
-      debouncedOnChange.flush()
-      debouncedSelection.cancel()
-      debouncedAutosave.cancel()
-
-      if (autosaveEnabledRef.current && isDirtyRef.current) {
-        handleSaveRef.current()
-      }
+      flushPendingWork()
     }
   }, [filePath, code, language]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -411,12 +415,7 @@ export function SourceEditor({
   React.useEffect(() => {
     return () => {
       unregisterCmView(SOURCE_VIEW_KEY)
-      debouncedOnChange.flush()
-      debouncedSelection.cancel()
-      debouncedAutosave.cancel()
-      if (autosaveEnabledRef.current && isDirtyRef.current) {
-        handleSaveRef.current()
-      }
+      flushPendingWork()
       destroySourceView()
       viewRef.current = null
     }

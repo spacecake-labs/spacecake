@@ -15,8 +15,10 @@ export function getSourceView(): EditorView | null {
  */
 export function initSourceView(parent: HTMLElement, initialState: EditorState): EditorView {
   if (sourceView) {
-    // reparent if the DOM container changed (shouldn't normally happen)
+    // reparent if the DOM container changed (shouldn't normally happen —
+    // would indicate a React reconciliation issue worth investigating)
     if (sourceView.dom.parentElement !== parent) {
+      console.warn("source-view-pool: reparenting EditorView to a new container")
       parent.appendChild(sourceView.dom)
     }
     sourceView.setState(initialState)
