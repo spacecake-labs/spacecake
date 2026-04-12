@@ -8,6 +8,7 @@ import { $getSelection, $isRangeSelection, type EditorState, type LexicalEditor 
 import React, { useCallback, useEffect } from "react"
 
 import { Editor } from "@/components/editor/editor"
+import { getLanguageSupportSync } from "@/components/editor/plugins/codemirror-editor"
 import { ConflictEditor } from "@/components/editor/plugins/conflict-editor"
 import { LoadingAnimation } from "@/components/loading-animation"
 import { useEditor } from "@/contexts/editor-context"
@@ -282,6 +283,10 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
           const lspSelection =
             sel && "_tag" in sel ? Schema.decodeUnknownSync(LspSelectionSchema)(sel) : null
 
+          // try to resolve language extension synchronously from cache.
+          // if cached, the component can create EditorState without an async gap.
+          const languageExtension = getLanguageSupportSync(cmLanguage)
+
           return {
             filePath,
             editorConfig: null,
@@ -293,6 +298,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
             sourceData: {
               code: sourceCode,
               language: cmLanguage,
+              languageExtension,
               filePath,
               workspacePath: workspace.path,
               editorId: result.content.data.editorId,
@@ -669,11 +675,11 @@ function FileLayout() {
     )
   }
 
-  // source mode: SourceEditor handles everything internally
+  // source mode: no key — Editor + SourceEditor stay mounted across file
+  // navigations so the CodeMirror EditorView can be recycled via setState().
   if (sourceData) {
     return (
       <Editor
-        key={key}
         filePath={filePath}
         editorConfig={editorConfig}
         viewKind="source"
