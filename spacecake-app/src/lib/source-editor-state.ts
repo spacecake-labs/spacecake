@@ -18,11 +18,15 @@ export interface SourceEditorCompartments {
   language: Compartment
   blame: Compartment
   diffGutter: Compartment
+  /** starts empty; populated after first paint via requestIdleCallback */
+  deferred: Compartment
 }
 
 export interface SourceEditorStateResult {
   state: EditorState
   compartments: SourceEditorCompartments
+  /** non-essential extensions to load after first paint */
+  deferredExtensions: Extension
 }
 
 /** build a codemirror EditorState for source mode. pure computation — no DOM needed. */
@@ -38,11 +42,11 @@ export function buildSourceEditorState(opts: {
     language: new Compartment(),
     blame: new Compartment(),
     diffGutter: new Compartment(),
+    deferred: new Compartment(),
   }
 
+  // essential extensions — needed for first paint
   const extensions: Extension[] = [
-    search({ top: true }),
-    externalSearchExtension(),
     basicSetup,
     lineNumbers(),
     keymap.of([indentWithTab, ...opts.saveKeymap]),
@@ -58,13 +62,22 @@ export function buildSourceEditorState(opts: {
     focusedActiveLineTheme,
     foldPlaceholderTheme,
     compartments.blame.of(emptyBlameAnnotation()),
-    diffGutterStaticExtensions,
     compartments.diffGutter.of(emptyDiffGutterData()),
     opts.updateListener,
+    // placeholder for deferred extensions (search, diff gutter visuals)
+    compartments.deferred.of([]),
+  ]
+
+  // non-essential extensions — loaded after first paint via requestIdleCallback
+  const deferredExtensions: Extension = [
+    search({ top: true }),
+    externalSearchExtension(),
+    diffGutterStaticExtensions,
   ]
 
   return {
     state: EditorState.create({ doc: opts.code, extensions }),
     compartments,
+    deferredExtensions,
   }
 }

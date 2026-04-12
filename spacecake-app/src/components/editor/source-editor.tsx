@@ -159,6 +159,8 @@ export function SourceEditor({
   const themeCompartment = React.useRef(new Compartment())
   const blameCompartment = React.useRef(new Compartment())
   const diffGutterCompartment = React.useRef(new Compartment())
+  const deferredCompartment = React.useRef(new Compartment())
+  const deferredIdleRef = React.useRef<number | null>(null)
 
   const { theme } = useTheme()
   const themeRef = React.useRef(theme)
@@ -378,6 +380,7 @@ export function SourceEditor({
       themeCompartment.current = result.compartments.theme
       blameCompartment.current = result.compartments.blame
       diffGutterCompartment.current = result.compartments.diffGutter
+      deferredCompartment.current = result.compartments.deferred
 
       // suppress persistence for the setState() call — it fires docChanged
       // but this is a programmatic content swap, not a user edit.
@@ -416,6 +419,20 @@ export function SourceEditor({
       // notify search machine so it can retry a pending search
       const searchActor = store.get(searchActorAtom)
       if (searchActor) searchActor.send({ type: "search.content.change" })
+
+      // load non-essential extensions (search, diff gutter visuals) after first paint
+      if (deferredIdleRef.current != null) {
+        cancelIdleCallback(deferredIdleRef.current)
+      }
+      const deferred = result.deferredExtensions
+      deferredIdleRef.current = requestIdleCallback(() => {
+        deferredIdleRef.current = null
+        const v = viewRef.current
+        if (!v) return
+        v.dispatch({
+          effects: deferredCompartment.current.reconfigure(deferred),
+        })
+      })
     }
 
     // sync path: language already in cache (common case after first open)
@@ -433,6 +450,10 @@ export function SourceEditor({
     // does NOT destroy the view — that only happens on component unmount.
     return () => {
       isCancelled = true
+      if (deferredIdleRef.current != null) {
+        cancelIdleCallback(deferredIdleRef.current)
+        deferredIdleRef.current = null
+      }
       flushPendingWork()
     }
   }, [filePath, code, language]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -440,6 +461,10 @@ export function SourceEditor({
   // component unmount: destroy the pooled view entirely
   React.useEffect(() => {
     return () => {
+      if (deferredIdleRef.current != null) {
+        cancelIdleCallback(deferredIdleRef.current)
+        deferredIdleRef.current = null
+      }
       unregisterCmView(SOURCE_VIEW_KEY)
       flushPendingWork()
       destroySourceView()
