@@ -23,6 +23,7 @@ import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { SourceEditor, type SourceEditorProps } from "@/components/editor/source-editor"
 import { editorTheme } from "@/components/editor/theme"
 import { SearchBar } from "@/components/search-bar"
+import { useTheme } from "@/components/theme-provider"
 import { RouteContext, useEditor, type CancelDebounceRef } from "@/contexts/editor-context"
 import { useFocusablePanel } from "@/contexts/focus-manager"
 import { useLatest } from "@/hooks/use-latest"
@@ -107,6 +108,7 @@ export function Editor({
 }: EditorProps) {
   const context = React.useContext(RouteContext)
   const { editorRef } = useEditor()
+  const { theme } = useTheme()
   const fileState = useAtomValue(getOrCreateFileStateAtom(filePath)).value
   const isDirty = fileState === "Dirty"
 
@@ -205,10 +207,14 @@ export function Editor({
     }
   }, [])
 
-  // source mode: render pure CM6 editor instead of Lexical
+  // source mode: render pure CM6 editor instead of Lexical.
   if (viewKind === "source" && sourceData) {
     return (
-      <div data-testid="lexical-editor" className="relative h-full">
+      <div
+        data-testid="lexical-editor"
+        className="relative h-full"
+        style={{ backgroundColor: theme === "dark" ? "#0d1117" : "#ffffff" }}
+      >
         {searchOpen && <SearchBar />}
         <SourceEditor {...sourceData} autosaveEnabled={autosaveEnabled} />
       </div>

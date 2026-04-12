@@ -49,7 +49,7 @@ import { EditorPrimaryKeySchema } from "@/schema/editor"
 import { Database } from "@/services/database"
 import { EditorManager } from "@/services/editor-manager"
 import { RuntimeClient } from "@/services/runtime-client"
-import { match } from "@/types/adt"
+import { isLeft, match } from "@/types/adt"
 import {
   type ClaudeSelection,
   type EditorExtendedSelection,
@@ -97,7 +97,7 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
     const { paneId, workspace } = context
     const filePath = AbsolutePath(decodeBase64Url(params.filePath))
 
-    // Auto-reveal: expand parent folders to show the file in the tree
+    // --- fast sync: expand parent folders so the file is visible in the tree ---
     const foldersToExpand = getFoldersToExpand(filePath, workspace.path)
 
     store.set(expandedFoldersAtom, (prev) => {
@@ -108,7 +108,6 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
       return next
     })
 
-    // resolve unresolved parent folders so the nested file is visible in the tree
     for (const folderPath of foldersToExpand) {
       const tree = store.get(fileTreeAtom)
       const folder = findFolderInTree(tree, folderPath)
@@ -129,208 +128,223 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
       }
     }
 
-    // Route loader is read-only for content - pane item creation is normally handled
-    // by the pane machine before navigation. However, for direct URL navigation
-    // (typing URL, browser back/forward, bookmarks), we need to ensure the pane item
-    // exists.
+    // --- if view is missing (direct URL navigation), determine it synchronously ---
+    if (!view) {
+      const initialState = await RuntimeClient.runPromise(
+        Effect.gen(function* () {
+          const em = yield* EditorManager
+          return yield* em.readStateOrFile({
+            filePath,
+            paneId,
+            targetViewKind: view,
+            editorId,
+          })
+        }),
+      )
+
+      if (isLeft(initialState)) {
+        console.error("failed to read file:", initialState.value)
+        throw redirect({
+          to: "/w/$workspaceId",
+          params: { workspaceId: params.workspaceId },
+          search: { notFoundFilePath: filePath },
+        })
+      }
+
+      const result = initialState.value
+      if (!paneActivated) {
+        await RuntimeClient.runPromise(
+          Effect.gen(function* () {
+            const db = yield* Database
+            yield* db.activateEditorInPane(result.content.data.editorId, paneId)
+          }),
+        )
+      }
+      throw redirect({
+        search: { view: result.viewKind },
+        params,
+        replace: true,
+      })
+    }
+
+    // --- view is present: load content before component renders ---
     const initialState = await RuntimeClient.runPromise(
       Effect.gen(function* () {
         const em = yield* EditorManager
         return yield* em.readStateOrFile({
           filePath,
-          paneId: paneId,
+          paneId,
           targetViewKind: view,
           editorId,
         })
       }),
     )
 
-    return match(initialState, {
-      onLeft: (error) => {
-        console.error("failed to read file:", error)
-        throw redirect({
-          to: "/w/$workspaceId",
-          params: { workspaceId: params.workspaceId },
-          search: { notFoundFilePath: filePath },
-        })
-      },
-      onRight: async (result) => {
-        // start pane activation early - don't block subsequent work
-        const activationPromise = !paneActivated
-          ? RuntimeClient.runPromise(
-              Effect.gen(function* () {
-                const db = yield* Database
-                yield* db.activateEditorInPane(result.content.data.editorId, paneId)
-              }),
-            )
-          : Promise.resolve()
+    if (isLeft(initialState)) {
+      console.error("failed to read file:", initialState.value)
+      throw redirect({
+        to: "/w/$workspaceId",
+        params: { workspaceId: params.workspaceId },
+        search: { notFoundFilePath: filePath },
+      })
+    }
 
-        // add view to search params if it is not present
-        if (!view) {
-          await activationPromise
-          throw redirect({
-            search: {
-              view: result.viewKind,
-              // could potentially add editorId in future
-              // but need to validate whether that editorId
-              // corresponds to the returned content
-            },
-            params,
-            replace: true,
+    const result = initialState.value
+
+    const activationPromise = !paneActivated
+      ? RuntimeClient.runPromise(
+          Effect.gen(function* () {
+            const db = yield* Database
+            yield* db.activateEditorInPane(result.content.data.editorId, paneId)
+          }),
+        )
+      : Promise.resolve()
+
+    const cid = result.content.kind === "state" ? ZERO_HASH : result.content.data.cid
+    const epoch = store.get(getOrCreateFileStateAtom(filePath)).context.epoch
+    const key = `${filePath}-${result.viewKind}-${cid}-${epoch}`
+
+    // diff view
+    if (result.viewKind === "diff") {
+      const relativePath = filePath.startsWith(workspace.path + "/")
+        ? filePath.slice(workspace.path.length + 1)
+        : filePath
+
+      const [, diffResult] = await Promise.all([
+        activationPromise,
+        window.electronAPI.git.getFileDiff(workspace.path, relativePath, baseRef, targetRef),
+      ])
+
+      const content = match(diffResult, {
+        onLeft: (error) => ({
+          editorConfig: null,
+          key,
+          editorId: result.content.data.editorId,
+          fileId: result.content.data.fileId,
+          diffError: error.description,
+          conflictContent: null,
+          sourceData: null,
+        }),
+        onRight: (diff) => {
+          const extension = filePath.split(".").pop() || ""
+          const editorConfig = createEditorConfigFromDiff({
+            oldContent: diff.oldContent,
+            newContent: diff.newContent,
+            filePath,
+            language: extension,
           })
-        }
-
-        const cid = result.content.kind === "state" ? ZERO_HASH : result.content.data.cid
-        const epoch = store.get(getOrCreateFileStateAtom(filePath)).context.epoch
-        const key = `${filePath}-${result.viewKind}-${cid}-${epoch}`
-
-        // Handle diff view - fetch git diff data and create diff editor config
-        // parallelize activation with diff fetch since they're independent
-        if (result.viewKind === "diff") {
-          const relativePath = filePath.startsWith(workspace.path + "/")
-            ? filePath.slice(workspace.path.length + 1)
-            : filePath
-
-          const [, diffResult] = await Promise.all([
-            activationPromise,
-            window.electronAPI.git.getFileDiff(workspace.path, relativePath, baseRef, targetRef),
-          ])
-
-          return match(diffResult, {
-            onLeft: (error) => ({
-              filePath,
-              editorConfig: null,
-              key,
-              editorId: result.content.data.editorId,
-              fileId: result.content.data.fileId,
-              diffError: error.description,
-              conflictContent: null,
-              sourceData: null,
-            }),
-            onRight: (diff) => {
-              const extension = filePath.split(".").pop() || ""
-              const editorConfig = createEditorConfigFromDiff({
-                oldContent: diff.oldContent,
-                newContent: diff.newContent,
-                filePath,
-                language: extension,
-              })
-
-              return {
-                filePath,
-                editorConfig,
-                key,
-                editorId: result.content.data.editorId,
-                fileId: result.content.data.fileId,
-                diffError: null,
-                conflictContent: null,
-                sourceData: null,
-              }
-            },
-          })
-        }
-
-        // handle conflict view - fetch merge stage content
-        if (result.viewKind === "conflict") {
-          const relativePath = filePath.startsWith(workspace.path + "/")
-            ? filePath.slice(workspace.path.length + 1)
-            : filePath
-
-          const [, conflictResult] = await Promise.all([
-            activationPromise,
-            window.electronAPI.git.getConflictContent(workspace.path, relativePath),
-          ])
-
-          return match(conflictResult, {
-            onLeft: (error) => ({
-              filePath,
-              editorConfig: null,
-              key,
-              editorId: result.content.data.editorId,
-              fileId: result.content.data.fileId,
-              diffError: error.description,
-              conflictContent: null,
-              sourceData: null,
-            }),
-            onRight: (conflict) => ({
-              filePath,
-              editorConfig: null,
-              key,
-              editorId: result.content.data.editorId,
-              fileId: result.content.data.fileId,
-              diffError: null,
-              conflictContent: conflict,
-              sourceData: null,
-            }),
-          })
-        }
-
-        // ensure activation completes before returning for non-diff views
-        await activationPromise
-
-        // handle source/rich view (diff and conflict are already handled above)
-        const persistableViewKind = result.viewKind as "rich" | "source"
-
-        // source mode: pass raw text directly to SourceEditor (no Lexical)
-        if (persistableViewKind === "source") {
-          const fileType = fileTypeFromFileName(filePath)
-          const sourceCode =
-            result.content.kind === "state"
-              ? serializeFromCache(result.content.data.state, fileType, "source")
-              : result.content.data.content
-          const cmLanguage = fileTypeToCodeMirrorLanguage(fileType) ?? ""
-          const sel = result.content.data.selection
-          const lspSelection =
-            sel && "_tag" in sel ? Schema.decodeUnknownSync(LspSelectionSchema)(sel) : null
-
-          // try to resolve language extension synchronously from cache.
-          // if cached, the component can create EditorState without an async gap.
-          const languageExtension = getLanguageSupportSync(cmLanguage)
 
           return {
-            filePath,
-            editorConfig: null,
+            editorConfig,
             key,
             editorId: result.content.data.editorId,
             fileId: result.content.data.fileId,
             diffError: null,
             conflictContent: null,
-            sourceData: {
-              code: sourceCode,
-              language: cmLanguage,
-              languageExtension,
-              filePath,
-              workspacePath: workspace.path,
-              editorId: result.content.data.editorId,
-              initialSelection: lspSelection,
-            },
+            sourceData: null,
           }
-        }
+        },
+      })
 
-        // rich mode: create Lexical editor config (unchanged)
-        const editorConfig =
-          result.content.kind === "state"
-            ? createEditorConfigFromState(result.content.data.state, result.content.data.selection)
-            : createEditorConfigFromContent(
-                result.content.data,
-                persistableViewKind,
-                result.content.data.selection,
-              )
+      return { filePath, viewKind: view, workspacePath: workspace.path, content }
+    }
 
-        return {
-          filePath,
-          editorConfig,
+    // conflict view
+    if (result.viewKind === "conflict") {
+      const relativePath = filePath.startsWith(workspace.path + "/")
+        ? filePath.slice(workspace.path.length + 1)
+        : filePath
+
+      const [, conflictResult] = await Promise.all([
+        activationPromise,
+        window.electronAPI.git.getConflictContent(workspace.path, relativePath),
+      ])
+
+      const content = match(conflictResult, {
+        onLeft: (error) => ({
+          editorConfig: null,
+          key,
+          editorId: result.content.data.editorId,
+          fileId: result.content.data.fileId,
+          diffError: error.description,
+          conflictContent: null,
+          sourceData: null,
+        }),
+        onRight: (conflict) => ({
+          editorConfig: null,
           key,
           editorId: result.content.data.editorId,
           fileId: result.content.data.fileId,
           diffError: null,
-          conflictContent: null,
+          conflictContent: conflict,
           sourceData: null,
-        }
-      },
-    })
+        }),
+      })
+
+      return { filePath, viewKind: view, workspacePath: workspace.path, content }
+    }
+
+    await activationPromise
+
+    const persistableViewKind = result.viewKind as "rich" | "source"
+
+    // source mode
+    if (persistableViewKind === "source") {
+      const fileType = fileTypeFromFileName(filePath)
+      const sourceCode =
+        result.content.kind === "state"
+          ? serializeFromCache(result.content.data.state, fileType, "source")
+          : result.content.data.content
+      const cmLanguage = fileTypeToCodeMirrorLanguage(fileType) ?? ""
+      const sel = result.content.data.selection
+      const lspSelection =
+        sel && "_tag" in sel ? Schema.decodeUnknownSync(LspSelectionSchema)(sel) : null
+      const languageExtension = getLanguageSupportSync(cmLanguage)
+
+      const content = {
+        editorConfig: null,
+        key,
+        editorId: result.content.data.editorId,
+        fileId: result.content.data.fileId,
+        diffError: null,
+        conflictContent: null,
+        sourceData: {
+          code: sourceCode,
+          language: cmLanguage,
+          languageExtension,
+          filePath,
+          workspacePath: workspace.path,
+          editorId: result.content.data.editorId,
+          initialSelection: lspSelection,
+        },
+      }
+
+      return { filePath, viewKind: view, workspacePath: workspace.path, content }
+    }
+
+    // rich mode
+    const editorConfig =
+      result.content.kind === "state"
+        ? createEditorConfigFromState(result.content.data.state, result.content.data.selection)
+        : createEditorConfigFromContent(
+            result.content.data,
+            persistableViewKind,
+            result.content.data.selection,
+          )
+
+    const content = {
+      editorConfig,
+      key,
+      editorId: result.content.data.editorId,
+      fileId: result.content.data.fileId,
+      diffError: null,
+      conflictContent: null,
+      sourceData: null,
+    }
+
+    return { filePath, viewKind: view, workspacePath: workspace.path, content }
   },
-  pendingComponent: () => <LoadingAnimation />,
+  pendingComponent: () => <div className="h-full w-full bg-background" />,
   errorComponent: ({ error }) => <ErrorComponent error={error} />,
   component: FileLayout,
   // Do not cache this route's data after it's unloaded
@@ -340,11 +354,13 @@ export const Route = createFileRoute("/w/$workspaceId/f/$filePath")({
 })
 
 function FileLayout() {
-  const { filePath, editorConfig, key, editorId, fileId, diffError, conflictContent, sourceData } =
-    Route.useLoaderData()
+  const { filePath, viewKind, content } = Route.useLoaderData()
   const { db, workspace } = Route.useRouteContext()
-  const { view: viewKind, navigationLine, navigationQuery, navigationAnchor } = Route.useSearch()
+  const { navigationLine, navigationQuery, navigationAnchor } = Route.useSearch()
   const { editorRef } = useEditor()
+
+  const editorId = content.editorId
+  const fileId = content.fileId
 
   const sendFileState = useSetAtom(getOrCreateFileStateAtom(filePath))
 
@@ -561,6 +577,7 @@ function FileLayout() {
   }, [setActiveLineDiff])
 
   useEffect(() => {
+    if (!fileId) return
     RuntimeClient.runPromise(
       db.updateFileAccessedAt({
         id: fileId,
@@ -570,6 +587,7 @@ function FileLayout() {
 
   const handleChange = useCallback(
     (editorState: EditorState, changeType: ChangeType) => {
+      if (!editorId) return
       editorState.read(() => {
         const selection = $getSelection()
 
@@ -624,6 +642,7 @@ function FileLayout() {
 
   const handleCodeMirrorSelection = useCallback(
     (extendedSelection: EditorExtendedSelection) => {
+      if (!editorId) return
       send({
         type: "editor.selection.update",
         editorSelection: {
@@ -642,22 +661,22 @@ function FileLayout() {
     [editorId, viewKind, send, notifyClaudeCodeSelection],
   )
 
-  // Handle diff error
-  if (diffError) {
+  // --- rendering ---
+
+  if (content.diffError) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
-        <p>failed to load diff: {diffError}</p>
+        <p>failed to load diff: {content.diffError}</p>
       </div>
     )
   }
 
-  // handle conflict view
-  if (conflictContent) {
+  if (content.conflictContent) {
     const extension = filePath.split(".").pop() || ""
     return (
       <ConflictEditor
-        ours={conflictContent.ours}
-        theirs={conflictContent.theirs}
+        ours={content.conflictContent.ours}
+        theirs={content.conflictContent.theirs}
         filePath={filePath}
         workspacePath={workspace.path}
         language={extension}
@@ -675,15 +694,13 @@ function FileLayout() {
     )
   }
 
-  // source mode: no key — Editor + SourceEditor stay mounted across file
-  // navigations so the CodeMirror EditorView can be recycled via setState().
-  if (sourceData) {
+  if (viewKind === "source" && content.sourceData) {
     return (
       <Editor
         filePath={filePath}
-        editorConfig={editorConfig}
+        editorConfig={null}
         viewKind="source"
-        sourceData={sourceData}
+        sourceData={content.sourceData}
         autosaveEnabled={autosaveEnabled}
         onChange={handleChange}
         onCodeMirrorSelection={handleCodeMirrorSelection}
@@ -691,22 +708,19 @@ function FileLayout() {
     )
   }
 
-  // Handle missing editor config (shouldn't happen, but be safe)
-  if (!editorConfig) {
+  if (!content.editorConfig) {
     return <LoadingAnimation />
   }
 
   return (
-    <>
-      <Editor
-        key={key}
-        filePath={filePath}
-        editorConfig={editorConfig}
-        viewKind={viewKind}
-        autosaveEnabled={autosaveEnabled}
-        onChange={handleChange}
-        onCodeMirrorSelection={handleCodeMirrorSelection}
-      />
-    </>
+    <Editor
+      key={content.key}
+      filePath={filePath}
+      editorConfig={content.editorConfig}
+      viewKind={viewKind}
+      autosaveEnabled={autosaveEnabled}
+      onChange={handleChange}
+      onCodeMirrorSelection={handleCodeMirrorSelection}
+    />
   )
 }
