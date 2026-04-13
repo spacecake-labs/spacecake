@@ -714,7 +714,7 @@ function FileLayout() {
 
   return (
     <Editor
-      key={content.key}
+      contentKey={content.key}
       filePath={filePath}
       editorConfig={content.editorConfig}
       viewKind={viewKind}

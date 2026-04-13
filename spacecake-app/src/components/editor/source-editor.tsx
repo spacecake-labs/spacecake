@@ -448,13 +448,55 @@ export function SourceEditor({
 
     // per-file cleanup: flush pending state before switching to the next file.
     // does NOT destroy the view — that only happens on component unmount.
+    // IMPORTANT: can't use flushPendingWork() here because debouncedOnChange reads
+    // editorIdRef.current, which has already been updated to the NEW file during render.
+    // instead, cancel the debounce and persist directly with the closure-captured editorId.
     return () => {
       isCancelled = true
       if (deferredIdleRef.current != null) {
         cancelIdleCallback(deferredIdleRef.current)
         deferredIdleRef.current = null
       }
-      flushPendingWork()
+
+      const hasPendingChange = debouncedOnChange.isScheduled()
+      debouncedOnChange.cancel()
+      debouncedSelection.cancel()
+      debouncedAutosave.cancel()
+
+      if (hasPendingChange) {
+        const view = viewRef.current
+        if (view) {
+          const text = view.state.doc.toString()
+          const sel = view.state.selection.main
+          const lspSel = cmSelectionToLsp(view.state, sel.anchor, sel.head)
+
+          fileMachineSend({
+            type: "editor.state.update",
+            editorState: {
+              id: editorId, // closure-captured OLD value (correct file)
+              state: Schema.decodeUnknownSync(JsonValue)(text),
+              selection: lspSel,
+              view_kind: "source",
+            },
+          })
+        }
+      }
+
+      if (autosaveEnabledRef.current && isDirtyRef.current) {
+        // use closure-captured filePath/sendFileState (not refs) so we
+        // autosave the OLD file, not the NEW one that refs already point to.
+        const view = viewRef.current
+        if (view) {
+          const content = view.state.doc.toString()
+          const cid = fnv1a64Hex(content)
+          addPendingSave(filePath, cid)
+          sendFileState({
+            type: "file.save",
+            content,
+            viewKind: "source",
+          })
+        }
+      }
     }
   }, [filePath, code, language]) // eslint-disable-line react-hooks/exhaustive-deps
 
