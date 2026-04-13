@@ -63,17 +63,17 @@ export function buildSourceEditorState(opts: {
     foldPlaceholderTheme,
     compartments.blame.of(emptyBlameAnnotation()),
     compartments.diffGutter.of(emptyDiffGutterData()),
+    // diff gutter structure (field + gutter column + theme) loaded eagerly so the
+    // gutter column is present from first paint and doesn't cause a layout shift.
+    // the field starts with an empty RangeSet — negligible cost.
+    diffGutterStaticExtensions,
     opts.updateListener,
-    // placeholder for deferred extensions (search, diff gutter visuals)
+    // placeholder for deferred extensions (search)
     compartments.deferred.of([]),
   ]
 
   // non-essential extensions — loaded after first paint via requestIdleCallback
-  const deferredExtensions: Extension = [
-    search({ top: true }),
-    externalSearchExtension(),
-    diffGutterStaticExtensions,
-  ]
+  const deferredExtensions: Extension = [search({ top: true }), externalSearchExtension()]
 
   return {
     state: EditorState.create({ doc: opts.code, extensions }),
