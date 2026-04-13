@@ -159,6 +159,8 @@ export function SourceEditor({
   const themeCompartment = React.useRef(new Compartment())
   const blameCompartment = React.useRef(new Compartment())
   const diffGutterCompartment = React.useRef(new Compartment())
+  const deferredCompartment = React.useRef(new Compartment())
+  const deferredIdleRef = React.useRef<number | null>(null)
 
   const { theme } = useTheme()
   const themeRef = React.useRef(theme)
@@ -287,9 +289,17 @@ export function SourceEditor({
     }, []),
   )
 
-  // shared cleanup: flush pending state and autosave if needed
+  // suppression flag: set to true during programmatic content swaps (recycle/init)
+  // so the update listener skips persistence for docChanged events from setState().
+  const isSwappingContentRef = React.useRef(false)
+
+  // shared cleanup: flush pending state and autosave if needed.
+  // only flushes debouncedOnChange if there is actually a pending timer —
+  // unconditional flush would persist stale/empty state during content swaps.
   const flushPendingWork = React.useCallback(() => {
-    debouncedOnChange.flush()
+    if (debouncedOnChange.isScheduled()) {
+      debouncedOnChange.flush()
+    }
     debouncedSelection.cancel()
     debouncedAutosave.cancel()
     if (autosaveEnabledRef.current && isDirtyRef.current) {
@@ -310,9 +320,15 @@ export function SourceEditor({
     const setup = (langExt: Extension | null) => {
       if (isCancelled) return
 
-      // build the update listener with current refs
+      // build the update listener with current refs.
+      // checks isSwappingContentRef to skip persistence during programmatic
+      // content swaps (recycle/init), which fire docChanged but shouldn't
+      // mark the file dirty or schedule persistence.
       const updateListener = EditorView.updateListener.of((update) => {
         if (update.docChanged) {
+          // skip persistence during programmatic content swaps
+          if (isSwappingContentRef.current) return
+
           sendFileStateRef.current({ type: "file.edit" })
 
           // read current file state from the store to avoid stale closures
@@ -329,6 +345,8 @@ export function SourceEditor({
           if (searchActor) searchActor.send({ type: "search.content.change" })
         }
         if (update.selectionSet || update.docChanged) {
+          // skip selection persistence during programmatic content swaps
+          if (isSwappingContentRef.current) return
           debouncedSelection.schedule()
         }
       })
@@ -362,6 +380,11 @@ export function SourceEditor({
       themeCompartment.current = result.compartments.theme
       blameCompartment.current = result.compartments.blame
       diffGutterCompartment.current = result.compartments.diffGutter
+      deferredCompartment.current = result.compartments.deferred
+
+      // suppress persistence for the setState() call — it fires docChanged
+      // but this is a programmatic content swap, not a user edit.
+      isSwappingContentRef.current = true
 
       const existingView = getSourceView()
       let view: EditorView
@@ -375,6 +398,12 @@ export function SourceEditor({
       }
       viewRef.current = view
       registerCmView(SOURCE_VIEW_KEY, view)
+
+      // clear suppression flag after the current microtask — by this point
+      // codemirror has finished dispatching its internal updates from setState().
+      queueMicrotask(() => {
+        isSwappingContentRef.current = false
+      })
 
       // restore selection
       const sel = initialSelectionRef.current
@@ -390,6 +419,20 @@ export function SourceEditor({
       // notify search machine so it can retry a pending search
       const searchActor = store.get(searchActorAtom)
       if (searchActor) searchActor.send({ type: "search.content.change" })
+
+      // load non-essential extensions (search, diff gutter visuals) after first paint
+      if (deferredIdleRef.current != null) {
+        cancelIdleCallback(deferredIdleRef.current)
+      }
+      const deferred = result.deferredExtensions
+      deferredIdleRef.current = requestIdleCallback(() => {
+        deferredIdleRef.current = null
+        const v = viewRef.current
+        if (!v) return
+        v.dispatch({
+          effects: deferredCompartment.current.reconfigure(deferred),
+        })
+      })
     }
 
     // sync path: language already in cache (common case after first open)
@@ -405,15 +448,65 @@ export function SourceEditor({
 
     // per-file cleanup: flush pending state before switching to the next file.
     // does NOT destroy the view — that only happens on component unmount.
+    // IMPORTANT: can't use flushPendingWork() here because debouncedOnChange reads
+    // editorIdRef.current, which has already been updated to the NEW file during render.
+    // instead, cancel the debounce and persist directly with the closure-captured editorId.
     return () => {
       isCancelled = true
-      flushPendingWork()
+      if (deferredIdleRef.current != null) {
+        cancelIdleCallback(deferredIdleRef.current)
+        deferredIdleRef.current = null
+      }
+
+      const hasPendingChange = debouncedOnChange.isScheduled()
+      debouncedOnChange.cancel()
+      debouncedSelection.cancel()
+      debouncedAutosave.cancel()
+
+      if (hasPendingChange) {
+        const view = viewRef.current
+        if (view) {
+          const text = view.state.doc.toString()
+          const sel = view.state.selection.main
+          const lspSel = cmSelectionToLsp(view.state, sel.anchor, sel.head)
+
+          fileMachineSend({
+            type: "editor.state.update",
+            editorState: {
+              id: editorId, // closure-captured OLD value (correct file)
+              state: Schema.decodeUnknownSync(JsonValue)(text),
+              selection: lspSel,
+              view_kind: "source",
+            },
+          })
+        }
+      }
+
+      if (autosaveEnabledRef.current && isDirtyRef.current) {
+        // use closure-captured filePath/sendFileState (not refs) so we
+        // autosave the OLD file, not the NEW one that refs already point to.
+        const view = viewRef.current
+        if (view) {
+          const content = view.state.doc.toString()
+          const cid = fnv1a64Hex(content)
+          addPendingSave(filePath, cid)
+          sendFileState({
+            type: "file.save",
+            content,
+            viewKind: "source",
+          })
+        }
+      }
     }
   }, [filePath, code, language]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // component unmount: destroy the pooled view entirely
   React.useEffect(() => {
     return () => {
+      if (deferredIdleRef.current != null) {
+        cancelIdleCallback(deferredIdleRef.current)
+        deferredIdleRef.current = null
+      }
       unregisterCmView(SOURCE_VIEW_KEY)
       flushPendingWork()
       destroySourceView()

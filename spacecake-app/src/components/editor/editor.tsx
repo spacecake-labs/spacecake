@@ -4,6 +4,7 @@ import { EditorRefPlugin } from "@lexical/react/LexicalEditorRefPlugin"
 import { useSelector } from "@xstate/react"
 import { useAtomValue } from "jotai"
 import {
+  CLEAR_HISTORY_COMMAND,
   COMMAND_PRIORITY_NORMAL,
   type EditorState,
   type SerializedEditorState,
@@ -23,9 +24,9 @@ import { SAVE_FILE_COMMAND } from "@/components/editor/plugins/save-command"
 import { SourceEditor, type SourceEditorProps } from "@/components/editor/source-editor"
 import { editorTheme } from "@/components/editor/theme"
 import { SearchBar } from "@/components/search-bar"
+import { useTheme } from "@/components/theme-provider"
 import { RouteContext, useEditor, type CancelDebounceRef } from "@/contexts/editor-context"
 import { useFocusablePanel } from "@/contexts/focus-manager"
-import { useLatest } from "@/hooks/use-latest"
 import { getOrCreateFileStateAtom } from "@/lib/atoms/file-tree"
 import { searchActorAtom } from "@/lib/atoms/search"
 import { debounce } from "@/lib/utils"
@@ -43,6 +44,8 @@ interface EditorProps {
   editorConfig: InitialConfigType | null
   editorState?: EditorState
   editorSerializedState?: SerializedEditorState
+  /** version key — changes when the file, cid, or epoch changes. drives imperative content swap. */
+  contentKey?: string
   filePath: AbsolutePath
   autosaveEnabled?: boolean
   viewKind?: ViewKind
@@ -98,6 +101,7 @@ export function Editor({
   editorConfig,
   editorState,
   editorSerializedState,
+  contentKey,
   filePath,
   autosaveEnabled,
   viewKind,
@@ -107,6 +111,7 @@ export function Editor({
 }: EditorProps) {
   const context = React.useContext(RouteContext)
   const { editorRef } = useEditor()
+  const { theme } = useTheme()
   const fileState = useAtomValue(getOrCreateFileStateAtom(filePath)).value
   const isDirty = fileState === "Dirty"
 
@@ -151,12 +156,31 @@ export function Editor({
     }, [editorRef]),
   )
 
-  const onChangeRef = useLatest(onChange)
+  // delay the ref update to useEffect so that useLayoutEffect cleanup
+  // (which flushes the OLD file's pending state) reads the OLD handler.
+  // useLayoutEffect cleanup runs before useEffect, guaranteeing correct ordering.
+  const onChangeRef = React.useRef(onChange)
+  React.useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
 
   const lastStateRef = React.useRef<EditorState | null>(null)
   // if a content change occurs in the debounce window,
   // subsequent selection changes will not downgrade the change type.
   const lastChangeTypeRef = React.useRef<ChangeType>("selection")
+
+  // suppression flag: set to true during imperative content swaps so
+  // OnChangePlugin skips persistence for events fired by setEditorState().
+  const isSwappingContentRef = React.useRef(false)
+
+  // tracks whether LexicalComposer has completed its initial mount.
+  // null = not yet mounted, string = last contentKey we swapped to.
+  const prevContentKeyRef = React.useRef<string | null>(null)
+
+  // when editorConfig.editorState is a function (e.g. async Python parsing),
+  // imperative swap is unsafe (calls resetRandomKey on a live editor).
+  // instead, force a LexicalComposer remount by bumping this key.
+  const [composerKey, setComposerKey] = React.useState(0)
 
   // 250ms debounce for PGlite state backup (crash recovery)
   const debouncedOnChangeRef = React.useRef(
@@ -188,6 +212,72 @@ export function Editor({
     }
   }, [context, debouncedOnChangeRef, debouncedAutosaveRef])
 
+  // --- imperative content swap for persistent editor ---
+  // when contentKey changes (different file or reparse), flush the OLD file's
+  // pending state and swap the lexical editor to the new content.
+  // cleanup captures OLD values from the closure; setup runs with NEW values.
+  //
+  // string editorState (cached state from DB) → fast imperative swap via setEditorState().
+  // function editorState (first-time content load, may be async e.g. Python parsing)
+  //   → force a LexicalComposer remount since the function calls resetRandomKey()
+  //     which is unsafe on a live editor with existing nodes.
+  React.useLayoutEffect(() => {
+    // skip source mode — SourceEditor handles its own lifecycle
+    if (viewKind === "source") return
+
+    const editor = editorRef.current
+
+    // first mount: LexicalComposer consumes initialConfig, nothing to swap
+    if (prevContentKeyRef.current === null) {
+      prevContentKeyRef.current = contentKey ?? null
+      return
+    }
+
+    // no change — nothing to do
+    if (prevContentKeyRef.current === contentKey) return
+    prevContentKeyRef.current = contentKey ?? null
+
+    if (!editor || !editorConfig?.editorState) return
+
+    if (typeof editorConfig.editorState === "string") {
+      // cached state from DB — fast synchronous swap
+      isSwappingContentRef.current = true
+      const newState = editor.parseEditorState(editorConfig.editorState)
+      editor.setEditorState(newState)
+      editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined)
+      // clear suppression after the current microtask — lexical dispatches
+      // its internal update listeners synchronously during setEditorState().
+      queueMicrotask(() => {
+        isSwappingContentRef.current = false
+      })
+    } else {
+      // function form (may be async, e.g. Python parsing) — force remount.
+      // setComposerKey triggers a re-render; LexicalComposer unmounts and
+      // remounts with the new initialConfig, same as the original behaviour.
+      setComposerKey((k) => k + 1)
+    }
+
+    // cleanup: flush the OLD file's pending state with closure-captured values.
+    // React guarantees cleanup sees values from the render that created it.
+    return () => {
+      debouncedOnChangeRef.cancel()
+      debouncedAutosaveRef.cancel()
+
+      // flush pending editor state to the file machine with the OLD onChange handler
+      if (lastStateRef.current) {
+        onChangeRef.current(lastStateRef.current, lastChangeTypeRef.current)
+        lastStateRef.current = null
+        lastChangeTypeRef.current = "selection"
+      }
+
+      // autosave if dirty
+      if (autosaveEnabledRef.current && isDirtyRef.current) {
+        editorRef.current?.dispatchCommand(SAVE_FILE_COMMAND, undefined)
+      }
+    }
+  }, [contentKey, viewKind]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // component unmount: flush pending state
   React.useEffect(() => {
     return () => {
       // On unmount, either save to disk (autosave) or flush to PGlite (crash recovery)
@@ -205,10 +295,14 @@ export function Editor({
     }
   }, [])
 
-  // source mode: render pure CM6 editor instead of Lexical
+  // source mode: render pure CM6 editor instead of Lexical.
   if (viewKind === "source" && sourceData) {
     return (
-      <div data-testid="lexical-editor" className="relative h-full">
+      <div
+        data-testid="lexical-editor"
+        className="relative h-full"
+        style={{ backgroundColor: theme === "dark" ? "#0d1117" : "#ffffff" }}
+      >
         {searchOpen && <SearchBar />}
         <SourceEditor {...sourceData} autosaveEnabled={autosaveEnabled} />
       </div>
@@ -221,6 +315,7 @@ export function Editor({
     <div data-testid="lexical-editor" className="relative h-full">
       {searchOpen && <SearchBar />}
       <LexicalComposer
+        key={composerKey}
         initialConfig={{
           ...editorConfig,
           ...(editorState ? { editorState } : {}),
@@ -235,6 +330,9 @@ export function Editor({
 
         <OnChangePlugin
           onChange={(editorState, _editor, _tags, changeType) => {
+            // skip persistence during imperative content swaps (file switch)
+            if (isSwappingContentRef.current) return
+
             lastStateRef.current = editorState
 
             if (changeType === "content") {
