@@ -11,6 +11,10 @@ export function supportsRichView(fileType: FileType): boolean {
   return LANGUAGE_SUPPORT[fileType].supportedViews.has("rich")
 }
 
+export function defaultView(fileType: FileType): "rich" | "source" {
+  return fileType === FileType.Markdown ? "rich" : "source"
+}
+
 export function supportsSourceView(fileType: FileType): boolean {
   return LANGUAGE_SUPPORT[fileType].supportedViews.has("source")
 }

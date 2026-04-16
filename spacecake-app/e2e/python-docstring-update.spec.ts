@@ -24,6 +24,8 @@ test.describe("Python docstring updating", () => {
 
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
+    // python opens in source by default; toggle to rich for block rendering
+    await window.getByRole("link", { name: "switch to rich view" }).click()
     await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
 
     const codeBlock = editor.locator('[data-block-id*="my_function-function"]')

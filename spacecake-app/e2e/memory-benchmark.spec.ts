@@ -327,6 +327,8 @@ test.describe("memory benchmark", () => {
     )
     for (const fileName of firstBatch) {
       await locateSidebarItem(page, fileName).click()
+      // python opens in source by default; toggle to rich to measure rich-mode overhead
+      await page.getByRole("link", { name: "switch to rich view" }).click()
       // wait for tree-sitter parsing + block rendering to complete
       await page.locator("[data-block-id]").first().waitFor({ timeout: 10_000 })
       await page.waitForTimeout(300)
@@ -351,6 +353,8 @@ test.describe("memory benchmark", () => {
     )
     for (const fileName of secondBatch) {
       await locateSidebarItem(page, fileName).click()
+      // python opens in source by default; toggle to rich to measure rich-mode overhead
+      await page.getByRole("link", { name: "switch to rich view" }).click()
       await page.locator("[data-block-id]").first().waitFor({ timeout: 10_000 })
       await page.waitForTimeout(300)
     }

@@ -3,7 +3,7 @@ import * as Effect from "effect/Effect"
 
 import { serializeFromCache } from "@/lib/editor"
 import { fnv1a64Hex } from "@/lib/hash"
-import { supportsRichView } from "@/lib/language-support"
+import { defaultView, supportsRichView } from "@/lib/language-support"
 import { fileTypeFromFileName } from "@/lib/workspace"
 import { PaneSelect } from "@/schema"
 import { EditorPrimaryKey } from "@/schema/editor"
@@ -33,7 +33,7 @@ const determineViewKind = (
 ): ViewKind => {
   if (targetViewKind) return targetViewKind
   if (isRight(maybeState)) return maybeState.value.viewKind
-  return supportsRichView(fileType) ? "rich" : "source"
+  return defaultView(fileType)
 }
 
 // diff is a transient overlay, not persisted to the editor table
@@ -147,7 +147,6 @@ export class EditorManager extends Effect.Service<EditorManager>()("EditorManage
 
         if (isRight(maybeFile)) {
           const fileType = fileTypeFromFileName(props.filePath)
-
           const viewKind = determineViewKind(props.targetViewKind, maybeState, fileType)
 
           const editor = yield* db.upsertEditor({

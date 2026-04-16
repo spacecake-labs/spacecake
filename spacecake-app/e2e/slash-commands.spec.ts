@@ -108,7 +108,8 @@ test.describe("slash commands e2e", () => {
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
 
-    // verify we're in rich view
+    // python opens in source by default; toggle to rich
+    await window.getByRole("link", { name: "switch to rich view" }).click()
     await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
 
     const moduleBlock = editor.locator('[data-block-id*="core.py-module"]')

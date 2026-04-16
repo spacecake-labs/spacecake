@@ -20,6 +20,8 @@ test("clean file, no conflict: external file change updates editor via watcher",
 
   // open the file
   await locateSidebarItem(window, "core.py").click()
+  // python opens in source by default; toggle to rich for block-id assertions
+  await window.getByRole("link", { name: "switch to rich view" }).click()
   await window.getByText("🐍").first().click()
 
   // ensure second block (class Person / dataclass label present) is visible
@@ -58,6 +60,8 @@ test("dirty file, external change, keep mine: dirty indicator remains and conten
 
   // open the file
   await locateSidebarItem(window, "core.py").click()
+  // python opens in source by default; toggle to rich for block-id assertions
+  await window.getByRole("link", { name: "switch to rich view" }).click()
 
   // click on the person-dataclass block to expand/show it
   const personBlock = window.locator('[data-block-id="person-dataclass"]').first()
@@ -118,6 +122,8 @@ test("dirty file, external change, keep theirs: file reloads with original conte
 
   // open the file
   await locateSidebarItem(window, "core.py").click()
+  // python opens in source by default; toggle to rich for block-id assertions
+  await window.getByRole("link", { name: "switch to rich view" }).click()
 
   // click on the person-dataclass block to expand/show it
   const personBlock = window.locator('[data-block-id="person-dataclass"]').first()

@@ -32,8 +32,7 @@ test.describe("quick open feature", () => {
     await window.keyboard.press("Enter")
     await expect(quickOpenInput).not.toBeVisible()
 
-    await expect(
-      window.getByRole("heading", { name: "A file to test block parsing." }),
-    ).toBeVisible()
+    // python opens in source by default; assert raw docstring text is visible
+    await expect(window.getByText("A file to test block parsing.").first()).toBeVisible()
   })
 })
