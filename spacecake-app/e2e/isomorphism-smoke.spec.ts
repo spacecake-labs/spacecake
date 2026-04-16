@@ -72,6 +72,9 @@ test.describe("isomorphism smoke tests", () => {
     await locateSidebarItem(window, "md.py").click()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
+    // python opens in source by default; toggle to rich to verify directive rendering
+    await window.getByRole("link", { name: "switch to rich view" }).click()
+
     // basic sanity check that content rendered
     await expect(
       window.getByRole("heading", {

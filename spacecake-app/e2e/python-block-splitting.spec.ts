@@ -24,6 +24,8 @@ def my_function():
 
     const editor = window.getByTestId("lexical-editor")
     await expect(editor).toBeVisible()
+    // python opens in source by default; toggle to rich for block splitting
+    await window.getByRole("link", { name: "switch to rich view" }).click()
     await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
     await expect(window.getByText("import os")).toBeVisible()
 

@@ -24,6 +24,9 @@ test.describe("python markdown directives e2e", () => {
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
+    // python opens in source by default; toggle to rich to render markdown directives
+    await window.getByRole("link", { name: "switch to rich view" }).click()
+
     // verify the markdown content is properly formatted
     // the header should be a proper heading element, not just text
     const headerElement = window.getByRole("heading", { name: "a header" }).first()
@@ -70,6 +73,9 @@ test.describe("python markdown directives e2e", () => {
     await locateSidebarItem(window, "md.py").click()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    // python opens in source by default; toggle to rich for code blocks
+    await window.getByRole("link", { name: "switch to rich view" }).click()
 
     // find the import code block
     const importBlock = window.locator('[data-block-id="anonymous-import"]')

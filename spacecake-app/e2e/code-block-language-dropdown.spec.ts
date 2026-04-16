@@ -66,8 +66,10 @@ test.describe("code block language dropdown e2e", () => {
     // =========================================================================
     await locateSidebarItem(window, "core.py").click()
 
-    await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
+    // python opens in source by default; toggle to rich for the language dropdown
+    await window.getByRole("link", { name: "switch to rich view" }).click()
+    await expect(window.getByRole("link", { name: "switch to source view" })).toBeVisible()
 
     const pythonLanguageSelect = window.locator('button[role="combobox"]').first()
     await expect(pythonLanguageSelect).toBeVisible()

@@ -30,6 +30,9 @@ test.describe("python e2e", () => {
     // explicitly wait for the lexical editor to be visible for the empty file
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
 
+    // python opens in source by default; toggle to rich to inspect the block toolbar
+    await window.getByRole("link", { name: "switch to rich view" }).click()
+
     // focus the code block toolbar and verify default code block type appears
     await window.getByText("🐍").first().click()
     await expect(window.getByText("file").first()).toBeVisible()
@@ -52,6 +55,9 @@ test.describe("python e2e", () => {
 
     // open the file
     await locateSidebarItem(window, "core.py").click()
+
+    // python opens in source by default; toggle to rich to inspect block rendering
+    await window.getByRole("link", { name: "switch to rich view" }).click()
 
     // verify module dosctring is parsed as markdown header
     await expect(
@@ -197,6 +203,8 @@ test.describe("python e2e", () => {
 
     // open core.py and verify python rich are visible
     await locateSidebarItem(window, "core.py").click()
+    // python opens in source by default; toggle to rich
+    await window.getByRole("link", { name: "switch to rich view" }).click()
     await window.getByText("🐍").first().click()
     await expect(window.getByText("import").first()).toBeVisible()
 
@@ -231,6 +239,8 @@ test.describe("python e2e", () => {
 
     // open core.py and verify python content
     await locateSidebarItem(window, "core.py").click()
+    // python opens in source by default; toggle to rich
+    await window.getByRole("link", { name: "switch to rich view" }).click()
     await window.getByText("🐍").first().click()
     await expect(window.getByText("import").first()).toBeVisible()
 
@@ -266,6 +276,9 @@ test.describe("python e2e", () => {
     await locateSidebarItem(window, "core.py").click()
 
     await expect(window.getByTestId("lexical-editor")).toBeVisible()
+
+    // python opens in source by default; toggle to rich for the block toolbar
+    await window.getByRole("link", { name: "switch to rich view" }).click()
 
     await window.getByText("🐍").first().click()
 

@@ -3,7 +3,7 @@ import { assertEvent, fromPromise, setup, type ActorRefFrom } from "xstate"
 
 import { removeFileStateAtom } from "@/lib/atoms/file-tree"
 import * as mutations from "@/lib/db/mutations"
-import { supportsRichView } from "@/lib/language-support"
+import { defaultView } from "@/lib/language-support"
 import { encodeBase64Url } from "@/lib/utils"
 import { fileTypeFromFileName } from "@/lib/workspace"
 import { router } from "@/router"
@@ -196,7 +196,7 @@ export const paneMachine = setup({
           viewKind = input.viewKind ?? existingEditor.value.view_kind
         } else {
           // Create new editor
-          viewKind = input.viewKind ?? (supportsRichView(fileType) ? "rich" : "source")
+          viewKind = input.viewKind ?? defaultView(fileType)
 
           const editor = await mutations.upsertEditor({
             pane_id: input.paneId,
