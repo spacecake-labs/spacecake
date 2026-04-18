@@ -1,5 +1,11 @@
 # spacecake-app
 
+## 0.1.0-alpha.71
+
+### Patch Changes
+
+- fa7f774: Perf: Reduce startup time.
+
 ## 0.1.0-alpha.70
 
 ### Patch Changes
