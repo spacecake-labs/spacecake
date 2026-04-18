@@ -120,6 +120,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("menu:action", listener)
     return () => ipcRenderer.removeListener("menu:action", listener)
   },
+  waitForMainReady: () => ipcRenderer.invoke("main:wait-for-ready"),
   isPlaywright: process.env.IS_PLAYWRIGHT === "true",
   // Database IPC
   db: {
@@ -196,6 +197,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     resolveConflict: (workspacePath: string, filePath: string) =>
       ipcRenderer.invoke("git:resolve-conflict", workspacePath, filePath),
     getRemoteUrl: (workspacePath: string) => ipcRenderer.invoke("git:remote-url", workspacePath),
+  },
+  perf: {
+    getMainMarks: (): Promise<{
+      marks: Array<{ name: string; startTime: number }>
+      timeOrigin: number
+    }> => ipcRenderer.invoke("perf:get-main-marks"),
   },
   exists: (path: string) => ipcRenderer.invoke("path-exists", path),
   createTerminal: (id: string, cols: number, rows: number, cwd?: string, surfaceId?: string) =>

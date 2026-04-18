@@ -45,6 +45,9 @@ e2e-repeat filter="" times="5":
 bench times="3":
     just _maybe_package && IS_PLAYWRIGHT=true pnpm exec playwright test --config=playwright.bench.config.ts --repeat-each={{times}}
 
+startup times="3":
+    just _maybe_package && IS_PLAYWRIGHT=true pnpm exec playwright test --config=playwright.bench.config.ts --grep="startup benchmark" --repeat-each={{times}}
+
 test:
     just unit && just e2e
 

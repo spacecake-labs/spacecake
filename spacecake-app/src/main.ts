@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
+import { performance } from "node:perf_hooks"
 
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
@@ -33,6 +34,8 @@ import { migratePgliteFromIdb } from "@/services/migration-idb"
 import { Migrations } from "@/services/migrations"
 import { ensureHomeFolderExists, SpacecakeHome } from "@/services/spacecake-home"
 import { setupUpdates } from "@/update"
+
+performance.mark("spacecake/mainModuleEval")
 
 const LEXICAL_DEVELOPER_TOOLS = "kgljmdocanfjckcgfpcpdoklodllfdpc"
 
@@ -243,6 +246,14 @@ ipcMain.handle("set-title-bar-overlay", (event, dark: boolean) => {
   win?.setTitleBarOverlay(getTitleBarOverlay(dark) as Electron.TitleBarOverlay)
 })
 
+ipcMain.handle("perf:get-main-marks", () => ({
+  marks: performance
+    .getEntriesByType("mark")
+    .filter((m) => m.name.startsWith("spacecake/"))
+    .map((m) => ({ name: m.name, startTime: Math.round(m.startTime) })),
+  timeOrigin: performance.timeOrigin,
+}))
+
 ipcMain.handle("menu:popup", (event, { x, y }: { x: number; y: number }) => {
   const win = BrowserWindow.fromWebContents(event.sender)
   const menu = Menu.getApplicationMenu()
@@ -251,12 +262,13 @@ ipcMain.handle("menu:popup", (event, { x, y }: { x: number; y: number }) => {
   }
 })
 
-const createWindow = () => {
-  const mainWindow = new BrowserWindow({
+const createWindow = (): BrowserWindow => {
+  performance.mark("spacecake/willCreateWindow")
+  const win = new BrowserWindow({
     icon: path.join(process.cwd(), "assets", "icon.png"),
     width: 800,
     height: 600,
-    show: !isTest || showWindow,
+    show: false,
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#0a0a0a" : "#ffffff",
     titleBarStyle: "hidden",
     titleBarOverlay: getTitleBarOverlay(nativeTheme.shouldUseDarkColors),
@@ -273,35 +285,39 @@ const createWindow = () => {
     },
   })
 
-  Menu.setApplicationMenu(buildAppMenu(mainWindow))
+  Menu.setApplicationMenu(buildAppMenu(win))
 
   windowCounter++
 
   // Intercept window.open calls and open URLs in external browser
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+  win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
     return { action: "deny" }
   })
 
-  mainWindow.once("closed", () => {
+  win.once("closed", () => {
     windowCounter--
     if (windowCounter === 0 && (process.platform !== "darwin" || quitRequested)) {
       fireOnWillShutdown()
     }
   })
 
-  if (!isTest || showWindow) {
-    mainWindow.maximize()
-  }
+  win.once("ready-to-show", () => {
+    if (!isTest || showWindow) {
+      win.show()
+      win.maximize()
+    }
+  })
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
+    win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
   } else {
-    mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`))
+    win.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`))
   }
+  performance.mark("spacecake/didCreateWindow")
 
   const cspString = buildCSPString(isDev ? "development" : "production")
-  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+  win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     if (details.url.startsWith("devtools://") || details.url.startsWith("chrome-extension://")) {
       callback({ responseHeaders: details.responseHeaders })
       return
@@ -315,22 +331,24 @@ const createWindow = () => {
     })
   })
 
-  mainWindow.webContents.on("context-menu", (_event, params) => {
+  win.webContents.on("context-menu", (_event, params) => {
     const menu = Menu.buildFromTemplate([
       { role: "copy", enabled: params.editFlags.canCopy },
       { role: "paste", enabled: params.editFlags.canPaste },
       { role: "selectAll", enabled: params.editFlags.canSelectAll },
     ])
-    menu.popup({ window: mainWindow })
+    menu.popup({ window: win })
   })
 
   if (isDev && (!isTest || showWindow)) {
     installExtension([REACT_DEVELOPER_TOOLS, LEXICAL_DEVELOPER_TOOLS])
       .then(([react, lexical]) => console.log(`added extensions: ${react.name}, ${lexical.name}`))
       .then(async () => await launchExtensionBackgroundWorkers())
-      .then(() => mainWindow.webContents.openDevTools())
+      .then(() => win.webContents.openDevTools())
       .catch((err) => console.log("an error occurred: ", err))
   }
+
+  return win
 }
 
 const SpacecakeHomeLive = SpacecakeHome.Default
@@ -356,7 +374,6 @@ function buildAppLive(
 const setupProgram = Effect.gen(function* () {
   yield* ensureHomeFolderExists
 
-  // run database migrations before creating window
   const migrations = yield* Migrations
   yield* migrations.apply
 
@@ -378,14 +395,6 @@ const setupProgram = Effect.gen(function* () {
   if (!isTest) {
     setupUpdates()
   }
-
-  createWindow()
-
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
-    }
-  })
 })
 
 /**
@@ -491,6 +500,7 @@ async function main() {
   })
 
   await app.whenReady()
+  performance.mark("spacecake/appReady")
 
   // proxy external resources through the main process to avoid CORB.
   // renderer rewrites https://host/path to spacecake-img://https/host/path
@@ -501,20 +511,54 @@ async function main() {
     return net.fetch(url, { bypassCustomProtocolHandlers: true })
   })
 
-  await fixPath()
+  // readiness gate: renderer awaits this promise before making IPC calls.
+  // registered before the window is created so it's available immediately.
+  let resolveMainReady: () => void
+  const mainReadyPromise = new Promise<void>((resolve) => {
+    resolveMainReady = resolve
+  })
+  ipcMain.handle("main:wait-for-ready", () => mainReadyPromise)
+
+  // start fixPath in the background — nothing in the setup phase needs $PATH
+  // (PGlite is WASM, IPC is handler registration, migrations are SQL).
+  // PATH is only needed when user triggers git/terminal/ripgrep after workspace loads.
+  performance.mark("spacecake/willFixPath")
+  const fixPathPromise = fixPath().then(() => performance.mark("spacecake/didFixPath"))
 
   // resolve the database layer (may run IndexedDB migration via hidden window)
+  performance.mark("spacecake/willResolveDb")
   const dbLayer = await resolveDatabaseLayer()
+  performance.mark("spacecake/didResolveDb")
+
+  // create the window early so the renderer parses its JS while the main
+  // process initializes Effect layers, PGlite, migrations, etc.
+  createWindow()
+
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow()
+    }
+  })
+
   const AppLive = buildAppLive(dbLayer)
   AppRuntime = ManagedRuntime.make(AppLive)
 
+  performance.mark("spacecake/willSetup")
   const exit = await AppRuntime!.runPromiseExit(setupProgram)
+  performance.mark("spacecake/didSetup")
 
   if (Exit.isFailure(exit)) {
     console.error("Lifecycle: App setup failed", exit.cause)
     await AppRuntime!.dispose()
     app.exit(1)
+    return
   }
+
+  // ensure fixPath completes before signaling renderer ready
+  await fixPathPromise
+
+  // signal the renderer that IPC handlers are registered and ready
+  resolveMainReady!()
 }
 
 main()
