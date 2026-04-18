@@ -112,6 +112,7 @@ export interface ElectronAPI {
   titlebarHeight: number
   popupMenu: (position: { x: number; y: number }) => Promise<void>
   onMenuAction: (handler: (action: MenuAction) => void) => () => void
+  waitForMainReady: () => Promise<void>
   isPlaywright: boolean
   platform: string
   checkWatchmanInstalled: () => Promise<boolean>

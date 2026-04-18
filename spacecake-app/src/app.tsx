@@ -14,11 +14,19 @@ import { initializeDatabase } from "@/lib/init-database"
 import { store } from "@/lib/store"
 import { router } from "@/router"
 
+performance.mark("spacecake/rendererStart")
+
 // connect IPC invalidation channel (routes mutations to TanStack Query cache invalidation)
 connectInvalidation()
 
+// wait for the main process to finish setup (IPC handlers, PGlite, migrations)
+// so that all ipcMain.handle() calls are registered before the renderer uses them
+await window.electronAPI.waitForMainReady()
+
 // initialize the database IPC proxy
+performance.mark("spacecake/willInitDb")
 const db = await initializeDatabase()
+performance.mark("spacecake/didInitDb")
 
 const rootElement = document.getElementById("root")!
 const root = ReactDOM.createRoot(rootElement)
@@ -63,6 +71,7 @@ function RootWithTheme() {
   )
 }
 
+performance.mark("spacecake/willRender")
 root.render(
   <QueryClientProvider client={queryClient}>
     <Provider store={store}>

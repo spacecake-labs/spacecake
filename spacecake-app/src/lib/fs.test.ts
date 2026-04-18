@@ -57,6 +57,7 @@ const createTestElectronAPI = (overrides: Partial<ElectronAPI> = {}): ElectronAP
   onMenuAction: () => () => {},
   setTitleBarOverlay: async () => {},
   titlebarHeight: 35,
+  waitForMainReady: async () => {},
   isPlaywright: false,
   platform: "test",
   checkWatchmanInstalled: async () => false,
