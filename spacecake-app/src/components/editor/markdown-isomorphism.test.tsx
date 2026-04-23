@@ -364,6 +364,78 @@ Check out [the docs](https://example.com/docs) for more info.`
         expect(result).toBe(text)
       })
 
+      it("basic callout should round-trip", async () => {
+        const text = `> [!note]
+> this is a note.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
+      it("callout with custom title should round-trip", async () => {
+        const text = `> [!warning] watch out
+> be careful here.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
+      it("foldable collapsed callout should round-trip", async () => {
+        const text = `> [!tip]-
+> hidden by default.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
+      it("foldable expanded callout should round-trip", async () => {
+        const text = `> [!tip]+ expanded title
+> open by default.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
+      it("callout followed by a paragraph should round-trip", async () => {
+        const text = `> [!info]
+> some info.
+
+continuing paragraph outside the callout.`
+
+        await act(async () => {
+          testEnv.editor.update(
+            () => $convertFromMarkdownString(text, MARKDOWN_TRANSFORMERS, undefined, true),
+            { discrete: true },
+          )
+        })
+        const result = serializeEditorToMarkdown(testEnv.editor.getEditorState())
+        expect(result).toBe(text)
+      })
+
       it("embed syntax ![[...]] should not be matched as a wikilink", async () => {
         const input = "here is an embed ![[my-note]] that should not match."
 

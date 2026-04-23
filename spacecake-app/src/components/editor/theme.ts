@@ -68,6 +68,7 @@ export const editorTheme: EditorThemeClasses = {
   //   ul: "m-0 p-0 list-outside",
   // },
   wikilink: "inline",
+  callout: "callout-node my-4 rounded-md border-l-[3px] px-4 py-3",
   hashtag: "text-blue-600 bg-blue-100 rounded-md px-1",
   text: {
     bold: "font-bold",

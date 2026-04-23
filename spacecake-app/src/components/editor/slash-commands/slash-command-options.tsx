@@ -16,6 +16,7 @@ import {
   LexicalEditor,
 } from "lexical"
 import {
+  AlertCircle,
   Code,
   FileText,
   Heading1,
@@ -28,6 +29,7 @@ import {
   Type,
 } from "lucide-react"
 
+import { $createCalloutNode } from "@/components/editor/nodes/callout-node"
 import { $createCodeBlockNode } from "@/components/editor/nodes/code-node"
 import {
   $createFrontmatterNode,
@@ -111,6 +113,25 @@ export function slashCommandOptions(
               insertBlockNode(codeNode, selection)
               selection.insertRawText(textContent)
             }
+          }
+        }),
+    }),
+    new SlashCommandOption("callout", {
+      icon: <AlertCircle className="w-4 h-4" />,
+      keywords: ["callout", "admonition", "alert", "note", "warning", "tip", "info"],
+      onSelect: () =>
+        editor.update(() => {
+          const selection = $getSelection()
+          if ($isRangeSelection(selection)) {
+            const callout = $createCalloutNode({
+              type: "note",
+              title: "",
+              foldable: false,
+              defaultOpen: true,
+            })
+            callout.append($createParagraphNode())
+            insertBlockNode(callout, selection)
+            callout.selectStart()
           }
         }),
     }),

@@ -7,6 +7,7 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text"
 import { TableCellNode, TableNode, TableRowNode } from "@lexical/table"
 import { Klass, LexicalNode, LexicalNodeReplacement, ParagraphNode, TextNode } from "lexical"
 
+import { CalloutNode } from "@/components/editor/nodes/callout-node"
 import { CodeBlockNode } from "@/components/editor/nodes/code-node"
 import { ContainerNode } from "@/components/editor/nodes/container-node"
 import { DiffBlockNode } from "@/components/editor/nodes/diff-node"
@@ -37,6 +38,7 @@ export const nodes: ReadonlyArray<Klass<LexicalNode> | LexicalNodeReplacement> =
   AutoLinkNode,
   ImageNode,
   InlineImageNode,
+  CalloutNode,
   ContainerNode,
   FrontmatterNode,
   HTMLBlockNode,
