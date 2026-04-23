@@ -2,7 +2,7 @@ import { $isHeadingNode } from "@lexical/rich-text"
 import { $getRoot, type LexicalEditor } from "lexical"
 
 /**
- * normalize a heading text to an obsidian-style anchor slug.
+ * normalize a heading text to an anchor slug.
  * - lowercase
  * - replace spaces with hyphens
  * - strip characters that are not alphanumeric, hyphens, or underscores

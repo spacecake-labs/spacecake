@@ -106,6 +106,17 @@ links with a protocol (`https://`, `mailto:`, etc.) open externally as usual. li
 
 **wikilinks vs markdown links:** wikilinks (`[[file]]`) match by filename using shortest-path resolution. markdown links (`[text](path)`) resolve relative to the current file. use whichever style you prefer.
 
+## callouts
+
+highlight notes, tips, warnings, and other admonitions with callouts:
+
+```markdown
+> [!tip]
+> type `/callout` to insert one, or see [callouts](/callouts) for the full list of types.
+```
+
+13 canonical types are supported (`note`, `tip`, `warning`, `danger`, etc.) plus aliases, custom titles, foldable variants, and nested bodies. see [callouts](/callouts) for details.
+
 ## rich mode vs source mode
 
 toggle between rich mode (WYSIWYG) and source mode using the view toggle button in the toolbar.

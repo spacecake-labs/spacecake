@@ -1,0 +1,118 @@
+---
+title: callouts
+description: Callouts for notes, tips, warnings, and other admonitions.
+---
+
+callouts are styled blocks that highlight important content — notes, tips, warnings, and other admonitions.
+
+## syntax
+
+a callout is a blockquote whose first line starts with `[!type]`:
+
+```markdown
+> [!note]
+> default note callout, no title.
+```
+
+the type determines the color, icon, and default title. the body can contain any markdown — paragraphs, lists, code blocks, even other callouts.
+
+## types
+
+there are 13 canonical types. each has a distinct color and icon.
+
+| type       | use for                          |
+| ---------- | -------------------------------- |
+| `note`     | general annotations              |
+| `abstract` | summaries or overviews           |
+| `info`     | neutral informational content    |
+| `todo`     | outstanding work                 |
+| `tip`      | helpful suggestions              |
+| `success`  | confirmations or completed steps |
+| `question` | open questions or FAQs           |
+| `warning`  | content requiring caution        |
+| `failure`  | things that went wrong           |
+| `danger`   | high-severity risks              |
+| `bug`      | known issues                     |
+| `example`  | worked examples                  |
+| `quote`    | quotations                       |
+
+type names are case-insensitive — `[!NOTE]`, `[!Note]`, and `[!note]` all behave the same. unknown types fall back to `note` styling.
+
+## aliases
+
+several common alternate names are recognized and render as their canonical type:
+
+| alias                  | canonical  |
+| ---------------------- | ---------- |
+| `summary`, `tldr`      | `abstract` |
+| `hint`, `important`    | `tip`      |
+| `check`, `done`        | `success`  |
+| `help`, `faq`          | `question` |
+| `caution`, `attention` | `warning`  |
+| `fail`, `missing`      | `failure`  |
+| `error`                | `danger`   |
+| `cite`                 | `quote`    |
+
+## custom titles
+
+add a title on the same line as the type:
+
+```markdown
+> [!warning] watch out!
+> this operation cannot be undone.
+```
+
+when no title is given, the type name is used with the first letter capitalized.
+
+## foldable callouts
+
+append `+` or `-` to the type to make the callout foldable:
+
+- `[!tip]+` — foldable, expanded by default
+- `[!warning]-` — foldable, collapsed by default
+
+```markdown
+> [!info]- click to expand
+> hidden by default. click the chevron in the header to reveal.
+```
+
+fold state is session-only — it resets when you reopen the file.
+
+## rich body content
+
+callout bodies accept the full range of markdown:
+
+````markdown
+> [!example] with a list
+> here are some items:
+>
+> - first item
+> - second item
+> - third item
+
+> [!tip] with inline formatting
+> supports **bold**, _italic_, `inline code`, and [links](https://example.com).
+
+> [!info] with a code block
+>
+> ```ts
+> function greet(name: string): string {
+>   return `hello, ${name}`
+> }
+> ```
+````
+
+## nested callouts
+
+callouts can be nested by increasing the blockquote depth:
+
+```markdown
+> [!question] can callouts be nested?
+>
+> > [!success] yes, they can.
+> > and you can nest further if you need to.
+```
+
+## inserting a callout
+
+type `/callout` in the editor to insert a `note` callout at the cursor. keywords `admonition`, `alert`, `note`, `warning`, `tip`, and `info` all match the same command. once inserted, edit the type by changing the `[!type]` marker in source mode, or re-type the opening line in rich mode.

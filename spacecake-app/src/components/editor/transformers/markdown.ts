@@ -34,6 +34,11 @@ import {
   LexicalNode,
 } from "lexical"
 
+import {
+  $createCalloutNode,
+  $isCalloutNode,
+  CalloutNode,
+} from "@/components/editor/nodes/callout-node"
 import { $createCodeBlockNode, $isCodeBlockNode } from "@/components/editor/nodes/code-node"
 import { delimitedNode } from "@/components/editor/nodes/delimited-node"
 import {
@@ -53,6 +58,7 @@ import {
   $isWikiLinkNode,
   WikiLinkNode,
 } from "@/components/editor/nodes/wikilink-node"
+import { normalizeCalloutType } from "@/lib/callout-types"
 import { delimitWithSpaceConsumer } from "@/lib/parser/delimit"
 
 export function createCodeTransformer(): MultilineElementTransformer {
@@ -168,6 +174,66 @@ export function createCodeTransformer(): MultilineElementTransformer {
           }, 0),
         )
       }
+    },
+  }
+}
+
+// callouts: `> [!type] title` blockquotes, optional `+`/`-` fold modifier.
+// import: collects consecutive `>`-prefixed lines ourselves (the built-in regExpEnd
+// logic would consume the first non-`>` line). body is re-parsed via $convertFromMarkdownString
+// which handles nested callouts via recursion.
+const CALLOUT_START_REGEX = /^>\s?\[!(\w+)\]([+-]?)\s*(.*)$/i
+const BLOCKQUOTE_LINE_REGEX = /^>/
+const BLOCKQUOTE_PREFIX_REGEX = /^>\s?/
+
+export function createCalloutTransformer(): MultilineElementTransformer {
+  return {
+    dependencies: [CalloutNode],
+    type: "multiline-element",
+    regExpStart: CALLOUT_START_REGEX,
+    handleImportAfterStartMatch: ({ lines, rootNode, startLineIndex, startMatch }) => {
+      let endIdx = startLineIndex
+      while (endIdx + 1 < lines.length && BLOCKQUOTE_LINE_REGEX.test(lines[endIdx + 1])) {
+        endIdx++
+      }
+
+      const [, rawType, foldMarker, rawTitle] = startMatch
+      const type = normalizeCalloutType(rawType)
+      const callout = $createCalloutNode({
+        type,
+        title: rawTitle.trim(),
+        foldable: foldMarker === "+" || foldMarker === "-",
+        defaultOpen: foldMarker !== "-",
+      })
+
+      const bodyLines = lines.slice(startLineIndex + 1, endIdx + 1)
+      const bodyMd = bodyLines.map((l) => l.replace(BLOCKQUOTE_PREFIX_REGEX, "")).join("\n")
+      if (bodyMd.length > 0) {
+        $convertFromMarkdownString(bodyMd, MARKDOWN_TRANSFORMERS, callout, true)
+      }
+
+      if (!rootNode.getParent()) {
+        rootNode.append(callout)
+      } else {
+        rootNode.replace(callout)
+      }
+
+      return [true, endIdx]
+    },
+    // replace is required by the type but never called when handleImportAfterStartMatch
+    // returns a truthy tuple.
+    replace: () => false,
+    export: (node) => {
+      if (!$isCalloutNode(node)) return null
+      const fold = node.getFoldable() ? (node.getDefaultOpen() ? "+" : "-") : ""
+      const title = node.getTitle()
+      const header = `> [!${node.getCalloutType()}]${fold}${title ? ` ${title}` : ""}`
+      const body = $convertToMarkdownString(MARKDOWN_TRANSFORMERS, node, true)
+      if (!body) {
+        return header
+      }
+      const bodyLines = body.split("\n").map((l) => (l.length > 0 ? `> ${l}` : ">"))
+      return [header, ...bodyLines].join("\n")
     },
   }
 }
@@ -610,6 +676,7 @@ export const MARKDOWN_TRANSFORMERS = [
   createFrontmatterTransformer(), // Must be first to check position before other transformers
   createHtmlBlockTransformer(),
   createHtmlBlockType7Transformer(),
+  createCalloutTransformer(), // before ELEMENT_TRANSFORMERS so it pre-empts QUOTE for `> [!...]`
   TABLE,
   CHECK_LIST,
   ...ELEMENT_TRANSFORMERS,
