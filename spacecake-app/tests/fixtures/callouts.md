@@ -1,6 +1,6 @@
 # callouts fixture
 
-visual test file for obsidian-style callouts. each canonical type + alias + edge case.
+visual test file for callouts. each canonical type + alias + edge case.
 
 ## canonical types (all 13)
 

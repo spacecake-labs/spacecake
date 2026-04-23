@@ -33,7 +33,7 @@ export function normalizeFileName(name: string): string {
 }
 
 /**
- * resolve a wikilink target string to an absolute file path using obsidian's
+ * resolve a wikilink target string to an absolute file path using
  * "shortest unique path" matching: match by filename (case-insensitive),
  * preferring the shortest path when multiple files share the same name.
  *

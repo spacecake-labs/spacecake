@@ -24,9 +24,9 @@ export type SerializedCalloutNode = Spread<
 // title/type edits) without entering serialized state. cleared on reload.
 const foldStateByKey = new Map<NodeKey, boolean>()
 
-// block container for obsidian-style callouts: `> [!type] title` blockquotes.
+// block container for callouts: `> [!type] title` blockquotes.
 // renders as a styled box with an icon header; the body is editable lexical children.
-// fold state (data-fold attribute) is session-only, not persisted — matches obsidian.
+// fold state (data-fold attribute) is session-only, not persisted.
 export class CalloutNode extends ElementNode {
   __calloutType: CalloutType
   __title: string

@@ -1,4 +1,4 @@
-/* obsidian-style callouts. per-type color + icon via css custom properties on [data-callout] selectors.
+/* per-type color + icon via css custom properties on [data-callout] selectors.
    icons are lucide svg paths consumed as mask-image so they inherit the callout color. */
 
 .callout-node {

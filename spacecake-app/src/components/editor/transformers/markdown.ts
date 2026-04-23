@@ -178,7 +178,7 @@ export function createCodeTransformer(): MultilineElementTransformer {
   }
 }
 
-// obsidian-style callouts: `> [!type] title` blockquotes, optional `+`/`-` fold modifier.
+// callouts: `> [!type] title` blockquotes, optional `+`/`-` fold modifier.
 // import: collects consecutive `>`-prefixed lines ourselves (the built-in regExpEnd
 // logic would consume the first non-`>` line). body is re-parsed via $convertFromMarkdownString
 // which handles nested callouts via recursion.
