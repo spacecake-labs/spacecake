@@ -183,6 +183,8 @@ export function createCodeTransformer(): MultilineElementTransformer {
 // logic would consume the first non-`>` line). body is re-parsed via $convertFromMarkdownString
 // which handles nested callouts via recursion.
 const CALLOUT_START_REGEX = /^>\s?\[!(\w+)\]([+-]?)\s*(.*)$/i
+const BLOCKQUOTE_LINE_REGEX = /^>/
+const BLOCKQUOTE_PREFIX_REGEX = /^>\s?/
 
 export function createCalloutTransformer(): MultilineElementTransformer {
   return {
@@ -191,7 +193,7 @@ export function createCalloutTransformer(): MultilineElementTransformer {
     regExpStart: CALLOUT_START_REGEX,
     handleImportAfterStartMatch: ({ lines, rootNode, startLineIndex, startMatch }) => {
       let endIdx = startLineIndex
-      while (endIdx + 1 < lines.length && /^>/.test(lines[endIdx + 1])) {
+      while (endIdx + 1 < lines.length && BLOCKQUOTE_LINE_REGEX.test(lines[endIdx + 1])) {
         endIdx++
       }
 
@@ -205,7 +207,7 @@ export function createCalloutTransformer(): MultilineElementTransformer {
       })
 
       const bodyLines = lines.slice(startLineIndex + 1, endIdx + 1)
-      const bodyMd = bodyLines.map((l) => l.replace(/^>\s?/, "")).join("\n")
+      const bodyMd = bodyLines.map((l) => l.replace(BLOCKQUOTE_PREFIX_REGEX, "")).join("\n")
       if (bodyMd.length > 0) {
         $convertFromMarkdownString(bodyMd, MARKDOWN_TRANSFORMERS, callout, true)
       }

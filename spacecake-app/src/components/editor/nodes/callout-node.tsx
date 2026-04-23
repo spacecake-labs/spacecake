@@ -20,6 +20,10 @@ export type SerializedCalloutNode = Spread<
   SerializedElementNode
 >
 
+// session-scoped fold state, keyed by NodeKey. survives DOM rebuilds (e.g. on
+// title/type edits) without entering serialized state. cleared on reload.
+const foldStateByKey = new Map<NodeKey, boolean>()
+
 // block container for obsidian-style callouts: `> [!type] title` blockquotes.
 // renders as a styled box with an icon header; the body is editable lexical children.
 // fold state (data-fold attribute) is session-only, not persisted — matches obsidian.
@@ -63,7 +67,9 @@ export class CalloutNode extends ElementNode {
     if (themeClass) wrapper.className = themeClass
     wrapper.setAttribute("data-callout", this.__calloutType)
     if (this.__foldable) {
-      wrapper.setAttribute("data-fold", this.__defaultOpen ? "open" : "closed")
+      const stored = foldStateByKey.get(this.__key)
+      const open = stored !== undefined ? stored : this.__defaultOpen
+      wrapper.setAttribute("data-fold", open ? "open" : "closed")
     }
 
     const header = document.createElement("div")
@@ -83,9 +89,11 @@ export class CalloutNode extends ElementNode {
       const chevron = document.createElement("span")
       chevron.className = "callout-fold-chevron"
       header.appendChild(chevron)
+      const key = this.__key
       header.addEventListener("click", () => {
-        const current = wrapper.getAttribute("data-fold")
-        wrapper.setAttribute("data-fold", current === "closed" ? "open" : "closed")
+        const nextOpen = wrapper.getAttribute("data-fold") === "closed"
+        wrapper.setAttribute("data-fold", nextOpen ? "open" : "closed")
+        foldStateByKey.set(key, nextOpen)
       })
     }
 
