@@ -121,6 +121,9 @@ importers:
       '@parcel/watcher':
         specifier: ^2.5.6
         version: 2.5.6
+      '@pierre/vscode-icons':
+        specifier: ^0.0.7
+        version: 0.0.7
       '@radix-ui/react-avatar':
         specifier: ^1.1.11
         version: 1.1.11(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -2310,6 +2313,10 @@ packages:
   '@parcel/watcher@2.5.6':
     resolution: {integrity: sha512-tmmZ3lQxAe/k/+rNnXQRawJ4NjxO2hqiOLTHvWchtGZULp4RyFeh6aU4XdOYBFe2KE1oShQTv4AblOs2iOrNnQ==}
     engines: {node: '>= 10.0.0'}
+
+  '@pierre/vscode-icons@0.0.7':
+    resolution: {integrity: sha512-mBwKgEUFKH6HtBMUuouor2CMWcY+EwVCkXKYHN5BehjbnUbAuqi9LVhq9xWpn6odZ4m3UgpDhjB/H8p8dWSugg==}
+    engines: {vscode: ^1.90.0}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -9514,6 +9521,8 @@ snapshots:
       '@parcel/watcher-win32-arm64': 2.5.6
       '@parcel/watcher-win32-ia32': 2.5.6
       '@parcel/watcher-win32-x64': 2.5.6
+
+  '@pierre/vscode-icons@0.0.7': {}
 
   '@pkgjs/parseargs@0.11.0':
     optional: true

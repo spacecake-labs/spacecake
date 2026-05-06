@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { ChevronRight, Loader2, Plus, X } from "lucide-react"
+import { BookMarked, ChevronRight, Folder as FolderIcon, Loader2, Plus, X } from "lucide-react"
 import { useEffect, useRef } from "react"
 import * as React from "react"
 
@@ -30,9 +30,9 @@ import {
 } from "@/lib/atoms/atoms"
 import type { FlatFileTreeItem } from "@/lib/atoms/file-tree"
 import { getFileStateAtom, hasFileStateAtom } from "@/lib/atoms/file-tree"
+import { FileIcon } from "@/lib/file-icon"
 import { supportedViews } from "@/lib/language-support"
 import { cn, encodeBase64Url, toRelativePath } from "@/lib/utils"
-import { getNavItemIcon } from "@/lib/workspace"
 import { AbsolutePath, File, Folder, WorkspaceInfo } from "@/types/workspace"
 
 // Component for the rename input field
@@ -273,7 +273,6 @@ function FileRowLinkWithState({
   const editorId = cacheEntry?.editorId ?? undefined
   const cached = cacheMap.has(item.path)
 
-  const Icon = getNavItemIcon(item)
   const iconClass =
     state === "Dirty" ? "text-warning" : state === "Conflict" ? "text-destructive" : ""
 
@@ -290,7 +289,7 @@ function FileRowLinkWithState({
       draggable={false}
     >
       <SidebarMenuButton isActive={isSelected} className="cursor-pointer">
-        <Icon className={iconClass} />
+        <FileIcon fileName={item.name} className={iconClass} />
         <span className="truncate">{item.name}</span>
         {cached && state === "ExternalChange" && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
       </SidebarMenuButton>
@@ -320,8 +319,6 @@ function FileRowLinkClean({
   const view = cacheEntry?.view_kind ?? (canToggleViews ? undefined : "source")
   const editorId = cacheEntry?.editorId ?? undefined
 
-  const Icon = getNavItemIcon(item)
-
   return (
     <Link
       to="/w/$workspaceId/f/$filePath"
@@ -335,7 +332,7 @@ function FileRowLinkClean({
       draggable={false}
     >
       <SidebarMenuButton isActive={isSelected} className="cursor-pointer">
-        <Icon />
+        <FileIcon fileName={item.name} />
         <span className="truncate">{item.name}</span>
       </SidebarMenuButton>
     </Link>
@@ -607,7 +604,7 @@ export const TreeRow = React.memo(function TreeRow({
             className="cursor-pointer"
           >
             <ChevronRight className={`transition-transform ${isExpanded ? "rotate-90" : ""}`} />
-            {React.createElement(getNavItemIcon(item))}
+            {isSystemFolder ? <BookMarked /> : <FolderIcon />}
             <span className="truncate">{item.name}</span>
           </SidebarMenuButton>
         )}
