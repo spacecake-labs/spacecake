@@ -4,6 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  color-scheme: light;
   /* preserved for future use */
   --terracotta: oklch(0.6963 0.0866 40.28);
   --terracotta-foreground: oklch(0.985 0 0);
@@ -46,6 +47,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.145 0 0);

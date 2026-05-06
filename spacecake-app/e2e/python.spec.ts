@@ -34,7 +34,7 @@ test.describe("python e2e", () => {
     await window.getByRole("link", { name: "switch to rich view" }).click()
 
     // focus the code block toolbar and verify default code block type appears
-    await window.getByText("🐍").first().click()
+    await window.getByTestId("block-language-icon").first().click()
     await expect(window.getByText("file").first()).toBeVisible()
 
     // file is created at workspace root (no tree item was clicked before creation)
@@ -67,7 +67,7 @@ test.describe("python e2e", () => {
     ).toBeVisible()
 
     // verify rich are present via toolbar and labels
-    await window.getByText("🐍").first().click()
+    await window.getByTestId("block-language-icon").first().click()
     await expect(window.getByText("import").first()).toBeVisible()
     await expect(window.getByText("Person").first()).toBeVisible()
     await expect(window.getByText("dataclass").first()).toBeVisible()
@@ -205,7 +205,7 @@ test.describe("python e2e", () => {
     await locateSidebarItem(window, "core.py").click()
     // python opens in source by default; toggle to rich
     await window.getByRole("link", { name: "switch to rich view" }).click()
-    await window.getByText("🐍").first().click()
+    await window.getByTestId("block-language-icon").first().click()
     await expect(window.getByText("import").first()).toBeVisible()
 
     // switch to empty.py and verify default toolbar state
@@ -241,7 +241,7 @@ test.describe("python e2e", () => {
     await locateSidebarItem(window, "core.py").click()
     // python opens in source by default; toggle to rich
     await window.getByRole("link", { name: "switch to rich view" }).click()
-    await window.getByText("🐍").first().click()
+    await window.getByTestId("block-language-icon").first().click()
     await expect(window.getByText("import").first()).toBeVisible()
 
     // expand nested folder and open empty.py
@@ -280,7 +280,7 @@ test.describe("python e2e", () => {
     // python opens in source by default; toggle to rich for the block toolbar
     await window.getByRole("link", { name: "switch to rich view" }).click()
 
-    await window.getByText("🐍").first().click()
+    await window.getByTestId("block-language-icon").first().click()
 
     // focus import block editor content and add a misc line after two Enters
     const importBlock = window.locator('[data-block-id="anonymous-import"]').first()

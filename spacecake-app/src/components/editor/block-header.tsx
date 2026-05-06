@@ -40,7 +40,11 @@ export function BlockHeader({
       )}
     >
       <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-        {emoji && <span className="text-sm shrink-0">{emoji}</span>}
+        {emoji && (
+          <span className="text-sm shrink-0" data-testid="block-language-icon">
+            {emoji}
+          </span>
+        )}
         <h3 className="font-semibold text-foreground text-sm leading-tight truncate">
           {titleElement}
         </h3>

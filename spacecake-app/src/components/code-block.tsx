@@ -11,10 +11,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useRoute } from "@/hooks/use-route"
+import { FileIconForLanguage } from "@/lib/file-icon"
 import { blockId } from "@/lib/parser/block-id"
 import { delimitPythonDocString } from "@/lib/parser/python/utils"
 import { cn } from "@/lib/utils"
-import { fileTypeEmoji, fileTypeFromLanguage } from "@/lib/workspace"
 import type { LanguageSpec } from "@/types/language"
 import { LANGUAGE_SUPPORT } from "@/types/language"
 import type { BlockMeta } from "@/types/parser"
@@ -98,7 +98,7 @@ export function CodeBlock({
       data-block-id={dataBlockId}
     >
       <BlockHeader
-        emoji={language && fileTypeEmoji(fileTypeFromLanguage(language))}
+        emoji={language && <FileIconForLanguage language={language} />}
         title={title}
         badge={badgeValue}
         rightActions={languageSelector}

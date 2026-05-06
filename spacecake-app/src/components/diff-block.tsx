@@ -2,8 +2,8 @@ import React from "react"
 
 import { BlockHeader } from "@/components/editor/block-header"
 import { DiffEditor } from "@/components/editor/plugins/diff-editor"
+import { FileIcon } from "@/lib/file-icon"
 import { cn } from "@/lib/utils"
-import { fileTypeEmoji, fileTypeFromExtension } from "@/lib/workspace"
 
 interface DiffBlockProps {
   oldContent: string
@@ -51,8 +51,6 @@ export function DiffBlock({
   className,
 }: DiffBlockProps) {
   const fileName = filePath.split("/").pop() ?? filePath
-  const fileType = fileTypeFromExtension(language)
-  const emoji = fileTypeEmoji(fileType)
   const { added, removed } = calculateDiffStats(oldContent, newContent)
 
   const rightActions = (
@@ -71,7 +69,7 @@ export function DiffBlock({
       )}
     >
       <BlockHeader
-        emoji={emoji}
+        emoji={<FileIcon fileName={fileName} />}
         title=""
         badge={fileName}
         rightActions={rightActions}

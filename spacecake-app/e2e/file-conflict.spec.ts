@@ -22,7 +22,7 @@ test("clean file, no conflict: external file change updates editor via watcher",
   await locateSidebarItem(window, "core.py").click()
   // python opens in source by default; toggle to rich for block-id assertions
   await window.getByRole("link", { name: "switch to rich view" }).click()
-  await window.getByText("🐍").first().click()
+  await window.getByTestId("block-language-icon").first().click()
 
   // ensure second block (class Person / dataclass label present) is visible
   await expect(window.getByText("Person").first()).toBeVisible()

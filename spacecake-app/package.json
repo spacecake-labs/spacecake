@@ -66,6 +66,7 @@
     "@lezer/lr": "^1.4.8",
     "@lydell/node-pty": "1.1.0",
     "@parcel/watcher": "^2.5.6",
+    "@pierre/vscode-icons": "^0.0.7",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-context-menu": "^2.2.16",
